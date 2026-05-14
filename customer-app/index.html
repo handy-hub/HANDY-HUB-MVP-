@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HandyHub</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app">
+   <nav class="profile-card">
+   <div class="menu-wrapper">
+    <!-- Clean Menu (Hamburger) Icon -->
+    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" xmlns="http://w3.org">
+        <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+
+
+
+</div>
+
+
+    <div class="profile-info">
+        <h2 class="name">GOOD EVENING</h2>
+        <p class="location">ACCRA, GHANA</p>
+    </div>
+
+    <button class="notification-wrapper-button">
+            <div class="notification-wrapper">
+        <svg class="notification-icon" viewBox="0 0 24 24" fill="none" xmlns="http://w3.org">
+            <path d="M12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22ZM18 16V11C18 7.93 16.37 5.36 13.5 4.68V4C13.5 3.17 12.83 2.5 12 2.5C11.17 2.5 10.5 3.17 10.5 4V4.68C7.64 5.36 6 7.92 6 11V16L4 18V19H20V18L18 16Z" fill="currentColor"/>
+        </svg>
+        <span class="notification-badge"></span>
+    </div>
+    </button>
+   
+
+</nav>
+   <!-- Sidebar -->
+   <div id="sidebar" class="sidebar">
+       <div class="sidebar-header">
+           <h2>Menu</h2>
+           <button id="close-sidebar" class="close-btn">&times;</button>
+       </div>
+       <ul class="sidebar-menu">
+           <li><a href="#">Home</a></li>
+           <li><a href="#">Services</a></li>
+           <li><a href="#">Bookings</a></li>
+           <li><a href="#">Profile</a></li>
+           <li><a href="#">Settings</a></li>
+           <li><a href="#">Help</a></li>
+           <li><a href="#" id="logout-link">Logout</a></li>
+       </ul>
+   </div>
+
+   <!-- Overlay for sidebar -->
+   <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+       <section class="search">
+    <!-- Main Search Icon -->
+    <img class="search-icon"
+        src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAADBElEQVR4nO1Zu25TQRAdCqClgaAABfAJFAnPX0CCgEKMFAEfgBSCsJAIdHF+AIkKUiChKAUQRA0JDY/8AQ0tocr19T0zISwaPCutImTiePc6Nj7Sla/8OLPHs7M7ey7RAAPsPtTr9cPMfBPAPIBVAD8AiF1rAL7oZ8x8I8uyIdptEJELzLwEYIOZ3XYu++5rETnf7fFTURQnmfltMLifAN4DmBKRkSzLDjnn9uql9yIyCuAOgGX9biDsTVEUJ7oigpkrADITkDPzrHPu4HZ/r8KYuQagYRzrzHyNygSAmSALL/I8P7JTrjzPjzLzQsD3gMoAMz+ygL/03jm3JwYvgNsANksRw8wVC7QJYCwB/xUvhpnHKVVhBzVxL0mQZmaqvmaKojgePYBfnbQmKCF0qgY1s5Rin1ARjUajcYwSQxcPWwmdiJyLRqz/jP1Ds9FI/x2zZjFfRWs7dBfWDaydfaJT6D6D5gYret8xITPfsmn1jkoGgBXLymQMsnkTMhVldO3FnrbYT2OQrVrRjVDJEJEzJuRTx2TaiitZmfXhkWXZkAn53jEZADYh+6hkOOf2mxD0i5D1vphazPw1ZrGPUskQkbOWkZV+WX6fdEymZoKRLVPJAPDBYl+KMk99ixKlVWi/Rdlwzh2IQqpuhxVdLQrh9mLOWcyFaKQictpSXHShjT8VlTxo5RdindNbHKwWLdbL6AH02GmWjWamSokA4L7FWMvzfDhJEPWdvPmgRkEC/quBk3KRUkKtmsBJqcaYZsqhmQhE6GuFUsOL8TWjJttOuXTxCGoi9IbVUp2g1FDfKagZtT1r7ewzZpnO6UroG8MtfrAXk95G1QUgWM28ia0G9bQeinQz1a5ZL73X9wDc1d4pHLTZrsOaga6JUahlo25Hm48VGMDzrc1oCzHjVBZsukwCeAbgsz3cYdvcvgH4COCxDqrVsUAz0HUxkX3gjb+IuU59JKZCvQbuJzEAxv4HMRPUo2JkIKZHFoAZ6kUAuOwzA+Ah9TLQnGblPM4eYAD6g9+rQKODYYissAAAAABJRU5ErkJggg=="
+        alt="search">
+    <!-- Input Field -->
+    <input type="text" id="dynamic-search" placeholder="AI Assisted Search...">
+</section>
+
+<!-- The container for your search.html content -->
+<div id="search-container" style="display: none;"></div>
+        <section class="categories">
+            <ul>
+                <li>
+                    <button class="cat-btn">
+                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAACH0lEQVR4nO1WPWtVQRA9Zy7YxK9S7UwglYVfjVZqJdpIwPyIgHrf7g1pog8sDdYqKQNpRBFSqj9AjZ0aK8FWbfxATKGRs29ueIQXH/fd+56IGVjYnZ2zc2buzN4FduRflhwY1/grzmeA3dH4SkPzUftnIO9H44aG5tKNzHs0XHXnX31sSDca58CRaPwejb+iYTpkuNSZ80cAjg3b+Vg0rqWIyYVNPXnbM7Imm+ERIBfd0Wob2FXqNQ/Gl05scSjOWxnOp4IzfgvA5NZ96bQnG9k26jwCY8H4rl+xFYbcSb6fBfY0R4Bc8NQ/uwxk29lpTzbemreacQ4cVoWnSgdO9LPPgZNlVwhbnwC55MW1XAGz7JilWs4L4EAwrgfjzwKYqICbEEZYnTEwgWiY90hWKmPJFS/a+RoE+CIdkmGqMjbDlHfE84EJBO/rHDhYFavUl/dGHQJfdEjZ013rQ/2wV4C93rqf6xB4q0MK4Ghak0/9u871w84Cx53Am4EJRPJeJ424ntYZLnpa10XiT5kIhrZfSHcGJ5DhnEfxQSl1UjfLh4hGL9w1YH8wfko2wBnUkeBpD+SDNmDStTJciOQT1cRWe9kE8pFjHqOuFJ1LJUUTyIdzwL7tbFPk7jwaPzZyFUsCcHozpTrYcENFpseoOkT/CH3zbpsCOIUmJQfGlfbu799rKO2NRd5LWhnORvKu2qt8lAbj66SrW3A78l/Kb6j72kfrWfpKAAAAAElFTkSuQmCC" alt="water">
+                        <span>Fix leaking pipe</span>
+                    </button>
+                </li>
+                
+                <li>
+                    <button class="cat-btn">
+                       <img src="data:image/png;base64,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" alt="fan">
+                        <span>Install Fan</span>
+                    </button>
+                </li>
+
+                <li>
+                    <button class="cat-btn">
+                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAADvElEQVR4nO2aW4gdRRCGv6pRIxEUL6goEryDolEUVMR4QcUH8UHJg0+iBIXIJjtVZ0lEyEEU8UkEUfDFICiaSIggBHzzRTGgIIIXxJBA8BaJlwQ3im5WOnvOpmYye4yu4KTnfDBwmG6aUz39/11TPTBmzJgxLcBhmcM1gNA1DK42lQOuMuvKBrpEH9RU3p8LXmZdZCNdwpRV88HPrYCSrlDCaa6ypzIBsIKu4CIvVZ++HFwHp9AFJuFaU5mJE2AqX9AV43OV7bWnnwzwVbqAK6uPCL4rBuhwpqn82DgBXTBAF9kYNP9tMr7B75kJOJmc6cGNw4APBS3yZGcMsA/HucrHIfh3YhJkIq+RM66UQe+/TcGlLvLi4RWQXgkypQdnm8rP4Wk/ke5XtsKcDdBEXg9a39WHpQNJTGefATqsqBhfwd3pfgnLszfAPpzgKp+FTG/rsM2Uh7I3QFfWBeObdjh/2GYiL2RtgAbnucr+kOY+VmlX+SBrAzSRLUHjX07AkmHbSihM5ddsDbBXcGfM8cuCuyrtcGW2BjgBS1JQwfjeqPdx5cFsDdCVDeHp7ivh3HofE3k+SwN0WBa0vWBwsQpcws3kgou8HbT/Scr26n1qBjjrBff2Cm5f6JqEyzkWsIJ7YnFzCm5q6pcCaq4GLXyZJmtpMX1Y6io7g/G9MuoU6J9OQKoe02Zc5Knwh39KZa9R/ZM3uMjmha5knmG8/QaX0FZKuCi934eMb/Wixiu4r1YofYA2YyLbwrb3UTK5RabPe0OOsIk2YwUrQ/AzJVz/b8ca1AfeC+N91eoiaR9ONJXdf2dUPbhwrhLMmqP1EVP5PZ0c0WZKuCJo9Yf1cHpTPxN5a9ivB1c1jlVwa/WYLOVU7Udc5LlDWV3BbSOW9S/DwJqSGoMzTOXroPtt2Xwl4nBdWCV7GgKTuEJc5btUQCXHipCJvFlvN2VtNFEruIOcsMoWyaMNHjIdJuhpcqI/Qv8OJ7nK52Hpb38YjicnfIT+TeTlWuo8XyzNsyIssrkpeRpI435yxBr0PwkXxCOy1r/l/Vf6d7gs3YuVIFP5NL1GkyMe9G8q3w/2+2fCvQPpaIxc8er+v8nhFlf5c74OqDxCzlhV/31X+SZMyBZypl/Xv8qOsPR3rYdTyRmv7v/xI8g/0jdC5I5XT4Tjfv84XcCC/sP17mJKZcey/mdTGjwF59AF/Ej9H0wHJnQFr+nfRJ6lS7jI1jABH6ZvhOgSfriyu3cKLqaDSA9uWANn/d9/ZMyYMWM4Cv4CdPxNBcB9sYUAAAAASUVORK5CYII=" alt="electricity">    
+                        <span>Emergency Electrician</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="cat-btn">
+                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAACH0lEQVR4nO1WPWtVQRA9Zy7YxK9S7UwglYVfjVZqJdpIwPyIgHrf7g1pog8sDdYqKQNpRBFSqj9AjZ0aK8FWbfxATKGRs29ueIQXH/fd+56IGVjYnZ2zc2buzN4FduRflhwY1/grzmeA3dH4SkPzUftnIO9H44aG5tKNzHs0XHXnX31sSDca58CRaPwejb+iYTpkuNSZ80cAjg3b+Vg0rqWIyYVNPXnbM7Imm+ERIBfd0Wob2FXqNQ/Gl05scSjOWxnOp4IzfgvA5NZ96bQnG9k26jwCY8H4rl+xFYbcSb6fBfY0R4Bc8NQ/uwxk29lpTzbemreacQ4cVoWnSgdO9LPPgZNlVwhbnwC55MW1XAGz7JilWs4L4EAwrgfjzwKYqICbEEZYnTEwgWiY90hWKmPJFS/a+RoE+CIdkmGqMjbDlHfE84EJBO/rHDhYFavUl/dGHQJfdEjZ013rQ/2wV4C93rqf6xB4q0MK4Ghak0/9u871w84Cx53Am4EJRPJeJ424ntYZLnpa10XiT5kIhrZfSHcGJ5DhnEfxQSl1UjfLh4hGL9w1YH8wfko2wBnUkeBpD+SDNmDStTJciOQT1cRWe9kE8pFjHqOuFJ1LJUUTyIdzwL7tbFPk7jwaPzZyFUsCcHozpTrYcENFpseoOkT/CH3zbpsCOIUmJQfGlfbu799rKO2NRd5LWhnORvKu2qt8lAbj66SrW3A78l/Kb6j72kfrWfpKAAAAAElFTkSuQmCC" alt="water">
+                        <span>More</span>
+                    </button>
+                </li>
+            </ul>
+        </section>
+       <section class="ads">
+    <div class="slider">
+        <!-- SLIDE 1 -->
+        <div class="slide">
+            <img src="https://i.pinimg.com/736x/44/41/9d/44419dac4fcb78aae208565099c97221.jpg">
+            <div class="ad-content">
+                <span class="ad-tag">Limited Time Offer</span>
+                <h1>Get 20% OFF</h1>
+                <h3>Your first booking</h3>
+                <p>Trusted professionals, quality service.</p>
+                <button class="book-now">Book Now <span class="arrow-icon">❯</span></button>
+            </div>
+        </div>
+
+        <!-- SLIDE 2 -->
+        <div class="slide">
+            <img src="https://i.pinimg.com/736x/04/1a/09/041a0923ce2a5d512923d1cdffcd7e1f.jpg">
+            <div class="ad-content">
+                <span class="ad-tag">Home Cleaning</span>
+                <h1>Express Clean</h1>
+                <h3>Sparkling results</h3>
+                <p>Book a pro cleaner in under 2 minutes.</p>
+                <button class="book-now">Check Rates <span class="arrow-icon">❯</span></button>
+            </div>
+        </div>
+
+        <!-- SLIDE 3 -->
+        <div class="slide">
+            <img src="https://i.pinimg.com/736x/84/fa/24/84fa2444f8cc33ef30c8813e95807bb6.jpg">
+            <div class="ad-content">
+                <span class="ad-tag">New Service</span>
+                <h1>AC Repair</h1>
+                <h3>Stay cool always</h3>
+                <p>Expert technicians at your doorstep.</p>
+                <button class="book-now">Fix Now <span class="arrow-icon">❯</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination Dots stay outside the slider div -->
+    <div class="slider-dots">
+        <span class="dot active"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+    </div>
+</section>
+
+        <section style="display: flex; margin-top: 5px;" class="view all">
+            <p style="color: black; font-weight:bold; font-size: 12px;">Popular Service </p>
+            <button
+                style="margin-left: auto; background: none; border: none; color: #730201; font-weight: bold; font-size: 10px;">View
+                All</button>
+        </section>
+       <div class="cards" id="service-slider">
+    <!-- Buttons will be injected here automatically -->
+</div>
+
+        <section style="display: flex; margin-top: 10px;" class="view all">
+            <p style="color: black; font-weight:bold; font-size: 12px;">Nearby Professionals - 5km</p>
+            <button id="location-changer" style="display:flex; margin-left: auto; margin-top: 4px; background: none; border: none; color: #730201; font-weight: bold; font-size: 10px; cursor: pointer;">
+    <img style="height: 8px; width: 10px; margin-right: 2px; margin-top: 3px;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAAC70lEQVR4nO2ZS2sUQRSFz7mjqPhARIliQBAFQUFXRn+AO9GVr5U7weDE9K1JXLgYDCG4k8SFr1/gQhfuxI3iKxHRTUC3SgjGBygmksRo5M5EDXlZ7VTXzIgHLgw9xa3+uLdOV3UD/zVbbcBKFRxT8qoKnzjhWyccnwr73Wf/OcFRG4taUyuwQclLKhxxwkmfKI0lryXAlmrfP/LAEkd2qHDYF2COGFfyvOVCNaTAWhXeqwBgZoUeFYD1USEcsMMJX4eCmAbzynJHgWgBGrKAmA7TAjRkClEElloLZAXhfsfDTNeMLewIEJOlypBd2VlsZe6UtsXGWoHNwUHsORELwv0M8kpQiGZghRN+jg2iwmGbOxiIbTtS3sSokt0OaHLA8qlocmSP/ZcuFw6HAyntj7wnH0iAnfPlKgC7bEyK9rocDqS8AfSqxEIQM2C8KqPC3mAgTvjOa1Ky2zenkhc9QYaCgZgV+kyaALt9cybAHt8qI5R82yCNw0w5oQ/Il5Agb0KD5IFVniCDIUFeVLG1+oOBKHnL0yp7gi928kZIkC7fhWnW+qd8NsbXQJQ8FwzEnq6eIBYDC8GkfSBqDgeCgeSBdSr85j25cMxax9aBGYBFAdhr13wr4cp5vpopIKRU+DxFVULFfdTzocr9qoh1YmApsC0yyHcHbEIWcsJnEUHuIiup4GTEtjqSGYi5jwo/RgAZPAEsRpZS8kKEapxF1moHGtMfV1PFp9PAasSQHT8zAyE7EUsJsDGjd1wfEmANYso2c+FBcAqxlQDLQr7MVuHLzJ1qPjnB8WAgOexHtVQExAmfVgxB3kG1VSifL8YraKmRNmArakHqf4KcA8T2ozWivH0UFfb/BUjfISCHWlJSfisykQJitBXYjlqUIztTPDMcalVFYJEKH3i41G1zPNSy2oFGFb5fwKWG7DMe6kGFHA6WjqqzQSY0h32oJ6mgOMe6OIM6FJW8Pm1d3LRrqEc1l4/GvU74OOhHTfzD+gEw6Y4VPVOVeQAAAABJRU5ErkJggg==">Change
+            </button>
+
+        </section>
+        <section class="pro-list">
+    <!-- Card 1 -->
+    <div class="pro-card">
+        <div class="pro-left">
+            <div class="img-container">
+                <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Kwame Mensah">
+                <span class="status-dot"></span>
+            </div>
+            <div class="pro-details">
+                <h3>Kwame Mensah</h3>
+                <p class="pro-type">Plumber</p>
+                <div class="rating">
+                    <span class="star">★</span> 4.8 <span class="reviews">(120 reviews)</span>
+                </div>
+                <p class="distance">📍 1.2 km away</p>
+            </div>
+        </div>
+        <div class="pro-right">
+            <p class="starts">Starts from</p>
+            <p class="price">GHC 50</p>
+            <button class="card-book">Book Now</button>
+        </div>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="pro-card">
+        <div class="pro-left">
+            <div class="img-container"> 
+                <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772301950/vjx_records/k8oruwmjbtq8bv4mupu4.png" alt="Emmanuel Asare">
+                <span class="status-dot"></span>
+            </div>
+            <div class="pro-details">
+                <h3>Emmanuel Asare</h3>
+                <p class="pro-type">Electrician</p>
+                <div class="rating">
+                    <span class="star">★</span> 4.7 <span class="reviews">(98 reviews)</span>
+                </div>
+                <p class="distance">📍 2.3 km away</p>
+            </div>
+        </div>
+        <div class="pro-right">
+            <p class="starts">Starts from</p>
+            <p class="price">GHC 60</p>
+            <button class="card-book">Book Now</button>
+        </div>
+    </div>
+
+    <!-- View More Button -->
+    <button class="view-more-btn">
+        View More Professionals <span>❯</span>
+    </button>
+</section>
+    <nav class="bottom-nav">
+        <!-- The href MUST match the names in your serviceIcons.js (home, bookings, etc.) -->
+        
+        <a href="index.html" class="nav-item">
+            <img src="" alt="Home">
+            <span>Home</span>
+        </a>
+
+        <a href="bookings.html" class="nav-item">
+            <img src="" alt="Bookings">
+            <span>Bookings</span>
+        </a>
+
+        <a href="messages.html" class="nav-item">
+            <img src="" alt="Messages">
+            <span>Messages</span>
+        </a>
+
+        <a href="saved.html" class="nav-item">
+            <img src="" alt="Saved">
+            <span>Saved</span>
+        </a>
+
+        <a href="profile.html" class="nav-item">
+            <img src="" alt="Profile">
+            <span>Profile</span>
+        </a>
+    </nav>
+
+
+    </div>
+<script src="Scripts/serviceIcons.js"></script>
+<script src="Scripts/script.js"></script>
+<script type="module" src="Scripts/firebase-config.js"></script>
+<script type="module" src="Scripts/logout.js"></script>
+    </body>
