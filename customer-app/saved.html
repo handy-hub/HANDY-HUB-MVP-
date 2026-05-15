@@ -5,29 +5,153 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HandyHub | Saved</title>
     <link rel="stylesheet" href="css/customer.css">
+    <link rel="stylesheet" href="css/saved.css">
 </head>
 <body>
-    <div class="app">
-        <header class="profile-card">
-            <h2 class="name">SAVED</h2>
-            <p class="location">Your favorite professionals</p>
+    <div class="app saved-page">
+        <header class="saved-header">
+            <div class="saved-title-row">
+                <h1>Saved</h1>
+                <div class="saved-actions">
+                    <button type="button" class="icon-btn" aria-label="Search">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M11 4a7 7 0 1 1 0 14a7 7 0 0 1 0-14zm0-2a9 9 0 1 0 5.65 16l4.67 4.67l1.41-1.41l-4.67-4.67A9 9 0 0 0 11 2z"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="icon-btn" aria-label="Filter">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M3 5h18v2H3V5zm4 6h10v2H7v-2zm3 6h4v2h-4v-2z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </header>
 
-        <main style="margin-top: 16px;">
-            <section class="pro-card" style="margin-bottom: 12px;">
-                <div class="pro-left">
-                    <div class="img-container">
-                        <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Kwame Mensah">
-                    </div>
-                    <div class="pro-details">
-                        <h3>Kwame Mensah</h3>
-                        <p class="pro-type">Plumber</p>
-                        <p class="distance">Tap to book quickly</p>
-                    </div>
+        <main class="saved-content">
+            <section class="saved-tabs" aria-label="Saved content tabs">
+                <button class="saved-tab active" type="button">
+                    <span class="tab-icon">&#9825;</span>
+                    <span>Professionals</span>
+                </button>
+                <button class="saved-tab" type="button">
+                    <span class="tab-icon">&#9638;</span>
+                    <span>Services</span>
+                </button>
+                <button class="saved-tab" type="button">
+                    <span class="tab-icon">&#127991;</span>
+                    <span>Offers</span>
+                </button>
+            </section>
+
+            <section class="saved-block">
+                <div class="saved-block-head">
+                    <h2>Saved Professionals</h2>
+                    <a href="#" class="view-all-link">View all</a>
                 </div>
-                <div class="pro-right">
-                    <button class="card-book">Book</button>
+
+                <div class="saved-pro-list">
+                    <article class="saved-pro-card">
+                        <div class="saved-pro-main">
+                            <div class="saved-avatar-wrap">
+                                <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Kwame Mensah">
+                                <span class="saved-status-dot"></span>
+                            </div>
+                            <div class="saved-pro-meta">
+                                <h3>Kwame Mensah <span class="verified-badge">&#10003;</span></h3>
+                                <p class="saved-role">Plumber</p>
+                                <p class="saved-rating">&#11088; 4.8 (120 reviews)</p>
+                                <p class="saved-distance">&#128205; 1.2 km away</p>
+                            </div>
+                        </div>
+                        <div class="saved-pro-actions">
+                            <button type="button" class="bookmark-btn" aria-label="Remove from saved">&#9825;</button>
+                            <button type="button" class="book-now-btn">Book Now</button>
+                        </div>
+                    </article>
+
+                    <article class="saved-pro-card">
+                        <div class="saved-pro-main">
+                            <div class="saved-avatar-wrap">
+                                <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772301950/vjx_records/k8oruwmjbtq8bv4mupu4.png" alt="Emmanuel Asare">
+                                <span class="saved-status-dot"></span>
+                            </div>
+                            <div class="saved-pro-meta">
+                                <h3>Emmanuel Asare <span class="verified-badge">&#10003;</span></h3>
+                                <p class="saved-role">Electrician</p>
+                                <p class="saved-rating">&#11088; 4.7 (98 reviews)</p>
+                                <p class="saved-distance">&#128205; 2.3 km away</p>
+                            </div>
+                        </div>
+                        <div class="saved-pro-actions">
+                            <button type="button" class="bookmark-btn" aria-label="Remove from saved">&#9825;</button>
+                            <button type="button" class="book-now-btn">Book Now</button>
+                        </div>
+                    </article>
+
+                    <article class="saved-pro-card">
+                        <div class="saved-pro-main">
+                            <div class="saved-avatar-wrap">
+                                <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1777603842/vjx_records/xhy1lyvmxgnywopfrfiy.jpg" alt="Kofi Boateng">
+                                <span class="saved-status-dot"></span>
+                            </div>
+                            <div class="saved-pro-meta">
+                                <h3>Kofi Boateng <span class="verified-badge">&#10003;</span></h3>
+                                <p class="saved-role">Carpenter</p>
+                                <p class="saved-rating">&#11088; 4.9 (150 reviews)</p>
+                                <p class="saved-distance">&#128205; 3.1 km away</p>
+                            </div>
+                        </div>
+                        <div class="saved-pro-actions">
+                            <button type="button" class="bookmark-btn" aria-label="Remove from saved">&#9825;</button>
+                            <button type="button" class="book-now-btn">Book Now</button>
+                        </div>
+                    </article>
                 </div>
+            </section>
+
+            <section class="saved-block">
+                <div class="saved-block-head">
+                    <h2>Saved Services</h2>
+                    <a href="#" class="view-all-link">View all</a>
+                </div>
+
+                <div class="saved-service-list">
+                    <article class="saved-service-card">
+                        <div class="saved-service-icon">&#128167;</div>
+                        <div class="saved-service-meta">
+                            <h3>Fix leaking pipe</h3>
+                            <p>Get expert help to fix any pipe leak</p>
+                        </div>
+                        <button type="button" class="bookmark-btn" aria-label="Remove service from saved">&#9825;</button>
+                    </article>
+
+                    <article class="saved-service-card">
+                        <div class="saved-service-icon">&#9711;</div>
+                        <div class="saved-service-meta">
+                            <h3>Install ceiling fan</h3>
+                            <p>Professional fan installation at home</p>
+                        </div>
+                        <button type="button" class="bookmark-btn" aria-label="Remove service from saved">&#9825;</button>
+                    </article>
+
+                    <article class="saved-service-card">
+                        <div class="saved-service-icon">&#9889;</div>
+                        <div class="saved-service-meta">
+                            <h3>Emergency electrician</h3>
+                            <p>24/7 electrical repair and troubleshooting</p>
+                        </div>
+                        <button type="button" class="bookmark-btn" aria-label="Remove service from saved">&#9825;</button>
+                    </article>
+                </div>
+            </section>
+
+            <section class="saved-promo">
+                <div class="saved-promo-icon">&#127991;</div>
+                <div class="saved-promo-text">
+                    <h3>Get more with Handy Hub</h3>
+                    <p>Save professionals, services and offers you love for quick access anytime.</p>
+                </div>
+                <button type="button" class="promo-btn">Explore More</button>
             </section>
         </main>
 
