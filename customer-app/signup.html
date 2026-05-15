@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cutomer-signup</title>
+    <link rel="stylesheet" href="css/customer.css">
+</head>
+<body>
+<div class="app signup-page">
+    <nav class="nav-top">
+    <button class="back-btn" aria-label="Go back">
+        <img width="20" height="20" src="../shared/assets/icons/angle-lefft-red.png" alt="">
+    </button>
+     <div class="lang-dropdown">
+                <button class="lang-btn" id="lang-trigger" aria-haspopup="listbox">
+                    <span class="globe-icon">
+                        <img width="20" height="20" src="data:image/png;base64,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" alt="">
+                    </span>
+                    <span id="current-lang">English (US)</span>
+                    <span class="arrow">▾</span>
+                </button>
+                <ul class="lang-list" id="lang-menu" role="listbox">
+                    <li data-lang="en" role="option">English (US)</li>
+                    <li data-lang="fr" role="option">Français (French)</li>
+                    <li data-lang="es" role="option">Español (Spanish)</li>
+                </ul>
+            </div>
+    </nav>
+
+    <header class="branding">
+         <div class="handyhub-icon">
+                <img src="../shared/assets/images/handyhub-logo-text.png" alt="HandyHub Logo">
+            </div>
+             <h2>Create Your Account</h2>
+        <p>Join Handy Hub and get things done with ease.</p>
+    </header>
+
+
+    <main class="signup-container">
+        <form id="signup-form">
+            <div class="input-signup">
+                <label>Full Name</label>
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAACUklEQVR4nO1WTY9MURA9p15mCPGxIiyFDRGxaGvxAzAEsWeMj6ZfVb9MQqR/AInMAnsL7P0FY3yMDjZCImMitiYxjAUJqfdui0F3v27vNZKppDbvVtU5t+re8y6wZP+bVYHVKrhowqYKP7ibcMoEZxrAcKngNWCbCt+Y8GsbbybAxlLAx4E1JpxxIBXeNWB3A1iRAKs0wn4TPg9rj0vphArOh10+qwLL2hAMJHC6cAImbKbFI+xtF1OPMBJIThVOQIUf0+LAuk4HNIzh/V8hMJ6NoRwClmMEFuFAIHBv4IfwHLDWhC+yGJwqnEA1m296DU04aRH2GLAy/Z7tPIBzehQYQolCNNtBiKZrwAaUaYkLj+CCg5lwPvikt720nf+zdgiI3AcClgBbvM1K3lLh09D61uzn02/kTRWcjIHNhYA2gGETjKrwYZtD9yX479Ye1AXH+/4xxREO/nTi54y87YQMqPi9X6QBQCUWnMhiONfK8xpeqydwJS//APxEBUcbwPK8+R7rOWFUWR3yUq5k8x1mzD/5PAGwJ/aLiYjX8Fpe00fSNUmFr4OcHu4X+NeaOBI6MdM12IQLHuyvnaIIuGQHAgtdg1V4P3RgrDACgrHcDxXN3nd+Bj4rOeH63zcwUFHyqtdKz0CEkVyJKqi3klqzU/KGCZL02QVUXJjOAutrwCb3GNhVj7DPBBbE6vsVzmq5lvVgMbBdyesqfNfh79fRVfhWySsGbP0jvVdgZ5DhCSPvmPCRCl86gAlfuftzPF0jr6ngWAzs8GvYN/CSYUD2DWEYG1KWmZPiAAAAAElFTkSuQmCC" class="in-input">
+                <input type="text" id="full-name" placeholder="Enter your full name" autocomplete="name">
+            </div>
+
+            <div class="input-signup">
+                <label>Email</label>
+                <img src="../shared/assets/icons/icons8-email-24.png" class="in-input">
+                <input type="email" id="email" placeholder="Enter email" autocomplete="email">
+            </div>
+               <div class="input-signup">
+                <label>Phone Number</label>
+                <img src="../shared/assets/icons/icons8-phone-32.png" class="in-input">
+                <input id="tel-no" type="tel" placeholder="Phone number" autocomplete="tel">
+            </div>
+            <div class="input-signup">
+                <label>Location</label>
+                <img src="../shared/assets/icons/icons8-location-pin-24.png" class="in-input">
+                <input id="location" type="text" placeholder="Auto detection location" autocomplete="address-level2">
+            </div>
+            <div class="input-signup">
+                <label>Password</label>
+                <img src="../shared/assets/icons/icons8-lock-24.png" class="in-input">
+                <input type="password" id="pass" placeholder="Create a password" autocomplete="new-password">
+                <img src="../shared/assets/icons/icons8-eye-96.png" class="eye-icon">
+                <div class="pass-hint">
+                    <img src="../shared/assets/icons/icons8-protect-96.png" width="12">
+                    <span>Password must be at least 8 characters</span>
+                </div>
+            </div>
+
+            <div class="input-signup">
+                <label>Confirm Password</label>
+                <img src="../shared/assets/icons/icons8-lock-24.png" class="in-input">
+                <input type="password" id="confirm" placeholder="Confirm your password" autocomplete="new-password">
+                <img src="../shared/assets/icons/icons8-eye-96.png" class="eye-icon">
+            </div>
+
+            <div class="terms-row">
+                <input type="checkbox">
+                <label>I agree to the <span><a  href="#">Terms of Service</a> </span> and <span><a  href="#">Privicy Policy</a></span></label>
+            </div>
+
+<button type="submit" id="submit-btn" class="login-btn" disabled>Sign Up <img width="20" height="20" src="../shared/assets/icons/icons8-right-24.png" alt="arrow" style="display: inline-block; margin-left: 8px; vertical-align: middle;"></button>
+        </form>
+
+        <div class="divider">
+            <span>or continue with</span>
+        </div>
+
+            <section class="social-login">
+                <button id="google-signup-btn" type="button" class="social-btn"><img width="20" height="20" src="https://img.icons8.com/color/48/google-logo.png" alt="google-logo"/>Google</button>
+                <button id="apple-signup-btn" type="button" class="social-btn"><img width="20" height="20" src="https://img.icons8.com/ios-filled/50/mac-os.png" alt="mac-os"/>Apple</button>
+                <button id="facebook-signup-btn" type="button" class="social-btn"><img width="48" height="48" src="https://img.icons8.com/color/48/facebook-new.png" alt="facebook-new"/>Facebook</button>
+            </section>
+
+        <p class="login-footer">Already have an account? <a href="login.html">Login</a></p>
+    </main>
+</div>
+<script type="module" src="../shared/js/services/authService.js"></script>
+<script type="module" src="../shared/js/utils/helpers.js"></script>
+<script type="module" src="../shared/js/firebase/firebaseConfig.js"></script>
+<script type="module" src="../shared/js/utils/logicGate.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Services</title>
+    <link rel="stylesheet" href="css/tracking.css">
+</head>
+<body>
+    <div class="app search-view">
+        <!-- Top Fixed Header -->
+        <header class="search-header">
+            <button class="back-btn" onclick="window.history.back()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div class="search-bar-wrapper">
+                <input type="text" placeholder="What service do you need?" autofocus>
+                <img src="../shared/assets/icons/settings-icon.png" class="spark-icon">
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <main class="search-content">
+            <!-- Popular Searches -->
+            <section class="search-group">
+                <h3>Popular Searches</h3>
+                <div class="tag-cloud">
+                    <span class="search-tag"><img src="../shared/assets/icons/settings-icon.png"> Fix leaking pipe</span>
+                    <span class="search-tag"><img src="../shared/assets/icons/settings-icon.png"> Install fan</span>
+                    <span class="search-tag"><img src="../shared/assets/icons/settings-icon.png"> Emergency electrician</span>
+                    <span class="search-tag"><img src="../shared/assets/icons/settings-icon.png"> Clean air conditioner</span>
+                    <span class="search-tag"><img src="../shared/assets/icons/settings-icon.png"> Paint my room</span>
+                    <span class="search-tag">See more -></span>
+                </div>
+            </section>
+
+            <!-- Categories -->
+            <section class="search-group">
+                <h3>Search by Category</h3>
+                <div class="cat-grid">
+                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/electricals.png"></div><span>Electrical</span></div>
+                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/plummer.png"></div><span>Plumbing</span></div>
+                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/carpenter.png"></div><span>Carpentry</span></div>
+                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/cooling.png"></div><span>Cooling</span></div>
+                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/welder.png"></div><span>Welding</span></div>
+                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/painter.png"></div><span>Painting</span></div>
+                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/more.png"></div><span>More</span></div>
+                </div>
+            </section>
+
+            <!-- AI Banner -->
+            <div class="ai-box">
+                <div class="ai-logo">AI</div>
+                <div class="ai-info">
+                    <p class="title">Not sure what you need?</p>
+                    <p class="sub">Describe the issue and we'll help you find the right professional.</p>
+                </div>
+                <button class="ai-action">Try AI Search -></button>
+            </div>
+
+            <!-- Recent History -->
+            <section class="recent-group">
+                <div class="recent-head">
+                    <h3>Recent Searches</h3>
+                    <button class="clear-btn">Clear all</button>
+                </div>
+                <ul class="history-list">
+                    <li><img src="../shared/assets/icons/recent-clock.png"> Fix leaking pipe in kitchen <span class="remove">x</span></li>
+                    <li><img src="../shared/assets/icons/recent-clock.png"> Fix leaking pipe in kitchen <span class="remove">x</span></li>
+                    <li><img src="../shared/assets/icons/recent-clock.png"> Fix leaking pipe in kitchen <span class="remove">x</span></li>
+                   </ul>
+            </section>
+
+            <!-- Footer Action -->
+            <div class="chat-footer">
+                <p>Can't find what you're looking for?</p>
+                <span>Chat with us and we'll help you.</span>
+                <button class="chat-btn"><img src="../shared/assets/icons/chat.png"> Chat with Support</button>
+            </div>
+        </main>
+    </div>
+    <script src="../shared/js/utils/helpers.js"></script>
+</body>
+</html>
+
+
