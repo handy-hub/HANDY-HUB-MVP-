@@ -4,6 +4,16 @@ const SIGNUP_BUTTON_TEXT = "Sign Up ->";
 const SIGNUP_BUTTON_LOADING_TEXT = "Creating Account...";
 const LOGIN_REDIRECT_URL = "login.html";
 const SOCIAL_REDIRECT_URL = "index.html";
+const TOAST_DISMISS_DELAY_MS = 3000;
+const TOAST_EXIT_DURATION_MS = 320;
+const TOAST_ICONS = Object.freeze({
+  success:
+    "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M20 7L10.25 16.75L6 12.5\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
+  error:
+    "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M12 8V13\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\"/><path d=\"M12 16.5V16.55\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\"/><path d=\"M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21H20.47A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
+  info:
+    "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"12\" cy=\"12\" r=\"9\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M12 10V16\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/><path d=\"M12 7.6V7.65\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/></svg>"
+});
 
 const {
   services: { customerAuthService }
@@ -41,6 +51,14 @@ socialButtons.forEach((button) => {
   button.dataset.defaultHtml = button.innerHTML;
 });
 
+function createToastIcon(type) {
+  const icon = document.createElement("span");
+  icon.className = "toast-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.innerHTML = TOAST_ICONS[type] || TOAST_ICONS.info;
+  return icon;
+}
+
 function showToast(message, type = "error") {
   const existingToast = document.querySelector(".toast");
   if (existingToast) {
@@ -49,15 +67,26 @@ function showToast(message, type = "error") {
 
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  toast.textContent = message;
+  toast.setAttribute("role", "alert");
+  toast.setAttribute("aria-live", "polite");
+
+  const toastMessage = document.createElement("span");
+  toastMessage.className = "toast-message";
+  toastMessage.textContent = message;
+
+  toast.appendChild(createToastIcon(type));
+  toast.appendChild(toastMessage);
   document.body.appendChild(toast);
 
+  const removeToast = () => {
+    toast.remove();
+  };
+
   setTimeout(() => {
-    toast.style.animation = "slideOut 0.3s ease";
-    setTimeout(() => {
-      toast.remove();
-    }, 300);
-  }, 3000);
+    toast.classList.add("toast-exit");
+    toast.addEventListener("animationend", removeToast, { once: true });
+    setTimeout(removeToast, TOAST_EXIT_DURATION_MS);
+  }, TOAST_DISMISS_DELAY_MS);
 }
 
 function isValidEmail(value) {
@@ -338,4 +367,3 @@ export function bootstrapCustomerSignupPage() {
 }
 
 bootstrapCustomerSignupPage();
-

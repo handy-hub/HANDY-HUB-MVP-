@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Not Found</title>
+  <link rel="stylesheet" href="css/tracking.css">
+</head>
+<body>
+  <div class="app search-view">
+    <header class="search-header">
+      <button class="back-btn" onclick="window.history.back()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="search-bar-wrapper">
+        <input id="notfound-search-input" type="text" placeholder="Try another search" aria-label="Search services">
+        <button type="button" class="search-submit" aria-label="Search again">
+          <img class="click-to-search" src="../shared/assets/icons/icons8-search-96.png" alt="Search icon">
+        </button>
+      </div>
+    </header>
+
+    <main class="search-content">
+      <section class="search-group">
+        <h3>Not found</h3>
+        <div class="results-message">We couldn't find any services matching your search.</div>
+        <div class="search-not-found-actions">
+          <p>Please try different keywords or choose a popular service.</p>
+          <button class="clear-btn" type="button" onclick="window.location.href='tracking.html'">Back to Search</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const query = new URLSearchParams(window.location.search).get('q') || '';
+    const message = document.querySelector('.results-message');
+    if (message && query) {
+      message.textContent = `No results found for "${query}". Try a different search.`;
+    }
+
+    const input = document.querySelector('#notfound-search-input');
+    const button = document.querySelector('.search-submit');
+    function submitSearch() {
+      const value = (input?.value || '').trim();
+      if (!value) return;
+      window.location.href = `tracking.html?q=${encodeURIComponent(value)}`;
+    }
+    if (button) button.addEventListener('click', submitSearch);
+    const icon = document.querySelector('.click-to-search');
+    if (icon) {
+      icon.style.cursor = 'pointer';
+      icon.addEventListener('click', (e) => {
+        e.preventDefault();
+        submitSearch();
+      });
+    }
+    if (input) {
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          submitSearch();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

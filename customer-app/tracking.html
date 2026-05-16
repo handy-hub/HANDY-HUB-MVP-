@@ -14,23 +14,30 @@
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
             <div class="search-bar-wrapper">
-                <input type="text" placeholder="What service do you need?" autofocus>
-                <img src="../shared/assets/icons/settings-icon.png" class="spark-icon">
+                <input id="tracking-search-input" type="text" placeholder="What service do you need?" autofocus aria-label="Search services">
+                <button type="button" class="search-submit" aria-label="Submit search">
+                    <img class="click-to-search" src="../shared/assets/icons/icons8-search-96.png" alt="Search icon">
+                </button>
             </div>
         </header>
 
         <!-- Scrollable Content -->
         <main class="search-content">
+            <section class="search-results-group search-group" hidden>
+                <h3>Search results</h3>
+                <div class="results-message" aria-live="polite"></div>
+                <ul class="results-list" aria-live="polite" role="list"></ul>
+            </section>
             <!-- Popular Searches -->
             <section class="search-group">
                 <h3>Popular Searches</h3>
                 <div class="tag-cloud">
-                    <span class="search-tag"><img src="../shared/assets/icons/settings-icon.png"> Fix leaking pipe</span>
-                    <span class="search-tag"><img src="../shared/assets/icons/settings-icon.png"> Install fan</span>
-                    <span class="search-tag"><img src="../shared/assets/icons/settings-icon.png"> Emergency electrician</span>
-                    <span class="search-tag"><img src="../shared/assets/icons/settings-icon.png"> Clean air conditioner</span>
-                    <span class="search-tag"><img src="../shared/assets/icons/settings-icon.png"> Paint my room</span>
-                    <span class="search-tag">See more -></span>
+                    <button type="button" class="search-tag"><img src="../shared/assets/icons/settings-icon.png"><p> Fix leaking pipe</p></button>
+                    <button type="button" class="search-tag"><img src="../shared/assets/icons/settings-icon.png"><p> Install fan</p></button>
+                    <button type="button" class="search-tag"><img src="../shared/assets/icons/settings-icon.png"><p> Emergency electrician</p></button>
+                    <button type="button" class="search-tag"><img src="../shared/assets/icons/settings-icon.png"><p> Clean air conditioner</p></button>
+                    <button type="button" class="search-tag"><img src="../shared/assets/icons/settings-icon.png"><p> Paint my room</p></button>
+                    <button type="button" class="search-tag"><img src="../shared/assets/icons/settings-icon.png"><p> See more -></p></button>
                 </div>
             </section>
 
@@ -38,13 +45,13 @@
             <section class="search-group">
                 <h3>Search by Category</h3>
                 <div class="cat-grid">
-                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/electricals.png"></div><span>Electrical</span></div>
-                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/plummer.png"></div><span>Plumbing</span></div>
-                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/carpenter.png"></div><span>Carpentry</span></div>
-                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/cooling.png"></div><span>Cooling</span></div>
-                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/welder.png"></div><span>Welding</span></div>
-                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/painter.png"></div><span>Painting</span></div>
-                    <div class="cat-box"><div class="circle"><img src="../shared/assets/icons/more.png"></div><span>More</span></div>
+                    <button type="button" class="cat-box"><span class="circle"><img src="../shared/assets/icons/electricals.png"></span><span>Electrical</span></button>
+                    <button type="button" class="cat-box"><span class="circle"><img src="../shared/assets/icons/plummer.png"></span><span>Plumbing</span></button>
+                    <button type="button" class="cat-box"><span class="circle"><img src="../shared/assets/icons/carpenter.png"></span><span>Carpentry</span></button>
+                    <button type="button" class="cat-box"><span class="circle"><img src="../shared/assets/icons/cooling.png"></span><span>Cooling</span></button>
+                    <button type="button" class="cat-box"><span class="circle"><img src="../shared/assets/icons/welder.png"></span><span>Welding</span></button>
+                    <button type="button" class="cat-box"><span class="circle"><img src="../shared/assets/icons/painter.png"></span><span>Painting</span></button>
+                    <button type="button" class="cat-box"><span class="circle"><img height="10px" src="../shared/assets/icons/more.png"></span><span>More</span></button>
                 </div>
             </section>
 
@@ -64,11 +71,7 @@
                     <h3>Recent Searches</h3>
                     <button class="clear-btn">Clear all</button>
                 </div>
-                <ul class="history-list">
-                    <li><img src="../shared/assets/icons/recent-clock.png"> Fix leaking pipe in kitchen <span class="remove">x</span></li>
-                    <li><img src="../shared/assets/icons/recent-clock.png"> Fix leaking pipe in kitchen <span class="remove">x</span></li>
-                    <li><img src="../shared/assets/icons/recent-clock.png"> Fix leaking pipe in kitchen <span class="remove">x</span></li>
-                   </ul>
+                <ul class="history-list" aria-live="polite" role="list"></ul>
             </section>
 
             <!-- Footer Action -->
@@ -79,8 +82,7 @@
             </div>
         </main>
     </div>
-    <script src="../shared/js/utils/helpers.js"></script>
+    <script src="Scripts/script.js"></script>
 </body>
 </html>
-
 
