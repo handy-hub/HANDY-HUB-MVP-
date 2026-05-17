@@ -1,7 +1,7 @@
 import { getAppContainer } from "../../../shared/js/app/container.js";
 
 const DASHBOARD_REDIRECT_URL = "dashboard.html";
-const LOGIN_LOADING_TEXT = "Signing in...";
+const LOGIN_LOADING_TEXT = "Logging in...";
 const TOAST_DISMISS_DELAY_MS = 3000;
 const TOAST_EXIT_DURATION_MS = 320;
 const TOAST_ICONS = Object.freeze({
@@ -73,6 +73,10 @@ function showToast(message, type = "error") {
   }, TOAST_DISMISS_DELAY_MS);
 }
 
+function createButtonLoadingHtml(label) {
+  return `${label}<span class="button-loader" aria-hidden="true"></span>`;
+}
+
 function setLoginLoading(isLoading) {
   if (!loginBtn) return;
   const defaultLoginButtonHtml = loginBtn.dataset.defaultHtml || loginBtn.innerHTML;
@@ -80,7 +84,7 @@ function setLoginLoading(isLoading) {
   loginBtn.disabled = isLoading;
   loginBtn.style.opacity = isLoading ? "0.7" : "1";
   loginBtn.style.cursor = isLoading ? "not-allowed" : "pointer";
-  loginBtn.innerHTML = isLoading ? LOGIN_LOADING_TEXT : defaultLoginButtonHtml;
+  loginBtn.innerHTML = isLoading ? createButtonLoadingHtml(LOGIN_LOADING_TEXT) : defaultLoginButtonHtml;
 }
 
 function setSocialLoading(isLoading, activeButton = null, activeLabel = "Please wait...") {

@@ -51,6 +51,14 @@ socialButtons.forEach((button) => {
   button.dataset.defaultHtml = button.innerHTML;
 });
 
+if (submitBtn) {
+  submitBtn.dataset.defaultHtml = submitBtn.innerHTML;
+}
+
+function createButtonLoadingHtml(label) {
+  return `${label}<span class="button-loader" aria-hidden="true"></span>`;
+}
+
 function createToastIcon(type) {
   const icon = document.createElement("span");
   icon.className = "toast-icon";
@@ -103,7 +111,13 @@ function updateSubmitButtonState(isEnabled) {
 function setSubmitLoading(isLoading) {
   if (!submitBtn) return;
   submitBtn.disabled = isLoading;
-  submitBtn.textContent = isLoading ? SIGNUP_BUTTON_LOADING_TEXT : SIGNUP_BUTTON_TEXT;
+  submitBtn.style.opacity = isLoading ? "0.7" : "1";
+  submitBtn.style.cursor = isLoading ? "not-allowed" : "pointer";
+  if (isLoading) {
+    submitBtn.innerHTML = createButtonLoadingHtml(SIGNUP_BUTTON_LOADING_TEXT);
+  } else {
+    submitBtn.innerHTML = submitBtn.dataset.defaultHtml || SIGNUP_BUTTON_TEXT;
+  }
 }
 
 function setSocialButtonsLoading(isLoading, activeButton = null, activeLabel = "Please wait...") {

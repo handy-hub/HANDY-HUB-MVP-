@@ -1057,6 +1057,7 @@ margin-top: 10px;
     width: 4cm;
     height: 50%;
     margin-top: 20px;
+    margin-left: 10px;
 }
 
 .banner-mid {
@@ -1171,9 +1172,10 @@ margin-top: 10px;
 
 /* Restored your exact image styling */
 .circle-bg-artisan img {
-    width: 5cm;
-    height: 100%;
+     width: 4cm;
+    height: 50%;
     margin-top: 20px;
+    margin-left: 10px;
 }
 
 .banner-mid {
