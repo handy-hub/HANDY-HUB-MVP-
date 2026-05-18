@@ -1,3 +1,4 @@
+import "../../utils/global-app.js";
 import { getAppContainer } from "../../app/container.js";
 
 const SIGNUP_BUTTON_TEXT = "Sign Up ->";

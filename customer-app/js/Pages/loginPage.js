@@ -1,3 +1,4 @@
+import "../../../shared/js/utils/global-app.js";
 import { getAppContainer } from "../../../shared/js/app/container.js";
 
 const DASHBOARD_REDIRECT_URL = "dashboard.html";

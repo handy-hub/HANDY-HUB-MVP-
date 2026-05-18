@@ -21,7 +21,7 @@
 body {
     display: flex;
     justify-content: center;
-    padding: 20px;
+    padding: 0;
     color: #333;
     overflow: scroll;
 }
@@ -1592,7 +1592,7 @@ margin-top: 10px;
     display: flex;
     width: 80%;
     margin: 20px auto;
-    padding: 12px;
+    padding: 6px;
     border: 1.5px solid #730201;
     background: none;
     border-radius: 30px;

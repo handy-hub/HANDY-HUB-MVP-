@@ -24,6 +24,7 @@ if (langTrigger && langMenu) {
 
 // --- 2. SEARCH PLACEHOLDER ROTATION ---
 const searchInput = document.getElementById('dynamic-search');
+const searchIcon = document.querySelector('.search-icon');
 const phrases = [
     "AI Assisted Search...",
     "Find a Plumber...",
@@ -33,15 +34,38 @@ const phrases = [
 ];
 let counter = 0;
 
+function redirectToTracking(query = '') {
+    const cleanQuery = query.trim();
+    const target = cleanQuery ? `tracking.html?q=${encodeURIComponent(cleanQuery)}` : 'tracking.html';
+    window.location.href = target;
+}
+
 if (searchInput) {
     setInterval(() => {
         searchInput.style.opacity = "100000";
         setTimeout(() => {
             counter = (counter + 1) % phrases.length;
             searchInput.placeholder = phrases[counter];
-            searchInput.style.opacity = "1"; 
-        }, 400); 
+            searchInput.style.opacity = "1";
+        }, 400);
     }, 5000);
+
+    searchInput.addEventListener('click', () => {
+        redirectToTracking(searchInput.value);
+    });
+
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            redirectToTracking(searchInput.value);
+        }
+    });
+}
+
+if (searchIcon) {
+    searchIcon.addEventListener('click', () => {
+        redirectToTracking(searchInput ? searchInput.value : '');
+    });
 }
 
 // --- 3. SLIDER DOTS SYNC ---
@@ -266,12 +290,6 @@ function initNavbar() {
 
 // Run on load
 window.addEventListener('DOMContentLoaded', initNavbar);
-const mainSearch = document.getElementById('dynamic-search');
-if (mainSearch) {
-    mainSearch.addEventListener('click', () => {
-        window.location.href = 'tracking.html';
-    });
-}
 document.addEventListener("DOMContentLoaded", () => {
     const searchTrigger = document.getElementById('dynamic-search');
     const searchContainer = document.getElementById('search-container');
