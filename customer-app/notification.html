@@ -6,111 +6,16 @@
     <title>Notifications UI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --brand-red: #b10c0c;
-            --bg-color: #ffffff;
-            --text-main: #000000;
-            --text-muted: #666666;
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.4);
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            color: var(--text-main);
-        }
-
-        /* Glassmorphic Effects */
-        .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            transition: all 0.2s ease;
-        }
-
-        .glass-header {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            z-index: 100;
-        }
-
-        /* Scrollbar hiding */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Badge styles */
-        .badge-white {
-            background: white;
-            color: var(--brand-red);
-            font-size: 10px;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        .badge-red {
-            background: var(--brand-red);
-            color: white;
-            font-size: 10px;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        /* Notification Icon Circle */
-        .icon-box {
-            width: 48px;
-            height: 48px;
-            background: #fdf2f2;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--brand-red);
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-
-        /* Unread dot */
-        .unread-dot {
-            width: 10px;
-            height: 10px;
-            background-color: var(--brand-red);
-            border-radius: 50%;
-        }
-
-        .nav-icon {
-            font-size: 22px;
-            margin-bottom: 4px;
-            color: #333;
-        }
-        
-        .nav-label {
-            font-size: 11px;
-            font-weight: 500;
-        }
-    </style>
+    <link rel="stylesheet" href="../shared/css/pageTransitions.css">
+    <link rel="stylesheet" href="css/notification.css">
 </head>
-<body class="flex justify-center">
+<body class="flex justify-center" data-page-type="notification">
 
     <div class="w-full max-w-md min-h-screen relative flex flex-col pb-24">
         
         <!-- Header -->
         <header class="glass-header sticky top-0 flex items-center justify-between px-6 py-4">
-            <button class="text-xl"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="back-to-dashboard text-xl"><i class="fa-solid fa-chevron-left"></i></button>
             <h1 class="text-lg font-bold">Notifications</h1>
             <button class="text-xl"><i class="fa-solid fa-gear"></i></button>
         </header>
@@ -128,7 +33,7 @@
 
             <!-- Push Alert Box -->
             <div class="mt-8 border border-gray-100 rounded-2xl p-4 flex items-center space-x-4 relative bg-gray-50/50" id="pushBox">
-                <button onclick="document.getElementById('pushBox').remove()" class="absolute top-2 right-3 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+                <button id="push-close-btn" class="absolute top-2 right-3 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
                 <div class="relative">
                     <img src="https://img.icons8.com/color/96/bell.png" class="w-14 h-14" alt="bell">
                 </div>
@@ -140,114 +45,10 @@
             </div>
         </main>
 
-        <!-- Bottom Navigation Bar -->
-        <nav class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 flex justify-around items-center py-3">
-            <div class="flex flex-col items-center opacity-60">
-                <i class="fa-solid fa-house nav-icon"></i>
-                <span class="nav-label">Home</span>
-            </div>
-            <div class="flex flex-col items-center opacity-60">
-                <i class="fa-solid fa-clipboard-list nav-icon"></i>
-                <span class="nav-label">Bookings</span>
-            </div>
-            <div class="flex flex-col items-center opacity-60">
-                <i class="fa-solid fa-comment-dots nav-icon"></i>
-                <span class="nav-label">Messages</span>
-            </div>
-            <div class="flex flex-col items-center opacity-60">
-                <i class="fa-solid fa-heart nav-icon"></i>
-                <span class="nav-label">Saved</span>
-            </div>
-            <div class="flex flex-col items-center opacity-60">
-                <i class="fa-solid fa-user nav-icon"></i>
-                <span class="nav-label">Profile</span>
-            </div>
-        </nav>
 
     </div>
-
-    <script>
-        // Notification Template Data
-        const notifications = [
-            { id: 1, type: 'Bookings', title: 'Booking Confirmed', msg: 'Kwame Mensah (Plumber) has accepted your booking.', time: '2m ago', icon: 'fa-calendar-check', unread: true, group: 'New' },
-            { id: 2, type: 'Messages', title: 'New Message', msg: 'Kwame Mensah sent you a message regarding your booking.', time: '5m ago', icon: 'fa-comment-dots', unread: true, group: 'New' },
-            { id: 3, type: 'Bookings', title: 'Reminder', msg: 'Your booking with Emmanuel Asare is tomorrow at 10:00 AM.', time: '1h ago', icon: 'fa-bell', unread: true, group: 'New' },
-            { id: 4, type: 'Offers', title: 'Special Offer', msg: 'Get 15% OFF on your next booking. Valid till 31st May.', time: '2h ago', icon: 'fa-tag', unread: true, group: 'New' },
-            { id: 5, type: 'Messages', title: 'Review Request', msg: 'How was your experience with Kofi Boateng (Carpenter)? Leave a review.', time: '3h ago', icon: 'fa-star', unread: true, group: 'New' },
-            { id: 6, type: 'Bookings', title: 'Payment Successful', msg: 'Your payment of GHC 120.00 was successful.', time: 'Yesterday, 6:45 PM', icon: 'fa-wallet', unread: false, group: 'Earlier' },
-            { id: 7, type: 'General', title: 'Safety Update', msg: 'We\'re committed to your safety. Learn more about our verified professionals.', time: 'Yesterday, 12:15 PM', icon: 'fa-shield-halved', unread: false, group: 'Earlier' },
-            { id: 8, type: 'General', title: 'Update', msg: 'We\'ve updated our Terms of Service and Privacy Policy.', time: 'Yesterday, 9:30 AM', icon: 'fa-bullhorn', unread: false, group: 'Earlier' }
-        ];
-
-        const tabs = [
-            { name: 'All', count: 5 },
-            { name: 'Bookings', count: 3 },
-            { name: 'Messages', count: 1 },
-            { name: 'Offers', count: 1 }
-        ];
-
-        let currentFilter = 'All';
-
-        function renderTabs() {
-            const container = document.getElementById('tabContainer');
-            container.innerHTML = tabs.map(tab => `
-                <button onclick="filterBy('${tab.name}')" class="flex items-center space-x-2 px-5 py-2 rounded-full whitespace-nowrap transition ${currentFilter === tab.name ? 'bg-[#b10c0c] text-white shadow-lg' : 'bg-gray-100 text-gray-800'}">
-                    <span class="text-sm font-bold">${tab.name}</span>
-                    <span class="${currentFilter === tab.name ? 'badge-white' : 'badge-red'}">${tab.count}</span>
-                </button>
-            `).join('');
-        }
-
-        function renderNotifications() {
-            const container = document.getElementById('notif-list');
-            const filtered = currentFilter === 'All' ? notifications : notifications.filter(n => n.type === currentFilter);
-            
-            let html = '';
-            const groups = ['New', 'Earlier'];
-
-            groups.forEach(group => {
-                const groupItems = filtered.filter(n => n.group === group);
-                if(groupItems.length > 0) {
-                    html += `<h3 class="text-sm font-bold mt-6 mb-2">${group}</h3>`;
-                    groupItems.forEach(item => {
-                        html += `
-                        <div onclick="markAsRead(${item.id})" class="flex items-start space-x-4 py-4 px-2 mb-2 rounded-2xl ${item.unread ? 'glass-card' : ''} cursor-pointer">
-                            <div class="icon-box">
-                                <i class="fa-solid ${item.icon}"></i>
-                            </div>
-                            <div class="flex-1">
-                                <div class="flex justify-between items-start">
-                                    <h4 class="font-bold text-[15px] leading-tight">${item.title}</h4>
-                                    <span class="text-[11px] text-gray-400">${item.time}</span>
-                                </div>
-                                <p class="text-[12px] text-gray-500 mt-1 leading-normal pr-4">${item.msg}</p>
-                            </div>
-                            ${item.unread ? '<div class="pt-6"><div class="unread-dot"></div></div>' : ''}
-                        </div>
-                        `;
-                    });
-                }
-            });
-            container.innerHTML = html;
-        }
-
-        function filterBy(name) {
-            currentFilter = name;
-            renderTabs();
-            renderNotifications();
-        }
-
-        function markAsRead(id) {
-            const index = notifications.findIndex(n => n.id === id);
-            if(index !== -1) {
-                notifications[index].unread = false;
-                renderNotifications();
-            }
-        }
-
-        // Initialize
-        renderTabs();
-        renderNotifications();
-    </script>
+<script src="../shared/js/components/navLoader.js"></script>
+<script src="../shared/js/components/pageTransition.js"></script>
+<script src="js/pages/notificationPage.js"></script>
 </body>
 </html>

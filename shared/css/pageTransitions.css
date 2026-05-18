@@ -1,0 +1,71 @@
+:root {
+    --transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html, body {
+    overflow-x: hidden;
+}
+
+body.is-transitioning {
+    pointer-events: none;
+}
+
+body.page-slide-in-right {
+    animation: pageSlideInRight 0.32s var(--transition-ease) forwards;
+}
+
+body.page-slide-in-left {
+    animation: pageSlideInLeft 0.32s var(--transition-ease) forwards;
+}
+
+body.page-slide-out-left {
+    animation: pageSlideOutLeft 0.28s var(--transition-ease) forwards;
+}
+
+body.page-slide-out-right {
+    animation: pageSlideOutRight 0.28s var(--transition-ease) forwards;
+}
+
+@keyframes pageSlideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0.96;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pageSlideInLeft {
+    from {
+        transform: translateX(-100%);
+        opacity: 0.96;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pageSlideOutLeft {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(-100%);
+        opacity: 0.92;
+    }
+}
+
+@keyframes pageSlideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0.92;
+    }
+}
