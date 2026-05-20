@@ -42,7 +42,7 @@ function redirectToTracking(query = '') {
 
 if (searchInput) {
     setInterval(() => {
-        searchInput.style.opacity = "0";
+        searchInput.style.opacity = "100000";
         setTimeout(() => {
             counter = (counter + 1) % phrases.length;
             searchInput.placeholder = phrases[counter];
@@ -119,18 +119,20 @@ if (slider && dots.length > 0 && adsContainer) {
 // --- 4. NOTIFICATION & ACTIVITY SYSTEM ---
 const notifBtn = document.querySelector('.notification-wrapper');
 const notifDot = document.querySelector('.notification-dot, .notification-badge');
-const notifList = document.getElementById('notification-list');
 const activityPanel = document.getElementById('activity-panel');
 const activityOverlay = document.getElementById('activity-overlay');
 
 function checkNotifications() {
-    if (!notifList || !notifDot) return false;
-    const count = notifList.querySelectorAll('.notification-item').length;
+    if (!notifDot) return false;
+    let count = parseInt(localStorage.getItem('unread_notifications'), 10);
+    if (isNaN(count)) count = 5; // default unread count before first visit to notification page
     if (count > 0) {
-        notifDot.classList.add('active');
+        notifDot.textContent = count;
+        notifDot.style.display = 'flex';
         return true;
     } else {
-        notifDot.classList.remove('active');
+        notifDot.textContent = '';
+        notifDot.style.display = 'none';
         return false;
     }
 }

@@ -1,0 +1,123 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isParticipant() {
+      return isSignedIn() && request.auth.uid in resource.data.participants;
+    }
+
+    function onlyFields(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // ── customers ─────────────────────────────────────────────────────────────
+    // Each customer document is private to the user who owns it.
+    // Document ID == Auth UID.
+
+    match /customers/{userId} {
+      allow read:   if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false;           // never delete customer data from the client
+    }
+
+    // ── artisans ──────────────────────────────────────────────────────────────
+    // Any signed-in user may read artisan profiles (needed for search & booking).
+    // Only the artisan themselves may write their own profile.
+    // Document ID == Auth UID.
+
+    match /artisans/{artisanId} {
+      allow read:   if isSignedIn();
+      allow create: if isOwner(artisanId);
+      allow update: if isOwner(artisanId);
+      allow delete: if false;
+    }
+
+    // ── notifications ─────────────────────────────────────────────────────────
+    // Users may only read notifications addressed to them.
+    // Any signed-in user may create a notification (needed for booking events,
+    // messages, payments — all triggered client-side for now).
+    // Only the receiver may update a notification, and only to mark it read.
+
+    match /notifications/{notificationId} {
+      allow read:   if isSignedIn() && resource.data.receiverId == request.auth.uid;
+
+      allow create: if isSignedIn()
+                    && request.resource.data.receiverId is string
+                    && request.resource.data.receiverId.size() > 0;
+
+      allow update: if isSignedIn()
+                    && resource.data.receiverId == request.auth.uid
+                    && onlyFields(['isRead']);
+
+      allow delete: if false;
+    }
+
+    // ── bookings ──────────────────────────────────────────────────────────────
+    // Both the customer and the artisan involved in a booking may read it.
+    // Only a signed-in customer may create a booking (customerId must match UID).
+    // Status updates are allowed by either party (customer can cancel,
+    // artisan can accept/reject/complete).
+
+    match /bookings/{bookingId} {
+      allow read: if isSignedIn()
+                  && (resource.data.customerId == request.auth.uid
+                      || resource.data.artisanId == request.auth.uid);
+
+      allow create: if isSignedIn()
+                    && request.resource.data.customerId == request.auth.uid
+                    && request.resource.data.status == "pending";
+
+      allow update: if isSignedIn()
+                    && (resource.data.customerId == request.auth.uid
+                        || resource.data.artisanId == request.auth.uid);
+
+      allow delete: if false;
+    }
+
+    // ── chats ─────────────────────────────────────────────────────────────────
+    // Only participants in a chat may read or write to it.
+    // A new chat must include the creator's UID in participants.
+
+    match /chats/{chatId} {
+      allow read:   if isParticipant();
+
+      allow create: if isSignedIn()
+                    && request.auth.uid in request.resource.data.participants
+                    && request.resource.data.participants.size() >= 2;
+
+      allow update: if isParticipant();
+
+      allow delete: if false;
+
+      // messages sub-collection: same participant rule
+      match /messages/{messageId} {
+        allow read:   if isSignedIn()
+                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+
+        allow create: if isSignedIn()
+                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                      && request.resource.data.senderId == request.auth.uid;
+
+        // Only allow marking as read (isRead field update)
+        allow update: if isSignedIn()
+                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                      && onlyFields(['isRead']);
+
+        allow delete: if false;
+      }
+    }
+
+  }
+}

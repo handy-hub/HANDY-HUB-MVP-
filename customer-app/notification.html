@@ -3,51 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notifications UI</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Notifications · HandyHub</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../shared/css/pageTransitions.css">
     <link rel="stylesheet" href="css/notification.css">
 </head>
-<body class="flex justify-center" data-page-type="notification">
+<body data-page-type="notification">
 
-    <div class="w-full max-w-md min-h-screen relative flex flex-col pb-24">
-        
-        <!-- Header -->
-        <header class="glass-header sticky top-0 flex items-center justify-between px-6 py-4">
-            <button class="back-to-dashboard text-xl"><i class="fa-solid fa-chevron-left"></i></button>
-            <h1 class="text-lg font-bold">Notifications</h1>
-            <button class="text-xl"><i class="fa-solid fa-gear"></i></button>
+    <div class="notif-page">
+
+        <!-- ── Header ─────────────────────────────────────────────────── -->
+        <header class="notif-header">
+            <button class="back-to-dashboard header-icon-btn" aria-label="Go back">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <h1 class="notif-header__title">Notifications</h1>
+            <button class="header-icon-btn" aria-label="Settings">
+                <i class="fa-solid fa-gear"></i>
+            </button>
         </header>
 
-        <!-- Filter Tabs -->
-        <div class="flex space-x-4 px-4 py-4 overflow-x-auto no-scrollbar" id="tabContainer">
-            <!-- Tabs injected by JS -->
-        </div>
+        <!-- ── Filter tabs (rendered by JS) ──────────────────────────── -->
+        <div class="tabs-scroll" id="tabContainer" role="tablist"></div>
 
-        <!-- Main Content -->
-        <main class="flex-1 px-4">
-            <div id="notif-list">
-                <!-- Notifications injected by JS -->
-            </div>
+        <!-- ── Notification list (rendered by JS) ────────────────────── -->
+        <main class="notif-main">
+            <div id="notif-list"></div>
 
-            <!-- Push Alert Box -->
-            <div class="mt-8 border border-gray-100 rounded-2xl p-4 flex items-center space-x-4 relative bg-gray-50/50" id="pushBox">
-                <button id="push-close-btn" class="absolute top-2 right-3 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
-                <div class="relative">
-                    <img src="https://img.icons8.com/color/96/bell.png" class="w-14 h-14" alt="bell">
+            <!-- Push-notification upsell card -->
+            <div class="push-alert" id="pushBox">
+                <button class="push-alert__close" id="push-close-btn" aria-label="Dismiss">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="push-alert__body">
+                    <img class="push-alert__img"
+                         src="https://img.icons8.com/color/96/bell.png"
+                         alt=""
+                         loading="lazy">
+                    <div class="push-alert__text">
+                        <p class="push-alert__heading">Want real-time updates?</p>
+                        <p class="push-alert__sub">Turn on push notifications to never miss important updates.</p>
+                    </div>
+                    <button class="push-alert__btn">Enable</button>
                 </div>
-                <div class="flex-1">
-                    <h4 class="font-bold text-sm">Want real-time updates?</h4>
-                    <p class="text-[11px] text-gray-500 mt-1 leading-tight">Turn on push notifications to never miss important updates.</p>
-                </div>
-                <button class="bg-[#b10c0c] text-white px-5 py-2 rounded-lg text-xs font-bold">Enable</button>
             </div>
         </main>
 
-
     </div>
-<script src="../shared/js/components/navLoader.js"></script>
-<script src="../shared/js/components/pageTransition.js"></script>
-<script src="js/pages/notificationPage.js"></script>
+
+    <!-- ── Bottom nav (injected by navLoader) ────────────────────────── -->
+    <div id="bottom-nav-include"></div>
+
+    <!-- ── Scripts ───────────────────────────────────────────────────── -->
+    <!-- navLoader must run before DOMContentLoaded so the bottom nav is ready
+         for initNavbar() inside helpers.js -->
+    <script src="../shared/js/components/navLoader.js"></script>
+    <script src="../shared/js/components/serviceIcons.js"></script>
+    <script src="../shared/js/components/pageTransition.js"></script>
     <script src="../shared/js/utils/global-app.js"></script>
+    <script src="../shared/js/utils/helpers.js"></script>
+
+    <!-- Notification logic as an ES module (needs Firebase imports) -->
+    <script type="module" src="js/pages/notificationPage.js"></script>
+
+</body>
+</html>
