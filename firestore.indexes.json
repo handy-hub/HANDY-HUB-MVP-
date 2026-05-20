@@ -1,0 +1,97 @@
+{
+  "indexes": [
+
+    // ── customer_notifications ──────────────────────────────────────
+    // subscribeToUserNotifications: receiverId + createdAt DESC
+    {
+      "collectionGroup": "customer_notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "receiverId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt",  "order": "DESCENDING" }
+      ]
+    },
+    // subscribeToUnreadCount: receiverId + isRead
+    {
+      "collectionGroup": "customer_notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "receiverId", "order": "ASCENDING" },
+        { "fieldPath": "isRead",     "order": "ASCENDING" }
+      ]
+    },
+
+    // ── artisans ────────────────────────────────────────────────────
+    // getTopRated: isAvailable + rating DESC
+    {
+      "collectionGroup": "artisans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isAvailable", "order": "ASCENDING" },
+        { "fieldPath": "rating",      "order": "DESCENDING" }
+      ]
+    },
+    // findByCategory: category + rating DESC
+    {
+      "collectionGroup": "artisans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "rating",   "order": "DESCENDING" }
+      ]
+    },
+
+    // ── bookings ────────────────────────────────────────────────────
+    // getByCustomerId: customerId + createdAt DESC
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "customerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt",  "order": "DESCENDING" }
+      ]
+    },
+    // getByArtisanId: artisanId + createdAt DESC
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "artisanId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    // getByCustomerId filtered by status
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "customerId", "order": "ASCENDING" },
+        { "fieldPath": "status",     "order": "ASCENDING" },
+        { "fieldPath": "createdAt",  "order": "DESCENDING" }
+      ]
+    },
+    // getByArtisanId filtered by status
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "artisanId", "order": "ASCENDING" },
+        { "fieldPath": "status",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+
+    // ── chats ────────────────────────────────────────────────────────
+    // getChatsByUser / subscribeByUser: participants array-contains + lastMessageAt DESC
+    {
+      "collectionGroup": "chats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "participants",  "arrayConfig": "CONTAINS" },
+        { "fieldPath": "lastMessageAt", "order": "DESCENDING" }
+      ]
+    }
+
+  ],
+  "fieldOverrides": []
+}

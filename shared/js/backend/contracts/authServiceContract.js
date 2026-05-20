@@ -6,7 +6,12 @@ const REQUIRED_AUTH_METHODS = [
   "signOut",
   "deleteCurrentUser",
   "getCurrentUser",
-  "extractSignInMetadata"
+  "extractSignInMetadata",
+  "subscribeToAuthState",
+  "waitForUser",
+  "reauthenticateWithPassword",
+  "changePassword",
+  "deleteAccount"
 ];
 
 /**

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Handy Hub – Personal Information</title>
+  <link rel="stylesheet" href="css/settings.css" />
+  <link rel="stylesheet" href="../shared/css/pageTransitions.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+</head>
+<body>
+  <div class="phone-shell">
+    <div class="scroll-area">
+
+      <div class="page-header">
+        <button class="back-btn" aria-label="Go back"
+          onclick="sessionStorage.setItem('pageTransitionDirection','back'); window.location.href='settings.html'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <h1 class="page-title">Personal Information</h1>
+        <div class="header-spacer"></div>
+      </div>
+
+      <div class="privacy-note">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Your information is kept private and only used to improve your experience on Handy Hub.
+      </div>
+
+      <div class="form-section">
+        <div class="form-group" id="fg-name">
+          <label class="form-label">Full Name</label>
+          <input id="fi-name" class="form-input" type="text" placeholder="Your full name" maxlength="60" />
+        </div>
+        <div class="form-group" id="fg-phone">
+          <label class="form-label">Phone Number</label>
+          <input id="fi-phone" class="form-input" type="tel" placeholder="+233 XX XXX XXXX" maxlength="20" />
+        </div>
+        <div class="form-group" id="fg-location">
+          <label class="form-label">City / Location</label>
+          <input id="fi-location" class="form-input" type="text" placeholder="e.g. Accra, Ghana" maxlength="80" />
+        </div>
+        <div class="form-group" id="fg-bio">
+          <label class="form-label">Bio <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+          <textarea id="fi-bio" class="form-textarea" placeholder="Tell artisans a bit about yourself…" maxlength="200"></textarea>
+          <p class="char-count"><span id="bio-count">0</span>/200</p>
+        </div>
+      </div>
+
+      <p class="section-label">Email Address</p>
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input id="fi-email" class="form-input" type="email" placeholder="your@email.com" readonly
+            style="color:#aaa; cursor:not-allowed;" />
+          <p class="input-hint">Email cannot be changed here. Contact support if needed.</p>
+        </div>
+      </div>
+
+      <button class="save-btn" id="save-btn" onclick="savePersonalInfo()">Save Changes</button>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      try {
+        var dir = sessionStorage.getItem('pageTransitionDirection');
+        sessionStorage.removeItem('pageTransitionDirection');
+        if (dir === 'forward') document.body.classList.add('page-slide-in-right');
+        else if (dir === 'back') document.body.classList.add('page-slide-in-left');
+        document.body.addEventListener('animationend', function () {
+          document.body.classList.remove('page-slide-in-right', 'page-slide-in-left');
+        }, { once: true });
+      } catch (e) {}
+    })();
+
+    // Focus highlight
+    document.querySelectorAll('.form-input, .form-textarea').forEach(function(el) {
+      el.addEventListener('focus',  function() { el.closest('.form-group').classList.add('focused'); });
+      el.addEventListener('blur',   function() { el.closest('.form-group').classList.remove('focused'); });
+    });
+
+    // Bio character counter
+    var bioEl    = document.getElementById('fi-bio');
+    var bioCount = document.getElementById('bio-count');
+    bioEl.addEventListener('input', function() {
+      var len = bioEl.value.length;
+      bioCount.textContent = len;
+      bioCount.parentElement.classList.toggle('over', len >= 200);
+    });
+  </script>
+
+  <script type="module" src="js/pages/settingsPersonalInfo.js"></script>
+</body>
+</html>

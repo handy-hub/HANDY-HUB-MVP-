@@ -1,15 +1,19 @@
 import {
   createUserWithEmailAndPassword,
   deleteUser,
+  EmailAuthProvider,
   FacebookAuthProvider,
   getAdditionalUserInfo,
   getRedirectResult,
   GoogleAuthProvider,
+  onAuthStateChanged,
   OAuthProvider,
+  reauthenticateWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
-  signOut
+  signOut,
+  updatePassword
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { firebaseAuth } from "./firebaseConfig.js";
 
@@ -95,6 +99,40 @@ export function createFirebaseAuthService(authInstance = firebaseAuth) {
         providerId,
         providerName: providerNameFromId(providerId)
       };
+    },
+
+    subscribeToAuthState(callback) {
+      return onAuthStateChanged(authInstance, callback);
+    },
+
+    waitForUser() {
+      return new Promise((resolve) => {
+        const stop = onAuthStateChanged(authInstance, (user) => {
+          stop();
+          resolve(user);
+        });
+      });
+    },
+
+    async reauthenticateWithPassword(password) {
+      const user = authInstance.currentUser;
+      if (!user) throw Object.assign(new Error("No signed-in user"), { code: "auth/no-current-user" });
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
+    },
+
+    async changePassword(newPassword) {
+      const user = authInstance.currentUser;
+      if (!user) throw Object.assign(new Error("No signed-in user"), { code: "auth/no-current-user" });
+      await updatePassword(user, newPassword);
+    },
+
+    async deleteAccount(password) {
+      const user = authInstance.currentUser;
+      if (!user) throw Object.assign(new Error("No signed-in user"), { code: "auth/no-current-user" });
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
+      await deleteUser(user);
     }
   };
 }

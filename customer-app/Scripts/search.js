@@ -1,7 +1,5 @@
-// --- FIRESTORE ARTISAN SEARCH ENGINE ---
 import "../../shared/js/utils/global-app.js";
-import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { firebaseDb } from "../../shared/js/backend/providers/firebase/firebaseConfig.js";
+import { getAppContainer } from "../../shared/js/app/container.js";
 
 document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('tracking-search-input');
@@ -17,15 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
   async function executeArtisanSearch(queryText) {
     const cleanQuery = String(queryText || '').trim().toLowerCase();
     if (!cleanQuery) {
-      if (resultsMessage) {
-        resultsMessage.textContent = 'Please enter a search term to find an artisan.';
-      }
-      if (resultsList) {
-        resultsList.innerHTML = '';
-      }
-      if (resultsGroup) {
-        resultsGroup.removeAttribute('hidden');
-      }
+      if (resultsMessage) resultsMessage.textContent = 'Please enter a search term to find an artisan.';
+      if (resultsList) resultsList.innerHTML = '';
+      if (resultsGroup) resultsGroup.removeAttribute('hidden');
       return;
     }
 
@@ -34,15 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (resultsList) resultsList.innerHTML = '';
 
     try {
-      const artisansQuery = query(
-        collection(firebaseDb, 'artisans'),
-        where('searchKeywords', 'array-contains', cleanQuery)
-      );
-      const snapshot = await getDocs(artisansQuery);
-      const artisans = snapshot.docs.map((docSnapshot) => ({
-        id: docSnapshot.id,
-        ...docSnapshot.data()
-      }));
+      const { services: { databaseService } } = getAppContainer();
+
+      const records = await databaseService.queryWithOptions('artisans', [
+        { field: 'searchKeywords', op: 'array-contains', value: cleanQuery }
+      ]);
+
+      const artisans = records.map(({ id, data }) => ({ id, ...data }));
 
       if (resultsList) {
         if (artisans.length) {
@@ -69,16 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `Showing ${artisans.length} professionals for "${cleanQuery}".`
           : 'No artisan found. Try again.';
       }
-
       if (resultsGroup) resultsGroup.removeAttribute('hidden');
     } catch (error) {
-      console.error('Firestore artisan search failed:', error);
-      if (resultsMessage) {
-        resultsMessage.textContent = 'Unable to search artisans right now. Please try again.';
-      }
-      if (resultsList) {
-        resultsList.innerHTML = '';
-      }
+      console.error('Artisan search failed:', error);
+      if (resultsMessage) resultsMessage.textContent = 'Unable to search artisans right now. Please try again.';
+      if (resultsList) resultsList.innerHTML = '';
       if (resultsGroup) resultsGroup.removeAttribute('hidden');
     } finally {
       setTimeout(() => {

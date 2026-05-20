@@ -1,123 +1,267 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
+    // ===============================================================
+    // Global Safety Net & Helpers
+    // ===============================================================
+    match /{document=**} { allow read, write: if false; }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
-    function isSignedIn() {
-      return request.auth != null;
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "silas7korda@gmail.com" ||
+        request.auth.token.email == "clasceth4traders@gmail.com" ||
+        request.auth.token.email == "paakumisam@gmail.com" ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.userType == 'admin')
+      );
     }
 
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
+    function isSuperAdmin() {
+      return isAdmin() && (
+        request.auth.token.email == "silas7korda@gmail.com" ||
+        request.auth.token.email == "clasceth4traders@gmail.com" ||
+        request.auth.token.email == "paakumisam@gmail.com" ||
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin'
+      );
     }
 
-    function isParticipant() {
-      return isSignedIn() && request.auth.uid in resource.data.participants;
+    function hasAdminPermission(role) {
+      return isSignedIn() && (
+        request.auth.token.email == "silas7korda@gmail.com" ||
+        request.auth.token.email == "clasceth4traders@gmail.com" ||
+        request.auth.token.email == "paakumisam@gmail.com" ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+         (get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin' ||
+          get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == role))
+      );
     }
 
-    function onlyFields(fields) {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isValidEmail(email) { return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"); }
+
+    // ===============================================================
+    // Admin Collection
+    // ===============================================================
+    match /admins/{adminId} {
+      allow read: if isAdmin() || isOwner(adminId);
+      allow create: if isSuperAdmin() || (
+        isOwner(adminId) &&
+        (request.auth.token.email == "silas7korda@gmail.com" ||
+         request.auth.token.email == "clasceth4traders@gmail.com" ||
+         request.auth.token.email == "paakumisam@gmail.com") &&
+        incoming().role == 'super_admin' &&
+        incoming().userType == 'admin' &&
+        incoming().status == 'active' &&
+        isValidAdmin(incoming())
+      );
+      allow update: if isSuperAdmin() || (
+        isOwner(adminId) &&
+        incoming().role == existing().role &&
+        incoming().userType == 'admin' &&
+        isValidAdmin(incoming())
+      );
+      allow delete: if isSuperAdmin();
     }
 
-    // ── customers ─────────────────────────────────────────────────────────────
-    // Each customer document is private to the user who owns it.
-    // Document ID == Auth UID.
-
-    match /customers/{userId} {
-      allow read:   if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if false;           // never delete customer data from the client
+    function isValidAdmin(data) {
+      return data.id == request.auth.uid &&
+             data.name is string && data.name.size() > 0 &&
+             isValidEmail(data.email) &&
+             data.userType == 'admin' &&
+             data.status in ['active', 'suspended', 'pending'];
     }
 
-    // ── artisans ──────────────────────────────────────────────────────────────
-    // Any signed-in user may read artisan profiles (needed for search & booking).
-    // Only the artisan themselves may write their own profile.
-    // Document ID == Auth UID.
-
+    // ===============================================================
+    // Artisans Collection
+    // ===============================================================
     match /artisans/{artisanId} {
-      allow read:   if isSignedIn();
-      allow create: if isOwner(artisanId);
-      allow update: if isOwner(artisanId);
+      allow read: if isSignedIn();
+      allow create: if isOwner(artisanId) &&
+                      incoming().userType == 'artisan' &&
+                      (incoming().status == 'pending' || incoming().status == 'active') &&
+                      isValidArtisan(incoming());
+      allow update: if (hasAdminPermission('operations_admin')) || (
+                      isOwner(artisanId) &&
+                      incoming().userType == 'artisan' &&
+                      incoming().status == existing().status &&
+                      isValidArtisan(incoming())
+                    );
+      allow delete: if isSuperAdmin();
+    }
+
+    function isValidArtisan(data) {
+      return data.id == request.auth.uid &&
+             data.name is string && data.name.size() > 0 &&
+             isValidEmail(data.email) &&
+             data.userType == 'artisan' &&
+             data.status in ['active', 'pending', 'suspended', 'banned'];
+    }
+
+    // ===============================================================
+    // Customers Collection
+    // ===============================================================
+    match /customers/{customerId} {
+      allow read: if isAdmin() || isOwner(customerId);
+
+      allow create: if isOwner(customerId) &&
+                      incoming().userType == 'customer' &&
+                      incoming().status == 'active' &&
+                      isValidCustomer(incoming());
+
+      // Admins may do full updates; owners may do partial profile updates
+      // (name, phone, bio, location, profileImage, wallet, searches)
+      // without needing to resupply every required field.
+      allow update: if (hasAdminPermission('support_admin') || hasAdminPermission('operations_admin')) || (
+                      isOwner(customerId) &&
+                      isSafeCustomerProfileUpdate()
+                    );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    function isValidCustomer(data) {
+      return data.id == request.auth.uid &&
+             data.name is string && data.name.size() > 0 &&
+             isValidEmail(data.email) &&
+             data.userType == 'customer' &&
+             data.status in ['active', 'suspended'] &&
+             data.bookings is number &&
+             data.spent is number;
+    }
+
+    // Only these fields may be touched by the customer themselves on update.
+    // This lets setDoc-merge calls (e.g. profile photo) succeed without
+    // re-supplying every validated field.
+    function isSafeCustomerProfileUpdate() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        'name', 'phone', 'location', 'bio', 'profileImage',
+        'walletBalance', 'recentSearches', 'recentSearchesUpdatedAt',
+        'notificationPreferences', 'privacySettings', 'appPreferences',
+        'updatedAt'
+      ]);
+    }
+
+    // ===============================================================
+    // Jobs Collection
+    // ===============================================================
+    match /jobs/{jobId} {
+      allow read: if isAdmin() ||
+                     (isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.artisanId));
+      allow create: if (isSignedIn() && incoming().customerId == request.auth.uid && isValidJob(incoming()));
+      allow update: if isAdmin() ||
+                     (isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.artisanId) && isValidJob(incoming()));
+      allow delete: if isSuperAdmin();
+    }
+
+    function isValidJob(data) {
+      return data.customerId is string &&
+             data.status in ["Pending", "In Progress", "En Route", "Awaiting Confirmation", "Completed", "Cancelled"];
+    }
+
+    // ===============================================================
+    // Disputes Collection
+    // ===============================================================
+    match /disputes/{disputeId} {
+      allow read: if isAdmin() ||
+                     (isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.artisanId));
+      allow create: if (isSignedIn() && incoming().customerId == request.auth.uid);
+      allow update: if hasAdminPermission('support_admin');
+      allow delete: if isSuperAdmin();
+    }
+
+    // ===============================================================
+    // Audit Logs Collection
+    // ===============================================================
+    match /audit_logs/{logId} {
+      allow list: if isSuperAdmin() || (isAdmin() && request.query.adminId == request.auth.uid);
+      allow get: if isAdmin() && (isSuperAdmin() || resource.data.adminId == request.auth.uid);
+      allow create: if isAdmin() && incoming().adminId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ===============================================================
+    // Settings Collection
+    // ===============================================================
+    match /settings/{docId} {
+      allow read: if isAdmin() || (isOwner(request.auth.uid) && docId == 'platform');
+      allow create, update: if isSuperAdmin();
       allow delete: if false;
     }
 
-    // ── notifications ─────────────────────────────────────────────────────────
-    // Users may only read notifications addressed to them.
-    // Any signed-in user may create a notification (needed for booking events,
-    // messages, payments — all triggered client-side for now).
-    // Only the receiver may update a notification, and only to mark it read.
+    // ===============================================================
+    // Regions Collection
+    // ===============================================================
+    match /regions/{regionId} {
+      allow read: if isSignedIn();
+      allow create, update: if hasAdminPermission('operations_admin');
+      allow delete: if isSuperAdmin();
+    }
 
+    // ===============================================================
+    // Payouts Collection
+    // ===============================================================
+    match /payouts/{payoutId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.artisanId);
+      allow create: if (isSignedIn() && incoming().artisanId == request.auth.uid);
+      allow update: if hasAdminPermission('finance_admin');
+      allow delete: if isSuperAdmin();
+    }
+
+    // ===============================================================
+    // Admin Notifications (used by admin app — field: userId)
+    // ===============================================================
     match /notifications/{notificationId} {
-      allow read:   if isSignedIn() && resource.data.receiverId == request.auth.uid;
+      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || resource.data.userId == 'all');
+      allow create: if isAdmin();
+      allow update: if isSignedIn() && request.auth.uid == resource.data.userId &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
 
+    // ===============================================================
+    // Customer App Notifications (used by customer app — field: receiverId)
+    // Separate collection to avoid clashing with the admin notifications above.
+    // ===============================================================
+    match /customer_notifications/{notificationId} {
+      // Only the addressee may read their own notifications
+      allow read: if isSignedIn() && resource.data.receiverId == request.auth.uid;
+
+      // Any signed-in user may create (booking events, messages, payments)
       allow create: if isSignedIn()
                     && request.resource.data.receiverId is string
                     && request.resource.data.receiverId.size() > 0;
 
+      // Only the receiver may update, and only to mark it read
       allow update: if isSignedIn()
                     && resource.data.receiverId == request.auth.uid
-                    && onlyFields(['isRead']);
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
 
       allow delete: if false;
     }
 
-    // ── bookings ──────────────────────────────────────────────────────────────
-    // Both the customer and the artisan involved in a booking may read it.
-    // Only a signed-in customer may create a booking (customerId must match UID).
-    // Status updates are allowed by either party (customer can cancel,
-    // artisan can accept/reject/complete).
-
-    match /bookings/{bookingId} {
-      allow read: if isSignedIn()
-                  && (resource.data.customerId == request.auth.uid
-                      || resource.data.artisanId == request.auth.uid);
-
-      allow create: if isSignedIn()
-                    && request.resource.data.customerId == request.auth.uid
-                    && request.resource.data.status == "pending";
-
-      allow update: if isSignedIn()
-                    && (resource.data.customerId == request.auth.uid
-                        || resource.data.artisanId == request.auth.uid);
-
-      allow delete: if false;
+    // ===============================================================
+    // Broadcasts Collection
+    // ===============================================================
+    match /broadcasts/{broadcastId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin();
+      allow update, delete: if isSuperAdmin();
     }
 
-    // ── chats ─────────────────────────────────────────────────────────────────
-    // Only participants in a chat may read or write to it.
-    // A new chat must include the creator's UID in participants.
+    // ===============================================================
+    // Admin Chats
+    // ===============================================================
+    match /admin_chats/{chatId} {
+      allow read, update: if isAdmin() && request.auth.uid in resource.data.participants;
+      allow create: if isAdmin() && incoming().participants.hasAll([request.auth.uid]);
 
-    match /chats/{chatId} {
-      allow read:   if isParticipant();
-
-      allow create: if isSignedIn()
-                    && request.auth.uid in request.resource.data.participants
-                    && request.resource.data.participants.size() >= 2;
-
-      allow update: if isParticipant();
-
-      allow delete: if false;
-
-      // messages sub-collection: same participant rule
       match /messages/{messageId} {
-        allow read:   if isSignedIn()
-                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
-
-        allow create: if isSignedIn()
-                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
-                      && request.resource.data.senderId == request.auth.uid;
-
-        // Only allow marking as read (isRead field update)
-        allow update: if isSignedIn()
-                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
-                      && onlyFields(['isRead']);
-
-        allow delete: if false;
+        allow read, create: if isAdmin() && get(/databases/$(database)/documents/admin_chats/$(chatId)).data.participants.hasAny([request.auth.uid]);
       }
     }
-
   }
 }

@@ -18,7 +18,10 @@ const REQUIRED_DATABASE_METHODS = [
     "addSubDocument",
     "updateSubDocument",
     "querySubCollection",
-    "subscribeToSubCollection"
+    "subscribeToSubCollection",
+
+    // ── Single-document real-time listener ────────────────────────────────
+    "subscribeToDocument"
 ];
 
 /**

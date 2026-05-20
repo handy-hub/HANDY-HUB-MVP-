@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Handy Hub – Location Settings</title>
+  <link rel="stylesheet" href="css/settings.css" />
+  <link rel="stylesheet" href="../shared/css/pageTransitions.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+</head>
+<body>
+  <div class="phone-shell">
+    <div class="scroll-area">
+
+      <div class="page-header">
+        <button class="back-btn" aria-label="Go back"
+          onclick="sessionStorage.setItem('pageTransitionDirection','back'); window.location.href='settings.html'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <h1 class="page-title">Location Settings</h1>
+        <div class="header-spacer"></div>
+      </div>
+
+      <p class="section-label">Service Location</p>
+      <div class="form-section">
+        <div class="form-group" id="fg-city">
+          <label class="form-label">Home City</label>
+          <input id="loc-city" class="form-input" type="text" placeholder="e.g. Accra" />
+        </div>
+        <div class="form-group" id="fg-area">
+          <label class="form-label">Neighbourhood / Area</label>
+          <input id="loc-area" class="form-input" type="text" placeholder="e.g. East Legon" />
+        </div>
+        <div class="form-group" id="fg-addr">
+          <label class="form-label">Street Address</label>
+          <input id="loc-addr" class="form-input" type="text" placeholder="e.g. 14 Ring Road West" />
+        </div>
+      </div>
+
+      <p class="section-label">Permissions</p>
+      <div class="menu-card">
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <p class="toggle-title">Use Device Location</p>
+            <p class="toggle-sub">Allows the app to detect your current location</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-gps" onchange="saveLocPref('gps', this.checked)" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <p class="toggle-title">Show Nearby Artisans</p>
+            <p class="toggle-sub">Prioritise artisans close to your location</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-nearby" checked onchange="saveLocPref('nearby', this.checked)" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+
+      <button class="save-btn" id="save-btn" onclick="saveLocation()">Save Location</button>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      try {
+        var dir = sessionStorage.getItem('pageTransitionDirection');
+        sessionStorage.removeItem('pageTransitionDirection');
+        if (dir === 'forward') document.body.classList.add('page-slide-in-right');
+        else if (dir === 'back') document.body.classList.add('page-slide-in-left');
+        document.body.addEventListener('animationend', function () {
+          document.body.classList.remove('page-slide-in-right', 'page-slide-in-left');
+        }, { once: true });
+      } catch (e) {}
+    })();
+
+    document.querySelectorAll('.form-input').forEach(function(el) {
+      el.addEventListener('focus',  function() { el.closest('.form-group').classList.add('focused'); });
+      el.addEventListener('blur',   function() { el.closest('.form-group').classList.remove('focused'); });
+    });
+
+    // Restore saved values
+    var fields = [['loc-city','loc_city'],['loc-area','loc_area'],['loc-addr','loc_addr']];
+    fields.forEach(function(f) {
+      var v = localStorage.getItem(f[1]);
+      if (v) document.getElementById(f[0]).value = v;
+    });
+    var gps = localStorage.getItem('loc_gps');
+    if (gps) document.getElementById('toggle-gps').checked = gps !== 'false';
+    var nearby = localStorage.getItem('loc_nearby');
+    if (nearby !== null) document.getElementById('toggle-nearby').checked = nearby !== 'false';
+
+    window.saveLocPref = function(key, val) { localStorage.setItem('loc_'+key, val); };
+
+    window.saveLocation = function() {
+      localStorage.setItem('loc_city', document.getElementById('loc-city').value.trim());
+      localStorage.setItem('loc_area', document.getElementById('loc-area').value.trim());
+      localStorage.setItem('loc_addr', document.getElementById('loc-addr').value.trim());
+      var btn = document.getElementById('save-btn');
+      btn.textContent = 'Saved!';
+      btn.disabled = true;
+      setTimeout(function() { btn.textContent = 'Save Location'; btn.disabled = false; }, 1800);
+    };
+  </script>
+</body>
+</html>

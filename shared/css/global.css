@@ -761,6 +761,22 @@ margin-top: 10px;
     transform: scale(0.95);
 }
 
+/* SVG-based nav active state (pages using inline SVG icons) */
+.nav-item.active svg path,
+.nav-item.active svg circle,
+.nav-item.active svg polyline,
+.nav-item.active svg line,
+.nav-item.active svg rect,
+.nav-item.active svg polygon {
+    stroke: #730201;
+}
+
+.nav-item.active .active-label,
+.nav-item .active-label {
+    color: #730201;
+    font-weight: 700;
+}
+
 
 /* Login Page Styles */
 .lang-dropdown {
