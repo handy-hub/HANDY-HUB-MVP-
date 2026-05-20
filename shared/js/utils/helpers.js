@@ -42,7 +42,7 @@ function redirectToTracking(query = '') {
 
 if (searchInput) {
     setInterval(() => {
-        searchInput.style.opacity = "100000";
+        searchInput.style.opacity = "0";
         setTimeout(() => {
             counter = (counter + 1) % phrases.length;
             searchInput.placeholder = phrases[counter];

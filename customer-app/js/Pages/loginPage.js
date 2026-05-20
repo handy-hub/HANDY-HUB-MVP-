@@ -261,3 +261,9 @@ function wireSocialButtons() {
 wireEmailPasswordLogin();
 wireSocialButtons();
 void handleRedirectSocialResult();
+
+
+
+
+
+

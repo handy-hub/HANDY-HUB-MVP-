@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let salutation = 'Good morning';
     if (hour >= 12 && hour < 17) salutation = 'Good afternoon';
     else if (hour >= 17) salutation = 'Good evening';
-    greetingEl.textContent = `${salutation}, John 👋`;
+    greetingEl.textContent = `${salutation}, John Doe`; // Replace with dynamic name if available
   }
  
   /* ---- Top Up button ---- */
