@@ -1,129 +1,257 @@
-(() => {
-    const notifications = [
-        { id: 1, type: 'Bookings', title: 'Booking Confirmed', msg: 'Kwame Mensah (Plumber) has accepted your booking.', time: '2m ago', icon: 'fa-calendar-check', unread: true, group: 'New' },
-        { id: 2, type: 'Messages', title: 'New Message', msg: 'Kwame Mensah sent you a message regarding your booking.', time: '5m ago', icon: 'fa-comment-dots', unread: true, group: 'New' },
-        { id: 3, type: 'Bookings', title: 'Reminder', msg: 'Your booking with Emmanuel Asare is tomorrow at 10:00 AM.', time: '1h ago', icon: 'fa-bell', unread: true, group: 'New' },
-        { id: 4, type: 'Offers', title: 'Special Offer', msg: 'Get 15% OFF on your next booking. Valid till 31st May.', time: '2h ago', icon: 'fa-tag', unread: true, group: 'New' },
-        { id: 5, type: 'Messages', title: 'Review Request', msg: 'How was your experience with Kofi Boateng (Carpenter)? Leave a review.', time: '3h ago', icon: 'fa-star', unread: true, group: 'New' },
-        { id: 6, type: 'Bookings', title: 'Payment Successful', msg: 'Your payment of GHC 120.00 was successful.', time: 'Yesterday, 6:45 PM', icon: 'fa-wallet', unread: false, group: 'Earlier' },
-        { id: 7, type: 'General', title: 'Safety Update', msg: 'We\'re committed to your safety. Learn more about our verified professionals.', time: 'Yesterday, 12:15 PM', icon: 'fa-shield-halved', unread: false, group: 'Earlier' },
-        { id: 8, type: 'General', title: 'Update', msg: 'We\'ve updated our Terms of Service and Privacy Policy.', time: 'Yesterday, 9:30 AM', icon: 'fa-bullhorn', unread: false, group: 'Earlier' }
-    ];
+import {
+    waitForCurrentUser,
+    subscribeToUserNotifications,
+    markNotificationRead
+} from "../../../shared/js/services/notificationRepository.js";
 
-    const tabs = [
-        { name: 'All', count: 5 },
-        { name: 'Bookings', count: 3 },
-        { name: 'Messages', count: 1 },
-        { name: 'Offers', count: 1 }
-    ];
+// ─── Icon map ───────────────────────────────────────────────────────────────
+const TYPE_ICON = {
+    Bookings: "fa-calendar-check",
+    Messages: "fa-comment-dots",
+    Offers:   "fa-tag",
+    Payments: "fa-wallet",
+    Reviews:  "fa-star",
+    System:   "fa-bell",
+    General:  "fa-shield-halved"
+};
 
-    let currentFilter = 'All';
+const TAB_TYPES = ["Bookings", "Messages", "Offers"];
 
-    const dom = {
-        tabContainer: document.getElementById('tabContainer'),
-        notifList: document.getElementById('notif-list'),
-        pushBox: document.getElementById('pushBox'),
-        pushCloseBtn: document.getElementById('push-close-btn')
-    };
+// ─── Module state ────────────────────────────────────────────────────────────
+let allNotifications = [];
+let currentFilter    = "All";
+let unsubscribeFn    = null;
 
-    function renderTabs() {
-        if (!dom.tabContainer) {
-            return;
+// ─── DOM refs (resolved lazily so they are safe to call after DOMContentLoaded)
+const dom = {
+    tabContainer: () => document.getElementById("tabContainer"),
+    notifList:    () => document.getElementById("notif-list"),
+    pushBox:      () => document.getElementById("pushBox"),
+    pushClose:    () => document.getElementById("push-close-btn")
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function esc(str) {
+    return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+function formatTime(date) {
+    if (!(date instanceof Date) || isNaN(date)) return "";
+    const diff = Math.floor((Date.now() - date) / 1000);
+    if (diff < 60)    return "Just now";
+    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 172800) {
+        return "Yesterday, " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function getTabCounts(notifications) {
+    const counts = { All: 0 };
+    TAB_TYPES.forEach(t => { counts[t] = 0; });
+    notifications.forEach(n => {
+        if (!n.isRead) {
+            counts.All++;
+            if (counts[n.type] !== undefined) counts[n.type]++;
         }
-
-        dom.tabContainer.innerHTML = tabs.map(tab => `
-            <button type="button" data-filter="${tab.name}" class="flex items-center space-x-2 px-5 py-2 rounded-full whitespace-nowrap transition ${currentFilter === tab.name ? 'bg-[#b10c0c] text-white shadow-lg' : 'bg-gray-100 text-gray-800'}">
-                <span class="text-sm font-bold">${tab.name}</span>
-                <span class="${currentFilter === tab.name ? 'badge-white' : 'badge-red'}">${tab.count}</span>
-            </button>
-        `).join('');
-
-        dom.tabContainer.querySelectorAll('button[data-filter]').forEach(button => {
-            button.addEventListener('click', () => filterBy(button.dataset.filter));
-        });
-    }
-
-    function renderNotifications() {
-        if (!dom.notifList) {
-            return;
-        }
-
-        const filtered = currentFilter === 'All'
-            ? notifications
-            : notifications.filter(n => n.type === currentFilter);
-
-        const groups = ['New', 'Earlier'];
-        let html = '';
-
-        groups.forEach(group => {
-            const groupItems = filtered.filter(n => n.group === group);
-            if (groupItems.length > 0) {
-                html += `<h3 class="text-sm font-bold mt-6 mb-2">${group}</h3>`;
-                groupItems.forEach(item => {
-                    html += `
-                        <div data-id="${item.id}" class="notification-card flex items-start space-x-4 py-4 px-2 mb-2 rounded-2xl ${item.unread ? 'glass-card' : ''}">
-                            <div class="icon-box">
-                                <i class="fa-solid ${item.icon}"></i>
-                            </div>
-                            <div class="flex-1">
-                                <div class="flex justify-between items-start">
-                                    <h4 class="font-bold text-[15px] leading-tight">${item.title}</h4>
-                                    <span class="text-[11px] text-gray-400">${item.time}</span>
-                                </div>
-                                <p class="text-[12px] text-gray-500 mt-1 leading-normal pr-4">${item.msg}</p>
-                            </div>
-                            ${item.unread ? '<div class="pt-6"><div class="unread-dot"></div></div>' : ''}
-                        </div>
-                    `;
-                });
-            }
-        });
-
-        dom.notifList.innerHTML = html;
-        attachNotificationHandlers();
-    }
-
-    function attachNotificationHandlers() {
-        dom.notifList.querySelectorAll('.notification-card').forEach(card => {
-            card.addEventListener('click', () => {
-                markAsRead(Number(card.dataset.id));
-            });
-        });
-    }
-
-    function filterBy(name) {
-        if (!name) {
-            return;
-        }
-
-        currentFilter = name;
-        renderTabs();
-        renderNotifications();
-    }
-
-    function markAsRead(id) {
-        const item = notifications.find(n => n.id === id);
-        if (!item) {
-            return;
-        }
-
-        item.unread = false;
-        renderNotifications();
-    }
-
-    function attachPushBoxHandler() {
-        if (!dom.pushCloseBtn || !dom.pushBox) {
-            return;
-        }
-
-        dom.pushCloseBtn.addEventListener('click', () => {
-            dom.pushBox.remove();
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        renderTabs();
-        renderNotifications();
-        attachPushBoxHandler();
     });
-})();
+    return counts;
+}
+
+function syncBadge(notifications) {
+    const count = notifications.filter(n => !n.isRead).length;
+    try { localStorage.setItem("unread_notifications", count); } catch (_) {}
+    // Also update any live badge elements on this page
+    const badge = document.querySelector(".notification-badge");
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = count > 99 ? "99+" : count;
+        badge.style.display = "flex";
+    } else {
+        badge.textContent = "";
+        badge.style.display = "none";
+    }
+}
+
+// ─── Render: tabs ────────────────────────────────────────────────────────────
+function renderTabs(notifications) {
+    const container = dom.tabContainer();
+    if (!container) return;
+
+    const counts = getTabCounts(notifications);
+    const tabs   = ["All", ...TAB_TYPES];
+
+    container.innerHTML = tabs.map(name => {
+        const isActive = currentFilter === name;
+        const count    = counts[name] ?? 0;
+        return `
+            <button type="button" data-filter="${name}"
+                class="tab-btn${isActive ? " tab-btn--active" : ""}">
+                <span class="tab-label">${name}</span>
+                ${count > 0
+                    ? `<span class="tab-badge${isActive ? " tab-badge--active" : ""}">${count}</span>`
+                    : ""}
+            </button>`;
+    }).join("");
+
+    container.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            currentFilter = btn.dataset.filter;
+            renderTabs(allNotifications);
+            renderList(allNotifications);
+        });
+    });
+}
+
+// ─── Render: single card ─────────────────────────────────────────────────────
+function buildCard(n) {
+    const icon     = TYPE_ICON[n.type] ?? "fa-bell";
+    const isUnread = !n.isRead;
+    return `
+        <div data-id="${n.id}"
+             class="notif-card${isUnread ? " notif-card--unread" : ""}">
+            <div class="notif-icon-wrap${isUnread ? " notif-icon-wrap--unread" : ""}">
+                <i class="fa-solid ${icon}"></i>
+            </div>
+            <div class="notif-body">
+                <div class="notif-top-row">
+                    <span class="notif-title">${esc(n.title)}</span>
+                    <span class="notif-time">${formatTime(n.createdAt)}</span>
+                </div>
+                <p class="notif-msg">${esc(n.message)}</p>
+            </div>
+            ${isUnread ? '<div class="notif-dot"></div>' : ""}
+        </div>`;
+}
+
+// ─── Render: list ────────────────────────────────────────────────────────────
+function renderList(notifications) {
+    const list = dom.notifList();
+    if (!list) return;
+
+    const filtered = currentFilter === "All"
+        ? notifications
+        : notifications.filter(n => n.type === currentFilter);
+
+    if (filtered.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon"><i class="fa-regular fa-bell"></i></div>
+                <p class="empty-title">No notifications yet</p>
+                <p class="empty-sub">You're all caught up. We'll notify you when something new arrives.</p>
+            </div>`;
+        return;
+    }
+
+    const newItems     = filtered.filter(n => !n.isRead);
+    const earlierItems = filtered.filter(n => n.isRead);
+    let html = "";
+
+    if (newItems.length > 0) {
+        html += `<h3 class="group-header">New</h3>`;
+        html += newItems.map(buildCard).join("");
+    }
+    if (earlierItems.length > 0) {
+        html += `<h3 class="group-header">Earlier</h3>`;
+        html += earlierItems.map(buildCard).join("");
+    }
+
+    list.innerHTML = html;
+
+    list.querySelectorAll(".notif-card").forEach(card => {
+        card.addEventListener("click", () => handleCardClick(card.dataset.id));
+    });
+}
+
+// ─── Action: mark as read + optional navigation ───────────────────────────────
+async function handleCardClick(id) {
+    const notif = allNotifications.find(n => n.id === id);
+    if (!notif) return;
+
+    if (!notif.isRead) {
+        // Optimistic update so the UI responds instantly
+        notif.isRead = true;
+        renderTabs(allNotifications);
+        renderList(allNotifications);
+        syncBadge(allNotifications);
+
+        try {
+            await markNotificationRead(id);
+        } catch (err) {
+            console.error("Failed to mark notification read:", err);
+        }
+    }
+
+    if (notif.actionUrl) {
+        window.location.href = notif.actionUrl;
+    }
+}
+
+// ─── Loading / error states ───────────────────────────────────────────────────
+function showLoading() {
+    const list = dom.notifList();
+    if (list) {
+        list.innerHTML = `
+            <div class="notif-loading">
+                <div class="notif-spinner"></div>
+            </div>`;
+    }
+}
+
+function showError(msg) {
+    const list = dom.notifList();
+    if (list) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <p class="empty-title">${esc(msg)}</p>
+            </div>`;
+    }
+}
+
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
+async function init() {
+    // Initialise tabs immediately with empty data so the layout appears fast
+    renderTabs([]);
+    showLoading();
+
+    const user = await waitForCurrentUser();
+
+    if (!user) {
+        showError("Sign in to see your notifications");
+        return;
+    }
+
+    unsubscribeFn = subscribeToUserNotifications(
+        user.uid,
+        (notifications) => {
+            allNotifications = notifications;
+            syncBadge(notifications);
+            renderTabs(notifications);
+            renderList(notifications);
+        },
+        (err) => {
+            console.error("Notification stream error:", err);
+            // If Firestore needs an index it logs a URL — surface that hint
+            showError("Could not load notifications. Check the console for details.");
+        }
+    );
+
+    // Push-alert close button
+    const closeBtn = dom.pushClose();
+    const pushBox  = dom.pushBox();
+    if (closeBtn && pushBox) {
+        closeBtn.addEventListener("click", () => pushBox.remove());
+    }
+}
+
+document.addEventListener("DOMContentLoaded", init);
+
+// Clean up the Firestore listener when the user navigates away
+window.addEventListener("pagehide", () => {
+    if (unsubscribeFn) unsubscribeFn();
+});

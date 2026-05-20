@@ -28,28 +28,14 @@
 
     function handleForwardClick(event) {
         event.preventDefault();
-        if (document.body.classList.contains('is-transitioning')) {
-            return;
-        }
-
         setTransitionDirection('forward');
-        document.body.classList.add('is-transitioning', 'page-slide-out-left');
-        document.body.addEventListener('animationend', () => {
-            window.location.href = forwardTarget;
-        }, { once: true });
+        window.location.href = forwardTarget;
     }
 
     function handleBackClick(event) {
         event.preventDefault();
-        if (document.body.classList.contains('is-transitioning')) {
-            return;
-        }
-
         setTransitionDirection('back');
-        document.body.classList.add('is-transitioning', 'page-slide-out-right');
-        document.body.addEventListener('animationend', () => {
-            window.location.href = backTarget;
-        }, { once: true });
+        window.location.href = backTarget;
     }
 
     function activateEntryAnimation() {
@@ -64,9 +50,8 @@
         }
 
         if (mounted.classList.contains('page-slide-in-left') || mounted.classList.contains('page-slide-in-right')) {
-            mounted.classList.add('is-transitioning');
             mounted.addEventListener('animationend', () => {
-                mounted.classList.remove('is-transitioning', 'page-slide-in-left', 'page-slide-in-right');
+                mounted.classList.remove('page-slide-in-left', 'page-slide-in-right');
             }, { once: true });
         }
     }

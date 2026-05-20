@@ -1,4 +1,5 @@
-﻿:root {     --primary-red: #730201; /* Deep Maroon */
+﻿:root {     
+    --primary-red: #730201; /* Deep Maroon */
     --light-red: #fde8e8;
     --bg-white: #ffffff;
     --text-dark: #333333;
@@ -199,18 +200,18 @@ body {
     position: absolute;
     top: -5px;
     right: -5px;
-    width: fit-content;
-    height: fit-content;
-    background: #ff0606; /* Bright red badge */
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    background: #ff0606;
     color: white;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: bold;
-    border-radius: 50%;
-    display: flex;
+    border-radius: 999px;
+    display: none;
     align-items: center;
     justify-content: center;
-    align-items: center;
-    justify-content: center;
+    line-height: 1;
 }
 
 
@@ -460,32 +461,24 @@ body {
 #service-slider::-webkit-scrollbar { display: none; }
 
 .c-one {
-    background-color: #730201;
-    height: 65px;
-    width: 65px;
+    background-color: var(--light-red);
+    height: 55px;
+    width: 55px;
     border-radius: 15px;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 .c-one img { 
-    width: 40px; 
-    height: 40px;
+    width: 50px; 
+    height: 50px;
  }
 
 .cards::-webkit-scrollbar {
     display: none;
 }
 
-.c-one {
-    background-color: #6b0803;
-    height: 60px;
-    width: 60px;
-    border-radius: 10px;
-    display: flex; /* Added to center the icon perfectly */
-    justify-content: center;
-    align-items: center;
-}
+
 
 .cards button {
     border: none;
@@ -496,8 +489,8 @@ body {
 }
 
 .cards button img {
-    width: 27px;
-    height: 27px;
+    width: 30px;
+    height: 30px;
 }
 
 .cards p {
