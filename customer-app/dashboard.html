@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <script src="../shared/js/utils/themeManager.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HandyHub</title>
     <link rel="stylesheet" href="css/dashboard.css">
@@ -37,19 +38,158 @@
 
 </nav>
    <div id="sidebar" class="sidebar">
-       <div class="sidebar-header">
-           <h2>Menu</h2>
-           <button id="close-sidebar" class="close-btn">&times;</button>
+       <button id="close-sidebar" class="sidebar-close-btn">
+           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+       </button>
+
+       <div class="sidebar-scroll">
+
+           <!-- Profile -->
+           <div class="sidebar-profile">
+               <div class="sidebar-avatar">
+                   <img id="sidebar-profile-img" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Profile">
+               </div>
+               <h3 class="sidebar-user-name">Kwame Mensah</h3>
+               <p class="sidebar-user-location">
+                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>
+                   Accra, Ghana
+               </p>
+           </div>
+
+           <!-- Quick Actions -->
+           <p class="sidebar-section-title">QUICK ACTIONS</p>
+           <div class="sidebar-quick-actions">
+               <button class="quick-action-btn">
+                   <div class="quick-action-icon">
+                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                   </div>
+                   <span>Emergency Request</span>
+               </button>
+               <button class="quick-action-btn">
+                   <div class="quick-action-icon">
+                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 14.03 20 12.57 20 11c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="#730201"/></svg>
+                   </div>
+                   <span>Rebook Last Technician</span>
+               </button>
+               <button class="quick-action-btn">
+                   <div class="quick-action-icon">
+                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>
+                   </div>
+                   <span>Track Current Booking</span>
+               </button>
+               <button class="quick-action-btn">
+                   <div class="quick-action-icon">
+                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+                   </div>
+                   <span>Schedule Service</span>
+               </button>
+           </div>
+
+           <!-- Main Menu -->
+           <p class="sidebar-section-title">MAIN MENU</p>
+           <ul class="sidebar-menu-list">
+               <li>
+                   <a href="dashboard.html" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="#730201"/></svg></span>
+                       <span class="sidebar-menu-label">Home</span>
+                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+                   </a>
+               </li>
+               <li>
+                   <a href="#" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
+                       <span class="sidebar-menu-label">My Requests</span>
+                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+                   </a>
+               </li>
+               <li>
+                   <a href="booking.html" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
+                       <span class="sidebar-menu-label">Booking History</span>
+                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+                   </a>
+               </li>
+               <li>
+                   <a href="saved.html" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
+                       <span class="sidebar-menu-label">Saved Professionals</span>
+                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+                   </a>
+               </li>
+               <li>
+                   <a href="messages.html" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
+                       <span class="sidebar-menu-label">Messages</span>
+                       <span class="sidebar-menu-badge">3</span>
+                   </a>
+               </li>
+               <li>
+                   <a href="transaction.html" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#730201" stroke-width="2"/><path d="M2 10h20" stroke="#730201" stroke-width="2"/></svg></span>
+                       <span class="sidebar-menu-label">Payments</span>
+                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+                   </a>
+               </li>
+               <li>
+                   <a href="#" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
+                       <span class="sidebar-menu-label">Reviews &amp; Ratings</span>
+                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+                   </a>
+               </li>
+           </ul>
+
+           <!-- More Features -->
+           <p class="sidebar-section-title">MORE FEATURES</p>
+           <ul class="sidebar-menu-list">
+               <li>
+                   <a href="#" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg></span>
+                       <span class="sidebar-menu-label">My Addresses</span>
+                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+                   </a>
+               </li>
+               <li>
+                   <a href="#" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="7" r="1" fill="#730201"/></svg></span>
+                       <span class="sidebar-menu-label">Promo Codes</span>
+                       <span class="sidebar-menu-badge promo-badge">2 Available</span>
+                   </a>
+               </li>
+               <li>
+                   <a href="#" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" stroke="#730201" stroke-width="2"/></svg></span>
+                       <span class="sidebar-menu-label">Support Center</span>
+                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+                   </a>
+               </li>
+           </ul>
+
+           <!-- Settings & More -->
+           <p class="sidebar-section-title">SETTINGS &amp; MORE</p>
+           <ul class="sidebar-menu-list sidebar-menu-list-last">
+               <li>
+                   <a href="settings.html" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="#730201" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="#730201" stroke-width="2"/></svg></span>
+                       <span class="sidebar-menu-label">Settings</span>
+                   </a>
+               </li>
+               <li>
+                   <a href="#" class="sidebar-menu-item">
+                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 12v10H4V12" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 7H2v5h20V7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
+                       <span class="sidebar-menu-label">Invite Friends</span>
+                       <span class="sidebar-menu-badge invite-badge">Earn GHC 20</span>
+                   </a>
+               </li>
+               <li>
+                   <a href="#" id="logout-link" class="sidebar-menu-item sidebar-logout">
+                       <span class="sidebar-menu-icon sidebar-logout-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/></svg></span>
+                       <span class="sidebar-menu-label sidebar-logout-label">Logout</span>
+                   </a>
+               </li>
+           </ul>
+
        </div>
-       <ul class="sidebar-menu">
-           <li><a href="#">Home</a></li>
-           <li><a href="#">Services</a></li>
-           <li><a href="#">Bookings</a></li>
-           <li><a href="profile.html">Profile</a></li>
-           <li><a href="#">Settings</a></li>
-           <li><a href="#">Help</a></li>
-           <li><a href="#" id="logout-link">Logout</a></li>
-       </ul>
    </div>
 
    <!-- Overlay for sidebar -->

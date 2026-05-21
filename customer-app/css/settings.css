@@ -240,3 +240,32 @@ button {
 .nav-item .active-label {
   color: #e03030;
 }
+
+/* =============================================
+   DARK MODE
+============================================= */
+html.dark body { background: #0e0e0e; }
+
+html.dark .phone-shell { background: #1a1a1a; }
+
+html.dark .page-header { background: #1a1a1a; }
+html.dark .page-title { color: #f0f0f0; }
+html.dark .back-btn svg path { stroke: #f0f0f0; }
+html.dark .back-btn:hover { background: #2a2a2a; }
+
+html.dark .section-label { color: #555; }
+
+html.dark .menu-card { background: #242424; border-color: #2e2e2e; }
+html.dark .menu-item:hover { background: #2e2e2e; }
+html.dark .menu-icon-wrap { background: #2e2e2e; }
+html.dark .menu-title { color: #f0f0f0; }
+html.dark .menu-sub { color: #666; }
+html.dark .item-divider { background: #2e2e2e; }
+
+html.dark .delete-btn { background: #2a1a1a; color: #e03030; }
+html.dark .delete-btn:hover { background: #3a2020; }
+
+html.dark .bottom-nav { background: #1a1a1a; border-top-color: #2a2a2a; }
+html.dark .nav-item span { color: #555; }
+html.dark .nav-item.active span,
+html.dark .nav-item .active-label { color: #e03030; }
