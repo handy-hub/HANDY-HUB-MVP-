@@ -146,6 +146,39 @@ service cloud.firestore {
     }
 
     // ===============================================================
+    // Customer Payment Accounts Subcollection
+    // ===============================================================
+    match /customers/{customerId}/paymentAccounts/{accountId} {
+      allow read:   if isOwner(customerId) || isAdmin();
+      allow create: if isOwner(customerId) &&
+                       incoming().provider in ['mtn', 'telecel', 'airteltigo'] &&
+                       incoming().phone is string && incoming().phone.size() >= 9 &&
+                       incoming().isDefault is bool &&
+                       incoming().deleted == false &&
+                       incoming().createdAt is string;
+      allow update: if isOwner(customerId) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'isDefault', 'deleted', 'deletedAt', 'nickname', 'updatedAt'
+                       ]);
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Customer Transactions Subcollection
+    // ===============================================================
+    match /customers/{customerId}/transactions/{txnId} {
+      allow read:   if isOwner(customerId) || isAdmin();
+      allow create: if isOwner(customerId) &&
+                       incoming().type in ['topup', 'payment', 'withdrawal', 'referral'] &&
+                       incoming().amount is number && incoming().amount > 0 &&
+                       incoming().status in ['successful', 'pending', 'failed', 'paid', 'credited'] &&
+                       incoming().createdAt is string;
+      // Only admins may update transactions (e.g. mark a withdrawal as completed)
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ===============================================================
     // Jobs Collection
     // ===============================================================
     match /jobs/{jobId} {

@@ -10,6 +10,7 @@
 body {
   font-family: 'DM Sans', sans-serif;
   display: flex;
+  background: #ffffff;
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;

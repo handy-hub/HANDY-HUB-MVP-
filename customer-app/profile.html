@@ -7,86 +7,139 @@
   <title>Handy Hub – Profile</title>
   <link rel="stylesheet" href="css/profile.css" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="../shared/js/utils/themeManager.js"></script>
 </head>
 <body>
 
   <div class="app">
-
-    <!-- Scrollable content -->
     <div class="scroll-area">
 
       <!-- Header -->
       <div class="page-header">
         <a href="dashboard.html" class="icon-btn" aria-label="Go to Dashboard"
            onclick="sessionStorage.setItem('pageTransitionDirection','back')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             <polyline points="9 22 9 12 15 12 15 22" stroke="#111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </a>
         <h1 class="page-title">Profile</h1>
-        <button class="icon-btn" aria-label="Settings" onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings.html'">
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <button class="icon-btn" aria-label="Settings"
+          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings.html'">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
             <path d="M11 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="#111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M17.7 13.7a1.5 1.5 0 0 0 .3 1.65l.05.05a1.8 1.8 0 1 1-2.55 2.55l-.05-.05a1.5 1.5 0 0 0-1.65-.3 1.5 1.5 0 0 0-.91 1.37V19a1.8 1.8 0 0 1-3.6 0v-.07A1.5 1.5 0 0 0 8.3 17.7a1.5 1.5 0 0 0-1.65.3l-.05.05a1.8 1.8 0 1 1-2.55-2.55l.05-.05A1.5 1.5 0 0 0 4.4 13.8a1.5 1.5 0 0 0-1.37-.91H3a1.8 1.8 0 0 1 0-3.6h.07A1.5 1.5 0 0 0 4.3 8.3a1.5 1.5 0 0 0-.3-1.65l-.05-.05a1.8 1.8 0 1 1 2.55-2.55l.05.05A1.5 1.5 0 0 0 8.2 4.4a1.5 1.5 0 0 0 .91-1.37V3a1.8 1.8 0 0 1 3.6 0v.07a1.5 1.5 0 0 0 .91 1.37 1.5 1.5 0 0 0 1.65-.3l.05-.05a1.8 1.8 0 1 1 2.55 2.55l-.05.05A1.5 1.5 0 0 0 17.6 8.2a1.5 1.5 0 0 0 1.37.91H19a1.8 1.8 0 0 1 0 3.6h-.07a1.5 1.5 0 0 0-1.37.91Z" stroke="#111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17.7 13.7a1.5 1.5 0 0 0 .3 1.65l.05.05a1.8 1.8 0 1 1-2.55 2.55l-.05-.05a1.5 1.5 0 0 0-1.65-.3 1.5 1.5 0 0 0-.91 1.37V19a1.8 1.8 0 0 1-3.6 0v-.07A1.5 1.5 0 0 0 8.3 17.7a1.5 1.5 0 0 0-1.65.3l-.05.05a1.8 1.8 0 1 1-2.55-2.55l.05-.05A1.5 1.5 0 0 0 4.4 13.8a1.5 1.5 0 0 0-1.37-.91H3a1.8 1.8 0 0 1 0-3.6h.07A1.5 1.5 0 0 0 4.3 8.3a1.5 1.5 0 0 0-.3-1.65l-.05-.05a1.8 1.8 0 1 1 2.55-2.55l.05.05A1.5 1.5 0 0 0 8.2 4.4a1.5 1.5 0 0 0 .91-1.37V3a1.8 1.8 0 0 1 3.6 0v.07a1.5 1.5 0 0 0 .91 1.37 1.5 1.5 0 0 0 1.65-.3l.05-.05a1.8 1.8 0 1 1 2.55 2.55l-.05.05A1.5 1.5 0 0 0 17.6 8.2a1.5 1.5 0 0 0 1.37.91H19a1.8 1.8 0 0 1 0 3.6h-.07a1.5 1.5 0 0 0-1.37.91Z"
+                  stroke="#111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
       </div>
 
-      <!-- User Card -->
+      <!-- ═══ REDESIGNED USER CARD ═══ -->
       <div class="user-card">
-        <div class="avatar-wrap">
-          <!-- src populated by profilePage.js -->
-          <img id="profile-avatar"
-               src="https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=..."
-               alt="Profile photo"
-               class="avatar" />
-          <button id="camera-btn" class="camera-btn" aria-label="Change photo">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="12" cy="13" r="4" stroke="#555" stroke-width="2"/>
+
+        <!-- Top row: avatar + name + edit -->
+        <div class="uc-top">
+          <div class="avatar-wrap">
+            <img id="profile-avatar"
+                 src="https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=..."
+                 alt="Profile photo" class="avatar" />
+            <button id="camera-btn" class="camera-btn" aria-label="Change photo">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"
+                      stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="13" r="4" stroke="#555" stroke-width="2"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="uc-name-block">
+            <p id="profile-greeting" class="greeting">Loading…</p>
+            <p id="profile-name" class="user-name">—</p>
+          </div>
+
+          <button class="uc-edit-btn" aria-label="Edit profile"
+            onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-personal-info.html'">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                    stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z"
+                    stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
+            Edit
           </button>
         </div>
-        <div class="user-info">
-          <p id="profile-greeting" class="greeting">Loading…</p>
-          <p id="profile-name" class="user-name">—</p>
-          <p id="profile-email" class="user-email">—</p>
-          <p class="user-phone">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.59 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.54a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z" stroke="#555" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Contact details -->
+        <div class="uc-divider"></div>
+        <div class="uc-details">
+          <div class="uc-detail-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z"
+                    stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 6l-10 7L2 6" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span id="profile-phone-text">—</span>
-          </p>
-          <p class="user-location">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" stroke="#555" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="12" cy="10" r="3" stroke="#555" stroke-width="1.8"/>
+            <span id="profile-email" class="uc-detail-text">—</span>
+          </div>
+          <div class="uc-detail-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.59 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.54a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z"
+                    stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span id="profile-location">—</span>
-          </p>
-          <p id="profile-bio" class="user-bio"></p>
+            <span id="profile-phone-text" class="uc-detail-text">—</span>
+          </div>
+          <div class="uc-detail-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z"
+                    stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="10" r="3" stroke="#730201" stroke-width="1.7"/>
+            </svg>
+            <span id="profile-location" class="uc-detail-text">—</span>
+          </div>
+          <div class="uc-detail-row" id="bio-row" style="display:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"
+                    stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span id="profile-bio" class="uc-detail-text uc-bio"></span>
+          </div>
         </div>
-        <button class="chevron-btn" aria-label="Edit profile"
-          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-personal-info.html'">
-          <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#aaa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
+
+        <!-- Stats bar -->
+        <div class="uc-divider"></div>
+        <div class="uc-stats">
+          <div class="uc-stat">
+            <span class="uc-stat-value" id="stat-bookings">0</span>
+            <span class="uc-stat-label">Bookings</span>
+          </div>
+          <div class="uc-stat-sep"></div>
+          <div class="uc-stat">
+            <span class="uc-stat-value" id="stat-spent">GHC 0</span>
+            <span class="uc-stat-label">Total Spent</span>
+          </div>
+          <div class="uc-stat-sep"></div>
+          <div class="uc-stat">
+            <span class="uc-stat-value" id="stat-wallet">GHC 0</span>
+            <span class="uc-stat-label">Wallet</span>
+          </div>
+        </div>
+
+      </div><!-- /user-card -->
 
       <!-- Complete Profile Banner -->
-      <div class="banner">
+      <div class="banner" id="complete-banner">
         <div class="banner-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             <polyline points="9 12 11 14 15 10" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div class="banner-text">
           <p class="banner-title">Complete your profile</p>
-          <p class="banner-sub">Add a few details to get better recommendations and faster bookings.</p>
+          <p class="banner-sub">Add a few details to get better recommendations.</p>
         </div>
-        <button class="update-btn">Update Profile</button>
+        <button class="update-btn"
+          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-personal-info.html'">
+          Update
+        </button>
       </div>
 
       <!-- Wallet -->
@@ -94,13 +147,16 @@
       <div class="wallet-card">
         <div class="wallet-left">
           <p class="wallet-label">Wallet Balance</p>
-          <p class="wallet-amount">GHC 0.00</p>
-          <button class="topup-btn">Top Up</button>
+          <p class="wallet-amount" id="wallet-balance-display">GHC 0.00</p>
+          <button class="topup-btn" id="topup-trigger"
+            onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='topup.html'">
+            Top Up
+          </button>
         </div>
         <div class="wallet-right">
           <a href="transaction-history.html" class="wallet-row">
             <div class="wallet-icon-wrap">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <rect x="2" y="5" width="20" height="14" rx="2" stroke="#730201" stroke-width="1.7"/>
                 <path d="M2 10h20" stroke="#730201" stroke-width="1.7"/>
                 <path d="M6 15h4" stroke="#730201" stroke-width="1.7" stroke-linecap="round"/>
@@ -110,16 +166,17 @@
             <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#aaa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </a>
           <div class="divider-line"></div>
-          <div class="wallet-row">
+          <!-- Payment Methods trigger — opens slide-up modal -->
+          <button class="wallet-row" data-open-payments aria-label="Open payment methods">
             <div class="wallet-icon-wrap">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <rect x="1" y="4" width="22" height="16" rx="2" stroke="#730201" stroke-width="1.7"/>
                 <path d="M1 10h22" stroke="#730201" stroke-width="1.7"/>
               </svg>
             </div>
             <span class="wallet-link">Payment Methods</span>
             <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#aaa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -128,7 +185,7 @@
       <div class="activity-card">
         <a href="booking.html" class="activity-item">
           <div class="activity-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="1.7"/>
               <path d="M16 2v4M8 2v4M3 10h18" stroke="#730201" stroke-width="1.7" stroke-linecap="round"/>
               <path d="M8 14h1m3 0h1m-5 4h1m3 0h1" stroke="#730201" stroke-width="1.7" stroke-linecap="round"/>
@@ -138,36 +195,40 @@
         </a>
         <a href="messages.html" class="activity-item">
           <div class="activity-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"
+                    stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <span>Messages</span>
         </a>
+        <a href="transaction-history.html" class="activity-item">
+          <div class="activity-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="5" width="20" height="14" rx="2" stroke="#730201" stroke-width="1.7"/>
+              <path d="M2 10h20" stroke="#730201" stroke-width="1.7"/>
+              <path d="M6 15h4" stroke="#730201" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span>Payments</span>
+        </a>
         <button class="activity-item">
           <div class="activity-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                       stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <span>Reviews</span>
-        </button>
-        <button class="activity-item">
-          <div class="activity-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="7" cy="7" r="1" fill="#730201"/>
-            </svg>
-          </div>
-          <span>Coupons</span>
         </button>
       </div>
 
       <!-- Menu List -->
       <div class="menu-list">
-        <button class="menu-item" onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-location.html'">
+        <button class="menu-item"
+          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-location.html'">
           <div class="menu-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
               <circle cx="12" cy="10" r="3" stroke="#111" stroke-width="1.7"/>
             </svg>
@@ -179,9 +240,10 @@
           <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
 
-        <button class="menu-item" onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-notifications.html'">
+        <button class="menu-item"
+          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-notifications.html'">
           <div class="menu-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -193,11 +255,13 @@
           <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
 
-        <button class="menu-item" onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-help.html'">
+        <button class="menu-item"
+          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-help.html'">
           <div class="menu-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3ZM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3Z" stroke="#111" stroke-width="1.7"/>
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3ZM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3Z"
+                    stroke="#111" stroke-width="1.7"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -207,9 +271,10 @@
           <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
 
-        <button class="menu-item" onclick="if(navigator.share){navigator.share({title:'Handy Hub',text:'Try Handy Hub – the fastest way to book trusted artisans in Ghana!',url:window.location.origin})}else{alert('Share: Try Handy Hub for trusted artisans in Ghana!')}">
+        <button class="menu-item"
+          onclick="if(navigator.share){navigator.share({title:'Handy Hub',text:'Try Handy Hub – the fastest way to book trusted artisans in Ghana!',url:window.location.origin})}else{alert('Share: Try Handy Hub for trusted artisans in Ghana!')}">
           <div class="menu-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
               <circle cx="9" cy="7" r="4" stroke="#111" stroke-width="1.7"/>
               <line x1="19" y1="8" x2="19" y2="14" stroke="#111" stroke-width="1.7" stroke-linecap="round"/>
@@ -223,9 +288,10 @@
           <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
 
-        <button class="menu-item" onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-about.html'">
+        <button class="menu-item"
+          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-about.html'">
           <div class="menu-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" stroke="#111" stroke-width="1.7"/>
               <line x1="12" y1="8" x2="12" y2="12" stroke="#111" stroke-width="1.7" stroke-linecap="round"/>
               <line x1="12" y1="16" x2="12.01" y2="16" stroke="#111" stroke-width="2" stroke-linecap="round"/>
@@ -241,7 +307,7 @@
 
       <!-- Logout -->
       <button class="logout-btn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           <polyline points="16 17 21 12 16 7" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           <line x1="21" y1="12" x2="9" y2="12" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -249,19 +315,19 @@
         Log Out
       </button>
 
-    </div><!-- end scroll-area -->
+    </div><!-- /scroll-area -->
 
     <!-- Bottom Nav -->
     <nav class="bottom-nav">
       <a href="dashboard.html" class="nav-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
           <polyline points="9 22 9 12 15 12 15 22" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span>Home</span>
       </a>
       <a href="booking.html" class="nav-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
           <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="#aaa" stroke-width="1.7"/>
           <path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/>
@@ -269,19 +335,19 @@
         <span>Bookings</span>
       </a>
       <a href="messages.html" class="nav-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span>Messages</span>
       </a>
       <a href="saved.html" class="nav-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span>Saved</span>
       </a>
       <a href="profile.html" class="nav-item active">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
           <circle cx="12" cy="7" r="4" stroke="#730201" stroke-width="1.7"/>
         </svg>
@@ -289,11 +355,11 @@
       </a>
     </nav>
 
-  </div><!-- end app -->
+  </div><!-- /app -->
 
-  <!-- Hidden file input for profile photo upload -->
   <input type="file" id="profile-photo-input" accept="image/*" style="display:none" aria-hidden="true" />
 
   <script type="module" src="js/pages/profilePage.js"></script>
+  <script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>

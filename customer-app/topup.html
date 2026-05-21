@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Handy Hub – Top Up</title>
+  <link rel="stylesheet" href="css/topup.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <div class="app">
+    <div class="scroll-area">
+
+      <!-- Header -->
+      <div class="page-header">
+        <button class="icon-btn" aria-label="Go back" onclick="history.back()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <h1 class="page-title">Top Up Wallet</h1>
+        <div></div>
+      </div>
+
+      <!-- Balance Card -->
+      <div class="balance-card">
+        <div class="balance-card-inner">
+          <div class="balance-card-top">
+            <span class="balance-label">Wallet Balance</span>
+            <div class="balance-wallet-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          <p class="balance-amount" id="balance-display"><span class="balance-currency">GHC</span>0.00</p>
+          <p class="balance-note">Available to spend</p>
+        </div>
+      </div>
+
+      <!-- Payment Accounts -->
+      <div class="accounts-wrap">
+        <div class="section-header">
+          <span class="section-title">Payment Accounts</span>
+        </div>
+
+        <div class="account-list" id="account-list"></div>
+
+        <!-- Add account trigger -->
+        <button class="add-account-btn" id="add-account-toggle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="#730201" stroke-width="2.3" stroke-linecap="round"/>
+          </svg>
+          Add Account
+        </button>
+
+        <!-- Inline add-account form -->
+        <div class="add-account-form" id="add-account-form">
+          <p class="add-form-title">Add Payment Account</p>
+
+          <div class="add-phone-row">
+            <span class="add-phone-prefix">+233</span>
+            <input
+              type="tel"
+              class="add-phone-input"
+              id="add-phone-input"
+              placeholder="0XX XXX XXXX"
+              maxlength="11"
+              inputmode="tel"
+            />
+          </div>
+
+          <div class="provider-badge" id="provider-badge">
+            <div class="provider-badge-logo" id="provider-badge-logo"></div>
+            <span id="provider-badge-text">Detected network</span>
+          </div>
+
+          <input
+            type="text"
+            class="add-nickname-input"
+            id="add-nickname-input"
+            placeholder="Nickname (optional)"
+            maxlength="30"
+          />
+
+          <label class="add-default-row" id="add-default-row">
+            <input type="checkbox" id="add-default-check" />
+            <span class="add-default-check"></span>
+            <span class="add-default-label">Set as default account</span>
+          </label>
+
+          <div class="add-form-actions">
+            <button class="add-cancel-btn" id="add-cancel-btn">Cancel</button>
+            <button class="add-save-btn" id="add-save-btn" disabled>Save Account</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Amount Section -->
+      <div class="amount-section">
+        <div class="section-header" style="margin-bottom:10px">
+          <span class="section-title">Enter Amount (GHC)</span>
+        </div>
+        <div class="amount-card">
+          <div class="amount-input-wrap">
+            <span class="amount-currency">GHC</span>
+            <input
+              type="number"
+              class="amount-input"
+              id="amount-input"
+              placeholder="0.00"
+              min="1"
+              step="0.01"
+              inputmode="decimal"
+            />
+          </div>
+          <div class="quick-amounts">
+            <button class="quick-btn" data-amount="10">GHC 10</button>
+            <button class="quick-btn" data-amount="20">GHC 20</button>
+            <button class="quick-btn" data-amount="50">GHC 50</button>
+            <button class="quick-btn" data-amount="100">GHC 100</button>
+            <button class="quick-btn" data-amount="200">GHC 200</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /scroll-area -->
+  </div><!-- /app -->
+
+  <!-- Sticky Confirm Button -->
+  <div class="confirm-wrap">
+    <button class="confirm-btn" id="confirm-btn" disabled>
+      Confirm Top Up
+    </button>
+  </div>
+
+  <!-- Success Screen -->
+  <div class="success-screen" id="success-overlay" aria-hidden="true">
+
+    <div class="ss-topbar">
+      <button class="ss-close-btn" id="success-done-btn" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="#555" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <span class="ss-topbar-title">Receipt</span>
+      <div style="width:36px"></div>
+    </div>
+
+    <div class="ss-check-area">
+      <div class="ss-rings">
+        <div class="ss-ring ss-ring-1"></div>
+        <div class="ss-ring ss-ring-2"></div>
+        <div class="ss-check-circle">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <path d="M20 7L10.25 16.75L6 12.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <p class="ss-title">Payment Successful!</p>
+      <p class="ss-subtitle">Your wallet has been credited</p>
+
+      <div class="ss-ref-row">
+        <span class="ss-ref-label">Ref</span>
+        <span class="ss-ref-val" id="ss-txn-ref">—</span>
+        <button class="ss-copy-btn" id="ss-copy-btn">Copy</button>
+      </div>
+    </div>
+
+    <div class="ss-cards">
+
+      <!-- Transaction Summary -->
+      <div class="ss-card">
+        <p class="ss-card-title">Transaction Summary</p>
+        <div class="ss-line">
+          <span class="ss-line-label">Amount</span>
+          <span class="ss-line-val" id="ss-item-amount">—</span>
+        </div>
+        <div class="ss-line">
+          <span class="ss-line-label">Charges</span>
+          <span class="ss-line-val">GHC 0.00</span>
+        </div>
+        <div class="ss-line total">
+          <span class="ss-line-label">Total Credited</span>
+          <span class="ss-line-val" id="ss-total-value">—</span>
+        </div>
+      </div>
+
+      <!-- Payment Method -->
+      <div class="ss-card">
+        <p class="ss-card-title">Payment Method</p>
+        <div class="ss-method-row">
+          <div class="ss-method-logo" id="ss-method-logo"></div>
+          <div class="ss-method-info">
+            <p class="ss-method-name" id="ss-method-name">—</p>
+            <p class="ss-method-sub"  id="ss-item-sub">Mobile Money</p>
+          </div>
+          <span class="ss-method-amount" id="ss-method-amount">—</span>
+        </div>
+      </div>
+
+      <!-- Secure Badge -->
+      <div class="ss-secure">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="11" width="18" height="11" rx="2" stroke="#16a34a" stroke-width="1.8"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        Payment secured and encrypted by Paystack
+      </div>
+
+    </div>
+
+    <!-- Actions -->
+    <div class="ss-actions">
+      <button class="ss-download-btn" id="ss-download-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M12 5v10M12 15l-4-4M12 15l4-4" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M5 20h14" stroke="#333" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Download Receipt
+      </button>
+      <button class="ss-done-btn" id="ss-done-btn">Done</button>
+    </div>
+
+  </div><!-- /success-screen -->
+
+  <script type="module" src="js/pages/topupPage.js"></script>
+  <script src="../shared/js/components/fastLoader.js"></script>
+</body>
+</html>
