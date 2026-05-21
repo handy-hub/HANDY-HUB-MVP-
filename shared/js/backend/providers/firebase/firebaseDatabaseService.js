@@ -166,6 +166,16 @@ export function createFirebaseDatabaseService(dbInstance = firebaseDb) {
                 (snapshot) => onChange(snapshot.docs.map(toRecord)),
                 (err)      => { if (onError) onError(err); }
             );
+        },
+
+        /** Real-time listener on a single document. Returns an unsubscribe function. */
+        subscribeToDocument(collectionName, docId, onChange, onError) {
+            const docRef = doc(dbInstance, collectionName, docId);
+            return onSnapshot(
+                docRef,
+                (snap) => onChange({ id: snap.id, exists: snap.exists(), data: snap.exists() ? snap.data() : null }),
+                (err)  => { if (onError) onError(err); }
+            );
         }
     };
 }

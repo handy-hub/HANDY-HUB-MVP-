@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const activeSpan = item.querySelector('span');
       if (activeSpan) activeSpan.classList.add('active-label');
       item.querySelectorAll('path, circle, polyline, line, rect, polygon').forEach(p => {
-        p.setAttribute('stroke', '#e03030');
+        p.setAttribute('stroke', '#730201');
       });
 
       const label = item.querySelector('span')?.textContent ?? '';

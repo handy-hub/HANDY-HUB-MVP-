@@ -32,7 +32,14 @@ function buildContainer(backendName) {
         sessionService: createSessionService({
             authRepository: repositories.authRepository
         }),
-        notificationService: backendServices.notificationService
+        notificationService: backendServices.notificationService,
+
+        // Raw backend services exposed for use-cases that need them directly
+        // (e.g. auth state subscription, file upload, single-doc listeners).
+        // Swap the backend provider in backendProviderFactory.js to migrate.
+        authService:     backendServices.authService,
+        databaseService: backendServices.databaseService,
+        storageService:  backendServices.storageService
     };
 
     return {

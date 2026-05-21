@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (activeSpan) activeSpan.classList.add('active-label');
       const activeSvgPaths = item.querySelectorAll('path, circle, polyline, line, rect, polygon');
       activeSvgPaths.forEach(p => {
-        p.setAttribute('stroke', '#e03030');
+        p.setAttribute('stroke', '#730201');
       });
  
       const label = item.querySelector('span')?.textContent ?? '';

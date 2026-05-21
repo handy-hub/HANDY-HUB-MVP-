@@ -104,7 +104,7 @@
 
     if (!items.length) {
       recentList.innerHTML =
-        '<li class="history-empty">No recent searches yet. Start searching to build your history.</li>';
+        '<li class="history-empty">No recent searches yet.</li>';
       if (clearRecentButton) {
         clearRecentButton.hidden = true;
       }

@@ -77,30 +77,52 @@ export function createCustomerRepository({
 
         /**
          * Create or merge a customer document.
-         * On first write, sets createdAt; every write refreshes updatedAt.
+         *
+         * CREATE  — sends every field required by isValidCustomer() in Firestore rules
+         *           (id, userType, status, bookings, spent, email, name, …).
+         * UPDATE  — sends only fields in isSafeCustomerProfileUpdate() allowlist;
+         *           email is intentionally excluded (not in the allowlist).
          */
         async upsert(customerId, data, options = { merge: true }) {
             const existing = await this.getById(customerId);
-            const payload  = {
-                email:                   (data.email  || "").trim().toLowerCase() || undefined,
-                phone:                   data.phone   ?? undefined,
-                name:                    data.name    ?? undefined,
-                profileImage:            data.profileImage    ?? undefined,
-                walletBalance:           data.walletBalance   ?? undefined,
-                recentSearches:          data.recentSearches  ?? undefined,
-                recentSearchesUpdatedAt: data.recentSearchesUpdatedAt ?? undefined,
-                updatedAt:               now()
-            };
-
-            // Strip undefined keys so merge doesn't overwrite existing values
-            Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
 
             if (!existing?.exists) {
-                payload.createdAt = now();
-                if (payload.walletBalance === undefined) payload.walletBalance = 0;
+                // Full create payload — must satisfy isValidCustomer() rule
+                const payload = {
+                    id:                      customerId,
+                    userType:                "customer",
+                    status:                  "active",
+                    email:                   (data.email || "").trim().toLowerCase(),
+                    name:                    (data.name  || "Customer").trim(),
+                    phone:                   (data.phone || "").trim(),
+                    location:                (data.location || "Not specified").trim(),
+                    profileImage:            data.profileImage ?? null,
+                    walletBalance:           typeof data.walletBalance === "number" ? data.walletBalance : 0,
+                    bookings:                typeof data.bookings === "number" ? data.bookings : 0,
+                    spent:                   typeof data.spent    === "number" ? data.spent    : 0,
+                    recentSearches:          Array.isArray(data.recentSearches) ? data.recentSearches : [],
+                    recentSearchesUpdatedAt: data.recentSearchesUpdatedAt ?? null,
+                    createdAt:               now(),
+                    updatedAt:               now()
+                };
+                await databaseService.setDocument(collectionName, customerId, payload, { merge: false });
+            } else {
+                // Partial update — only fields allowed by isSafeCustomerProfileUpdate()
+                // email is deliberately excluded (not in the Firestore allowlist for updates)
+                const payload = { updatedAt: now() };
+                if (data.name         !== undefined) payload.name         = data.name;
+                if (data.phone        !== undefined) payload.phone        = data.phone;
+                if (data.location     !== undefined) payload.location     = data.location;
+                if (data.bio          !== undefined) payload.bio          = data.bio;
+                if (data.profileImage !== undefined) payload.profileImage = data.profileImage;
+                if (data.walletBalance !== undefined) payload.walletBalance = data.walletBalance;
+                if (data.recentSearches          !== undefined) payload.recentSearches          = data.recentSearches;
+                if (data.recentSearchesUpdatedAt !== undefined) payload.recentSearchesUpdatedAt = data.recentSearchesUpdatedAt;
+                if (data.notificationPreferences !== undefined) payload.notificationPreferences = data.notificationPreferences;
+                if (data.privacySettings         !== undefined) payload.privacySettings         = data.privacySettings;
+                if (data.appPreferences          !== undefined) payload.appPreferences          = data.appPreferences;
+                await databaseService.setDocument(collectionName, customerId, payload, { merge: true });
             }
-
-            await databaseService.setDocument(collectionName, customerId, payload, options);
         },
 
         /**

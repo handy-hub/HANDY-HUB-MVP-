@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Handy Hub – Transaction History</title>
+  <link rel="stylesheet" href="css/transaction-history.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <div class="phone-shell">
+    <div class="scroll-area">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <button class="back-btn" aria-label="Go back" onclick="history.back()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <h1 class="page-title">Transaction History</h1>
+        <button class="filter-btn" aria-label="Filter" id="filter-btn">
+          <svg width="22" height="18" viewBox="0 0 24 20" fill="none">
+            <line x1="3" y1="4" x2="21" y2="4" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+            <line x1="6" y1="10" x2="18" y2="10" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+            <line x1="9" y1="16" x2="15" y2="16" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Wallet Balance Card -->
+      <div class="wallet-card">
+        <p class="wallet-label">Wallet Balance</p>
+        <p class="wallet-amount" id="wallet-balance">GHC —</p>
+        <div class="wallet-btns">
+          <button class="topup-btn" onclick="window.location.href='topup.html'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 19V5M5 12l7-7 7 7" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Top Up
+          </button>
+          <button class="withdraw-btn" id="withdraw-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12l7 7 7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Withdraw
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filter-chips" id="filter-chips" style="display:none">
+        <button class="chip active" data-filter="all">All</button>
+        <button class="chip" data-filter="topup">Top Ups</button>
+        <button class="chip" data-filter="withdrawal">Withdrawals</button>
+        <button class="chip" data-filter="payment">Payments</button>
+        <button class="chip" data-filter="referral">Bonuses</button>
+      </div>
+
+      <!-- All Transactions -->
+      <h2 class="section-title">All Transactions</h2>
+
+      <!-- Loading state -->
+      <div id="txn-loading" class="txn-loading">
+        <div class="txn-shimmer"></div>
+        <div class="txn-shimmer"></div>
+        <div class="txn-shimmer"></div>
+      </div>
+
+      <!-- Live transaction list -->
+      <div class="transactions-card" id="txn-list" style="display:none"></div>
+
+      <!-- Empty state -->
+      <div id="txn-empty" class="txn-empty" style="display:none">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style="margin-bottom:12px">
+          <rect x="2" y="5" width="20" height="14" rx="2" stroke="#ddd" stroke-width="1.5"/>
+          <path d="M2 10h20" stroke="#ddd" stroke-width="1.5"/>
+        </svg>
+        <p style="font-size:15px;font-weight:700;color:#bbb;margin-bottom:4px">No transactions yet</p>
+        <p style="font-size:13px;color:#ccc">Your payment history will appear here.</p>
+      </div>
+
+      <!-- Download Statement Banner -->
+      <div class="statement-banner">
+        <div class="statement-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"
+                  stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"
+                  stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="statement-text">
+          <p class="statement-title">Need a detailed statement?</p>
+          <p class="statement-sub">Download your transaction history for any time period.</p>
+        </div>
+        <button class="download-btn" id="download-stmt-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"
+                  stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Download
+        </button>
+      </div>
+
+      <!-- Security Note -->
+      <div class="security-note">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="11" width="18" height="11" rx="2" stroke="#999" stroke-width="1.7"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#999" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>All transactions are secure and encrypted.</span>
+      </div>
+
+    </div><!-- /scroll-area -->
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="9 22 9 12 15 12 15 22" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Home</span>
+      </a>
+      <a href="booking.html" class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="#aaa" stroke-width="1.7"/>
+          <path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Bookings</span>
+      </a>
+      <a href="messages.html" class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Messages</span>
+      </a>
+      <a href="saved.html" class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Saved</span>
+      </a>
+      <a href="profile.html" class="nav-item active">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="7" r="4" stroke="#730201" stroke-width="1.7"/>
+        </svg>
+        <span class="active-label">Profile</span>
+      </a>
+    </nav>
+
+    <!-- ── Withdrawal Modal ───────────────────────────────────────────────── -->
+    <div id="wd-overlay" class="wd-overlay" aria-hidden="true">
+    <div id="wd-sheet" class="wd-sheet">
+      <div class="wd-handle"></div>
+      <h2 class="wd-title">Withdraw Funds</h2>
+      <p class="wd-avail-row">Available: <strong id="wd-avail">GHC —</strong></p>
+
+      <p class="wd-section-label">Select provider</p>
+      <div id="wd-provider-grid" class="wd-provider-grid"></div>
+
+      <div id="wd-accs-section" class="wd-accs-section" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <p class="wd-section-label" style="margin:0">Select account</p>
+          <button data-open-payments style="background:none;border:none;font-size:12px;font-weight:700;color:#730201;font-family:inherit;cursor:pointer;padding:0">
+            + Add Account
+          </button>
+        </div>
+        <div id="wd-account-list" class="wd-account-list"></div>
+      </div>
+
+      <div id="wd-no-accts" style="display:none;margin-bottom:16px">
+        <button data-open-payments class="wd-add-acct-prompt">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="#730201" stroke-width="1.8"/>
+            <path d="M12 8v8M8 12h8" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          Add a saved account to withdraw to
+        </button>
+      </div>
+
+      <p class="wd-section-label">Amount (GHS)</p>
+      <input type="number" id="wd-amount" class="wd-amount-input" placeholder="0.00" min="1" step="0.01" />
+      <div class="wd-quick-row">
+        <button class="wd-quick" data-amount="20">GHC 20</button>
+        <button class="wd-quick" data-amount="50">GHC 50</button>
+        <button class="wd-quick" data-amount="100">GHC 100</button>
+        <button class="wd-quick" data-amount="200">GHC 200</button>
+      </div>
+
+      <p class="wd-note">Withdrawals are processed to your mobile money account within 24 hours.</p>
+
+      <button id="wd-confirm-btn" class="wd-confirm-btn" disabled>Confirm Withdrawal</button>
+      <button id="wd-cancel-btn" class="wd-cancel-btn">Cancel</button>
+    </div>
+  </div>
+
+  </div><!-- /phone-shell -->
+
+  <style>
+    /* Filter chips */
+    .filter-chips {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      padding: 0 0 14px;
+    }
+    .chip {
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 1.5px solid #eee;
+      background: #fff;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color .15s, background .15s, color .15s;
+    }
+    .chip:hover  { border-color: #f5c0c0; color: #730201; }
+    .chip.active { border-color: #730201; background: #fff5f5; color: #730201; }
+
+    /* Loading shimmer */
+    .txn-loading { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .txn-shimmer {
+      height: 72px; border-radius: 14px;
+      background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* Empty state */
+    .txn-empty {
+      text-align: center; padding: 40px 20px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+
+    /* Provider badge in txn */
+    .txn-provider-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700;
+      padding: 2px 7px; border-radius: 999px;
+      margin-top: 2px;
+    }
+    .txn-provider-badge.mtn        { background: #FFF8DC; color: #7a5c00; }
+    .txn-provider-badge.telecel    { background: #fff0f0; color: #a00000; }
+    .txn-provider-badge.airteltigo { background: #f0f4ff; color: #003370; }
+
+    [data-theme="dark"] .txn-shimmer { background: linear-gradient(90deg,#252525 25%,#1e1e1e 50%,#252525 75%); background-size:200% 100%; }
+    [data-theme="dark"] .chip { background:#1a1a1a; border-color:#2a2a2a; color:#888; }
+    [data-theme="dark"] .chip.active { background:#1e1010; border-color:#730201; color:#ff6b6b; }
+
+    /* ── Withdrawal modal ── */
+    .wd-overlay {
+      display: none; position: absolute; inset: 0;
+      background: rgba(0,0,0,.55); z-index: 200;
+      align-items: flex-end;
+    }
+    .wd-overlay.open { display: flex; }
+    .wd-sheet {
+      width: 100%; background: #fff; border-radius: 20px 20px 0 0;
+      padding: 16px 20px 36px; box-sizing: border-box;
+      transform: translateY(100%);
+      transition: transform .35s cubic-bezier(.22,1,.36,1);
+      max-height: 92%;
+      overflow-y: auto;
+    }
+    .wd-overlay.open .wd-sheet { transform: translateY(0); }
+    .wd-handle { width: 40px; height: 4px; border-radius: 999px; background: #e0e0e0; margin: 0 auto 20px; }
+    .wd-title  { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+    .wd-avail-row { font-size: 13px; color: #666; margin: 0 0 20px; }
+    .wd-section-label { font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 10px; }
+    .wd-provider-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 18px; }
+    .wd-prov-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 12px 4px 10px; border: 1.5px solid #eee; border-radius: 14px;
+      background: #fafafa; cursor: pointer; font-size: 11px; font-weight: 700;
+      font-family: inherit; color: #444; transition: border-color .15s, background .15s;
+    }
+    .wd-prov-btn.selected { border-color: #730201; background: #fff5f5; color: #730201; }
+    .wd-accs-section { margin-bottom: 16px; }
+    .wd-account-list { display: flex; flex-direction: column; gap: 8px; }
+    .wd-add-acct-prompt {
+      width: 100%; display: flex; align-items: center; gap: 10px;
+      padding: 13px 16px; border: 1.5px dashed #f5c0c0; border-radius: 12px;
+      background: #fff8f8; color: #730201; font-size: 13px; font-weight: 600;
+      font-family: inherit; cursor: pointer; text-align: left;
+    }
+    [data-theme="dark"] .wd-add-acct-prompt { background: #1a0a0a; border-color: #4a1010; color: #ff6b6b; }
+    .wd-acc-card {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      border: 1.5px solid #eee; border-radius: 12px; background: #fafafa;
+      cursor: pointer; text-align: left; font-family: inherit;
+      transition: border-color .15s, background .15s;
+    }
+    .wd-acc-card.active { border-color: #730201; background: #fff5f5; }
+    .wd-acc-logo { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
+    .wd-acc-phone { font-size: 13px; font-weight: 700; margin: 0 0 1px; }
+    .wd-acc-prov  { font-size: 11px; color: #888; margin: 0; }
+    .wd-amount-input {
+      width: 100%; box-sizing: border-box; border: 1.5px solid #e0e0e0;
+      border-radius: 12px; padding: 13px 16px; font-size: 20px; font-weight: 700;
+      font-family: inherit; outline: none; margin-bottom: 10px;
+      transition: border-color .15s;
+    }
+    .wd-amount-input:focus { border-color: #730201; }
+    .wd-quick-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .wd-quick {
+      flex: 1; min-width: 60px; padding: 9px 4px;
+      border: 1.5px solid #eee; background: #f8f8f8;
+      border-radius: 10px; font-size: 13px; font-weight: 600;
+      font-family: inherit; cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .wd-quick.active { border-color: #730201; background: #fff5f5; color: #730201; }
+    .wd-note { font-size: 12px; color: #999; text-align: center; margin: 0 0 18px; }
+    .wd-confirm-btn {
+      width: 100%; padding: 15px; background: #730201; color: #fff; border: none;
+      border-radius: 14px; font-size: 15px; font-weight: 700; font-family: inherit;
+      cursor: pointer; margin-bottom: 12px; transition: opacity .15s;
+    }
+    .wd-confirm-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .wd-cancel-btn {
+      width: 100%; padding: 10px; background: none; border: none;
+      color: #888; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+    }
+    [data-theme="dark"] .wd-sheet      { background: #161616; }
+    [data-theme="dark"] .wd-title      { color: #f0f0f0; }
+    [data-theme="dark"] .wd-avail-row  { color: #888; }
+    [data-theme="dark"] .wd-handle     { background: #333; }
+    [data-theme="dark"] .wd-prov-btn   { background: #1e1e1e; border-color: #2a2a2a; color: #ccc; }
+    [data-theme="dark"] .wd-prov-btn.selected { background: #1e0a0a; border-color: #730201; color: #ff6b6b; }
+    [data-theme="dark"] .wd-acc-card   { background: #1e1e1e; border-color: #2a2a2a; }
+    [data-theme="dark"] .wd-acc-card.active { background: #1e0a0a; border-color: #730201; }
+    [data-theme="dark"] .wd-acc-phone  { color: #e0e0e0; }
+    [data-theme="dark"] .wd-acc-prov   { color: #666; }
+    [data-theme="dark"] .wd-amount-input { background: #1e1e1e; border-color: #2a2a2a; color: #f0f0f0; }
+    [data-theme="dark"] .wd-amount-input:focus { border-color: #730201; }
+    [data-theme="dark"] .wd-quick      { background: #1e1e1e; border-color: #2a2a2a; color: #ccc; }
+    [data-theme="dark"] .wd-quick.active { background: #1e0a0a; border-color: #730201; color: #ff6b6b; }
+    [data-theme="dark"] .wd-note       { color: #555; }
+    [data-theme="dark"] .wd-cancel-btn { color: #555; }
+  </style>
+
+  <script type="module">
+    import '../../shared/js/utils/global-app.js';
+    import { getAppContainer }                         from '../../shared/js/app/container.js';
+    import { createPaymentRepository, PROVIDER_META }  from '../../shared/js/data/repositories/paymentRepository.js';
+    import { initPaymentModal }                        from './js/pages/paymentMethodsModal.js';
+
+    const LOGIN_URL = 'login.html';
+
+    // ── DOM refs ──────────────────────────────────────────────────────────────
+    const walletEl      = document.getElementById('wallet-balance');
+    const loadingEl     = document.getElementById('txn-loading');
+    const listEl        = document.getElementById('txn-list');
+    const emptyEl       = document.getElementById('txn-empty');
+    const filterChips   = document.getElementById('filter-chips');
+    const filterBtn     = document.getElementById('filter-btn');
+    const withdrawBtn   = document.getElementById('withdraw-btn');
+    const downloadBtn   = document.getElementById('download-stmt-btn');
+    const wdOverlay     = document.getElementById('wd-overlay');
+    const wdAvail       = document.getElementById('wd-avail');
+    const wdProvGrid    = document.getElementById('wd-provider-grid');
+    const wdAccsSection  = document.getElementById('wd-accs-section');
+    const wdNoAccts      = document.getElementById('wd-no-accts');
+    const wdAccountList  = document.getElementById('wd-account-list');
+    const wdAmountInput = document.getElementById('wd-amount');
+    const wdConfirmBtn  = document.getElementById('wd-confirm-btn');
+    const wdCancelBtn   = document.getElementById('wd-cancel-btn');
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    let allTxns          = [];
+    let savedAccounts    = [];
+    let activeFilter     = 'all';
+    let currentBalance   = 0;
+    let wdSelProvider    = null;
+    let wdSelAccount     = null;
+    let currentUid       = null;
+    let paymentRepo      = null;
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+    const TOAST_ICONS = {
+        success: '<svg viewBox="0 0 24 24" fill="none"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        error:   '<svg viewBox="0 0 24 24" fill="none"><path d="M12 8V13" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M12 16.5V16.55" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21H20.47A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        info:    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+    };
+    function showToast(msg, type = 'info') {
+        document.querySelector('.toast')?.remove();
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.innerHTML = `<span class="toast-icon">${TOAST_ICONS[type] || ''}</span><span>${msg}</span>`;
+        document.body.appendChild(t);
+        setTimeout(() => { t.classList.add('toast-exit'); setTimeout(() => t.remove(), 320); }, 3500);
+    }
+
+    // ── Filter chips ──────────────────────────────────────────────────────────
+    filterBtn.addEventListener('click', () => {
+        filterChips.style.display = filterChips.style.display === 'none' ? '' : 'none';
+    });
+    filterChips.addEventListener('click', e => {
+        const chip = e.target.closest('.chip[data-filter]');
+        if (!chip) return;
+        activeFilter = chip.dataset.filter;
+        filterChips.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === chip));
+        renderTxns();
+    });
+
+    // ── Format helpers ────────────────────────────────────────────────────────
+    function fmtDate(iso) {
+        const d = new Date(iso);
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
+               ' · ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+    function fmtGHC(n) { return Number(n).toFixed(2); }
+
+    // ── Transaction icons ─────────────────────────────────────────────────────
+    const ICONS = {
+        topup: (provider) => {
+            const meta = PROVIDER_META[provider];
+            return meta
+                ? `<div style="width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0">${meta.logo}</div>`
+                : `<div class="txn-icon credit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+        },
+        withdrawal: () => `<div class="txn-icon debit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="#e53e3e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`,
+        payment:    () => `<div class="txn-icon debit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#e53e3e" stroke-width="1.8"/><path d="M2 10h20" stroke="#e53e3e" stroke-width="1.8"/></svg></div>`,
+        referral:   () => `<div class="txn-icon referral"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
+    };
+
+    function statusClass(s) {
+        return { successful: 'successful', paid: 'paid', credited: 'credited', pending: 'pending', failed: 'failed' }[s] || 'successful';
+    }
+
+    function buildTxnHTML(t) {
+        const d        = t.data;
+        const iconFn   = ICONS[d.type] || ICONS.referral;
+        const icon     = iconFn(d.provider);
+        const isCredit = d.type === 'topup' || d.type === 'referral';
+        const sign     = isCredit ? '+ ' : '- ';
+        const amtClass = isCredit ? 'positive' : 'negative';
+        const provBadge = d.provider
+            ? `<span class="txn-provider-badge ${d.provider}">${PROVIDER_META[d.provider]?.label || d.provider}${d.phone ? ' · ' + d.phone : ''}</span>`
+            : '';
+        return `
+          <div class="txn-item" data-id="${t.id}">
+            ${icon}
+            <div class="txn-details">
+              <p class="txn-title">${d.description || 'Transaction'}</p>
+              <p class="txn-meta">${fmtDate(d.createdAt)}</p>
+              <p class="txn-ref">${d.ref ? 'Ref: ' + d.ref : ''}${d.bookingId ? ' · ' + d.bookingId : ''}</p>
+              ${provBadge}
+            </div>
+            <div class="txn-amount-wrap">
+              <p class="txn-amount ${amtClass}">${sign}GHC ${fmtGHC(d.amount)}</p>
+              <p class="txn-status ${statusClass(d.status)}">${d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : 'Done'}</p>
+            </div>
+            <svg class="txn-chevron" width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>`;
+    }
+
+    function renderTxns() {
+        const filtered = activeFilter === 'all'
+            ? allTxns
+            : allTxns.filter(t => t.data.type === activeFilter);
+        if (!filtered.length) {
+            listEl.style.display  = 'none';
+            emptyEl.style.display = '';
+            return;
+        }
+        emptyEl.style.display = 'none';
+        listEl.style.display  = '';
+        listEl.innerHTML = filtered.map((t, i) =>
+            buildTxnHTML(t) + (i < filtered.length - 1 ? '<div class="txn-divider"></div>' : '')
+        ).join('');
+    }
+
+    // ── CSV statement download ────────────────────────────────────────────────
+    downloadBtn.addEventListener('click', () => {
+        if (!allTxns.length) { showToast('No transactions to download.', 'info'); return; }
+        const headers = ['Date', 'Type', 'Description', 'Amount (GHS)', 'Status', 'Reference', 'Phone'];
+        const rows = allTxns.map(t => {
+            const d = t.data;
+            return [
+                new Date(d.createdAt).toLocaleDateString('en-GB'),
+                d.type || '',
+                (d.description || '').replace(/"/g, '""'),
+                Number(d.amount || 0).toFixed(2),
+                d.status || '',
+                d.ref    || '',
+                d.phone  || ''
+            ].map(v => `"${v}"`).join(',');
+        });
+        const csv  = [headers.join(','), ...rows].join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `handy-hub-statement-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // ── Withdrawal modal ──────────────────────────────────────────────────────
+    function openWithdrawModal() {
+        wdAmountInput.value         = '';
+        wdSelProvider               = null;
+        wdSelAccount                = null;
+        wdAccsSection.style.display = 'none';
+        wdNoAccts.style.display     = 'none';
+        document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
+        wdOverlay.classList.add('open');
+        wdOverlay.setAttribute('aria-hidden', 'false');
+        wdAvail.textContent = 'GHC ' + currentBalance.toFixed(2);
+        buildWdProviders();
+        updateWdConfirm();
+    }
+
+    function closeWithdrawModal() {
+        wdOverlay.classList.remove('open');
+        wdOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function buildWdProviders() {
+        wdProvGrid.innerHTML = '';
+        for (const [key, meta] of Object.entries(PROVIDER_META)) {
+            const btn = document.createElement('button');
+            btn.className = 'wd-prov-btn' + (wdSelProvider === key ? ' selected' : '');
+            btn.dataset.provider = key;
+            btn.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;overflow:hidden">${meta.logo}</div><span>${meta.label}</span>`;
+            btn.addEventListener('click', () => {
+                wdSelProvider = key;
+                wdSelAccount  = null;
+                wdProvGrid.querySelectorAll('.wd-prov-btn').forEach(b => b.classList.toggle('selected', b === btn));
+                buildWdAccounts();
+                updateWdConfirm();
+            });
+            wdProvGrid.appendChild(btn);
+        }
+    }
+
+    function buildWdAccounts() {
+        const filtered = savedAccounts.filter(a => a.data.provider === wdSelProvider);
+
+        if (!filtered.length) {
+            wdAccsSection.style.display = 'none';
+            wdNoAccts.style.display     = '';
+            wdAccountList.innerHTML     = '';
+            return;
+        }
+
+        wdNoAccts.style.display     = 'none';
+        wdAccsSection.style.display = '';
+        wdAccountList.innerHTML     = '';
+
+        filtered.forEach(acc => {
+            const meta = PROVIDER_META[acc.data.provider] || {};
+            const card = document.createElement('button');
+            card.className = 'wd-acc-card' + (wdSelAccount === acc.id ? ' active' : '');
+            card.dataset.id = acc.id;
+            card.innerHTML = `
+              <div class="wd-acc-logo">${meta.logo || ''}</div>
+              <div>
+                <p class="wd-acc-phone">${acc.data.phone}</p>
+                <p class="wd-acc-prov">${meta.label || ''}${acc.data.isDefault ? ' · Default' : ''}</p>
+              </div>`;
+            card.addEventListener('click', () => {
+                wdSelAccount = acc.id;
+                wdAccountList.querySelectorAll('.wd-acc-card').forEach(c => c.classList.toggle('active', c === card));
+                updateWdConfirm();
+            });
+            wdAccountList.appendChild(card);
+        });
+
+        // Auto-select default
+        const def = filtered.find(a => a.data.isDefault) || filtered[0];
+        if (def) {
+            wdSelAccount = def.id;
+            wdAccountList.querySelector(`[data-id="${def.id}"]`)?.classList.add('active');
+        }
+        updateWdConfirm();
+    }
+
+    function updateWdConfirm() {
+        const amount = parseFloat(wdAmountInput.value);
+        const ready  = wdSelProvider && amount > 0 && amount <= currentBalance;
+        wdConfirmBtn.disabled    = !ready;
+        wdConfirmBtn.textContent = ready ? `Withdraw GHC ${amount.toFixed(2)}` : 'Confirm Withdrawal';
+    }
+
+    // Quick amounts
+    document.querySelectorAll('.wd-quick').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            wdAmountInput.value = btn.dataset.amount;
+            updateWdConfirm();
+        });
+    });
+    wdAmountInput.addEventListener('input', () => {
+        document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
+        updateWdConfirm();
+    });
+
+    withdrawBtn.addEventListener('click', openWithdrawModal);
+    wdCancelBtn.addEventListener('click', closeWithdrawModal);
+    wdOverlay.addEventListener('click', e => { if (e.target === wdOverlay) closeWithdrawModal(); });
+
+    wdConfirmBtn.addEventListener('click', async () => {
+        const amount = parseFloat(wdAmountInput.value);
+        if (!wdSelProvider || !amount || amount <= 0) return;
+
+        const acc   = savedAccounts.find(a => a.id === wdSelAccount);
+        const phone = acc ? acc.data.phone : null;
+
+        wdConfirmBtn.disabled    = true;
+        wdConfirmBtn.textContent = 'Processing…';
+
+        try {
+            await paymentRepo.recordWithdrawal(currentUid, {
+                amount,
+                provider: wdSelProvider,
+                phone
+            });
+            closeWithdrawModal();
+            showToast(`Withdrawal of GHC ${amount.toFixed(2)} submitted. Processing within 24 hours.`, 'success');
+        } catch (err) {
+            console.error('Withdrawal error:', err);
+            showToast(err.message || 'Withdrawal failed. Try again.', 'error');
+            wdConfirmBtn.disabled = false;
+            updateWdConfirm();
+        }
+    });
+
+    // ── Auth + Firebase subscriptions ─────────────────────────────────────────
+    const { services: { authService, databaseService } } = getAppContainer();
+    const paymentRepoInit = createPaymentRepository({ databaseService });
+
+    authService.subscribeToAuthState(user => {
+        if (!user) { window.location.href = LOGIN_URL; return; }
+        currentUid  = user.uid;
+        paymentRepo = paymentRepoInit;
+
+        // Wire payment accounts modal (registers [data-open-payments] triggers on this page)
+        initPaymentModal(user.uid, databaseService);
+
+        // Live wallet balance
+        databaseService.subscribeToDocument('customers', user.uid, snap => {
+            if (snap.exists) {
+                currentBalance = Number(snap.data.walletBalance || 0);
+                if (walletEl) walletEl.textContent = 'GHC ' + currentBalance.toFixed(2);
+            }
+        });
+
+        // Live saved accounts (for withdrawal modal)
+        paymentRepo.subscribeToAccounts(
+            user.uid,
+            records => { savedAccounts = records; },
+            err => console.error('Accounts error:', err)
+        );
+
+        // Live transactions
+        paymentRepo.subscribeToTransactions(
+            user.uid,
+            records => {
+                loadingEl.style.display = 'none';
+                allTxns = records;
+                if (!records.length) {
+                    listEl.style.display  = 'none';
+                    emptyEl.style.display = '';
+                } else {
+                    renderTxns();
+                }
+            },
+            err => {
+                console.error('Txn error:', err);
+                loadingEl.style.display = 'none';
+                emptyEl.style.display   = '';
+            }
+        );
+    });
+  </script>
+
+  <script src="../shared/js/components/fastLoader.js"></script>
+</body>
+</html>

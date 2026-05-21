@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Handy Hub – Notification Preferences</title>
+  <link rel="stylesheet" href="css/settings.css" />
+  <link rel="stylesheet" href="../shared/css/pageTransitions.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+</head>
+<body>
+  <div class="phone-shell">
+    <div class="scroll-area">
+
+      <div class="page-header">
+        <button class="back-btn" aria-label="Go back"
+          onclick="sessionStorage.setItem('pageTransitionDirection','back'); window.location.href='settings.html'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <h1 class="page-title">Notifications</h1>
+        <div class="header-spacer"></div>
+      </div>
+
+      <p class="section-label">Notification Types</p>
+      <div class="menu-card">
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <p class="toggle-title">Booking Updates</p>
+            <p class="toggle-sub">Accepted, rejected, completed bookings</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-bookings" onchange="saveToggle('bookings', this.checked)" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <p class="toggle-title">Messages</p>
+            <p class="toggle-sub">New messages from artisans</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-messages" onchange="saveToggle('messages', this.checked)" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <p class="toggle-title">Offers & Promotions</p>
+            <p class="toggle-sub">Special deals and discount offers</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-offers" onchange="saveToggle('offers', this.checked)" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <p class="toggle-title">Payments</p>
+            <p class="toggle-sub">Payment receipts and wallet updates</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-payments" onchange="saveToggle('payments', this.checked)" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <p class="toggle-title">Reviews</p>
+            <p class="toggle-sub">Reminders to review completed services</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-reviews" onchange="saveToggle('reviews', this.checked)" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <p class="toggle-title">System Alerts</p>
+            <p class="toggle-sub">Important account and security alerts</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-system" onchange="saveToggle('system', this.checked)" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      try {
+        var dir = sessionStorage.getItem('pageTransitionDirection');
+        sessionStorage.removeItem('pageTransitionDirection');
+        if (dir === 'forward') document.body.classList.add('page-slide-in-right');
+        else if (dir === 'back') document.body.classList.add('page-slide-in-left');
+        document.body.addEventListener('animationend', function () {
+          document.body.classList.remove('page-slide-in-right', 'page-slide-in-left');
+        }, { once: true });
+      } catch (e) {}
+    })();
+  </script>
+
+  <script type="module" src="js/pages/settingsNotifications.js"></script>
+<script src="../shared/js/components/fastLoader.js"></script>
+</body>
+</html>

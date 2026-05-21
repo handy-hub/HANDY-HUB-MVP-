@@ -368,3 +368,16 @@ body[data-page-type="notification"] {
 .nav-item.active img {
     filter: invert(10%) sepia(87%) saturate(5415%) hue-rotate(352deg) brightness(88%) contrast(110%);
 }
+.nav-item.active svg path,
+.nav-item.active svg circle,
+.nav-item.active svg polyline,
+.nav-item.active svg line,
+.nav-item.active svg rect,
+.nav-item.active svg polygon {
+    stroke: var(--brand);
+}
+.nav-item .active-label,
+.nav-item.active .active-label {
+    color: var(--brand);
+    font-weight: 700;
+}

@@ -525,13 +525,17 @@ body {
 
 .categories ul {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* Forces items onto a single line */
     gap: 15px;
+    width: 100%;       /* Ensures it stays within the parent width */
 }
 
-.categories li {
+.categories ul li {
+    flex-shrink: 1;    /* Allows items to shrink on small screens */
+    min-width: 0;      /* Prevents text from forcing a larger width */
     list-style: none;
 }
+
 
 .cat-btn {
     display: flex;
@@ -1027,6 +1031,22 @@ margin-top: 10px;
 .nav-item:active {
     opacity: 0.7;
     transform: scale(0.95);
+}
+
+/* SVG-based nav active state (pages using inline SVG icons) */
+.nav-item.active svg path,
+.nav-item.active svg circle,
+.nav-item.active svg polyline,
+.nav-item.active svg line,
+.nav-item.active svg rect,
+.nav-item.active svg polygon {
+    stroke: #730201;
+}
+
+.nav-item.active .active-label,
+.nav-item .active-label {
+    color: #730201;
+    font-weight: 700;
 }
 
 
