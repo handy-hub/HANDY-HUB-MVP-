@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Handy Hub – Personal Information</title>
+  <link rel="stylesheet" href="css/personal-Info.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <div class="phone-shell">
+    <div class="scroll-area">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <button class="back-btn" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <h1 class="page-title">Personal Information</h1>
+        <div class="header-spacer"></div>
+      </div>
+
+      <!-- Subtitle -->
+      <p class="page-subtitle">Update your personal details. This information helps us personalize your experience and improve our services.</p>
+
+      <!-- Profile Photo Section -->
+      <h2 class="section-title">Profile Photo</h2>
+      <div class="photo-card">
+        <div class="photo-avatar-wrap">
+          <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Profile" class="photo-avatar" id="profile-img" />
+        </div>
+        <div class="photo-info">
+          <p class="photo-title">Profile Photo</p>
+          <p class="photo-sub">JPG or PNG. Max size 2MB.</p>
+          <button class="change-photo-btn" id="change-photo-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z" stroke="#e03030" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="13" r="4" stroke="#e03030" stroke-width="1.7"/>
+            </svg>
+            Change Photo
+          </button>
+          <input type="file" id="photo-input" accept="image/*" style="display:none" />
+        </div>
+      </div>
+
+      <!-- Personal Details Section -->
+      <h2 class="section-title">Personal Details</h2>
+      <div class="details-card">
+
+        <button class="detail-item" data-field="fullname">
+          <div class="detail-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#e03030" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="#e03030" stroke-width="1.7"/>
+            </svg>
+          </div>
+          <div class="detail-text">
+            <p class="detail-label">Full Name</p>
+            <p class="detail-value" id="val-fullname">John Doe</p>
+          </div>
+          <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="detail-divider"></div>
+
+        <button class="detail-item" data-field="email">
+          <div class="detail-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" stroke="#e03030" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="22,6 12,13 2,6" stroke="#e03030" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="detail-text">
+            <p class="detail-label">Email Address</p>
+            <p class="detail-value" id="val-email">johndoe@email.com</p>
+          </div>
+          <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="detail-divider"></div>
+
+        <button class="detail-item" data-field="phone">
+          <div class="detail-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.59 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.54a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z" stroke="#e03030" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="detail-text">
+            <p class="detail-label">Phone Number</p>
+            <p class="detail-value" id="val-phone">+233 24 123 4567</p>
+          </div>
+          <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="detail-divider"></div>
+
+        <button class="detail-item" data-field="dob">
+          <div class="detail-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="4" width="18" height="18" rx="2" stroke="#e03030" stroke-width="1.7"/>
+              <path d="M16 2v4M8 2v4M3 10h18" stroke="#e03030" stroke-width="1.7" stroke-linecap="round"/>
+              <path d="M8 14h1m3 0h1m-5 4h1m3 0h1" stroke="#e03030" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="detail-text">
+            <p class="detail-label">Date of Birth</p>
+            <p class="detail-value" id="val-dob">15 March 1992</p>
+          </div>
+          <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="detail-divider"></div>
+
+        <button class="detail-item" data-field="gender">
+          <div class="detail-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="9" r="5" stroke="#e03030" stroke-width="1.7"/>
+              <path d="M12 14v7M9 18h6" stroke="#e03030" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="detail-text">
+            <p class="detail-label">Gender</p>
+            <p class="detail-value" id="val-gender">Male</p>
+          </div>
+          <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
+      </div>
+
+      <!-- Address Section -->
+      <h2 class="section-title">Address</h2>
+      <div class="details-card">
+        <button class="detail-item" data-field="address">
+          <div class="detail-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" stroke="#e03030" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="10" r="3" stroke="#e03030" stroke-width="1.7"/>
+            </svg>
+          </div>
+          <div class="detail-text">
+            <p class="detail-label">Primary Address</p>
+            <p class="detail-value" id="val-address">East Legon, Accra</p>
+            <p class="detail-sub">Greater Accra Region, Ghana</p>
+          </div>
+          <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Security Banner -->
+      <div class="security-banner">
+        <div class="security-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="#e03030" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="9 12 11 14 15 10" stroke="#e03030" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="security-text">
+          <p class="security-title">Keep your information secure</p>
+          <p class="security-sub">We use industry-standard security to keep your personal data safe and private.</p>
+        </div>
+      </div>
+
+      <!-- Save Changes Button -->
+      <button class="save-btn" id="save-btn">Save Changes</button>
+
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+          <p class="modal-title" id="modal-title">Edit Full Name</p>
+          <button class="modal-close" id="modal-close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <input class="modal-input" id="modal-input" type="text" placeholder="Enter value" />
+        <button class="modal-save" id="modal-save">Save</button>
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <button class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="9 22 9 12 15 12 15 22" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Home</span>
+      </button>
+      <button class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="8" y="2" width="8" height="4" rx="1" stroke="#aaa" stroke-width="1.7"/>
+          <path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Bookings</span>
+      </button>
+      <button class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Messages</span>
+      </button>
+      <button class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Saved</span>
+      </button>
+      <button class="nav-item active">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#e03030" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="7" r="4" stroke="#e03030" stroke-width="1.7"/>
+        </svg>
+        <span class="active-label">Profile</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <script src="personal-info.js"></script>
+</body>
+</html>
