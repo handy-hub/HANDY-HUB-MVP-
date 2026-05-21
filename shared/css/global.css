@@ -1,14 +1,16 @@
-﻿:root {     
-    --primary-red: #730201; /* Deep Maroon */
+﻿@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --primary-red: #730201;
     --light-red: #fde8e8;
     --bg-white: #ffffff;
-    --text-dark: #333333;
+    --text-dark: #111111;
     --text-grey: #666666;
-    --secondary-bg:#b82a04;
+    --secondary-bg: #730201;
     --maroon: #730201;
-    --text-main: #1a1a1a;
+    --text-main: #111111;
     --text-sub: #666666;
-    --bg-page: #ffffff;
+    --bg-page: #f7f7f7;
     --unread-bg: #fffafa;
 }
 
@@ -16,15 +18,17 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body {
     display: flex;
     justify-content: center;
     padding: 20px;
-    color: #333;
-    overflow: scroll;
+    color: #111;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #f7f7f7;
 }
 
 .app {
@@ -428,7 +432,7 @@ body {
 .name {
     font-size: 11px;
     font-weight: 800;
-    color: #ff0606; /* Light purple greeting */
+    color: #730201;
     letter-spacing: 1px;
     margin: 0;
 }
@@ -461,7 +465,7 @@ body {
 .notification-icon {
     width: 90%;
     height: 90%;
-    color: #b82a04;
+    color: #730201;
     cursor: pointer;
 }
 .notification-badge {
@@ -471,7 +475,7 @@ body {
     min-width: 16px;
     height: 16px;
     padding: 0 3px;
-    background: #ff0606;
+    background: #730201;
     color: white;
     font-size: 9px;
     font-weight: bold;
@@ -489,9 +493,11 @@ body {
     align-items: center;
     gap: 10px;
     margin-top: 12px;
-    background: #730201 !important;
+    background: #ffffff !important;
     padding: 5px 6px;
     border-radius: 16px;
+    border: 1.5px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
 /* ICON FIX */
@@ -549,9 +555,8 @@ body {
     height: fit-content;
 }
 .cat-btn span{
-   
-    font-size: 7px;
-    font-weight: bold;
+    font-size: 10px;
+    font-weight: 600;
 }
 .cat-btn img {
     width: 18px;
@@ -639,7 +644,7 @@ body {
 }
 
 .book-now {
-    background: #b82a04;
+    background: #730201;
     color: white;
     border: none;
     /* Padding scales with text size */
@@ -766,8 +771,8 @@ body {
 }
 
 .cards p {
-    font-size: 9px; /* Slightly larger for readability */
-    color: black;
+    font-size: 11px;
+    color: #333;
     text-align: center;
     margin-top: 7px;
     font-weight: 500;
@@ -782,17 +787,18 @@ body {
 /* 1. Main Card Wrapper */
 .pro-card {
     background: #fff;
-    border: 0.1px solid #eee;
-    border-radius: 12px;
+    border: 1.5px solid rgba(0,0,0,0.06);
+    border-radius: 16px;
     padding: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    max-width: 500px; /* Limits width on desktop */
-    width: 100%;      /* Fits container on mobile */
+    max-width: 500px;
+    width: 100%;
     box-sizing: border-box;
-    overflow: hidden; /* Prevent accidental spills */
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
 }
 
 /* 2. Left Side (Image + Text) */
@@ -836,11 +842,12 @@ body {
 }
 
 .pro-details h3 {
-    font-size: clamp(14px, 4vw, 16px); /* Fluid text: min, target, max */
+    font-size: 14px;
+    font-weight: 800;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Adds "..." if name is too long */
+    text-overflow: ellipsis;
 }
 
 .pro-type {
@@ -2216,7 +2223,7 @@ html.dark .name { color: #ff6060; }
 html.dark .location { color: #999; }
 
 /* Search bar */
-html.dark .search { background: #730201 !important; }
+html.dark .search { background: #1e1e1e !important; border-color: rgba(255,255,255,0.08); box-shadow: none; }
 html.dark .search input {
     background-color: #1e1e1e !important;
     color: #e0e0e0;

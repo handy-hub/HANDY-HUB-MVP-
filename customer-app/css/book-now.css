@@ -1,9 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
 /* Book Now + Emergency Booking CSS */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #111; display: flex; justify-content: center;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f7f7f7; display: flex; justify-content: center;
   overflow: hidden; height: 100dvh; -webkit-font-smoothing: antialiased;
 }
 
@@ -11,7 +12,7 @@ body {
 .bn-shell {
   width: 100%; max-width: 430px; height: 100dvh;
   display: flex; flex-direction: column; overflow: hidden;
-  position: relative; background: #f5f5f5;
+  position: relative; background: #f7f7f7;
 }
 
 /* ── Header ── */
@@ -45,9 +46,9 @@ body {
 .bn-where-label { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 10px; }
 
 .bn-location-card {
-  background: #fff; border: 1.5px solid #eee; border-radius: 14px;
+  background: #fff; border: 1.5px solid rgba(0,0,0,0.06); border-radius: 16px;
   padding: 12px 14px; display: flex; align-items: center; gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.04);
 }
 .bn-location-icon {
   width: 36px; height: 36px; background: #fde8e8; border-radius: 10px;
@@ -68,9 +69,9 @@ body {
 .bn-categories::-webkit-scrollbar { display: none; }
 .bn-cat {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  padding: 10px 14px; border-radius: 14px; border: 1.5px solid #eee;
+  padding: 10px 14px; border-radius: 14px; border: 1.5px solid rgba(0,0,0,0.07);
   background: #fff; cursor: pointer; flex-shrink: 0; min-width: 68px;
-  transition: all 0.15s; position: relative;
+  transition: all 0.15s; position: relative; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 .bn-cat.active { border-color: #730201; background: #fde8e8; }
 .bn-cat-label { font-size: 11px; font-weight: 700; color: #666; }
@@ -198,7 +199,7 @@ body {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .bn-sheet-svc-body { flex: 1; }
-.bn-sheet-svc-name { font-size: 18px; font-weight: 900; color: #111; margin-bottom: 3px; }
+.bn-sheet-svc-name { font-size: 17px; font-weight: 800; color: #111; margin-bottom: 3px; letter-spacing: -0.3px; }
 .bn-sheet-svc-tag { font-size: 12px; font-weight: 700; color: #2e7d32; margin-bottom: 4px; }
 .bn-sheet-svc-desc { font-size: 12px; color: #888; line-height: 1.4; }
 .bn-sheet-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
@@ -219,7 +220,7 @@ body {
   overflow: hidden; margin-bottom: 4px;
 }
 .bn-request-btn-main {
-  padding: 15px; font-size: 17px; font-weight: 900;
+  padding: 15px; font-size: 16px; font-weight: 800;
   display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .bn-request-btn-sub {

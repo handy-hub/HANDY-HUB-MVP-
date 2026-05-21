@@ -6,6 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Handy Hub – Schedule & Confirm</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    #loc-map { width: 100%; height: 148px; border-radius: 12px; margin-top: 10px; z-index: 0; }
+    .loc-address-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .loc-address-text { font-size: 13px; color: #555; font-weight: 500; flex: 1; }
+    .loc-open-maps {
+      font-size: 11px; font-weight: 700; color: #730201;
+      background: #fde8e8; border: none; border-radius: 8px;
+      padding: 5px 10px; cursor: pointer; flex-shrink: 0; text-decoration: none;
+    }
+  </style>
 </head>
 <body>
 <div class="phone-shell">
@@ -153,7 +164,12 @@
           </button>
         </div>
         <p class="detail-bk-value">Home</p>
-        <p class="detail-bk-desc" style="margin-top:2px;">East Legon, Accra, Ghana</p>
+        <div id="loc-map"></div>
+        <div class="loc-address-row">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#730201"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>
+          <span class="loc-address-text">East Legon, Accra, Ghana</span>
+          <a class="loc-open-maps" href="https://www.google.com/maps/search/?api=1&query=East+Legon+Accra+Ghana" target="_blank" rel="noopener">Open Maps</a>
+        </div>
       </div>
     </div>
 
@@ -282,6 +298,7 @@
   </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   const BK_KEY = 'hh_booking';
   function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
@@ -300,6 +317,17 @@
   const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   document.addEventListener('DOMContentLoaded', function() {
+    // Leaflet map – East Legon, Accra
+    const LAT = 5.6343, LNG = -0.1567;
+    const map = L.map('loc-map', { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false })
+                 .setView([LAT, LNG], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    const icon = L.divIcon({
+      html: '<div style="width:32px;height:32px;background:#730201;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 8px rgba(115,2,1,0.4);"></div>',
+      iconSize: [32, 32], iconAnchor: [16, 32], className: ''
+    });
+    L.marker([LAT, LNG], { icon }).addTo(map);
+
     const state = getState();
 
     if (state.professional) {

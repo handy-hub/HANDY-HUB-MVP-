@@ -9,7 +9,7 @@
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background: #f0f0f0;
+  background: #f7f7f7;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -36,7 +36,7 @@ button {
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
 }
 
 /* ===========================
@@ -161,8 +161,8 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1.8px solid #e03030;
-  color: #e03030;
+  border: 1.8px solid #730201;
+  color: #730201;
   font-size: 13px;
   font-weight: 700;
   padding: 8px 14px;
@@ -172,7 +172,7 @@ button {
 }
 
 .change-photo-btn:hover {
-  background: #e03030;
+  background: #730201;
   color: #fff;
 }
 
@@ -293,7 +293,7 @@ button {
 .save-btn {
   width: 100%;
   padding: 17px;
-  background: #e03030;
+  background: #730201;
   color: #fff;
   font-size: 16px;
   font-weight: 700;
@@ -387,13 +387,13 @@ button {
 }
 
 .modal-input:focus {
-  border-color: #e03030;
+  border-color: #730201;
 }
 
 .modal-save {
   width: 100%;
   padding: 15px;
-  background: #e03030;
+  background: #730201;
   color: #fff;
   font-size: 15px;
   font-weight: 700;
@@ -442,5 +442,5 @@ button {
 
 .nav-item.active span,
 .nav-item .active-label {
-  color: #e03030;
+  color: #730201;
 }
