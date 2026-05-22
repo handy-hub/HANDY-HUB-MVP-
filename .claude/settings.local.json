@@ -3,7 +3,10 @@
     "allow": [
       "Bash(firebase login *)",
       "Bash(firebase projects:list)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git checkout *)",
+      "Bash(Get-ChildItem -Name *.html)",
+      "Bash(Sort-Object)"
     ]
   }
 }

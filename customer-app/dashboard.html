@@ -124,7 +124,7 @@
                    </a>
                </li>
                <li>
-                   <a href="transaction.html" class="sidebar-menu-item">
+                   <a href="transaction-history.html" class="sidebar-menu-item">
                        <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#730201" stroke-width="2"/><path d="M2 10h20" stroke="#730201" stroke-width="2"/></svg></span>
                        <span class="sidebar-menu-label">Payments</span>
                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
@@ -396,6 +396,7 @@
     <script src="../shared/js/components/pageTransition.js"></script>
 <script type="module" src="../shared/js/services/logoutService.js"></script>
 <script src="../shared/js/utils/helpers.js"></script>
+    <script src="../shared/js/utils/navManager.js"></script>
     <script src="../shared/js/utils/global-app.js"></script>
     <!-- Live notification badge — updates in real time from Firestore -->
     <script type="module" src="js/dashboardBadge.js"></script>
@@ -464,9 +465,9 @@
       switch (label) {
         case 'My Requests':       go('booking.html'); break;
         case 'Reviews & Ratings': toast('Reviews & Ratings — coming soon'); break;
-        case 'My Addresses':      go('settings-location.html'); break;
+        case 'My Addresses':      HH.nav.navigate('settings-location.html'); break;
         case 'Promo Codes':       toast('You have 2 promo codes available!'); break;
-        case 'Support Center':    go('settings-help.html'); break;
+        case 'Support Center':    HH.nav.navigate('settings-help.html'); break;
         case 'Invite Friends':
           if (navigator.share) {
             navigator.share({ title: 'HandyHub', text: 'Book reliable home services with HandyHub!', url: 'https://handyhub.app' }).catch(() => {});
@@ -512,7 +513,7 @@
 
   /* ── location changer ─────────────────────────────────────── */
   document.getElementById('location-changer')
-    ?.addEventListener('click', () => go('settings-location.html'));
+    ?.addEventListener('click', () => HH.nav.navigate('settings-location.html'));
 
   /* ── pro-card "Book Now" buttons ──────────────────────────── */
   document.querySelectorAll('.pro-card').forEach(card => {
