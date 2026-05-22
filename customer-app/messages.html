@@ -1,93 +1,487 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <script src="../shared/js/utils/themeManager.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HandyHub | Messages</title>
-    <link rel="stylesheet" href="css/customer.css">
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>HandyHub | Messages</title>
+  <link rel="stylesheet" href="css/messages.css" />
 </head>
 <body>
-    <div class="app">
-        <header class="profile-card" style="justify-content: space-between;">
-            <h2 class="name" style="font-size: 14px;">MESSAGES</h2>
-            <p class="location">Stay connected with your artisans</p>
-        </header>
+<div class="ms-shell">
 
-        <main style="margin-top: 14px;">
-            <section class="pro-card" style="margin-bottom: 10px;">
-                <div class="pro-left">
-                    <div class="img-container">
-                        <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Kwame Mensah">
-                        <span class="status-dot"></span>
-                    </div>
-                    <div class="pro-details">
-                        <h3>Kwame Mensah</h3>
-                        <p class="pro-type">Plumber</p>
-                        <p class="distance">"Hi John, I am on my way."</p>
-                    </div>
-                </div>
-                <div class="pro-right">
-                    <p class="starts">9:41 AM</p>
-                    <p class="price" style="font-size: 12px;">2 New</p>
-                </div>
-            </section>
+  <!-- ══════════════════════════════════
+       LIST VIEW
+  ══════════════════════════════════ -->
+  <div class="ms-list-view" id="ms-list-view">
 
-            <section class="pro-card" style="margin-bottom: 10px;">
-                <div class="pro-left">
-                    <div class="img-container">
-                        <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772301950/vjx_records/k8oruwmjbtq8bv4mupu4.png" alt="Emmanuel Asare">
-                    </div>
-                    <div class="pro-details">
-                        <h3>Emmanuel Asare</h3>
-                        <p class="pro-type">Electrician</p>
-                        <p class="distance">"Please confirm your location."</p>
-                    </div>
-                </div>
-                <div class="pro-right">
-                    <p class="starts">Yesterday</p>
-                </div>
-            </section>
-        </main>
-
-        <nav class="bottom-nav">
-            <a href="dashboard.html" class="nav-item">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                    <polyline points="9 22 9 12 15 12 15 22" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span>Home</span>
-            </a>
-            <a href="booking.html" class="nav-item">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="#aaa" stroke-width="1.7"/>
-                    <path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/>
-                </svg>
-                <span>Bookings</span>
-            </a>
-            <a href="messages.html" class="nav-item active">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="active-label">Messages</span>
-            </a>
-            <a href="saved.html" class="nav-item">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span>Saved</span>
-            </a>
-            <a href="profile.html" class="nav-item">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="7" r="4" stroke="#aaa" stroke-width="1.7"/>
-                </svg>
-                <span>Profile</span>
-            </a>
-        </nav>
-
+    <!-- Header -->
+    <div class="ms-header">
+      <h1 class="ms-title">Messages</h1>
+      <div class="ms-header-btns">
+        <button class="ms-icon-btn" aria-label="Search" onclick="focusSearch()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="7" stroke="#111" stroke-width="2"/>
+            <path d="M16.5 16.5L21 21" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button class="ms-icon-btn" aria-label="New message" onclick="showToast('New message coming soon')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="#111" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <script src="../shared/js/utils/global-app.js"></script>
-<script src="../shared/js/components/fastLoader.js"></script>
+    <!-- Search bar -->
+    <div class="ms-search-wrap">
+      <div class="ms-search-bar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="11" cy="11" r="7" stroke="#aaa" stroke-width="2"/>
+          <path d="M16.5 16.5L21 21" stroke="#aaa" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <input id="ms-search-input" type="text" placeholder="Search messages…" oninput="searchConversations(this.value)" autocomplete="off" />
+      </div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="ms-filter-bar">
+      <button class="ms-filter-tab active" onclick="filterTab('all', this)">All</button>
+      <button class="ms-filter-tab" onclick="filterTab('unread', this)">Unread</button>
+      <button class="ms-filter-tab" onclick="filterTab('requests', this)">Requests</button>
+    </div>
+
+    <!-- Conversation list -->
+    <div class="ms-conv-list" id="ms-conv-list"></div>
+
+    <!-- Service requests panel (hidden by default) -->
+    <div id="ms-requests-panel" style="display:none; flex:1; overflow-y:auto;">
+      <div class="ms-request-card">
+        <div class="ms-request-top">
+          <div class="ms-request-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="ms-request-info">
+            <p class="ms-request-title">Electrical Repair</p>
+            <p class="ms-request-sub">Kwame Mensah · 24 May 2026</p>
+          </div>
+          <span class="ms-request-status active">Upcoming</span>
+        </div>
+        <div class="ms-request-actions">
+          <button class="ms-request-btn secondary" onclick="showToast('Request cancelled')">Cancel</button>
+          <button class="ms-request-btn primary" onclick="window.location.href='booking.html'">View Booking</button>
+        </div>
+      </div>
+
+      <div class="ms-request-card">
+        <div class="ms-request-top">
+          <div class="ms-request-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="#730201" stroke-width="2"/><path d="M7 10c0 5.52 10 5.52 10 0" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="ms-request-info">
+            <p class="ms-request-title">Fix Leaking Pipe</p>
+            <p class="ms-request-sub">Emmanuel Asare · 25 May 2026</p>
+          </div>
+          <span class="ms-request-status">Pending</span>
+        </div>
+        <div class="ms-request-actions">
+          <button class="ms-request-btn secondary" onclick="showToast('Request cancelled')">Cancel</button>
+          <button class="ms-request-btn primary" onclick="window.location.href='booking.html'">View Booking</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end ms-list-view -->
+
+
+  <!-- ══════════════════════════════════
+       CHAT VIEW
+  ══════════════════════════════════ -->
+  <div class="ms-chat-view" id="ms-chat-view">
+
+    <!-- Chat header -->
+    <div class="ms-chat-header">
+      <button class="ms-chat-back" onclick="closeChat()" aria-label="Back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="ms-chat-pro-wrap">
+        <img class="ms-chat-pro-avatar" id="chat-avatar" src="" alt="">
+        <div class="ms-chat-pro-dot" id="chat-dot"></div>
+      </div>
+      <div class="ms-chat-pro-info">
+        <p class="ms-chat-pro-name" id="chat-name">Name</p>
+        <p class="ms-chat-pro-status" id="chat-status">Online</p>
+      </div>
+      <div class="ms-chat-actions">
+        <button class="ms-icon-btn" aria-label="Call" onclick="showToast('Calling…')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#111" stroke-width="1.8"/>
+          </svg>
+        </button>
+        <button class="ms-icon-btn" aria-label="More" onclick="showToast('More options coming soon')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="5" r="1.5" fill="#111"/><circle cx="12" cy="12" r="1.5" fill="#111"/><circle cx="12" cy="19" r="1.5" fill="#111"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages area -->
+    <div class="ms-chat-body" id="ms-chat-body"></div>
+
+    <!-- Input bar -->
+    <div class="ms-input-bar">
+      <button class="ms-input-attach" aria-label="Attach" onclick="showToast('Attachment coming soon')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="ms-input-wrap">
+        <textarea id="ms-msg-input" rows="1" placeholder="Type a message…"
+          oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+      </div>
+      <button class="ms-input-emoji" aria-label="Emoji" onclick="showToast('Emoji picker coming soon')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="#aaa" stroke-width="2"/>
+          <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="#aaa" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="9" cy="10" r="1" fill="#aaa"/><circle cx="15" cy="10" r="1" fill="#aaa"/>
+        </svg>
+      </button>
+      <button class="ms-send-btn" onclick="sendMessage()" aria-label="Send">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+  </div><!-- end ms-chat-view -->
+
+</div><!-- end ms-shell -->
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav" id="ms-bottom-nav">
+  <a href="dashboard.html" class="nav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Home</span>
+  </a>
+  <a href="booking.html" class="nav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="2" width="8" height="4" rx="1" stroke="#aaa" stroke-width="1.7"/><path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/></svg>
+    <span>Bookings</span>
+  </a>
+  <a href="messages.html" class="nav-item active">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Messages</span>
+  </a>
+  <a href="saved.html" class="nav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Saved</span>
+  </a>
+  <a href="profile.html" class="nav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#aaa" stroke-width="1.7"/></svg>
+    <span>Profile</span>
+  </a>
+</nav>
+
+<div id="ms-toast" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(16px);background:#111;color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;opacity:0;transition:opacity .22s,transform .22s;pointer-events:none;white-space:nowrap;z-index:999;box-shadow:0 6px 24px rgba(0,0,0,.2)"></div>
+
+<script src="../shared/js/utils/global-app.js"></script>
+<script>
+/* ── Data ── */
+const CONVERSATIONS = [
+  {
+    id: 0, name: 'Kwame Mensah', role: 'Plumber', online: true,
+    photo: 'https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg',
+    time: '9:41 AM', unread: 2,
+    lastMsg: 'Hi John, I am on my way.',
+    messages: [
+      { from: 'pro', text: 'Hello! I have confirmed your booking for the pipe repair.', time: '9:28 AM' },
+      { from: 'user', text: 'Great, thank you! How long will it take?', time: '9:30 AM' },
+      { from: 'pro', text: 'About 1–2 hours depending on the damage.', time: '9:33 AM' },
+      { from: 'user', text: "Okay, I'll be home. Address is 12 Labone Crescent.", time: '9:38 AM' },
+      { from: 'pro', text: 'Hi John, I am on my way.', time: '9:41 AM' },
+    ]
+  },
+  {
+    id: 1, name: 'Emmanuel Asare', role: 'Electrician', online: false,
+    photo: 'https://res.cloudinary.com/dmuddhfdr/image/upload/v1772301950/vjx_records/k8oruwmjbtq8bv4mupu4.png',
+    time: 'Yesterday', unread: 0,
+    lastMsg: 'Please confirm your location.',
+    messages: [
+      { from: 'pro', text: 'Good day! I have received your request for electrical repair.', time: 'Yesterday 2:00 PM' },
+      { from: 'user', text: 'Yes, the switch in my bedroom is faulty.', time: 'Yesterday 2:10 PM' },
+      { from: 'pro', text: 'Understood. Please confirm your location.', time: 'Yesterday 2:15 PM' },
+    ]
+  },
+  {
+    id: 2, name: 'Kofi Boateng', role: 'Carpenter', online: true,
+    photo: 'https://res.cloudinary.com/dmuddhfdr/image/upload/v1777603842/vjx_records/xhy1lyvmxgnywopfrfiy.jpg',
+    time: 'Mon', unread: 0,
+    lastMsg: "Great! I'll be there at 9 AM",
+    messages: [
+      { from: 'user', text: 'Hi, can you fix my broken cabinet door?', time: 'Mon 8:00 AM' },
+      { from: 'pro', text: 'Of course! When would you like me to come?', time: 'Mon 8:20 AM' },
+      { from: 'user', text: 'Tomorrow morning works for me.', time: 'Mon 8:25 AM' },
+      { from: 'pro', text: "Great! I'll be there at 9 AM", time: 'Mon 8:30 AM' },
+    ]
+  },
+  {
+    id: 3, name: 'HandyHub Support', role: 'Support Team', online: true,
+    photo: null, grad: 'linear-gradient(135deg,#730201,#b10c0c)', gradInitials: 'HH',
+    time: 'Sun', unread: 1,
+    lastMsg: 'Your booking has been confirmed.',
+    messages: [
+      { from: 'pro', text: 'Welcome to HandyHub! 👋 We\'re here to help anytime.', time: 'Sun 10:00 AM' },
+      { from: 'pro', text: 'Your booking #HHB-260521 has been confirmed. Your professional will arrive on 24 May at 10:00 AM.', time: 'Sun 10:02 AM' },
+    ]
+  },
+];
+
+const AUTO_REPLIES = [
+  "Got it, I'll be right with you!",
+  "Sure, no problem at all.",
+  "I understand. Let me take care of that for you.",
+  "Perfect, I'm on my way.",
+  "Thanks for the update! See you soon.",
+  "Noted. I'll call you when I'm 5 minutes away."
+];
+
+let currentConvId = null;
+let currentFilter = 'all';
+let replyIndex = 0;
+
+/* ── Render list ── */
+function renderList(filter = 'all', query = '') {
+  const list = document.getElementById('ms-conv-list');
+  const reqPanel = document.getElementById('ms-requests-panel');
+
+  if (filter === 'requests') {
+    list.style.display = 'none';
+    reqPanel.style.display = 'block';
+    return;
+  }
+  list.style.display = 'block';
+  reqPanel.style.display = 'none';
+
+  let convs = CONVERSATIONS;
+  if (filter === 'unread') convs = convs.filter(c => c.unread > 0);
+  if (query) convs = convs.filter(c =>
+    c.name.toLowerCase().includes(query.toLowerCase()) ||
+    c.lastMsg.toLowerCase().includes(query.toLowerCase())
+  );
+
+  if (convs.length === 0) {
+    list.innerHTML = `<div class="ms-empty">
+      <div class="ms-empty-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#111" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <p class="ms-empty-title">No messages found</p>
+      <p class="ms-empty-sub">Try a different search or check back later.</p>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = convs.map(c => `
+    <div class="ms-conv-item ${c.unread > 0 ? 'unread' : ''}" onclick="openChat(${c.id})">
+      <div class="ms-conv-avatar-wrap">
+        ${c.photo
+          ? `<img class="ms-conv-avatar" src="${c.photo}" alt="${c.name}">`
+          : `<div class="ms-conv-avatar-grad" style="background:${c.grad}">${c.gradInitials}</div>`
+        }
+        <div class="ms-conv-dot ${c.online ? '' : 'offline'}"></div>
+      </div>
+      <div class="ms-conv-body">
+        <div class="ms-conv-top">
+          <span class="ms-conv-name">${c.name}</span>
+          <span class="ms-conv-time">${c.time}</span>
+        </div>
+        <p class="ms-conv-role">${c.role}</p>
+        <div class="ms-conv-bottom">
+          <p class="ms-conv-preview">${escHtml(c.lastMsg)}</p>
+          ${c.unread > 0 ? `<span class="ms-conv-badge">${c.unread}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ── Open chat ── */
+function openChat(id) {
+  const conv = CONVERSATIONS.find(c => c.id === id);
+  if (!conv) return;
+  currentConvId = id;
+
+  // Clear unread
+  conv.unread = 0;
+
+  // Populate chat header
+  const avatar = document.getElementById('chat-avatar');
+  if (conv.photo) {
+    avatar.src = conv.photo;
+    avatar.style.display = 'block';
+    avatar.nextElementSibling && (avatar.nextElementSibling.style.display = '');
+  } else {
+    avatar.style.display = 'none';
+    // inject grad avatar next to the img
+    let grad = document.querySelector('.ms-chat-pro-avatar-grad');
+    if (!grad) {
+      grad = document.createElement('div');
+      grad.className = 'ms-chat-pro-avatar-grad';
+      avatar.parentNode.insertBefore(grad, avatar.nextSibling);
+    }
+    grad.style.background = conv.grad;
+    grad.textContent = conv.gradInitials;
+  }
+  document.getElementById('chat-name').textContent = conv.name;
+  const statusEl = document.getElementById('chat-status');
+  statusEl.textContent = conv.online ? 'Online' : 'Offline';
+  statusEl.className = 'ms-chat-pro-status' + (conv.online ? '' : ' offline');
+  const dot = document.getElementById('chat-dot');
+  dot.className = 'ms-chat-pro-dot' + (conv.online ? '' : ' offline');
+
+  // Render messages
+  renderMessages(conv);
+
+  // Slide to chat
+  document.getElementById('ms-list-view').classList.add('slide-out');
+  document.getElementById('ms-chat-view').classList.add('slide-in');
+  document.getElementById('ms-bottom-nav').style.display = 'none';
+
+  // Re-render list to clear badge
+  renderList(currentFilter);
+}
+
+function renderMessages(conv) {
+  const body = document.getElementById('ms-chat-body');
+  body.innerHTML = `<div class="ms-date-sep"><span>Today</span></div>`;
+
+  conv.messages.forEach(msg => {
+    const isMine = msg.from === 'user';
+    body.innerHTML += `
+      <div class="ms-bubble-wrap ${isMine ? 'mine' : 'theirs'}">
+        ${!isMine
+          ? (conv.photo
+              ? `<img class="ms-bubble-avatar" src="${conv.photo}" alt="">`
+              : `<div class="ms-bubble-avatar-grad" style="background:${conv.grad}">${conv.gradInitials}</div>`)
+          : ''}
+        <div>
+          <div class="ms-bubble ${isMine ? 'mine' : 'theirs'}">${escHtml(msg.text)}</div>
+          <span class="ms-bubble-time">${msg.time}</span>
+        </div>
+      </div>`;
+  });
+
+  scrollToBottom();
+}
+
+/* ── Close chat ── */
+function closeChat() {
+  document.getElementById('ms-list-view').classList.remove('slide-out');
+  document.getElementById('ms-chat-view').classList.remove('slide-in');
+  document.getElementById('ms-bottom-nav').style.display = '';
+  currentConvId = null;
+  renderList(currentFilter);
+}
+
+/* ── Send message ── */
+function sendMessage() {
+  const input = document.getElementById('ms-msg-input');
+  const text = input.value.trim();
+  if (!text || currentConvId === null) return;
+
+  const conv = CONVERSATIONS.find(c => c.id === currentConvId);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  conv.messages.push({ from: 'user', text, time: timeStr });
+  conv.lastMsg = text;
+  conv.time = timeStr;
+
+  input.value = '';
+  input.style.height = 'auto';
+  renderMessages(conv);
+
+  // Typing indicator
+  const body = document.getElementById('ms-chat-body');
+  const typingId = 'typing-' + Date.now();
+  const proAvatar = conv.photo
+    ? `<img class="ms-bubble-avatar" src="${conv.photo}" alt="">`
+    : `<div class="ms-bubble-avatar-grad" style="background:${conv.grad}">${conv.gradInitials}</div>`;
+
+  body.innerHTML += `
+    <div class="ms-typing-wrap" id="${typingId}">
+      ${proAvatar}
+      <div class="ms-typing-bubble">
+        <div class="ms-typing-dot"></div>
+        <div class="ms-typing-dot"></div>
+        <div class="ms-typing-dot"></div>
+      </div>
+    </div>`;
+  scrollToBottom();
+
+  setTimeout(() => {
+    const reply = AUTO_REPLIES[replyIndex % AUTO_REPLIES.length];
+    replyIndex++;
+    const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    conv.messages.push({ from: 'pro', text: reply, time: replyTime });
+    conv.lastMsg = reply;
+    conv.time = replyTime;
+    renderMessages(conv);
+  }, 1500 + Math.random() * 800);
+}
+
+/* ── Filter tabs ── */
+function filterTab(tab, btn) {
+  currentFilter = tab;
+  document.querySelectorAll('.ms-filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderList(tab, document.getElementById('ms-search-input').value);
+}
+
+/* ── Search ── */
+function searchConversations(query) {
+  renderList(currentFilter, query);
+}
+
+/* ── Helpers ── */
+function focusSearch() {
+  document.getElementById('ms-search-input').focus();
+}
+
+function scrollToBottom() {
+  const body = document.getElementById('ms-chat-body');
+  requestAnimationFrame(() => { body.scrollTop = body.scrollHeight; });
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('ms-toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._t);
+  t._t = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(16px)';
+  }, 2000);
+}
+
+/* ── Init ── */
+renderList('all');
+</script>
+</body>
+</html>
