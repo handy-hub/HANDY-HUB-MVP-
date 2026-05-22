@@ -400,5 +400,142 @@
     <!-- Live notification badge — updates in real time from Firestore -->
     <script type="module" src="js/dashboardBadge.js"></script>
     <script src="../shared/js/components/fastLoader.js"></script>
+
+<script>
+(function () {
+  /* ── helpers ─────────────────────────────────────────────── */
+  function go(href, store) {
+    if (store) Object.entries(store).forEach(([k, v]) => sessionStorage.setItem(k, v));
+    window.location.href = href;
+  }
+
+  function toast(msg) {
+    let t = document.getElementById('_db_toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = '_db_toast';
+      t.style.cssText = [
+        'position:fixed', 'bottom:90px', 'left:50%',
+        'transform:translateX(-50%) translateY(16px)',
+        'background:#111', 'color:#fff', 'padding:10px 20px',
+        'border-radius:12px', 'font-size:13px', 'font-weight:600',
+        'opacity:0', 'transition:opacity .22s,transform .22s',
+        'pointer-events:none', 'white-space:nowrap', 'z-index:9999',
+        'box-shadow:0 6px 24px rgba(0,0,0,.2)'
+      ].join(';');
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => {
+      t.style.opacity = '0';
+      t.style.transform = 'translateX(-50%) translateY(16px)';
+    }, 2500);
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar')?.classList.remove('active');
+    document.getElementById('sidebar-overlay')?.classList.remove('active');
+  }
+
+  /* ── notification bell → notification page ────────────────── */
+  document.querySelector('.notification-wrapper-button')
+    ?.addEventListener('click', () => go('notification.html'));
+
+  /* ── quick action buttons ─────────────────────────────────── */
+  const quickDests = [
+    'book-emergency.html',
+    'booking.html',
+    'tracking.html',
+    'book-step1.html'
+  ];
+  document.querySelectorAll('.quick-action-btn').forEach((btn, i) => {
+    if (quickDests[i]) btn.addEventListener('click', () => { closeSidebar(); go(quickDests[i]); });
+  });
+
+  /* ── sidebar menu items with href="#" ─────────────────────── */
+  document.querySelectorAll('.sidebar-menu-item[href="#"]').forEach(item => {
+    const label = item.querySelector('.sidebar-menu-label')?.textContent.trim() || '';
+    item.addEventListener('click', e => {
+      e.preventDefault();
+      closeSidebar();
+      switch (label) {
+        case 'My Requests':       go('booking.html'); break;
+        case 'Reviews & Ratings': toast('Reviews & Ratings — coming soon'); break;
+        case 'My Addresses':      go('settings-location.html'); break;
+        case 'Promo Codes':       toast('You have 2 promo codes available!'); break;
+        case 'Support Center':    go('settings-help.html'); break;
+        case 'Invite Friends':
+          if (navigator.share) {
+            navigator.share({ title: 'HandyHub', text: 'Book reliable home services with HandyHub!', url: 'https://handyhub.app' }).catch(() => {});
+          } else {
+            navigator.clipboard?.writeText('https://handyhub.app/invite').catch(() => {});
+            toast('Invite link copied!');
+          }
+          break;
+      }
+    });
+  });
+
+  /* ── category buttons ─────────────────────────────────────── */
+  const catActions = {
+    'Fix leaking pipe':       { href: 'book-now.html',       store: { hh_service: 'Plumbing',   hh_task: 'Fix leaking pipe' } },
+    'Install Fan':            { href: 'book-now.html',       store: { hh_service: 'Electrical', hh_task: 'Install Fan' } },
+    'Emergency Electrician':  { href: 'book-emergency.html', store: { hh_service: 'Electrical', hh_task: 'Emergency Electrician' } },
+    'More':                   { href: 'book-step1.html' }
+  };
+  document.querySelectorAll('.cat-btn').forEach(btn => {
+    const text = btn.querySelector('span')?.textContent.trim();
+    const action = catActions[text];
+    if (action) btn.addEventListener('click', () => go(action.href, action.store));
+  });
+
+  /* ── ad banner buttons ────────────────────────────────────── */
+  const adActions = [
+    { href: 'book-now.html' },
+    { href: 'book-now.html', store: { hh_service: 'Cleaning' } },
+    { href: 'book-now.html', store: { hh_service: 'AC Repair' } }
+  ];
+  document.querySelectorAll('.book-now').forEach((btn, i) => {
+    const action = adActions[i];
+    if (action) btn.addEventListener('click', () => go(action.href, action.store));
+  });
+
+  /* ── "View All" popular services ──────────────────────────── */
+  document.querySelectorAll('section button, section a').forEach(el => {
+    if (el.textContent.trim() === 'View All' && el.id !== 'location-changer') {
+      el.addEventListener('click', e => { e.preventDefault(); go('book-step1.html'); });
+    }
+  });
+
+  /* ── location changer ─────────────────────────────────────── */
+  document.getElementById('location-changer')
+    ?.addEventListener('click', () => go('settings-location.html'));
+
+  /* ── pro-card "Book Now" buttons ──────────────────────────── */
+  document.querySelectorAll('.pro-card').forEach(card => {
+    const name = card.querySelector('h3')?.textContent.trim();
+    const role = card.querySelector('.pro-type')?.textContent.trim();
+    card.querySelector('.card-book')?.addEventListener('click', () =>
+      go('book-step1.html', { hh_pro_name: name || '', hh_pro_role: role || '' })
+    );
+  });
+
+  /* ── "View More Professionals" ────────────────────────────── */
+  document.querySelector('.view-more-btn')
+    ?.addEventListener('click', () => go('book-now.html'));
+
+  /* ── service slider cards → navigate to booking ───────────── */
+  window.handleServiceClick = function (serviceId) {
+    const scores = JSON.parse(localStorage.getItem('service_scores') || '{}');
+    scores[serviceId] = (scores[serviceId] || 0) + 1;
+    localStorage.setItem('service_scores', JSON.stringify(scores));
+    sessionStorage.setItem('hh_service_id', serviceId);
+    go('book-now.html');
+  };
+})();
+</script>
 </body>
 </html>
