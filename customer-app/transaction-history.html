@@ -156,49 +156,94 @@
 
     <!-- ── Withdrawal Modal ───────────────────────────────────────────────── -->
     <div id="wd-overlay" class="wd-overlay" aria-hidden="true">
-    <div id="wd-sheet" class="wd-sheet">
-      <div class="wd-handle"></div>
-      <h2 class="wd-title">Withdraw Funds</h2>
-      <p class="wd-avail-row">Available: <strong id="wd-avail">GHC —</strong></p>
+      <div id="wd-sheet" class="wd-sheet">
+        <div class="wd-handle"></div>
 
-      <p class="wd-section-label">Select provider</p>
-      <div id="wd-provider-grid" class="wd-provider-grid"></div>
-
-      <div id="wd-accs-section" class="wd-accs-section" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <p class="wd-section-label" style="margin:0">Select account</p>
-          <button data-open-payments style="background:none;border:none;font-size:12px;font-weight:700;color:#730201;font-family:inherit;cursor:pointer;padding:0">
-            + Add Account
-          </button>
+        <!-- Gradient header -->
+        <div class="wd-header">
+          <div class="wd-header-inner">
+            <div>
+              <p class="wd-header-title">Withdraw Funds</p>
+              <p class="wd-header-balance" id="wd-avail">GHC 0.00</p>
+              <p class="wd-header-sub">Available balance</p>
+            </div>
+            <div class="wd-header-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12l7 7 7-7" stroke="rgba(255,255,255,0.9)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
         </div>
-        <div id="wd-account-list" class="wd-account-list"></div>
-      </div>
 
-      <div id="wd-no-accts" style="display:none;margin-bottom:16px">
-        <button data-open-payments class="wd-add-acct-prompt">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="#730201" stroke-width="1.8"/>
-            <path d="M12 8v8M8 12h8" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-          Add a saved account to withdraw to
-        </button>
-      </div>
+        <div class="wd-content">
 
-      <p class="wd-section-label">Amount (GHS)</p>
-      <input type="number" id="wd-amount" class="wd-amount-input" placeholder="0.00" min="1" step="0.01" />
-      <div class="wd-quick-row">
-        <button class="wd-quick" data-amount="20">GHC 20</button>
-        <button class="wd-quick" data-amount="50">GHC 50</button>
-        <button class="wd-quick" data-amount="100">GHC 100</button>
-        <button class="wd-quick" data-amount="200">GHC 200</button>
-      </div>
+          <!-- Account selection -->
+          <p class="wd-section-label">Withdraw to</p>
+          <div id="wd-account-list" class="wd-account-list"></div>
 
-      <p class="wd-note">Withdrawals are processed to your mobile money account within 24 hours.</p>
+          <!-- No accounts state -->
+          <div id="wd-no-accts" class="wd-no-accts" style="display:none">
+            <div class="wd-no-accts-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p>No saved accounts</p>
+            <span>Go to Top Up to add a mobile money account first</span>
+          </div>
 
-      <button id="wd-confirm-btn" class="wd-confirm-btn" disabled>Confirm Withdrawal</button>
-      <button id="wd-cancel-btn" class="wd-cancel-btn">Cancel</button>
-    </div>
-  </div>
+          <!-- Amount -->
+          <p class="wd-section-label" style="margin-top:4px">Amount (GHC)</p>
+          <div class="wd-amount-wrap">
+            <span class="wd-currency">GHC</span>
+            <input type="number" id="wd-amount" class="wd-amount-input"
+                   placeholder="0.00" min="1" step="0.01" inputmode="decimal" />
+          </div>
+          <div class="wd-quick-row">
+            <button class="wd-quick" data-amount="20">GHC 20</button>
+            <button class="wd-quick" data-amount="50">GHC 50</button>
+            <button class="wd-quick" data-amount="100">GHC 100</button>
+            <button class="wd-quick" data-amount="200">GHC 200</button>
+          </div>
+
+          <!-- Info card -->
+          <div class="wd-info-card">
+            <div class="wd-info-row">
+              <div class="wd-info-icon clock">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="#c2410c" stroke-width="1.8"/>
+                  <path d="M12 7v5l3 3" stroke="#c2410c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div>
+                <p class="wd-info-title">Processing Time</p>
+                <p class="wd-info-sub">Withdrawals are processed within 1–5 business days after submission</p>
+              </div>
+            </div>
+            <div class="wd-info-divider"></div>
+            <div class="wd-info-row">
+              <div class="wd-info-icon fee">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="5" width="20" height="14" rx="2" stroke="#0369a1" stroke-width="1.8"/>
+                  <path d="M2 10h20" stroke="#0369a1" stroke-width="1.8"/>
+                  <path d="M6 15h4M14 15h4" stroke="#0369a1" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div>
+                <p class="wd-info-title">Fees May Apply</p>
+                <p class="wd-info-sub">A small processing fee may apply depending on your mobile money provider and withdrawal amount</p>
+              </div>
+            </div>
+          </div>
+
+          <button id="wd-confirm-btn" class="wd-confirm-btn" disabled>Confirm Withdrawal</button>
+          <button id="wd-cancel-btn" class="wd-cancel-btn">Cancel</button>
+
+        </div><!-- /wd-content -->
+      </div><!-- /wd-sheet -->
+    </div><!-- /wd-overlay -->
 
   </div><!-- /phone-shell -->
 
@@ -257,99 +302,195 @@
     /* ── Withdrawal modal ── */
     .wd-overlay {
       display: none; position: absolute; inset: 0;
-      background: rgba(0,0,0,.55); z-index: 200;
+      background: rgba(0,0,0,.6); z-index: 200;
       align-items: flex-end;
     }
     .wd-overlay.open { display: flex; }
+
     .wd-sheet {
-      width: 100%; background: #fff; border-radius: 20px 20px 0 0;
-      padding: 16px 20px 36px; box-sizing: border-box;
+      width: 100%; background: #f2f2f7; border-radius: 24px 24px 0 0;
+      box-sizing: border-box;
       transform: translateY(100%);
-      transition: transform .35s cubic-bezier(.22,1,.36,1);
-      max-height: 92%;
+      transition: transform .42s cubic-bezier(.22,1,.36,1);
+      max-height: 94%;
       overflow-y: auto;
+      overflow-x: hidden;
     }
     .wd-overlay.open .wd-sheet { transform: translateY(0); }
-    .wd-handle { width: 40px; height: 4px; border-radius: 999px; background: #e0e0e0; margin: 0 auto 20px; }
-    .wd-title  { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
-    .wd-avail-row { font-size: 13px; color: #666; margin: 0 0 20px; }
-    .wd-section-label { font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 10px; }
-    .wd-provider-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 18px; }
-    .wd-prov-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 12px 4px 10px; border: 1.5px solid #eee; border-radius: 14px;
-      background: #fafafa; cursor: pointer; font-size: 11px; font-weight: 700;
-      font-family: inherit; color: #444; transition: border-color .15s, background .15s;
+
+    .wd-handle {
+      width: 36px; height: 4px; border-radius: 999px;
+      background: rgba(255,255,255,.35); margin: 12px auto 0;
     }
-    .wd-prov-btn.selected { border-color: #730201; background: #fff5f5; color: #730201; }
-    .wd-accs-section { margin-bottom: 16px; }
-    .wd-account-list { display: flex; flex-direction: column; gap: 8px; }
-    .wd-add-acct-prompt {
-      width: 100%; display: flex; align-items: center; gap: 10px;
-      padding: 13px 16px; border: 1.5px dashed #f5c0c0; border-radius: 12px;
-      background: #fff8f8; color: #730201; font-size: 13px; font-weight: 600;
-      font-family: inherit; cursor: pointer; text-align: left;
+
+    /* Header */
+    .wd-header {
+      background: linear-gradient(135deg, #5a0101 0%, #730201 38%, #a00303 68%, #c00404 100%);
+      padding: 20px 20px 28px; position: relative; overflow: hidden;
     }
-    [data-theme="dark"] .wd-add-acct-prompt { background: #1a0a0a; border-color: #4a1010; color: #ff6b6b; }
+    .wd-header::before {
+      content: ''; position: absolute;
+      width: 140px; height: 140px; border-radius: 50%;
+      background: rgba(255,255,255,.06); top: -40px; right: -30px;
+    }
+    .wd-header-inner {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      position: relative; z-index: 1;
+    }
+    .wd-header-title {
+      font-size: 12px; font-weight: 700; color: rgba(255,255,255,.65);
+      text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px;
+    }
+    .wd-header-balance {
+      font-size: 34px; font-weight: 800; color: #fff;
+      letter-spacing: -1px; line-height: 1; margin-bottom: 4px;
+    }
+    .wd-header-sub { font-size: 11.5px; color: rgba(255,255,255,.5); }
+    .wd-header-icon {
+      width: 40px; height: 40px; background: rgba(255,255,255,.15); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+
+    /* Content */
+    .wd-content { padding: 20px 20px 36px; }
+    .wd-section-label {
+      font-size: 11px; font-weight: 700; color: #888;
+      text-transform: uppercase; letter-spacing: .07em; margin: 0 0 10px;
+    }
+
+    /* Account cards */
+    .wd-account-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
     .wd-acc-card {
-      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
-      border: 1.5px solid #eee; border-radius: 12px; background: #fafafa;
-      cursor: pointer; text-align: left; font-family: inherit;
-      transition: border-color .15s, background .15s;
+      display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+      border-radius: 16px; border: 2px solid transparent;
+      background: #fff; cursor: pointer; text-align: left; font-family: inherit;
+      transition: border-color .18s, transform .1s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); width: 100%;
     }
-    .wd-acc-card.active { border-color: #730201; background: #fff5f5; }
-    .wd-acc-logo { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
-    .wd-acc-phone { font-size: 13px; font-weight: 700; margin: 0 0 1px; }
-    .wd-acc-prov  { font-size: 11px; color: #888; margin: 0; }
+    .wd-acc-card:hover  { border-color: #f5c0c0; transform: translateY(-1px); }
+    .wd-acc-card.active { border-color: #730201; }
+    .wd-acc-logo {
+      width: 42px; height: 42px; border-radius: 50%; overflow: hidden;
+      flex-shrink: 0; background: #f5f5f5;
+    }
+    .wd-acc-logo svg { width: 42px; height: 42px; display: block; }
+    .wd-acc-info { flex: 1; }
+    .wd-acc-phone { font-size: 14px; font-weight: 700; color: #111; margin: 0 0 2px; }
+    .wd-acc-prov  { font-size: 12px; color: #888; margin: 0; }
+    .wd-acc-default {
+      font-size: 10px; font-weight: 700; color: #730201;
+      background: #fff5f5; border: 1px solid #f5c0c0;
+      padding: 2px 8px; border-radius: 999px; flex-shrink: 0;
+    }
+    .wd-acc-radio {
+      width: 22px; height: 22px; border-radius: 50%; border: 2px solid #ddd;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: border-color .15s, background .15s;
+    }
+    .wd-acc-card.active .wd-acc-radio { border-color: #730201; background: #730201; }
+    .wd-acc-card.active .wd-acc-radio::after {
+      content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%;
+    }
+
+    /* No accounts */
+    .wd-no-accts {
+      background: #fff; border-radius: 16px; padding: 28px 16px;
+      text-align: center; margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .wd-no-accts-icon {
+      width: 46px; height: 46px; background: #fff5f5; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+    }
+    .wd-no-accts p    { font-size: 14px; font-weight: 700; color: #444; margin-bottom: 5px; }
+    .wd-no-accts span { font-size: 12px; color: #aaa; line-height: 1.5; }
+
+    /* Amount */
+    .wd-amount-wrap { position: relative; margin-bottom: 14px; }
+    .wd-currency {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 15px; font-weight: 700; color: #730201; pointer-events: none;
+    }
     .wd-amount-input {
-      width: 100%; box-sizing: border-box; border: 1.5px solid #e0e0e0;
-      border-radius: 12px; padding: 13px 16px; font-size: 20px; font-weight: 700;
-      font-family: inherit; outline: none; margin-bottom: 10px;
-      transition: border-color .15s;
+      width: 100%; box-sizing: border-box;
+      padding: 16px 16px 16px 58px;
+      border: 2px solid #f0f0f0; border-radius: 14px;
+      font-size: 26px; font-weight: 800; color: #111;
+      font-family: inherit; letter-spacing: -.5px; outline: none;
+      background: #fff; transition: border-color .15s;
     }
     .wd-amount-input:focus { border-color: #730201; }
-    .wd-quick-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .wd-amount-input::placeholder { color: #ddd; font-weight: 400; font-size: 20px; }
+
+    .wd-quick-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
     .wd-quick {
       flex: 1; min-width: 60px; padding: 9px 4px;
-      border: 1.5px solid #eee; background: #f8f8f8;
-      border-radius: 10px; font-size: 13px; font-weight: 600;
-      font-family: inherit; cursor: pointer; transition: border-color .15s, background .15s;
+      border: 1.5px solid #e8e8e8; background: #fff;
+      border-radius: 10px; font-size: 12.5px; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: all .15s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
     }
-    .wd-quick.active { border-color: #730201; background: #fff5f5; color: #730201; }
-    .wd-note { font-size: 12px; color: #999; text-align: center; margin: 0 0 18px; }
+    .wd-quick:hover, .wd-quick.active { border-color: #730201; background: #fff5f5; color: #730201; }
+
+    /* Info card */
+    .wd-info-card {
+      background: #fff; border-radius: 16px; padding: 16px;
+      margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .wd-info-row { display: flex; align-items: flex-start; gap: 12px; }
+    .wd-info-row + .wd-info-row { margin-top: 14px; }
+    .wd-info-icon {
+      width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .wd-info-icon.clock { background: #fff7ed; }
+    .wd-info-icon.fee   { background: #f0f9ff; }
+    .wd-info-divider    { height: 1px; background: #f0f0f0; margin: 14px 0 0; }
+    .wd-info-title { font-size: 13px; font-weight: 700; color: #111; margin: 2px 0 3px; }
+    .wd-info-sub   { font-size: 12px; color: #888; line-height: 1.5; }
+
+    /* Actions */
     .wd-confirm-btn {
-      width: 100%; padding: 15px; background: #730201; color: #fff; border: none;
-      border-radius: 14px; font-size: 15px; font-weight: 700; font-family: inherit;
-      cursor: pointer; margin-bottom: 12px; transition: opacity .15s;
+      width: 100%; padding: 16px; background: #730201; color: #fff; border: none;
+      border-radius: 16px; font-size: 16px; font-weight: 700; font-family: inherit;
+      cursor: pointer; margin-bottom: 10px;
+      box-shadow: 0 4px 16px rgba(115,2,1,.3);
+      transition: background .15s, opacity .15s, transform .1s;
     }
-    .wd-confirm-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .wd-confirm-btn:hover:not(:disabled) { background: #a00303; transform: translateY(-1px); }
+    .wd-confirm-btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; transform: none; }
     .wd-cancel-btn {
       width: 100%; padding: 10px; background: none; border: none;
       color: #888; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
     }
-    [data-theme="dark"] .wd-sheet      { background: #161616; }
-    [data-theme="dark"] .wd-title      { color: #f0f0f0; }
-    [data-theme="dark"] .wd-avail-row  { color: #888; }
-    [data-theme="dark"] .wd-handle     { background: #333; }
-    [data-theme="dark"] .wd-prov-btn   { background: #1e1e1e; border-color: #2a2a2a; color: #ccc; }
-    [data-theme="dark"] .wd-prov-btn.selected { background: #1e0a0a; border-color: #730201; color: #ff6b6b; }
-    [data-theme="dark"] .wd-acc-card   { background: #1e1e1e; border-color: #2a2a2a; }
-    [data-theme="dark"] .wd-acc-card.active { background: #1e0a0a; border-color: #730201; }
-    [data-theme="dark"] .wd-acc-phone  { color: #e0e0e0; }
-    [data-theme="dark"] .wd-acc-prov   { color: #666; }
-    [data-theme="dark"] .wd-amount-input { background: #1e1e1e; border-color: #2a2a2a; color: #f0f0f0; }
+
+    /* Dark theme */
+    [data-theme="dark"] .wd-sheet         { background: #141414; }
+    [data-theme="dark"] .wd-handle        { background: rgba(255,255,255,.12); }
+    [data-theme="dark"] .wd-section-label { color: #555; }
+    [data-theme="dark"] .wd-acc-card      { background: #1e1e1e; box-shadow: none; }
+    [data-theme="dark"] .wd-acc-card:hover { border-color: #f5c0c0; }
+    [data-theme="dark"] .wd-acc-phone     { color: #f0f0f0; }
+    [data-theme="dark"] .wd-acc-prov      { color: #666; }
+    [data-theme="dark"] .wd-acc-logo      { background: #333; }
+    [data-theme="dark"] .wd-no-accts      { background: #1e1e1e; box-shadow: none; }
+    [data-theme="dark"] .wd-no-accts p    { color: #aaa; }
+    [data-theme="dark"] .wd-amount-input  { background: #1e1e1e; border-color: #333; color: #f0f0f0; }
     [data-theme="dark"] .wd-amount-input:focus { border-color: #730201; }
-    [data-theme="dark"] .wd-quick      { background: #1e1e1e; border-color: #2a2a2a; color: #ccc; }
-    [data-theme="dark"] .wd-quick.active { background: #1e0a0a; border-color: #730201; color: #ff6b6b; }
-    [data-theme="dark"] .wd-note       { color: #555; }
-    [data-theme="dark"] .wd-cancel-btn { color: #555; }
+    [data-theme="dark"] .wd-quick  { background: #1e1e1e; border-color: #333; color: #aaa; box-shadow: none; }
+    [data-theme="dark"] .wd-quick:hover, [data-theme="dark"] .wd-quick.active { background: #221a1a; color: #ff8080; border-color: #730201; }
+    [data-theme="dark"] .wd-info-card     { background: #1e1e1e; box-shadow: none; }
+    [data-theme="dark"] .wd-info-title    { color: #f0f0f0; }
+    [data-theme="dark"] .wd-info-sub      { color: #666; }
+    [data-theme="dark"] .wd-info-divider  { background: #2a2a2a; }
+    [data-theme="dark"] .wd-cancel-btn    { color: #555; }
   </style>
 
   <script type="module">
     import '../../shared/js/utils/global-app.js';
     import { getAppContainer }                         from '../../shared/js/app/container.js';
     import { createPaymentRepository, PROVIDER_META }  from '../../shared/js/data/repositories/paymentRepository.js';
-    import { initPaymentModal }                        from './js/pages/paymentMethodsModal.js';
 
     const LOGIN_URL = 'login.html';
 
@@ -364,23 +505,20 @@
     const downloadBtn   = document.getElementById('download-stmt-btn');
     const wdOverlay     = document.getElementById('wd-overlay');
     const wdAvail       = document.getElementById('wd-avail');
-    const wdProvGrid    = document.getElementById('wd-provider-grid');
-    const wdAccsSection  = document.getElementById('wd-accs-section');
-    const wdNoAccts      = document.getElementById('wd-no-accts');
-    const wdAccountList  = document.getElementById('wd-account-list');
+    const wdNoAccts     = document.getElementById('wd-no-accts');
+    const wdAccountList = document.getElementById('wd-account-list');
     const wdAmountInput = document.getElementById('wd-amount');
     const wdConfirmBtn  = document.getElementById('wd-confirm-btn');
     const wdCancelBtn   = document.getElementById('wd-cancel-btn');
 
     // ── State ─────────────────────────────────────────────────────────────────
-    let allTxns          = [];
-    let savedAccounts    = [];
-    let activeFilter     = 'all';
-    let currentBalance   = 0;
-    let wdSelProvider    = null;
-    let wdSelAccount     = null;
-    let currentUid       = null;
-    let paymentRepo      = null;
+    let allTxns        = [];
+    let savedAccounts  = [];
+    let activeFilter   = 'all';
+    let currentBalance = 0;
+    let wdSelAccount   = null;
+    let currentUid     = null;
+    let paymentRepo    = null;
 
     // ── Toast ─────────────────────────────────────────────────────────────────
     const TOAST_ICONS = {
@@ -505,16 +643,13 @@
 
     // ── Withdrawal modal ──────────────────────────────────────────────────────
     function openWithdrawModal() {
-        wdAmountInput.value         = '';
-        wdSelProvider               = null;
-        wdSelAccount                = null;
-        wdAccsSection.style.display = 'none';
-        wdNoAccts.style.display     = 'none';
+        wdAmountInput.value = '';
+        wdSelAccount        = null;
         document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
         wdOverlay.classList.add('open');
         wdOverlay.setAttribute('aria-hidden', 'false');
         wdAvail.textContent = 'GHC ' + currentBalance.toFixed(2);
-        buildWdProviders();
+        buildWdAccounts();
         updateWdConfirm();
     }
 
@@ -523,49 +658,29 @@
         wdOverlay.setAttribute('aria-hidden', 'true');
     }
 
-    function buildWdProviders() {
-        wdProvGrid.innerHTML = '';
-        for (const [key, meta] of Object.entries(PROVIDER_META)) {
-            const btn = document.createElement('button');
-            btn.className = 'wd-prov-btn' + (wdSelProvider === key ? ' selected' : '');
-            btn.dataset.provider = key;
-            btn.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;overflow:hidden">${meta.logo}</div><span>${meta.label}</span>`;
-            btn.addEventListener('click', () => {
-                wdSelProvider = key;
-                wdSelAccount  = null;
-                wdProvGrid.querySelectorAll('.wd-prov-btn').forEach(b => b.classList.toggle('selected', b === btn));
-                buildWdAccounts();
-                updateWdConfirm();
-            });
-            wdProvGrid.appendChild(btn);
-        }
-    }
-
     function buildWdAccounts() {
-        const filtered = savedAccounts.filter(a => a.data.provider === wdSelProvider);
+        wdAccountList.innerHTML = '';
 
-        if (!filtered.length) {
-            wdAccsSection.style.display = 'none';
-            wdNoAccts.style.display     = '';
-            wdAccountList.innerHTML     = '';
+        if (!savedAccounts.length) {
+            wdNoAccts.style.display = '';
+            updateWdConfirm();
             return;
         }
+        wdNoAccts.style.display = 'none';
 
-        wdNoAccts.style.display     = 'none';
-        wdAccsSection.style.display = '';
-        wdAccountList.innerHTML     = '';
-
-        filtered.forEach(acc => {
+        savedAccounts.forEach(acc => {
             const meta = PROVIDER_META[acc.data.provider] || {};
             const card = document.createElement('button');
             card.className = 'wd-acc-card' + (wdSelAccount === acc.id ? ' active' : '');
             card.dataset.id = acc.id;
             card.innerHTML = `
               <div class="wd-acc-logo">${meta.logo || ''}</div>
-              <div>
+              <div class="wd-acc-info">
                 <p class="wd-acc-phone">${acc.data.phone}</p>
-                <p class="wd-acc-prov">${meta.label || ''}${acc.data.isDefault ? ' · Default' : ''}</p>
-              </div>`;
+                <p class="wd-acc-prov">${meta.label || acc.data.provider}</p>
+              </div>
+              ${acc.data.isDefault ? '<span class="wd-acc-default">Default</span>' : ''}
+              <div class="wd-acc-radio"></div>`;
             card.addEventListener('click', () => {
                 wdSelAccount = acc.id;
                 wdAccountList.querySelectorAll('.wd-acc-card').forEach(c => c.classList.toggle('active', c === card));
@@ -574,18 +689,21 @@
             wdAccountList.appendChild(card);
         });
 
-        // Auto-select default
-        const def = filtered.find(a => a.data.isDefault) || filtered[0];
-        if (def) {
-            wdSelAccount = def.id;
-            wdAccountList.querySelector(`[data-id="${def.id}"]`)?.classList.add('active');
+        // Auto-select default or first
+        if (!wdSelAccount || !savedAccounts.find(a => a.id === wdSelAccount)) {
+            const def = savedAccounts.find(a => a.data.isDefault) || savedAccounts[0];
+            if (def) {
+                wdSelAccount = def.id;
+                wdAccountList.querySelector(`[data-id="${def.id}"]`)?.classList.add('active');
+            }
         }
         updateWdConfirm();
     }
 
     function updateWdConfirm() {
         const amount = parseFloat(wdAmountInput.value);
-        const ready  = wdSelProvider && amount > 0 && amount <= currentBalance;
+        const acc    = savedAccounts.find(a => a.id === wdSelAccount);
+        const ready  = !!acc && amount > 0 && amount <= currentBalance;
         wdConfirmBtn.disabled    = !ready;
         wdConfirmBtn.textContent = ready ? `Withdraw GHC ${amount.toFixed(2)}` : 'Confirm Withdrawal';
     }
@@ -610,10 +728,8 @@
 
     wdConfirmBtn.addEventListener('click', async () => {
         const amount = parseFloat(wdAmountInput.value);
-        if (!wdSelProvider || !amount || amount <= 0) return;
-
-        const acc   = savedAccounts.find(a => a.id === wdSelAccount);
-        const phone = acc ? acc.data.phone : null;
+        const acc    = savedAccounts.find(a => a.id === wdSelAccount);
+        if (!acc || !amount || amount <= 0) return;
 
         wdConfirmBtn.disabled    = true;
         wdConfirmBtn.textContent = 'Processing…';
@@ -621,11 +737,11 @@
         try {
             await paymentRepo.recordWithdrawal(currentUid, {
                 amount,
-                provider: wdSelProvider,
-                phone
+                provider: acc.data.provider,
+                phone:    acc.data.phone
             });
             closeWithdrawModal();
-            showToast(`Withdrawal of GHC ${amount.toFixed(2)} submitted. Processing within 24 hours.`, 'success');
+            showToast(`Withdrawal of GHC ${amount.toFixed(2)} submitted. Processed in 1–5 business days.`, 'success');
         } catch (err) {
             console.error('Withdrawal error:', err);
             showToast(err.message || 'Withdrawal failed. Try again.', 'error');
@@ -642,9 +758,6 @@
         if (!user) { window.location.href = LOGIN_URL; return; }
         currentUid  = user.uid;
         paymentRepo = paymentRepoInit;
-
-        // Wire payment accounts modal (registers [data-open-payments] triggers on this page)
-        initPaymentModal(user.uid, databaseService);
 
         // Live wallet balance
         databaseService.subscribeToDocument('customers', user.uid, snap => {
