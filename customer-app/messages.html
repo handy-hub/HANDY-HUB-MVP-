@@ -315,19 +315,19 @@ function openChat(id) {
 
   // Populate chat header
   const avatar = document.getElementById('chat-avatar');
+  let grad = document.querySelector('.ms-chat-pro-avatar-grad');
   if (conv.photo) {
     avatar.src = conv.photo;
     avatar.style.display = 'block';
-    avatar.nextElementSibling && (avatar.nextElementSibling.style.display = '');
+    if (grad) grad.style.display = 'none';
   } else {
     avatar.style.display = 'none';
-    // inject grad avatar next to the img
-    let grad = document.querySelector('.ms-chat-pro-avatar-grad');
     if (!grad) {
       grad = document.createElement('div');
       grad.className = 'ms-chat-pro-avatar-grad';
       avatar.parentNode.insertBefore(grad, avatar.nextSibling);
     }
+    grad.style.display = 'flex';
     grad.style.background = conv.grad;
     grad.textContent = conv.gradInitials;
   }
