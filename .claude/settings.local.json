@@ -3,7 +3,8 @@
     "allow": [
       "Bash(firebase login *)",
       "Bash(firebase projects:list)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git push *)"
     ]
   }
 }
