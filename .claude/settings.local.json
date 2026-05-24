@@ -3,7 +3,12 @@
     "allow": [
       "Bash(firebase login *)",
       "Bash(firebase projects:list)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git checkout *)",
+      "Bash(Get-ChildItem -Name *.html)",
+      "Bash(Sort-Object)",
+      "Bash(Select-String -Path \"c:\\\\Users\\\\Herty\\\\OneDrive\\\\Desktop\\\\Lunch\\\\HANDY-HUB-MVP-\\\\customer-app\\\\css\\\\customer.css\" -Pattern \"transition|animation|transform|page-exit|page-slide|view-transition\" -SimpleMatch)",
+      "Bash(Select-Object LineNumber, Line)"
     ]
   }
 }

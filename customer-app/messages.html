@@ -56,38 +56,10 @@
 
     <!-- Service requests panel (hidden by default) -->
     <div id="ms-requests-panel" style="display:none; flex:1; overflow-y:auto;">
-      <div class="ms-request-card">
-        <div class="ms-request-top">
-          <div class="ms-request-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <div class="ms-request-info">
-            <p class="ms-request-title">Electrical Repair</p>
-            <p class="ms-request-sub">Kwame Mensah · 24 May 2026</p>
-          </div>
-          <span class="ms-request-status active">Upcoming</span>
-        </div>
-        <div class="ms-request-actions">
-          <button class="ms-request-btn secondary" onclick="showToast('Request cancelled')">Cancel</button>
-          <button class="ms-request-btn primary" onclick="window.location.href='booking.html'">View Booking</button>
-        </div>
-      </div>
-
-      <div class="ms-request-card">
-        <div class="ms-request-top">
-          <div class="ms-request-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="#730201" stroke-width="2"/><path d="M7 10c0 5.52 10 5.52 10 0" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-          </div>
-          <div class="ms-request-info">
-            <p class="ms-request-title">Fix Leaking Pipe</p>
-            <p class="ms-request-sub">Emmanuel Asare · 25 May 2026</p>
-          </div>
-          <span class="ms-request-status">Pending</span>
-        </div>
-        <div class="ms-request-actions">
-          <button class="ms-request-btn secondary" onclick="showToast('Request cancelled')">Cancel</button>
-          <button class="ms-request-btn primary" onclick="window.location.href='booking.html'">View Booking</button>
-        </div>
+      <div style="text-align:center;padding:40px 20px;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style="margin-bottom:10px;opacity:0.3"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="1.8"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <p style="font-size:13px;font-weight:700;color:#333;margin:0 0 4px;">No service requests</p>
+        <p style="font-size:11.5px;color:#aaa;margin:0;">Your booking requests will appear here.</p>
       </div>
     </div>
 
@@ -191,49 +163,12 @@
 /* ── Data ── */
 const CONVERSATIONS = [
   {
-    id: 0, name: 'Kwame Mensah', role: 'Plumber', online: true,
-    photo: 'https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg',
-    time: '9:41 AM', unread: 2,
-    lastMsg: 'Hi John, I am on my way.',
-    messages: [
-      { from: 'pro', text: 'Hello! I have confirmed your booking for the pipe repair.', time: '9:28 AM' },
-      { from: 'user', text: 'Great, thank you! How long will it take?', time: '9:30 AM' },
-      { from: 'pro', text: 'About 1–2 hours depending on the damage.', time: '9:33 AM' },
-      { from: 'user', text: "Okay, I'll be home. Address is 12 Labone Crescent.", time: '9:38 AM' },
-      { from: 'pro', text: 'Hi John, I am on my way.', time: '9:41 AM' },
-    ]
-  },
-  {
-    id: 1, name: 'Emmanuel Asare', role: 'Electrician', online: false,
-    photo: 'https://res.cloudinary.com/dmuddhfdr/image/upload/v1772301950/vjx_records/k8oruwmjbtq8bv4mupu4.png',
-    time: 'Yesterday', unread: 0,
-    lastMsg: 'Please confirm your location.',
-    messages: [
-      { from: 'pro', text: 'Good day! I have received your request for electrical repair.', time: 'Yesterday 2:00 PM' },
-      { from: 'user', text: 'Yes, the switch in my bedroom is faulty.', time: 'Yesterday 2:10 PM' },
-      { from: 'pro', text: 'Understood. Please confirm your location.', time: 'Yesterday 2:15 PM' },
-    ]
-  },
-  {
-    id: 2, name: 'Kofi Boateng', role: 'Carpenter', online: true,
-    photo: 'https://res.cloudinary.com/dmuddhfdr/image/upload/v1777603842/vjx_records/xhy1lyvmxgnywopfrfiy.jpg',
-    time: 'Mon', unread: 0,
-    lastMsg: "Great! I'll be there at 9 AM",
-    messages: [
-      { from: 'user', text: 'Hi, can you fix my broken cabinet door?', time: 'Mon 8:00 AM' },
-      { from: 'pro', text: 'Of course! When would you like me to come?', time: 'Mon 8:20 AM' },
-      { from: 'user', text: 'Tomorrow morning works for me.', time: 'Mon 8:25 AM' },
-      { from: 'pro', text: "Great! I'll be there at 9 AM", time: 'Mon 8:30 AM' },
-    ]
-  },
-  {
-    id: 3, name: 'HandyHub Support', role: 'Support Team', online: true,
+    id: 0, name: 'HandyHub Support', role: 'Support Team', online: true,
     photo: null, grad: 'linear-gradient(135deg,#730201,#b10c0c)', gradInitials: 'HH',
-    time: 'Sun', unread: 1,
-    lastMsg: 'Your booking has been confirmed.',
+    time: 'Now', unread: 1,
+    lastMsg: 'Welcome to HandyHub! We\'re here to help.',
     messages: [
-      { from: 'pro', text: 'Welcome to HandyHub! 👋 We\'re here to help anytime.', time: 'Sun 10:00 AM' },
-      { from: 'pro', text: 'Your booking #HHB-260521 has been confirmed. Your professional will arrive on 24 May at 10:00 AM.', time: 'Sun 10:02 AM' },
+      { from: 'pro', text: 'Welcome to HandyHub! We\'re here to help anytime.', time: 'Now' },
     ]
   },
 ];

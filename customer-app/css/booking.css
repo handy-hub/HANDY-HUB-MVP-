@@ -212,6 +212,51 @@ body {
 .nav-item.active svg polyline,
 .nav-item.active svg rect { stroke: #730201; }
 
+/* ── Status: in-progress ── */
+.bk-status-inprogress { background: #fff8e1; color: #b45309; }
+
+/* ── Active / completed card ── */
+.bk-active-card {
+  background: #fff; border-radius: 18px;
+  border: 1px solid rgba(0,0,0,0.05);
+  margin-bottom: 12px; overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+.bk-active-top {
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px 14px 10px;
+}
+.bk-completed-right { text-align: right; flex-shrink: 0; }
+.bk-completed-amount { font-size: 13px; font-weight: 800; color: #730201; margin-top: 5px; }
+
+/* Progress bar */
+.bk-progress-wrap { padding: 0 14px 12px; }
+.bk-progress-bar {
+  height: 4px; background: #f0f0f0; border-radius: 2px; overflow: hidden; margin-bottom: 5px;
+}
+.bk-progress-fill { height: 100%; background: #730201; border-radius: 2px; }
+.bk-progress-labels {
+  display: flex; justify-content: space-between;
+  font-size: 10px; font-weight: 700;
+}
+.bk-progress-labels span:first-child { color: #730201; }
+.bk-progress-labels span:last-child  { color: #aaa; }
+
+/* Action row */
+.bk-active-actions { display: flex; border-top: 1px solid #f4f4f4; }
+.bk-active-btn {
+  flex: 1; background: none; border: none; padding: 13px 8px;
+  font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background 0.12s;
+}
+.bk-active-btn + .bk-active-btn { border-left: 1px solid #f4f4f4; }
+.bk-active-btn--track   { color: #730201; }
+.bk-active-btn--track:active   { background: #fde8e8; }
+.bk-active-btn--confirm { background: #730201; color: #fff; }
+.bk-active-btn--confirm:active { background: #5a0101; }
+.bk-active-btn--outline { color: #555; }
+.bk-active-btn--outline:active { background: #f5f5f5; }
+
 /* ── Dark mode ── */
 html.dark body { background: #0a0a0a; }
 html.dark .bk-shell { background: #0a0a0a; }
@@ -236,3 +281,9 @@ html.dark .nav-item.active svg path,
 html.dark .nav-item.active svg circle,
 html.dark .nav-item.active svg polyline,
 html.dark .nav-item.active svg rect { stroke: #f87171; }
+html.dark .bk-active-card { background: #1a1a1a; border-color: rgba(255,255,255,0.06); box-shadow: none; }
+html.dark .bk-active-actions { border-color: #252525; }
+html.dark .bk-active-btn + .bk-active-btn { border-color: #252525; }
+html.dark .bk-active-btn--outline { color: #aaa; }
+html.dark .bk-progress-bar { background: #2a2a2a; }
+html.dark .bk-completed-amount { color: #f87171; }

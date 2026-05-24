@@ -318,26 +318,32 @@ body {
 .em-match-eta-label { font-size: 10px; color: #888; }
 .em-match-eta-val { font-size: 22px; font-weight: 900; color: #730201; }
 
-/* ── Confirmed state ── */
-.em-confirmed {
-  flex: 1; display: flex; flex-direction: column; background: #f5f5f5;
+/* ── Search stats row ── */
+.em-search-stats {
+  display: flex; gap: 24px; margin-bottom: 32px; align-items: center;
 }
-.em-con-header {
-  background: #730201; padding: 16px; display: flex; align-items: center; gap: 12px;
-  flex-shrink: 0;
-}
-.em-con-header-back {
-  width: 36px; height: 36px; background: rgba(255,255,255,0.15); border: none;
-  border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;
-}
-.em-con-header-text { flex: 1; color: #fff; }
-.em-con-header-title { font-size: 16px; font-weight: 800; }
-.em-con-header-sub { font-size: 12px; opacity: 0.8; margin-top: 1px; }
+.em-search-stat { text-align: center; }
+.em-search-stat-val { font-size: 22px; font-weight: 900; color: #fff; line-height: 1; margin-bottom: 4px; }
+.em-search-stat-lbl { font-size: 11px; color: rgba(255,255,255,0.5); }
+.em-search-stat-divider { width: 1px; height: 36px; background: rgba(255,255,255,0.1); flex-shrink: 0; }
+.em-star-row { display: flex; align-items: center; justify-content: center; gap: 3px; margin-bottom: 4px; }
 
-/* Confirmed map */
+/* ── Match rating row ── */
+.em-match-rating-row { display: flex; align-items: center; gap: 4px; }
+.em-match-rating-val { font-size: 13px; font-weight: 800; color: #111; }
+.em-match-rating-count { font-size: 12px; color: #aaa; }
+
+/* ── Match state progress ── */
+.em-match-progress-wrap { margin-top: 28px; width: 100%; max-width: 320px; }
+.em-match-progress-track { background: #f5f5f5; border-radius: 12px; overflow: hidden; }
+.em-match-progress-fill { height: 4px; background: #730201; width: 0%; transition: width 2s linear; border-radius: 12px; }
+.em-match-progress-label { text-align: center; font-size: 12px; color: #888; margin-top: 8px; }
+
+/* ── Confirmed state (Uber-style) ── */
+#state-confirmed { background: #fff; }
+
 .em-con-map {
-  height: 200px; background: #e8e0d0; position: relative;
-  overflow: hidden; flex-shrink: 0;
+  flex: 1; min-height: 220px; background: #e8e0d0; position: relative; overflow: hidden;
 }
 .em-route-line {
   position: absolute; top: 35%; left: 20%; width: 60%;
@@ -352,68 +358,100 @@ body {
 .em-route-start { background: #730201; top: calc(35% - 7px); left: 20%; }
 .em-route-end   { background: #1565c0; top: calc(35% - 7px); left: calc(80% - 7px); }
 
-.em-con-scroll {
-  flex: 1; overflow-y: auto; padding: 14px 16px 20px; scrollbar-width: none;
+/* Map overlay controls */
+.em-map-controls {
+  position: absolute; top: 14px; left: 14px; right: 14px;
+  display: flex; align-items: center; gap: 10px; z-index: 10;
 }
-.em-con-scroll::-webkit-scrollbar { display: none; }
-
-/* ETA card */
-.em-eta-card {
-  background: #fff; border-radius: 16px; padding: 16px;
-  margin-bottom: 12px; display: flex; gap: 14px; align-items: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+.em-map-back-btn {
+  width: 40px; height: 40px; background: #fff; border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15); flex-shrink: 0;
 }
-.em-eta-icon {
-  width: 52px; height: 52px; background: #fde8e8; border-radius: 14px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+.em-map-status-pill {
+  background: #fff; border-radius: 24px; padding: 9px 14px;
+  display: flex; align-items: center; gap: 7px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+  font-size: 12px; font-weight: 700; color: #0a0a0a;
 }
-.em-eta-body { flex: 1; }
-.em-eta-label { font-size: 11px; color: #888; font-weight: 600; margin-bottom: 2px; }
-.em-eta-val { font-size: 28px; font-weight: 900; color: #730201; line-height: 1; margin-bottom: 4px; }
-.em-eta-sub { font-size: 12px; color: #888; }
-.em-eta-status {
-  background: #e8f5e9; color: #2e7d32; font-size: 11px; font-weight: 700;
-  padding: 5px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
-  display: flex; align-items: center; gap: 4px;
+.em-map-status-dot {
+  width: 8px; height: 8px; background: #4caf50; border-radius: 50%; flex-shrink: 0;
+  animation: emLive 1s ease infinite;
 }
-.em-eta-dot-live { width: 7px; height: 7px; background: #4caf50; border-radius: 50%; animation: emLive 1s ease infinite; }
 @keyframes emLive { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-/* Pro confirmed card */
-.em-pro-card {
-  background: #fff; border-radius: 16px; padding: 14px;
-  margin-bottom: 12px; display: flex; gap: 12px; align-items: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+/* Bottom sheet */
+.em-bottom-sheet {
+  background: #fff; border-radius: 24px 24px 0 0; flex-shrink: 0;
+  padding: 0 16px 32px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
 }
-.em-pro-photo-wrap { position: relative; flex-shrink: 0; }
-.em-pro-photo { width: 58px; height: 58px; border-radius: 50%; object-fit: cover; }
-.em-pro-online { position: absolute; bottom: 1px; right: 1px; width: 13px; height: 13px; background: #4caf50; border-radius: 50%; border: 2px solid #fff; }
-.em-pro-info { flex: 1; }
-.em-pro-name { font-size: 16px; font-weight: 800; color: #111; margin-bottom: 2px; }
-.em-pro-type { font-size: 12px; color: #888; margin-bottom: 5px; }
-.em-pro-rating { font-size: 13px; color: #f5a623; font-weight: 700; }
+.em-sheet-drag-wrap { text-align: center; padding: 10px 0 14px; }
+.em-sheet-drag-handle {
+  width: 36px; height: 4px; background: #e0e0e0; border-radius: 2px; display: inline-block;
+}
 
-/* Action buttons */
-.em-actions { display: flex; gap: 10px; margin-bottom: 12px; }
-.em-action-btn {
-  flex: 1; padding: 14px 8px; border-radius: 14px; border: none;
-  font-size: 14px; font-weight: 700; cursor: pointer;
+/* ETA */
+.em-sheet-eta-row {
+  display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px;
+}
+.em-sheet-eta-line { display: flex; align-items: baseline; gap: 5px; margin-bottom: 4px; }
+.em-sheet-eta-num { font-size: 40px; font-weight: 900; color: #0a0a0a; letter-spacing: -1.5px; line-height: 1; }
+.em-sheet-eta-unit { font-size: 14px; font-weight: 700; color: #888; }
+.em-sheet-eta-addr { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #999; }
+.em-sheet-live-badge {
+  background: #e8f5e9; color: #2e7d32; font-size: 11px; font-weight: 700;
+  padding: 5px 10px; border-radius: 20px;
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0; margin-top: 6px;
+}
+.em-eta-dot-live { width: 7px; height: 7px; background: #4caf50; border-radius: 50%; animation: emLive 1s ease infinite; }
+
+.em-sheet-divider { height: 1px; background: #f4f4f4; margin: 0 0 14px; }
+
+/* Professional row */
+.em-sheet-pro-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.em-sheet-pro-img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.em-sheet-pro-info { flex: 1; }
+.em-sheet-pro-name { font-size: 15px; font-weight: 800; color: #0a0a0a; margin-bottom: 4px; }
+.em-sheet-pro-meta { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #888; }
+.em-sheet-sep { color: #ddd; }
+.em-sheet-verified-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0; }
+.em-sheet-verified-lbl { font-size: 9px; font-weight: 700; color: #1d9bf0; }
+
+/* Actions */
+.em-sheet-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+.em-sheet-btn-primary {
+  flex: 1; background: #0a0a0a; color: #fff; border: none;
+  border-radius: 14px; padding: 14px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
   display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: background 0.15s;
 }
-.em-action-call { background: #730201; color: #fff; }
-.em-action-msg  { background: #f5f5f5; color: #111; }
+.em-sheet-btn-primary:active { background: #222; }
+.em-sheet-btn-icon {
+  width: 52px; height: 52px; border-radius: 14px; border: 1.5px solid #e8e8e8;
+  background: #fff; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: background 0.12s;
+}
+.em-sheet-btn-icon:active { background: #f5f5f5; }
 
-/* Trust banner */
-.em-trust-banner {
-  background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 14px;
-  padding: 12px 14px; display: flex; align-items: center; gap: 10px;
-  margin-bottom: 12px; font-size: 13px; color: #2e7d32; font-weight: 600;
+/* Booking ref */
+.em-sheet-ref-row {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 10px;
+  padding: 10px 12px; background: #f8f8f8; border-radius: 10px;
+}
+.em-sheet-ref-id { font-size: 12px; font-weight: 800; color: #111; flex: 1; }
+.em-sheet-ref-share-btn {
+  background: none; border: none; font-size: 12px; font-weight: 700;
+  color: #730201; cursor: pointer; font-family: inherit;
 }
 
-/* Cancel link */
-.em-cancel-link {
-  text-align: center; font-size: 12px; color: #bbb; cursor: pointer;
-  background: none; border: none; width: 100%; padding: 8px;
+/* Cancel */
+.em-sheet-cancel-link {
+  width: 100%; background: none; border: none; text-align: center;
+  font-size: 12px; color: #bbb; cursor: pointer; padding: 6px; font-family: inherit;
 }
 
 /* ── Dark mode ── */
@@ -431,7 +469,14 @@ html.dark .bn-toggle-card { background: #1e1e1e; border-color: #3a0101; }
 html.dark .bn-toggle-title { color: #f0f0f0; }
 html.dark .bn-sheet { background: #1e1e1e; }
 html.dark .bn-sheet-svc-name { color: #f0f0f0; }
-html.dark .em-con-scroll { background: #111; }
-html.dark .em-eta-card, html.dark .em-pro-card { background: #1e1e1e; }
-html.dark .em-pro-name { color: #f0f0f0; }
-html.dark .em-action-msg { background: #2a2a2a; color: #f0f0f0; }
+html.dark #state-confirmed { background: #111; }
+html.dark .em-bottom-sheet { background: #1a1a1a; }
+html.dark .em-sheet-drag-handle { background: #333; }
+html.dark .em-sheet-eta-num { color: #f0f0f0; }
+html.dark .em-sheet-pro-name { color: #f0f0f0; }
+html.dark .em-sheet-divider { background: #2a2a2a; }
+html.dark .em-sheet-ref-row { background: #252525; }
+html.dark .em-sheet-ref-id { color: #f0f0f0; }
+html.dark .em-sheet-btn-icon { background: #252525; border-color: #333; }
+html.dark .em-sheet-btn-icon svg path { stroke: #f0f0f0; }
+html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }

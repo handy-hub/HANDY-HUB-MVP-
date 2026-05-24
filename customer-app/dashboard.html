@@ -1,530 +1,369 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <script src="../shared/js/utils/themeManager.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HandyHub</title>
-    <link rel="stylesheet" href="css/dashboard.css">
-    <link rel="stylesheet" href="../shared/css/pageTransitions.css">
+  <meta charset="UTF-8">
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HandyHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="../shared/css/pageTransitions.css">
 </head>
-
 <body>
-    <div class="app">
-   <nav class="profile-card">
-   <div class="menu-wrapper">
-    <!-- Clean Menu (Hamburger) Icon -->
-    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</div>
+<div class="app">
 
-
-    <div class="profile-info">
-        <h2 class="name">GOOD EVENING</h2>
-        <p class="location">ACCRA, GHANA</p>
-    </div>
-
-    <button class="notification-wrapper-button">
-            <div class="notification-wrapper">
-        <svg class="notification-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22ZM18 16V11C18 7.93 16.37 5.36 13.5 4.68V4C13.5 3.17 12.83 2.5 12 2.5C11.17 2.5 10.5 3.17 10.5 4V4.68C7.64 5.36 6 7.92 6 11V16L4 18V19H20V18L18 16Z" fill="currentColor"/>
+  <!-- ════ APP HEADER ════ -->
+  <header class="hh-hdr">
+    <button class="hh-menu-btn" id="open-sidebar-btn" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M4 6H20M4 12H14M4 18H18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <span class="hh-logo">Handy <span class="hh-logo-red">Hub</span></span>
+    <div class="hh-hdr-right">
+      <button class="hh-icon-btn" id="msg-btn" aria-label="Messages">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span class="notification-badge"></span>
+        <span class="hh-badge" id="msg-badge" style="display:none">2</span>
+      </button>
+      <button class="hh-icon-btn" id="notif-btn" aria-label="Notifications">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="hh-badge" id="notif-badge">3</span>
+      </button>
     </div>
+  </header>
+
+  <!-- ════ SIDEBAR ════ -->
+  <div id="sidebar" class="sidebar">
+    <button id="close-sidebar" class="sidebar-close-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
     </button>
-   
+    <div class="sidebar-scroll">
+      <div class="sidebar-profile">
+        <div class="sidebar-avatar">
+          <img id="sidebar-profile-img" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Profile">
+        </div>
+        <h3 class="sidebar-user-name" id="sidebar-name">Kwame Mensah</h3>
+        <p class="sidebar-user-location">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>
+          Accra, Ghana
+        </p>
+      </div>
+      <p class="sidebar-section-title">QUICK ACTIONS</p>
+      <div class="sidebar-quick-actions">
+        <button class="quick-action-btn">
+          <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <span>Emergency Request</span>
+        </button>
+        <button class="quick-action-btn">
+          <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 14.03 20 12.57 20 11c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="#730201"/></svg></div>
+          <span>Rebook Last</span>
+        </button>
+        <button class="quick-action-btn">
+          <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg></div>
+          <span>Track Booking</span>
+        </button>
+        <button class="quick-action-btn">
+          <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <span>Schedule</span>
+        </button>
+      </div>
+      <p class="sidebar-section-title">MAIN MENU</p>
+      <ul class="sidebar-menu-list">
+        <li><a href="dashboard.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="#730201"/></svg></span><span class="sidebar-menu-label">Home</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">My Requests</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="booking.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Booking History</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="saved.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Saved Professionals</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="messages.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Messages</span><span class="sidebar-menu-badge">3</span></a></li>
+        <li><a href="transaction-history.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#730201" stroke-width="2"/><path d="M2 10h20" stroke="#730201" stroke-width="2"/></svg></span><span class="sidebar-menu-label">Payments</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+      </ul>
+      <p class="sidebar-section-title">MORE</p>
+      <ul class="sidebar-menu-list">
+        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="7" r="1" fill="#730201"/></svg></span><span class="sidebar-menu-label">Promo Codes</span><span class="sidebar-menu-badge promo-badge">2 Available</span></a></li>
+        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" stroke="#730201" stroke-width="2"/></svg></span><span class="sidebar-menu-label">Support Center</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12v10H4V12" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 7H2v5h20V7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Invite Friends</span><span class="sidebar-menu-badge invite-badge">Earn GHC 20</span></a></li>
+      </ul>
+      <p class="sidebar-section-title">SETTINGS</p>
+      <ul class="sidebar-menu-list sidebar-menu-list-last">
+        <li><a href="settings.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="#730201" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="#730201" stroke-width="2"/></svg></span><span class="sidebar-menu-label">Settings</span></a></li>
+        <li><a href="#" id="logout-link" class="sidebar-menu-item sidebar-logout"><span class="sidebar-menu-icon sidebar-logout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label sidebar-logout-label">Logout</span></a></li>
+      </ul>
+    </div>
+  </div>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-</nav>
-   <div id="sidebar" class="sidebar">
-       <button id="close-sidebar" class="sidebar-close-btn">
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-       </button>
+  <!-- ════ USER CARD ════ -->
+  <div class="user-card">
+    <div class="user-card-info">
+      <button class="uc-avatar-btn" onclick="window.location.href='profile.html'">
+        <img class="uc-avatar" id="uc-avatar"
+          src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Profile">
+      </button>
+      <div class="uc-text">
+        <p class="uc-greeting" id="uc-greeting">Good morning,</p>
+        <div class="uc-name-row">
+          <p class="uc-name" id="uc-name">John</p>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <button class="uc-loc" id="location-changer">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="#730201"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <span id="uc-loc-text">Accra, Ghana</span>
+        </button>
+      </div>
+    </div>
+    <div class="uc-wallet">
+      <p class="uc-wallet-label">Wallet Balance</p>
+      <p class="uc-wallet-amount">GHC 0.00</p>
+      <button class="uc-topup">Top Up</button>
+    </div>
+  </div>
 
-       <div class="sidebar-scroll">
+  <!-- ════ SEARCH ════ -->
+  <div class="hh-search">
+    <div class="hh-search-icon-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+        <circle cx="11" cy="11" r="8" stroke="#fff" stroke-width="2.2"/>
+        <path d="M21 21l-4.35-4.35" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <input type="text" id="dynamic-search" class="hh-search-input" placeholder="What service do you need today?">
+    <button class="hh-search-ai" aria-label="AI search">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3l1.8 5.6H19l-4.6 3.4 1.8 5.6L12 14.2l-4.2 3.4 1.8-5.6L5 8.6h5.2z" stroke="#730201" stroke-width="1.8" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+  <div id="search-container" style="display:none;"></div>
 
-           <!-- Profile -->
-           <div class="sidebar-profile">
-               <div class="sidebar-avatar">
-                   <img id="sidebar-profile-img" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Profile">
-               </div>
-               <h3 class="sidebar-user-name">Kwame Mensah</h3>
-               <p class="sidebar-user-location">
-                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>
-                   Accra, Ghana
-               </p>
-           </div>
+  <!-- ════ QUICK CHIPS ════ -->
+  <div class="chips-row">
+    <button class="chip" id="chip-fixpipe">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 22s-8-6-8-13a8 8 0 0 1 16 0c0 7-8 13-8 13z" stroke="#730201" stroke-width="2"/><path d="M8 10h8M12 6v8" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+      Fix leaking pipe
+    </button>
+    <button class="chip" id="chip-fan">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="#730201" stroke-width="2"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+      Install fan
+    </button>
+    <button class="chip" id="chip-em-elec">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Emergency electrician
+    </button>
+    <button class="chip" id="chip-more">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/></svg>
+      More
+    </button>
+  </div>
 
-           <!-- Quick Actions -->
-           <p class="sidebar-section-title">QUICK ACTIONS</p>
-           <div class="sidebar-quick-actions">
-               <button class="quick-action-btn">
-                   <div class="quick-action-icon">
-                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                   </div>
-                   <span>Emergency Request</span>
-               </button>
-               <button class="quick-action-btn">
-                   <div class="quick-action-icon">
-                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 14.03 20 12.57 20 11c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="#730201"/></svg>
-                   </div>
-                   <span>Rebook Last Technician</span>
-               </button>
-               <button class="quick-action-btn">
-                   <div class="quick-action-icon">
-                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>
-                   </div>
-                   <span>Track Current Booking</span>
-               </button>
-               <button class="quick-action-btn">
-                   <div class="quick-action-icon">
-                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-                   </div>
-                   <span>Schedule Service</span>
-               </button>
-           </div>
-
-           <!-- Main Menu -->
-           <p class="sidebar-section-title">MAIN MENU</p>
-           <ul class="sidebar-menu-list">
-               <li>
-                   <a href="dashboard.html" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="#730201"/></svg></span>
-                       <span class="sidebar-menu-label">Home</span>
-                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
-                   </a>
-               </li>
-               <li>
-                   <a href="#" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
-                       <span class="sidebar-menu-label">My Requests</span>
-                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
-                   </a>
-               </li>
-               <li>
-                   <a href="booking.html" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
-                       <span class="sidebar-menu-label">Booking History</span>
-                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
-                   </a>
-               </li>
-               <li>
-                   <a href="saved.html" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
-                       <span class="sidebar-menu-label">Saved Professionals</span>
-                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
-                   </a>
-               </li>
-               <li>
-                   <a href="messages.html" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
-                       <span class="sidebar-menu-label">Messages</span>
-                       <span class="sidebar-menu-badge">3</span>
-                   </a>
-               </li>
-               <li>
-                   <a href="transaction-history.html" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#730201" stroke-width="2"/><path d="M2 10h20" stroke="#730201" stroke-width="2"/></svg></span>
-                       <span class="sidebar-menu-label">Payments</span>
-                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
-                   </a>
-               </li>
-               <li>
-                   <a href="#" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
-                       <span class="sidebar-menu-label">Reviews &amp; Ratings</span>
-                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
-                   </a>
-               </li>
-           </ul>
-
-           <!-- More Features -->
-           <p class="sidebar-section-title">MORE FEATURES</p>
-           <ul class="sidebar-menu-list">
-               <li>
-                   <a href="#" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg></span>
-                       <span class="sidebar-menu-label">My Addresses</span>
-                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
-                   </a>
-               </li>
-               <li>
-                   <a href="#" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="7" r="1" fill="#730201"/></svg></span>
-                       <span class="sidebar-menu-label">Promo Codes</span>
-                       <span class="sidebar-menu-badge promo-badge">2 Available</span>
-                   </a>
-               </li>
-               <li>
-                   <a href="#" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" stroke="#730201" stroke-width="2"/></svg></span>
-                       <span class="sidebar-menu-label">Support Center</span>
-                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
-                   </a>
-               </li>
-           </ul>
-
-           <!-- Settings & More -->
-           <p class="sidebar-section-title">SETTINGS &amp; MORE</p>
-           <ul class="sidebar-menu-list sidebar-menu-list-last">
-               <li>
-                   <a href="settings.html" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="#730201" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="#730201" stroke-width="2"/></svg></span>
-                       <span class="sidebar-menu-label">Settings</span>
-                   </a>
-               </li>
-               <li>
-                   <a href="#" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 12v10H4V12" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 7H2v5h20V7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
-                       <span class="sidebar-menu-label">Invite Friends</span>
-                       <span class="sidebar-menu-badge invite-badge">Earn GHC 20</span>
-                   </a>
-               </li>
-               <li>
-                   <a href="#" id="logout-link" class="sidebar-menu-item sidebar-logout">
-                       <span class="sidebar-menu-icon sidebar-logout-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/></svg></span>
-                       <span class="sidebar-menu-label sidebar-logout-label">Logout</span>
-                   </a>
-               </li>
-           </ul>
-
-       </div>
-   </div>
-
-   <!-- Overlay for sidebar -->
-   <div id="sidebar-overlay" class="sidebar-overlay"></div>
-
-       <section class="search">
-    <!-- Main Search Icon -->
-    <img class="search-icon"
-        src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAADBElEQVR4nO1Zu25TQRAdCqClgaAABfAJFAnPX0CCgEKMFAEfgBSCsJAIdHF+AIkKUiChKAUQRA0JDY/8AQ0tocr19T0zISwaPCutImTiePc6Nj7Sla/8OLPHs7M7ey7RAAPsPtTr9cPMfBPAPIBVAD8AiF1rAL7oZ8x8I8uyIdptEJELzLwEYIOZ3XYu++5rETnf7fFTURQnmfltMLifAN4DmBKRkSzLDjnn9uql9yIyCuAOgGX9biDsTVEUJ7oigpkrADITkDPzrHPu4HZ/r8KYuQagYRzrzHyNygSAmSALL/I8P7JTrjzPjzLzQsD3gMoAMz+ygL/03jm3JwYvgNsANksRw8wVC7QJYCwB/xUvhpnHKVVhBzVxL0mQZmaqvmaKojgePYBfnbQmKCF0qgY1s5Rin1ARjUajcYwSQxcPWwmdiJyLRqz/jP1Ds9FI/x2zZjFfRWs7dBfWDaydfaJT6D6D5gYret8xITPfsmn1jkoGgBXLymQMsnkTMhVldO3FnrbYT2OQrVrRjVDJEJEzJuRTx2TaiitZmfXhkWXZkAn53jEZADYh+6hkOOf2mxD0i5D1vphazPw1ZrGPUskQkbOWkZV+WX6fdEymZoKRLVPJAPDBYl+KMk99ixKlVWi/Rdlwzh2IQqpuhxVdLQrh9mLOWcyFaKQictpSXHShjT8VlTxo5RdindNbHKwWLdbL6AH02GmWjWamSokA4L7FWMvzfDhJEPWdvPmgRkEC/quBk3KRUkKtmsBJqcaYZsqhmQhE6GuFUsOL8TWjJttOuXTxCGoi9IbVUp2g1FDfKagZtT1r7ewzZpnO6UroG8MtfrAXk95G1QUgWM28ia0G9bQeinQz1a5ZL73X9wDc1d4pHLTZrsOaga6JUahlo25Hm48VGMDzrc1oCzHjVBZsukwCeAbgsz3cYdvcvgH4COCxDqrVsUAz0HUxkX3gjb+IuU59JKZCvQbuJzEAxv4HMRPUo2JkIKZHFoAZ6kUAuOwzA+Ah9TLQnGblPM4eYAD6g9+rQKODYYissAAAAABJRU5ErkJggg=="
-        alt="search">
-    <!-- Input Field -->
-    <input type="text" id="dynamic-search" placeholder="AI Assisted Search...">
-</section>
-
-<!-- The container for your tracking.html content -->
-<div id="search-container" style="display: none;"></div>
-        <section class="categories">
-            <ul>
-                <li>
-                    <button class="cat-btn">
-                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAACH0lEQVR4nO1WPWtVQRA9Zy7YxK9S7UwglYVfjVZqJdpIwPyIgHrf7g1pog8sDdYqKQNpRBFSqj9AjZ0aK8FWbfxATKGRs29ueIQXH/fd+56IGVjYnZ2zc2buzN4FduRflhwY1/grzmeA3dH4SkPzUftnIO9H44aG5tKNzHs0XHXnX31sSDca58CRaPwejb+iYTpkuNSZ80cAjg3b+Vg0rqWIyYVNPXnbM7Imm+ERIBfd0Wob2FXqNQ/Gl05scSjOWxnOp4IzfgvA5NZ96bQnG9k26jwCY8H4rl+xFYbcSb6fBfY0R4Bc8NQ/uwxk29lpTzbemreacQ4cVoWnSgdO9LPPgZNlVwhbnwC55MW1XAGz7JilWs4L4EAwrgfjzwKYqICbEEZYnTEwgWiY90hWKmPJFS/a+RoE+CIdkmGqMjbDlHfE84EJBO/rHDhYFavUl/dGHQJfdEjZ013rQ/2wV4C93rqf6xB4q0MK4Ghak0/9u871w84Cx53Am4EJRPJeJ424ntYZLnpa10XiT5kIhrZfSHcGJ5DhnEfxQSl1UjfLh4hGL9w1YH8wfko2wBnUkeBpD+SDNmDStTJciOQT1cRWe9kE8pFjHqOuFJ1LJUUTyIdzwL7tbFPk7jwaPzZyFUsCcHozpTrYcENFpseoOkT/CH3zbpsCOIUmJQfGlfbu799rKO2NRd5LWhnORvKu2qt8lAbj66SrW3A78l/Kb6j72kfrWfpKAAAAAElFTkSuQmCC" alt="water">
-                        <span>Fix leaking pipe</span>
-                    </button>
-                </li>
-                
-                <li>
-                    <button class="cat-btn">
-                       <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAF9klEQVR4nO1ZWWhcZRT+zrl1j7s+uKGorUVFRS2KD+KG2poURSxusepD0UhM5v9nuog6+uIGKvigoNUWWtpa8cG6PQhKi4oYqzatDUgtFMVWm25xS7dEzn/PP3NzMzO5d+ZOEMmBH5L571nv2S8wAf8TyAEXG4axRCsN0zrDtNMy7ZOjf38vd5aRywMX4b8ABeBoJzTTRss0nOYYph9EmQ6gZdwFLwKThLll2hER6ldDtNAy2gvApfOBE+cAh8gxwEkWuCzHuM8SvWmYtkYU6TeMLqE5LsIXgPMs07clAYg+swFuuQMIktIQYU2AVsO0OqLI2gIwuanC2wBthmlAGf6YD3BjBjSnG6ZNSnNAjIFmQI5xr2Har1ZfbIGjIkJcZ4jesUx9EsCW6D3LmNMJHJOEdgfQYomWqBL784y7m2H5UHjGEyPuiJ6vEay/mADXJ+VjGEXF25cLMCNLn/+jovCMdrXan5YxT1KpBS60jFmW6FO9+8cAV9WhxJ6GYyLMNmHAitvE7y1Tr9xJdqmAToboZRWmL02WsURLFe+bNMlhNKEwVbqAjfq8QBE43DINiWvlgCMq4bsUKrhCI8DMpHw7gJZyYKOz7iLl87wJcFP8vggcqnExWAS4Gh3LWKBv8PU0/HMBZuhb2B43XiLQCuvyfPVnaL1a6f4EgnyRXgZaI7h5RndaXJTagxp52TDu8VlDLF3JX8Ogds9sTC1DgDZ14fWpEF020fZgrOCzjCclFpTR513AWRX8eYsheqvOJLJNaHcDF9TjPguTPJ8PcINh+rnUEwFTkBFYokXqpl1pkFaGwqA9Kc584HhL9LHvNA3R25IEpJWWKp0Dzh3FB7ha0rO2318axtwu4LgRzzBmO1mIViRWwLUDTMPSVSZGKqfWaq31jjxwjjxjAtwqQW0rt9lbpHh6mt3A5fr7d2kU6BckaYnTKOBwQ8uLxd7PAad1A6cYolXliu2GHC/wdqm8MuBIy2GZenzASw0Rep3Ayf7ZNArsFSTJ9akVCKevYRHe/yZ/RywstaNHfNrG8rv8799gPsBtqsBhijvYFAUMMNUwHvQp1CswFzg98swZKvzOsWjacuF7phEFErmQYTwshB0D4Br3W9hWiwAfiBJyLNGH6lbLxuJtGY/rs8824kIuiGUMrMHIlnyZaJGvF93A2d4AsfN7ATg1Qd7f4FwwwO2ODzAtfRBrIFbpMoXoFYbpoBzLeGgUfoDWiM/vNkTLozFRg+9zirPZu5q0KfpGl6fuQmUAr8Lok+hrHoVP9Krevxij+4C4nBgoF+DakpDAFF+w3DADXBnhtVhr0qOJFZC0ppbYGm8lcsAJlumAYfpLOtbKBqA+l0mAS2IKzIql0WFNrcORmbgt1o7/pu58fmIFnOZub+Na6dYqyn1VDdcy/a1Z7Mj4nYsRoheU/oHS6En0WryPkhlC73tTCR8bZlaPIApMVaIbaswRzrJJ+BRrpFVpDlP3QbEuMswmAaZHGE4S9xHrxS0WmaFFwZ/QAFhtpSV71TXQCLhqGVpzU3QFaIne8Omz6psjerexlSVtVus/Ui8db+21KuySmJXDAkb0irwJC5ypVXSw2hiaFAzRcjXc1w0N9Srs5PI2TnRSJoy74hlFz5AlPNWA8E/7+iHdK7IAGSsji63iiMmNaJkMM5LuDNFHjawbjQqvi62bkSXIuq9kcaKlWa7FC+Lz6jY6X9+JZoBuGPb4wM5i/WfDtaUGLO3O3PKVYkI2ZpHquUaESLN5cxU2wEyf533AZubzY4FkBtmYuaVTOXi3hf0MZssYKB81pEi5BVj4gWOaNGY6A4ftAYd5XlJlw9mmHpACI0snv+BKeXorTWVNB3WhHnnl0d9lbyMCSacpvbtuJPbq6Xe/Ea2QrjLemJlwA9fT9C80GsS7xmrm0oItbyh2NesLDcn+PxxgXJuwah5wbFbEO8IvNLqLoiEZbGotjFODIXpJrX7QMB4ThdAcIy3wLbbwzIyy+0idPkgbOoZpXaZV2PdD4yT8gGy+M1NgAiYAVeFfDpM9lhJCEesAAAAASUVORK5CYII=" alt="fan">
-                        <span>Install Fan</span>
-                    </button>
-                </li>
-
-                <li>
-                    <button class="cat-btn">
-                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAADvElEQVR4nO2aW4gdRRCGv6pRIxEUL6goEryDolEUVMR4QcUH8UHJg0+iBIXIJjtVZ0lEyEEU8UkEUfDFICiaSIggBHzzRTGgIIIXxJBA8BaJlwQ3im5WOnvOpmYye4yu4KTnfDBwmG6aUz39/11TPTBmzJgxLcBhmcM1gNA1DK42lQOuMuvKBrpEH9RU3p8LXmZdZCNdwpRV88HPrYCSrlDCaa6ypzIBsIKu4CIvVZ++HFwHp9AFJuFaU5mJE2AqX9AV43OV7bWnnwzwVbqAK6uPCL4rBuhwpqn82DgBXTBAF9kYNP9tMr7B75kJOJmc6cGNw4APBS3yZGcMsA/HucrHIfh3YhJkIq+RM66UQe+/TcGlLvLi4RWQXgkypQdnm8rP4Wk/ke5XtsKcDdBEXg9a39WHpQNJTGefATqsqBhfwd3pfgnLszfAPpzgKp+FTG/rsM2Uh7I3QFfWBeObdjh/2GYiL2RtgAbnucr+kOY+VmlX+SBrAzSRLUHjX07AkmHbSihM5ddsDbBXcGfM8cuCuyrtcGW2BjgBS1JQwfjeqPdx5cFsDdCVDeHp7ivh3HofE3k+SwN0WBa0vWBwsQpcws3kgou8HbT/Scr26n1qBjjrBff2Cm5f6JqEyzkWsIJ7YnFzCm5q6pcCaq4GLXyZJmtpMX1Y6io7g/G9MuoU6J9OQKoe02Zc5Knwh39KZa9R/ZM3uMjmha5knmG8/QaX0FZKuCi934eMb/Wixiu4r1YofYA2YyLbwrb3UTK5RabPe0OOsIk2YwUrQ/AzJVz/b8ca1AfeC+N91eoiaR9ONJXdf2dUPbhwrhLMmqP1EVP5PZ0c0WZKuCJo9Yf1cHpTPxN5a9ivB1c1jlVwa/WYLOVU7Udc5LlDWV3BbSOW9S/DwJqSGoMzTOXroPtt2Xwl4nBdWCV7GgKTuEJc5btUQCXHipCJvFlvN2VtNFEruIOcsMoWyaMNHjIdJuhpcqI/Qv8OJ7nK52Hpb38YjicnfIT+TeTlWuo8XyzNsyIssrkpeRpI435yxBr0PwkXxCOy1r/l/Vf6d7gs3YuVIFP5NL1GkyMe9G8q3w/2+2fCvQPpaIxc8er+v8nhFlf5c74OqDxCzlhV/31X+SZMyBZypl/Xv8qOsPR3rYdTyRmv7v/xI8g/0jdC5I5XT4Tjfv84XcCC/sP17mJKZcey/mdTGjwF59AF/Ej9H0wHJnQFr+nfRJ6lS7jI1jABH6ZvhOgSfriyu3cKLqaDSA9uWANn/d9/ZMyYMWM4Cv4CdPxNBcB9sYUAAAAASUVORK5CYII=" alt="electricity">    
-                        <span>Emergency Electrician</span>
-                    </button>
-                </li>
-                <li>
-                    <button class="cat-btn">
-                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAACH0lEQVR4nO1WPWtVQRA9Zy7YxK9S7UwglYVfjVZqJdpIwPyIgHrf7g1pog8sDdYqKQNpRBFSqj9AjZ0aK8FWbfxATKGRs29ueIQXH/fd+56IGVjYnZ2zc2buzN4FduRflhwY1/grzmeA3dH4SkPzUftnIO9H44aG5tKNzHs0XHXnX31sSDca58CRaPwejb+iYTpkuNSZ80cAjg3b+Vg0rqWIyYVNPXnbM7Imm+ERIBfd0Wob2FXqNQ/Gl05scSjOWxnOp4IzfgvA5NZ96bQnG9k26jwCY8H4rl+xFYbcSb6fBfY0R4Bc8NQ/uwxk29lpTzbemreacQ4cVoWnSgdO9LPPgZNlVwhbnwC55MW1XAGz7JilWs4L4EAwrgfjzwKYqICbEEZYnTEwgWiY90hWKmPJFS/a+RoE+CIdkmGqMjbDlHfE84EJBO/rHDhYFavUl/dGHQJfdEjZ013rQ/2wV4C93rqf6xB4q0MK4Ghak0/9u871w84Cx53Am4EJRPJeJ424ntYZLnpa10XiT5kIhrZfSHcGJ5DhnEfxQSl1UjfLh4hGL9w1YH8wfko2wBnUkeBpD+SDNmDStTJciOQT1cRWe9kE8pFjHqOuFJ1LJUUTyIdzwL7tbFPk7jwaPzZyFUsCcHozpTrYcENFpseoOkT/CH3zbpsCOIUmJQfGlfbu799rKO2NRd5LWhnORvKu2qt8lAbj66SrW3A78l/Kb6j72kfrWfpKAAAAAElFTkSuQmCC" alt="water">
-                        <span>More</span>
-                    </button>
-                </li>
-            </ul>
-        </section>
-       <section class="ads">
+  <!-- ════ AD BANNER ════ -->
+  <section class="ads">
     <div class="slider">
-        <!-- SLIDE 1 -->
-        <div class="slide">
-            <img src="https://i.pinimg.com/736x/44/41/9d/44419dac4fcb78aae208565099c97221.jpg">
-            <div class="ad-content">
-                <span class="ad-tag">Limited Time Offer</span>
-                <h1>Get 20% OFF</h1>
-                <h3>Your first booking</h3>
-                <p>Trusted professionals, quality service.</p>
-                <button class="book-now">Book Now <span class="arrow-icon">❯</span></button>
-
-            </div>
+      <div class="slide">
+        <img src="https://i.pinimg.com/736x/44/41/9d/44419dac4fcb78aae208565099c97221.jpg" alt="">
+        <div class="ad-content">
+          <span class="ad-tag">Limited Time Offer</span>
+          <h1>Get 20% OFF</h1>
+          <h3>your first booking</h3>
+          <p>Trusted professionals, quality service.</p>
+          <button class="book-now">Book Now <span class="arrow-icon"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="3" stroke-linecap="round"/></svg></span></button>
         </div>
-
-        <!-- SLIDE 2 -->
-        <div class="slide">
-            <img src="https://i.pinimg.com/736x/04/1a/09/041a0923ce2a5d512923d1cdffcd7e1f.jpg">
-            <div class="ad-content">
-                <span class="ad-tag">Home Cleaning</span>
-                <h1>Express Clean</h1>
-                <h3>Sparkling results</h3>
-                <p>Book a pro cleaner in under 2 minutes.</p>
-                <button class="book-now">Check Rates <span class="arrow-icon">❯</span></button>
-            </div>
+      </div>
+      <div class="slide">
+        <img src="https://i.pinimg.com/736x/04/1a/09/041a0923ce2a5d512923d1cdffcd7e1f.jpg" alt="">
+        <div class="ad-content">
+          <span class="ad-tag">Home Cleaning</span>
+          <h1>Express Clean</h1>
+          <h3>Sparkling results</h3>
+          <p>Book a pro cleaner in under 2 minutes.</p>
+          <button class="book-now">Check Rates <span class="arrow-icon"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="3" stroke-linecap="round"/></svg></span></button>
         </div>
-
-        <!-- SLIDE 3 -->
-        <div class="slide">
-            <img src="https://i.pinimg.com/736x/84/fa/24/84fa2444f8cc33ef30c8813e95807bb6.jpg">
-            <div class="ad-content">
-                <span class="ad-tag">New Service</span>
-                <h1>AC Repair</h1>
-                <h3>Stay cool always</h3>
-                <p>Expert technicians at your doorstep.</p>
-                <button class="book-now">Fix Now <span class="arrow-icon">❯</span></button>
-            </div>
+      </div>
+      <div class="slide">
+        <img src="https://i.pinimg.com/736x/84/fa/24/84fa2444f8cc33ef30c8813e95807bb6.jpg" alt="">
+        <div class="ad-content">
+          <span class="ad-tag">New Service</span>
+          <h1>AC Repair</h1>
+          <h3>Stay cool always</h3>
+          <p>Expert technicians at your doorstep.</p>
+          <button class="book-now">Fix Now <span class="arrow-icon"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="3" stroke-linecap="round"/></svg></span></button>
         </div>
+      </div>
     </div>
-
-    <!-- Pagination Dots stay outside the slider div -->
     <div class="slider-dots">
-        <span class="dot active"></span>
-        <span class="dot"></span>
-        <span class="dot"></span>
+      <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
     </div>
-</section>
+  </section>
 
-        <section class="section-header">
-            <h2 class="section-title">Popular Services</h2>
-            <button class="section-action">View All</button>
-        </section>
-       <div class="cards" id="service-slider">
-    <!-- Buttons will be injected here automatically -->
+  <!-- ════ POPULAR SERVICES ════ -->
+  <div class="section-row">
+    <h2 class="section-title">Popular Services</h2>
+    <button class="view-all-btn" id="view-all-svc">View all <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="svc-row" id="service-slider">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- ════ NEARBY PROFESSIONALS ════ -->
+  <div class="section-row">
+    <h2 class="section-title">Nearby Professionals</h2>
+    <div class="nearby-actions">
+      <button class="dist-pill">Within 5km <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <button class="filter-btn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M22 3H2l8 9.46V19l4 2V12.46L22 3z" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Filter
+      </button>
+    </div>
+  </div>
+
+  <div class="pro-list">
+    <div style="padding:28px 14px;text-align:center;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="margin-bottom:10px;opacity:0.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="#730201" stroke-width="1.8"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <p style="font-size:13px;font-weight:700;color:#333;margin:0 0 4px;">No professionals yet</p>
+      <p style="font-size:11.5px;color:#aaa;margin:0 0 14px;">Professionals will appear here once the platform goes live.</p>
+      <button class="view-more-btn" id="view-more-pros" style="width:auto;padding:9px 18px;margin:0 auto;">
+        Browse Services
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ════ BOTTOM NAV ════ -->
+  <nav class="bottom-nav">
+    <a href="dashboard.html" class="nav-item active">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="active-label">Home</span>
+    </a>
+    <a href="booking.html" class="nav-item">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="#aaa" stroke-width="1.7"/><path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>Bookings</span>
+    </a>
+    <a href="messages.html" class="nav-item">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Messages</span>
+    </a>
+    <a href="saved.html" class="nav-item">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Saved</span>
+    </a>
+    <a href="profile.html" class="nav-item">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#aaa" stroke-width="1.7"/></svg>
+      <span>Profile</span>
+    </a>
+  </nav>
+
+</div><!-- /.app -->
+
+<!-- ════ EMERGENCY TYPE MODAL ════ -->
+<div id="em-type-modal" class="em-modal-overlay" onclick="handleEmModalOverlayClick(event)">
+  <div class="em-modal-sheet">
+    <div class="em-modal-handle"></div>
+    <div class="em-modal-header">
+      <div class="em-modal-header-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <h3 class="em-modal-title">What's the emergency?</h3>
+        <p class="em-modal-sub">We'll find the nearest available professional</p>
+      </div>
+    </div>
+    <div class="em-type-grid" id="em-type-grid"></div>
+    <button class="em-modal-cancel" onclick="closeEmergencyModal()">Cancel</button>
+  </div>
 </div>
 
-        <section class="section-header">
-            <h2 class="section-title">Nearby Professionals · 5km</h2>
-            <button id="location-changer" class="section-action">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="margin-right:3px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>Change
-            </button>
-        </section>
-        <section class="pro-list">
-    <!-- Card 1 -->
-    <div class="pro-card">
-        <div class="pro-left">
-            <div class="img-container">
-                <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Kwame Mensah">
-                <span class="status-dot"></span>
-            </div>
-            <div class="pro-details">
-                <h3>Kwame Mensah</h3>
-                <p class="pro-type">Plumber</p>
-                <div class="rating">
-                    <span class="star">?</span> 4.8 <span class="reviews">(120 reviews)</span>
-                </div>
-                <p class="distance">?? 1.2 km away</p>
-            </div>
-        </div>
-        <div class="pro-right">
-            <p class="starts">Starts from</p>
-            <p class="price">GHC 50</p>
-            <button class="card-book">Book Now</button>
-        </div>
-    </div>
 
-    <!-- Card 2 -->
-    <div class="pro-card">
-        <div class="pro-left">
-            <div class="img-container"> 
-                <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772301950/vjx_records/k8oruwmjbtq8bv4mupu4.png" alt="Emmanuel Asare">
-                <span class="status-dot"></span>
-            </div>
-            <div class="pro-details">
-                <h3>Emmanuel Asare</h3>
-                <p class="pro-type">Electrician</p>
-                <div class="rating">
-                    <span class="star">?</span> 4.7 <span class="reviews">(98 reviews)</span>
-                </div>
-                <p class="distance">?? 2.3 km away</p>
-            </div>
-        </div>
-        <div class="pro-right">
-            <p class="starts">Starts from</p>
-            <p class="price">GHC 60</p>
-            <button class="card-book">Book Now</button>
-        </div>
-    </div>
-
-    <!-- View More Button -->
-    <button class="view-more-btn">
-        View More Professionals <span>❯</span>
-    </button>
-</section>
-    <nav class="bottom-nav">
-        <a href="dashboard.html" class="nav-item active">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                <polyline points="9 22 9 12 15 12 15 22" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="active-label">Home</span>
-        </a>
-        <a href="booking.html" class="nav-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="#aaa" stroke-width="1.7"/>
-                <path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/>
-            </svg>
-            <span>Bookings</span>
-        </a>
-        <a href="messages.html" class="nav-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Messages</span>
-        </a>
-        <a href="saved.html" class="nav-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Saved</span>
-        </a>
-        <a href="profile.html" class="nav-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="7" r="4" stroke="#aaa" stroke-width="1.7"/>
-            </svg>
-            <span>Profile</span>
-        </a>
-    </nav>
-
-
-    </div>
+<!-- ════ SCRIPTS ════ -->
 <script src="../shared/js/components/serviceIcons.js"></script>
-    <script src="../shared/js/components/pageTransition.js"></script>
+<script src="../shared/js/components/pageTransition.js"></script>
 <script type="module" src="../shared/js/services/logoutService.js"></script>
 <script src="../shared/js/utils/helpers.js"></script>
-    <script src="../shared/js/utils/global-app.js"></script>
-    <!-- Live notification badge — updates in real time from Firestore -->
-    <script type="module" src="js/dashboardBadge.js"></script>
-    <script src="../shared/js/components/fastLoader.js"></script>
+<script src="../shared/js/utils/global-app.js"></script>
+<script type="module" src="js/dashboardBadge.js"></script>
+<script src="../shared/js/components/fastLoader.js"></script>
 
 <script>
 (function () {
-  /* ── helpers ─────────────────────────────────────────────── */
   function go(href, store) {
     if (store) Object.entries(store).forEach(([k, v]) => sessionStorage.setItem(k, v));
     window.location.href = href;
   }
-
   function toast(msg) {
     let t = document.getElementById('_db_toast');
     if (!t) {
       t = document.createElement('div');
       t.id = '_db_toast';
-      t.style.cssText = [
-        'position:fixed', 'bottom:90px', 'left:50%',
-        'transform:translateX(-50%) translateY(16px)',
-        'background:#111', 'color:#fff', 'padding:10px 20px',
-        'border-radius:12px', 'font-size:13px', 'font-weight:600',
-        'opacity:0', 'transition:opacity .22s,transform .22s',
-        'pointer-events:none', 'white-space:nowrap', 'z-index:9999',
-        'box-shadow:0 6px 24px rgba(0,0,0,.2)'
-      ].join(';');
+      t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(16px);background:#111;color:#fff;padding:9px 18px;border-radius:10px;font-size:12.5px;font-weight:600;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2)';
       document.body.appendChild(t);
     }
     t.textContent = msg;
-    t.style.opacity = '1';
-    t.style.transform = 'translateX(-50%) translateY(0)';
+    t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
     clearTimeout(t._tid);
-    t._tid = setTimeout(() => {
-      t.style.opacity = '0';
-      t.style.transform = 'translateX(-50%) translateY(16px)';
-    }, 2500);
+    t._tid = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(16px)'; }, 2500);
   }
 
-  function closeSidebar() {
-    document.getElementById('sidebar')?.classList.remove('active');
-    document.getElementById('sidebar-overlay')?.classList.remove('active');
-  }
+  function openSidebar()  { document.getElementById('sidebar')?.classList.add('active'); document.getElementById('sidebar-overlay')?.classList.add('active'); }
+  function closeSidebar() { document.getElementById('sidebar')?.classList.remove('active'); document.getElementById('sidebar-overlay')?.classList.remove('active'); }
 
-  /* ── notification bell → notification page ────────────────── */
-  document.querySelector('.notification-wrapper-button')
-    ?.addEventListener('click', () => go('notification.html'));
+  document.getElementById('open-sidebar-btn')?.addEventListener('click', openSidebar);
+  document.getElementById('close-sidebar')?.addEventListener('click', closeSidebar);
+  document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
+  document.getElementById('msg-btn')?.addEventListener('click', () => go('messages.html'));
+  document.getElementById('notif-btn')?.addEventListener('click', () => go('notification.html'));
 
-  /* ── quick action buttons ─────────────────────────────────── */
-  const quickDests = [
-    'book-emergency.html',
-    'booking.html',
-    'tracking.html',
-    'book-step1.html'
-  ];
+  /* greeting */
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning,' : h < 17 ? 'Good afternoon,' : 'Good evening,';
+  const greetEl = document.getElementById('uc-greeting');
+  if (greetEl) greetEl.textContent = greet;
+
+  /* quick action sidebar buttons */
+  const quickDests = ['book-emergency.html', 'booking.html', 'live-tracking.html', 'book-step1.html'];
   document.querySelectorAll('.quick-action-btn').forEach((btn, i) => {
     if (quickDests[i]) btn.addEventListener('click', () => { closeSidebar(); go(quickDests[i]); });
   });
 
-  /* ── sidebar menu items with href="#" ─────────────────────── */
+  /* sidebar menu items */
   document.querySelectorAll('.sidebar-menu-item[href="#"]').forEach(item => {
     const label = item.querySelector('.sidebar-menu-label')?.textContent.trim() || '';
     item.addEventListener('click', e => {
-      e.preventDefault();
-      closeSidebar();
+      e.preventDefault(); closeSidebar();
       switch (label) {
-        case 'My Requests':       go('booking.html'); break;
-        case 'Reviews & Ratings': toast('Reviews & Ratings — coming soon'); break;
-        case 'My Addresses':      go('settings-location.html'); break;
-        case 'Promo Codes':       toast('You have 2 promo codes available!'); break;
-        case 'Support Center':    go('settings-help.html'); break;
+        case 'My Requests':    go('booking.html'); break;
+        case 'My Addresses':   go('settings-location.html'); break;
+        case 'Promo Codes':    toast('You have 2 promo codes available!'); break;
+        case 'Support Center': go('settings-help.html'); break;
         case 'Invite Friends':
-          if (navigator.share) {
-            navigator.share({ title: 'HandyHub', text: 'Book reliable home services with HandyHub!', url: 'https://handyhub.app' }).catch(() => {});
-          } else {
-            navigator.clipboard?.writeText('https://handyhub.app/invite').catch(() => {});
-            toast('Invite link copied!');
-          }
+          if (navigator.share) navigator.share({ title: 'HandyHub', text: 'Book reliable home services!', url: 'https://handyhub.app' }).catch(() => {});
+          else { navigator.clipboard?.writeText('https://handyhub.app/invite').catch(() => {}); toast('Invite link copied!'); }
           break;
       }
     });
   });
 
-  /* ── category buttons ─────────────────────────────────────── */
-  const catActions = {
-    'Fix leaking pipe':       { href: 'book-now.html',       store: { hh_service: 'Plumbing',   hh_task: 'Fix leaking pipe' } },
-    'Install Fan':            { href: 'book-now.html',       store: { hh_service: 'Electrical', hh_task: 'Install Fan' } },
-    'Emergency Electrician':  { href: 'book-emergency.html', store: { hh_service: 'Electrical', hh_task: 'Emergency Electrician' } },
-    'More':                   { href: 'book-step1.html' }
-  };
-  document.querySelectorAll('.cat-btn').forEach(btn => {
-    const text = btn.querySelector('span')?.textContent.trim();
-    const action = catActions[text];
-    if (action) btn.addEventListener('click', () => go(action.href, action.store));
-  });
+  /* quick chips */
+  document.getElementById('chip-fixpipe')?.addEventListener('click',  () => go('book-now.html', { hh_service: 'Plumbing', hh_task: 'Fix leaking pipe' }));
+  document.getElementById('chip-fan')?.addEventListener('click',      () => go('book-now.html', { hh_service: 'Electrical', hh_task: 'Install Fan' }));
+  document.getElementById('chip-em-elec')?.addEventListener('click',  () => go('book-emergency.html', { hh_service: 'Electrical', hh_task: 'Emergency Electrician' }));
+  document.getElementById('chip-more')?.addEventListener('click',     () => go('book-step1.html'));
 
-  /* ── ad banner buttons ────────────────────────────────────── */
-  const adActions = [
-    { href: 'book-now.html' },
-    { href: 'book-now.html', store: { hh_service: 'Cleaning' } },
-    { href: 'book-now.html', store: { hh_service: 'AC Repair' } }
-  ];
-  document.querySelectorAll('.book-now').forEach((btn, i) => {
-    const action = adActions[i];
-    if (action) btn.addEventListener('click', () => go(action.href, action.store));
-  });
+  /* ad banner buttons */
+  const adActions = [{ href: 'book-now.html' }, { href: 'book-now.html', store: { hh_service: 'Cleaning' } }, { href: 'book-now.html', store: { hh_service: 'AC Repair' } }];
+  document.querySelectorAll('.book-now').forEach((btn, i) => { if (adActions[i]) btn.addEventListener('click', () => go(adActions[i].href, adActions[i].store)); });
 
-  /* ── "View All" popular services ──────────────────────────── */
-  document.querySelectorAll('section button, section a').forEach(el => {
-    if (el.textContent.trim() === 'View All' && el.id !== 'location-changer') {
-      el.addEventListener('click', e => { e.preventDefault(); go('book-step1.html'); });
-    }
-  });
+  /* section buttons */
+  document.getElementById('view-all-svc')?.addEventListener('click', () => go('book-step1.html'));
+  document.getElementById('view-more-pros')?.addEventListener('click', () => go('book-now.html'));
+  document.getElementById('location-changer')?.addEventListener('click', () => go('settings-location.html'));
 
-  /* ── location changer ─────────────────────────────────────── */
-  document.getElementById('location-changer')
-    ?.addEventListener('click', () => go('settings-location.html'));
-
-  /* ── pro-card "Book Now" buttons ──────────────────────────── */
-  document.querySelectorAll('.pro-card').forEach(card => {
-    const name = card.querySelector('h3')?.textContent.trim();
-    const role = card.querySelector('.pro-type')?.textContent.trim();
-    card.querySelector('.card-book')?.addEventListener('click', () =>
-      go('book-step1.html', { hh_pro_name: name || '', hh_pro_role: role || '' })
-    );
-  });
-
-  /* ── "View More Professionals" ────────────────────────────── */
-  document.querySelector('.view-more-btn')
-    ?.addEventListener('click', () => go('book-now.html'));
-
-  /* ── service slider cards → navigate to booking ───────────── */
+  /* service click handler */
   window.handleServiceClick = function (serviceId) {
     const scores = JSON.parse(localStorage.getItem('service_scores') || '{}');
     scores[serviceId] = (scores[serviceId] || 0) + 1;
@@ -532,7 +371,113 @@
     sessionStorage.setItem('hh_service_id', serviceId);
     go('book-now.html');
   };
+
 })();
 </script>
+
+<!-- Dynamic Popular Services -->
+<script>
+(function () {
+  const container = document.getElementById('service-slider');
+  if (!container) return;
+  const catalog = [
+    { id: 'electrical', name: 'Electrician',  img: '../shared/assets/icons/electricals.png', base: 88 },
+    { id: 'plumbing',   name: 'Plumber',       img: '../shared/assets/icons/plummer.png',     base: 90 },
+    { id: 'carpentry',  name: 'Carpenter',     img: '../shared/assets/icons/carpenter.png',   base: 78 },
+    { id: 'ac_repair',  name: 'A/C Tech',      img: '../shared/assets/icons/cooling.png',     base: 82 },
+    { id: 'welding',    name: 'Welder',        img: '../shared/assets/icons/welder.png',      base: 70 },
+    { id: 'painting',   name: 'Painter',       img: '../shared/assets/icons/painter.png',     base: 75 },
+    { id: 'cleaning',   name: 'Cleaner',       img: '../shared/assets/icons/cleaner.png',     base: 85 },
+    { id: 'gardening',  name: 'Gardener',      img: '../shared/assets/icons/gardener.png',    base: 65 },
+  ];
+  const clicks   = JSON.parse(localStorage.getItem('service_scores') || '{}');
+  const bookScores = {};
+  try {
+    JSON.parse(localStorage.getItem('hh_booking_history') || '[]').forEach(b => {
+      const raw = (b.service || (b.services?.[0]?.name) || (b.professional?.type) || '').toLowerCase();
+      catalog.forEach(c => { if (raw.includes(c.name.toLowerCase()) || raw.includes(c.id)) bookScores[c.id] = (bookScores[c.id] || 0) + 3; });
+    });
+  } catch (_) {}
+  const totalEng = [...Object.values(clicks), ...Object.values(bookScores)].reduce((a, b) => a + b, 0);
+  const scored = catalog.map(s => ({ ...s, score: s.base + (clicks[s.id] || 0) * 2 + (bookScores[s.id] || 0) })).sort((a, b) => b.score - a.score);
+  container.innerHTML = scored.map((s, i) => {
+    const hot = i < 3 && totalEng > 0 && ((clicks[s.id] || 0) + (bookScores[s.id] || 0) > 0);
+    return `<button class="svc-btn" onclick="handleServiceClick('${s.id}')">
+      <div class="svc-circle">${hot ? `<span class="svc-hot">Hot</span>` : ''}
+        <img src="${s.img}" alt="${s.name}" width="26" height="26" onerror="this.style.opacity='0'">
+      </div>
+      <span class="svc-lbl">${s.name}</span>
+    </button>`;
+  }).join('');
+})();
+</script>
+
+<!-- Emergency Type Modal -->
+<script>
+const EM_TYPES = [
+  { id: 'plumbing',   name: 'Plumbing',      service: 'Plumbing',         icon: '<path d="M12 22s-8-6-8-13a8 8 0 0 1 16 0c0 7-8 13-8 13z" stroke="currentColor" stroke-width="2"/><path d="M8 10h8M12 6v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
+  { id: 'electrical', name: 'Electrical',    service: 'Electrical',        icon: '<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' },
+  { id: 'ac_repair',  name: 'AC Repair',     service: 'AC Repair',         icon: '<rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M12 6v12M8 10h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
+  { id: 'carpentry',  name: 'Carpentry',     service: 'Carpentry',         icon: '<path d="M14.5 2.5c0 1.5-1.5 3-1.5 3H8L5.5 9l3 3-3 4.5 2 1 3-4.5h3.5l5 5 1.5-1.5-5-5V8.5s1.5-1.5 1.5-3a2 2 0 0 0-2-3z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
+  { id: 'appliance',  name: 'Appliance',     service: 'Appliance Repair',  icon: '<rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 9h6M9 12h6M9 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
+  { id: 'locksmith',  name: 'Locksmith',     service: 'Locksmith',         icon: '<rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/>' },
+  { id: 'water_leak', name: 'Water Leak',    service: 'Plumbing',          icon: '<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' },
+  { id: 'power_out',  name: 'Power Out',     service: 'Electrical',        icon: '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
+  { id: 'cleaning',   name: 'Cleaning',      service: 'Cleaning',          icon: '<path d="M3 3l18 18M9 9c-1.5 1.5-2 3-2 5a5 5 0 0 0 10 0c0-5-4-7-4-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
+  { id: 'other',      name: 'Other',         service: 'General Emergency', icon: '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
+];
+document.getElementById('em-type-grid').innerHTML = EM_TYPES.map(t =>
+  `<button class="em-type-btn" onclick="selectEmergencyType('${t.id}','${t.service}')">
+    <div class="em-type-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none">${t.icon}</svg></div>
+    <span class="em-type-name">${t.name}</span>
+  </button>`
+).join('');
+function openEmergencyModal()  { document.getElementById('em-type-modal').classList.add('em-modal-visible'); document.body.style.overflow = 'hidden'; }
+function closeEmergencyModal() { document.getElementById('em-type-modal').classList.remove('em-modal-visible'); document.body.style.overflow = ''; }
+function handleEmModalOverlayClick(e) { if (e.target === document.getElementById('em-type-modal')) closeEmergencyModal(); }
+function selectEmergencyType(id, serviceName) {
+  sessionStorage.setItem('hh_service', serviceName);
+  sessionStorage.setItem('hh_task', 'Emergency – ' + serviceName);
+  sessionStorage.setItem('em_service', serviceName);
+  closeEmergencyModal();
+  setTimeout(() => { window.location.href = 'book-emergency.html'; }, 220);
+}
+</script>
+
+
+<!-- Profile cache + active booking banner -->
+<script>
+(function () {
+  try {
+    const p = JSON.parse(localStorage.getItem('hh_profile_cache') || 'null');
+    if (!p) return;
+    const nameEl = document.getElementById('uc-name');
+    const imgEl  = document.getElementById('uc-avatar');
+    const sideNameEl = document.getElementById('sidebar-name');
+    const sideImgEl  = document.getElementById('sidebar-profile-img');
+    const locEl  = document.getElementById('uc-loc-text');
+    if (nameEl && p.name) nameEl.textContent = p.name.split(' ')[0];
+    if (sideNameEl && p.name) sideNameEl.textContent = p.name;
+    if (locEl && p.location) locEl.textContent = p.location;
+    const src = p.profileImage || (p.name ? 'https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=' + encodeURIComponent(p.name.slice(0,2).toUpperCase()) : null);
+    if (imgEl && src)     imgEl.src = src;
+    if (sideImgEl && src) sideImgEl.src = src;
+  } catch (_) {}
+})();
+
+(function () {
+  const b = JSON.parse(localStorage.getItem('hh_booking') || 'null');
+  const _pro = b && (b.artisan || b.professional);
+  if (!_pro || b.status === 'completed') return;
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:999;background:#730201;color:#fff;display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;box-shadow:0 2px 10px rgba(115,2,1,0.3)';
+  banner.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#fff"/></svg><span style="flex:1;font-size:12.5px;font-weight:700;">${_pro.name || 'Artisan'} is on the way — tap to track</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
+  banner.onclick = () => window.location.href = 'live-tracking.html';
+  document.body.prepend(banner);
+  const app = document.querySelector('.app');
+  if (app) app.style.paddingTop = '40px';
+})();
+</script>
+
 </body>
 </html>

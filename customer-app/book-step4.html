@@ -127,16 +127,16 @@
     <!-- Pro with call -->
     <div class="pro-call-card">
       <div class="pro-call-avatar" id="call-pro-avatar">
-        <img id="call-pro-img" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772301950/vjx_records/k8oruwmjbtq8bv4mupu4.png" alt="Professional">
-        <div class="online-dot" id="call-online-dot"></div>
+        <div id="call-pro-img" style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;">P</div>
+        <div class="online-dot" id="call-online-dot" style="display:none;"></div>
       </div>
       <div class="pro-mini-info">
         <div class="pro-mini-name-row">
-          <span class="pro-mini-name" id="call-pro-name">Emmanuel Asare</span>
-          <span class="top-rated-chip" id="call-pro-chip">Top Rated</span>
+          <span class="pro-mini-name" id="call-pro-name">Professional</span>
+          <span class="top-rated-chip" id="call-pro-chip" style="display:none;">Top Rated</span>
         </div>
-        <p class="pro-mini-type" id="call-pro-type">Electrician · 6 years experience</p>
-        <p class="pro-mini-stats" id="call-pro-stats">★ <strong>4.8</strong> (98 reviews) &nbsp;|&nbsp; 128 jobs completed</p>
+        <p class="pro-mini-type" id="call-pro-type"></p>
+        <p class="pro-mini-stats" id="call-pro-stats"></p>
         <div style="display:flex; align-items:center; gap:6px; margin-top:5px;">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#888"/></svg>
           <span style="font-size:12px; color:#888;" id="call-pro-dist">2.3 km away</span>
@@ -244,9 +244,10 @@
       avail.textContent = pro.avail;
       if (pro.availSoon) avail.classList.add('soon');
 
-      const firstName = pro.name.split(' ')[0];
+      const firstName = (pro.name || 'Professional').split(' ')[0];
       document.getElementById('next-pro-name').textContent = `${firstName} will review your booking and confirm soon.`;
       document.getElementById('next-onway-sub').textContent = `You'll get a notification when ${firstName} is on the way.`;
+      if (pro.photo) { const el = document.getElementById('call-pro-img'); el.outerHTML = `<img id="call-pro-img" src="${pro.photo}" alt="Professional" style="width:52px;height:52px;border-radius:14px;object-fit:cover;">`; }
     }
 
     // Service summary
