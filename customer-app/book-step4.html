@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Handy Hub – Booking Confirmed</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
+
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
 <body>
 <div class="phone-shell">
@@ -233,21 +235,60 @@
     // Professional info
     if (state.professional) {
       const pro = state.professional;
-      if (pro.photo) document.getElementById('call-pro-img').src = pro.photo;
-      document.getElementById('call-online-dot').style.display = pro.isOnline ? '' : 'none';
-      document.getElementById('call-pro-name').textContent = pro.name;
-      document.getElementById('call-pro-type').textContent = `${pro.type} · ${pro.exp}`;
-      document.getElementById('call-pro-stats').innerHTML = `★ <strong>${pro.rating}</strong> (${pro.reviews} reviews) &nbsp;|&nbsp; ${pro.jobs} jobs completed`;
-      document.getElementById('call-pro-dist').textContent = pro.dist + ' away';
-      document.getElementById('call-pro-chip').style.display = pro.isTopRated ? '' : 'none';
+
+      // Avatar: safely swap div → img if photo, else show initials
+      const avatarEl = document.getElementById('call-pro-img');
+      if (avatarEl) {
+        if (pro.photo) {
+          const img = document.createElement('img');
+          img.id = 'call-pro-img';
+          img.src = pro.photo;
+          img.alt = pro.name || 'Professional';
+          img.style.cssText = 'width:52px;height:52px;border-radius:14px;object-fit:cover;';
+          avatarEl.replaceWith(img);
+        } else {
+          const initials = (pro.name || 'P').split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+          avatarEl.textContent = initials;
+        }
+      }
+
+      const onlineDot = document.getElementById('call-online-dot');
+      if (onlineDot) onlineDot.style.display = pro.isOnline ? '' : 'none';
+      const nameEl = document.getElementById('call-pro-name');
+      if (nameEl) nameEl.textContent = pro.name;
+      const typeEl = document.getElementById('call-pro-type');
+      if (typeEl) typeEl.textContent = `${pro.type} · ${pro.exp}`;
+      const statsEl = document.getElementById('call-pro-stats');
+      if (statsEl) statsEl.innerHTML = `★ <strong>${pro.rating}</strong> (${pro.reviews} reviews) &nbsp;|&nbsp; ${pro.jobs} jobs completed`;
+      const distEl = document.getElementById('call-pro-dist');
+      if (distEl) distEl.textContent = pro.dist + ' away';
+      const chipEl = document.getElementById('call-pro-chip');
+      if (chipEl) chipEl.style.display = pro.isTopRated ? '' : 'none';
       const avail = document.getElementById('call-pro-avail');
-      avail.textContent = pro.avail;
-      if (pro.availSoon) avail.classList.add('soon');
+      if (avail) {
+        avail.textContent = pro.avail;
+        if (pro.availSoon) avail.classList.add('soon');
+      }
 
       const firstName = (pro.name || 'Professional').split(' ')[0];
-      document.getElementById('next-pro-name').textContent = `${firstName} will review your booking and confirm soon.`;
-      document.getElementById('next-onway-sub').textContent = `You'll get a notification when ${firstName} is on the way.`;
-      if (pro.photo) { const el = document.getElementById('call-pro-img'); el.outerHTML = `<img id="call-pro-img" src="${pro.photo}" alt="Professional" style="width:52px;height:52px;border-radius:14px;object-fit:cover;">`; }
+      const nextProEl = document.getElementById('next-pro-name');
+      if (nextProEl) nextProEl.textContent = `${firstName} will review your booking and confirm soon.`;
+      const nextOnwayEl = document.getElementById('next-onway-sub');
+      if (nextOnwayEl) nextOnwayEl.textContent = `You'll get a notification when ${firstName} is on the way.`;
+
+      // Wire call button with real phone number from booking state
+      const callBtn = document.querySelector('.call-btn');
+      if (callBtn) {
+        if (pro.phone) {
+          callBtn.setAttribute('aria-label', `Call ${pro.name}`);
+          callBtn.onclick = () => { window.location.href = pro.phone; };
+        } else {
+          callBtn.onclick = () => {
+            callBtn.style.background = '#fde8e8';
+            setTimeout(() => { callBtn.style.background = ''; }, 800);
+          };
+        }
+      }
     }
 
     // Service summary
@@ -312,3 +353,5 @@
 </script>
 </body>
 </html>
+
+

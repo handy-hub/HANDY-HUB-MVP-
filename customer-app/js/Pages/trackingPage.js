@@ -103,7 +103,7 @@
     if (!recentList) return;
 
     if (!items.length) {
-      recentList.innerHTML =
+       recentList.innerHTML =
         '<li class="history-empty">No recent searches yet.</li>';
       if (clearRecentButton) {
         clearRecentButton.hidden = true;

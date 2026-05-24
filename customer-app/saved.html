@@ -3,9 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HandyHub | Saved</title>
   <link rel="stylesheet" href="css/saved.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <style>
+    /* Search input overlay */
+    .sv-search-bar {
+      display: none;
+      padding: 8px 16px 12px;
+      background: var(--surface, #fff);
+      border-bottom: 1px solid #f0f0f0;
+      flex-shrink: 0;
+    }
+    .sv-search-bar.open { display: block; }
+    .sv-search-input {
+      width: 100%;
+      background: #f5f5f5;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      color: #111;
+    }
+    /* Count chips on tabs */
+    .sv-tab-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fde8e8;
+      color: #730201;
+      font-size: 9px;
+      font-weight: 800;
+      border-radius: 8px;
+      padding: 1px 5px;
+      margin-left: 4px;
+      min-width: 16px;
+    }
+  </style>
 </head>
 <body>
 <div class="sv-shell">
@@ -14,18 +52,18 @@
   <div class="sv-header">
     <h1 class="sv-title">Saved</h1>
     <div class="sv-header-btns">
-      <button class="sv-icon-btn" aria-label="Search">
+      <button class="sv-icon-btn" id="sv-search-toggle" aria-label="Search">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <circle cx="11" cy="11" r="7" stroke="#111" stroke-width="2"/>
-          <path d="M16.5 16.5L21 21" stroke="#111" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      </button>
-      <button class="sv-icon-btn" aria-label="Filter">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M4 6h16M7 12h10M10 18h4" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+          <path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
+  </div>
+
+  <!-- Search bar (toggled) -->
+  <div class="sv-search-bar" id="sv-search-bar">
+    <input type="text" class="sv-search-input" id="sv-search-input" placeholder="Search saved items…" autocomplete="off">
   </div>
 
   <!-- Scrollable body -->
@@ -33,23 +71,23 @@
 
     <!-- Tabs -->
     <div class="sv-tabs" role="tablist">
-      <button class="sv-tab active" onclick="switchTab('professionals', this)" role="tab">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="sv-tab active" id="tab-professionals" onclick="switchTab('professionals', this)" role="tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/>
         </svg>
-        Professionals
+        Professionals<span class="sv-tab-count" id="count-professionals">0</span>
       </button>
-      <button class="sv-tab" onclick="switchTab('services', this)" role="tab">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="sv-tab" id="tab-services" onclick="switchTab('services', this)" role="tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
           <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
-        Services
+        Services<span class="sv-tab-count" id="count-services">0</span>
       </button>
-      <button class="sv-tab" onclick="switchTab('offers', this)" role="tab">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="sv-tab" id="tab-offers" onclick="switchTab('offers', this)" role="tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/>
-          <circle cx="7" cy="7" r="1.5" fill="#aaa" stroke="none"/>
+          <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/>
         </svg>
         Offers
       </button>
@@ -57,103 +95,12 @@
 
     <!-- ── PROFESSIONALS PANEL ── -->
     <div class="sv-panel active" id="panel-professionals">
-
-      <!-- Saved Professionals -->
       <div class="sv-section">
         <div class="sv-section-head">
           <h2 class="sv-section-title">Saved Professionals</h2>
-          <a href="#" class="sv-view-all">View all
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg>
-          </a>
         </div>
-
-        <div style="text-align:center;padding:28px 16px;">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style="margin-bottom:10px;opacity:0.3"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <p style="font-size:13px;font-weight:700;color:#333;margin:0 0 4px;">No saved professionals</p>
-          <p style="font-size:11.5px;color:#aaa;margin:0;">Professionals you save will appear here.</p>
-        </div>
+        <div id="list-saved-pros"></div>
       </div>
-
-      <!-- Saved Services -->
-      <div class="sv-section">
-        <div class="sv-section-head">
-          <h2 class="sv-section-title">Saved Services</h2>
-          <a href="#" class="sv-view-all">View all
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg>
-          </a>
-        </div>
-
-        <!-- Fix leaking pipe -->
-        <div class="sv-svc-card">
-          <div class="sv-svc-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2C9.24 2 7 4.24 7 7c0 2.85 2.92 6.21 4.53 8.02.26.3.68.3.94 0C14.08 13.21 17 9.85 17 7c0-2.76-2.24-5-5-5z" fill="#730201" opacity=".2"/>
-              <path d="M12 2C9.24 2 7 4.24 7 7c0 2.85 2.92 6.21 4.53 8.02.26.3.68.3.94 0C14.08 13.21 17 9.85 17 7c0-2.76-2.24-5-5-5z" stroke="#730201" stroke-width="1.8"/>
-              <circle cx="12" cy="7" r="2" fill="#730201"/>
-              <path d="M8 17c0 2.21 1.79 4 4 4s4-1.79 4-4" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="sv-svc-info">
-            <p class="sv-svc-name">Fix leaking pipe</p>
-            <p class="sv-svc-desc">Get expert help to fix any pipe leak</p>
-          </div>
-          <button class="sv-bookmark-btn" onclick="toggleBookmark(this)" aria-label="Remove service">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-
-        <!-- Install ceiling fan -->
-        <div class="sv-svc-card">
-          <div class="sv-svc-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="2" fill="#730201"/>
-              <path d="M12 10c-1.5-3-4-4.5-6-3s-2 5 1 6.5" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
-              <path d="M14 12c3-1.5 4.5-4 3-6s-5-2-6.5 1" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
-              <path d="M12 14c1.5 3 4 4.5 6 3s2-5-1-6.5" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
-              <path d="M10 12c-3 1.5-4.5 4-3 6s5 2 6.5-1" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="sv-svc-info">
-            <p class="sv-svc-name">Install ceiling fan</p>
-            <p class="sv-svc-desc">Professional fan installation at home</p>
-          </div>
-          <button class="sv-bookmark-btn" onclick="toggleBookmark(this)" aria-label="Remove service">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-
-        <!-- Emergency electrician -->
-        <div class="sv-svc-card">
-          <div class="sv-svc-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#730201" fill-opacity=".15"/>
-            </svg>
-          </div>
-          <div class="sv-svc-info">
-            <p class="sv-svc-name">Emergency electrician</p>
-            <p class="sv-svc-desc">24/7 electrical repair and troubleshooting</p>
-          </div>
-          <button class="sv-bookmark-btn" onclick="toggleBookmark(this)" aria-label="Remove service">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Promo banner -->
-      <div class="sv-promo">
-        <div class="sv-promo-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#730201" fill-opacity=".1"/>
-            <circle cx="7" cy="7" r="1.5" fill="#730201"/>
-          </svg>
-        </div>
-        <div class="sv-promo-body">
-          <p class="sv-promo-title">Get more with Handy Hub</p>
-          <p class="sv-promo-sub">Save professionals, services and offers you love for quick access anytime.</p>
-        </div>
-        <button class="sv-promo-btn" onclick="window.location.href='book-now.html'">Explore More</button>
-      </div>
-
     </div>
 
     <!-- ── SERVICES PANEL ── -->
@@ -161,70 +108,8 @@
       <div class="sv-section">
         <div class="sv-section-head">
           <h2 class="sv-section-title">Saved Services</h2>
-          <a href="#" class="sv-view-all">View all
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg>
-          </a>
         </div>
-
-        <div class="sv-svc-card">
-          <div class="sv-svc-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2C9.24 2 7 4.24 7 7c0 2.85 2.92 6.21 4.53 8.02.26.3.68.3.94 0C14.08 13.21 17 9.85 17 7c0-2.76-2.24-5-5-5z" stroke="#730201" stroke-width="1.8" fill="#730201" fill-opacity=".15"/><circle cx="12" cy="7" r="2" fill="#730201"/>
-            </svg>
-          </div>
-          <div class="sv-svc-info">
-            <p class="sv-svc-name">Fix leaking pipe</p>
-            <p class="sv-svc-desc">Get expert help to fix any pipe leak</p>
-          </div>
-          <button class="sv-bookmark-btn" onclick="toggleBookmark(this)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-
-        <div class="sv-svc-card">
-          <div class="sv-svc-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="2" fill="#730201"/>
-              <path d="M12 10c-1.5-3-4-4.5-6-3s-2 5 1 6.5M14 12c3-1.5 4.5-4 3-6s-5-2-6.5 1M12 14c1.5 3 4 4.5 6 3s2-5-1-6.5M10 12c-3 1.5-4.5 4-3 6s5 2 6.5-1" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="sv-svc-info">
-            <p class="sv-svc-name">Install ceiling fan</p>
-            <p class="sv-svc-desc">Professional fan installation at home</p>
-          </div>
-          <button class="sv-bookmark-btn" onclick="toggleBookmark(this)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-
-        <div class="sv-svc-card">
-          <div class="sv-svc-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#730201" fill-opacity=".15"/>
-            </svg>
-          </div>
-          <div class="sv-svc-info">
-            <p class="sv-svc-name">Emergency electrician</p>
-            <p class="sv-svc-desc">24/7 electrical repair and troubleshooting</p>
-          </div>
-          <button class="sv-bookmark-btn" onclick="toggleBookmark(this)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="sv-promo">
-        <div class="sv-promo-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" stroke="#730201" stroke-width="2" fill="#730201" fill-opacity=".1"/>
-            <circle cx="7" cy="7" r="1.5" fill="#730201"/>
-          </svg>
-        </div>
-        <div class="sv-promo-body">
-          <p class="sv-promo-title">Get more with Handy Hub</p>
-          <p class="sv-promo-sub">Save professionals, services and offers you love for quick access anytime.</p>
-        </div>
-        <button class="sv-promo-btn" onclick="window.location.href='book-now.html'">Explore More</button>
+        <div id="list-saved-services"></div>
       </div>
     </div>
 
@@ -247,72 +132,242 @@
 
 </div><!-- end sv-shell -->
 
-<!-- Bottom Nav -->
-<nav class="bottom-nav">
-  <a href="dashboard.html" class="nav-item">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span>Home</span>
-  </a>
-  <a href="booking.html" class="nav-item">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="2" width="8" height="4" rx="1" stroke="#aaa" stroke-width="1.7"/><path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/></svg>
-    <span>Bookings</span>
-  </a>
-  <a href="messages.html" class="nav-item">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span>Messages</span>
-  </a>
-  <a href="saved.html" class="nav-item active">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill="#730201" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span>Saved</span>
-  </a>
-  <a href="profile.html" class="nav-item">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#aaa" stroke-width="1.7"/></svg>
-    <span>Profile</span>
-  </a>
-</nav>
-
-<div class="sv-toast" id="sv-toast"></div>
-
 <script src="../shared/js/utils/global-app.js"></script>
+<script src="../shared/js/components/floatingNav.js"></script>
 <script>
-  function switchTab(panel, btn) {
-    document.querySelectorAll('.sv-tab').forEach(t => {
-      t.classList.remove('active');
-      t.querySelector('svg').setAttribute('stroke', '#aaa');
-    });
+(function () {
+  'use strict';
+
+  const SAVED_KEY = 'hh_saved_items';
+  const TOAST_ICONS = {
+    success: '<svg viewBox="0 0 24 24" fill="none"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  };
+
+  /* ──────────── Storage ──────────── */
+  function loadSaved() {
+    try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '{"professionals":[],"services":[]}'); }
+    catch { return { professionals: [], services: [] }; }
+  }
+  function saveSaved(data) {
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify(data)); } catch(_) {}
+  }
+  function removePro(id) {
+    const d = loadSaved(); d.professionals = d.professionals.filter(p => p.id !== id); saveSaved(d);
+  }
+  function removeSvc(id) {
+    const d = loadSaved(); d.services = d.services.filter(s => s.id !== id); saveSaved(d);
+  }
+
+  /* ──────────── Default seed items (shown if nothing saved yet) ──────────── */
+  function seedIfEmpty() {
+    const d = loadSaved();
+    if (d.professionals.length === 0) {
+      d.professionals = [
+        { id:'pro-kwame', name:'Kwame Mensah', role:'Plumber', rating:'4.8', reviews:'124', dist:'1.2 km', isOnline:true },
+        { id:'pro-emmanuel', name:'Emmanuel Asare', role:'Electrician', rating:'4.7', reviews:'89', dist:'2.3 km', isOnline:true },
+        { id:'pro-kofi', name:'Kofi Boateng', role:'Carpenter', rating:'4.9', reviews:'201', dist:'3.1 km', isOnline:false },
+      ];
+    }
+    if (d.services.length === 0) {
+      d.services = [
+        { id:'svc-pipe', name:'Fix leaking pipe', desc:'Get expert help to fix any pipe leak', category:'Plumbing' },
+        { id:'svc-fan', name:'Install ceiling fan', desc:'Professional fan installation at home', category:'Electrical' },
+        { id:'svc-em-elec', name:'Emergency electrician', desc:'24/7 electrical repair and troubleshooting', category:'Electrical' },
+      ];
+    }
+    saveSaved(d);
+    return d;
+  }
+
+  /* ──────────── Renderers ──────────── */
+  function proCardHtml(pro) {
+    const initials = pro.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const avatarSrc = pro.photo ? `<img src="${pro.photo}" alt="${escHtml(pro.name)}" class="sv-pro-photo">` :
+      `<div class="sv-pro-photo" style="background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;border-radius:50%;">${initials}</div>`;
+    return `
+    <div class="sv-pro-card" data-id="${pro.id}">
+      <div class="sv-pro-main">
+        <div class="sv-pro-photo-wrap">
+          ${avatarSrc}
+          ${pro.isOnline ? '<span class="sv-pro-dot"></span>' : ''}
+        </div>
+        <div class="sv-pro-info">
+          <div class="sv-pro-name-row">
+            <span class="sv-pro-name">${escHtml(pro.name)}</span>
+            <span class="sv-verified" aria-label="Verified">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M20 7L10.25 16.75L4 10.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+            </span>
+          </div>
+          <p class="sv-pro-role">${escHtml(pro.role)}</p>
+          <div class="sv-pro-rating">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#f5a623"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <span><strong>${pro.rating}</strong> (${pro.reviews} reviews)</span>
+          </div>
+          <div class="sv-pro-dist">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" stroke="#888" stroke-width="1.8"/><circle cx="12" cy="10" r="3" stroke="#888" stroke-width="1.8"/></svg>
+            <span>${escHtml(pro.dist || '—')} away</span>
+          </div>
+        </div>
+      </div>
+      <div class="sv-pro-actions">
+        <button class="sv-bookmark-btn" data-pro-id="${pro.id}" aria-label="Remove bookmark" onclick="unsavePro('${pro.id}', this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#730201"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="sv-book-btn" onclick="bookPro('${pro.id}')">Book Now</button>
+      </div>
+    </div>`;
+  }
+
+  const SVC_ICONS = {
+    Plumbing: '<path d="M12 2C9.24 2 7 4.24 7 7c0 2.85 2.92 6.21 4.53 8.02.26.3.68.3.94 0C14.08 13.21 17 9.85 17 7c0-2.76-2.24-5-5-5z" stroke="#730201" stroke-width="1.8" fill="#730201" fill-opacity=".15"/><circle cx="12" cy="7" r="2" fill="#730201"/>',
+    Electrical: '<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#730201" fill-opacity=".15"/>',
+    default: '<rect x="3" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/>',
+  };
+
+  function svcCardHtml(svc) {
+    const icon = SVC_ICONS[svc.category] || SVC_ICONS.default;
+    return `
+    <div class="sv-svc-card" data-id="${svc.id}">
+      <div class="sv-svc-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">${icon}</svg>
+      </div>
+      <div class="sv-svc-info">
+        <p class="sv-svc-name">${escHtml(svc.name)}</p>
+        <p class="sv-svc-desc">${escHtml(svc.desc)}</p>
+      </div>
+      <button class="sv-bookmark-btn" aria-label="Remove service" onclick="unsaveSvc('${svc.id}', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#730201"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>`;
+  }
+
+  function emptyPros() {
+    return `<div class="sv-empty">
+      <div class="sv-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#730201" stroke-width="2"/></svg></div>
+      <p class="sv-empty-title">No Saved Professionals</p>
+      <p class="sv-empty-sub">Save professionals you like and access them here anytime.</p>
+      <button class="sv-empty-btn" onclick="window.location.href='book-now.html'">Find Professionals</button>
+    </div>`;
+  }
+  function emptySvcs() {
+    return `<div class="sv-empty">
+      <div class="sv-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/></svg></div>
+      <p class="sv-empty-title">No Saved Services</p>
+      <p class="sv-empty-sub">Save services you use often for quick access next time.</p>
+      <button class="sv-empty-btn" onclick="window.location.href='book-step1.html'">Browse Services</button>
+    </div>`;
+  }
+
+  /* ──────────── Render ──────────── */
+  function render(filter) {
+    const d = loadSaved();
+    const q = (filter || '').toLowerCase().trim();
+
+    const pros = q ? d.professionals.filter(p => p.name.toLowerCase().includes(q) || p.role.toLowerCase().includes(q)) : d.professionals;
+    const svcs = q ? d.services.filter(s => s.name.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q)) : d.services;
+
+    document.getElementById('list-saved-pros').innerHTML = pros.length ? pros.map(proCardHtml).join('') : emptyPros();
+    document.getElementById('list-saved-services').innerHTML = svcs.length ? svcs.map(svcCardHtml).join('') : emptySvcs();
+
+    // Update tab counts
+    document.getElementById('count-professionals').textContent = d.professionals.length;
+    document.getElementById('count-services').textContent = d.services.length;
+  }
+
+  /* ──────────── Actions ──────────── */
+  window.unsavePro = function (id, btn) {
+    const card = btn.closest('.sv-pro-card');
+    card.style.transition = 'opacity 0.3s, transform 0.3s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(40px)';
+    setTimeout(() => { removePro(id); render(); showToast('Removed from saved', 'info'); }, 320);
+  };
+
+  window.unsaveSvc = function (id, btn) {
+    const card = btn.closest('.sv-svc-card');
+    card.style.transition = 'opacity 0.3s, transform 0.3s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(40px)';
+    setTimeout(() => { removeSvc(id); render(); showToast('Removed from saved', 'info'); }, 320);
+  };
+
+  window.bookPro = function (id) {
+    const d = loadSaved();
+    const pro = d.professionals.find(p => p.id === id);
+    if (pro) {
+      try {
+        const bk = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+        bk.professional = { name: pro.name, type: pro.role, rating: pro.rating, reviews: pro.reviews };
+        localStorage.setItem('hh_booking', JSON.stringify(bk));
+      } catch(_) {}
+    }
+    window.location.href = 'book-now.html';
+  };
+
+  /* ──────────── Global save helpers (called from other pages) ──────────── */
+  window.hhSaveProfessional = function (pro) {
+    const d = loadSaved();
+    if (!d.professionals.find(p => p.id === pro.id)) {
+      d.professionals.push(pro);
+      saveSaved(d);
+    }
+  };
+  window.hhSaveService = function (svc) {
+    const d = loadSaved();
+    if (!d.services.find(s => s.id === svc.id)) {
+      d.services.push(svc);
+      saveSaved(d);
+    }
+  };
+
+  /* ──────────── Tab switch ──────────── */
+  window.switchTab = function (panel, btn) {
+    document.querySelectorAll('.sv-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
-    btn.querySelector('svg').setAttribute('stroke', '#730201');
     document.querySelectorAll('.sv-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('panel-' + panel).classList.add('active');
+  };
+
+  /* ──────────── Search ──────────── */
+  document.getElementById('sv-search-toggle').addEventListener('click', function () {
+    const bar = document.getElementById('sv-search-bar');
+    bar.classList.toggle('open');
+    if (bar.classList.contains('open')) document.getElementById('sv-search-input').focus();
+    else { document.getElementById('sv-search-input').value = ''; render(); }
+  });
+  document.getElementById('sv-search-input').addEventListener('input', function () {
+    render(this.value);
+  });
+
+  /* ──────────── Toast ──────────── */
+  function showToast(msg, type) {
+    document.querySelector('.toast.app-toast')?.remove();
+    const t = document.createElement('div');
+    t.className = `toast app-toast ${type}`;
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.innerHTML = TOAST_ICONS[type] || TOAST_ICONS.info;
+    const text = document.createElement('span');
+    text.className = 'toast-message';
+    text.textContent = msg;
+    t.append(icon, text);
+    document.body.appendChild(t);
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => { t.classList.add('toast-exit'); setTimeout(() => t.remove(), 320); }, 3000);
   }
 
-  function toggleBookmark(btn) {
-    const card = btn.closest('.sv-pro-card, .sv-svc-card');
-    const svg = btn.querySelector('svg path');
-    const isSaved = btn.dataset.saved === 'true';
-
-    if (isSaved) {
-      btn.dataset.saved = 'false';
-      svg.setAttribute('fill', 'none');
-      card.style.transition = 'opacity 0.35s, transform 0.35s';
-      card.style.opacity = '0';
-      card.style.transform = 'translateX(40px)';
-      showToast('Removed from saved');
-      setTimeout(() => card.remove(), 380);
-    } else {
-      btn.dataset.saved = 'true';
-      svg.setAttribute('fill', '#730201');
-      showToast('Already saved');
-    }
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function showToast(msg) {
-    const t = document.getElementById('sv-toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 2000);
-  }
+  /* ──────────── Init ──────────── */
+  seedIfEmpty();
+  render();
+
+})();
 </script>
 </body>
 </html>

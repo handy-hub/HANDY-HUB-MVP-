@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Handy Hub – Book a Service</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
+
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
 <body>
 <div class="phone-shell">
@@ -24,10 +26,10 @@
       </p>
     </div>
     <div class="bk-bell-wrap">
-      <button class="bk-bell-btn">
+      <button class="bk-bell-btn" onclick="window.location.href='notification.html'" aria-label="Notifications">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#111" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#111" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <span class="bk-bell-badge">3</span>
+      <span class="bk-bell-badge" id="bk-bell-badge" style="display:none;">0</span>
     </div>
   </div>
 
@@ -67,7 +69,7 @@
 
     <div class="bk-page-head">
       <h2 class="bk-page-title">What service do you need?</h2>
-      <button class="bk-filter-btn">🔥 Popular
+      <button class="bk-filter-btn"> Popular
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
     </div>
@@ -109,87 +111,11 @@
     <!-- Section head -->
     <div class="bk-section-head">
       <h3 class="bk-section-title" id="section-title">Popular Electrical Services</h3>
-      <button class="bk-view-all">View All</button>
+      <button class="bk-view-all" onclick="selectCat(document.querySelector('.cat-icon-btn.active'), currentCat, true)">View All</button>
     </div>
 
-    <!-- Service items -->
-    <div class="service-item selected" onclick="toggleService(this)" data-price="50" data-name="Fix Switch / Socket" data-desc="Repair or replace faulty switches or power outlets." data-cat="Electrical" data-dur="30–60 mins">
-      <img class="service-thumb" src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&h=150&fit=crop&auto=format" alt="Switch" onerror="this.style.background='#fde8e8'">
-      <div class="service-info">
-        <p class="service-name">Fix Switch / Socket</p>
-        <p class="service-desc">Repair or replace faulty switches or power outlets.</p>
-        <div class="service-meta">
-          <span>⚡ Electrical</span>
-          <span>⏱ 30–60 mins</span>
-        </div>
-      </div>
-      <div class="service-right">
-        <div>
-          <p class="service-from">From</p>
-          <p class="service-price">GHC 50</p>
-        </div>
-        <div class="service-checkbox checked">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-      </div>
-    </div>
-
-    <div class="service-item" onclick="toggleService(this)" data-price="60" data-name="Light Installation" data-desc="Install new lights, chandeliers, pendant lights, etc." data-cat="Electrical" data-dur="30–60 mins">
-      <img class="service-thumb" src="https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?w=150&h=150&fit=crop&auto=format" alt="Light" onerror="this.style.background='#fde8e8'">
-      <div class="service-info">
-        <p class="service-name">Light Installation</p>
-        <p class="service-desc">Install new lights, chandeliers, pendant lights, etc.</p>
-        <div class="service-meta">
-          <span>⚡ Electrical</span>
-          <span>⏱ 30–60 mins</span>
-        </div>
-      </div>
-      <div class="service-right">
-        <div>
-          <p class="service-from">From</p>
-          <p class="service-price">GHC 60</p>
-        </div>
-        <div class="service-checkbox"></div>
-      </div>
-    </div>
-
-    <div class="service-item" onclick="toggleService(this)" data-price="80" data-name="Circuit Breaker Repair" data-desc="Fix tripping issues and electrical breaker problems." data-cat="Electrical" data-dur="45–90 mins">
-      <img class="service-thumb" src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=150&h=150&fit=crop&auto=format" alt="Breaker" onerror="this.style.background='#fde8e8'">
-      <div class="service-info">
-        <p class="service-name">Circuit Breaker Repair</p>
-        <p class="service-desc">Fix tripping issues and electrical breaker problems.</p>
-        <div class="service-meta">
-          <span>⚡ Electrical</span>
-          <span>⏱ 45–90 mins</span>
-        </div>
-      </div>
-      <div class="service-right">
-        <div>
-          <p class="service-from">From</p>
-          <p class="service-price">GHC 80</p>
-        </div>
-        <div class="service-checkbox"></div>
-      </div>
-    </div>
-
-    <div class="service-item" onclick="toggleService(this)" data-price="200" data-name="Electrical Wiring / Rewiring" data-desc="New wiring or full rewiring for homes and offices." data-cat="Electrical" data-dur="2–4 hours">
-      <img class="service-thumb" src="https://images.unsplash.com/photo-1609205807107-2f5ad87f5c4c?w=150&h=150&fit=crop&auto=format" alt="Wiring" onerror="this.style.background='#fde8e8'">
-      <div class="service-info">
-        <p class="service-name">Electrical Wiring / Rewiring</p>
-        <p class="service-desc">New wiring or full rewiring for homes and offices.</p>
-        <div class="service-meta">
-          <span>⚡ Electrical</span>
-          <span>⏱ 2–4 hours</span>
-        </div>
-      </div>
-      <div class="service-right">
-        <div>
-          <p class="service-from">From</p>
-          <p class="service-price">GHC 200</p>
-        </div>
-        <div class="service-checkbox"></div>
-      </div>
-    </div>
+    <!-- Service items (rendered dynamically by JS) -->
+    <div id="service-list"></div>
 
     <!-- Location -->
     <div class="location-card">
@@ -241,47 +167,198 @@
   const BK_KEY = 'hh_booking';
   function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
 
-  function selectCat(btn, cat) {
-    document.querySelectorAll('.cat-icon-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('section-title').textContent = `Popular ${cat} Services`;
+  /* ── Service catalogue ── */
+  const SVC_CATALOG = {
+    Electrical: [
+      { name:'Fix Switch / Socket',        desc:'Repair or replace faulty switches or power outlets.',        price:50,  dur:'30–60 mins',  img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&h=150&fit=crop' },
+      { name:'Light Installation',          desc:'Install lights, chandeliers, or pendant fittings.',          price:60,  dur:'30–60 mins',  img:'https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?w=150&h=150&fit=crop' },
+      { name:'Circuit Breaker Repair',      desc:'Fix tripping issues and electrical breaker problems.',       price:80,  dur:'45–90 mins',  img:'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=150&h=150&fit=crop' },
+      { name:'Electrical Wiring / Rewiring',desc:'New wiring or full rewiring for homes and offices.',        price:200, dur:'2–4 hours',   img:'https://images.unsplash.com/photo-1609205807107-2f5ad87f5c4c?w=150&h=150&fit=crop' },
+    ],
+    Plumbing: [
+      { name:'Fix Leaking Pipe',            desc:'Repair burst or leaking water pipes quickly.',               price:60,  dur:'30–60 mins',  img:'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=150&h=150&fit=crop' },
+      { name:'Toilet Repair / Unclogging',  desc:'Fix running toilets, clogs, or broken cisterns.',           price:70,  dur:'30–90 mins',  img:'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=150&h=150&fit=crop' },
+      { name:'Water Heater Installation',   desc:'Install or replace electric or gas water heaters.',         price:150, dur:'1–2 hours',   img:'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=150&h=150&fit=crop' },
+      { name:'Tap / Faucet Replacement',    desc:'Replace old or dripping taps with new fittings.',           price:55,  dur:'30–60 mins',  img:'https://images.unsplash.com/photo-1516455590571-18256e5bb9ff?w=150&h=150&fit=crop' },
+    ],
+    Carpentry: [
+      { name:'Door Fitting / Repair',       desc:'Fix or install interior and exterior doors.',                price:80,  dur:'1–2 hours',   img:'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=150&h=150&fit=crop' },
+      { name:'Furniture Assembly',          desc:'Assemble flat-pack or custom furniture pieces.',             price:60,  dur:'1–3 hours',   img:'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=150&h=150&fit=crop' },
+      { name:'Cabinet Installation',        desc:'Install kitchen or bathroom cabinets and shelving.',         price:120, dur:'2–4 hours',   img:'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop' },
+      { name:'Window Repair / Fitting',     desc:'Fix broken window frames or install new windows.',          price:90,  dur:'1–3 hours',   img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&h=150&fit=crop' },
+    ],
+    'AC Repair': [
+      { name:'AC Installation',             desc:'Install split, window, or ceiling AC units.',               price:200, dur:'2–4 hours',   img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&h=150&fit=crop' },
+      { name:'AC Servicing / Cleaning',     desc:'Deep clean filters, coils, and drainage lines.',           price:80,  dur:'1–2 hours',   img:'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=150&h=150&fit=crop' },
+      { name:'AC Gas Recharge',             desc:'Refill refrigerant gas for optimal cooling.',              price:120, dur:'1–2 hours',   img:'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=150&h=150&fit=crop' },
+      { name:'AC Fault Diagnosis',          desc:'Identify why your AC is not cooling or making noise.',     price:60,  dur:'30–60 mins',  img:'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=150&h=150&fit=crop' },
+    ],
+    Welding: [
+      { name:'Gate / Fence Welding',        desc:'Weld, repair, or fabricate steel gates and fences.',       price:150, dur:'2–4 hours',   img:'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=150&h=150&fit=crop' },
+      { name:'Burglar Proof Installation',  desc:'Install burglar-proof bars on windows and doors.',        price:200, dur:'3–5 hours',   img:'https://images.unsplash.com/photo-1609205807107-2f5ad87f5c4c?w=150&h=150&fit=crop' },
+      { name:'Metal Furniture Welding',     desc:'Weld, reinforce, or fabricate metal furniture.',          price:100, dur:'1–3 hours',   img:'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop' },
+      { name:'Structural Welding',          desc:'Weld structural steel beams and joints in construction.', price:250, dur:'4–8 hours',   img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&h=150&fit=crop' },
+    ],
+    More: [
+      { name:'House Cleaning',              desc:'Full home deep clean including kitchen and bathrooms.',     price:80,  dur:'2–4 hours',   img:'https://images.unsplash.com/photo-1527515545081-5db817172677?w=150&h=150&fit=crop' },
+      { name:'Painting & Decoration',       desc:'Interior or exterior wall painting and touch-ups.',        price:120, dur:'3–6 hours',   img:'https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=150&h=150&fit=crop' },
+      { name:'Pest Control',                desc:'Exterminate cockroaches, rodents, termites and more.',     price:150, dur:'1–3 hours',   img:'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=150&h=150&fit=crop' },
+      { name:'Smart Home Setup',            desc:'Install smart locks, cameras, or home automation.',        price:180, dur:'2–5 hours',   img:'https://images.unsplash.com/photo-1558002038-bb4237b50b11?w=150&h=150&fit=crop' },
+    ],
+  };
+
+  const CAT_ICONS = {
+    Electrical: '⚡', Plumbing: '🔧', Carpentry: '🪚',
+    'AC Repair': '❄️', Welding: '🔥', More: '✨',
+  };
+
+  /* ── State ── */
+  let currentCat = 'Electrical';
+  let selectedNames = new Set();
+
+  /* ── Render service list ── */
+  function renderServices(cat) {
+    const list = document.getElementById('service-list');
+    const svcs = SVC_CATALOG[cat] || [];
+    if (!svcs.length) { list.innerHTML = '<p style="text-align:center;color:#aaa;padding:24px;">No services in this category yet.</p>'; return; }
+    list.innerHTML = svcs.map(s => {
+      const checked = selectedNames.has(s.name);
+      const icon = CAT_ICONS[cat] || '🔨';
+      return `<div class="service-item${checked ? ' selected' : ''}" onclick="toggleService(this)"
+          data-price="${s.price}" data-name="${escHtml(s.name)}" data-desc="${escHtml(s.desc)}"
+          data-cat="${escHtml(cat)}" data-dur="${escHtml(s.dur)}">
+        <img class="service-thumb" src="${s.img}" alt="${escHtml(s.name)}"
+          onerror="this.style.cssText='width:68px;height:68px;border-radius:10px;background:linear-gradient(135deg,#fde8e8,#f5c5c5);flex-shrink:0;'">
+        <div class="service-info">
+          <p class="service-name">${escHtml(s.name)}</p>
+          <p class="service-desc">${escHtml(s.desc)}</p>
+          <div class="service-meta">
+            <span>${icon} ${escHtml(cat)}</span>
+            <span>⏱ ${escHtml(s.dur)}</span>
+          </div>
+        </div>
+        <div class="service-right">
+          <div>
+            <p class="service-from">From</p>
+            <p class="service-price">GHC ${s.price}</p>
+          </div>
+          <div class="service-checkbox${checked ? ' checked' : ''}">
+            ${checked ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
   }
 
+  function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── Category selection ── */
+  function selectCat(btn, cat) {
+    document.querySelectorAll('.cat-icon-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    currentCat = cat;
+    document.getElementById('section-title').textContent = `Popular ${cat} Services`;
+    renderServices(cat);
+  }
+
+  /* ── Toggle service ── */
   function toggleService(item) {
+    const name = item.dataset.name;
     const cb = item.querySelector('.service-checkbox');
     const isChecked = cb.classList.contains('checked');
-    cb.classList.toggle('checked', !isChecked);
-    cb.innerHTML = !isChecked
-      ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-      : '';
-    item.classList.toggle('selected', !isChecked);
+    if (isChecked) {
+      selectedNames.delete(name);
+      cb.classList.remove('checked');
+      cb.innerHTML = '';
+      item.classList.remove('selected');
+    } else {
+      selectedNames.add(name);
+      cb.classList.add('checked');
+      cb.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      item.classList.add('selected');
+    }
     updatePrice();
   }
 
+  /* ── Price display ── */
   function updatePrice() {
-    const prices = [...document.querySelectorAll('.service-item.selected')].map(i => parseInt(i.dataset.price) || 0);
-    if (prices.length === 0) {
+    if (selectedNames.size === 0) {
       document.getElementById('price-display').textContent = 'GHC 50 – 500';
-    } else {
-      const min = Math.min(...prices);
-      const max = prices.reduce((a, b) => a + b, 0);
-      document.getElementById('price-display').textContent = `GHC ${min} – ${max}`;
-    }
-  }
-
-  function saveAndContinue() {
-    const selected = [...document.querySelectorAll('.service-item.selected')];
-    if (selected.length === 0) {
-      showToast('Please select at least one service');
       return;
     }
-    const services = selected.map(item => ({
-      name: item.dataset.name,
-      desc: item.dataset.desc,
-      price: parseInt(item.dataset.price),
-      category: item.dataset.cat,
-      duration: item.dataset.dur,
-    }));
+    // collect prices from all categories
+    const all = Object.values(SVC_CATALOG).flat();
+    const prices = [...selectedNames].map(n => { const s = all.find(x => x.name === n); return s ? s.price : 0; }).filter(p => p > 0);
+    const min = Math.min(...prices);
+    const total = prices.reduce((a, b) => a + b, 0);
+    document.getElementById('price-display').textContent = `GHC ${min} – ${total}`;
+  }
+
+  /* ── Search ── */
+  document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('svc-search').addEventListener('input', function () {
+      const q = this.value.trim().toLowerCase();
+      if (!q) { renderServices(currentCat); return; }
+      const all = Object.values(SVC_CATALOG).flat();
+      const hits = all.filter(s => s.name.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q));
+      document.getElementById('section-title').textContent = `Results for "${this.value}"`;
+      const list = document.getElementById('service-list');
+      if (!hits.length) { list.innerHTML = '<p style="text-align:center;color:#aaa;padding:24px;">No services found.</p>'; return; }
+      list.innerHTML = hits.map(s => {
+        const cat = Object.keys(SVC_CATALOG).find(c => SVC_CATALOG[c].includes(s)) || '';
+        const checked = selectedNames.has(s.name);
+        return `<div class="service-item${checked ? ' selected' : ''}" onclick="toggleService(this)"
+            data-price="${s.price}" data-name="${escHtml(s.name)}" data-desc="${escHtml(s.desc)}"
+            data-cat="${escHtml(cat)}" data-dur="${escHtml(s.dur)}">
+          <img class="service-thumb" src="${s.img}" alt="${escHtml(s.name)}"
+            onerror="this.style.cssText='width:68px;height:68px;border-radius:10px;background:#fde8e8;flex-shrink:0;'">
+          <div class="service-info">
+            <p class="service-name">${escHtml(s.name)}</p>
+            <p class="service-desc">${escHtml(s.desc)}</p>
+            <div class="service-meta"><span>${CAT_ICONS[cat]||'🔨'} ${escHtml(cat)}</span><span>⏱ ${escHtml(s.dur)}</span></div>
+          </div>
+          <div class="service-right">
+            <div><p class="service-from">From</p><p class="service-price">GHC ${s.price}</p></div>
+            <div class="service-checkbox${checked ? ' checked' : ''}">${checked ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}</div>
+          </div>
+        </div>`;
+      }).join('');
+    });
+
+    // Restore selections if coming back from step 2
+    const state = getState();
+    if (state.services) {
+      state.services.forEach(s => selectedNames.add(s.name));
+      if (state.category && SVC_CATALOG[state.category]) {
+        currentCat = state.category;
+        document.querySelectorAll('.cat-icon-btn').forEach(b => {
+          if (b.dataset.cat === currentCat || b.querySelector('span')?.textContent?.trim() === currentCat) b.classList.add('active');
+          else b.classList.remove('active');
+        });
+        document.getElementById('section-title').textContent = `Popular ${currentCat} Services`;
+      }
+    }
+    renderServices(currentCat);
+    updatePrice();
+
+    // Notification badge
+    try {
+      const count = parseInt(localStorage.getItem('unread_notifications') || '0', 10);
+      const badge = document.getElementById('bk-bell-badge');
+      if (badge && count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.style.display = ''; }
+    } catch {}
+  });
+
+  /* ── Continue ── */
+  function saveAndContinue() {
+    if (selectedNames.size === 0) { showToast('Please select at least one service'); return; }
+    const all = Object.values(SVC_CATALOG).flat();
+    const services = [...selectedNames].map(name => {
+      const s = all.find(x => x.name === name);
+      return s ? { name: s.name, desc: s.desc, price: s.price, category: Object.keys(SVC_CATALOG).find(c => SVC_CATALOG[c].includes(s)) || '', duration: s.dur } : null;
+    }).filter(Boolean);
     const prices = services.map(s => s.price);
     const serviceFee = prices.reduce((a, b) => a + b, 0);
     const serviceCharge = 10, platformFee = 5;
@@ -289,42 +366,28 @@
       services,
       totalMin: Math.min(...prices),
       totalMax: serviceFee,
-      serviceFee,
-      serviceCharge,
-      platformFee,
+      serviceFee, serviceCharge, platformFee,
       total: serviceFee + serviceCharge + platformFee,
-      category: services[0].category,
+      category: services[0]?.category || currentCat,
     }));
     window.location.href = 'book-step2.html';
   }
 
-  function showToast(msg) {
-    let t = document.getElementById('bk-toast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = 'bk-toast';
-      t.className = 'bk-toast';
-      document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2200);
-  }
+  const BOOK_STEP_TOAST_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 
-  // Restore selections if coming back from step 2
-  document.addEventListener('DOMContentLoaded', function() {
-    const state = getState();
-    if (!state.services) return;
-    document.querySelectorAll('.service-item').forEach(item => {
-      if (state.services.some(s => s.name === item.dataset.name)) {
-        item.classList.add('selected');
-        const cb = item.querySelector('.service-checkbox');
-        cb.classList.add('checked');
-        cb.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      }
-    });
-    updatePrice();
-  });
+  function showToast(msg) {
+    document.querySelector('.toast.app-toast')?.remove();
+    const t = document.createElement('div');
+    t.className = 'toast app-toast info';
+    t.setAttribute('role','status'); t.setAttribute('aria-live','polite'); t.setAttribute('aria-atomic','true');
+    const icon = document.createElement('span'); icon.className = 'toast-icon'; icon.setAttribute('aria-hidden','true'); icon.innerHTML = BOOK_STEP_TOAST_ICON;
+    const text = document.createElement('span'); text.className = 'toast-message'; text.textContent = msg;
+    t.append(icon, text);
+    document.body.appendChild(t);
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => { t.classList.add('toast-exit'); setTimeout(() => t.remove(), 320); }, 3000);
+  }
 </script>
 </body>
 </html>
+

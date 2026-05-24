@@ -10,7 +10,7 @@
 body {
   font-family: 'DM Sans', sans-serif;
   background: #f0f0f0;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 button {
@@ -26,11 +26,11 @@ button {
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100dvh;
   max-width: 480px;
   margin: 0 auto;
   background: #fff;
-  overflow: hidden;
+  overflow-x: hidden;
   position: relative;
 }
 
@@ -151,22 +151,6 @@ button {
   text-overflow: ellipsis;
 }
 
-.uc-edit-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 12px;
-  border-radius: 10px;
-  border: 1.5px solid #ffe0e0;
-  background: #fff5f5;
-  color: #730201;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: inherit;
-  flex-shrink: 0;
-  transition: background .15s, border-color .15s;
-}
-.uc-edit-btn:hover { background: #ffe0e0; border-color: #fcc; }
 
 .uc-divider {
   height: 1px;
@@ -174,35 +158,12 @@ button {
   margin: 14px 0;
 }
 
-.uc-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 
-.uc-detail-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-.uc-detail-row svg { flex-shrink: 0; margin-top: 1px; }
 
-.uc-detail-text {
-  font-size: 13px;
-  color: #444;
-  line-height: 1.4;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
-.uc-bio {
-  white-space: normal;
-  font-style: italic;
-  color: #888;
-  font-size: 12px;
-}
+
+
+
 
 .uc-stats {
   display: flex;
@@ -242,12 +203,13 @@ button {
 .banner {
   background: #fff5f5;
   border-radius: 16px;
-  padding: 16px;
+  padding: 14px 16px;
   display: flex;
-  height: 2cm;
+  min-height: 60px;
+  height: auto;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .banner-icon {
@@ -527,14 +489,22 @@ button {
    BOTTOM NAV
 =========================== */
 .bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 10px 6px env(safe-area-inset-bottom, 12px);
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
+  padding: 6px 0 env(safe-area-inset-bottom, 8px);
+  background: rgba(255, 255, 255, 0.97);
+  border-top: 1px solid rgba(0,0,0,0.07);
   flex-shrink: 0;
-  text-decoration: none;
+  z-index: 200;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .nav-item {
@@ -712,3 +682,20 @@ button {
 [data-theme="dark"] .nav-item.active svg path,
 [data-theme="dark"] .nav-item.active svg circle,
 [data-theme="dark"] .nav-item.active svg polyline { stroke: #ff6b6b; }
+
+/* ── Skeleton loading ─────────────────────────────────────────────────────── */
+@keyframes skel-sweep { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.skel {
+  background: linear-gradient(90deg,#ebebeb 25%,#e0e0e0 50%,#ebebeb 75%) !important;
+  background-size: 200% 100% !important;
+  animation: skel-sweep 1.4s ease-in-out infinite !important;
+  color: transparent !important;
+  border-radius: 6px !important;
+  pointer-events: none;
+  user-select: none;
+}
+.skel-circle { border-radius: 50% !important; }
+[data-theme="dark"] .skel {
+  background: linear-gradient(90deg,#2a2a2a 25%,#222 50%,#2a2a2a 75%) !important;
+  background-size: 200% 100% !important;
+}

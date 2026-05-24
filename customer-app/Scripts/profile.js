@@ -123,52 +123,36 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ==========================
      Toast notification helper
   ========================== */
-  function showToast(title, message) {
-    // Remove any existing toast
-    const existing = document.getElementById('hh-toast');
-    if (existing) existing.remove();
- 
+    const HH_TOAST_INFO_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+
+  function showToast(title, message, type = 'info') {
+    document.querySelector('.toast.app-toast')?.remove();
+
     const toast = document.createElement('div');
-    toast.id = 'hh-toast';
-    toast.innerHTML = `<strong>${title}</strong><span>${message}</span>`;
-    Object.assign(toast.style, {
-      position: 'fixed',
-      bottom: '110px',
-      left: '50%',
-      transform: 'translateX(-50%) translateY(20px)',
-      background: '#111',
-      color: '#fff',
-      padding: '10px 18px',
-      borderRadius: '12px',
-      fontSize: '13px',
-      display: 'flex',
-      gap: '6px',
-      alignItems: 'center',
-      opacity: '0',
-      transition: 'opacity 0.25s ease, transform 0.25s ease',
-      zIndex: '9999',
-      whiteSpace: 'nowrap',
-      boxShadow: '0 6px 24px rgba(0,0,0,0.22)',
-      pointerEvents: 'none',
-    });
- 
+    toast.className = `toast app-toast ${type}`;
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.setAttribute('aria-atomic', 'true');
+
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = HH_TOAST_INFO_ICON;
+
+    const text = document.createElement('span');
+    text.className = 'toast-message';
+    text.textContent = message ? `${title}: ${message}` : title;
+
+    toast.append(icon, text);
     document.body.appendChild(toast);
- 
-    // Animate in
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateX(-50%) translateY(0)';
-      });
-    });
- 
-    // Fade out after 2s
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(-50%) translateY(10px)';
-      setTimeout(() => toast.remove(), 300);
-    }, 2000);
+
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => {
+      toast.classList.add('toast-exit');
+      setTimeout(() => toast.remove(), 320);
+    }, 3000);
   }
  
 });
  
+

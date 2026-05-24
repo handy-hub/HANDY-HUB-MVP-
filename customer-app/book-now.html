@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Handy Hub – Book Now</title>
   <link rel="stylesheet" href="css/book-now.css" />
+
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
 <body>
 <div class="bn-shell">
@@ -216,11 +218,17 @@
 <script src="../shared/js/utils/global-app.js"></script>
 <script>
   const SERVICES = {
-    electrician: { name:'Electrician', desc:'We\'ll match you with the nearest available electrician.', arrival:'5 – 10 mins', price:'GHC 50 – 80', icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
-    plumber:     { name:'Plumber', desc:'We\'ll connect you with a skilled plumber near you.', arrival:'8 – 15 mins', price:'GHC 60 – 100', icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="#730201" stroke-width="2"/><path d="M7 10c0 5.52 10 5.52 10 0" stroke="#730201" stroke-width="2"/></svg>' },
-    carpenter:   { name:'Carpenter', desc:'We\'ll find an expert carpenter for your woodwork needs.', arrival:'10 – 20 mins', price:'GHC 80 – 150', icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>' },
-    ac:          { name:'AC Repair Specialist', desc:'Get your AC serviced by a certified technician fast.', arrival:'15 – 25 mins', price:'GHC 100 – 200', icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>' },
-    more:        { name:'Other Service', desc:'Tell us what you need and we\'ll find the right professional.', arrival:'5 – 20 mins', price:'GHC 50 – 200', icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#730201"/><circle cx="12" cy="12" r="1.5" fill="#730201"/><circle cx="19" cy="12" r="1.5" fill="#730201"/></svg>' },
+    electrician: { name:'Electrician', emKey:'Electrical',         desc:'We\'ll match you with the nearest available electrician.', arrival:'5 – 10 mins',  price:'GHC 50 – 80',   icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+    plumber:     { name:'Plumber',      emKey:'Plumbing',          desc:'We\'ll connect you with a skilled plumber near you.',      arrival:'8 – 15 mins',  price:'GHC 60 – 100',  icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="#730201" stroke-width="2"/><path d="M7 10c0 5.52 10 5.52 10 0" stroke="#730201" stroke-width="2"/></svg>' },
+    carpenter:   { name:'Carpenter',    emKey:'Carpentry',         desc:'We\'ll find an expert carpenter for your woodwork needs.', arrival:'10 – 20 mins', price:'GHC 80 – 150',  icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>' },
+    ac:          { name:'AC Specialist', emKey:'AC Repair',        desc:'Get your AC serviced by a certified technician fast.',    arrival:'15 – 25 mins', price:'GHC 100 – 200', icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>' },
+    more:        { name:'Other Service', emKey:'General Emergency', desc:'Tell us what you need and we\'ll find the right person.', arrival:'5 – 20 mins',  price:'GHC 50 – 200', icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#730201"/><circle cx="12" cy="12" r="1.5" fill="#730201"/><circle cx="19" cy="12" r="1.5" fill="#730201"/></svg>' },
+  };
+
+  // Mapping from hh_service session value → SERVICES key
+  const SVC_KEY_MAP = {
+    'Electrical': 'electrician', 'Plumbing': 'plumber',
+    'Carpentry': 'carpenter', 'AC Repair': 'ac', 'Cleaning': 'more',
   };
 
   let currentSvc = 'electrician';
@@ -240,14 +248,29 @@
 
   function toggleHelp() {
     const btn = document.getElementById('help-toggle');
-    btn.classList.toggle('off');
+    if (btn) btn.classList.toggle('off');
   }
 
   function requestService() {
     const svc = SERVICES[currentSvc];
-    sessionStorage.setItem('em_service', JSON.stringify(svc));
+    // Store the service type name that PRO_POOL in book-emergency.html expects
+    sessionStorage.setItem('em_service', svc.emKey);
+    sessionStorage.setItem('hh_service', svc.emKey);
+    sessionStorage.setItem('hh_task', svc.name);
     window.location.href = 'book-emergency.html';
   }
+
+  // Pre-select category based on what the dashboard chip stored in sessionStorage
+  document.addEventListener('DOMContentLoaded', function () {
+    const incoming = sessionStorage.getItem('hh_service');
+    if (incoming && SVC_KEY_MAP[incoming]) {
+      const id = SVC_KEY_MAP[incoming];
+      const btn = document.getElementById('cat-' + id);
+      if (btn) selectCat(btn, id);
+    }
+  });
 </script>
 </body>
 </html>
+
+

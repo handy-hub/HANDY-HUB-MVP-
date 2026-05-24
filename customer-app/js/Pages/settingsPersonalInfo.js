@@ -1,6 +1,6 @@
 import "../../../shared/js/utils/global-app.js";
 import { getAppContainer } from "../../../shared/js/app/container.js";
-
+import { showToast } from "../../../shared/js/components/toast.js";
 const nameEl     = document.getElementById('fi-name');
 const phoneEl    = document.getElementById('fi-phone');
 const locationEl = document.getElementById('fi-location');
@@ -8,20 +8,6 @@ const bioEl      = document.getElementById('fi-bio');
 const emailEl    = document.getElementById('fi-email');
 const saveBtn    = document.getElementById('save-btn');
 const bioCount   = document.getElementById('bio-count');
-
-function showToast(msg, type = 'info') {
-    const existing = document.querySelector('.toast');
-    if (existing) existing.remove();
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    t.innerHTML = `<span class="toast-message">${msg}</span>`;
-    document.body.appendChild(t);
-    setTimeout(() => {
-        t.classList.add('toast-exit');
-        t.addEventListener('animationend', () => t.remove(), { once: true });
-        setTimeout(() => t.remove(), 320);
-    }, 3200);
-}
 
 let currentUser = null;
 let unsubscribe = null;
@@ -79,3 +65,4 @@ window.savePersonalInfo = async function () {
 };
 
 window.addEventListener('pagehide', () => { if (unsubscribe) unsubscribe(); });
+

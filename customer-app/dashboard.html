@@ -10,6 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="../shared/css/pageTransitions.css">
+
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
 <body>
 <div class="app">
@@ -104,25 +106,20 @@
   <div class="user-card">
     <div class="user-card-info">
       <button class="uc-avatar-btn" onclick="window.location.href='profile.html'">
-        <img class="uc-avatar" id="uc-avatar"
-          src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Profile">
+        <img class="uc-avatar skel skel-circle" id="uc-avatar"
+          src="" alt="Profile">
       </button>
       <div class="uc-text">
         <p class="uc-greeting" id="uc-greeting">Good morning,</p>
         <div class="uc-name-row">
-          <p class="uc-name" id="uc-name">John</p>
+          <p class="uc-name skel" id="uc-name" style="min-width:64px"></p>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
         </div>
         <button class="uc-loc" id="location-changer">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="#730201"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-          <span id="uc-loc-text">Accra, Ghana</span>
+          <span class="skel" id="uc-loc-text" style="min-width:80px;display:inline-block">&nbsp;</span>
         </button>
       </div>
-    </div>
-    <div class="uc-wallet">
-      <p class="uc-wallet-label">Wallet Balance</p>
-      <p class="uc-wallet-amount">GHC 0.00</p>
-      <button class="uc-topup">Top Up</button>
     </div>
   </div>
 
@@ -217,7 +214,7 @@
     <div class="nearby-actions">
       <button class="dist-pill">Within 5km <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg></button>
       <button class="filter-btn">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M22 3H2l8 9.46V19l4 2V12.46L22 3z" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg  viewBox="0 0 24 24" fill="none"><path d="M22 3H2l8 9.46V19l4 2V12.46L22 3z" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Filter
       </button>
     </div>
@@ -235,50 +232,267 @@
     </div>
   </div>
 
-  <!-- ════ BOTTOM NAV ════ -->
-  <nav class="bottom-nav">
-    <a href="dashboard.html" class="nav-item active">
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span class="active-label">Home</span>
-    </a>
-    <a href="booking.html" class="nav-item">
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="#aaa" stroke-width="1.7"/><path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/></svg>
-      <span>Bookings</span>
-    </a>
-    <a href="messages.html" class="nav-item">
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Messages</span>
-    </a>
-    <a href="saved.html" class="nav-item">
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Saved</span>
-    </a>
-    <a href="profile.html" class="nav-item">
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#aaa" stroke-width="1.7"/></svg>
-      <span>Profile</span>
-    </a>
-  </nav>
 
 </div><!-- /.app -->
 
-<!-- ════ EMERGENCY TYPE MODAL ════ -->
-<div id="em-type-modal" class="em-modal-overlay" onclick="handleEmModalOverlayClick(event)">
-  <div class="em-modal-sheet">
-    <div class="em-modal-handle"></div>
-    <div class="em-modal-header">
-      <div class="em-modal-header-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div>
-        <h3 class="em-modal-title">What's the emergency?</h3>
-        <p class="em-modal-sub">We'll find the nearest available professional</p>
-      </div>
+
+<!-- ════ LOCATION PICKER MODAL ════ -->
+<style>
+  .loc-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:1200;align-items:flex-end;justify-content:center}
+  .loc-overlay.loc-open{display:flex}
+  .loc-sheet{background:var(--bg,#fff);border-radius:22px 22px 0 0;width:100%;max-width:430px;overflow:hidden;box-shadow:0 -6px 32px rgba(0,0,0,.22);display:flex;flex-direction:column}
+  .loc-handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:10px auto 14px;flex-shrink:0}
+  .loc-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 16px 8px;flex-shrink:0}
+  .loc-title{font-size:16px;font-weight:700;color:var(--text-primary,#111);margin:0}
+  .loc-gps-btn{display:flex;align-items:center;gap:5px;background:#fff0f0;color:#730201;border:1.5px solid #f5c2c2;border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+  .loc-gps-btn:disabled{opacity:.55;cursor:not-allowed}
+  .loc-hint{padding:0 16px 8px;font-size:11.5px;color:#999;flex-shrink:0}
+  #loc-map-el{width:100%;height:300px;flex-shrink:0}
+  .loc-footer{padding:10px 16px 22px;flex-shrink:0}
+  .loc-name-row{display:flex;align-items:center;gap:6px;padding:8px 0 10px;min-height:38px}
+  .loc-name-row span{font-size:13px;font-weight:600;color:#333;flex:1;line-height:1.35}
+  .loc-confirm{width:100%;background:#730201;color:#fff;border:none;border-radius:13px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s}
+  .loc-confirm:disabled{opacity:.38;cursor:not-allowed}
+  .loc-cancel{width:100%;background:none;color:#aaa;border:none;padding:9px;font-size:13px;cursor:pointer;margin-top:2px;font-family:inherit}
+  /* Leaflet marker pulse ring */
+  .hh-pin-wrap{position:relative;width:28px;height:34px}
+  .hh-pin{width:26px;height:26px;background:#730201;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 10px rgba(115,2,1,.45)}
+  .hh-pin-shadow{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:10px;height:4px;background:rgba(0,0,0,.18);border-radius:50%}
+</style>
+
+<div id="loc-overlay" class="loc-overlay" role="dialog" aria-modal="true" aria-label="Set your location">
+  <div id="loc-sheet" class="loc-sheet">
+    <div class="loc-handle"></div>
+    <div class="loc-hdr">
+      <h3 class="loc-title">Set Your Location</h3>
+      <button id="loc-gps-btn" class="loc-gps-btn" aria-label="Use my GPS location">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        My Location
+      </button>
     </div>
-    <div class="em-type-grid" id="em-type-grid"></div>
-    <button class="em-modal-cancel" onclick="closeEmergencyModal()">Cancel</button>
+    <p class="loc-hint">Tap anywhere on the map · drag the pin to adjust</p>
+    <div id="loc-map-el"></div>
+    <div class="loc-footer">
+      <div class="loc-name-row">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="#730201" flex-shrink="0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        <span id="loc-selected-text">Tap on the map to select a location</span>
+      </div>
+      <button id="loc-confirm-btn" class="loc-confirm" disabled>Confirm Location</button>
+      <button id="loc-cancel-btn" class="loc-cancel">Cancel</button>
+    </div>
   </div>
 </div>
 
+<!-- ════ DEVICE LOCATION & MAP PICKER ════ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── Constants ─────────────────────────────────────────────── */
+  var CACHE_KEY  = 'hh_detected_location';
+  var CACHE_TTL  = 10 * 60 * 1000;           // 10 min
+  var DEFAULT_LAT = 5.6037, DEFAULT_LON = -0.1870; // Accra fallback
+
+  /* ── Tiny helpers ──────────────────────────────────────────── */
+  function updateLocationEl(text) {
+    var el = document.getElementById('uc-loc-text');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('skel');
+    el.style.minWidth = '';
+    el.style.display  = '';
+  }
+
+  function reverseGeocode(lat, lon, cb) {
+    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat +
+          '&lon=' + lon + '&format=json&accept-language=en')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var a    = d.address || {};
+        var area = a.neighbourhood || a.suburb || a.quarter || a.town || a.village || '';
+        var city = a.city || a.state_district || a.county || a.state || '';
+        var parts = [area, city].filter(Boolean);
+        cb(null, parts.length ? parts.join(', ') : (d.display_name || ''));
+      })
+      .catch(function(e){ cb(e); });
+  }
+
+  function saveToCache(loc, lat, lon) {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ loc:loc, lat:lat, lon:lon, ts:Date.now() }));
+      var p = JSON.parse(localStorage.getItem('hh_profile_cache') || 'null');
+      if (p) { p.location = loc; localStorage.setItem('hh_profile_cache', JSON.stringify(p)); }
+    } catch(_){}
+  }
+
+  function tryGetCache() {
+    try {
+      var raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (o && o.loc && (Date.now() - o.ts) < CACHE_TTL) return o;
+    } catch(_){}
+    return null;
+  }
+
+  /* ── Auto-detect on every page load ───────────────────────── */
+  (function autoDetect(){
+    var cached = tryGetCache();
+    if (cached) updateLocationEl(cached.loc);   // instant from cache
+
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        reverseGeocode(pos.coords.latitude, pos.coords.longitude, function(err, loc){
+          if (!err && loc) { updateLocationEl(loc); saveToCache(loc, pos.coords.latitude, pos.coords.longitude); }
+        });
+      },
+      function(){},  // silent if denied
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 5 * 60 * 1000 }
+    );
+  })();
+
+  /* ── Lazy-load Leaflet ─────────────────────────────────────── */
+  function loadLeaflet(cb) {
+    if (window.L) { cb(); return; }
+    var css = document.createElement('link');
+    css.rel  = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    var js = document.createElement('script');
+    js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onload = cb;
+    document.head.appendChild(js);
+  }
+
+  /* ── Map state ─────────────────────────────────────────────── */
+  var _map = null, _marker = null, _pending = null;
+
+  function makeIcon() {
+    return L.divIcon({
+      className: '',
+      html: '<div class="hh-pin-wrap"><div class="hh-pin"></div><div class="hh-pin-shadow"></div></div>',
+      iconSize:   [28, 34],
+      iconAnchor: [14, 34]
+    });
+  }
+
+  function onMarkerMoved(latlng) {
+    document.getElementById('loc-selected-text').textContent = 'Looking up address…';
+    document.getElementById('loc-confirm-btn').disabled = true;
+    reverseGeocode(latlng.lat, latlng.lng, function(err, loc){
+      if (!err && loc) {
+        document.getElementById('loc-selected-text').textContent = loc;
+        _pending = { loc: loc, lat: latlng.lat, lon: latlng.lng };
+        document.getElementById('loc-confirm-btn').disabled = false;
+      } else {
+        document.getElementById('loc-selected-text').textContent = 'Could not resolve address';
+      }
+    });
+  }
+
+  function initOrUpdateMap(lat, lon) {
+    if (_map) {
+      _map.setView([lat, lon], 16);
+      _marker.setLatLng([lat, lon]);
+      onMarkerMoved({ lat: lat, lng: lon });
+      return;
+    }
+
+    _map = L.map('loc-map-el', {
+      zoomControl: true,
+      attributionControl: false
+    }).setView([lat, lon], 16);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(_map);
+
+    _marker = L.marker([lat, lon], { icon: makeIcon(), draggable: true }).addTo(_map);
+    _marker.on('dragend', function(e){ onMarkerMoved(e.target.getLatLng()); });
+    _map.on('click', function(e){ _marker.setLatLng(e.latlng); onMarkerMoved(e.latlng); });
+
+    onMarkerMoved({ lat: lat, lng: lon });
+  }
+
+  /* ── Open / close modal ────────────────────────────────────── */
+  function openLocModal() {
+    var overlay = document.getElementById('loc-overlay');
+    if (!overlay) return;
+    overlay.classList.add('loc-open');
+    document.body.style.overflow = 'hidden';
+
+    var cached = tryGetCache();
+    var lat = (cached && cached.lat) ? cached.lat : DEFAULT_LAT;
+    var lon = (cached && cached.lon) ? cached.lon : DEFAULT_LON;
+
+    loadLeaflet(function(){
+      // Give the sheet time to be visible before init (avoids 0-size map)
+      setTimeout(function(){
+        initOrUpdateMap(lat, lon);
+        _map && _map.invalidateSize();
+      }, 260);
+    });
+  }
+
+  function closeLocModal() {
+    var overlay = document.getElementById('loc-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('loc-open');
+    document.body.style.overflow = '';
+  }
+
+  /* ── Overlay & buttons ─────────────────────────────────────── */
+  document.getElementById('loc-overlay')?.addEventListener('click', function(e){
+    if (e.target === this) closeLocModal();
+  });
+  document.getElementById('loc-cancel-btn')?.addEventListener('click', closeLocModal);
+
+  document.getElementById('loc-confirm-btn')?.addEventListener('click', function(){
+    if (_pending) {
+      updateLocationEl(_pending.loc);
+      saveToCache(_pending.loc, _pending.lat, _pending.lon);
+      if (typeof toast === 'function') toast('📍 Location set: ' + _pending.loc, 'success');
+    }
+    closeLocModal();
+  });
+
+  /* ── "My Location" button inside modal ─────────────────────── */
+  document.getElementById('loc-gps-btn')?.addEventListener('click', function(){
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Detecting…';
+
+    if (!navigator.geolocation) {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg> My Location';
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        var lat = pos.coords.latitude, lon = pos.coords.longitude;
+        loadLeaflet(function(){
+          initOrUpdateMap(lat, lon);
+          _map && _map.invalidateSize();
+        });
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg> My Location';
+      },
+      function(){
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg> My Location';
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  /* ── Expose for location-changer button ────────────────────── */
+  window.openLocationPicker = openLocModal;
+
+})();
+</script>
 
 <!-- ════ SCRIPTS ════ -->
 <script src="../shared/js/components/serviceIcons.js"></script>
@@ -288,25 +502,46 @@
 <script src="../shared/js/utils/global-app.js"></script>
 <script type="module" src="js/dashboardBadge.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
+<script src="../shared/js/components/floatingNav.js"></script>
 
 <script>
 (function () {
+  const TOAST_ICONS = {
+    success: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    error: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8V13" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M12 16.5V16.55" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21H20.47A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+  };
+
   function go(href, store) {
     if (store) Object.entries(store).forEach(([k, v]) => sessionStorage.setItem(k, v));
     window.location.href = href;
   }
-  function toast(msg) {
-    let t = document.getElementById('_db_toast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = '_db_toast';
-      t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(16px);background:#111;color:#fff;padding:9px 18px;border-radius:10px;font-size:12.5px;font-weight:600;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2)';
-      document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
-    clearTimeout(t._tid);
-    t._tid = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(16px)'; }, 2500);
+  function toast(msg, type = 'info') {
+    document.querySelector('.toast.app-toast')?.remove();
+
+    const t = document.createElement('div');
+    t.className = `toast app-toast ${type}`;
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    t.setAttribute('aria-atomic', 'true');
+
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = TOAST_ICONS[type] || TOAST_ICONS.info;
+
+    const text = document.createElement('span');
+    text.className = 'toast-message';
+    text.textContent = msg;
+
+    t.append(icon, text);
+    document.body.appendChild(t);
+
+    clearTimeout(toast._tid);
+    toast._tid = setTimeout(() => {
+      t.classList.add('toast-exit');
+      setTimeout(() => t.remove(), 320);
+    }, 3000);
   }
 
   function openSidebar()  { document.getElementById('sidebar')?.classList.add('active'); document.getElementById('sidebar-overlay')?.classList.add('active'); }
@@ -325,9 +560,20 @@
   if (greetEl) greetEl.textContent = greet;
 
   /* quick action sidebar buttons */
-  const quickDests = ['book-emergency.html', 'booking.html', 'live-tracking.html', 'book-step1.html'];
+  const quickDests = [null, 'booking.html', 'live-tracking.html', 'book-step1.html'];
   document.querySelectorAll('.quick-action-btn').forEach((btn, i) => {
-    if (quickDests[i]) btn.addEventListener('click', () => { closeSidebar(); go(quickDests[i]); });
+    if (i === 0) {
+      // Emergency Request → open service-type modal first
+      btn.addEventListener('click', () => {
+        closeSidebar();
+        setTimeout(() => {
+          if (typeof window.openEmergencyModal === 'function') window.openEmergencyModal();
+          else window.location.href = 'book-emergency.html';
+        }, 200);
+      });
+    } else if (quickDests[i]) {
+      btn.addEventListener('click', () => { closeSidebar(); go(quickDests[i]); });
+    }
   });
 
   /* sidebar menu items */
@@ -351,7 +597,10 @@
   /* quick chips */
   document.getElementById('chip-fixpipe')?.addEventListener('click',  () => go('book-now.html', { hh_service: 'Plumbing', hh_task: 'Fix leaking pipe' }));
   document.getElementById('chip-fan')?.addEventListener('click',      () => go('book-now.html', { hh_service: 'Electrical', hh_task: 'Install Fan' }));
-  document.getElementById('chip-em-elec')?.addEventListener('click',  () => go('book-emergency.html', { hh_service: 'Electrical', hh_task: 'Emergency Electrician' }));
+  document.getElementById('chip-em-elec')?.addEventListener('click',  () => {
+    sessionStorage.setItem('em_service', 'Electrical');
+    go('book-emergency.html', { hh_service: 'Electrical', hh_task: 'Emergency Electrician' });
+  });
   document.getElementById('chip-more')?.addEventListener('click',     () => go('book-step1.html'));
 
   /* ad banner buttons */
@@ -361,7 +610,13 @@
   /* section buttons */
   document.getElementById('view-all-svc')?.addEventListener('click', () => go('book-step1.html'));
   document.getElementById('view-more-pros')?.addEventListener('click', () => go('book-now.html'));
-  document.getElementById('location-changer')?.addEventListener('click', () => go('settings-location.html'));
+  document.getElementById('location-changer')?.addEventListener('click', () => {
+    if (typeof window.openLocationPicker === 'function') {
+      window.openLocationPicker();
+    } else {
+      go('settings-location.html');
+    }
+  });
 
   /* service click handler */
   window.handleServiceClick = function (serviceId) {
@@ -412,42 +667,13 @@
 })();
 </script>
 
-<!-- Emergency Type Modal -->
-<script>
-const EM_TYPES = [
-  { id: 'plumbing',   name: 'Plumbing',      service: 'Plumbing',         icon: '<path d="M12 22s-8-6-8-13a8 8 0 0 1 16 0c0 7-8 13-8 13z" stroke="currentColor" stroke-width="2"/><path d="M8 10h8M12 6v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
-  { id: 'electrical', name: 'Electrical',    service: 'Electrical',        icon: '<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' },
-  { id: 'ac_repair',  name: 'AC Repair',     service: 'AC Repair',         icon: '<rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M12 6v12M8 10h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
-  { id: 'carpentry',  name: 'Carpentry',     service: 'Carpentry',         icon: '<path d="M14.5 2.5c0 1.5-1.5 3-1.5 3H8L5.5 9l3 3-3 4.5 2 1 3-4.5h3.5l5 5 1.5-1.5-5-5V8.5s1.5-1.5 1.5-3a2 2 0 0 0-2-3z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
-  { id: 'appliance',  name: 'Appliance',     service: 'Appliance Repair',  icon: '<rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 9h6M9 12h6M9 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
-  { id: 'locksmith',  name: 'Locksmith',     service: 'Locksmith',         icon: '<rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/>' },
-  { id: 'water_leak', name: 'Water Leak',    service: 'Plumbing',          icon: '<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' },
-  { id: 'power_out',  name: 'Power Out',     service: 'Electrical',        icon: '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
-  { id: 'cleaning',   name: 'Cleaning',      service: 'Cleaning',          icon: '<path d="M3 3l18 18M9 9c-1.5 1.5-2 3-2 5a5 5 0 0 0 10 0c0-5-4-7-4-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
-  { id: 'other',      name: 'Other',         service: 'General Emergency', icon: '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
-];
-document.getElementById('em-type-grid').innerHTML = EM_TYPES.map(t =>
-  `<button class="em-type-btn" onclick="selectEmergencyType('${t.id}','${t.service}')">
-    <div class="em-type-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none">${t.icon}</svg></div>
-    <span class="em-type-name">${t.name}</span>
-  </button>`
-).join('');
-function openEmergencyModal()  { document.getElementById('em-type-modal').classList.add('em-modal-visible'); document.body.style.overflow = 'hidden'; }
-function closeEmergencyModal() { document.getElementById('em-type-modal').classList.remove('em-modal-visible'); document.body.style.overflow = ''; }
-function handleEmModalOverlayClick(e) { if (e.target === document.getElementById('em-type-modal')) closeEmergencyModal(); }
-function selectEmergencyType(id, serviceName) {
-  sessionStorage.setItem('hh_service', serviceName);
-  sessionStorage.setItem('hh_task', 'Emergency – ' + serviceName);
-  sessionStorage.setItem('em_service', serviceName);
-  closeEmergencyModal();
-  setTimeout(() => { window.location.href = 'book-emergency.html'; }, 220);
-}
-</script>
+<!-- Emergency modal + floating nav injected by floatingNav.js -->
 
 
 <!-- Profile cache + active booking banner -->
 <script>
 (function () {
+  function removeSkel(el) { if (el) { el.classList.remove('skel','skel-circle'); el.style.minWidth = ''; } }
   try {
     const p = JSON.parse(localStorage.getItem('hh_profile_cache') || 'null');
     if (!p) return;
@@ -456,28 +682,58 @@ function selectEmergencyType(id, serviceName) {
     const sideNameEl = document.getElementById('sidebar-name');
     const sideImgEl  = document.getElementById('sidebar-profile-img');
     const locEl  = document.getElementById('uc-loc-text');
-    if (nameEl && p.name) nameEl.textContent = p.name.split(' ')[0];
+    
+    // Fixed line below to show the entire name string
+    if (nameEl && p.name) { nameEl.textContent = p.name; removeSkel(nameEl); }
+    
     if (sideNameEl && p.name) sideNameEl.textContent = p.name;
-    if (locEl && p.location) locEl.textContent = p.location;
+    if (locEl && p.location) { locEl.textContent = p.location; removeSkel(locEl); }
     const src = p.profileImage || (p.name ? 'https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=' + encodeURIComponent(p.name.slice(0,2).toUpperCase()) : null);
-    if (imgEl && src)     imgEl.src = src;
+    if (imgEl && src) { imgEl.src = src; removeSkel(imgEl); }
     if (sideImgEl && src) sideImgEl.src = src;
   } catch (_) {}
 })();
 
 (function () {
-  const b = JSON.parse(localStorage.getItem('hh_booking') || 'null');
-  const _pro = b && (b.artisan || b.professional);
-  if (!_pro || b.status === 'completed') return;
-  const banner = document.createElement('div');
-  banner.style.cssText = 'position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:999;background:#730201;color:#fff;display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;box-shadow:0 2px 10px rgba(115,2,1,0.3)';
-  banner.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#fff"/></svg><span style="flex:1;font-size:12.5px;font-weight:700;">${_pro.name || 'Artisan'} is on the way — tap to track</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
-  banner.onclick = () => window.location.href = 'live-tracking.html';
+  var b;
+  try { b = JSON.parse(localStorage.getItem('hh_booking')); } catch { b = null; }
+  if (!b) return;
+
+  // Hide banner for terminal statuses (case-insensitive)
+  var st = (b.status || '').toLowerCase();
+  if (!st || st === 'completed' || st === 'cancelled') return;
+
+  var pro = b.professional || b.artisan || {};
+  var name = pro.name || b.proName || 'Your professional';
+
+  // Choose message + colour based on status
+  var bg   = '#730201';
+  var msg;
+  if (st === 'emergency') {
+    bg  = '#b71c1c';
+    msg = '🆘 Emergency request dispatched — tap to track';
+  } else if (st === 'on the way' || st === 'active' || st === 'in progress') {
+    msg = '⚡ ' + name + ' is on the way — tap to track';
+  } else {
+    // Confirmed / Pending
+    msg = '✅ Booking confirmed — ' + name + ' will be with you soon';
+  }
+
+  var banner = document.createElement('div');
+  banner.id = 'active-booking-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:999;background:' + bg + ';color:#fff;display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;box-shadow:0 2px 10px rgba(115,2,1,0.3);';
+  banner.innerHTML =
+    '<span style="flex:1;font-size:12.5px;font-weight:700;">' + msg + '</span>' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';
+  banner.onclick = function () { window.location.href = 'live-tracking.html'; };
   document.body.prepend(banner);
-  const app = document.querySelector('.app');
-  if (app) app.style.paddingTop = '40px';
+
+  // Push content down so banner doesn't overlap header
+  var shell = document.querySelector('.phone-shell') || document.querySelector('.app');
+  if (shell) shell.style.paddingTop = '40px';
 })();
 </script>
 
 </body>
 </html>
+

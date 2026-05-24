@@ -1,19 +1,29 @@
 /* themeManager.js — apply saved theme preference immediately to avoid flash */
 (function () {
   var theme = localStorage.getItem('pref_theme') || 'Light';
+  var root = document.documentElement;
   if (theme === 'Dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
+    root.setAttribute('data-theme', 'dark');
+    root.classList.add('dark');
+    root.style.colorScheme = 'dark';
   } else {
-    document.documentElement.removeAttribute('data-theme');
+    root.removeAttribute('data-theme');
+    root.classList.remove('dark');
+    root.style.colorScheme = 'light';
   }
 })();
 
 /* Exported helper so pages can call applyTheme('Dark') at runtime */
 function applyTheme(value) {
+  var root = document.documentElement;
   if (value === 'Dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
+    root.setAttribute('data-theme', 'dark');
+    root.classList.add('dark');
+    root.style.colorScheme = 'dark';
   } else {
-    document.documentElement.removeAttribute('data-theme');
+    root.removeAttribute('data-theme');
+    root.classList.remove('dark');
+    root.style.colorScheme = 'light';
   }
   localStorage.setItem('pref_theme', value);
 }

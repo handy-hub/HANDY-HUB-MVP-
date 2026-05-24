@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Handy Hub – Schedule & Confirm</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -17,6 +17,8 @@
       padding: 5px 10px; cursor: pointer; flex-shrink: 0; text-decoration: none;
     }
   </style>
+
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
 <body>
 <div class="phone-shell">
@@ -223,7 +225,7 @@
     </div>
 
     <!-- Additional Notes -->
-    <div class="notes-row">
+    <div class="notes-row" onclick="toggleNotes()" id="notes-toggle-row" style="cursor:pointer;">
       <div class="notes-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
@@ -231,7 +233,13 @@
         <p class="notes-label">Additional Notes <span style="color:#bbb;font-size:11px;font-weight:400;">(Optional)</span></p>
         <p class="notes-sub">Add any details that will help the professional</p>
       </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-left:auto; flex-shrink:0;"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg id="notes-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-left:auto; flex-shrink:0; transition:transform 0.3s;"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+    <div id="notes-expand" style="max-height:0;overflow:hidden;transition:max-height 0.35s ease;">
+      <textarea id="job-notes" rows="3"
+        placeholder="E.g. Please bring your own tools. The switch is in the bedroom."
+        style="width:100%;border:1.5px solid #e5e5e5;border-radius:12px;padding:12px;font-size:14px;font-family:inherit;resize:none;box-sizing:border-box;color:#111;background:var(--bg-card,#fff);margin-top:4px;outline:none;display:block;"
+        onfocus="this.style.borderColor='#730201'" onblur="this.style.borderColor='#e5e5e5'"></textarea>
     </div>
 
     <!-- Trust badges -->
@@ -332,7 +340,16 @@
 
     if (state.professional) {
       const pro = state.professional;
-      if (pro.photo) { const el = document.getElementById('pro3-img'); el.outerHTML = `<img id="pro3-img" src="${pro.photo}" alt="Professional" style="width:52px;height:52px;border-radius:50%;object-fit:cover;">`; }
+      if (pro.photo) {
+        const el = document.getElementById('pro3-img');
+        if (el) {
+          const img = document.createElement('img');
+          img.id = 'pro3-img'; img.src = pro.photo;
+          img.alt = pro.name || 'Professional';
+          img.style.cssText = 'width:52px;height:52px;border-radius:50%;object-fit:cover;';
+          el.replaceWith(img);
+        }
+      }
       document.getElementById('pro3-online').style.display = pro.isOnline ? '' : 'none';
       document.getElementById('pro3-name').textContent = pro.name;
       document.getElementById('pro3-type').textContent = `${pro.type} · ${pro.exp}`;
@@ -397,6 +414,48 @@
   function closeSchedModal() {
     document.getElementById('sched-overlay').classList.remove('open');
   }
+  (function() {
+    var sheet = document.querySelector('.sched-modal');
+    var overlay = document.getElementById('sched-overlay');
+    var startY = 0, curY = 0, active = false;
+    sheet.addEventListener('touchstart', function(e) {
+      startY = e.touches[0].clientY; curY = 0; active = true;
+      sheet.style.transition = 'none';
+    }, { passive: true });
+    sheet.addEventListener('touchmove', function(e) {
+      if (!active) return;
+      var dy = e.touches[0].clientY - startY;
+      if (dy < 0) return;
+      curY = dy;
+      sheet.style.transform = 'translateY(' + dy + 'px)';
+      var p = Math.min(dy / (sheet.offsetHeight * 0.5), 1);
+      overlay.style.opacity = String(1 - p * 0.9);
+    }, { passive: true });
+    sheet.addEventListener('touchend', function() {
+      if (!active) return; active = false;
+      if (curY > sheet.offsetHeight * 0.35) {
+        sheet.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+        sheet.style.transform = 'translateY(110%)';
+        overlay.style.transition = 'opacity 0.3s';
+        overlay.style.opacity = '0';
+        setTimeout(function() {
+          closeSchedModal();
+          sheet.style.removeProperty('transform');
+          sheet.style.removeProperty('transition');
+          overlay.style.removeProperty('opacity');
+          overlay.style.removeProperty('transition');
+        }, 300);
+      } else {
+        sheet.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+        sheet.style.transform = 'translateY(0)';
+        overlay.style.removeProperty('opacity');
+        setTimeout(function() {
+          sheet.style.removeProperty('transform');
+          sheet.style.removeProperty('transition');
+        }, 400);
+      }
+    });
+  })();
 
   function applySchedule() {
     const input = document.getElementById('sched-date-input');
@@ -408,6 +467,20 @@
     document.getElementById('sched3-time').textContent = schedTime;
     setState({ schedule: { date: input.value, dateDisplay, dateShort, time: schedTime } });
     closeSchedModal();
+  }
+
+  function toggleNotes() {
+    const expand = document.getElementById('notes-expand');
+    const chevron = document.getElementById('notes-chevron');
+    const isOpen = expand.style.maxHeight !== '0px' && expand.style.maxHeight !== '';
+    if (isOpen) {
+      expand.style.maxHeight = '0';
+      if (chevron) chevron.style.transform = '';
+    } else {
+      expand.style.maxHeight = '200px';
+      if (chevron) chevron.style.transform = 'rotate(90deg)';
+      setTimeout(() => { const ta = document.getElementById('job-notes'); if (ta) ta.focus(); }, 350);
+    }
   }
 
   function selectPayment(option) {
@@ -437,3 +510,5 @@
 </script>
 </body>
 </html>
+
+

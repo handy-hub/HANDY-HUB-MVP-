@@ -10,11 +10,13 @@
 body {
   font-family: 'DM Sans', sans-serif;
   display: flex;
-  background: #ffffff;
+  background: #f7f7f7;
   justify-content: center;
   align-items: flex-start;
-  min-height: 100vh;
-  padding: 24px 0;
+  min-height: 100dvh;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 button {
@@ -25,14 +27,18 @@ button {
 }
 
 /* ===========================
-   PHONE SHELL
+   PHONE SHELL  (responsive)
 =========================== */
 .phone-shell {
-  width: 390px;
-  height: 844px;
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  margin: 0 auto;
+  background: #f7f7f7;
+  position: relative;
 }
 
 /* ===========================
@@ -41,8 +47,11 @@ button {
 .scroll-area {
   flex: 1;
   overflow-y: auto;
-  padding: 0 20px 20px;
+  overflow-x: hidden;
+  padding: 0 16px 100px;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .scroll-area::-webkit-scrollbar {
@@ -56,7 +65,7 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 22px 0 18px;
+  padding: 16px 0 14px;
   position: sticky;
   top: 0;
   background: #f7f7f7;
@@ -203,40 +212,60 @@ button {
    BOTTOM NAV
 =========================== */
 .bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-around;
-  padding: 10px 6px 28px;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
+  padding: 6px 0 env(safe-area-inset-bottom, 8px);
+  background: rgba(255, 255, 255, 0.97);
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
   flex-shrink: 0;
+  z-index: 200;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 4px 10px;
+  min-height: 52px;
   font-size: 10.5px;
   font-weight: 500;
   color: #aaa;
   font-family: inherit;
   text-decoration: none;
-  transition: opacity 0.15s;
-}
-
-.nav-item:hover {
-  opacity: 0.7;
+  flex: 1;
+  transition: color 0.15s;
 }
 
 .nav-item span {
   color: #aaa;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.1;
 }
 
 .nav-item.active span,
 .nav-item .active-label {
   color: #730201;
+}
+
+.nav-item.active svg path,
+.nav-item.active svg circle,
+.nav-item.active svg polyline,
+.nav-item.active svg line,
+.nav-item.active svg rect,
+.nav-item.active svg polygon {
+  stroke: #730201;
 }
 
 /* ===========================
@@ -464,11 +493,11 @@ button {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%) translateY(100%);
-  width: 390px;
+  width: min(100%, 430px);
   background: #fff;
   border-radius: 22px 22px 0 0;
-  z-index: 101;
-  padding: 0 0 24px;
+  z-index: 2000;
+  padding: 0 0 max(24px, env(safe-area-inset-bottom));
   transition: transform 0.28s cubic-bezier(0.22,1,0.36,1);
 }
 
@@ -531,7 +560,7 @@ button {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.5);
-  z-index: 200;
+  z-index: 2100;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -548,8 +577,8 @@ button {
 .modal-card {
   background: #fff;
   border-radius: 22px 22px 0 0;
-  width: 390px;
-  padding: 28px 24px 40px;
+  width: min(100%, 430px);
+  padding: 28px 24px max(40px, env(safe-area-inset-bottom, 24px));
   transform: translateY(24px);
   transition: transform 0.28s cubic-bezier(0.22,1,0.36,1);
 }
@@ -837,6 +866,10 @@ button {
 [data-theme="dark"] body { background: #0f0f0f; }
 [data-theme="dark"] .phone-shell { background: #141414; }
 [data-theme="dark"] .scroll-area { background: #141414; }
+[data-theme="dark"] .bottom-nav {
+  background: rgba(18, 18, 18, 0.97);
+  border-top-color: #272727;
+}
 
 [data-theme="dark"] .page-header { background: #141414; }
 [data-theme="dark"] .page-title { color: #f0f0f0; }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Handy Hub – Live Tracking</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -168,6 +168,8 @@
     [data-theme="dark"] .slide-action--confirm { background: rgba(22,163,74,0.13); }
     [data-theme="dark"] .slide-sub { color: #555; }
   </style>
+
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
 <body>
 <div class="phone-shell">
@@ -205,7 +207,7 @@
         <button class="trk-action-btn" onclick="callArtisan()" title="Call">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#730201" stroke-width="2"/></svg>
         </button>
-        <button class="trk-action-btn" onclick="window.location.href='messages.html'" title="Message">
+        <button class="trk-action-btn" onclick="window.location.href='messages.html'" title="Message" aria-label="Message artisan">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
@@ -405,7 +407,21 @@ function confirmCompletion() {
 }
 
 function callArtisan() {
-  alert('Calling artisan… (VoIP in production)');
+  const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+  const pro = b.artisan || b.professional || {};
+  if (pro.phone) {
+    window.location.href = pro.phone;
+  } else {
+    // Show a visual feedback instead of alert
+    const btns = document.querySelectorAll('.trk-action-btn');
+    btns.forEach(btn => {
+      if (btn.getAttribute('title') === 'Call') {
+        btn.style.background = '#fde8e8';
+        btn.style.borderColor = '#f5c2c2';
+        setTimeout(() => { btn.style.background = ''; btn.style.borderColor = ''; }, 1200);
+      }
+    });
+  }
 }
 
 // ── Load booking data ────────────────────────────────────────
@@ -496,3 +512,5 @@ initSlide('slide-confirm', 'confirm-fill', 'confirm-label', 'confirm-thumb', con
 </script>
 </body>
 </html>
+
+

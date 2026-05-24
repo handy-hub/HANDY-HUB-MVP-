@@ -1,0 +1,263 @@
+/* ════════════════════════════════════════════════════════════════════
+   HandyHub · Floating Pill Navigation  ·  shared/css/floatingNav.css
+   Single source of truth for all bottom navigation across the app.
+════════════════════════════════════════════════════════════════════ */
+
+/* ── Outer wrapper ──────────────────────────────────────────────── */
+.hh-fnav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  display: flex;
+  justify-content: center;
+  padding: 0 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+
+/* ── Floating pill ──────────────────────────────────────────────── */
+.hh-fnav-pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 420px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 32px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.10),
+    0 2px 8px  rgba(0, 0, 0, 0.06),
+    0 0 0 1px  rgba(255, 255, 255, 0.75) inset,
+    0 0 0 1px  rgba(0, 0, 0, 0.05);
+  pointer-events: all;
+}
+
+/* ── Regular nav item (link) ─────────────────────────────────────── */
+.hh-fnav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  text-decoration: none;
+  color: #c0c0c0;
+  padding: 8px 2px;
+  border-radius: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.18s, transform 0.12s;
+  min-width: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.hh-fnav-item:active { transform: scale(0.87); }
+
+/* Icon wrapper */
+.hh-fnav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+/* Label */
+.hh-fnav-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  white-space: nowrap;
+}
+
+/* Active state */
+.hh-fnav-item.hh-fnav-active { color: #730201; }
+
+/* ── Notification badge on Alerts item ───────────────────────────── */
+.hh-fnav-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 18px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: #730201;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+/* ── Emergency inline item (dashboard centre) — plain, no special styling */
+.hh-fnav-em-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+/* ── Body scroll padding ────────────────────────────────────────── */
+.hh-has-fnav,
+.hh-has-fnav .app,
+.hh-has-fnav .phone-shell .scroll-area {
+  padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* ── Dark mode ──────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  .hh-fnav-pill {
+    background: rgba(24, 24, 28, 0.97);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.50),
+      0 2px 8px  rgba(0, 0, 0, 0.30),
+      0 0 0 1px  rgba(255, 255, 255, 0.06) inset,
+      0 0 0 1px  rgba(0, 0, 0, 0.6);
+  }
+  .hh-fnav-item { color: #555; }
+  .hh-fnav-item.hh-fnav-active { color: #d94040; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Emergency Type Modal  –  global, available from all pages
+════════════════════════════════════════════════════════════════ */
+.em-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  z-index: 1100;
+  align-items: flex-end;
+  justify-content: center;
+}
+.em-modal-overlay.em-modal-visible { display: flex; }
+
+.em-modal-sheet {
+  background: var(--bg-white, #fff);
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 430px;
+  overflow: hidden;
+  box-shadow: 0 -6px 40px rgba(0, 0, 0, 0.18);
+  max-height: 84vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.em-modal-handle {
+  width: 38px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  margin: 13px auto 18px;
+}
+
+.em-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.em-modal-header-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #730201;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(115, 2, 1, 0.38);
+}
+
+.em-modal-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-dark, #111);
+  margin: 0 0 3px;
+}
+.em-modal-sub {
+  font-size: 11.5px;
+  color: #888;
+  margin: 0;
+}
+
+.em-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 18px 16px;
+}
+
+.em-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 14px 8px 12px;
+  background: #fafafa;
+  border: 1.5px solid #efefef;
+  border-radius: 16px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.em-type-btn:active {
+  transform: scale(0.94);
+  background: #fff0f0;
+  border-color: #730201;
+}
+
+.em-type-icon {
+  width: 42px;
+  height: 42px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #efefef;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.em-type-name {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #333;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.em-modal-cancel {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 2px 16px 20px;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 14px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.em-modal-cancel:active { background: #ebebeb; }

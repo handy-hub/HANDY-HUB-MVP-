@@ -1,22 +1,8 @@
 import "../../../shared/js/utils/global-app.js";
 import { getAppContainer } from "../../../shared/js/app/container.js";
-
+import { showToast } from "../../../shared/js/components/toast.js";
 const DEFAULTS = { bookings: true, messages: true, offers: true, payments: true, reviews: true, system: true };
 const KEYS = Object.keys(DEFAULTS);
-
-function showToast(msg, type = 'info') {
-    const existing = document.querySelector('.toast');
-    if (existing) existing.remove();
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(() => {
-        t.classList.add('toast-exit');
-        t.addEventListener('animationend', () => t.remove(), { once: true });
-        setTimeout(() => t.remove(), 320);
-    }, 2500);
-}
 
 let currentUser = null;
 let prefs = { ...DEFAULTS };
@@ -61,3 +47,4 @@ window.saveToggle = async function (key, value) {
 };
 
 window.addEventListener('pagehide', () => { if (unsubscribe) unsubscribe(); });
+

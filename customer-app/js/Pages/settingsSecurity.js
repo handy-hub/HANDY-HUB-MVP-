@@ -1,25 +1,11 @@
 import "../../../shared/js/utils/global-app.js";
 import { getAppContainer } from "../../../shared/js/app/container.js";
-
+import { showToast } from "../../../shared/js/components/toast.js";
 const currentPwEl  = document.getElementById('current-pw');
 const newPwEl      = document.getElementById('new-pw');
 const confirmPwEl  = document.getElementById('confirm-pw');
 const saveBtn      = document.getElementById('save-btn');
 const accountEmail = document.getElementById('account-email');
-
-function showToast(msg, type = 'info') {
-    const existing = document.querySelector('.toast');
-    if (existing) existing.remove();
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    t.innerHTML = `<span class="toast-message">${msg}</span>`;
-    document.body.appendChild(t);
-    setTimeout(() => {
-        t.classList.add('toast-exit');
-        t.addEventListener('animationend', () => t.remove(), { once: true });
-        setTimeout(() => t.remove(), 320);
-    }, 3500);
-}
 
 let currentUser = null;
 
@@ -69,3 +55,4 @@ window.changePassword = async function () {
         saveBtn.textContent = 'Update Password';
     }
 };
+

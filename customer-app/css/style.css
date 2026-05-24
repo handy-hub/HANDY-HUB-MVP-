@@ -299,10 +299,10 @@ body {
 .ads {
     position: relative;
     margin-top: 10px;
-    height: 175px; /* You can now change this to 100px and it will auto-adjust */
+    height: 175px;
     border-radius: 20px;
     overflow: hidden;
-    background: linear-gradient(to right, black,#000000,rgba(0, 0, 0, 0.267), white);
+    background: #111;
     container-type: size;
 }
 
@@ -421,23 +421,12 @@ body {
     border-radius: 10px;
 }
 
+/* SLIDE ANIMATION — single definition */
 @keyframes slide {
-    0% { left: 0%; }
-    30% { left: 0%; }
-    33% { left: -100%; }
-    63% { left: -100%; }
-    66% { left: -200%; }
-    96% { left: -200%; }
-    100% { left: 0%; }
-}
-
-
-/* ANIMATION */
-@keyframes slide {
-    0%, 30% { transform: translateX(0); }
-    35%, 65% { transform: translateX(-33.33%); }
-    70%, 95% { transform: translateX(-66.66%); }
-    100% { transform: translateX(0); }
+    0%,  30%  { transform: translateX(0);        }
+    35%, 65%  { transform: translateX(-33.33%);  }
+    70%, 95%  { transform: translateX(-66.66%);  }
+    100%      { transform: translateX(0);        }
 }
 .cards {
     display: flex;
@@ -711,20 +700,21 @@ margin-top: 10px;
 .bottom-nav {
     position: fixed;
     bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 70px;
-    background-color: white;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(100%, 430px);
+    min-height: 70px;
+    background: rgba(255, 255, 255, 0.96);
     display: flex;
     justify-content: space-around;
     align-items: center;
-    justify-self: center;
     /* Prevents layout shifts on mobile */
-    padding-bottom: env(safe-area-inset-bottom); 
-      background: #b8040400; 
+    padding-bottom: max(env(safe-area-inset-bottom), 8px);
     backdrop-filter: blur(25px);
     -webkit-backdrop-filter: blur(25px);
-    border: 1px solid rgba(218, 17, 17, 0.050);
+    border-top: 1px solid rgba(218, 17, 17, 0.05);
+    z-index: 200;
 }
 
 /* --- INDIVIDUAL NAV ITEMS --- */
@@ -876,33 +866,48 @@ margin-top: 10px;
     flex-direction: column;
     gap: 5px;
     margin-bottom: 12px;
-    position: relative; /* REQUIRED to anchor the absolute image */
 }
 
-.input-group input {
-    height: 50px;
-    padding-left: 50px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 14px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.input-group img {
-    width: 20px;
-    height: 20px;
-    position: absolute;
-    /* Adjusted these values to center within the input box specifically */
-    left: 15px; 
-    top: 42px; /* Pushes icon down past the label into the input */
-    pointer-events: none;
-}
 .input-group label {
     font-size: 12px;
     color: #000000bd;
     font-weight: 600;
-    margin-bottom: 6px;
+}
+
+/* Input wrapper holds both icon + input on the same row */
+.input-group-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-group input {
+    height: 50px;
+    padding-left: 46px;
+    padding-right: 14px;
+    border: 1.5px solid #e5e5e5;
+    border-radius: 10px;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+    border-color: #730201;
+}
+
+.input-group img {
+    width: 18px;
+    height: 18px;
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    opacity: 0.55;
+    flex-shrink: 0;
 }
 .form-actions {
      /* Pushes the button to the right */
@@ -927,14 +932,19 @@ margin-top: 10px;
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: bold;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
     cursor: pointer;
     width: 100%;
-    height: 50px;
+    height: 52px;
     margin-top: 20px;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: -0.2px;
 }
+
+.login-btn:hover  { background: #a00303; }
+.login-btn:active { background: #5a0101; transform: scale(0.98); }
 .divider {
     display: flex;
     align-items: center;
@@ -1059,10 +1069,12 @@ margin-top: 10px;
     justify-content: center;
 }
 
-/* Your exact image styling restored */
+/* Banner image sizing */
 .circle-bg img {
-    width: 4cm;
-    height: 50%;
+    width: 100%;
+    max-width: 100px;
+    height: auto;
+    object-fit: contain;
     margin-top: 20px;
 }
 
@@ -1176,10 +1188,12 @@ margin-top: 10px;
     justify-content: center;
 }
 
-/* Restored your exact image styling */
+/* Artisan banner image sizing */
 .circle-bg-artisan img {
-    width: 5cm;
-    height: 100%;
+    width: 100%;
+    max-width: 120px;
+    height: auto;
+    object-fit: contain;
     margin-top: 20px;
 }
 
@@ -1252,14 +1266,13 @@ margin-top: 10px;
     background-color: #ffffff;
     border: 1px solid #eeeeee;
     border-radius: 16px;
-    padding: 20px 25px;
+    padding: 16px 20px;
     display: flex;
     align-items: center;
     gap: 15px;
     max-width: 550px;
-    margin: 20px auto;
-    margin-top: 2cm;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 24px auto 16px;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .security-icon {
@@ -1295,7 +1308,7 @@ margin-top: 10px;
 /* --- 1. CORE LAYOUT --- */
 .search-view {
     background: #ffffff;
-    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -1619,10 +1632,10 @@ margin-top: 10px;
 
 
 .notifications-page {
-    max-width: 450px;
+    max-width: 430px;
     margin: 0 auto;
     background: var(--bg-page);
-    min-height: 100vh;
+    min-height: 100dvh;
     padding-bottom: 100px;
 }
 
@@ -1790,7 +1803,6 @@ margin-top: 10px;
     display: flex;
     flex-direction: column;
     margin-bottom: 15px;
-    position: relative;
 }
 
 .input-signup label {
@@ -1800,33 +1812,52 @@ margin-top: 10px;
     margin-bottom: 8px;
 }
 
+/* Wrapper for input + icons */
+.input-signup-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .input-signup input {
     height: 52px;
-    padding-left: 50px;
-    border: 1px solid #EAEAEA; /* Softer border like image */
-    border-radius: 12px; /* Rounder like image */
+    padding-left: 48px;
+    padding-right: 44px;
+    border: 1.5px solid #eaeaea;
+    border-radius: 12px;
     font-size: 14px;
     width: 100%;
     box-sizing: border-box;
     background: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input-signup input:focus {
+    border-color: #730201;
 }
 
 .input-signup .in-input {
     width: 18px;
     height: 18px;
     position: absolute;
-    left: 18px;
-    top: 40px; /* Aligned with your 42px but adjusted for 12px radius */
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
     pointer-events: none;
+    opacity: 0.5;
 }
 
 .eye-icon {
     width: 18px;
+    height: 18px;
     position: absolute;
-    right: 18px;
-    top: 40px;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
     opacity: 0.4;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .pass-hint {
@@ -1848,12 +1879,24 @@ margin-top: 10px;
 
 .btn-primary {
     background: var(--handy-red);
-    color: white; border: none;
-    padding: 16px; border-radius: 12px;
-    font-size: 16px; font-weight: 700;
-    cursor: pointer; display: flex;
-    justify-content: center; align-items: center; gap: 8px;
+    color: white;
+    border: none;
+    padding: 15px 16px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: -0.2px;
 }
+
+.btn-primary:hover  { background: #a00303; }
+.btn-primary:active { background: #5a0101; transform: scale(0.98); }
 #submit-btn:disabled { 
     background-color: #ccc !important;
     cursor: not-allowed;

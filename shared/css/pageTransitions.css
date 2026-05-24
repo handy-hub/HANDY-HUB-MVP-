@@ -7,11 +7,11 @@ html, body {
 }
 
 body.page-slide-in-right {
-    animation: pageSlideInRight 0.2s var(--transition-ease) forwards;
+    animation: pageSlideInRight 0.24s var(--transition-ease) forwards;
 }
 
 body.page-slide-in-left {
-    animation: pageSlideInLeft 0.2s var(--transition-ease) forwards;
+    animation: pageSlideInLeft 0.24s var(--transition-ease) forwards;
 }
 
 @keyframes pageSlideInRight {
@@ -22,6 +22,13 @@ body.page-slide-in-left {
     to {
         transform: translateX(0);
         opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.page-slide-in-right,
+    body.page-slide-in-left {
+        animation: none !important;
     }
 }
 

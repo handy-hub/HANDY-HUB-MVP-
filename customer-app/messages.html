@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HandyHub | Messages</title>
   <link rel="stylesheet" href="css/messages.css" />
+
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
 <body>
 <div class="ms-shell">
@@ -87,7 +89,7 @@
         <p class="ms-chat-pro-status" id="chat-status">Online</p>
       </div>
       <div class="ms-chat-actions">
-        <button class="ms-icon-btn" aria-label="Call" onclick="showToast('Calling…')">
+        <button class="ms-icon-btn" aria-label="Call" onclick="callConversation()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#111" stroke-width="1.8"/>
           </svg>
@@ -132,46 +134,66 @@
 
 </div><!-- end ms-shell -->
 
-<!-- Bottom Nav -->
-<nav class="bottom-nav" id="ms-bottom-nav">
-  <a href="dashboard.html" class="nav-item">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span>Home</span>
-  </a>
-  <a href="booking.html" class="nav-item">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="2" width="8" height="4" rx="1" stroke="#aaa" stroke-width="1.7"/><path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/></svg>
-    <span>Bookings</span>
-  </a>
-  <a href="messages.html" class="nav-item active">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span>Messages</span>
-  </a>
-  <a href="saved.html" class="nav-item">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span>Saved</span>
-  </a>
-  <a href="profile.html" class="nav-item">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#aaa" stroke-width="1.7"/></svg>
-    <span>Profile</span>
-  </a>
-</nav>
-
-<div id="ms-toast" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(16px);background:#111;color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;opacity:0;transition:opacity .22s,transform .22s;pointer-events:none;white-space:nowrap;z-index:999;box-shadow:0 6px 24px rgba(0,0,0,.2)"></div>
-
 <script src="../shared/js/utils/global-app.js"></script>
+<script src="../shared/js/components/floatingNav.js"></script>
 <script>
+const TOAST_ICONS = {
+  success: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  error: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8V13" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M12 16.5V16.55" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21H20.47A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+};
+/* ── Seed conversations from booking history ── */
+function seedConversations() {
+  const convs = [
+    {
+      id: 0, name: 'HandyHub Support', role: 'Support Team', online: true,
+      photo: null, grad: 'linear-gradient(135deg,#730201,#b10c0c)', gradInitials: 'HH',
+      time: 'Now', unread: 1, phone: null,
+      lastMsg: 'Welcome to HandyHub! We\'re here to help.',
+      messages: [{ from: 'pro', text: 'Welcome to HandyHub! How can we assist you today?', time: 'Now' }]
+    },
+  ];
+
+  try {
+    const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
+    const seen = new Set();
+    hist.forEach((b, i) => {
+      const proName = b.proName || (b.professional && b.professional.name);
+      if (!proName || seen.has(proName)) return;
+      seen.add(proName);
+      const proPhone = b.proPhone || (b.professional && b.professional.phone) || null;
+      const initials = proName.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+      const gradients = [
+        'linear-gradient(135deg,#1e3a5f,#2e5f8e)',
+        'linear-gradient(135deg,#1a4731,#2e7d52)',
+        'linear-gradient(135deg,#4a1a6e,#7b2fb5)',
+        'linear-gradient(135deg,#5c3317,#9c6a38)',
+      ];
+      const serviceDate = b.dateDisplay || b.date || '';
+      convs.push({
+        id: i + 1,
+        name: proName,
+        role: b.proType || b.service || 'Professional',
+        online: Math.random() > 0.5,
+        photo: b.proPhoto || null,
+        grad: gradients[i % gradients.length],
+        gradInitials: initials,
+        time: serviceDate ? serviceDate.split(',')[0] : 'Recent',
+        unread: 0,
+        phone: proPhone,
+        lastMsg: 'Booking ' + (b.status || 'confirmed') + ' — ' + (b.service || 'your service'),
+        messages: [
+          { from: 'pro', text: 'Hi! I\'ve received your booking request for ' + (b.service || 'your service') + '. I\'ll be there on time!', time: serviceDate || 'Recent' },
+        ],
+      });
+    });
+  } catch(e) {}
+
+  return convs;
+}
+
 /* ── Data ── */
-const CONVERSATIONS = [
-  {
-    id: 0, name: 'HandyHub Support', role: 'Support Team', online: true,
-    photo: null, grad: 'linear-gradient(135deg,#730201,#b10c0c)', gradInitials: 'HH',
-    time: 'Now', unread: 1,
-    lastMsg: 'Welcome to HandyHub! We\'re here to help.',
-    messages: [
-      { from: 'pro', text: 'Welcome to HandyHub! We\'re here to help anytime.', time: 'Now' },
-    ]
-  },
-];
+const CONVERSATIONS = seedConversations();
 
 const AUTO_REPLIES = [
   "Got it, I'll be right with you!",
@@ -279,7 +301,8 @@ function openChat(id) {
   // Slide to chat
   document.getElementById('ms-list-view').classList.add('slide-out');
   document.getElementById('ms-chat-view').classList.add('slide-in');
-  document.getElementById('ms-bottom-nav').style.display = 'none';
+  const fnav = document.getElementById('hh-floating-nav');
+  if (fnav) fnav.style.display = 'none';
 
   // Re-render list to clear badge
   renderList(currentFilter);
@@ -312,7 +335,8 @@ function renderMessages(conv) {
 function closeChat() {
   document.getElementById('ms-list-view').classList.remove('slide-out');
   document.getElementById('ms-chat-view').classList.remove('slide-in');
-  document.getElementById('ms-bottom-nav').style.display = '';
+  const fnav = document.getElementById('hh-floating-nav');
+  if (fnav) fnav.style.display = '';
   currentConvId = null;
   renderList(currentFilter);
 }
@@ -378,6 +402,15 @@ function searchConversations(query) {
 }
 
 /* ── Helpers ── */
+function callConversation() {
+  const conv = CONVERSATIONS.find(c => c.id === currentConvId);
+  if (conv && conv.phone) {
+    window.location.href = conv.phone;
+  } else {
+    showToast('No phone number on file for this contact');
+  }
+}
+
 function focusSearch() {
   document.getElementById('ms-search-input').focus();
 }
@@ -404,15 +437,31 @@ function escHtml(str) {
 }
 
 function showToast(msg) {
-  const t = document.getElementById('ms-toast');
-  t.textContent = msg;
-  t.style.opacity = '1';
-  t.style.transform = 'translateX(-50%) translateY(0)';
-  clearTimeout(t._t);
-  t._t = setTimeout(() => {
-    t.style.opacity = '0';
-    t.style.transform = 'translateX(-50%) translateY(16px)';
-  }, 2000);
+  document.querySelector('.toast.app-toast')?.remove();
+
+  const t = document.createElement('div');
+  t.className = 'toast app-toast info';
+  t.setAttribute('role', 'status');
+  t.setAttribute('aria-live', 'polite');
+  t.setAttribute('aria-atomic', 'true');
+
+  const icon = document.createElement('span');
+  icon.className = 'toast-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = TOAST_ICONS.info;
+
+  const text = document.createElement('span');
+  text.className = 'toast-message';
+  text.textContent = msg;
+
+  t.append(icon, text);
+  document.body.appendChild(t);
+
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => {
+    t.classList.add('toast-exit');
+    setTimeout(() => t.remove(), 320);
+  }, 3000);
 }
 
 /* ── Init ── */
@@ -420,3 +469,4 @@ renderList('all');
 </script>
 </body>
 </html>
+
