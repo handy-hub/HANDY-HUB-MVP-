@@ -1,5 +1,6 @@
 import '../../../shared/js/utils/global-app.js';
 import { getAppContainer } from '../../../shared/js/app/container.js';
+import { showToast } from '../../../shared/js/components/toast.js';
 import {
     createPaymentRepository,
     PROVIDER_META
@@ -79,21 +80,6 @@ let lastSuccessData  = null;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatGHC(n) {
     return 'GHC ' + Number(n).toFixed(2);
-}
-
-const TOAST_ICONS = {
-    success: '<svg viewBox="0 0 24 24" fill="none"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    error:   '<svg viewBox="0 0 24 24" fill="none"><path d="M12 8V13" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M12 16.5V16.55" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21H20.47A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    info:    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.9"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
-};
-
-function showToast(msg, type = 'error') {
-    document.querySelector('.toast')?.remove();
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    t.innerHTML = `<span class="toast-icon">${TOAST_ICONS[type] || ''}</span><span>${msg}</span>`;
-    document.body.appendChild(t);
-    setTimeout(() => { t.classList.add('toast-exit'); setTimeout(() => t.remove(), 320); }, 3000);
 }
 
 // ── Render all accounts ───────────────────────────────────────────────────────
@@ -233,7 +219,7 @@ addDefaultRow.addEventListener('click', () => {
 addSaveBtn.addEventListener('click', async () => {
     const rawPhone = addPhoneInput.value.trim();
     const provider = detectProvider(rawPhone);
-    if (!provider) { showToast('Cannot detect provider. Check the number.'); return; }
+    if (!provider) { showToast('Cannot detect provider. Check the number.', 'error'); return; }
 
     const phone = normalisePhone(rawPhone);
     addSaveBtn.disabled    = true;
@@ -250,7 +236,7 @@ addSaveBtn.addEventListener('click', async () => {
         showToast('Account added!', 'success');
     } catch (err) {
         console.error('Add account error:', err);
-        showToast(err.message || 'Failed to save account.');
+        showToast(err.message || 'Failed to save account.', 'error');
         addSaveBtn.disabled    = false;
         addSaveBtn.textContent = 'Save Account';
     }
@@ -264,6 +250,7 @@ confirmBtn.addEventListener('click', async () => {
 
     const { provider, phone } = acc.data;
     const meta = PROVIDER_META[provider];
+    let paymentFlowSettled = false;
 
     confirmBtn.disabled    = true;
     confirmBtn.textContent = 'Opening payment…';
@@ -284,6 +271,8 @@ confirmBtn.addEventListener('click', async () => {
                 ]
             },
             onSuccess: async (response) => {
+                if (paymentFlowSettled) return;
+                paymentFlowSettled = true;
                 confirmBtn.textContent = 'Recording payment…';
                 try {
                     await paymentRepo.recordTopUp(currentUid, {
@@ -301,12 +290,15 @@ confirmBtn.addEventListener('click', async () => {
                 }
             },
             onClose: () => {
+                if (paymentFlowSettled) return;
+                paymentFlowSettled = true;
                 resetBtn();
-                showToast('Payment cancelled.', 'info');
+                showToast('Top up cancelled,', 'info');
             }
         });
         // Iframe open — button stays disabled until onSuccess or onClose fires
     } catch (err) {
+        paymentFlowSettled = true;
         console.error('Paystack error:', err);
         showToast(err.message || 'Could not open payment. Try again.', 'error');
         resetBtn();
@@ -346,7 +338,7 @@ ssCopyBtn.addEventListener('click', () => {
     navigator.clipboard?.writeText(ref).then(() => {
         ssCopyBtn.textContent = 'Copied!';
         setTimeout(() => { ssCopyBtn.textContent = 'Copy'; }, 2000);
-    }).catch(() => showToast('Could not copy. Please copy manually.'));
+    }).catch(() => showToast('Could not copy. Please copy manually.', 'error'));
 });
 
 // Download receipt
@@ -410,3 +402,4 @@ authService.subscribeToAuthState(user => {
         err => console.error('Accounts error:', err)
     );
 });
+

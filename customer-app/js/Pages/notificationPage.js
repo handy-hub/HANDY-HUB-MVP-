@@ -22,6 +22,28 @@ let allNotifications = [];
 let currentFilter    = "All";
 let unsubscribeFn    = null;
 
+// ─── Notification cache (stale-while-revalidate) ─────────────────────────────
+const NOTIF_CACHE_KEY = 'hh_notifications_cache';
+
+function saveNotifCache(notifications) {
+    try {
+        localStorage.setItem(NOTIF_CACHE_KEY, JSON.stringify(
+            notifications.map(n => ({
+                ...n,
+                createdAt: n.createdAt instanceof Date ? n.createdAt.toISOString() : n.createdAt
+            }))
+        ));
+    } catch (_) {}
+}
+
+function loadNotifCache() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(NOTIF_CACHE_KEY) || 'null');
+        if (!raw) return null;
+        return raw.map(n => ({ ...n, createdAt: n.createdAt ? new Date(n.createdAt) : new Date() }));
+    } catch (_) { return null; }
+}
+
 // ─── DOM refs (resolved lazily so they are safe to call after DOMContentLoaded)
 const dom = {
     tabContainer: () => document.getElementById("tabContainer"),
@@ -65,7 +87,9 @@ function getTabCounts(notifications) {
 function syncBadge(notifications) {
     const count = notifications.filter(n => !n.isRead).length;
     try { localStorage.setItem("unread_notifications", count); } catch (_) {}
-    // Also update any live badge elements on this page
+    // Refresh the floating nav badge in real-time (if floatingNav is loaded)
+    if (typeof window.hhRefreshAlertBadge === 'function') window.hhRefreshAlertBadge();
+    // Also update any legacy badge elements on this page
     const badge = document.querySelector(".notification-badge");
     if (!badge) return;
     if (count > 0) {
@@ -215,9 +239,17 @@ function showError(msg) {
 
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 async function init() {
-    // Initialise tabs immediately with empty data so the layout appears fast
-    renderTabs([]);
-    showLoading();
+    // Paint from cache immediately — no spinner if we have stale data
+    const cached = loadNotifCache();
+    if (cached && cached.length > 0) {
+        allNotifications = cached;
+        syncBadge(cached);
+        renderTabs(cached);
+        renderList(cached);
+    } else {
+        renderTabs([]);
+        showLoading();
+    }
 
     const user = await waitForCurrentUser();
 
@@ -233,11 +265,12 @@ async function init() {
             syncBadge(notifications);
             renderTabs(notifications);
             renderList(notifications);
+            saveNotifCache(notifications);
         },
         (err) => {
             console.error("Notification stream error:", err);
             // If Firestore needs an index it logs a URL — surface that hint
-            showError("Could not load notifications. Check the console for details.");
+            if (!cached) showError("Could not load notifications. Check the console for details.");
         }
     );
 

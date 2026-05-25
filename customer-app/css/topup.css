@@ -2,7 +2,7 @@
    RESET & BASE
 ============================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body  { font-family: 'DM Sans', sans-serif; background: #f2f2f7; min-height: 100vh; }
+body  { font-family: 'DM Sans', sans-serif; background: #f2f2f7; min-height: 100dvh; }
 button { background: none; border: none; cursor: pointer; font-family: inherit; }
 input  { font-family: inherit; }
 
@@ -12,11 +12,11 @@ input  { font-family: inherit; }
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100dvh;
   max-width: 480px;
   margin: 0 auto;
   background: #f2f2f7;
-  overflow: hidden;
+  overflow-x: hidden;
   position: relative;
 }
 
@@ -51,7 +51,7 @@ input  { font-family: inherit; }
 }
 
 .icon-btn {
-  width: 36px; height: 36px;
+  width: 44px; height: fit-content;
   display: flex; align-items: center; justify-content: center;
   border-radius: 50%;
   background: #fff;
@@ -126,7 +126,7 @@ input  { font-family: inherit; }
 }
 
 .balance-currency {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
   color: rgba(255,255,255,.75);
   margin-right: 3px;
@@ -773,7 +773,8 @@ input  { font-family: inherit; }
   animation: toastIn .36s cubic-bezier(.2,.7,.2,1);
   box-shadow: 0 8px 30px rgba(0,0,0,.14);
   max-width: min(88vw,400px);
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.35;
 }
 .toast.error   { background: rgba(255,240,240,.97); color: #730201; }
 .toast.success { background: rgba(240,253,244,.97); color: #15803d; }

@@ -1,61 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <script src="../shared/js/utils/themeManager.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HandyHub</title>
-    <link rel="stylesheet" href="css/dashboard.css">
-    <link rel="stylesheet" href="../shared/css/pageTransitions.css">
+  <meta charset="UTF-8">
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HandyHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="../shared/css/pageTransitions.css">
+
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
-
 <body>
-    <div class="app">
-   <nav class="profile-card">
-   <div class="menu-wrapper">
-    <!-- Clean Menu (Hamburger) Icon -->
-    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</div>
+<div class="app">
 
-
-    <div class="profile-info">
-        <h2 class="name">GOOD EVENING</h2>
-        <p class="location">ACCRA, GHANA</p>
-    </div>
-
-    <button class="notification-wrapper-button">
-            <div class="notification-wrapper">
-        <svg class="notification-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22ZM18 16V11C18 7.93 16.37 5.36 13.5 4.68V4C13.5 3.17 12.83 2.5 12 2.5C11.17 2.5 10.5 3.17 10.5 4V4.68C7.64 5.36 6 7.92 6 11V16L4 18V19H20V18L18 16Z" fill="currentColor"/>
-        </svg>
-        <span class="notification-badge"></span>
-    </div>
+  <!-- ════ APP HEADER ════ -->
+  <header class="hh-hdr">
+    <button class="hh-menu-btn" id="open-sidebar-btn" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M4 6H20M4 12H14M4 18H18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
     </button>
-   
+    <span class="hh-logo">Handy <span class="hh-logo-red">Hub</span></span>
+    <div class="hh-hdr-right">
+      <button class="hh-icon-btn" id="msg-btn" aria-label="Messages">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="hh-badge" id="msg-badge" style="display:none">2</span>
+      </button>
+      <button class="hh-icon-btn" id="notif-btn" aria-label="Notifications">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="hh-badge" id="notif-badge">3</span>
+      </button>
+    </div>
+  </header>
 
-</nav>
-   <div id="sidebar" class="sidebar">
-       <button id="close-sidebar" class="sidebar-close-btn">
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-       </button>
+  <!-- ════ SIDEBAR ════ -->
+  <div id="sidebar" class="sidebar">
+    <button id="close-sidebar" class="sidebar-close-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <div class="sidebar-scroll">
+      <div class="sidebar-profile">
+        <div class="sidebar-avatar">
+          <img id="sidebar-profile-img" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Profile">
+        </div>
+        <h3 class="sidebar-user-name" id="sidebar-name">Kwame Mensah</h3>
+        <p class="sidebar-user-location">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>
+          Accra, Ghana
+        </p>
+      </div>
+      <p class="sidebar-section-title">QUICK ACTIONS</p>
+      <div class="sidebar-quick-actions">
+        <button class="quick-action-btn">
+          <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <span>Emergency Request</span>
+        </button>
+        <button class="quick-action-btn">
+          <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 14.03 20 12.57 20 11c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="#730201"/></svg></div>
+          <span>Rebook Last</span>
+        </button>
+        <button class="quick-action-btn">
+          <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg></div>
+          <span>Track Booking</span>
+        </button>
+        <button class="quick-action-btn">
+          <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <span>Schedule</span>
+        </button>
+      </div>
+      <p class="sidebar-section-title">MAIN MENU</p>
+      <ul class="sidebar-menu-list">
+        <li><a href="dashboard.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="#730201"/></svg></span><span class="sidebar-menu-label">Home</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">My Requests</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="booking.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Booking History</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="saved.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Saved Professionals</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="messages.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Messages</span><span class="sidebar-menu-badge">3</span></a></li>
+        <li><a href="transaction-history.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#730201" stroke-width="2"/><path d="M2 10h20" stroke="#730201" stroke-width="2"/></svg></span><span class="sidebar-menu-label">Payments</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+      </ul>
+      <p class="sidebar-section-title">MORE</p>
+      <ul class="sidebar-menu-list">
+        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="7" r="1" fill="#730201"/></svg></span><span class="sidebar-menu-label">Promo Codes</span><span class="sidebar-menu-badge promo-badge">2 Available</span></a></li>
+        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" stroke="#730201" stroke-width="2"/></svg></span><span class="sidebar-menu-label">Support Center</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12v10H4V12" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 7H2v5h20V7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Invite Friends</span><span class="sidebar-menu-badge invite-badge">Earn GHC 20</span></a></li>
+      </ul>
+      <p class="sidebar-section-title">SETTINGS</p>
+      <ul class="sidebar-menu-list sidebar-menu-list-last">
+        <li><a href="settings.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="#730201" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="#730201" stroke-width="2"/></svg></span><span class="sidebar-menu-label">Settings</span></a></li>
+        <li><a href="#" id="logout-link" class="sidebar-menu-item sidebar-logout"><span class="sidebar-menu-icon sidebar-logout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label sidebar-logout-label">Logout</span></a></li>
+      </ul>
+    </div>
+  </div>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-       <div class="sidebar-scroll">
+  <!-- ════ USER CARD ════ -->
+  <div class="user-card">
+    <div class="user-card-info">
+      <button class="uc-avatar-btn" onclick="window.location.href='profile.html'">
+        <img class="uc-avatar skel skel-circle" id="uc-avatar"
+          src="" alt="Profile">
+      </button>
+      <div class="uc-text">
+        <p class="uc-greeting" id="uc-greeting">Good morning,</p>
+        <div class="uc-name-row">
+          <p class="uc-name skel" id="uc-name" style="min-width:64px"></p>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <button class="uc-loc" id="location-changer">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="#730201"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <span class="skel" id="uc-loc-text" style="min-width:80px;display:inline-block">&nbsp;</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
-           <!-- Profile -->
-           <div class="sidebar-profile">
-               <div class="sidebar-avatar">
-                   <img id="sidebar-profile-img" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Profile">
-               </div>
-               <h3 class="sidebar-user-name">Kwame Mensah</h3>
-               <p class="sidebar-user-location">
-                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>
-                   Accra, Ghana
-               </p>
-           </div>
+  <!-- ════ SEARCH ════ -->
+  <div class="hh-search">
+    <div class="hh-search-icon-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+        <circle cx="11" cy="11" r="8" stroke="#fff" stroke-width="2.2"/>
+        <path d="M21 21l-4.35-4.35" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <input type="text" id="dynamic-search" class="hh-search-input" placeholder="What service do you need today?">
+    <button class="hh-search-ai" aria-label="AI search">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3l1.8 5.6H19l-4.6 3.4 1.8 5.6L12 14.2l-4.2 3.4 1.8-5.6L5 8.6h5.2z" stroke="#730201" stroke-width="1.8" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+  <div id="search-container" style="display:none;"></div>
 
+  <!-- ════ QUICK CHIPS ════ -->
+  <div class="chips-row">
+    <button class="chip" id="chip-fixpipe">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 22s-8-6-8-13a8 8 0 0 1 16 0c0 7-8 13-8 13z" stroke="#730201" stroke-width="2"/><path d="M8 10h8M12 6v8" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+      Fix leaking pipe
+    </button>
+    <button class="chip" id="chip-fan">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="#730201" stroke-width="2"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+      Install fan
+    </button>
+    <button class="chip" id="chip-em-elec">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Emergency electrician
+    </button>
+    <button class="chip" id="chip-more">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/></svg>
+      More
+    </button>
+  </div>
+
+<<<<<<< HEAD
            <!-- Main Menu -->
            <p class="sidebar-section-title">MAIN MENU</p>
            <ul class="sidebar-menu-list">
@@ -201,114 +306,142 @@
             </ul>
         </section>
        <section class="ads">
+=======
+  <!-- ════ AD BANNER ════ -->
+  <section class="ads">
+>>>>>>> fc4470d892fa9dff28837d4d867d8a79a3b3484b
     <div class="slider">
-        <!-- SLIDE 1 -->
-        <div class="slide">
-            <img src="https://i.pinimg.com/736x/44/41/9d/44419dac4fcb78aae208565099c97221.jpg">
-            <div class="ad-content">
-                <span class="ad-tag">Limited Time Offer</span>
-                <h1>Get 20% OFF</h1>
-                <h3>Your first booking</h3>
-                <p>Trusted professionals, quality service.</p>
-                <button class="book-now">Book Now <span class="arrow-icon">❯</span></button>
-
-            </div>
+      <div class="slide">
+        <img src="https://i.pinimg.com/736x/44/41/9d/44419dac4fcb78aae208565099c97221.jpg" alt="">
+        <div class="ad-content">
+          <span class="ad-tag">Limited Time Offer</span>
+          <h1>Get 20% OFF</h1>
+          <h3>your first booking</h3>
+          <p>Trusted professionals, quality service.</p>
+          <button class="book-now">Book Now <span class="arrow-icon"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="3" stroke-linecap="round"/></svg></span></button>
         </div>
-
-        <!-- SLIDE 2 -->
-        <div class="slide">
-            <img src="https://i.pinimg.com/736x/04/1a/09/041a0923ce2a5d512923d1cdffcd7e1f.jpg">
-            <div class="ad-content">
-                <span class="ad-tag">Home Cleaning</span>
-                <h1>Express Clean</h1>
-                <h3>Sparkling results</h3>
-                <p>Book a pro cleaner in under 2 minutes.</p>
-                <button class="book-now">Check Rates <span class="arrow-icon">❯</span></button>
-            </div>
+      </div>
+      <div class="slide">
+        <img src="https://i.pinimg.com/736x/04/1a/09/041a0923ce2a5d512923d1cdffcd7e1f.jpg" alt="">
+        <div class="ad-content">
+          <span class="ad-tag">Home Cleaning</span>
+          <h1>Express Clean</h1>
+          <h3>Sparkling results</h3>
+          <p>Book a pro cleaner in under 2 minutes.</p>
+          <button class="book-now">Check Rates <span class="arrow-icon"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="3" stroke-linecap="round"/></svg></span></button>
         </div>
-
-        <!-- SLIDE 3 -->
-        <div class="slide">
-            <img src="https://i.pinimg.com/736x/84/fa/24/84fa2444f8cc33ef30c8813e95807bb6.jpg">
-            <div class="ad-content">
-                <span class="ad-tag">New Service</span>
-                <h1>AC Repair</h1>
-                <h3>Stay cool always</h3>
-                <p>Expert technicians at your doorstep.</p>
-                <button class="book-now">Fix Now <span class="arrow-icon">❯</span></button>
-            </div>
+      </div>
+      <div class="slide">
+        <img src="https://i.pinimg.com/736x/84/fa/24/84fa2444f8cc33ef30c8813e95807bb6.jpg" alt="">
+        <div class="ad-content">
+          <span class="ad-tag">New Service</span>
+          <h1>AC Repair</h1>
+          <h3>Stay cool always</h3>
+          <p>Expert technicians at your doorstep.</p>
+          <button class="book-now">Fix Now <span class="arrow-icon"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="3" stroke-linecap="round"/></svg></span></button>
         </div>
+      </div>
     </div>
-
-    <!-- Pagination Dots stay outside the slider div -->
     <div class="slider-dots">
-        <span class="dot active"></span>
-        <span class="dot"></span>
-        <span class="dot"></span>
+      <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
     </div>
-</section>
+  </section>
 
-        <section class="section-header">
-            <h2 class="section-title">Popular Services</h2>
-            <button class="section-action">View All</button>
-        </section>
-       <div class="cards" id="service-slider">
-    <!-- Buttons will be injected here automatically -->
+  <!-- ════ POPULAR SERVICES ════ -->
+  <div class="section-row">
+    <h2 class="section-title">Popular Services</h2>
+    <button class="view-all-btn" id="view-all-svc">View all <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="svc-row" id="service-slider">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- ════ NEARBY PROFESSIONALS ════ -->
+  <div class="section-row">
+    <h2 class="section-title">Nearby Professionals</h2>
+    <div class="nearby-actions">
+      <button class="dist-pill">Within 5km <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <button class="filter-btn">
+        <svg  viewBox="0 0 24 24" fill="none"><path d="M22 3H2l8 9.46V19l4 2V12.46L22 3z" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Filter
+      </button>
+    </div>
+  </div>
+
+  <div class="pro-list">
+    <div style="padding:28px 14px;text-align:center;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="margin-bottom:10px;opacity:0.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="#730201" stroke-width="1.8"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <p style="font-size:13px;font-weight:700;color:#333;margin:0 0 4px;">No professionals yet</p>
+      <p style="font-size:11.5px;color:#aaa;margin:0 0 14px;">Professionals will appear here once the platform goes live.</p>
+      <button class="view-more-btn" id="view-more-pros" style="width:auto;padding:9px 18px;margin:0 auto;">
+        Browse Services
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+
+</div><!-- /.app -->
+
+
+<!-- ════ LOCATION PICKER MODAL ════ -->
+<style>
+  .loc-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:1200;align-items:flex-end;justify-content:center}
+  .loc-overlay.loc-open{display:flex}
+  .loc-sheet{background:var(--bg,#fff);border-radius:22px 22px 0 0;width:100%;max-width:430px;overflow:hidden;box-shadow:0 -6px 32px rgba(0,0,0,.22);display:flex;flex-direction:column}
+  .loc-handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:10px auto 14px;flex-shrink:0}
+  .loc-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 16px 8px;flex-shrink:0}
+  .loc-title{font-size:16px;font-weight:700;color:var(--text-primary,#111);margin:0}
+  .loc-gps-btn{display:flex;align-items:center;gap:5px;background:#fff0f0;color:#730201;border:1.5px solid #f5c2c2;border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+  .loc-gps-btn:disabled{opacity:.55;cursor:not-allowed}
+  .loc-hint{padding:0 16px 8px;font-size:11.5px;color:#999;flex-shrink:0}
+  #loc-map-el{width:100%;height:300px;flex-shrink:0}
+  .loc-footer{padding:10px 16px 22px;flex-shrink:0}
+  .loc-name-row{display:flex;align-items:center;gap:6px;padding:8px 0 10px;min-height:38px}
+  .loc-name-row span{font-size:13px;font-weight:600;color:#333;flex:1;line-height:1.35}
+  .loc-confirm{width:100%;background:#730201;color:#fff;border:none;border-radius:13px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s}
+  .loc-confirm:disabled{opacity:.38;cursor:not-allowed}
+  .loc-cancel{width:100%;background:none;color:#aaa;border:none;padding:9px;font-size:13px;cursor:pointer;margin-top:2px;font-family:inherit}
+  /* Leaflet marker pulse ring */
+  .hh-pin-wrap{position:relative;width:28px;height:34px}
+  .hh-pin{width:26px;height:26px;background:#730201;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 10px rgba(115,2,1,.45)}
+  .hh-pin-shadow{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:10px;height:4px;background:rgba(0,0,0,.18);border-radius:50%}
+</style>
+
+<div id="loc-overlay" class="loc-overlay" role="dialog" aria-modal="true" aria-label="Set your location">
+  <div id="loc-sheet" class="loc-sheet">
+    <div class="loc-handle"></div>
+    <div class="loc-hdr">
+      <h3 class="loc-title">Set Your Location</h3>
+      <button id="loc-gps-btn" class="loc-gps-btn" aria-label="Use my GPS location">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        My Location
+      </button>
+    </div>
+    <p class="loc-hint">Tap anywhere on the map · drag the pin to adjust</p>
+    <div id="loc-map-el"></div>
+    <div class="loc-footer">
+      <div class="loc-name-row">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="#730201" flex-shrink="0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        <span id="loc-selected-text">Tap on the map to select a location</span>
+      </div>
+      <button id="loc-confirm-btn" class="loc-confirm" disabled>Confirm Location</button>
+      <button id="loc-cancel-btn" class="loc-cancel">Cancel</button>
+    </div>
+  </div>
 </div>
 
-        <section class="section-header">
-            <h2 class="section-title">Nearby Professionals · 5km</h2>
-            <button id="location-changer" class="section-action">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="margin-right:3px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>Change
-            </button>
-        </section>
-        <section class="pro-list">
-    <!-- Card 1 -->
-    <div class="pro-card">
-        <div class="pro-left">
-            <div class="img-container">
-                <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Kwame Mensah">
-                <span class="status-dot"></span>
-            </div>
-            <div class="pro-details">
-                <h3>Kwame Mensah</h3>
-                <p class="pro-type">Plumber</p>
-                <div class="rating">
-                    <span class="star">?</span> 4.8 <span class="reviews">(120 reviews)</span>
-                </div>
-                <p class="distance">?? 1.2 km away</p>
-            </div>
-        </div>
-        <div class="pro-right">
-            <p class="starts">Starts from</p>
-            <p class="price">GHC 50</p>
-            <button class="card-book">Book Now</button>
-        </div>
-    </div>
+<!-- ════ DEVICE LOCATION & MAP PICKER ════ -->
+<script>
+(function () {
+  'use strict';
 
-    <!-- Card 2 -->
-    <div class="pro-card">
-        <div class="pro-left">
-            <div class="img-container"> 
-                <img src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772301950/vjx_records/k8oruwmjbtq8bv4mupu4.png" alt="Emmanuel Asare">
-                <span class="status-dot"></span>
-            </div>
-            <div class="pro-details">
-                <h3>Emmanuel Asare</h3>
-                <p class="pro-type">Electrician</p>
-                <div class="rating">
-                    <span class="star">?</span> 4.7 <span class="reviews">(98 reviews)</span>
-                </div>
-                <p class="distance">?? 2.3 km away</p>
-            </div>
-        </div>
-        <div class="pro-right">
-            <p class="starts">Starts from</p>
-            <p class="price">GHC 60</p>
-            <button class="card-book">Book Now</button>
-        </div>
-    </div>
+  /* ── Constants ─────────────────────────────────────────────── */
+  var CACHE_KEY  = 'hh_detected_location';
+  var CACHE_TTL  = 10 * 60 * 1000;           // 10 min
+  var DEFAULT_LAT = 5.6037, DEFAULT_LON = -0.1870; // Accra fallback
 
+<<<<<<< HEAD
     <!-- View More Button -->
     <button class="view-more-btn">
         View More Professionals <span>❯</span>
@@ -342,85 +475,322 @@
             <span>Profile</span>
         </a>
     </nav>
+=======
+  /* ── Tiny helpers ──────────────────────────────────────────── */
+  function updateLocationEl(text) {
+    var el = document.getElementById('uc-loc-text');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('skel');
+    el.style.minWidth = '';
+    el.style.display  = '';
+  }
+>>>>>>> fc4470d892fa9dff28837d4d867d8a79a3b3484b
 
+  function reverseGeocode(lat, lon, cb) {
+    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat +
+          '&lon=' + lon + '&format=json&accept-language=en')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var a    = d.address || {};
+        var area = a.neighbourhood || a.suburb || a.quarter || a.town || a.village || '';
+        var city = a.city || a.state_district || a.county || a.state || '';
+        var parts = [area, city].filter(Boolean);
+        cb(null, parts.length ? parts.join(', ') : (d.display_name || ''));
+      })
+      .catch(function(e){ cb(e); });
+  }
 
-    </div>
+  function saveToCache(loc, lat, lon) {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ loc:loc, lat:lat, lon:lon, ts:Date.now() }));
+      var p = JSON.parse(localStorage.getItem('hh_profile_cache') || 'null');
+      if (p) { p.location = loc; localStorage.setItem('hh_profile_cache', JSON.stringify(p)); }
+    } catch(_){}
+  }
+
+  function tryGetCache() {
+    try {
+      var raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (o && o.loc && (Date.now() - o.ts) < CACHE_TTL) return o;
+    } catch(_){}
+    return null;
+  }
+
+  /* ── Auto-detect on every page load ───────────────────────── */
+  (function autoDetect(){
+    var cached = tryGetCache();
+    if (cached) updateLocationEl(cached.loc);   // instant from cache
+
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        reverseGeocode(pos.coords.latitude, pos.coords.longitude, function(err, loc){
+          if (!err && loc) { updateLocationEl(loc); saveToCache(loc, pos.coords.latitude, pos.coords.longitude); }
+        });
+      },
+      function(){},  // silent if denied
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 5 * 60 * 1000 }
+    );
+  })();
+
+  /* ── Lazy-load Leaflet ─────────────────────────────────────── */
+  function loadLeaflet(cb) {
+    if (window.L) { cb(); return; }
+    var css = document.createElement('link');
+    css.rel  = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    var js = document.createElement('script');
+    js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onload = cb;
+    document.head.appendChild(js);
+  }
+
+  /* ── Map state ─────────────────────────────────────────────── */
+  var _map = null, _marker = null, _pending = null;
+
+  function makeIcon() {
+    return L.divIcon({
+      className: '',
+      html: '<div class="hh-pin-wrap"><div class="hh-pin"></div><div class="hh-pin-shadow"></div></div>',
+      iconSize:   [28, 34],
+      iconAnchor: [14, 34]
+    });
+  }
+
+  function onMarkerMoved(latlng) {
+    document.getElementById('loc-selected-text').textContent = 'Looking up address…';
+    document.getElementById('loc-confirm-btn').disabled = true;
+    reverseGeocode(latlng.lat, latlng.lng, function(err, loc){
+      if (!err && loc) {
+        document.getElementById('loc-selected-text').textContent = loc;
+        _pending = { loc: loc, lat: latlng.lat, lon: latlng.lng };
+        document.getElementById('loc-confirm-btn').disabled = false;
+      } else {
+        document.getElementById('loc-selected-text').textContent = 'Could not resolve address';
+      }
+    });
+  }
+
+  function initOrUpdateMap(lat, lon) {
+    if (_map) {
+      _map.setView([lat, lon], 16);
+      _marker.setLatLng([lat, lon]);
+      onMarkerMoved({ lat: lat, lng: lon });
+      return;
+    }
+
+    _map = L.map('loc-map-el', {
+      zoomControl: true,
+      attributionControl: false
+    }).setView([lat, lon], 16);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(_map);
+
+    _marker = L.marker([lat, lon], { icon: makeIcon(), draggable: true }).addTo(_map);
+    _marker.on('dragend', function(e){ onMarkerMoved(e.target.getLatLng()); });
+    _map.on('click', function(e){ _marker.setLatLng(e.latlng); onMarkerMoved(e.latlng); });
+
+    onMarkerMoved({ lat: lat, lng: lon });
+  }
+
+  /* ── Open / close modal ────────────────────────────────────── */
+  function openLocModal() {
+    var overlay = document.getElementById('loc-overlay');
+    if (!overlay) return;
+    overlay.classList.add('loc-open');
+    document.body.style.overflow = 'hidden';
+
+    var cached = tryGetCache();
+    var lat = (cached && cached.lat) ? cached.lat : DEFAULT_LAT;
+    var lon = (cached && cached.lon) ? cached.lon : DEFAULT_LON;
+
+    loadLeaflet(function(){
+      // Give the sheet time to be visible before init (avoids 0-size map)
+      setTimeout(function(){
+        initOrUpdateMap(lat, lon);
+        _map && _map.invalidateSize();
+      }, 260);
+    });
+  }
+
+  function closeLocModal() {
+    var overlay = document.getElementById('loc-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('loc-open');
+    document.body.style.overflow = '';
+  }
+
+  /* ── Overlay & buttons ─────────────────────────────────────── */
+  document.getElementById('loc-overlay')?.addEventListener('click', function(e){
+    if (e.target === this) closeLocModal();
+  });
+  document.getElementById('loc-cancel-btn')?.addEventListener('click', closeLocModal);
+
+  document.getElementById('loc-confirm-btn')?.addEventListener('click', function(){
+    if (_pending) {
+      updateLocationEl(_pending.loc);
+      saveToCache(_pending.loc, _pending.lat, _pending.lon);
+      if (typeof toast === 'function') toast('📍 Location set: ' + _pending.loc, 'success');
+    }
+    closeLocModal();
+  });
+
+  /* ── "My Location" button inside modal ─────────────────────── */
+  document.getElementById('loc-gps-btn')?.addEventListener('click', function(){
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Detecting…';
+
+    if (!navigator.geolocation) {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg> My Location';
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        var lat = pos.coords.latitude, lon = pos.coords.longitude;
+        loadLeaflet(function(){
+          initOrUpdateMap(lat, lon);
+          _map && _map.invalidateSize();
+        });
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg> My Location';
+      },
+      function(){
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg> My Location';
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  /* ── Expose for location-changer button ────────────────────── */
+  window.openLocationPicker = openLocModal;
+
+})();
+</script>
+
+<!-- ════ SCRIPTS ════ -->
 <script src="../shared/js/components/serviceIcons.js"></script>
-    <script src="../shared/js/components/pageTransition.js"></script>
+<script src="../shared/js/components/pageTransition.js"></script>
 <script type="module" src="../shared/js/services/logoutService.js"></script>
 <script src="../shared/js/utils/helpers.js"></script>
-    <script src="../shared/js/utils/global-app.js"></script>
-    <!-- Live notification badge — updates in real time from Firestore -->
-    <script type="module" src="js/dashboardBadge.js"></script>
-    <script src="../shared/js/components/fastLoader.js"></script>
+<script src="../shared/js/utils/global-app.js"></script>
+<script type="module" src="js/dashboardBadge.js"></script>
+<script src="../shared/js/components/fastLoader.js"></script>
+<script src="../shared/js/components/floatingNav.js"></script>
 
 <script>
 (function () {
-  /* ── helpers ─────────────────────────────────────────────── */
+  const TOAST_ICONS = {
+    success: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    error: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8V13" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M12 16.5V16.55" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21H20.47A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+  };
+
   function go(href, store) {
     if (store) Object.entries(store).forEach(([k, v]) => sessionStorage.setItem(k, v));
     window.location.href = href;
   }
+  function toast(msg, type = 'info') {
+    document.querySelector('.toast.app-toast')?.remove();
 
-  function toast(msg) {
-    let t = document.getElementById('_db_toast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = '_db_toast';
-      t.style.cssText = [
-        'position:fixed', 'bottom:90px', 'left:50%',
-        'transform:translateX(-50%) translateY(16px)',
-        'background:#111', 'color:#fff', 'padding:10px 20px',
-        'border-radius:12px', 'font-size:13px', 'font-weight:600',
-        'opacity:0', 'transition:opacity .22s,transform .22s',
-        'pointer-events:none', 'white-space:nowrap', 'z-index:9999',
-        'box-shadow:0 6px 24px rgba(0,0,0,.2)'
-      ].join(';');
-      document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.style.opacity = '1';
-    t.style.transform = 'translateX(-50%) translateY(0)';
-    clearTimeout(t._tid);
-    t._tid = setTimeout(() => {
-      t.style.opacity = '0';
-      t.style.transform = 'translateX(-50%) translateY(16px)';
-    }, 2500);
+    const t = document.createElement('div');
+    t.className = `toast app-toast ${type}`;
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    t.setAttribute('aria-atomic', 'true');
+
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = TOAST_ICONS[type] || TOAST_ICONS.info;
+
+    const text = document.createElement('span');
+    text.className = 'toast-message';
+    text.textContent = msg;
+
+    t.append(icon, text);
+    document.body.appendChild(t);
+
+    clearTimeout(toast._tid);
+    toast._tid = setTimeout(() => {
+      t.classList.add('toast-exit');
+      setTimeout(() => t.remove(), 320);
+    }, 3000);
   }
 
-  function closeSidebar() {
-    document.getElementById('sidebar')?.classList.remove('active');
-    document.getElementById('sidebar-overlay')?.classList.remove('active');
-  }
+  function openSidebar()  { document.getElementById('sidebar')?.classList.add('active'); document.getElementById('sidebar-overlay')?.classList.add('active'); }
+  function closeSidebar() { document.getElementById('sidebar')?.classList.remove('active'); document.getElementById('sidebar-overlay')?.classList.remove('active'); }
 
-  /* ── notification bell → notification page ────────────────── */
-  document.querySelector('.notification-wrapper-button')
-    ?.addEventListener('click', () => go('notification.html'));
+  document.getElementById('open-sidebar-btn')?.addEventListener('click', openSidebar);
+  document.getElementById('close-sidebar')?.addEventListener('click', closeSidebar);
+  document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
+  document.getElementById('msg-btn')?.addEventListener('click', () => go('messages.html'));
+  document.getElementById('notif-btn')?.addEventListener('click', () => go('notification.html'));
 
+<<<<<<< HEAD
   /* ── sidebar menu items with href="#" ─────────────────────── */
+=======
+  /* greeting */
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning,' : h < 17 ? 'Good afternoon,' : 'Good evening,';
+  const greetEl = document.getElementById('uc-greeting');
+  if (greetEl) greetEl.textContent = greet;
+
+  /* quick action sidebar buttons */
+  const quickDests = [null, 'booking.html', 'live-tracking.html', 'book-step1.html'];
+  document.querySelectorAll('.quick-action-btn').forEach((btn, i) => {
+    if (i === 0) {
+      // Emergency Request → open service-type modal first
+      btn.addEventListener('click', () => {
+        closeSidebar();
+        setTimeout(() => {
+          if (typeof window.openEmergencyModal === 'function') window.openEmergencyModal();
+          else window.location.href = 'book-emergency.html';
+        }, 200);
+      });
+    } else if (quickDests[i]) {
+      btn.addEventListener('click', () => { closeSidebar(); go(quickDests[i]); });
+    }
+  });
+
+  /* sidebar menu items */
+>>>>>>> fc4470d892fa9dff28837d4d867d8a79a3b3484b
   document.querySelectorAll('.sidebar-menu-item[href="#"]').forEach(item => {
     const label = item.querySelector('.sidebar-menu-label')?.textContent.trim() || '';
     item.addEventListener('click', e => {
-      e.preventDefault();
-      closeSidebar();
+      e.preventDefault(); closeSidebar();
       switch (label) {
+<<<<<<< HEAD
         case 'My Requests':       toast('Requests — coming soon'); break;
         case 'Reviews & Ratings': toast('Reviews & Ratings — coming soon'); break;
         case 'My Addresses':      go('settings-location.html'); break;
         case 'Promo Codes':       toast('You have 2 promo codes available!'); break;
         case 'Support Center':    go('settings-help.html'); break;
+=======
+        case 'My Requests':    go('booking.html'); break;
+        case 'My Addresses':   go('settings-location.html'); break;
+        case 'Promo Codes':    toast('You have 2 promo codes available!'); break;
+        case 'Support Center': go('settings-help.html'); break;
+>>>>>>> fc4470d892fa9dff28837d4d867d8a79a3b3484b
         case 'Invite Friends':
-          if (navigator.share) {
-            navigator.share({ title: 'HandyHub', text: 'Book reliable home services with HandyHub!', url: 'https://handyhub.app' }).catch(() => {});
-          } else {
-            navigator.clipboard?.writeText('https://handyhub.app/invite').catch(() => {});
-            toast('Invite link copied!');
-          }
+          if (navigator.share) navigator.share({ title: 'HandyHub', text: 'Book reliable home services!', url: 'https://handyhub.app' }).catch(() => {});
+          else { navigator.clipboard?.writeText('https://handyhub.app/invite').catch(() => {}); toast('Invite link copied!'); }
           break;
       }
     });
   });
 
+<<<<<<< HEAD
   /* ── "View All" popular services ──────────────────────────── */
   document.querySelectorAll('section button, section a').forEach(el => {
     if (el.textContent.trim() === 'View All' && el.id !== 'location-changer') {
@@ -433,12 +803,146 @@
     ?.addEventListener('click', () => go('settings-location.html'));
 
   /* ── service slider cards ─────────────────────────────────── */
+=======
+  /* quick chips */
+  document.getElementById('chip-fixpipe')?.addEventListener('click',  () => go('book-now.html', { hh_service: 'Plumbing', hh_task: 'Fix leaking pipe' }));
+  document.getElementById('chip-fan')?.addEventListener('click',      () => go('book-now.html', { hh_service: 'Electrical', hh_task: 'Install Fan' }));
+  document.getElementById('chip-em-elec')?.addEventListener('click',  () => {
+    sessionStorage.setItem('em_service', 'Electrical');
+    go('book-emergency.html', { hh_service: 'Electrical', hh_task: 'Emergency Electrician' });
+  });
+  document.getElementById('chip-more')?.addEventListener('click',     () => go('book-step1.html'));
+
+  /* ad banner buttons */
+  const adActions = [{ href: 'book-now.html' }, { href: 'book-now.html', store: { hh_service: 'Cleaning' } }, { href: 'book-now.html', store: { hh_service: 'AC Repair' } }];
+  document.querySelectorAll('.book-now').forEach((btn, i) => { if (adActions[i]) btn.addEventListener('click', () => go(adActions[i].href, adActions[i].store)); });
+
+  /* section buttons */
+  document.getElementById('view-all-svc')?.addEventListener('click', () => go('book-step1.html'));
+  document.getElementById('view-more-pros')?.addEventListener('click', () => go('book-now.html'));
+  document.getElementById('location-changer')?.addEventListener('click', () => {
+    if (typeof window.openLocationPicker === 'function') {
+      window.openLocationPicker();
+    } else {
+      go('settings-location.html');
+    }
+  });
+
+  /* service click handler */
+>>>>>>> fc4470d892fa9dff28837d4d867d8a79a3b3484b
   window.handleServiceClick = function (serviceId) {
     const scores = JSON.parse(localStorage.getItem('service_scores') || '{}');
     scores[serviceId] = (scores[serviceId] || 0) + 1;
     localStorage.setItem('service_scores', JSON.stringify(scores));
   };
+
 })();
 </script>
+
+<!-- Dynamic Popular Services -->
+<script>
+(function () {
+  const container = document.getElementById('service-slider');
+  if (!container) return;
+  const catalog = [
+    { id: 'electrical', name: 'Electrician',  img: '../shared/assets/icons/electricals.png', base: 88 },
+    { id: 'plumbing',   name: 'Plumber',       img: '../shared/assets/icons/plummer.png',     base: 90 },
+    { id: 'carpentry',  name: 'Carpenter',     img: '../shared/assets/icons/carpenter.png',   base: 78 },
+    { id: 'ac_repair',  name: 'A/C Tech',      img: '../shared/assets/icons/cooling.png',     base: 82 },
+    { id: 'welding',    name: 'Welder',        img: '../shared/assets/icons/welder.png',      base: 70 },
+    { id: 'painting',   name: 'Painter',       img: '../shared/assets/icons/painter.png',     base: 75 },
+    { id: 'cleaning',   name: 'Cleaner',       img: '../shared/assets/icons/cleaner.png',     base: 85 },
+    { id: 'gardening',  name: 'Gardener',      img: '../shared/assets/icons/gardener.png',    base: 65 },
+  ];
+  const clicks   = JSON.parse(localStorage.getItem('service_scores') || '{}');
+  const bookScores = {};
+  try {
+    JSON.parse(localStorage.getItem('hh_booking_history') || '[]').forEach(b => {
+      const raw = (b.service || (b.services?.[0]?.name) || (b.professional?.type) || '').toLowerCase();
+      catalog.forEach(c => { if (raw.includes(c.name.toLowerCase()) || raw.includes(c.id)) bookScores[c.id] = (bookScores[c.id] || 0) + 3; });
+    });
+  } catch (_) {}
+  const totalEng = [...Object.values(clicks), ...Object.values(bookScores)].reduce((a, b) => a + b, 0);
+  const scored = catalog.map(s => ({ ...s, score: s.base + (clicks[s.id] || 0) * 2 + (bookScores[s.id] || 0) })).sort((a, b) => b.score - a.score);
+  container.innerHTML = scored.map((s, i) => {
+    const hot = i < 3 && totalEng > 0 && ((clicks[s.id] || 0) + (bookScores[s.id] || 0) > 0);
+    return `<button class="svc-btn" onclick="handleServiceClick('${s.id}')">
+      <div class="svc-circle">${hot ? `<span class="svc-hot">Hot</span>` : ''}
+        <img src="${s.img}" alt="${s.name}" width="26" height="26" onerror="this.style.opacity='0'">
+      </div>
+      <span class="svc-lbl">${s.name}</span>
+    </button>`;
+  }).join('');
+})();
+</script>
+
+<!-- Emergency modal + floating nav injected by floatingNav.js -->
+
+
+<!-- Profile cache + active booking banner -->
+<script>
+(function () {
+  function removeSkel(el) { if (el) { el.classList.remove('skel','skel-circle'); el.style.minWidth = ''; } }
+  try {
+    const p = JSON.parse(localStorage.getItem('hh_profile_cache') || 'null');
+    if (!p) return;
+    const nameEl = document.getElementById('uc-name');
+    const imgEl  = document.getElementById('uc-avatar');
+    const sideNameEl = document.getElementById('sidebar-name');
+    const sideImgEl  = document.getElementById('sidebar-profile-img');
+    const locEl  = document.getElementById('uc-loc-text');
+    
+    // Fixed line below to show the entire name string
+    if (nameEl && p.name) { nameEl.textContent = p.name; removeSkel(nameEl); }
+    
+    if (sideNameEl && p.name) sideNameEl.textContent = p.name;
+    if (locEl && p.location) { locEl.textContent = p.location; removeSkel(locEl); }
+    const src = p.profileImage || (p.name ? 'https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=' + encodeURIComponent(p.name.slice(0,2).toUpperCase()) : null);
+    if (imgEl && src) { imgEl.src = src; removeSkel(imgEl); }
+    if (sideImgEl && src) sideImgEl.src = src;
+  } catch (_) {}
+})();
+
+(function () {
+  var b;
+  try { b = JSON.parse(localStorage.getItem('hh_booking')); } catch { b = null; }
+  if (!b) return;
+
+  // Hide banner for terminal statuses (case-insensitive)
+  var st = (b.status || '').toLowerCase();
+  if (!st || st === 'completed' || st === 'cancelled') return;
+
+  var pro = b.professional || b.artisan || {};
+  var name = pro.name || b.proName || 'Your professional';
+
+  // Choose message + colour based on status
+  var bg   = '#730201';
+  var msg;
+  if (st === 'emergency') {
+    bg  = '#b71c1c';
+    msg = '🆘 Emergency request dispatched — tap to track';
+  } else if (st === 'on the way' || st === 'active' || st === 'in progress') {
+    msg = '⚡ ' + name + ' is on the way — tap to track';
+  } else {
+    // Confirmed / Pending
+    msg = '✅ Booking confirmed — ' + name + ' will be with you soon';
+  }
+
+  var banner = document.createElement('div');
+  banner.id = 'active-booking-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:999;background:' + bg + ';color:#fff;display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;box-shadow:0 2px 10px rgba(115,2,1,0.3);';
+  banner.innerHTML =
+    '<span style="flex:1;font-size:12.5px;font-weight:700;">' + msg + '</span>' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';
+  banner.onclick = function () { window.location.href = 'live-tracking.html'; };
+  document.body.prepend(banner);
+
+  // Push content down so banner doesn't overlap header
+  var shell = document.querySelector('.phone-shell') || document.querySelector('.app');
+  if (shell) shell.style.paddingTop = '40px';
+})();
+</script>
+
 </body>
 </html>
+

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub – Rate Your Experience</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/css/ui-polish.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg, #f5f5f5);
+      color: var(--text-primary, #111);
+      min-height: 100vh;
+    }
+    .rv-shell {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg, #f5f5f5);
+    }
+
+    /* ── Header ── */
+    .rv-header {
+      background: #730201;
+      color: #fff;
+      padding: 20px 16px 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .rv-header::after {
+      content: '';
+      position: absolute;
+      bottom: -30px;
+      left: 0; right: 0;
+      height: 60px;
+      background: var(--bg, #f5f5f5);
+      border-radius: 30px 30px 0 0;
+    }
+    .rv-header-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .rv-back-btn {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.2);
+      border: none; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #fff;
+    }
+    .rv-header-title { font-size: 18px; font-weight: 800; color: #fff; }
+    .rv-hero {
+      text-align: center;
+      padding: 0 0 10px;
+    }
+    .rv-check-wrap {
+      width: 72px; height: 72px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .rv-hero-title { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+    .rv-hero-sub { font-size: 13px; color: rgba(255,255,255,0.75); font-weight: 500; }
+
+    /* ── Body ── */
+    .rv-body {
+      flex: 1;
+      padding: 24px 16px 120px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ── Receipt card ── */
+    .rv-receipt {
+      background: var(--surface, #fff);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .rv-receipt-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #730201;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 14px;
+    }
+    .rv-receipt-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f4f4f4;
+      font-size: 13px;
+    }
+    .rv-receipt-row:last-child { border-bottom: none; }
+    .rv-receipt-label { color: #888; font-weight: 500; }
+    .rv-receipt-val { font-weight: 700; color: #111; }
+    .rv-receipt-val.rv-total { color: #730201; font-size: 16px; font-weight: 900; }
+    .rv-paid-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #e8f5e9; color: #2e7d32;
+      border-radius: 8px; padding: 3px 8px;
+      font-size: 11px; font-weight: 800;
+    }
+
+    /* ── Pro card ── */
+    .rv-pro-card {
+      background: var(--surface, #fff);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .rv-pro-avatar {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: linear-gradient(135deg, #730201, #a03030);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800; color: #fff;
+      flex-shrink: 0; overflow: hidden;
+    }
+    .rv-pro-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .rv-pro-name { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 2px; }
+    .rv-pro-type { font-size: 12px; color: #888; font-weight: 500; }
+    .rv-pro-distance { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+    /* ── Star rating ── */
+    .rv-rating-card {
+      background: var(--surface, #fff);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .rv-rating-title { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 4px; }
+    .rv-rating-sub { font-size: 12px; color: #888; margin-bottom: 16px; }
+    .rv-stars {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+    .rv-star {
+      width: 44px; height: 44px;
+      cursor: pointer;
+      transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+      color: #ddd;
+    }
+    .rv-star:hover, .rv-star.lit { color: #f5a623; }
+    .rv-star:active { transform: scale(0.88); }
+    .rv-star svg { width: 44px; height: 44px; }
+    .rv-rating-label {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #730201;
+      min-height: 20px;
+      margin-bottom: 14px;
+    }
+
+    /* ── Quick tags ── */
+    .rv-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .rv-tag {
+      background: #f5f5f5;
+      border: 1.5px solid transparent;
+      border-radius: 20px;
+      padding: 7px 13px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .rv-tag.selected {
+      background: #fde8e8;
+      border-color: #730201;
+      color: #730201;
+    }
+
+    /* ── Text review ── */
+    .rv-textarea {
+      width: 100%;
+      min-height: 90px;
+      border: 1.5px solid #eee;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      color: #111;
+      resize: none;
+      background: #fafafa;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    .rv-textarea:focus { border-color: #730201; background: #fff; }
+    .rv-char-count { font-size: 11px; color: #bbb; text-align: right; margin-top: 4px; }
+
+    /* ── Tip section ── */
+    .rv-tip-card {
+      background: var(--surface, #fff);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .rv-tip-title { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 4px; }
+    .rv-tip-sub { font-size: 12px; color: #888; margin-bottom: 14px; }
+    .rv-tip-btns {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .rv-tip-btn {
+      background: #f5f5f5;
+      border: 1.5px solid transparent;
+      border-radius: 10px;
+      padding: 10px 4px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #555;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .rv-tip-btn:hover { background: #fde8e8; border-color: #f5c2c2; color: #730201; }
+    .rv-tip-btn.selected { background: #fde8e8; border-color: #730201; color: #730201; }
+    .rv-tip-btn.custom { font-size: 11px; }
+
+    /* ── Bottom CTA ── */
+    .rv-footer {
+      position: fixed;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 430px;
+      background: var(--surface, #fff);
+      padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px);
+      border-top: 1px solid #f0f0f0;
+      z-index: 200;
+    }
+    .rv-submit-btn {
+      width: 100%;
+      background: #730201;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 15px;
+      font-weight: 800;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+    }
+    .rv-submit-btn:active { opacity: 0.88; }
+    .rv-skip-btn {
+      display: block;
+      text-align: center;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #aaa;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      width: 100%;
+    }
+
+    /* ── Success overlay ── */
+    .rv-success-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .rv-success-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .rv-success-card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 32px 24px;
+      max-width: 320px;
+      width: 90%;
+      text-align: center;
+      transform: scale(0.88) translateY(20px);
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .rv-success-overlay.visible .rv-success-card {
+      transform: scale(1) translateY(0);
+    }
+    .rv-success-icon {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #730201, #a03030);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .rv-success-title { font-size: 20px; font-weight: 900; color: #111; margin-bottom: 8px; }
+    .rv-success-sub { font-size: 13px; color: #888; line-height: 1.5; margin-bottom: 22px; }
+    .rv-success-btn {
+      width: 100%;
+      background: #730201;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 800;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+    }
+
+    [data-theme="dark"] .rv-receipt,
+    [data-theme="dark"] .rv-pro-card,
+    [data-theme="dark"] .rv-rating-card,
+    [data-theme="dark"] .rv-tip-card { background: #1e1e1e; box-shadow: none; }
+    [data-theme="dark"] .rv-receipt-label { color: #666; }
+    [data-theme="dark"] .rv-receipt-val { color: #e0e0e0; }
+    [data-theme="dark"] .rv-pro-name { color: #f0f0f0; }
+    [data-theme="dark"] .rv-textarea { background: #2a2a2a; border-color: #333; color: #e0e0e0; }
+    [data-theme="dark"] .rv-tag { background: #2a2a2a; color: #aaa; }
+    [data-theme="dark"] .rv-tip-btn { background: #2a2a2a; color: #aaa; }
+    [data-theme="dark"] .rv-footer { background: #1a1a1a; border-color: #2a2a2a; }
+    [data-theme="dark"] .rv-success-card { background: #1e1e1e; }
+    [data-theme="dark"] .rv-success-title { color: #f0f0f0; }
+  </style>
+</head>
+<body>
+<div class="rv-shell">
+
+  <!-- Header -->
+  <div class="rv-header">
+    <div class="rv-header-row">
+      <button class="rv-back-btn" onclick="window.location.href='booking.html'" aria-label="Back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+      <span class="rv-header-title">Rate Your Experience</span>
+    </div>
+    <div class="rv-hero">
+      <div class="rv-check-wrap">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <p class="rv-hero-title">Job Complete!</p>
+      <p class="rv-hero-sub">How did it go? Your feedback helps others.</p>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="rv-body">
+
+    <!-- Receipt -->
+    <div class="rv-receipt">
+      <p class="rv-receipt-title">Payment Receipt</p>
+      <div class="rv-receipt-row">
+        <span class="rv-receipt-label">Booking ID</span>
+        <span class="rv-receipt-val" id="rv-booking-id">—</span>
+      </div>
+      <div class="rv-receipt-row">
+        <span class="rv-receipt-label">Service</span>
+        <span class="rv-receipt-val" id="rv-service">—</span>
+      </div>
+      <div class="rv-receipt-row">
+        <span class="rv-receipt-label">Date &amp; Time</span>
+        <span class="rv-receipt-val" id="rv-date">—</span>
+      </div>
+      <div class="rv-receipt-row">
+        <span class="rv-receipt-label">Status</span>
+        <span class="rv-paid-badge">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Paid
+        </span>
+      </div>
+      <div class="rv-receipt-row">
+        <span class="rv-receipt-label">Amount Paid</span>
+        <span class="rv-receipt-val rv-total" id="rv-total">GHC —</span>
+      </div>
+    </div>
+
+    <!-- Pro card -->
+    <div class="rv-pro-card">
+      <div class="rv-pro-avatar" id="rv-pro-avatar">P</div>
+      <div>
+        <p class="rv-pro-name" id="rv-pro-name">Professional</p>
+        <p class="rv-pro-type" id="rv-pro-type">Service</p>
+        <p class="rv-pro-distance" id="rv-pro-dist"></p>
+      </div>
+    </div>
+
+    <!-- Star rating -->
+    <div class="rv-rating-card">
+      <p class="rv-rating-title">How would you rate this service?</p>
+      <p class="rv-rating-sub">Tap a star to rate</p>
+
+      <div class="rv-stars" id="rv-stars" role="group" aria-label="Star rating">
+        <div class="rv-star" data-star="1" role="button" aria-label="1 star" tabindex="0">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <div class="rv-star" data-star="2" role="button" aria-label="2 stars" tabindex="0">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <div class="rv-star" data-star="3" role="button" aria-label="3 stars" tabindex="0">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <div class="rv-star" data-star="4" role="button" aria-label="4 stars" tabindex="0">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <div class="rv-star" data-star="5" role="button" aria-label="5 stars" tabindex="0">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+      </div>
+      <p class="rv-rating-label" id="rv-rating-label">&nbsp;</p>
+
+      <!-- Quick tags -->
+      <div class="rv-tags" id="rv-tags">
+        <button class="rv-tag" onclick="toggleTag(this)">Professional</button>
+        <button class="rv-tag" onclick="toggleTag(this)">On time</button>
+        <button class="rv-tag" onclick="toggleTag(this)">Clean work</button>
+        <button class="rv-tag" onclick="toggleTag(this)">Friendly</button>
+        <button class="rv-tag" onclick="toggleTag(this)">Great value</button>
+        <button class="rv-tag" onclick="toggleTag(this)">Would rebook</button>
+      </div>
+
+      <!-- Review text -->
+      <textarea class="rv-textarea" id="rv-review-text" placeholder="Write a brief review (optional)..." maxlength="300" rows="3" aria-label="Write a review"></textarea>
+      <p class="rv-char-count"><span id="rv-char-remaining">300</span> characters remaining</p>
+    </div>
+
+    <!-- Tip -->
+    <div class="rv-tip-card">
+      <p class="rv-tip-title">Leave a Tip 🙏</p>
+      <p class="rv-tip-sub">Show your appreciation for great service (optional)</p>
+      <div class="rv-tip-btns">
+        <button class="rv-tip-btn" data-tip="5" onclick="selectTip(this)">GHC 5</button>
+        <button class="rv-tip-btn" data-tip="10" onclick="selectTip(this)">GHC 10</button>
+        <button class="rv-tip-btn" data-tip="20" onclick="selectTip(this)">GHC 20</button>
+        <button class="rv-tip-btn custom" data-tip="custom" onclick="selectCustomTip()">Custom</button>
+      </div>
+    </div>
+
+  </div><!-- /.rv-body -->
+
+</div><!-- /.rv-shell -->
+
+<!-- Footer -->
+<div class="rv-footer">
+  <button class="rv-submit-btn" id="rv-submit-btn" onclick="submitReview()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    Submit Review
+  </button>
+  <button class="rv-skip-btn" onclick="skipReview()">Skip for now</button>
+</div>
+
+<!-- Success overlay -->
+<div class="rv-success-overlay" id="rv-success-overlay">
+  <div class="rv-success-card">
+    <div class="rv-success-icon">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+        <path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <p class="rv-success-title">Thank You! 🎉</p>
+    <p class="rv-success-sub">Your review helps other customers find great professionals.<br>We appreciate your feedback!</p>
+    <button class="rv-success-btn" onclick="goToHistory()">View My Bookings</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const BK_KEY   = 'hh_booking';
+  const HIST_KEY = 'hh_booking_history';
+
+  /* ── Read state ── */
+  function getState() {
+    try { return JSON.parse(localStorage.getItem(BK_KEY) || '{}'); } catch { return {}; }
+  }
+
+  /* ── Populate receipt & pro card ── */
+  document.addEventListener('DOMContentLoaded', function () {
+    const state = getState();
+
+    // Receipt
+    const now  = new Date();
+    const pad  = n => String(n).padStart(2, '0');
+    const hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+    const last = hist[0] || {};
+    const id   = last.id || ('HHB-' + String(now.getFullYear()).slice(2) + pad(now.getMonth()+1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()));
+    document.getElementById('rv-booking-id').textContent = id;
+    document.getElementById('rv-service').textContent    = (state.services && state.services[0] && state.services[0].name) || last.service || 'Service';
+    const dateStr = (state.schedule && state.schedule.dateDisplay) || last.dateDisplay || now.toDateString();
+    const timeStr = (state.schedule && state.schedule.time) || last.time || '';
+    document.getElementById('rv-date').textContent = timeStr ? dateStr + ', ' + timeStr : dateStr;
+    document.getElementById('rv-total').textContent = 'GHC ' + ((state.total || last.total || 65) + '.00');
+
+    // Pro card
+    const pro = state.professional || state.artisan || {};
+    const proName = pro.name || last.proName || 'Professional';
+    const proType = pro.type || last.proType || 'Artisan';
+    document.getElementById('rv-pro-name').textContent = proName;
+    document.getElementById('rv-pro-type').textContent = proType;
+    if (pro.dist) document.getElementById('rv-pro-dist').textContent = pro.dist + ' away';
+
+    const avatarEl = document.getElementById('rv-pro-avatar');
+    if (pro.photo || last.proPhoto) {
+      avatarEl.innerHTML = `<img src="${pro.photo || last.proPhoto}" alt="${proName}" style="width:100%;height:100%;object-fit:cover;">`;
+    } else {
+      avatarEl.textContent = proName.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    }
+  });
+
+  /* ── Stars ── */
+  let currentRating = 0;
+  const LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
+  const stars   = document.querySelectorAll('.rv-star');
+  const labelEl = document.getElementById('rv-rating-label');
+
+  stars.forEach(star => {
+    star.addEventListener('click', () => setRating(parseInt(star.dataset.star)));
+    star.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRating(parseInt(star.dataset.star)); } });
+    star.addEventListener('mouseenter', () => highlightStars(parseInt(star.dataset.star)));
+    star.addEventListener('mouseleave', () => highlightStars(currentRating));
+  });
+
+  function highlightStars(n) {
+    stars.forEach((s, i) => s.classList.toggle('lit', i < n));
+  }
+  function setRating(n) {
+    currentRating = n;
+    highlightStars(n);
+    labelEl.textContent = LABELS[n] || '';
+    // Auto-populate positive tags if 4-5 stars
+    if (n >= 4) {
+      document.querySelectorAll('.rv-tag').forEach((t, i) => {
+        if (i < 3) t.classList.add('selected');
+      });
+    } else {
+      document.querySelectorAll('.rv-tag').forEach(t => t.classList.remove('selected'));
+    }
+  }
+
+  /* ── Tags ── */
+  window.toggleTag = function (btn) {
+    btn.classList.toggle('selected');
+  };
+
+  /* ── Char count ── */
+  const textarea = document.getElementById('rv-review-text');
+  const charEl   = document.getElementById('rv-char-remaining');
+  textarea.addEventListener('input', () => {
+    charEl.textContent = (300 - textarea.value.length);
+  });
+
+  /* ── Tip ── */
+  let selectedTip = 0;
+  window.selectTip = function (btn) {
+    document.querySelectorAll('.rv-tip-btn').forEach(b => b.classList.remove('selected'));
+    const tip = parseInt(btn.dataset.tip) || 0;
+    if (btn.classList.contains('selected') || selectedTip === tip) {
+      selectedTip = 0;
+    } else {
+      btn.classList.add('selected');
+      selectedTip = tip;
+    }
+  };
+  window.selectCustomTip = function () {
+    const val = prompt('Enter tip amount (GHC):');
+    if (val && !isNaN(val) && parseFloat(val) > 0) {
+      document.querySelectorAll('.rv-tip-btn').forEach(b => b.classList.remove('selected'));
+      const btn = document.querySelector('.rv-tip-btn.custom');
+      btn.classList.add('selected');
+      btn.textContent = 'GHC ' + parseFloat(val).toFixed(0);
+      selectedTip = parseFloat(val);
+    }
+  };
+
+  /* ── Submit ── */
+  window.submitReview = function () {
+    const btn = document.getElementById('rv-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="spin"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2" stroke-dasharray="32" stroke-dashoffset="10"/></svg> Submitting…';
+
+    const state = getState();
+    const tags  = [...document.querySelectorAll('.rv-tag.selected')].map(t => t.textContent.trim());
+    const reviewData = {
+      rating   : currentRating || 5,
+      tags     : tags,
+      text     : textarea.value.trim(),
+      tip      : selectedTip,
+      ts       : new Date().toISOString(),
+      proId    : (state.professional || {}).id || null,
+    };
+
+    // Update last booking record with review
+    try {
+      const hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+      if (hist.length) {
+        hist[0].review  = reviewData;
+        hist[0].status  = 'Completed';
+        localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+      }
+    } catch(_) {}
+
+    // Clear active booking
+    try { localStorage.removeItem(BK_KEY); } catch(_) {}
+
+    // Show success after short delay
+    setTimeout(() => {
+      document.getElementById('rv-success-overlay').classList.add('visible');
+    }, 800);
+  };
+
+  window.skipReview = function () {
+    // Mark completed even without review
+    try {
+      const hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+      if (hist.length && hist[0].status !== 'Completed') {
+        hist[0].status = 'Completed';
+        localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+      }
+      localStorage.removeItem(BK_KEY);
+    } catch(_) {}
+    window.location.href = 'booking.html';
+  };
+
+  window.goToHistory = function () {
+    window.location.href = 'booking.html';
+  };
+
+})();
+</script>
+</body>
+</html>

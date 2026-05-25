@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub – Emergency Dispatch</title>
+  <link rel="stylesheet" href="css/book-now.css" />
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <style>
+    /* ── Emergency shell ── */
+    .em-shell {
+      max-width: 430px; margin: 0 auto;
+      min-height: 100vh; position: relative; overflow: hidden;
+      font-family: 'DM Sans', -apple-system, sans-serif;
+    }
+
+    /* ── States ── */
+    .em-state { display: none; min-height: 100vh; flex-direction: column; }
+    .em-state.active { display: flex; }
+
+    /* ── STATE 1: SEARCHING ── */
+    .em-searching-bg {
+      flex: 1; background: linear-gradient(160deg, #730201 0%, #4a0101 100%);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 32px 24px; text-align: center;
+      position: relative; min-height: 100vh;
+    }
+    .em-back-btn-overlay {
+      position: absolute; top: 56px; left: 20px;
+      width: 40px; height: 40px; background: rgba(255,255,255,0.18);
+      border: none; border-radius: 12px; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; color: #fff;
+    }
+    .em-rings { position: relative; width: 200px; height: 200px; margin-bottom: 28px; }
+    .em-ring {
+      position: absolute; top: 50%; left: 50%; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.18);
+      transform: translate(-50%,-50%);
+      animation: pulse-ring 2.4s ease-out infinite;
+    }
+    .em-ring-1 { width: 80px; height: 80px; animation-delay: 0s; }
+    .em-ring-2 { width: 130px; height: 130px; animation-delay: 0.6s; }
+    .em-ring-3 { width: 190px; height: 190px; animation-delay: 1.2s; }
+    @keyframes pulse-ring {
+      0%   { opacity: 0.8; transform: translate(-50%,-50%) scale(0.85); }
+      100% { opacity: 0;   transform: translate(-50%,-50%) scale(1.05); }
+    }
+    .em-center-avatar {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 64px; height: 64px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      border: 3px solid rgba(255,255,255,0.45);
+    }
+    .em-search-title { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+    .em-search-sub { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.6; margin-bottom: 32px; }
+    .em-dots { display: flex; gap: 8px; margin-bottom: 32px; }
+    .em-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5);
+      animation: dot-bounce 1.4s ease-in-out infinite;
+    }
+    .em-dot:nth-child(2) { animation-delay: 0.2s; }
+    .em-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-bounce { 0%,80%,100% { opacity:0.3; transform:scale(0.7); } 40% { opacity:1; transform:scale(1); } }
+
+    .em-stats-row { display: flex; gap: 24px; margin-bottom: 32px; }
+    .em-stat-item { text-align: center; }
+    .em-stat-val { font-size: 22px; font-weight: 900; color: #fff; }
+    .em-stat-lbl { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+    .em-stat-divider { width: 1px; background: rgba(255,255,255,0.12); }
+
+    .em-cancel-btn {
+      background: rgba(255,255,255,0.15); color: #fff;
+      border: 1.5px solid rgba(255,255,255,0.35); border-radius: 14px;
+      padding: 14px 32px; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    .em-cancel-btn:active { background: rgba(255,255,255,0.25); }
+
+    /* ── STATE 2: MATCH FOUND ── */
+    .em-matched-bg {
+      flex: 1; background: linear-gradient(160deg, #1b5e20 0%, #0a2e0d 100%);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 32px 24px; text-align: center; min-height: 100vh;
+    }
+    .em-match-check {
+      width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      animation: pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes pop-in { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .em-match-title { font-size: 26px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+    .em-match-sub { font-size: 14px; color: rgba(255,255,255,0.75); margin-bottom: 28px; line-height: 1.6; }
+    .em-match-pro-card {
+      background: rgba(255,255,255,0.15); border-radius: 18px;
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px; width: 100%; max-width: 340px; margin-bottom: 24px;
+      backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);
+    }
+    .em-match-photo {
+      width: 56px; height: 56px; border-radius: 14px; object-fit: cover;
+      border: 2px solid rgba(255,255,255,0.4); flex-shrink: 0;
+      background: rgba(255,255,255,0.15);
+    }
+    .em-match-info { flex: 1; text-align: left; }
+    .em-match-name { font-size: 15px; font-weight: 800; color: #fff; }
+    .em-match-type { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+    .em-match-rating { font-size: 12px; color: rgba(255,255,255,0.85); margin-top: 4px; }
+    .em-match-eta { text-align: right; flex-shrink: 0; }
+    .em-match-eta-label { font-size: 10px; color: rgba(255,255,255,0.6); }
+    .em-match-eta-val { font-size: 22px; font-weight: 900; color: #fff; }
+    .em-progress-wrap { width: 100%; max-width: 320px; }
+    .em-progress-track { height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+    .em-progress-fill { height: 100%; background: #fff; border-radius: 2px; width: 0%; transition: width 2.2s linear; }
+    .em-progress-text { font-size: 12px; color: rgba(255,255,255,0.6); text-align: center; margin-top: 8px; }
+
+    /* ── STATE 3: CONFIRMED ── */
+    .em-con-header {
+      background: linear-gradient(135deg, #730201, #5a0101);
+      padding: 52px 16px 16px;
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .em-con-header-back {
+      width: 40px; height: 40px; background: rgba(255,255,255,0.2);
+      border: none; border-radius: 12px; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; flex-shrink: 0; color: #fff;
+    }
+    .em-con-header-text { flex: 1; }
+    .em-con-header-title { font-size: 16px; font-weight: 800; color: #fff; }
+    .em-con-header-sub { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+    .em-notif-btn {
+      width: 40px; height: 40px; background: rgba(255,255,255,0.15);
+      border: none; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0; cursor: pointer; color: #fff;
+    }
+
+    .em-con-scroll {
+      flex: 1; overflow-y: auto; padding: 16px 16px 100px;
+      background: var(--bg, #f5f5f5);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ETA card */
+    .em-eta-card {
+      background: var(--surface, #fff); border-radius: 18px;
+      display: flex; align-items: center; gap: 14px; padding: 16px;
+      margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .em-eta-icon { width: 48px; height: 48px; background: #fde8e8; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .em-eta-body { flex: 1; }
+    .em-eta-label { font-size: 11px; color: #888; font-weight: 600; margin-bottom: 2px; }
+    .em-eta-val { font-size: 28px; font-weight: 900; color: #111; letter-spacing: -1px; }
+    .em-eta-sub { font-size: 12px; color: #aaa; margin-top: 2px; }
+    .em-eta-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700; color: #2e7d32; flex-shrink: 0;
+    }
+    .em-eta-dot-live {
+      width: 8px; height: 8px; border-radius: 50%; background: #2e7d32;
+      animation: live-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes live-pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+
+    /* Pro card */
+    .em-pro-card {
+      background: var(--surface, #fff); border-radius: 18px;
+      display: flex; align-items: center; gap: 14px; padding: 16px;
+      margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .em-pro-photo-wrap { position: relative; flex-shrink: 0; }
+    .em-pro-photo {
+      width: 60px; height: 60px; border-radius: 16px; object-fit: cover;
+      background: linear-gradient(135deg, #730201, #a03030);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800; color: #fff;
+    }
+    .em-pro-photo img { width: 100%; height: 100%; border-radius: 16px; object-fit: cover; }
+    .em-pro-online {
+      position: absolute; bottom: 2px; right: 2px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #22c55e; border: 2.5px solid #fff;
+    }
+    .em-pro-info { flex: 1; }
+    .em-pro-name { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 3px; }
+    .em-pro-type { font-size: 12px; color: #888; font-weight: 500; }
+    .em-pro-rating { font-size: 12px; color: #666; margin-top: 4px; }
+    .em-pro-call-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0;
+    }
+    .em-pro-call-circle {
+      width: 46px; height: 46px; background: #fde8e8; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; transition: background 0.15s;
+    }
+    .em-pro-call-circle:active { background: #f5c2c2; }
+    .em-pro-call-label { font-size: 10px; color: #730201; font-weight: 700; }
+
+    /* Action buttons */
+    .em-actions { display: flex; gap: 10px; margin-bottom: 12px; }
+    .em-action-btn {
+      flex: 1; padding: 14px; border-radius: 14px; font-size: 13.5px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      cursor: pointer; border: none; font-family: inherit; transition: opacity 0.15s;
+    }
+    .em-action-btn:active { opacity: 0.85; }
+    .em-action-call { background: #730201; color: #fff; }
+    .em-action-msg { background: var(--surface, #fff); color: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+    /* Trust banner */
+    .em-trust-banner {
+      background: #e8f5e9; border-radius: 14px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+      font-size: 12.5px; font-weight: 600; color: #2e7d32;
+    }
+
+    /* Booking ref */
+    .em-ref-card {
+      background: var(--surface, #fff); border-radius: 14px; padding: 14px;
+      margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .em-ref-info { flex: 1; }
+    .em-ref-label { font-size: 11px; color: #888; }
+    .em-ref-val { font-size: 14px; font-weight: 800; color: #111; }
+    .em-share-btn {
+      background: #fde8e8; color: #730201; border: none; padding: 7px 12px;
+      border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .em-cancel-link {
+      display: block; width: 100%; background: none; border: none;
+      padding: 14px; font-size: 13px; font-weight: 700; color: #e53e3e;
+      cursor: pointer; font-family: inherit; text-align: center;
+    }
+
+    /* Dark mode */
+    [data-theme="dark"] .em-con-scroll { background: #0a0a0a; }
+    [data-theme="dark"] .em-eta-card,
+    [data-theme="dark"] .em-pro-card,
+    [data-theme="dark"] .em-ref-card { background: #1e1e1e; box-shadow: none; }
+    [data-theme="dark"] .em-eta-val,
+    [data-theme="dark"] .em-pro-name { color: #f0f0f0; }
+    [data-theme="dark"] .em-action-msg { background: #1e1e1e; color: #ccc; }
+  </style>
+</head>
+<body>
+<div class="em-shell">
+
+  <!-- ══ STATE 1: SEARCHING ══ -->
+  <div class="em-state active" id="state-searching">
+    <div class="em-searching-bg">
+      <button class="em-back-btn-overlay" onclick="safeBack()" aria-label="Go back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="em-rings">
+        <div class="em-ring em-ring-1"></div>
+        <div class="em-ring em-ring-2"></div>
+        <div class="em-ring em-ring-3"></div>
+        <div class="em-center-avatar">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <p class="em-search-title" id="em-search-title">Finding your Professional…</p>
+      <p class="em-search-sub" id="em-search-sub">Searching nearby professionals<br>in your area. Please wait.</p>
+
+      <div class="em-dots">
+        <div class="em-dot"></div>
+        <div class="em-dot"></div>
+        <div class="em-dot"></div>
+      </div>
+
+      <div class="em-stats-row">
+        <div class="em-stat-item">
+          <p class="em-stat-val" id="em-nearby-count">5</p>
+          <p class="em-stat-lbl">Nearby</p>
+        </div>
+        <div class="em-stat-divider"></div>
+        <div class="em-stat-item">
+          <p class="em-stat-val">★ 4.7</p>
+          <p class="em-stat-lbl">Avg Rating</p>
+        </div>
+        <div class="em-stat-divider"></div>
+        <div class="em-stat-item">
+          <p class="em-stat-val" id="em-eta-search">6 min</p>
+          <p class="em-stat-lbl">Est. Arrival</p>
+        </div>
+      </div>
+
+      <button class="em-cancel-btn" onclick="cancelSearch()">Cancel Request</button>
+    </div>
+  </div>
+
+  <!-- ══ STATE 2: MATCH FOUND ══ -->
+  <div class="em-state" id="state-matched">
+    <div class="em-matched-bg">
+      <div class="em-match-check">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+          <path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p class="em-match-title">Match Found!</p>
+      <p class="em-match-sub" id="em-match-sub">Connecting you with a nearby professional</p>
+
+      <div class="em-match-pro-card">
+        <div class="em-match-photo" id="em-match-photo-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="#fff" stroke-width="2"/></svg>
+        </div>
+        <div class="em-match-info">
+          <p class="em-match-name" id="em-match-name">Finding…</p>
+          <p class="em-match-type" id="em-match-type">Searching nearby</p>
+          <p class="em-match-rating" id="em-match-rating">★ — verified professional</p>
+        </div>
+        <div class="em-match-eta">
+          <p class="em-match-eta-label">ETA</p>
+          <p class="em-match-eta-val" id="em-match-eta-val">—</p>
+        </div>
+      </div>
+
+      <div class="em-progress-wrap">
+        <div class="em-progress-track">
+          <div class="em-progress-fill" id="em-progress-fill"></div>
+        </div>
+        <p class="em-progress-text">Confirming booking…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STATE 3: CONFIRMED ══ -->
+  <div class="em-state" id="state-confirmed">
+
+    <div class="em-con-header">
+      <button class="em-con-header-back" onclick="window.location.href='booking.html'" aria-label="Bookings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="em-con-header-text">
+        <p class="em-con-header-title">Professional Assigned</p>
+        <p class="em-con-header-sub" id="em-con-sub">Your professional is on the way!</p>
+      </div>
+      <button class="em-notif-btn" onclick="window.location.href='notification.html'" aria-label="Notifications">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="em-con-scroll">
+
+      <!-- ETA card -->
+      <div class="em-eta-card">
+        <div class="em-eta-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="em-eta-body">
+          <p class="em-eta-label">Estimated Arrival</p>
+          <p class="em-eta-val" id="em-eta-countdown">—</p>
+          <p class="em-eta-sub" id="em-eta-address">Your location</p>
+        </div>
+        <div class="em-eta-status">
+          <div class="em-eta-dot-live"></div>
+          On the way
+        </div>
+      </div>
+
+      <!-- Pro card -->
+      <div class="em-pro-card">
+        <div class="em-pro-photo-wrap">
+          <div class="em-pro-photo" id="em-con-photo-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="#fff" stroke-width="2"/></svg>
+          </div>
+          <div class="em-pro-online"></div>
+        </div>
+        <div class="em-pro-info">
+          <p class="em-pro-name" id="em-con-name">Professional</p>
+          <p class="em-pro-type" id="em-con-type">Service</p>
+          <p class="em-pro-rating" id="em-con-rating">★ — verified</p>
+        </div>
+        <div class="em-pro-call-btn">
+          <button class="em-pro-call-circle" id="em-call-btn" onclick="callPro()" aria-label="Call professional">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#730201" stroke-width="2"/></svg>
+          </button>
+          <span class="em-pro-call-label">Call</span>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="em-actions">
+        <button class="em-action-btn em-action-call" onclick="callPro()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#fff" stroke-width="2"/></svg>
+          Call Professional
+        </button>
+        <button class="em-action-btn em-action-msg" onclick="window.location.href='messages.html'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#333" stroke-width="2" stroke-linecap="round"/></svg>
+          Message
+        </button>
+      </div>
+
+      <!-- Trust banner -->
+      <div class="em-trust-banner">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="#4caf50"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Safe arrival guaranteed — your professional is background-verified.
+      </div>
+
+      <!-- Track live button -->
+      <button style="width:100%;background:#730201;color:#fff;border:none;border-radius:14px;padding:14px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="window.location.href='live-tracking.html'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="#fff" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+        Track Live Location
+      </button>
+
+      <!-- Booking ref -->
+      <div class="em-ref-card">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+        <div class="em-ref-info">
+          <p class="em-ref-label">Booking Reference</p>
+          <p class="em-ref-val" id="em-book-ref">—</p>
+        </div>
+        <button class="em-share-btn" onclick="shareRef()">Share</button>
+      </div>
+
+      <button class="em-cancel-link" onclick="confirmCancel()">Cancel Booking</button>
+
+    </div>
+  </div>
+
+</div><!-- /.em-shell -->
+
+<script>
+(function () {
+  'use strict';
+
+  /* ─── Read service context from session/storage ─── */
+  let svcName = 'Professional';
+  let artisanPhone = null;
+
+  // selectEmergencyType stores a plain service-name string
+  const rawSvc = sessionStorage.getItem('em_service') || sessionStorage.getItem('hh_service') || '';
+  if (rawSvc) {
+    // Handle both legacy JSON and plain strings
+    try {
+      const parsed = JSON.parse(rawSvc);
+      svcName = (parsed && parsed.name) ? parsed.name : (typeof parsed === 'string' ? parsed : svcName);
+    } catch (_) {
+      svcName = rawSvc; // it's a plain string – use as-is
+    }
+  }
+
+  /* ─── Professional pool (realistic, rotated by service type) ─── */
+  const PRO_POOL = {
+    Electrical: { name:'Emmanuel Asare', type:'Electrician', exp:'6 years', rating:'4.8', reviews:'98', eta: 6, phone:'tel:+233501234567' },
+    Plumbing:   { name:'Kwame Mensah',   type:'Plumber',     exp:'4 years', rating:'4.7', reviews:'64', eta: 8, phone:'tel:+233502345678' },
+    'AC Repair':{ name:'Ama Sarpong',    type:'A/C Technician', exp:'5 years', rating:'4.9', reviews:'112', eta: 7, phone:'tel:+233503456789' },
+    Carpentry:  { name:'Kofi Boateng',   type:'Carpenter',   exp:'8 years', rating:'4.9', reviews:'201', eta: 9, phone:'tel:+233504567890' },
+    Cleaning:   { name:'Abena Owusu',    type:'Cleaner',     exp:'3 years', rating:'4.6', reviews:'77', eta: 5, phone:'tel:+233505678901' },
+    default:    { name:'Samuel Ofori',   type:'Artisan',     exp:'5 years', rating:'4.7', reviews:'89', eta: 7, phone:'tel:+233506789012' },
+  };
+  const pro = PRO_POOL[svcName] || PRO_POOL.default;
+  artisanPhone = pro.phone;
+
+  /* ─── Update UI with service ─── */
+  const titleEl = document.getElementById('em-search-title');
+  const subEl   = document.getElementById('em-search-sub');
+  if (titleEl) titleEl.textContent = `Finding your ${svcName}…`;
+  if (subEl)   subEl.textContent   = `Checking ${svcName.toLowerCase()} professionals\nin your area`;
+
+  /* ─── Booking reference ─── */
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const bookRef = `HHB-${String(now.getFullYear()).slice(2)}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+
+  /* ─── State machine ─── */
+  let etaSeconds = pro.eta * 60;
+  let etaInterval = null;
+
+  function showState(id) {
+    document.querySelectorAll('.em-state').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  /* ─── Populate matched state ─── */
+  function populateMatchedState() {
+    const matchSub    = document.getElementById('em-match-sub');
+    const matchName   = document.getElementById('em-match-name');
+    const matchType   = document.getElementById('em-match-type');
+    const matchRating = document.getElementById('em-match-rating');
+    const matchEta    = document.getElementById('em-match-eta-val');
+    if (matchSub)    matchSub.innerHTML = `Connecting you with<br><strong>${pro.name}</strong>`;
+    if (matchName)   matchName.textContent  = pro.name;
+    if (matchType)   matchType.textContent  = `${pro.type} · ${pro.exp} experience`;
+    if (matchRating) matchRating.textContent = `★ ${pro.rating} (${pro.reviews} reviews)`;
+    if (matchEta)    matchEta.textContent   = `${pro.eta} min`;
+
+    // photo wrap — initials avatar
+    const photoWrap = document.getElementById('em-match-photo-wrap');
+    if (photoWrap) {
+      const initials = pro.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      photoWrap.style.cssText = 'width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;';
+      photoWrap.textContent = initials;
+    }
+  }
+
+  /* ─── Populate confirmed state ─── */
+  function populateConfirmedState() {
+    document.getElementById('em-con-sub').textContent = `${pro.name.split(' ')[0]} is on the way!`;
+    document.getElementById('em-con-name').textContent = pro.name;
+    document.getElementById('em-con-type').textContent = `${pro.type} · ${pro.exp} experience`;
+    document.getElementById('em-con-rating').textContent = `★ ${pro.rating} (${pro.reviews} reviews)`;
+    document.getElementById('em-book-ref').textContent = bookRef;
+
+    // ETA address
+    try {
+      const cache = JSON.parse(localStorage.getItem('hh_detected_location') || 'null');
+      if (cache && cache.loc) document.getElementById('em-eta-address').textContent = cache.loc;
+    } catch(_) {}
+
+    // Photo wrap
+    const photoWrap = document.getElementById('em-con-photo-wrap');
+    if (photoWrap) {
+      const initials = pro.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      photoWrap.style.cssText = 'width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;';
+      photoWrap.textContent = initials;
+    }
+
+    startEtaCountdown();
+    saveEmergencyBooking();
+  }
+
+  /* ─── Save to booking history & active booking ─── */
+  function saveEmergencyBooking() {
+    const record = {
+      id:          bookRef,
+      service:     svcName + ' (Emergency)',
+      proName:     pro.name,
+      proType:     pro.type,
+      proPhoto:    null,
+      dateDisplay: now.toDateString(),
+      time:        now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
+      total:       120, // default emergency rate
+      status:      'active',
+      isEmergency: true,
+      ts:          now.toISOString(),
+    };
+    try {
+      // Active booking
+      localStorage.setItem('hh_booking', JSON.stringify({
+        id:           bookRef,
+        service:      svcName + ' (Emergency)',
+        services:     [{ name: svcName + ' (Emergency)' }],
+        status:       'active',
+        isEmergency:  true,
+        artisan:      { name: pro.name, type: pro.type, eta: pro.eta, phone: pro.phone },
+        professional: { name: pro.name, type: pro.type, eta: pro.eta, phone: pro.phone },
+        total:        120,
+        ts:           now.toISOString(),
+      }));
+      // History
+      const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
+      if (!hist.length || hist[0].id !== bookRef) {
+        hist.unshift(record);
+        localStorage.setItem('hh_booking_history', JSON.stringify(hist.slice(0,20)));
+      }
+    } catch(_) {}
+  }
+
+  /* ─── ETA countdown ─── */
+  function startEtaCountdown() {
+    const el = document.getElementById('em-eta-countdown');
+    if (el) {
+      const m = Math.floor(etaSeconds / 60);
+      const s = etaSeconds % 60;
+      el.textContent = `${m}:${pad(s)}`;
+    }
+    etaInterval = setInterval(function () {
+      if (etaSeconds <= 0) {
+        clearInterval(etaInterval);
+        if (el) el.textContent = 'Arrived!';
+        document.querySelector('.em-eta-status') && (document.querySelector('.em-eta-status').textContent = 'Arrived');
+        return;
+      }
+      etaSeconds--;
+      if (el) {
+        const m = Math.floor(etaSeconds / 60);
+        const s = etaSeconds % 60;
+        el.textContent = `${m}:${pad(s)}`;
+      }
+    }, 1000);
+  }
+
+  /* ─── State sequence: search → matched → confirmed ─── */
+  setTimeout(function () {
+    populateMatchedState();
+    showState('state-matched');
+    // Trigger progress bar
+    setTimeout(function () {
+      const fill = document.getElementById('em-progress-fill');
+      if (fill) fill.style.width = '100%';
+    }, 100);
+    // → Confirmed after 2.5s
+    setTimeout(function () {
+      populateConfirmedState();
+      showState('state-confirmed');
+    }, 2600);
+  }, 3500);
+
+  /* ─── Actions ─── */
+  window.callPro = function () {
+    if (artisanPhone) {
+      window.location.href = artisanPhone;
+    } else {
+      // Graceful fallback if no real number
+      const btn = document.getElementById('em-call-btn');
+      if (btn) {
+        btn.style.background = '#c8f5ce';
+        setTimeout(() => { btn.style.background = ''; }, 1500);
+      }
+    }
+  };
+
+  window.cancelSearch = function () {
+    if (confirm('Cancel this emergency request?')) {
+      sessionStorage.removeItem('em_service');
+      sessionStorage.removeItem('hh_service');
+      window.location.href = 'dashboard.html';
+    }
+  };
+
+  window.confirmCancel = function () {
+    if (confirm('Cancel this booking? A fee may apply if the professional is already on the way.')) {
+      clearInterval(etaInterval);
+      try {
+        const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+        b.status = 'cancelled';
+        localStorage.setItem('hh_booking', JSON.stringify(b));
+        // Update history status
+        const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
+        const idx = hist.findIndex(r => r.id === bookRef);
+        if (idx >= 0) hist[idx].status = 'cancelled';
+        localStorage.setItem('hh_booking_history', JSON.stringify(hist));
+      } catch(_) {}
+      window.location.href = 'booking.html';
+    }
+  };
+
+  window.shareRef = function () {
+    const ref = document.getElementById('em-book-ref').textContent;
+    if (navigator.share) {
+      navigator.share({ title: 'HandyHub Booking', text: `Emergency booking ref: ${ref}`, url: '' }).catch(() => {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(ref).then(() => {
+        const btn = document.querySelector('.em-share-btn');
+        if (btn) { const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = orig, 1500); }
+      }).catch(() => {});
+    }
+  };
+
+  window.safeBack = function () {
+    cancelSearch();
+  };
+
+})();
+</script>
+</body>
+</html>

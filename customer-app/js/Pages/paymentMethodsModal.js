@@ -400,6 +400,46 @@ export function initPaymentModal(uid, databaseService) {
     closeBtn.addEventListener('click', closeModal);
     overlay.addEventListener('click', closeModal);
 
+    // Drag-to-close
+    let _startY = 0, _curY = 0, _dragActive = false;
+    sheet.addEventListener('touchstart', e => {
+        _startY = e.touches[0].clientY; _curY = 0; _dragActive = true;
+        sheet.style.transition = 'none';
+    }, { passive: true });
+    sheet.addEventListener('touchmove', e => {
+        if (!_dragActive) return;
+        const dy = e.touches[0].clientY - _startY;
+        if (dy < 0) return;
+        _curY = dy;
+        sheet.style.transform = 'translateY(' + dy + 'px)';
+        const p = Math.min(dy / (sheet.offsetHeight * 0.5), 1);
+        overlay.style.background = 'rgba(0,0,0,' + (0.45 * (1 - p)) + ')';
+    }, { passive: true });
+    sheet.addEventListener('touchend', () => {
+        if (!_dragActive) return; _dragActive = false;
+        if (_curY > sheet.offsetHeight * 0.35) {
+            sheet.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+            sheet.style.transform = 'translateY(110%)';
+            overlay.style.transition = 'background 0.3s';
+            overlay.style.background = 'rgba(0,0,0,0)';
+            setTimeout(() => {
+                closeModal();
+                sheet.style.removeProperty('transform');
+                sheet.style.removeProperty('transition');
+                overlay.style.removeProperty('background');
+                overlay.style.removeProperty('transition');
+            }, 300);
+        } else {
+            sheet.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+            sheet.style.transform = 'translateY(0)';
+            overlay.style.removeProperty('background');
+            setTimeout(() => {
+                sheet.style.removeProperty('transform');
+                sheet.style.removeProperty('transition');
+            }, 400);
+        }
+    });
+
     // Expose open function via trigger elements
     document.querySelectorAll('[data-open-payments]').forEach(el => {
         el.addEventListener('click', e => { e.preventDefault(); openModal(); });

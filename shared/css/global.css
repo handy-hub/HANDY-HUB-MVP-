@@ -28,12 +28,12 @@ body {
     color: #111;
     overflow-y: auto;
     overflow-x: hidden;
-    background: #f7f7f7;
 }
 
 .app {
     width: 100%;
     max-width: 420px;
+    padding: 0 6px;
     margin-bottom: 60px;
 }
 

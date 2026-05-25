@@ -6,39 +6,37 @@
   }
   window.__globalAppInitialized__ = true;
 
-  // 1. Inject the viewport scale constraints programmatically into the active HTML head
-  function lockViewportConfiguration() {
+  // 1. Keep viewport predictable while preserving zoom accessibility.
+  function ensureViewportConfiguration() {
     let metaViewport = document.querySelector('meta[name="viewport"]');
-    const secureScaleConfig = "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no";
+    const preferredViewport = "width=device-width, initial-scale=1.0, viewport-fit=cover";
     
     if (!metaViewport) {
       metaViewport = document.createElement('meta');
       metaViewport.name = 'viewport';
       document.head.appendChild(metaViewport);
     }
-    metaViewport.setAttribute('content', secureScaleConfig);
+
+    metaViewport.setAttribute('content', preferredViewport);
   }
 
-  // 2. Inject global accessibility style rules across all text field elements universally
-  function injectGlobalInputCSS() {
-    if (document.getElementById('global-app-input-style')) {
+  // 2. Add lightweight global layout safety rules.
+  function injectGlobalLayoutCSS() {
+    if (document.getElementById('global-app-layout-style')) {
       return;
     }
 
     const styleNode = document.createElement('style');
-    styleNode.id = 'global-app-input-style';
+    styleNode.id = 'global-app-layout-style';
     styleNode.textContent = `
-      /* Universal lock forcing 16px to completely kill native OS zoom events */
-      input[type="text"], input[type="search"], input[type="tel"], input[type="email"], 
-      input[type="number"], input[type="password"], input[type="url"], input[type="datetime-local"], 
-      input[type="date"], input[type="time"], input[type="month"], input[type="week"], textarea, select {
-        font-size: 16px !important;
-      }
-      /* Prevent containers from creating horizontal scroll shifts */
       html, body {
         width: 100% !important;
+        max-width: 100% !important;
         overflow-x: hidden !important;
-        position: relative !important;
+      }
+      img, svg, video, canvas {
+        max-width: 100%;
+        height: auto;
       }
     `;
     document.head.appendChild(styleNode);
@@ -57,7 +55,7 @@
   }
 
   // Boot dependencies immediately on script connection evaluation
-  lockViewportConfiguration();
-  injectGlobalInputCSS();
+  ensureViewportConfiguration();
+  injectGlobalLayoutCSS();
   setupNavigationFocusGuard();
 })();

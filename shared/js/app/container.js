@@ -1,18 +1,22 @@
-import { createBackendProvider }      from "./backendProviderFactory.js";
-import { createAuthRepository }       from "../data/repositories/authRepository.js";
-import { createCustomerRepository }   from "../data/repositories/customerRepository.js";
-import { createArtisanRepository }    from "../data/repositories/artisanRepository.js";
-import { createBookingRepository }    from "../data/repositories/bookingRepository.js";
-import { createChatRepository }       from "../data/repositories/chatRepository.js";
-import { createCustomerAuthService }  from "../domain/services/customerAuthService.js";
-import { createSessionService }       from "../domain/services/sessionService.js";
+import { createBackendProvider }        from "./backendProviderFactory.js";
+import { createAuthRepository }         from "../data/repositories/authRepository.js";
+import { createCustomerRepository }     from "../data/repositories/customerRepository.js";
+import { createArtisanRepository }      from "../data/repositories/artisanRepository.js";
+import { createBookingRepository }      from "../data/repositories/bookingRepository.js";
+import { createChatRepository }         from "../data/repositories/chatRepository.js";
+import { createCustomerAuthService }    from "../domain/services/customerAuthService.js";
+import { createSessionService }         from "../domain/services/sessionService.js";
+import { createCachedDatabaseService }  from "../services/cachedDatabaseService.js";
 
 let containerInstance = null;
 let activeBackend     = null;
 
 function buildContainer(backendName) {
     const backendServices = createBackendProvider(backendName);
-    const db = backendServices.databaseService;
+    // Wrap the raw database service with an in-memory TTL cache.
+    // Every repository and every page that calls databaseService benefits
+    // automatically — no changes required in consumer code.
+    const db = createCachedDatabaseService(backendServices.databaseService);
 
     // ── Data layer: repositories depend only on backend contracts ───────────
     const repositories = {
@@ -37,8 +41,10 @@ function buildContainer(backendName) {
         // Raw backend services exposed for use-cases that need them directly
         // (e.g. auth state subscription, file upload, single-doc listeners).
         // Swap the backend provider in backendProviderFactory.js to migrate.
+        // NOTE: databaseService is the cached wrapper — reads are served from
+        //       memory on cache hits; writes invalidate the relevant entries.
         authService:     backendServices.authService,
-        databaseService: backendServices.databaseService,
+        databaseService: db,   // ← cached wrapper (same instance used by repos)
         storageService:  backendServices.storageService
     };
 

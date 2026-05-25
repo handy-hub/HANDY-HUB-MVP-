@@ -1,5 +1,6 @@
 import '../../../shared/js/utils/global-app.js';
 import { getAppContainer }     from '../../../shared/js/app/container.js';
+import { showToast } from '../../../shared/js/components/toast.js';
 import { initPaymentModal }    from './paymentMethodsModal.js';
 
 const LOGIN_URL = 'login.html';
@@ -25,26 +26,6 @@ const completeBanner    = document.getElementById('complete-banner');
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const DEFAULT_AVATAR   = 'https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=User';
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
-const TOAST_ICONS = {
-    success: '<svg viewBox="0 0 24 24" fill="none"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    error:   '<svg viewBox="0 0 24 24" fill="none"><path d="M12 8V13" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M12 16.5V16.55" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21H20.47A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    info:    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
-};
-
-function showToast(message, type = 'info') {
-    document.querySelector('.toast')?.remove();
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.setAttribute('role', 'alert');
-    toast.innerHTML = `<span class="toast-icon">${TOAST_ICONS[type] || TOAST_ICONS.info}</span><span class="toast-message">${message}</span>`;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.add('toast-exit');
-        setTimeout(() => toast.remove(), 320);
-    }, 3000);
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function buildGreeting(name) {
     const h = new Date().getHours();
@@ -67,6 +48,16 @@ function formatGHCShort(n) {
     return v >= 1000 ? 'GHC ' + (v / 1000).toFixed(1) + 'k' : 'GHC ' + v.toFixed(0);
 }
 
+const PROFILE_CACHE_KEY = 'hh_profile_cache';
+
+// ── Skeleton removal ──────────────────────────────────────────────────────────
+function removeSkel(el) {
+    if (!el) return;
+    el.classList.remove('skel', 'skel-circle');
+    el.style.minWidth = '';
+    el.style.display  = '';
+}
+
 // ── Populate profile ──────────────────────────────────────────────────────────
 function populateProfile(data) {
     if (!data) return;
@@ -81,11 +72,11 @@ function populateProfile(data) {
     const bookings = Number(data.bookings      || 0);
     const spent    = Number(data.spent         || 0);
 
-    if (greetingEl)   greetingEl.textContent = buildGreeting(name);
-    if (nameEl)       nameEl.textContent     = name;
-    if (emailEl)      emailEl.textContent    = email;
-    if (phoneTextEl)  phoneTextEl.textContent = phone;
-    if (locationEl)   locationEl.textContent = location;
+    if (greetingEl)  { greetingEl.textContent  = buildGreeting(name); removeSkel(greetingEl); }
+    if (nameEl)      { nameEl.textContent       = name;               removeSkel(nameEl); }
+    if (emailEl)     { emailEl.textContent      = email;              removeSkel(emailEl); }
+    if (phoneTextEl) { phoneTextEl.textContent  = phone;              removeSkel(phoneTextEl); }
+    if (locationEl)  { locationEl.textContent   = location;           removeSkel(locationEl); }
 
     if (bioEl && bioRow) {
         bioEl.textContent   = bio;
@@ -95,6 +86,7 @@ function populateProfile(data) {
     if (avatarImg) {
         const target = photo || buildDefaultAvatar(name);
         if (avatarImg.src !== target) avatarImg.src = target;
+        removeSkel(avatarImg);
     }
 
     // Wallet balance displays
@@ -108,7 +100,16 @@ function populateProfile(data) {
         const isComplete = data.name && data.phone && data.location;
         completeBanner.style.display = isComplete ? 'none' : '';
     }
+
+    // Persist for instant reload on next visit (stale-while-revalidate)
+    try { localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data)); } catch (_) {}
 }
+
+// ── Paint from cache immediately (before Firestore responds) ──────────────────
+try {
+    const _cached = JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || 'null');
+    if (_cached) populateProfile(_cached);
+} catch (_) {}
 
 // ── Avatar error fallback ─────────────────────────────────────────────────────
 if (avatarImg) {
@@ -228,3 +229,4 @@ authService.subscribeToAuthState(user => {
 
     initBottomNav();
 });
+

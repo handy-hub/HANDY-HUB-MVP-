@@ -1,20 +1,6 @@
 import "../../../shared/js/utils/global-app.js";
 import { getAppContainer } from "../../../shared/js/app/container.js";
-
-function showToast(msg, type = 'info') {
-    const existing = document.querySelector('.toast');
-    if (existing) existing.remove();
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(() => {
-        t.classList.add('toast-exit');
-        t.addEventListener('animationend', () => t.remove(), { once: true });
-        setTimeout(() => t.remove(), 320);
-    }, 3000);
-}
-
+import { showToast } from "../../../shared/js/components/toast.js";
 let currentUser = null;
 
 const { services: { authService, databaseService } } = getAppContainer();
@@ -50,3 +36,4 @@ window.confirmDeleteAccount = async function () {
         btn.textContent = 'Yes, Delete My Account';
     }
 };
+

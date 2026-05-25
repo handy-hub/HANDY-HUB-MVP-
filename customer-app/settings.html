@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Handy Hub – Settings</title>
   <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="stylesheet" href="css/settings.css" />
   <link rel="stylesheet" href="../shared/css/pageTransitions.css" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
 <body>
 
@@ -258,43 +260,6 @@
 
     </div><!-- end scroll-area -->
 
-    <!-- Bottom Nav -->
-    <nav class="bottom-nav">
-      <a href="dashboard.html" class="nav-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-          <polyline points="9 22 9 12 15 12 15 22" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>Home</span>
-      </a>
-      <a href="booking.html" class="nav-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-          <rect x="8" y="2" width="8" height="4" rx="1" stroke="#aaa" stroke-width="1.7"/>
-          <path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/>
-        </svg>
-        <span>Bookings</span>
-      </a>
-      <a href="messages.html" class="nav-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>Messages</span>
-      </a>
-      <a href="saved.html" class="nav-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>Saved</span>
-      </a>
-      <a href="profile.html" class="nav-item active">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="12" cy="7" r="4" stroke="#730201" stroke-width="1.7"/>
-        </svg>
-        <span class="active-label">Profile</span>
-      </a>
-    </nav>
 
   </div><!-- end phone-shell -->
 
@@ -491,9 +456,102 @@
     function closeDeleteModal() {
       document.getElementById('delete-modal').classList.remove('visible');
     }
+
+    // Drag-to-close for all bottom sheets and delete modal
+    (function() {
+      var backdrop = document.getElementById('backdrop');
+
+      // Bottom preference sheets
+      document.querySelectorAll('.bottom-sheet').forEach(function(sheet) {
+        var startY = 0, curY = 0, active = false;
+        sheet.addEventListener('touchstart', function(e) {
+          startY = e.touches[0].clientY; curY = 0; active = true;
+          sheet.style.transition = 'none';
+        }, { passive: true });
+        sheet.addEventListener('touchmove', function(e) {
+          if (!active) return;
+          var dy = e.touches[0].clientY - startY;
+          if (dy < 0) return;
+          curY = dy;
+          sheet.style.transform = 'translateX(-50%) translateY(' + dy + 'px)';
+          var p = Math.min(dy / (sheet.offsetHeight * 0.5), 1);
+          backdrop.style.opacity = String(1 - p * 0.9);
+        }, { passive: true });
+        sheet.addEventListener('touchend', function() {
+          if (!active) return; active = false;
+          if (curY > sheet.offsetHeight * 0.35) {
+            sheet.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+            sheet.style.transform = 'translateX(-50%) translateY(110%)';
+            backdrop.style.transition = 'opacity 0.3s';
+            backdrop.style.opacity = '0';
+            setTimeout(function() {
+              closeAll();
+              sheet.style.removeProperty('transform');
+              sheet.style.removeProperty('transition');
+              backdrop.style.removeProperty('opacity');
+              backdrop.style.removeProperty('transition');
+            }, 300);
+          } else {
+            sheet.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+            sheet.style.transform = 'translateX(-50%) translateY(0)';
+            backdrop.style.removeProperty('opacity');
+            setTimeout(function() {
+              sheet.style.removeProperty('transform');
+              sheet.style.removeProperty('transition');
+            }, 400);
+          }
+        });
+      });
+
+      // Delete account modal
+      var deleteCard = document.querySelector('#delete-modal .modal-card');
+      var deleteOverlay = document.getElementById('delete-modal');
+      if (deleteCard) {
+        var startY2 = 0, curY2 = 0, active2 = false;
+        deleteCard.addEventListener('touchstart', function(e) {
+          startY2 = e.touches[0].clientY; curY2 = 0; active2 = true;
+          deleteCard.style.transition = 'none';
+        }, { passive: true });
+        deleteCard.addEventListener('touchmove', function(e) {
+          if (!active2) return;
+          var dy = e.touches[0].clientY - startY2;
+          if (dy < 0) return;
+          curY2 = dy;
+          deleteCard.style.transform = 'translateY(' + dy + 'px)';
+          var p = Math.min(dy / (deleteCard.offsetHeight * 0.5), 1);
+          deleteOverlay.style.opacity = String(1 - p * 0.9);
+        }, { passive: true });
+        deleteCard.addEventListener('touchend', function() {
+          if (!active2) return; active2 = false;
+          if (curY2 > deleteCard.offsetHeight * 0.35) {
+            deleteCard.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+            deleteCard.style.transform = 'translateY(110%)';
+            deleteOverlay.style.transition = 'opacity 0.3s';
+            deleteOverlay.style.opacity = '0';
+            setTimeout(function() {
+              closeDeleteModal();
+              deleteCard.style.removeProperty('transform');
+              deleteCard.style.removeProperty('transition');
+              deleteOverlay.style.removeProperty('opacity');
+              deleteOverlay.style.removeProperty('transition');
+            }, 300);
+          } else {
+            deleteCard.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+            deleteCard.style.transform = 'translateY(0)';
+            deleteOverlay.style.removeProperty('opacity');
+            setTimeout(function() {
+              deleteCard.style.removeProperty('transform');
+              deleteCard.style.removeProperty('transition');
+            }, 400);
+          }
+        });
+      }
+    })();
   </script>
 
   <script type="module" src="js/Pages/settingsPage.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>
+
+

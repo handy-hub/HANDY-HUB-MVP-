@@ -27,9 +27,9 @@ body[data-page-type="notification"] {
 
 /* ── Page wrapper ───────────────────────────────────────────────────────── */
 .notif-page {
-    max-width: 480px;
+    max-width: 430px;
     margin: 0 auto;
-    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     padding-bottom: 88px;   /* clear the fixed bottom-nav */
@@ -337,9 +337,11 @@ body[data-page-type="notification"] {
 .bottom-nav {
     position: fixed;
     bottom: 0;
-    left: 0;
-    right: 0;
-    height: 70px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(100%, 430px);
+    min-height: 70px;
     display: flex;
     justify-content: space-around;
     align-items: center;
@@ -347,8 +349,8 @@ body[data-page-type="notification"] {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--border);
-    padding-bottom: env(safe-area-inset-bottom);
-    z-index: 100;
+    padding-bottom: max(env(safe-area-inset-bottom), 8px);
+    z-index: 200;
 }
 .nav-item {
     text-decoration: none;

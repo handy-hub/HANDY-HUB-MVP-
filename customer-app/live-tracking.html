@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Handy Hub – Live Tracking</title>
+  <link rel="stylesheet" href="css/booking-flow.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body { height: 100%; }
+    .phone-shell { display: flex; flex-direction: column; position: relative; }
+
+    #tracking-map { flex: 1; min-height: 0; z-index: 0; }
+
+    /* Header */
+    .trk-header {
+      position: relative; z-index: 10;
+      background: #fff; display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+    }
+    .trk-back-btn {
+      width: 36px; height: 36px; border: none; background: #f5f5f5;
+      border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .trk-stage-pill {
+      flex: 1; background: #fff5f5; border-radius: 20px;
+      padding: 8px 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .trk-stage-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #730201;
+      animation: pulse-dot 1.2s ease-in-out infinite; flex-shrink: 0;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+    .trk-stage-label { font-size: 13px; font-weight: 700; color: #730201; }
+    .trk-eta-chip {
+      background: #730201; color: #fff; border-radius: 20px;
+      padding: 6px 12px; font-size: 12px; font-weight: 800; white-space: nowrap;
+    }
+
+    /* Bottom sheet */
+    .trk-sheet {
+      background: #fff; border-radius: 24px 24px 0 0;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      padding: 0 0 env(safe-area-inset-bottom, 20px);
+      flex-shrink: 0; z-index: 10; position: relative;
+    }
+    .trk-sheet-handle {
+      width: 36px; height: 4px; border-radius: 2px; background: #ddd;
+      margin: 10px auto 0;
+    }
+
+    /* Artisan row */
+    .trk-artisan-row {
+      display: flex; align-items: center; gap: 12px; padding: 14px 16px 12px;
+      border-bottom: 1px solid #f4f4f4;
+    }
+    .trk-avatar {
+      width: 52px; height: 52px; border-radius: 14px; position: relative; flex-shrink: 0;
+      background: linear-gradient(135deg, #730201, #a03030);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18px; font-weight: 800;
+    }
+    .trk-online-dot {
+      position: absolute; bottom: 2px; right: 2px;
+      width: 12px; height: 12px; border-radius: 50%; background: #22c55e; border: 2px solid #fff;
+    }
+    .trk-artisan-info { flex: 1; }
+    .trk-artisan-name { font-size: 15px; font-weight: 800; color: #111; margin: 0 0 2px; }
+    .trk-artisan-sub  { font-size: 12px; color: #666; margin: 0; }
+    .trk-action-btns  { display: flex; gap: 8px; }
+    .trk-action-btn {
+      width: 40px; height: 40px; border: 1.5px solid #e8e8e8; border-radius: 12px;
+      background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+
+    /* Stage progress */
+    .trk-stages { padding: 14px 16px 4px; }
+    .trk-stage-row {
+      display: flex; align-items: flex-start; gap: 12px; padding: 6px 0; position: relative;
+    }
+    .trk-stage-row:not(:last-child)::after {
+      content: ''; position: absolute; left: 13px; top: 30px;
+      width: 2px; height: calc(100% - 4px); background: #f0f0f0;
+    }
+    .trk-stage-row.done::after { background: #730201; }
+    .trk-stage-icon {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; z-index: 1;
+      background: #f0f0f0;
+    }
+    .trk-stage-row.done    .trk-stage-icon { background: #730201; }
+    .trk-stage-row.current .trk-stage-icon { background: #fff5f5; border: 2px solid #730201; }
+    .trk-stage-text { padding-top: 2px; }
+    .trk-stage-name { font-size: 12px; font-weight: 700; color: #333; margin: 0 0 1px; }
+    .trk-stage-row.done    .trk-stage-name { color: #730201; }
+    .trk-stage-row.current .trk-stage-name { color: #730201; font-weight: 800; }
+    .trk-stage-time { font-size: 10px; color: #aaa; margin: 0; }
+
+    /* ── Slide-to-action ── */
+    .slide-wrap { padding: 12px 16px 6px; display: none; }
+    .slide-wrap.visible { display: block; }
+    .slide-sub {
+      text-align: center; font-size: 11px; color: #999; font-weight: 500; margin: 6px 0 0;
+    }
+    .slide-action {
+      position: relative; height: 62px; border-radius: 31px;
+      overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: none;
+    }
+    .slide-action--cancel  { background: rgba(115,2,1,0.07); }
+    .slide-action--confirm { background: rgba(22,163,74,0.08); }
+
+    /* progress fill */
+    .slide-fill {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+      border-radius: 31px; z-index: 1; pointer-events: none;
+    }
+    .slide-action--cancel  .slide-fill { background: rgba(115,2,1,0.08); }
+    .slide-action--confirm .slide-fill { background: rgba(22,163,74,0.08); }
+
+    /* label */
+    .slide-label {
+      position: absolute; inset: 0; z-index: 2;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13.5px; font-weight: 800; pointer-events: none; letter-spacing: -0.2px;
+    }
+    .slide-action--cancel  .slide-label { color: rgba(115,2,1,0.65); }
+    .slide-action--confirm .slide-label { color: rgba(22,163,74,0.75); }
+
+    /* decorative chevrons */
+    .slide-chevrons {
+      position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+      display: flex; gap: 3px; z-index: 0; pointer-events: none; opacity: 0.35;
+    }
+
+    /* thumb */
+    .slide-thumb {
+      position: absolute; left: 5px; top: 5px;
+      width: 52px; height: 52px; border-radius: 26px;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 3; cursor: grab;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.24);
+      will-change: transform;
+    }
+    .slide-thumb:active { cursor: grabbing; }
+    .slide-action--cancel  .slide-thumb { background: #730201; }
+    .slide-action--confirm .slide-thumb { background: #16a34a; }
+
+    /* Dark mode */
+    [data-theme="dark"] .trk-header     { background: #111; border-color: #2a2a2a; }
+    [data-theme="dark"] .trk-back-btn   { background: #2a2a2a; }
+    [data-theme="dark"] .trk-stage-pill { background: #2a1515; }
+    [data-theme="dark"] .trk-sheet      { background: #111; }
+    [data-theme="dark"] .trk-sheet-handle { background: #333; }
+    [data-theme="dark"] .trk-artisan-row { border-color: #2a2a2a; }
+    [data-theme="dark"] .trk-artisan-name { color: #f0f0f0; }
+    [data-theme="dark"] .trk-artisan-sub  { color: #666; }
+    [data-theme="dark"] .trk-action-btn  { background: #1e1e1e; border-color: #2e2e2e; }
+    [data-theme="dark"] .trk-stage-name  { color: #ccc; }
+    [data-theme="dark"] .trk-stage-icon  { background: #2a2a2a; }
+    [data-theme="dark"] .trk-stage-row.done    .trk-stage-icon { background: #730201; }
+    [data-theme="dark"] .trk-stage-row.current .trk-stage-icon { background: #2a1515; }
+    [data-theme="dark"] .trk-stage-row::after  { background: #2a2a2a; }
+    [data-theme="dark"] .slide-action--cancel  { background: rgba(115,2,1,0.15); }
+    [data-theme="dark"] .slide-action--confirm { background: rgba(22,163,74,0.13); }
+    [data-theme="dark"] .slide-sub { color: #555; }
+  </style>
+
+  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+</head>
+<body>
+<div class="phone-shell">
+
+  <!-- Header -->
+  <div class="trk-header">
+    <button class="trk-back-btn" onclick="history.back()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="trk-stage-pill">
+      <div class="trk-stage-dot" id="stage-dot"></div>
+      <span class="trk-stage-label" id="stage-label">En Route</span>
+    </div>
+    <div class="trk-eta-chip" id="eta-chip">~12 min</div>
+  </div>
+
+  <!-- Map -->
+  <div id="tracking-map"></div>
+
+  <!-- Bottom sheet -->
+  <div class="trk-sheet">
+    <div class="trk-sheet-handle"></div>
+
+    <!-- Artisan row -->
+    <div class="trk-artisan-row">
+      <div class="trk-avatar" id="trk-initials">
+        P
+        <div class="trk-online-dot"></div>
+      </div>
+      <div class="trk-artisan-info">
+        <p class="trk-artisan-name" id="trk-name">Professional</p>
+        <p class="trk-artisan-sub"  id="trk-service">Service in progress</p>
+      </div>
+      <div class="trk-action-btns">
+        <button class="trk-action-btn" onclick="callArtisan()" title="Call">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#730201" stroke-width="2"/></svg>
+        </button>
+        <button class="trk-action-btn" onclick="window.location.href='messages.html'" title="Message" aria-label="Message artisan">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stage progress -->
+    <div class="trk-stages" id="trk-stages"></div>
+
+    <!-- Slide to Cancel (default visible) -->
+    <div class="slide-wrap visible" id="slide-cancel-wrap">
+      <div class="slide-action slide-action--cancel" id="slide-cancel">
+        <div class="slide-fill" id="cancel-fill"></div>
+        <span class="slide-label" id="cancel-label">Slide to Cancel</span>
+        <div class="slide-chevrons">
+          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="slide-thumb" id="cancel-thumb">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <p class="slide-sub">This will cancel your booking</p>
+    </div>
+
+    <!-- Slide to Confirm (visible when artisan marks job done) -->
+    <div class="slide-wrap" id="slide-confirm-wrap">
+      <div class="slide-action slide-action--confirm" id="slide-confirm">
+        <div class="slide-fill" id="confirm-fill"></div>
+        <span class="slide-label" id="confirm-label">Slide to Confirm Completion</span>
+        <div class="slide-chevrons">
+          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="slide-thumb" id="confirm-thumb">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <p class="slide-sub">This releases payment to the artisan</p>
+    </div>
+
+  </div><!-- /.trk-sheet -->
+</div><!-- /.phone-shell -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── Stage definitions (SVG icons, no emoji) ──────────────────
+const STAGE_CHECK = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+const stages = [
+  {
+    key: 'accepted', label: 'Booking Accepted',
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+  },
+  {
+    key: 'en_route', label: 'Artisan En Route',
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  },
+  {
+    key: 'arrived', label: 'Artisan Arrived',
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>`,
+  },
+  {
+    key: 'started', label: 'Job In Progress',
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
+  },
+  {
+    key: 'awaiting', label: 'Awaiting Your Confirmation',
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
+  },
+  {
+    key: 'completed', label: 'Job Completed',
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
+  },
+];
+
+let currentStageIndex = 1;
+
+function renderStages() {
+  const container = document.getElementById('trk-stages');
+  const now = new Date();
+  container.innerHTML = stages.map((s, i) => {
+    const isDone    = i < currentStageIndex;
+    const isCurrent = i === currentStageIndex;
+    const cls = isDone ? 'done' : isCurrent ? 'current' : '';
+    const icon = isDone
+      ? STAGE_CHECK
+      : isCurrent
+        ? s.iconCurrent
+        : `<div style="width:6px;height:6px;border-radius:50%;background:#ccc;"></div>`;
+    const timeStr = isDone
+      ? `${String(now.getHours()).padStart(2,'0')}:${String(Math.max(0, now.getMinutes() - (currentStageIndex - i) * 3)).padStart(2,'0')}`
+      : isCurrent ? 'Now' : '';
+    return `
+      <div class="trk-stage-row ${cls}">
+        <div class="trk-stage-icon">${icon}</div>
+        <div class="trk-stage-text">
+          <p class="trk-stage-name">${s.label}</p>
+          ${timeStr ? `<p class="trk-stage-time">${timeStr}</p>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  const cur = stages[currentStageIndex];
+  document.getElementById('stage-label').textContent = cur.label;
+
+  const cancelWrap  = document.getElementById('slide-cancel-wrap');
+  const confirmWrap = document.getElementById('slide-confirm-wrap');
+
+  if (cur.key === 'awaiting') {
+    cancelWrap.classList.remove('visible');
+    confirmWrap.classList.add('visible');
+    document.getElementById('eta-chip').textContent = 'Awaiting';
+  } else if (cur.key === 'completed') {
+    cancelWrap.classList.remove('visible');
+    confirmWrap.classList.remove('visible');
+    document.getElementById('stage-dot').style.animation = 'none';
+    document.getElementById('eta-chip').textContent = 'Done';
+  } else {
+    cancelWrap.classList.add('visible');
+    confirmWrap.classList.remove('visible');
+  }
+}
+
+// ── Slide-to-action ──────────────────────────────────────────
+function initSlide(actionId, fillId, labelId, thumbId, onComplete) {
+  const track = document.getElementById(actionId);
+  const fill  = document.getElementById(fillId);
+  const label = document.getElementById(labelId);
+  const thumb = document.getElementById(thumbId);
+  let startX = 0, curX = 0, dragging = false;
+
+  function maxX() { return track.offsetWidth - thumb.offsetWidth - 10; }
+
+  function applyPos(x, springBack) {
+    x = Math.max(0, Math.min(x, maxX()));
+    const p = maxX() > 0 ? x / maxX() : 0;
+    const tr = springBack ? 'transform 0.42s cubic-bezier(0.34,1.56,0.64,1)' : 'none';
+    const ft = springBack ? 'width 0.42s cubic-bezier(0.34,1.56,0.64,1)'     : 'none';
+    const lt = springBack ? 'opacity 0.42s'                                   : 'none';
+    thumb.style.transition  = tr;
+    fill.style.transition   = ft;
+    label.style.transition  = lt;
+    thumb.style.transform   = `translateX(${x}px)`;
+    fill.style.width        = `${5 + x + thumb.offsetWidth}px`;
+    label.style.opacity     = String(Math.max(0, 1 - p * 1.9));
+    return p;
+  }
+
+  function onDown(e) {
+    dragging = true;
+    startX = (e.touches ? e.touches[0].clientX : e.clientX) - curX;
+    e.preventDefault();
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    curX = (e.touches ? e.touches[0].clientX : e.clientX) - startX;
+    const p = applyPos(curX, false);
+    if (p >= 0.85) {
+      dragging = false;
+      applyPos(maxX(), false);
+      setTimeout(onComplete, 280);
+    }
+  }
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    curX = 0;
+    applyPos(0, true);
+  }
+
+  thumb.addEventListener('touchstart', onDown, { passive: false });
+  thumb.addEventListener('mousedown',  onDown);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mousemove',  onMove);
+  document.addEventListener('touchend', onUp);
+  document.addEventListener('mouseup',   onUp);
+}
+
+function cancelBooking() {
+  try {
+    const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+    b.status = 'cancelled';
+    localStorage.setItem('hh_booking', JSON.stringify(b));
+  } catch(_) {}
+  window.location.href = 'dashboard.html';
+}
+
+function confirmCompletion() {
+  try {
+    const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+    b.status = 'completed';
+    localStorage.setItem('hh_booking', JSON.stringify(b));
+  } catch(_) {}
+  window.location.href = 'review.html';
+}
+
+function callArtisan() {
+  const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+  const pro = b.artisan || b.professional || {};
+  if (pro.phone) {
+    window.location.href = pro.phone;
+  } else {
+    // Show a visual feedback instead of alert
+    const btns = document.querySelectorAll('.trk-action-btn');
+    btns.forEach(btn => {
+      if (btn.getAttribute('title') === 'Call') {
+        btn.style.background = '#fde8e8';
+        btn.style.borderColor = '#f5c2c2';
+        setTimeout(() => { btn.style.background = ''; btn.style.borderColor = ''; }, 1200);
+      }
+    });
+  }
+}
+
+// ── Load booking data ────────────────────────────────────────
+const booking = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+const _pro    = booking.artisan || booking.professional;
+if (_pro) {
+  document.getElementById('trk-name').textContent = _pro.name || 'Artisan';
+  document.getElementById('trk-initials').innerHTML =
+    (_pro.name || 'A').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() +
+    '<div class="trk-online-dot"></div>';
+  const _svc = booking.service
+    || (booking.services && booking.services[0] && booking.services[0].name)
+    || _pro.type || _pro.profession || '';
+  if (_svc) document.getElementById('trk-service').textContent = _svc;
+  if (_pro.eta) document.getElementById('eta-chip').textContent = `~${_pro.eta} min`;
+}
+
+// ── Leaflet map ──────────────────────────────────────────────
+const userLat = 5.6037, userLng = -0.1870;
+let artisanLat = userLat + 0.009, artisanLng = userLng + 0.003;
+
+const map = L.map('tracking-map', { zoomControl: false, attributionControl: false })
+  .setView([(userLat + artisanLat) / 2, (userLng + artisanLng) / 2], 15);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+const userIcon = L.divIcon({
+  className: '',
+  html: `<div style="width:36px;height:36px;border-radius:50%;background:#730201;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#fff"/></svg>
+  </div>`,
+  iconSize: [36, 36], iconAnchor: [18, 18],
+});
+
+const artisanIcon = L.divIcon({
+  className: '',
+  html: `<div style="width:42px;height:42px;border-radius:50%;background:#1a1a2e;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>`,
+  iconSize: [42, 42], iconAnchor: [21, 21],
+});
+
+L.marker([userLat, userLng], { icon: userIcon }).addTo(map).bindPopup('Your location').openPopup();
+const artisanMarker = L.marker([artisanLat, artisanLng], { icon: artisanIcon }).addTo(map).bindPopup('Artisan');
+
+const routeLine = L.polyline([[artisanLat, artisanLng], [userLat, userLng]], {
+  color: '#730201', weight: 3, dashArray: '6 6', opacity: 0.7,
+}).addTo(map);
+
+function advanceStage() {
+  if (currentStageIndex < stages.length - 1) {
+    currentStageIndex++;
+    renderStages();
+    if (stages[currentStageIndex].key === 'arrived') {
+      document.getElementById('eta-chip').textContent = 'Arrived';
+      setTimeout(() => { currentStageIndex++; renderStages(); }, 3000);
+    }
+  }
+}
+
+function startMoving() {
+  const steps = 60;
+  let tick = 0;
+  const iv = setInterval(() => {
+    if (tick >= steps) {
+      clearInterval(iv);
+      artisanLat = userLat; artisanLng = userLng;
+      artisanMarker.setLatLng([artisanLat, artisanLng]);
+      routeLine.setLatLngs([[artisanLat, artisanLng], [userLat, userLng]]);
+      advanceStage();
+      return;
+    }
+    const t = tick / steps;
+    artisanLat = (userLat + 0.009) + (userLat - (userLat + 0.009)) * t;
+    artisanLng = (userLng + 0.003) + (userLng - (userLng + 0.003)) * t;
+    artisanMarker.setLatLng([artisanLat, artisanLng]);
+    routeLine.setLatLngs([[artisanLat, artisanLng], [userLat, userLng]]);
+    const remaining = Math.max(0, Math.round((1 - t) * 12));
+    if (remaining > 0) document.getElementById('eta-chip').textContent = `~${remaining} min`;
+    tick++;
+  }, 1000);
+}
+
+renderStages();
+startMoving();
+initSlide('slide-cancel',  'cancel-fill',  'cancel-label',  'cancel-thumb',  cancelBooking);
+initSlide('slide-confirm', 'confirm-fill', 'confirm-label', 'confirm-thumb', confirmCompletion);
+</script>
+</body>
+</html>
+
+
