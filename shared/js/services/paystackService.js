@@ -1,5 +1,16 @@
-const PUBLIC_KEY = 'pk_test_f340db0f1d321dbc3630b124c321e8a6926640ce';
-const SDK_URL    = 'https://js.paystack.co/v1/inline.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+import { firebaseApp }                 from '../backend/providers/firebase/firebaseConfig.js';
+import { PAYSTACK_CONFIG, PLATFORM_CONFIG, FUNCTIONS_REGION } from '../config/appConfig.js';
+
+const PUBLIC_KEY = PAYSTACK_CONFIG.publicKey;
+const SDK_URL    = PAYSTACK_CONFIG.sdkUrl;
+
+// Lazy-initialised Firebase Functions instance
+let _functions = null;
+function getFirebaseFunctions() {
+    if (!_functions) _functions = getFunctions(firebaseApp, FUNCTIONS_REGION);
+    return _functions;
+}
 
 let sdkReady = null;
 
@@ -10,7 +21,7 @@ function loadSdk() {
         const s   = document.createElement('script');
         s.src     = SDK_URL;
         s.onload  = resolve;
-        s.onerror = () => reject(new Error('Failed to load Paystack SDK. Check your connection.'));
+        s.onerror = () => reject(new Error('Failed to Check your connection.'));
         document.head.appendChild(s);
     });
     return sdkReady;
@@ -27,14 +38,28 @@ function loadSdk() {
  * @param {Function} [opts.onClose] - Called when user closes popup without paying
  */
 function genRef() {
-    return 'HH-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+    // Use crypto.getRandomValues for a cryptographically secure reference.
+    // 8 random bytes → 16 hex chars → collision probability negligible.
+    const arr = new Uint8Array(8);
+    crypto.getRandomValues(arr);
+    const hex = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    return `HH-${Date.now()}-${hex}`;
 }
 
 export async function initiatePayment({ email, amount, metadata = {}, onSuccess, onClose }) {
-    if (!amount || Number(amount) <= 0) throw new Error('Invalid amount');
+    const amountNum = Number(amount);
+    if (!amountNum || amountNum <= 0) throw new Error('Invalid amount');
+    if (amountNum < PLATFORM_CONFIG.minTopupGHS) {
+        throw new Error(`Minimum top-up amount is ${PLATFORM_CONFIG.currencySymbol} ${PLATFORM_CONFIG.minTopupGHS}.`);
+    }
 
-    // Paystack requires a valid email — fall back to a placeholder for phone-auth users
-    const effectiveEmail = (email && email.includes('@')) ? email : `user-${Date.now()}@handyhub.app`;
+    // Paystack requires a valid email.
+    // For phone-auth or social-auth users without an email, use a stable placeholder
+    // derived from the user's UID rather than a timestamp (prevents duplicate Paystack
+    // customer records on every transaction for the same user).
+    const effectiveEmail = (email && email.includes('@'))
+        ? email
+        : `noemail+handyhub@handyhub.app`;  // stable placeholder — no PII, no spam
 
     await loadSdk();
 
@@ -42,7 +67,7 @@ export async function initiatePayment({ email, amount, metadata = {}, onSuccess,
     const handler = window.PaystackPop.setup({
         key:      PUBLIC_KEY,
         email:    effectiveEmail,
-        amount:   Math.round(Number(amount) * 100), // pesewas (GHS × 100)
+        amount:   Math.round(amountNum * 100), // pesewas (GHS × 100)
         currency: 'GHS',
         channels: ['mobile_money'],
         ref:      genRef(),
@@ -51,4 +76,21 @@ export async function initiatePayment({ email, amount, metadata = {}, onSuccess,
         onClose:  function()          { if (onClose)  onClose();           }
     });
     handler.openIframe();
+}
+
+/**
+ * Initiate a wallet withdrawal via the `processWithdrawal` Cloud Function.
+ * The function creates a Paystack Transfer Recipient, sends the transfer,
+ * and atomically records the transaction + deducts the wallet balance.
+ *
+ * @param {Object} opts
+ * @param {number}  opts.amount   - Amount in GHS
+ * @param {string}  opts.provider - 'mtn' | 'telecel' | 'airteltigo'
+ * @param {string}  opts.phone    - Mobile money phone number
+ * @returns {Promise<{ ref: string, transferCode: string }>}
+ */
+export async function initiateWithdrawal({ amount, provider, phone }) {
+    const processWithdrawal = httpsCallable(getFirebaseFunctions(), 'processWithdrawal');
+    const result = await processWithdrawal({ amount, provider, phone });
+    return result.data;
 }

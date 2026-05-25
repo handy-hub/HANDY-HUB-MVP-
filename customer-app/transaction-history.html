@@ -457,6 +457,7 @@
     import { getAppContainer }                         from '../../shared/js/app/container.js';
     import { showToast }                               from '../../shared/js/components/toast.js';
     import { createPaymentRepository, PROVIDER_META }  from '../../shared/js/data/repositories/paymentRepository.js';
+    import { initiateWithdrawal }                      from '../../shared/js/services/paystackService.js';
 
     const LOGIN_URL = 'login.html';
 
@@ -682,19 +683,25 @@
         if (!acc || !amount || amount <= 0) return;
 
         wdConfirmBtn.disabled    = true;
-        wdConfirmBtn.textContent = 'Processing…';
+        wdConfirmBtn.textContent = 'Sending to Paystack…';
 
         try {
-            await paymentRepo.recordWithdrawal(currentUid, {
+            // Calls the processWithdrawal Cloud Function which:
+            //   1. Creates a Paystack Transfer Recipient
+            //   2. Initiates the Paystack Transfer (real payout)
+            //   3. Deducts the wallet balance + records the transaction in Firestore
+            const { ref } = await initiateWithdrawal({
                 amount,
                 provider: acc.data.provider,
                 phone:    acc.data.phone
             });
+
             closeWithdrawModal();
-            showToast(`Withdrawal of GHC ${amount.toFixed(2)} submitted. Processed in 1–5 business days.`, 'success');
+            showToast(`GHC ${amount.toFixed(2)} sent to ${acc.data.phone}. Ref: ${ref}`, 'success');
         } catch (err) {
             console.error('Withdrawal error:', err);
-            showToast(err.message || 'Withdrawal failed. Try again.', 'error');
+            // Firebase HttpsError surfaces the message from the Cloud Function
+            showToast(err.message || 'Withdrawal failed. Please try again.', 'error');
             wdConfirmBtn.disabled = false;
             updateWdConfirm();
         }

@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.head.appendChild(script);
   }
 
-  injectScript("js/Pages/trackingPage.js", () => {
+  injectScript("js/pages/trackingPage.js", () => {
     console.warn("trackingPage.js failed to load.");
   });
 });

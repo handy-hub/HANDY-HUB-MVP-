@@ -28,10 +28,10 @@ const DEFAULT_AVATAR   = 'https://ui-avatars.com/api/?background=730201&color=ff
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function buildGreeting(name) {
-    const h = new Date().getHours();
-    const s = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    const h     = new Date().getHours();
+    const s     = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
     const first = (name || '').split(' ')[0] || 'there';
-    return `${s}, ${first} 👋`;
+    return `${s}, ${first}`;
 }
 
 function buildDefaultAvatar(name) {

@@ -192,6 +192,6 @@ document.addEventListener('click', (e) => {
     const artisanBtn = e.target.closest('#continue-artisan');
     if (artisanBtn) {
         e.preventDefault();
-        instantNavigate('login-artisan.html');
+        instantNavigate('../artisan-app/onboarding.html');
     }
 });

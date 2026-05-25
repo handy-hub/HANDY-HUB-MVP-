@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub Admin – Verifications</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Verifications-specific styles ─────────────────── */
+    .verif-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+    }
+
+    .verif-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: box-shadow .2s, transform .15s;
+      cursor: pointer;
+    }
+    .verif-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+    .verif-card.urgent { border-left: 3px solid var(--warning); }
+
+    .verif-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .verif-avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--surface-2);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--text-mid);
+      flex-shrink: 0;
+    }
+    .verif-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .verif-card-info { flex: 1; min-width: 0; }
+    .verif-card-name { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .verif-card-cat  { font-size: 12px; color: var(--text-mid); margin-bottom: 6px; }
+    .verif-card-meta { font-size: 11px; color: var(--text-light); }
+
+    .verif-docs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .doc-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-mid);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .doc-pill:hover { border-color: var(--brand); color: var(--brand); background: #FFF5F5; }
+    .doc-pill svg { width: 12px; height: 12px; }
+    .doc-pill.has-doc { color: var(--success-dark, #16A34A); border-color: #86EFAC; background: #F0FDF4; }
+    .doc-pill.missing { color: var(--danger); border-color: #FECACA; background: #FFF5F5; }
+
+    .verif-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .verif-action-btns {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-approve {
+      background: var(--success-dark, #16A34A);
+      color: #fff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn-approve:hover { opacity: .85; }
+    .btn-reject {
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn-reject:hover { opacity: .85; }
+    .btn-more-info {
+      background: var(--surface-2);
+      color: var(--text-mid);
+      border: 1px solid var(--border);
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-more-info:hover { border-color: var(--warning); color: var(--warning); }
+    .btn-view-full {
+      font-size: 12px;
+      color: var(--brand);
+      font-weight: 600;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 7px 4px;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* ── Submitted time badge ─────────────────────────── */
+    .time-ago {
+      font-size: 11px;
+      color: var(--text-light);
+      white-space: nowrap;
+    }
+    .time-ago.overdue { color: var(--danger); font-weight: 600; }
+
+    /* ── Stats strip ──────────────────────────────────── */
+    .verif-stats-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .verif-stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .verif-stat-val { font-size: 24px; font-weight: 800; color: var(--text-dark); line-height: 1; }
+    .verif-stat-lbl { font-size: 11px; color: var(--text-light); margin-top: 4px; font-weight: 500; }
+    .verif-stat.pending  .verif-stat-val { color: var(--warning); }
+    .verif-stat.approved .verif-stat-val { color: var(--success, #22C55E); }
+    .verif-stat.rejected .verif-stat-val { color: var(--danger); }
+    .verif-stat.suspended .verif-stat-val { color: #7C3AED; }
+
+    /* ── Table view (list mode) ───────────────────────── */
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .view-btn {
+      padding: 5px 10px;
+      border: none;
+      background: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-light);
+      transition: all .15s;
+    }
+    .view-btn.active { background: var(--surface); color: var(--text-dark); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .view-btn svg { width: 16px; height: 16px; display: block; }
+
+    /* ── Modal ────────────────────────────────────────── */
+    .review-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+    }
+    .review-modal-overlay.open { opacity: 1; pointer-events: all; }
+    .review-modal {
+      background: var(--surface);
+      border-radius: var(--radius-xl, 20px);
+      width: 100%;
+      max-width: 860px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,.18);
+      transform: scale(.96) translateY(8px);
+      transition: transform .2s;
+    }
+    .review-modal-overlay.open .review-modal { transform: scale(1) translateY(0); }
+    .modal-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 10;
+    }
+    .modal-top-left { display: flex; align-items: center; gap: 12px; }
+    .modal-avatar-lg {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 2px solid var(--border);
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-mid);
+    }
+    .modal-avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
+    .modal-artisan-name { font-size: 18px; font-weight: 800; color: var(--text-dark); }
+    .modal-artisan-sub  { font-size: 13px; color: var(--text-mid); }
+    .modal-close-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-close-btn svg { width: 16px; height: 16px; }
+
+    .modal-body { padding: 24px; }
+    .modal-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    @media(max-width:640px){ .modal-cols { grid-template-columns: 1fr; } }
+    .modal-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dark);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--surface-2);
+      gap: 8px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-key   { font-size: 12px; color: var(--text-light); font-weight: 500; flex-shrink: 0; }
+    .info-val   { font-size: 13px; color: var(--text-dark);  font-weight: 600; text-align: right; word-break: break-all; }
+
+    .doc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .doc-thumb {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      aspect-ratio: 16/10;
+      background: var(--surface-2);
+      position: relative;
+      cursor: pointer;
+    }
+    .doc-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform .2s;
+    }
+    .doc-thumb:hover img { transform: scale(1.04); }
+    .doc-thumb-label {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,.55);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 5px 8px;
+    }
+    .doc-thumb.missing-doc {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .doc-thumb.missing-doc svg { width: 28px; height: 28px; opacity: .3; }
+    .doc-thumb.missing-doc span { font-size: 10px; color: var(--text-light); }
+
+    .selfie-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .selfie-img {
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--primary, #F97316);
+      background: var(--surface-2);
+    }
+
+    .momo-display {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .momo-badge {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .momo-badge.mtn    { background: #FFD700; color: #111; }
+    .momo-badge.telecel { background: #E30613; color: #fff; }
+    .momo-badge.airteltigo { background: #003087; color: #fff; }
+
+    /* ── Admin Notes + Action Area ────────────────────── */
+    .modal-action-area {
+      border-top: 1px solid var(--border);
+      padding: 20px 24px;
+      position: sticky;
+      bottom: 0;
+      background: var(--surface);
+    }
+    .notes-label { font-size: 13px; font-weight: 600; color: var(--text-dark); margin-bottom: 8px; display: block; }
+    .notes-textarea {
+      width: 100%;
+      height: 76px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-dark);
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s;
+      margin-bottom: 12px;
+    }
+    .notes-textarea:focus { border-color: var(--brand); }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-modal-approve {
+      flex: 1;
+      background: #16A34A;
+      color: #fff;
+      border: none;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-modal-approve:hover { opacity: .85; }
+    .btn-modal-reject {
+      flex: 1;
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-modal-reject:hover { opacity: .85; }
+    .btn-modal-info {
+      background: var(--surface-2);
+      color: var(--text-mid);
+      border: 1.5px solid var(--border);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-modal-info:hover { border-color: var(--warning); color: var(--warning); }
+    .btn-modal-suspend {
+      background: var(--surface-2);
+      color: #7C3AED;
+      border: 1.5px solid #DDD6FE;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-modal-suspend:hover { background: #EDE9FE; }
+
+    .action-loading {
+      pointer-events: none;
+      opacity: .6;
+    }
+    .action-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Lightbox ────────────────────────────────────── */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.92);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: 92vw;
+      max-height: 88vh;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 0 60px rgba(0,0,0,.6);
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 20px; right: 24px;
+      background: rgba(255,255,255,.15);
+      border: none;
+      color: #fff;
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Empty state ─────────────────────────────────── */
+    .verif-empty {
+      text-align: center;
+      padding: 64px 20px;
+      color: var(--text-light);
+    }
+    .verif-empty svg { width: 56px; height: 56px; margin: 0 auto 16px; opacity: .3; display: block; }
+    .verif-empty p { font-size: 15px; font-weight: 600; }
+    .verif-empty span { font-size: 13px; }
+
+    /* ── History log ─────────────────────────────────── */
+    .verif-log { display: flex; flex-direction: column; gap: 0; }
+    .log-item {
+      display: flex;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--surface-2);
+    }
+    .log-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+    .log-dot.green  { background: var(--success, #22C55E); }
+    .log-dot.red    { background: var(--danger); }
+    .log-dot.yellow { background: var(--warning); }
+    .log-dot.gray   { background: var(--border); }
+    .log-dot.purple { background: #7C3AED; }
+    .log-text { font-size: 12px; color: var(--text-mid); }
+    .log-text strong { color: var(--text-dark); }
+    .log-time { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+
+    /* ── List table view ─────────────────────────────── */
+    .verif-table-wrap { display: none; }
+    .view-cards .verif-table-wrap { display: none; }
+    .view-cards .verif-grid { display: grid; }
+    .view-list .verif-grid { display: none; }
+    .view-list .verif-table-wrap { display: block; }
+
+    /* responsive stats strip */
+    @media(max-width:900px){
+      .verif-stats-strip { grid-template-columns: repeat(3,1fr); }
+    }
+    @media(max-width:600px){
+      .verif-stats-strip { grid-template-columns: repeat(2,1fr); }
+      .verif-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+
+  <!-- ═══════════════════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#fff" stroke-width="2" stroke-linecap="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#fff" stroke-width="2"/></svg>
+      </div>
+      <span class="sidebar-logo-text">HandyHub</span>
+      <span class="sidebar-logo-badge">Admin</span>
+    </div>
+
+    <div class="sidebar-section-label">Main</div>
+    <a class="nav-link" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>
+      Overview
+    </a>
+    <a class="nav-link" href="analytics.html">
+      <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Analytics
+    </a>
+
+    <div class="sidebar-section-label">Users</div>
+    <a class="nav-link" href="artisans.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>
+      Artisans
+    </a>
+    <a class="nav-link" href="customers.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Customers
+    </a>
+    <a class="nav-link active" href="verifications.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Verifications
+      <span class="nav-badge" id="verif-badge">0</span>
+    </a>
+
+    <div class="sidebar-section-label">Operations</div>
+    <a class="nav-link" href="bookings.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Bookings
+    </a>
+    <a class="nav-link" href="disputes.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      Disputes
+    </a>
+
+    <div class="sidebar-section-label">Finance</div>
+    <a class="nav-link" href="finance.html">
+      <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Finance
+    </a>
+    <a class="nav-link" href="payouts.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.8"/><polyline points="3.27 6.96 12 12.01 20.73 6.96" stroke="currentColor" stroke-width="1.8"/><line x1="12" y1="22.08" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+      Payouts
+    </a>
+
+    <div class="sidebar-section-label">System</div>
+    <a class="nav-link" href="admins.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16 11h6M19 8v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Admin Users
+    </a>
+    <a class="nav-link" href="settings.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg>
+      Settings
+    </a>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="admin-avatar">A</div>
+        <div class="sidebar-user-info">
+          <p class="sidebar-user-name" id="admin-name">Admin</p>
+          <p class="sidebar-user-role" id="admin-role">Super Admin</p>
+        </div>
+        <button onclick="signOut()" style="background:none;border:none;cursor:pointer;margin-left:8px;color:#64748B;" title="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MAIN
+  ═══════════════════════════════════════════════════════ -->
+  <div class="main-content">
+
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none"><line x1="3" y1="6" x2="21" y2="6" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="12" x2="21" y2="12" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="18" x2="21" y2="18" stroke="#374151" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <span class="page-title-bar">Artisan Verifications</span>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#94A3B8" stroke-width="1.8"/><path d="m21 21-4.35-4.35" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input type="text" placeholder="Search by name, Ghana Card, phone…" id="search-input" oninput="handleSearch(this.value)" />
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" title="Pending verifications" onclick="setFilter('pending_review')">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span class="header-badge" id="hdr-verif-badge" style="display:none">0</span>
+        </button>
+        <button class="header-icon-btn" title="Notifications">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <span style="font-size:12px;color:var(--text-light);padding:0 4px;">|</span>
+        <span id="hdr-date" style="font-size:12px;color:var(--text-light);white-space:nowrap;"></span>
+      </div>
+    </header>
+
+    <!-- Page body -->
+    <div class="page-body">
+
+      <!-- ── Status Stats Strip ────────────────────────── -->
+      <div class="verif-stats-strip" id="stats-strip">
+        <div class="verif-stat" style="cursor:pointer" onclick="setFilter('all')">
+          <div class="verif-stat-val" id="stat-total">—</div>
+          <div class="verif-stat-lbl">Total</div>
+        </div>
+        <div class="verif-stat pending" style="cursor:pointer" onclick="setFilter('pending_review')">
+          <div class="verif-stat-val" id="stat-pending">—</div>
+          <div class="verif-stat-lbl">Pending Review</div>
+        </div>
+        <div class="verif-stat approved" style="cursor:pointer" onclick="setFilter('approved')">
+          <div class="verif-stat-val" id="stat-approved">—</div>
+          <div class="verif-stat-lbl">Approved</div>
+        </div>
+        <div class="verif-stat rejected" style="cursor:pointer" onclick="setFilter('rejected')">
+          <div class="verif-stat-val" id="stat-rejected">—</div>
+          <div class="verif-stat-lbl">Rejected</div>
+        </div>
+        <div class="verif-stat suspended" style="cursor:pointer" onclick="setFilter('suspended')">
+          <div class="verif-stat-val" id="stat-suspended">—</div>
+          <div class="verif-stat-lbl">Suspended</div>
+        </div>
+      </div>
+
+      <!-- ── Toolbar ────────────────────────────────────── -->
+      <div class="table-toolbar" style="margin-bottom:16px;">
+        <div class="filter-chips" id="filter-chips">
+          <button class="filter-chip active" data-filter="all" onclick="setFilter('all')">All</button>
+          <button class="filter-chip" data-filter="pending_review" onclick="setFilter('pending_review')">
+            Pending Review
+            <span class="chip-badge" id="chip-pending-count">0</span>
+          </button>
+          <button class="filter-chip" data-filter="approved" onclick="setFilter('approved')">Approved</button>
+          <button class="filter-chip" data-filter="rejected" onclick="setFilter('rejected')">Rejected</button>
+          <button class="filter-chip" data-filter="suspended" onclick="setFilter('suspended')">Suspended</button>
+          <button class="filter-chip" data-filter="re_verification_required" onclick="setFilter('re_verification_required')">Re-Verify</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
+          <select class="admin-select" id="sort-select" onchange="handleSort(this.value)">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="name">By Name</option>
+          </select>
+          <div class="view-toggle">
+            <button class="view-btn active" id="view-cards-btn" onclick="setView('cards')" title="Card view">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>
+            </button>
+            <button class="view-btn" id="view-list-btn" onclick="setView('list')" title="List view">
+              <svg viewBox="0 0 24 24" fill="none"><line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="3" y1="6" x2="3.01" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="12" x2="3.01" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="18" x2="3.01" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Content area ───────────────────────────────── -->
+      <div id="content-area" class="view-cards">
+
+        <!-- Card Grid -->
+        <div class="verif-grid" id="verif-grid">
+          <!-- Shimmer skeletons -->
+          <div class="shimmer" style="height:190px;border-radius:16px;"></div>
+          <div class="shimmer" style="height:190px;border-radius:16px;"></div>
+          <div class="shimmer" style="height:190px;border-radius:16px;"></div>
+          <div class="shimmer" style="height:190px;border-radius:16px;"></div>
+          <div class="shimmer" style="height:190px;border-radius:16px;"></div>
+          <div class="shimmer" style="height:190px;border-radius:16px;"></div>
+        </div>
+
+        <!-- List Table -->
+        <div class="verif-table-wrap admin-card">
+          <div class="card-body" style="padding:0;">
+            <table class="admin-table" id="verif-table">
+              <thead>
+                <tr>
+                  <th>Artisan</th>
+                  <th>Category</th>
+                  <th>Ghana Card</th>
+                  <th>MoMo</th>
+                  <th>Submitted</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="verif-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-light);">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination" style="margin-top:20px;display:none;">
+        <button class="page-btn" id="prev-btn" onclick="changePage(-1)" disabled>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div id="page-numbers" style="display:flex;gap:4px;"></div>
+        <button class="page-btn" id="next-btn" onclick="changePage(1)">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+    </div><!-- /page-body -->
+  </div><!-- /main-content -->
+</div><!-- /admin-layout -->
+
+<!-- ═══════════════════════════════════════════════════════
+     REVIEW MODAL
+═══════════════════════════════════════════════════════ -->
+<div class="review-modal-overlay" id="review-overlay" onclick="handleOverlayClick(event)">
+  <div class="review-modal" id="review-modal">
+
+    <!-- Modal header -->
+    <div class="modal-top">
+      <div class="modal-top-left">
+        <div class="modal-avatar-lg" id="m-avatar">?</div>
+        <div>
+          <p class="modal-artisan-name" id="m-name">—</p>
+          <p class="modal-artisan-sub" id="m-sub">—</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="m-status-badge" class="badge warning">Pending</span>
+        <button class="modal-close-btn" onclick="closeModal()">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal body -->
+    <div class="modal-body" id="modal-body">
+
+      <!-- Columns: Personal + Identity -->
+      <div class="modal-cols">
+
+        <!-- Personal Info -->
+        <div>
+          <p class="modal-section-title">Personal Information</p>
+
+          <!-- Selfie -->
+          <div class="selfie-wrap">
+            <img id="m-selfie" class="selfie-img" src="" alt="Selfie" onerror="this.style.display='none'" style="display:none;" />
+            <div id="m-selfie-placeholder" style="width:110px;height:110px;border-radius:50%;background:var(--surface-2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;">
+              <svg viewBox="0 0 24 24" fill="none" style="width:36px;height:36px;opacity:.3;"><circle cx="12" cy="8" r="4" stroke="#374151" stroke-width="1.8"/><path d="M20 21a8 8 0 1 0-16 0" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+
+          <div class="info-row"><span class="info-key">Full Name</span><span class="info-val" id="m-fullname">—</span></div>
+          <div class="info-row"><span class="info-key">Phone</span><span class="info-val" id="m-phone">—</span></div>
+          <div class="info-row"><span class="info-key">Email</span><span class="info-val" id="m-email">—</span></div>
+          <div class="info-row"><span class="info-key">Date of Birth</span><span class="info-val" id="m-dob">—</span></div>
+          <div class="info-row"><span class="info-key">Address</span><span class="info-val" id="m-address">—</span></div>
+          <div class="info-row"><span class="info-key">GPS</span><span class="info-val" id="m-gps">—</span></div>
+          <div class="info-row"><span class="info-key">Emergency Contact</span><span class="info-val" id="m-emergency">—</span></div>
+          <div class="info-row"><span class="info-key">Submitted</span><span class="info-val" id="m-submitted">—</span></div>
+        </div>
+
+        <!-- Identity & Skills -->
+        <div>
+          <p class="modal-section-title">Identity &amp; Skills</p>
+          <div class="info-row"><span class="info-key">Ghana Card No.</span><span class="info-val" id="m-ghana-card">—</span></div>
+          <div class="info-row"><span class="info-key">Business Reg.</span><span class="info-val" id="m-biz-reg">—</span></div>
+          <div class="info-row"><span class="info-key">TIN</span><span class="info-val" id="m-tin">—</span></div>
+          <div class="info-row"><span class="info-key">Category</span><span class="info-val" id="m-category">—</span></div>
+          <div class="info-row"><span class="info-key">Experience</span><span class="info-val" id="m-exp">—</span></div>
+          <div class="info-row"><span class="info-key">Base Rate</span><span class="info-val" id="m-rate">—</span></div>
+          <div class="info-row"><span class="info-key">Work Radius</span><span class="info-val" id="m-radius">—</span></div>
+          <div class="info-row"><span class="info-key">Availability</span><span class="info-val" id="m-avail">—</span></div>
+          <div class="info-row"><span class="info-key">Bio</span></div>
+          <p id="m-bio" style="font-size:13px;color:var(--text-mid);line-height:1.6;padding:8px 0;"></p>
+        </div>
+      </div>
+
+      <!-- Documents -->
+      <p class="modal-section-title">Submitted Documents</p>
+      <div class="doc-grid" id="m-doc-grid">
+        <div class="doc-thumb missing-doc" id="doc-id-front">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#374151" stroke-width="1.5"/><path d="M2 10h20" stroke="#374151" stroke-width="1.5"/></svg>
+          <span>ID Front</span>
+        </div>
+        <div class="doc-thumb missing-doc" id="doc-id-back">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#374151" stroke-width="1.5"/><path d="M2 10h20" stroke="#374151" stroke-width="1.5"/></svg>
+          <span>ID Back</span>
+        </div>
+        <div class="doc-thumb missing-doc" id="doc-biz">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#374151" stroke-width="1.5"/><polyline points="14 2 14 8 20 8" stroke="#374151" stroke-width="1.5"/></svg>
+          <span>Business Reg (optional)</span>
+        </div>
+        <div class="doc-thumb missing-doc" id="doc-cert">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="6" stroke="#374151" stroke-width="1.5"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" stroke="#374151" stroke-width="1.5"/></svg>
+          <span>Certification (optional)</span>
+        </div>
+      </div>
+
+      <!-- Payout Info -->
+      <p class="modal-section-title" style="margin-top:16px;">Payout Setup</p>
+      <div class="momo-display" id="m-momo">
+        <span id="m-momo-badge" class="momo-badge mtn">MTN</span>
+        <div>
+          <p id="m-momo-number" style="font-size:14px;font-weight:700;color:var(--text-dark);">—</p>
+          <p id="m-momo-name" style="font-size:12px;color:var(--text-light);">Account Name</p>
+        </div>
+      </div>
+
+      <!-- Verification History Log -->
+      <p class="modal-section-title" style="margin-top:4px;">Verification History</p>
+      <div class="verif-log" id="m-verif-log">
+        <div class="log-item">
+          <div class="log-dot gray"></div>
+          <div>
+            <p class="log-text">No history available yet.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Action Area -->
+    <div class="modal-action-area">
+      <label class="notes-label">Admin Notes <span style="font-weight:400;color:var(--text-light);">(required for rejection / more info)</span></label>
+      <textarea class="notes-textarea" id="admin-notes" placeholder="e.g. Ghana Card image is blurry. Please re-upload a clear photo of both sides."></textarea>
+      <div class="modal-actions" id="modal-actions">
+        <button class="btn-modal-approve" id="btn-approve" onclick="takeAction('approve')">
+          <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Approve
+        </button>
+        <button class="btn-modal-reject" id="btn-reject" onclick="takeAction('reject')">
+          <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Reject
+        </button>
+        <button class="btn-modal-info" id="btn-info" onclick="takeAction('request_info')">
+          <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Request Info
+        </button>
+        <button class="btn-modal-suspend" id="btn-suspend" onclick="takeAction('suspend')">
+          <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;"><rect x="6" y="4" width="4" height="16" rx="1" stroke="#7C3AED" stroke-width="1.8"/><rect x="14" y="4" width="4" height="16" rx="1" stroke="#7C3AED" stroke-width="1.8"/></svg>
+          Suspend
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close">✕</button>
+  <img id="lightbox-img" src="" alt="Document" />
+</div>
+
+<!-- Toast -->
+<div class="admin-toast" id="admin-toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     FIREBASE + PAGE LOGIC
+═══════════════════════════════════════════════════════ -->
+<script type="module">
+import { db, auth, storage }           from './js/firebase-admin.js';
+import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
+import { showToast, setDateHeader }    from './js/ui-utils.js';
+import { collection, doc, getDoc, getDocs, onSnapshot,
+         updateDoc, addDoc, query, where, orderBy, serverTimestamp, writeBatch }
+                               from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { ref as storageRef, getDownloadURL }
+                               from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
+
+let currentAdmin = null;
+setDateHeader();
+initAdminPage(user => {
+  currentAdmin = user;
+  init();
+});
+window.signOut = signOutAdmin;
+
+/* ── State ──────────────────────────────────────────── */
+let allRequests = [];
+let filteredRequests = [];
+let currentFilter = 'all';
+let currentSort   = 'newest';
+let currentSearch = '';
+let currentPage   = 1;
+const PAGE_SIZE   = 12;
+let currentRequest = null; // open in modal
+let unsubVerif     = null;
+
+
+/* ── Init ────────────────────────────────────────────── */
+function init() {
+  subscribeVerifications();
+}
+
+/* ── Real-time subscription ──────────────────────────── */
+function subscribeVerifications() {
+  const q = query(
+    collection(db, 'verification_requests'),
+    orderBy('submittedAt', 'desc')
+  );
+
+  unsubVerif = onSnapshot(q, snap => {
+    allRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    updateStats();
+    applyFiltersAndRender();
+  }, err => {
+    console.error('verif subscription error:', err);
+    showToast('Failed to load verifications: ' + err.message, 'error');
+  });
+}
+
+/* ── Stats ───────────────────────────────────────────── */
+function updateStats() {
+  const counts = { total:0, pending_review:0, approved:0, rejected:0, suspended:0 };
+  allRequests.forEach(r => {
+    counts.total++;
+    const s = r.verificationStatus || r.status || 'pending_review';
+    if (counts[s] !== undefined) counts[s]++;
+  });
+
+  document.getElementById('stat-total').textContent    = counts.total;
+  document.getElementById('stat-pending').textContent  = counts.pending_review;
+  document.getElementById('stat-approved').textContent = counts.approved;
+  document.getElementById('stat-rejected').textContent = counts.rejected;
+  document.getElementById('stat-suspended').textContent= counts.suspended;
+
+  const pendCount = counts.pending_review;
+  document.getElementById('verif-badge').textContent       = pendCount || '';
+  document.getElementById('chip-pending-count').textContent= pendCount;
+  const hdrBadge = document.getElementById('hdr-verif-badge');
+  hdrBadge.textContent = pendCount;
+  hdrBadge.style.display = pendCount > 0 ? 'flex' : 'none';
+}
+
+/* ── Filter + Render ─────────────────────────────────── */
+window.setFilter = function(filter) {
+  currentFilter = filter;
+  currentPage   = 1;
+  document.querySelectorAll('.filter-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.filter === filter);
+  });
+  applyFiltersAndRender();
+};
+
+window.handleSearch = function(val) {
+  currentSearch = val.trim().toLowerCase();
+  currentPage   = 1;
+  applyFiltersAndRender();
+};
+
+window.handleSort = function(val) {
+  currentSort = val;
+  applyFiltersAndRender();
+};
+
+function applyFiltersAndRender() {
+  let list = [...allRequests];
+
+  // Filter by status
+  if (currentFilter !== 'all') {
+    list = list.filter(r => {
+      const s = r.verificationStatus || r.status || 'pending_review';
+      return s === currentFilter;
+    });
+  }
+
+  // Search
+  if (currentSearch) {
+    list = list.filter(r =>
+      (r.fullName || '').toLowerCase().includes(currentSearch) ||
+      (r.phone || '').includes(currentSearch) ||
+      (r.ghanaCardNumber || '').toLowerCase().includes(currentSearch) ||
+      (r.email || '').toLowerCase().includes(currentSearch)
+    );
+  }
+
+  // Sort
+  if (currentSort === 'oldest') {
+    list.sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0));
+  } else if (currentSort === 'name') {
+    list.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
+  } else {
+    list.sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
+  }
+
+  filteredRequests = list;
+  renderPage();
+  renderTable();
+  renderPagination();
+}
+
+/* ── Render cards ────────────────────────────────────── */
+function renderPage() {
+  const grid  = document.getElementById('verif-grid');
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page  = filteredRequests.slice(start, start + PAGE_SIZE);
+
+  if (page.length === 0) {
+    grid.innerHTML = `
+      <div class="verif-empty" style="grid-column:1/-1;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#374151" stroke-width="1.5"/></svg>
+        <p>No verifications found</p>
+        <span>Try adjusting filters or search terms</span>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = page.map(r => buildCard(r)).join('');
+}
+
+function buildCard(r) {
+  const status = r.verificationStatus || r.status || 'pending_review';
+  const ts     = r.submittedAt?.toDate ? r.submittedAt.toDate() : (r.submittedAt ? new Date(r.submittedAt) : null);
+  const age    = ts ? ageStr(ts) : '—';
+  const isOld  = ts && (Date.now() - ts.getTime()) > 48 * 3600 * 1000;
+  const initials = (r.fullName || '??').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+
+  const statusMap = {
+    pending_review: ['warning','Pending Review'],
+    approved:       ['success','Approved'],
+    rejected:       ['danger','Rejected'],
+    suspended:      ['purple-badge','Suspended'],
+    re_verification_required: ['warning','Re-Verify'],
+    draft:          ['info','Draft']
+  };
+  const [badgeClass, badgeLabel] = statusMap[status] || ['info', status];
+
+  const hasFront = !!(r.documents?.idFront || r.idFrontUrl);
+  const hasBack  = !!(r.documents?.idBack  || r.idBackUrl);
+  const hasSelfie= !!(r.documents?.selfie  || r.selfieUrl);
+  const hasMomo  = !!(r.momoPhone);
+
+  return `
+  <div class="verif-card${isOld && status==='pending_review' ? ' urgent' : ''}" onclick="openModal('${r.id}')">
+    <div class="verif-card-header">
+      <div class="verif-avatar">${initials}</div>
+      <div class="verif-card-info">
+        <p class="verif-card-name">${esc(r.fullName || 'Unknown Artisan')}</p>
+        <p class="verif-card-cat">${esc(r.category || 'Uncategorized')} · ${esc(r.phone || '—')}</p>
+        <span class="badge ${badgeClass}">${badgeLabel}</span>
+      </div>
+      <span class="time-ago${isOld && status==='pending_review' ? ' overdue' : ''}">${age}</span>
+    </div>
+    <div class="verif-docs">
+      <div class="doc-pill ${hasSelfie ? 'has-doc' : 'missing'}">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Selfie
+      </div>
+      <div class="doc-pill ${hasFront ? 'has-doc' : 'missing'}">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/></svg>
+        ID Front
+      </div>
+      <div class="doc-pill ${hasBack ? 'has-doc' : 'missing'}">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/></svg>
+        ID Back
+      </div>
+      <div class="doc-pill ${hasMomo ? 'has-doc' : 'missing'}">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="currentColor" opacity=".7"/></svg>
+        MoMo
+      </div>
+    </div>
+    <div class="verif-card-footer">
+      ${status === 'pending_review' ? `
+      <div class="verif-action-btns">
+        <button class="btn-approve" onclick="event.stopPropagation();quickApprove('${r.id}')">✓ Approve</button>
+        <button class="btn-reject"  onclick="event.stopPropagation();openModal('${r.id}')">✕ Reject</button>
+      </div>
+      ` : `<div></div>`}
+      <button class="btn-view-full" onclick="event.stopPropagation();openModal('${r.id}')">Full Review →</button>
+    </div>
+  </div>`;
+}
+
+/* ── Render table ────────────────────────────────────── */
+function renderTable() {
+  const tbody = document.getElementById('verif-tbody');
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page  = filteredRequests.slice(start, start + PAGE_SIZE);
+
+  if (page.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-light);">No records found</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = page.map(r => {
+    const status  = r.verificationStatus || r.status || 'pending_review';
+    const ts      = r.submittedAt?.toDate ? r.submittedAt.toDate() : null;
+    const dateStr = ts ? ts.toLocaleDateString('en-GH', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const statusMap = {
+      pending_review:'warning',approved:'success',rejected:'danger',
+      suspended:'purple-badge',re_verification_required:'warning',draft:'info'
+    };
+    const badgeCls = statusMap[status] || 'info';
+    const momoProviders = { mtn:'MTN MoMo', telecel:'Telecel Cash', airteltigo:'AirtelTigo Money' };
+
+    return `<tr onclick="openModal('${r.id}')" style="cursor:pointer;">
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:50%;background:var(--surface-2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">
+            ${(r.fullName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
+          </div>
+          <div>
+            <p style="font-size:13px;font-weight:600;color:var(--text-dark);">${esc(r.fullName||'—')}</p>
+            <p style="font-size:11px;color:var(--text-light);">${esc(r.email||'—')}</p>
+          </div>
+        </div>
+      </td>
+      <td><span style="font-size:12px;">${esc(r.category||'—')}</span></td>
+      <td><code style="font-size:11px;background:var(--surface-2);padding:2px 6px;border-radius:4px;">${esc(r.ghanaCardNumber||'—')}</code></td>
+      <td><span style="font-size:12px;">${momoProviders[r.momoProvider] || (r.momoProvider||'—')}</span></td>
+      <td><span style="font-size:12px;color:var(--text-light);">${dateStr}</span></td>
+      <td><span class="badge ${badgeCls}">${status.replace('_',' ')}</span></td>
+      <td>
+        <div style="display:flex;gap:6px;" onclick="event.stopPropagation()">
+          <button class="btn btn-sm btn-secondary" onclick="openModal('${r.id}')">Review</button>
+          ${status==='pending_review' ? `<button class="btn btn-sm btn-success" onclick="quickApprove('${r.id}')">✓</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Pagination ──────────────────────────────────────── */
+function renderPagination() {
+  const total     = filteredRequests.length;
+  const pageCount = Math.ceil(total / PAGE_SIZE);
+  const pag       = document.getElementById('pagination');
+
+  if (pageCount <= 1) { pag.style.display = 'none'; return; }
+  pag.style.display = 'flex';
+
+  document.getElementById('prev-btn').disabled = currentPage <= 1;
+  document.getElementById('next-btn').disabled = currentPage >= pageCount;
+
+  const nums = document.getElementById('page-numbers');
+  nums.innerHTML = '';
+  for (let i = 1; i <= pageCount; i++) {
+    if (i === 1 || i === pageCount || Math.abs(i - currentPage) <= 1) {
+      const btn = document.createElement('button');
+      btn.className = 'page-btn' + (i === currentPage ? ' active' : '');
+      btn.textContent = i;
+      btn.onclick = () => { currentPage = i; applyFiltersAndRender(); };
+      nums.appendChild(btn);
+    } else if (Math.abs(i - currentPage) === 2) {
+      const sp = document.createElement('span');
+      sp.textContent = '…';
+      sp.style.cssText = 'padding:0 4px;color:var(--text-light);line-height:32px;';
+      nums.appendChild(sp);
+    }
+  }
+}
+
+window.changePage = function(dir) {
+  const pageCount = Math.ceil(filteredRequests.length / PAGE_SIZE);
+  currentPage = Math.max(1, Math.min(pageCount, currentPage + dir));
+  applyFiltersAndRender();
+};
+
+/* ── View toggle ─────────────────────────────────────── */
+window.setView = function(view) {
+  const area = document.getElementById('content-area');
+  area.className = `view-${view}`;
+  document.getElementById('view-cards-btn').classList.toggle('active', view === 'cards');
+  document.getElementById('view-list-btn').classList.toggle('active', view === 'list');
+};
+
+/* ── Quick Approve (from card) ───────────────────────── */
+window.quickApprove = async function(uid) {
+  if (!confirm(`Approve artisan ${uid.slice(0,8)}…? This grants full platform access.`)) return;
+  try {
+    await performApproval(uid, '');
+    showToast('✅ Artisan approved!', 'success');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+};
+
+/* ── Open Modal ──────────────────────────────────────── */
+window.openModal = async function(uid) {
+  const r = allRequests.find(x => x.id === uid);
+  if (!r) return;
+  currentRequest = r;
+
+  const status = r.verificationStatus || r.status || 'pending_review';
+
+  // Populate header
+  const initials = (r.fullName || '??').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('m-avatar').textContent = initials;
+  document.getElementById('m-name').textContent   = r.fullName || '—';
+  document.getElementById('m-sub').textContent    = `${r.category || '—'} · ${r.phone || '—'}`;
+
+  const statusMap = {
+    pending_review:'warning',approved:'success',rejected:'danger',
+    suspended:'purple-badge',re_verification_required:'warning',draft:'info'
+  };
+  const badge = document.getElementById('m-status-badge');
+  badge.className = `badge ${statusMap[status]||'info'}`;
+  badge.textContent = status.replace(/_/g,' ');
+
+  // Personal info
+  document.getElementById('m-fullname').textContent = r.fullName || '—';
+  document.getElementById('m-phone').textContent    = r.phone    || '—';
+  document.getElementById('m-email').textContent    = r.email    || '—';
+  document.getElementById('m-dob').textContent      = r.dateOfBirth || '—';
+  document.getElementById('m-address').textContent  = r.address  || '—';
+  document.getElementById('m-gps').textContent      = r.gpsAddress || '—';
+  document.getElementById('m-emergency').textContent= r.emergencyContact
+    ? `${r.emergencyContact.name} · ${r.emergencyContact.phone}` : '—';
+
+  const ts = r.submittedAt?.toDate ? r.submittedAt.toDate() : null;
+  document.getElementById('m-submitted').textContent = ts
+    ? ts.toLocaleString('en-GH') : '—';
+
+  // Identity
+  document.getElementById('m-ghana-card').textContent = r.ghanaCardNumber || '—';
+  document.getElementById('m-biz-reg').textContent    = r.businessRegNumber || 'Not provided';
+  document.getElementById('m-tin').textContent        = r.tin || 'Not provided';
+  document.getElementById('m-category').textContent   = r.category || '—';
+  document.getElementById('m-exp').textContent        = r.yearsExperience ? `${r.yearsExperience} yr(s)` : '—';
+  document.getElementById('m-rate').textContent       = r.baseRate ? `GHS ${r.baseRate}/hr` : '—';
+  document.getElementById('m-radius').textContent     = r.workRadius ? `${r.workRadius} km` : '—';
+  document.getElementById('m-avail').textContent      = Array.isArray(r.availability) ? r.availability.join(', ') : (r.availability || '—');
+  document.getElementById('m-bio').textContent        = r.bio || '—';
+
+  // MoMo
+  const providerNames = { mtn:'MTN', telecel:'Telecel', airteltigo:'AirtelTigo' };
+  const provCls = r.momoProvider || 'mtn';
+  const mb = document.getElementById('m-momo-badge');
+  mb.className = `momo-badge ${provCls}`;
+  mb.textContent = providerNames[provCls] || provCls.toUpperCase();
+  document.getElementById('m-momo-number').textContent = r.momoPhone || '—';
+  document.getElementById('m-momo-name').textContent   = r.momoAccountName || '—';
+
+  // Documents (load URLs)
+  loadDocImg('doc-id-front', r.documents?.idFront  || r.idFrontUrl,  'Ghana Card — Front');
+  loadDocImg('doc-id-back',  r.documents?.idBack   || r.idBackUrl,   'Ghana Card — Back');
+  loadDocImg('doc-biz',      r.documents?.bizReg   || r.bizRegUrl,   'Business Registration');
+  loadDocImg('doc-cert',     r.documents?.cert     || r.certUrl,     'Certification');
+
+  // Selfie
+  const selfieUrl = r.documents?.selfie || r.selfieUrl;
+  const selfieEl  = document.getElementById('m-selfie');
+  const selfiePhEl= document.getElementById('m-selfie-placeholder');
+  if (selfieUrl) {
+    selfieEl.src = selfieUrl;
+    selfieEl.style.display = 'block';
+    selfiePhEl.style.display = 'none';
+    selfieEl.onerror = () => { selfieEl.style.display='none'; selfiePhEl.style.display='flex'; };
+  } else {
+    selfieEl.style.display = 'none';
+    selfiePhEl.style.display = 'flex';
+  }
+
+  // Verification history log
+  loadVerifLog(uid);
+
+  // Admin notes
+  document.getElementById('admin-notes').value = '';
+
+  // Show/hide action buttons based on status
+  const btnApprove = document.getElementById('btn-approve');
+  const btnReject  = document.getElementById('btn-reject');
+  const btnInfo    = document.getElementById('btn-info');
+  const btnSuspend = document.getElementById('btn-suspend');
+
+  if (status === 'approved') {
+    btnApprove.disabled = true;
+    btnApprove.style.opacity = '.4';
+    btnSuspend.disabled = false;
+  } else if (status === 'rejected') {
+    btnReject.disabled = true;
+    btnReject.style.opacity = '.4';
+  } else if (status === 'suspended') {
+    btnSuspend.textContent = '▶ Reinstate';
+    btnSuspend.onclick = () => takeAction('reinstate');
+  } else {
+    btnApprove.disabled = false;
+    btnApprove.style.opacity = '1';
+    btnReject.disabled  = false;
+    btnReject.style.opacity  = '1';
+    btnSuspend.textContent = '⏸ Suspend';
+    btnSuspend.onclick = () => takeAction('suspend');
+  }
+
+  document.getElementById('review-overlay').classList.add('open');
+};
+
+function loadDocImg(containerId, urlOrPath, label) {
+  const container = document.getElementById(containerId);
+  if (!urlOrPath) {
+    // leave as missing placeholder
+    return;
+  }
+
+  // If it's already an https URL use directly, otherwise it might be a storage path
+  const isUrl = urlOrPath.startsWith('http');
+  const getUrl = isUrl
+    ? Promise.resolve(urlOrPath)
+    : getDownloadURL(storageRef(storage, urlOrPath)).catch(() => null);
+
+  getUrl.then(url => {
+    if (!url) return;
+    container.className = 'doc-thumb';
+    container.innerHTML = `
+      <img src="${url}" alt="${label}" onclick="openLightbox('${url}')" loading="lazy" />
+      <div class="doc-thumb-label">${label}</div>`;
+  });
+}
+
+async function loadVerifLog(uid) {
+  const logEl = document.getElementById('m-verif-log');
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'verification_logs'),
+            where('artisanId', '==', uid),
+            orderBy('timestamp', 'desc'))
+    );
+    if (snap.empty) {
+      logEl.innerHTML = `<div class="log-item"><div class="log-dot gray"></div><div><p class="log-text">No history yet.</p></div></div>`;
+      return;
+    }
+    const dotColor = { approved:'green', rejected:'red', request_info:'yellow', suspended:'purple', reinstate:'green', submitted:'gray' };
+    logEl.innerHTML = snap.docs.map(d => {
+      const l  = d.data();
+      const ts = l.timestamp?.toDate?.() || new Date();
+      const c  = dotColor[l.action] || 'gray';
+      return `<div class="log-item">
+        <div class="log-dot ${c}"></div>
+        <div>
+          <p class="log-text"><strong>${esc(l.adminEmail||'System')}</strong> — ${esc(l.action||'action')}</p>
+          ${l.notes ? `<p class="log-text">${esc(l.notes)}</p>` : ''}
+          <p class="log-time">${ts.toLocaleString('en-GH')}</p>
+        </div>
+      </div>`;
+    }).join('');
+  } catch {
+    logEl.innerHTML = `<div class="log-item"><div class="log-dot gray"></div><div><p class="log-text">Could not load history.</p></div></div>`;
+  }
+}
+
+window.closeModal = function() {
+  document.getElementById('review-overlay').classList.remove('open');
+  currentRequest = null;
+};
+
+window.handleOverlayClick = function(e) {
+  if (e.target === document.getElementById('review-overlay')) closeModal();
+};
+
+/* ── Action: approve / reject / info / suspend ───────── */
+window.takeAction = async function(action) {
+  if (!currentRequest) return;
+
+  const notes = document.getElementById('admin-notes').value.trim();
+  if ((action === 'reject' || action === 'request_info') && !notes) {
+    showToast('Please add notes before rejecting or requesting info.', 'error');
+    document.getElementById('admin-notes').focus();
+    return;
+  }
+
+  const confirmMsgs = {
+    approve:      `Approve ${currentRequest.fullName}? This grants full platform access.`,
+    reject:       `Reject ${currentRequest.fullName}? They will be notified.`,
+    request_info: `Request more info from ${currentRequest.fullName}?`,
+    suspend:      `Suspend ${currentRequest.fullName}? Their account will be disabled.`,
+    reinstate:    `Reinstate ${currentRequest.fullName}?`
+  };
+  if (!confirm(confirmMsgs[action])) return;
+
+  // Disable buttons
+  const actions = document.getElementById('modal-actions');
+  actions.classList.add('action-loading');
+
+  try {
+    const uid = currentRequest.id;
+
+    if (action === 'approve') {
+      await performApproval(uid, notes);
+    } else if (action === 'reject') {
+      await performRejection(uid, notes);
+    } else if (action === 'request_info') {
+      await performRequestInfo(uid, notes);
+    } else if (action === 'suspend') {
+      await performSuspend(uid, notes);
+    } else if (action === 'reinstate') {
+      await performReinstate(uid, notes);
+    }
+
+    showToast(getSuccessMsg(action), 'success');
+    closeModal();
+  } catch(err) {
+    showToast('Action failed: ' + err.message, 'error');
+    console.error(err);
+  } finally {
+    actions.classList.remove('action-loading');
+  }
+};
+
+function getSuccessMsg(action) {
+  return {
+    approve:      '✅ Artisan approved! They can now accept bookings.',
+    reject:       '🚫 Artisan rejected. Notification sent.',
+    request_info: '📋 Info request sent to artisan.',
+    suspend:      '⏸ Account suspended.',
+    reinstate:    '▶ Account reinstated.'
+  }[action] || 'Action completed.';
+}
+
+/* ── Approval ────────────────────────────────────────── */
+async function performApproval(uid, notes) {
+  const batch = writeBatch(db);
+
+  // Update verification_requests
+  batch.update(doc(db, 'verification_requests', uid), {
+    verificationStatus: 'approved',
+    status: 'approved',
+    approvedAt: serverTimestamp(),
+    approvedBy: currentAdmin.email
+  });
+
+  // Update artisan profile
+  batch.update(doc(db, 'artisans', uid), {
+    verificationStatus: 'approved',
+    isVerified: true,
+    isAvailable: false, // artisan sets this themselves after login
+    approvedAt: serverTimestamp(),
+    approvedBy: currentAdmin.email
+  });
+
+  await batch.commit();
+
+  // Log
+  await addDoc(collection(db, 'verification_logs'), {
+    artisanId: uid,
+    action: 'approved',
+    adminEmail: currentAdmin.email,
+    adminUid: currentAdmin.uid,
+    notes: notes || '',
+    timestamp: serverTimestamp()
+  });
+
+  // Notify artisan
+  await addDoc(collection(db, 'customer_notifications'), {
+    receiverId: uid,
+    type: 'System',
+    title: '🎉 You\'re Approved!',
+    message: 'Congratulations! Your HandyHub artisan profile has been approved. You can now accept bookings and start earning.',
+    isRead: false,
+    actionUrl: 'dashboard.html',
+    createdAt: serverTimestamp()
+  }).catch(() => {});
+}
+
+/* ── Rejection ───────────────────────────────────────── */
+async function performRejection(uid, notes) {
+  const batch = writeBatch(db);
+
+  batch.update(doc(db, 'verification_requests', uid), {
+    verificationStatus: 'rejected',
+    status: 'rejected',
+    rejectedAt: serverTimestamp(),
+    rejectedBy: currentAdmin.email,
+    rejectionReason: notes
+  });
+
+  batch.update(doc(db, 'artisans', uid), {
+    verificationStatus: 'rejected',
+    isVerified: false,
+    rejectedAt: serverTimestamp(),
+    rejectedBy: currentAdmin.email,
+    rejectionReason: notes
+  });
+
+  await batch.commit();
+
+  await addDoc(collection(db, 'verification_logs'), {
+    artisanId: uid,
+    action: 'rejected',
+    adminEmail: currentAdmin.email,
+    adminUid: currentAdmin.uid,
+    notes: notes,
+    timestamp: serverTimestamp()
+  });
+
+  await addDoc(collection(db, 'customer_notifications'), {
+    receiverId: uid,
+    type: 'System',
+    title: '❌ Verification Unsuccessful',
+    message: `Your HandyHub artisan application could not be approved. Reason: ${notes}. Please re-submit with the required corrections.`,
+    isRead: false,
+    actionUrl: 'onboarding.html',
+    createdAt: serverTimestamp()
+  }).catch(() => {});
+}
+
+/* ── Request Info ────────────────────────────────────── */
+async function performRequestInfo(uid, notes) {
+  const batch = writeBatch(db);
+
+  batch.update(doc(db, 'verification_requests', uid), {
+    verificationStatus: 're_verification_required',
+    status: 're_verification_required',
+    infoRequestedAt: serverTimestamp(),
+    infoRequestedBy: currentAdmin.email,
+    infoRequestNotes: notes
+  });
+
+  batch.update(doc(db, 'artisans', uid), {
+    verificationStatus: 're_verification_required'
+  });
+
+  await batch.commit();
+
+  await addDoc(collection(db, 'verification_logs'), {
+    artisanId: uid,
+    action: 'request_info',
+    adminEmail: currentAdmin.email,
+    adminUid: currentAdmin.uid,
+    notes: notes,
+    timestamp: serverTimestamp()
+  });
+
+  await addDoc(collection(db, 'customer_notifications'), {
+    receiverId: uid,
+    type: 'System',
+    title: '📋 Additional Information Required',
+    message: `Our team needs more information to complete your verification: ${notes}. Please log in and update your profile.`,
+    isRead: false,
+    actionUrl: 'onboarding.html',
+    createdAt: serverTimestamp()
+  }).catch(() => {});
+}
+
+/* ── Suspend ─────────────────────────────────────────── */
+async function performSuspend(uid, notes) {
+  const batch = writeBatch(db);
+
+  batch.update(doc(db, 'verification_requests', uid), {
+    verificationStatus: 'suspended',
+    status: 'suspended',
+    suspendedAt: serverTimestamp(),
+    suspendedBy: currentAdmin.email,
+    suspensionReason: notes
+  });
+
+  batch.update(doc(db, 'artisans', uid), {
+    verificationStatus: 'suspended',
+    isAvailable: false,
+    suspendedAt: serverTimestamp(),
+    suspendedBy: currentAdmin.email
+  });
+
+  await batch.commit();
+
+  await addDoc(collection(db, 'verification_logs'), {
+    artisanId: uid,
+    action: 'suspended',
+    adminEmail: currentAdmin.email,
+    adminUid: currentAdmin.uid,
+    notes: notes,
+    timestamp: serverTimestamp()
+  });
+
+  await addDoc(collection(db, 'customer_notifications'), {
+    receiverId: uid,
+    type: 'System',
+    title: '⏸ Account Suspended',
+    message: notes
+      ? `Your account has been temporarily suspended. Reason: ${notes}. Contact support for assistance.`
+      : 'Your HandyHub account has been temporarily suspended. Please contact support.',
+    isRead: false,
+    actionUrl: 'dashboard.html',
+    createdAt: serverTimestamp()
+  }).catch(() => {});
+}
+
+/* ── Reinstate ───────────────────────────────────────── */
+async function performReinstate(uid, notes) {
+  const batch = writeBatch(db);
+
+  batch.update(doc(db, 'verification_requests', uid), {
+    verificationStatus: 'approved',
+    status: 'approved',
+    reinstatedAt: serverTimestamp(),
+    reinstatedBy: currentAdmin.email
+  });
+
+  batch.update(doc(db, 'artisans', uid), {
+    verificationStatus: 'approved',
+    isVerified: true,
+    reinstatedAt: serverTimestamp()
+  });
+
+  await batch.commit();
+
+  await addDoc(collection(db, 'verification_logs'), {
+    artisanId: uid,
+    action: 'reinstate',
+    adminEmail: currentAdmin.email,
+    adminUid: currentAdmin.uid,
+    notes: notes,
+    timestamp: serverTimestamp()
+  });
+
+  await addDoc(collection(db, 'customer_notifications'), {
+    receiverId: uid,
+    type: 'System',
+    title: '✅ Account Reinstated',
+    message: 'Your HandyHub artisan account has been reinstated. You can log in and resume accepting bookings.',
+    isRead: false,
+    actionUrl: 'dashboard.html',
+    createdAt: serverTimestamp()
+  }).catch(() => {});
+}
+
+/* ── Lightbox ────────────────────────────────────────── */
+window.openLightbox = function(url) {
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox').classList.add('open');
+};
+window.closeLightbox = function() {
+  document.getElementById('lightbox').classList.remove('open');
+};
+
+
+/* ── Helpers ─────────────────────────────────────────── */
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function ageStr(date) {
+  const diff  = Date.now() - date.getTime();
+  const hrs   = Math.floor(diff / 3600000);
+  const days  = Math.floor(hrs / 24);
+  if (days > 1) return `${days}d ago`;
+  if (hrs  > 0) return `${hrs}h ago`;
+  return 'Just now';
+}
+
+</script>
+</body>
+</html>

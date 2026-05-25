@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub Admin — Finance</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red:    #730201;
+      --red2:   #a00303;
+      --green:  #059669;
+      --yellow: #d97706;
+      --bg:     #f2f2f7;
+      --card:   #fff;
+      --border: #f0f0f0;
+      --text:   #111;
+      --sub:    #888;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Layout ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: #111; padding: 28px 0;
+      display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh;
+    }
+
+    .sidebar-logo {
+      font-size: 20px; font-weight: 900;
+      color: #fff; padding: 0 24px 28px;
+      border-bottom: 1px solid #222;
+    }
+    .sidebar-logo span { color: var(--red); }
+
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 24px;
+      font-size: 14px; font-weight: 600; color: #888;
+      cursor: pointer; transition: color .15s, background .15s;
+      text-decoration: none;
+    }
+    .nav-item:hover { color: #fff; background: rgba(255,255,255,.05); }
+    .nav-item.active { color: #fff; background: rgba(115,2,1,.3); border-right: 3px solid var(--red); }
+
+    .main { flex: 1; padding: 32px; overflow-y: auto; }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+    .page-title  { font-size: 24px; font-weight: 900; }
+    .page-sub    { font-size: 14px; color: var(--sub); margin-top: 2px; }
+
+    .refresh-btn {
+      padding: 10px 20px;
+      background: var(--red); color: #fff; border: none;
+      border-radius: 10px; font-size: 14px; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+      transition: background .15s;
+    }
+    .refresh-btn:hover { background: var(--red2); }
+
+    /* ── Stats grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 22px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+
+    .stat-label {
+      font-size: 12px; font-weight: 700; color: var(--sub);
+      text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 26px; font-weight: 900; letter-spacing: -1px;
+    }
+    .stat-value.green  { color: var(--green); }
+    .stat-value.red    { color: var(--red); }
+    .stat-value.yellow { color: var(--yellow); }
+
+    .stat-note { font-size: 12px; color: var(--sub); margin-top: 4px; }
+
+    /* ── Cards ── */
+    .section-title {
+      font-size: 16px; font-weight: 800;
+      margin-bottom: 14px;
+    }
+
+    .data-card {
+      background: var(--card);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      margin-bottom: 24px;
+    }
+
+    .data-card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .data-card-title { font-size: 15px; font-weight: 800; }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+    }
+    .badge.pending    { background: #fef9c3; color: #854d0e; }
+    .badge.processing { background: #e0f2fe; color: #0369a1; }
+    .badge.success    { background: #dcfce7; color: #166534; }
+    .badge.failed     { background: #ffe4e6; color: #9f1239; }
+    .badge.held       { background: #f0f4ff; color: #3730a3; }
+    .badge.released   { background: #dcfce7; color: #166534; }
+    .badge.refunded   { background: #f5f5f5; color: #555; }
+    .badge.disputed   { background: #fef3c7; color: #92400e; }
+
+    /* ── Table ── */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      padding: 11px 20px;
+      font-size: 11px; font-weight: 700; color: var(--sub);
+      text-transform: uppercase; letter-spacing: .5px;
+      text-align: left;
+      background: #fafafa;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table td {
+      padding: 13px 20px;
+      font-size: 13.5px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: #fafafa; }
+
+    .amount-col { font-weight: 800; }
+    .amount-col.credit { color: var(--green); }
+    .amount-col.debit  { color: var(--red); }
+
+    .ref-code {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--sub);
+    }
+
+    /* ── Loading shimmer ── */
+    .shimmer-table-row td { padding: 10px 20px; }
+    .shimmer-cell {
+      height: 16px; border-radius: 6px;
+      background: linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* ── Two-column layout for bottom tables ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 1100px) { .two-col { grid-template-columns: 1fr; } }
+    @media (max-width: 768px)  { .sidebar { display: none; } .two-col { grid-template-columns: 1fr; } }
+
+    .empty-row td {
+      text-align: center; padding: 32px;
+      color: var(--sub); font-size: 14px; font-weight: 600;
+    }
+
+    /* ── Filter chips ── */
+    .filter-row {
+      display: flex; gap: 8px; padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      padding: 5px 14px;
+      border-radius: 999px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      font-size: 12px; font-weight: 600; color: var(--sub);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .filter-chip:hover  { border-color: #f5c0c0; color: var(--red); }
+    .filter-chip.active { border-color: var(--red); background: #fff5f5; color: var(--red); }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">Handy<span>Hub</span></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="#">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="#888" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#888" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#888" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#888" stroke-width="1.8"/></svg>
+        Overview
+      </a>
+      <a class="nav-item active" href="#">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#888" stroke-width="1.8"/><path d="M2 10h20" stroke="#888" stroke-width="1.8"/></svg>
+        Finance
+      </a>
+      <a class="nav-item" href="#">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#888" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="#888" stroke-width="1.8"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="#888" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Users
+      </a>
+      <a class="nav-item" href="#">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" stroke="#888" stroke-width="1.8" stroke-linecap="round"/><path d="M14 2v6h6" stroke="#888" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Bookings
+      </a>
+      <a class="nav-item" href="#">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="#888" stroke-width="1.8" stroke-linecap="round"/><path d="M12 9v4M12 17h.01" stroke="#888" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Disputes
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Financial Dashboard</h1>
+        <p class="page-sub" id="last-updated">Loading platform data…</p>
+      </div>
+      <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
+    </div>
+
+    <!-- ── Platform Stats ─────────────────────────────────────────────────── -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <p class="stat-label">Total Commissions</p>
+        <p class="stat-value green" id="stat-commissions">GHC —</p>
+        <p class="stat-note">Platform revenue (15%)</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Artisan Payouts</p>
+        <p class="stat-value" id="stat-payouts">GHC —</p>
+        <p class="stat-note">Released to artisans</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Active Escrow</p>
+        <p class="stat-value yellow" id="stat-escrow-count">—</p>
+        <p class="stat-note" id="stat-escrow-value">—</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Pending Payouts</p>
+        <p class="stat-value red" id="stat-pending-payouts">—</p>
+        <p class="stat-note">Awaiting transfer</p>
+      </div>
+    </div>
+
+    <!-- ── Recent Payouts ─────────────────────────────────────────────────── -->
+    <div class="data-card">
+      <div class="data-card-header">
+        <p class="data-card-title">Recent Payouts</p>
+      </div>
+      <div class="filter-row" id="payout-filter-row">
+        <button class="filter-chip active" data-filter="all">All</button>
+        <button class="filter-chip" data-filter="pending">Pending</button>
+        <button class="filter-chip" data-filter="processing">Processing</button>
+        <button class="filter-chip" data-filter="success">Success</button>
+        <button class="filter-chip" data-filter="failed">Failed</button>
+        <button class="filter-chip" data-filter="reversed">Reversed</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Ref</th>
+            <th>User</th>
+            <th>Type</th>
+            <th>Network</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="payouts-body">
+          <tr class="shimmer-table-row"><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td></tr>
+          <tr class="shimmer-table-row"><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Bottom two-column ──────────────────────────────────────────────── -->
+    <div class="two-col">
+
+      <!-- Escrow Overview -->
+      <div class="data-card">
+        <div class="data-card-header">
+          <p class="data-card-title">Active Escrow</p>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Booking</th><th>Amount</th><th>Status</th><th>Auto-Release</th></tr>
+          </thead>
+          <tbody id="escrow-body">
+            <tr class="shimmer-table-row"><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Recent Commissions -->
+      <div class="data-card">
+        <div class="data-card-header">
+          <p class="data-card-title">Recent Commissions</p>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Booking</th><th>Total</th><th>Commission</th><th>Artisan Gets</th><th>Date</th></tr>
+          </thead>
+          <tbody id="commissions-body">
+            <tr class="shimmer-table-row"><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td><td><div class="shimmer-cell"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { db }                      from './js/firebase-admin.js';
+  import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
+  import { showToast, fmtGHS, setDateHeader } from './js/ui-utils.js';
+  import {
+    collection, doc, getDoc, getDocs, onSnapshot,
+    query, where, orderBy, limit,
+  } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+  const fmtGHC  = (n) => fmtGHS(n);
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const fmtRef  = (r)   => r ? `<span class="ref-code">${r.slice(0, 16)}</span>` : '—';
+
+  const PROVIDER_NAMES = { mtn: 'MTN MoMo', telecel: 'Telecel', airteltigo: 'AirtelTigo' };
+
+  // ── DOM ──────────────────────────────────────────────────────────────────────
+  const statCommissions  = document.getElementById('stat-commissions');
+  const statPayouts      = document.getElementById('stat-payouts');
+  const statEscrowCount  = document.getElementById('stat-escrow-count');
+  const statEscrowValue  = document.getElementById('stat-escrow-value');
+  const statPending      = document.getElementById('stat-pending-payouts');
+  const lastUpdated      = document.getElementById('last-updated');
+  const payoutsBody      = document.getElementById('payouts-body');
+  const escrowBody       = document.getElementById('escrow-body');
+  const commissionsBody  = document.getElementById('commissions-body');
+
+  let allPayouts     = [];
+  let payoutFilter   = 'all';
+
+  // ── Platform earnings ────────────────────────────────────────────────────────
+  function renderPlatform(snap) {
+    if (!snap.exists()) return;
+    const d = snap.data();
+    statCommissions.textContent = fmtGHC(d.totalCommissions    || 0);
+    statPayouts.textContent     = fmtGHC(d.totalArtisanPayouts || 0);
+    const updatedAt = d.updatedAt?.toDate ? d.updatedAt.toDate() : (d.updatedAt ? new Date(d.updatedAt) : null);
+    lastUpdated.textContent     = `Last updated: ${updatedAt ? fmtDate(updatedAt.toISOString()) : '—'}`;
+  }
+
+  // ── Payouts table ────────────────────────────────────────────────────────────
+  function renderPayouts() {
+    const list = payoutFilter === 'all'
+      ? allPayouts
+      : allPayouts.filter(p => p.data.status === payoutFilter);
+
+    if (!list.length) {
+      payoutsBody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:#aaa;font-size:13px">No payouts found</td></tr>`;
+      return;
+    }
+
+    payoutsBody.innerHTML = list.map(p => {
+      const d = p.data;
+      return `<tr>
+        <td>${fmtRef(d.ref)}</td>
+        <td><span style="font-size:12px;color:#888">${d.userId?.slice(0,8)}…</span><br><span style="font-weight:700;font-size:12px">${d.userType || '—'}</span></td>
+        <td><span style="font-weight:700">${d.userType === 'artisan' ? 'Artisan' : 'Customer'}</span></td>
+        <td>${PROVIDER_NAMES[d.provider] || d.provider || '—'}</td>
+        <td class="amount-col debit">${fmtGHC(d.amount)}</td>
+        <td><span class="badge ${d.status || 'pending'}">${d.status || 'pending'}</span></td>
+        <td style="color:#888;font-size:12px">${d.createdAt ? fmtDate(d.createdAt) : '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Filter chips
+  document.getElementById('payout-filter-row').addEventListener('click', e => {
+    const chip = e.target.closest('.filter-chip');
+    if (!chip) return;
+    payoutFilter = chip.dataset.filter;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c === chip));
+    renderPayouts();
+  });
+
+  // ── Escrow table ─────────────────────────────────────────────────────────────
+  function renderEscrow(records) {
+    const active = records.filter(r => ['held','disputed'].includes(r.data.status));
+    statEscrowCount.textContent = active.length;
+
+    const total = active.reduce((s, r) => s + (Number(r.data.amount) || 0), 0);
+    statEscrowValue.textContent = `GHC ${total.toFixed(2)} locked`;
+
+    if (!active.length) {
+      escrowBody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:#aaa;font-size:13px">No active escrow</td></tr>`;
+      return;
+    }
+
+    escrowBody.innerHTML = active.map(r => {
+      const d = r.data;
+      const autoDate = d.autoReleaseAt ? fmtDate(d.autoReleaseAt) : '—';
+      return `<tr>
+        <td>${fmtRef(d.bookingId)}</td>
+        <td class="amount-col">${fmtGHC(d.amount)}</td>
+        <td><span class="badge ${d.status}">${d.status}</span></td>
+        <td style="font-size:12px;color:#888">${autoDate}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Commissions table ─────────────────────────────────────────────────────────
+  function renderCommissions(records) {
+    if (!records.length) {
+      commissionsBody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#aaa;font-size:13px">No commissions yet</td></tr>`;
+      return;
+    }
+
+    commissionsBody.innerHTML = records.map(r => {
+      const d = r.data;
+      // Derive total from commission + artisan share (not stored directly here — use escrow amount)
+      const total = d.amount / (d.rate || 0.15);
+      const artShare = total - d.amount;
+      return `<tr>
+        <td>${fmtRef(d.bookingId)}</td>
+        <td class="amount-col">${fmtGHC(total)}</td>
+        <td class="amount-col credit">+${fmtGHC(d.amount)}</td>
+        <td>${fmtGHC(artShare)}</td>
+        <td style="color:#888;font-size:12px">${d.createdAt ? fmtDate(d.createdAt) : '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Bootstrap ────────────────────────────────────────────────────────────────
+  setDateHeader();
+  window.signOut = signOutAdmin;
+
+  initAdminPage(() => {
+    // Platform earnings (real-time)
+    onSnapshot(doc(db, 'platform', 'earnings'), renderPlatform, console.error);
+
+    // All payouts (live)
+    getDocs(query(collection(db, 'payouts'), orderBy('createdAt','desc'), limit(100)))
+      .then(snap => {
+        allPayouts = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+        const pending = allPayouts.filter(r => ['pending','processing'].includes(r.data.status));
+        statPending.textContent = pending.length;
+        renderPayouts();
+      })
+      .catch(err => showToast('Failed to load payouts: ' + err.message, 'error'));
+
+    // Active escrow
+    getDocs(query(collection(db, 'escrow'), orderBy('createdAt','desc'), limit(100)))
+      .then(snap => renderEscrow(snap.docs.map(d => ({ id: d.id, data: d.data() }))))
+      .catch(err => showToast('Failed to load escrow: ' + err.message, 'error'));
+
+    // Commissions
+    getDocs(query(collection(db, 'commissions'), orderBy('createdAt','desc'), limit(30)))
+      .then(snap => renderCommissions(snap.docs.map(d => ({ id: d.id, data: d.data() }))))
+      .catch(err => showToast('Failed to load commissions: ' + err.message, 'error'));
+  });
+
+  // Refresh button
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    window.location.reload();
+  });
+</script>
+
+</body>
+</html>

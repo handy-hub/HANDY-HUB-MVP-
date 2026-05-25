@@ -107,10 +107,14 @@ export function createChatRepository({
 
         /**
          * Send a message into a chat thread.
-         * Automatically updates the parent chat's lastMessage preview.
-         * Returns the new message ID.
+         * Automatically updates the parent chat's lastMessage preview and
+         * creates a notification for the recipient.
+         *
+         * @param {string} chatId
+         * @param {{ senderId: string, text: string, senderName?: string }} options
+         * @returns {Promise<string>} new message ID
          */
-        async sendMessage(chatId, { senderId, text }) {
+        async sendMessage(chatId, { senderId, text, senderName }) {
             if (!chatId)   throw new Error("sendMessage: chatId is required.");
             if (!senderId) throw new Error("sendMessage: senderId is required.");
 
@@ -131,6 +135,11 @@ export function createChatRepository({
                 lastSenderId:  senderId,
                 lastMessageAt: payload.createdAt
             });
+
+            // Notify the other participant (fire-and-forget)
+            _notifyMessageRecipient(
+                databaseService, chatId, senderId, senderName, payload.text
+            ).catch(() => {});
 
             return messageId;
         },
@@ -177,4 +186,47 @@ export function createChatRepository({
             );
         }
     };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Internal helper — resolve receiverId from the chat doc, check their
+// Messages preference, then write a customer_notifications document.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function _notifyMessageRecipient(db, chatId, senderId, senderName, messageText) {
+    try {
+        // Fetch the chat doc to get the participants list
+        const chat = await db.getDocument(CHATS_COLLECTION, chatId);
+        if (!chat || !chat.exists) return;
+
+        const participants = chat.data?.participants || [];
+        const receiverId   = participants.find(uid => uid !== senderId);
+        if (!receiverId) return;
+
+        // Check receiver's notification preferences (Messages toggle)
+        const userSnap = await db.getDocument('customers', receiverId);
+        const prefs    = userSnap?.data?.notificationPreferences || {};
+        if (prefs.messages === false) return; // user has disabled message notifications
+
+        // Truncate message preview to 80 chars
+        const preview = messageText.length > 80
+            ? messageText.slice(0, 77) + '…'
+            : messageText;
+
+        const fromName = senderName || 'Someone';
+
+        await db.addDocument('customer_notifications', {
+            receiverId,
+            senderId,
+            type:      'Messages',
+            title:     `💬 New message from ${fromName}`,
+            message:   preview || '(attachment)',
+            isRead:    false,
+            actionUrl: `messages.html?chatId=${chatId}`,
+            metadata:  { chatId, senderId },
+            createdAt: new Date(),
+        });
+    } catch (err) {
+        console.warn('[chatRepository] Could not send message notification:', err.message);
+    }
 }

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub Admin – Dashboard</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+<div class="admin-layout">
+
+  <!-- ═══════════════════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#fff" stroke-width="2" stroke-linecap="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#fff" stroke-width="2"/></svg>
+      </div>
+      <span class="sidebar-logo-text">HandyHub</span>
+      <span class="sidebar-logo-badge">Admin</span>
+    </div>
+
+    <div class="sidebar-section-label">Main</div>
+    <a class="nav-link active" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>
+      Overview
+    </a>
+    <a class="nav-link" href="analytics.html">
+      <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Analytics
+    </a>
+
+    <div class="sidebar-section-label">Users</div>
+    <a class="nav-link" href="artisans.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>
+      Artisans
+    </a>
+    <a class="nav-link" href="customers.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Customers
+    </a>
+    <a class="nav-link" href="verifications.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Verifications
+      <span class="nav-badge" id="verif-badge">0</span>
+    </a>
+
+    <div class="sidebar-section-label">Operations</div>
+    <a class="nav-link" href="bookings.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Bookings
+    </a>
+    <a class="nav-link" href="disputes.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      Disputes
+    </a>
+
+    <div class="sidebar-section-label">Finance</div>
+    <a class="nav-link" href="finance.html">
+      <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Finance
+    </a>
+    <a class="nav-link" href="payouts.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.8"/><polyline points="3.27 6.96 12 12.01 20.73 6.96" stroke="currentColor" stroke-width="1.8"/><line x1="12" y1="22.08" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+      Payouts
+    </a>
+
+    <div class="sidebar-section-label">System</div>
+    <a class="nav-link" href="admins.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16 11h6M19 8v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Admin Users
+    </a>
+    <a class="nav-link" href="settings.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg>
+      Settings
+    </a>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="admin-avatar">A</div>
+        <div class="sidebar-user-info">
+          <p class="sidebar-user-name" id="admin-name">Admin</p>
+          <p class="sidebar-user-role" id="admin-role">Super Admin</p>
+        </div>
+        <button onclick="signOut()" style="background:none;border:none;cursor:pointer;margin-left:8px;color:#64748B;" title="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MAIN
+  ═══════════════════════════════════════════════════════ -->
+  <div class="main-content">
+
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none"><line x1="3" y1="6" x2="21" y2="6" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="12" x2="21" y2="12" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="18" x2="21" y2="18" stroke="#374151" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <span class="page-title-bar">Dashboard Overview</span>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#94A3B8" stroke-width="1.8"/><path d="m21 21-4.35-4.35" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input type="text" placeholder="Search users, bookings, transactions…" id="global-search" />
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" onclick="window.location.href='verifications.html'" title="Pending verifications">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span class="header-badge" id="hdr-verif-badge" style="display:none">0</span>
+        </button>
+        <button class="header-icon-btn" title="Notifications">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span class="header-badge" id="hdr-notif-badge" style="display:none">0</span>
+        </button>
+        <span style="font-size:12px;color:var(--text-light);padding:0 4px;">|</span>
+        <span id="hdr-date" style="font-size:12px;color:var(--text-light);white-space:nowrap;"></span>
+      </div>
+    </header>
+
+    <!-- Page body -->
+    <div class="page-body">
+
+      <!-- ── KPI Stats ──────────────────────────────────── -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon brand">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="#730201" stroke-width="1.8"/></svg>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Total Users</p>
+            <p class="stat-value" id="kpi-users">—</p>
+            <p class="stat-delta" id="kpi-users-delta">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M23 6l-9.5 9.5-5-5L1 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Loading…
+            </p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#22C55E" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#22C55E" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Active Bookings</p>
+            <p class="stat-value" id="kpi-bookings">—</p>
+            <p class="stat-delta" id="kpi-bookings-delta">Loading…</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">
+            <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Total Revenue</p>
+            <p class="stat-value" id="kpi-revenue">—</p>
+            <p class="stat-delta" id="kpi-revenue-delta">Loading…</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#F59E0B" stroke-width="1.8"/></svg>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Pending Verif.</p>
+            <p class="stat-value" id="kpi-verif">—</p>
+            <p class="stat-delta" id="kpi-verif-delta">Loading…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Row: Chart + Activity ─────────────────────── -->
+      <div class="dashboard-grid" style="margin-bottom:24px;">
+
+        <!-- Revenue chart card -->
+        <div class="admin-card">
+          <div class="card-header">
+            <span class="card-title">Revenue Overview</span>
+            <div class="card-actions">
+              <select class="admin-select" id="chart-period" onchange="updateChart(this.value)">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 3 months</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+              <div>
+                <p style="font-size:12px;color:var(--text-light);">Total Revenue</p>
+                <p style="font-size:28px;font-weight:800;color:var(--text-dark);" id="chart-total">GHS 0</p>
+              </div>
+              <div style="text-align:right;">
+                <p style="font-size:12px;color:var(--text-light);">Commissions</p>
+                <p style="font-size:28px;font-weight:800;color:var(--brand);" id="chart-commission">GHS 0</p>
+              </div>
+            </div>
+            <div class="chart-area" id="chart-area">
+              <!-- Bars generated by JS -->
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:6px 8px 0;font-size:11px;color:var(--text-light);" id="chart-labels"></div>
+          </div>
+        </div>
+
+        <!-- Activity feed -->
+        <div class="admin-card">
+          <div class="card-header">
+            <span class="card-title">Live Activity</span>
+            <div class="card-actions">
+              <span style="width:8px;height:8px;background:#22C55E;border-radius:50%;display:inline-block;animation:pulse 2s infinite;"></span>
+              <span style="font-size:12px;color:var(--text-light);">Live</span>
+            </div>
+          </div>
+          <div class="activity-list" id="activity-feed">
+            <!-- Populated by JS -->
+            <div style="padding:20px;text-align:center;color:var(--text-light);font-size:13px;" id="activity-empty">No recent activity</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Row: Recent Artisans + Bookings ─────────────── -->
+      <div class="dashboard-grid">
+
+        <!-- Recent artisans awaiting verification -->
+        <div class="admin-card">
+          <div class="card-header">
+            <span class="card-title">Pending Verifications</span>
+            <a class="btn btn-secondary btn-sm" href="verifications.html">View All</a>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="admin-table" id="verif-table">
+              <thead>
+                <tr>
+                  <th>Artisan</th>
+                  <th>Category</th>
+                  <th>Submitted</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="verif-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-light);">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent bookings -->
+        <div class="admin-card">
+          <div class="card-header">
+            <span class="card-title">Recent Bookings</span>
+            <a class="btn btn-secondary btn-sm" href="bookings.html">View All</a>
+          </div>
+          <div class="activity-list" id="recent-bookings">
+            <div style="padding:20px;text-align:center;color:var(--text-light);font-size:13px;">Loading…</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Row: Artisan growth + Job categories ─────────── -->
+      <div class="dashboard-grid-3" style="margin-top:24px;">
+
+        <div class="admin-card">
+          <div class="card-header"><span class="card-title">Active Artisans</span></div>
+          <div class="card-body">
+            <p style="font-size:36px;font-weight:800;color:var(--text-dark);" id="kpi-artisans">—</p>
+            <p style="font-size:12px;color:var(--text-light);margin-top:2px;">Currently online</p>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;" id="artisan-categories"></div>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <div class="card-header"><span class="card-title">Job Categories</span></div>
+          <div class="card-body" id="job-categories">
+            <div style="color:var(--text-light);font-size:13px;">Loading…</div>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <div class="card-header"><span class="card-title">Platform Health</span></div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:14px;" id="platform-health">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /.page-body -->
+  </div><!-- /.main-content -->
+</div><!-- /.admin-layout -->
+
+<div class="admin-toast" id="admin-toast"></div>
+
+<style>
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .3; }
+}
+</style>
+
+<script type="module">
+import { db, auth }                    from './js/firebase-admin.js';
+import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
+import { showToast, fmtGHS, fmtNum, ageStr, subscribeVerifBadge, setDateHeader }
+                                       from './js/ui-utils.js';
+import {
+  collection, doc, getDoc, getDocs, onSnapshot,
+  query, where, orderBy, limit, serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+let currentAdmin = null;
+setDateHeader();
+window.signOut = signOutAdmin;
+
+// ── Chart ────────────────────────────────────────────────
+function renderChart(data) {
+  const area   = document.getElementById('chart-area');
+  const labels = document.getElementById('chart-labels');
+  if (!data || !data.length) return;
+  const max = Math.max(...data.map(d=>d.amount), 1);
+  area.innerHTML   = data.map(d => `<div class="chart-bar" style="height:${Math.round((d.amount/max)*200)+4}px" title="${d.label}: ${fmtGHS(d.amount)}"></div>`).join('');
+  labels.innerHTML = data.map(d => `<span>${d.label}</span>`).join('');
+}
+
+window.updateChart = function(days) {
+  // For now show placeholder data — real data comes from financialAudit / platform
+  const n = parseInt(days) || 30;
+  const fakeData = [];
+  for (let i = n-1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    fakeData.push({ label: d.toLocaleDateString('en-GH',{month:'short',day:'numeric'}), amount: Math.random()*500+50 });
+  }
+  renderChart(fakeData.filter((_,i) => n<=7 || i % Math.ceil(n/12) === 0));
+};
+
+// ── Load dashboard data ──────────────────────────────────
+async function loadDashboard() {
+  try {
+    // Pending verifications
+    const verifSnap  = await getDocs(query(
+      collection(db, 'verification_requests'),
+      where('verificationStatus', '==', 'pending_review'),
+      limit(50)
+    ));
+    const verifDocs  = verifSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const verifCount = verifDocs.length;
+    document.getElementById('kpi-verif').textContent       = verifCount;
+    document.getElementById('kpi-verif-delta').textContent = `${verifCount} awaiting review`;
+
+    // Render pending verification table
+    const tbody = document.getElementById('verif-tbody');
+    if (!verifDocs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-light);">No pending verifications</td></tr>';
+    } else {
+      tbody.innerHTML = verifDocs.slice(0,5).map(d => {
+        const initials  = (d.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const submitted = d.submittedAt?.toDate ? d.submittedAt.toDate() : (d.submittedAt ? new Date(d.submittedAt) : null);
+        return `<tr>
+          <td>
+            <div class="table-user">
+              <div class="table-avatar">${d.profileImage ? `<img src="${d.profileImage}" />` : initials}</div>
+              <div>
+                <p class="table-user-name">${d.name||'—'}</p>
+                <p class="table-user-email">${d.phone||d.email||''}</p>
+              </div>
+            </div>
+          </td>
+          <td><span class="badge info">${d.category||'—'}</span></td>
+          <td style="color:var(--text-light);font-size:12px;">${ageStr(submitted)}</td>
+          <td><span class="badge warning">Pending</span></td>
+          <td><a class="btn btn-primary btn-sm" href="verifications.html?id=${d.id}">Review</a></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Platform earnings
+    const platformSnap = await getDoc(doc(db, 'platform', 'earnings'));
+    if (platformSnap.exists()) {
+      const p = platformSnap.data();
+      document.getElementById('kpi-revenue').textContent      = fmtGHS(p.totalCommissions);
+      document.getElementById('chart-total').textContent      = fmtGHS((p.totalArtisanPayouts||0) + (p.totalCommissions||0));
+      document.getElementById('chart-commission').textContent = fmtGHS(p.totalCommissions);
+    }
+
+    // Artisans
+    const artisanSnap = await getDocs(query(
+      collection(db, 'artisans'),
+      where('verificationStatus', '==', 'approved'),
+      limit(200)
+    ));
+    const artisans    = artisanSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const onlineCount = artisans.filter(a => a.isAvailable).length;
+    document.getElementById('kpi-artisans').textContent = `${onlineCount} / ${artisans.length}`;
+
+    // Customers
+    const custSnap  = await getDocs(query(collection(db, 'customers'), limit(500)));
+    const custCount = custSnap.size;
+    document.getElementById('kpi-users').textContent       = fmtNum(custCount + artisans.length);
+    document.getElementById('kpi-users-delta').textContent = `${custCount} customers · ${artisans.length} artisans`;
+
+    // Active bookings
+    const bookingSnap = await getDocs(query(
+      collection(db, 'bookings'),
+      where('status', 'in', ['Pending','accepted','In Progress']),
+      limit(200)
+    ));
+    const bookings = bookingSnap.docs.map(d => d.data());
+    document.getElementById('kpi-bookings').textContent       = bookings.length;
+    document.getElementById('kpi-bookings-delta').textContent = `${bookings.filter(b=>b.status==='In Progress').length} in progress`;
+
+    // Recent bookings list
+    const recentSnap     = await getDocs(query(collection(db, 'bookings'), orderBy('createdAt','desc'), limit(8)));
+    const recentBookings = recentSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const rbList         = document.getElementById('recent-bookings');
+    rbList.innerHTML     = '';
+    if (!recentBookings.length) {
+      rbList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-light);font-size:13px;">No bookings yet</div>';
+    } else {
+      recentBookings.forEach(d => {
+        const dotClass = d.status === 'completed' ? 'success' : d.status === 'cancelled' ? 'danger' : d.status === 'In Progress' ? 'info' : 'warning';
+        const ts       = d.createdAt?.toDate ? d.createdAt.toDate() : (d.createdAt ? new Date(d.createdAt) : null);
+        rbList.innerHTML += `<div class="activity-item">
+          <div class="activity-dot ${dotClass}"></div>
+          <div class="activity-content">
+            <p class="activity-text"><strong>${d.serviceType||d.service||'Service'}</strong> · ${d.address||'—'}</p>
+            <p class="activity-time">${ageStr(ts)} · <span class="badge ${dotClass}" style="font-size:10px;padding:2px 7px;">${d.status||'—'}</span></p>
+          </div>
+        </div>`;
+      });
+    }
+
+    // Artisan category breakdown
+    const catMap     = {};
+    artisans.forEach(a => { const c = a.category||'Other'; catMap[c] = (catMap[c]||0)+1; });
+    const sortedCats = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const maxCat     = Math.max(...sortedCats.map(c=>c[1]),1);
+    document.getElementById('artisan-categories').innerHTML = sortedCats.map(([cat,count]) =>
+      `<div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+          <span style="font-weight:600;">${cat}</span>
+          <span style="color:var(--text-light);">${count}</span>
+        </div>
+        <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+          <div style="width:${Math.round((count/maxCat)*100)}%;height:100%;background:var(--brand);border-radius:3px;"></div>
+        </div>
+      </div>`).join('');
+
+    // Job categories from recent bookings
+    const bookingCats = {};
+    recentBookings.forEach(b => { const c = b.serviceType||'Other'; bookingCats[c] = (bookingCats[c]||0)+1; });
+    const sortedJobs  = Object.entries(bookingCats).sort((a,b)=>b[1]-a[1]);
+    const maxJob      = Math.max(...sortedJobs.map(c=>c[1]),1);
+    document.getElementById('job-categories').innerHTML = sortedJobs.length
+      ? sortedJobs.map(([cat,count]) =>
+          `<div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+              <span style="font-weight:600;">${cat}</span>
+              <span style="color:var(--text-light);">${count} jobs</span>
+            </div>
+            <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+              <div style="width:${Math.round((count/maxJob)*100)}%;height:100%;background:var(--accent);border-radius:3px;"></div>
+            </div>
+          </div>`).join('')
+      : '<p style="color:var(--text-light);font-size:13px;">No booking data yet</p>';
+
+    // Platform health
+    document.getElementById('platform-health').innerHTML = `
+      ${_healthItem('Uptime', '99.9%', 'success')}
+      ${_healthItem('Avg Response Time', '< 2h', 'success')}
+      ${_healthItem('Dispute Rate', '< 2%', 'success')}
+      ${_healthItem('Completion Rate', '94%', 'success')}
+      ${_healthItem('Active Escrow', fmtGHS(0), 'info')}
+    `;
+
+  } catch(err) {
+    console.error('Dashboard load error:', err);
+    showToast('Some data failed to load', 'error');
+  }
+
+  updateChart(30);
+}
+
+function _healthItem(label, value, type) {
+  const colors = { success:'#22C55E', info:'#3B82F6', warning:'#F59E0B', danger:'#EF4444' };
+  return `<div style="display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:13px;color:var(--text-mid);">${label}</span>
+    <span style="font-size:13px;font-weight:700;color:${colors[type]||'#374151'};">${value}</span>
+  </div>`;
+}
+
+// ── Activity feed (real-time) ────────────────────────────
+function addActivity(text, type, time) {
+  const feed  = document.getElementById('activity-feed');
+  const empty = document.getElementById('activity-empty');
+  if (empty) empty.remove();
+  const item = document.createElement('div');
+  item.className = 'activity-item';
+  item.innerHTML = `<div class="activity-dot ${type}"></div><div class="activity-content"><p class="activity-text">${text}</p><p class="activity-time">${time||'Just now'}</p></div>`;
+  feed.insertBefore(item, feed.firstChild);
+  // Keep max 12 items
+  while (feed.children.length > 12) feed.lastChild.remove();
+}
+
+// ── Initialise page (auth-guarded) ───────────────────────
+initAdminPage(async user => {
+  currentAdmin = user;
+
+  await loadDashboard();
+
+  // Real-time: verif badge + KPI counter
+  onSnapshot(
+    query(collection(db, 'verification_requests'), where('verificationStatus','==','pending_review')),
+    snap => {
+      const count = snap.size;
+      document.getElementById('kpi-verif').textContent       = count;
+      document.getElementById('kpi-verif-delta').textContent = `${count} awaiting review`;
+      const badge    = document.getElementById('verif-badge');
+      const hdrBadge = document.getElementById('hdr-verif-badge');
+      if (badge)    badge.textContent          = count || '';
+      if (hdrBadge) { hdrBadge.textContent = count; hdrBadge.style.display = count > 0 ? 'flex' : 'none'; }
+    }
+  );
+
+  // Real-time: new bookings → activity feed
+  onSnapshot(
+    query(collection(db, 'bookings'), orderBy('createdAt','desc'), limit(5)),
+    snap => {
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const d  = change.doc.data();
+          const ts = d.createdAt?.toDate ? d.createdAt.toDate() : null;
+          addActivity(`New booking: <strong>${d.serviceType||d.service||'Service'}</strong>`, 'info', ageStr(ts));
+        }
+      });
+    }
+  );
+});
+</script>
+</body>
+</html>

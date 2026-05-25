@@ -288,3 +288,4 @@ document.addEventListener("DOMContentLoaded", init);
 window.addEventListener("pagehide", () => {
     if (unsubscribeFn) unsubscribeFn();
 });
+

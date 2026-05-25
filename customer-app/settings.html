@@ -435,6 +435,10 @@
       if (key === 'theme') {
         if (typeof applyTheme === 'function') applyTheme(value);
       }
+      // Sync to Firestore in realtime (settingsPage.js wires this up)
+      if (typeof window.__saveAppPref === 'function') {
+        window.__saveAppPref(key, value);
+      }
       applyPrefsToUI();
       setTimeout(closeAll, 180);
     }
@@ -443,6 +447,10 @@
       var val = document.getElementById('address-input').value.trim();
       PREFS.address = val;
       localStorage.setItem('pref_address', val);
+      // Persist address to Firestore via settingsPage.js helper
+      if (typeof window.__saveAppPref === 'function') {
+        window.__saveAppPref('address', val);
+      }
       applyPrefsToUI();
       closeAll();
     }
@@ -549,7 +557,7 @@
     })();
   </script>
 
-  <script type="module" src="js/Pages/settingsPage.js"></script>
+  <script type="module" src="js/pages/settingsPage.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>

@@ -97,9 +97,13 @@ export function createCustomerRepository({
                     phone:                   (data.phone || "").trim(),
                     location:                (data.location || "Not specified").trim(),
                     profileImage:            data.profileImage ?? null,
-                    walletBalance:           typeof data.walletBalance === "number" ? data.walletBalance : 0,
-                    bookings:                typeof data.bookings === "number" ? data.bookings : 0,
-                    spent:                   typeof data.spent    === "number" ? data.spent    : 0,
+                    // Financial fields are always initialised to 0.
+                    // Cloud Functions are the sole authority for all subsequent mutations.
+                    // Never trust a caller-supplied walletBalance on creation.
+                    walletBalance:           0,
+                    escrowBalance:           0,
+                    bookings:                0,
+                    spent:                   0,
                     recentSearches:          Array.isArray(data.recentSearches) ? data.recentSearches : [],
                     recentSearchesUpdatedAt: data.recentSearchesUpdatedAt ?? null,
                     createdAt:               now(),
@@ -115,7 +119,9 @@ export function createCustomerRepository({
                 if (data.location     !== undefined) payload.location     = data.location;
                 if (data.bio          !== undefined) payload.bio          = data.bio;
                 if (data.profileImage !== undefined) payload.profileImage = data.profileImage;
-                if (data.walletBalance !== undefined) payload.walletBalance = data.walletBalance;
+                // walletBalance intentionally excluded — Cloud Functions own all balance mutations.
+                // escrowBalance intentionally excluded — Cloud Functions own all balance mutations.
+                // spent intentionally excluded — Cloud Functions update this on booking completion.
                 if (data.recentSearches          !== undefined) payload.recentSearches          = data.recentSearches;
                 if (data.recentSearchesUpdatedAt !== undefined) payload.recentSearchesUpdatedAt = data.recentSearchesUpdatedAt;
                 if (data.notificationPreferences !== undefined) payload.notificationPreferences = data.notificationPreferences;
@@ -136,24 +142,18 @@ export function createCustomerRepository({
         },
 
         /**
-         * Credit or debit the wallet balance.
-         * Pass a positive amount to credit, negative to debit.
-         * Throws if the resulting balance would go below zero.
+         * ⛔  REMOVED — adjustWalletBalance() was removed.
+         *
+         * Wallet balance mutations are EXCLUSIVELY a Cloud Function responsibility.
+         * The Firestore security rules block clients from writing walletBalance.
+         * Any attempt to call this from the browser would silently fail against rules.
+         *
+         * Server-side wallet credits:  functions/financial/wallets.js  creditWalletFromCharge()
+         * Server-side debits:          functions/financial/transfers.js executeCustomerWithdrawal()
+         * Server-side escrow:          functions/financial/escrow.js    holdFundsForBooking()
+         *
+         * This comment intentionally replaces the method body to prevent future
+         * developers from re-introducing frontend balance mutations.
          */
-        async adjustWalletBalance(customerId, amount) {
-            const record = await this.getById(customerId);
-            if (!record?.exists) throw new Error("Customer not found.");
-
-            const current = record.data.walletBalance ?? 0;
-            const next    = current + amount;
-            if (next < 0) throw new Error("Insufficient wallet balance.");
-
-            await databaseService.updateDocument(collectionName, customerId, {
-                walletBalance: next,
-                updatedAt:     now()
-            });
-
-            return next;
-        }
     };
 }

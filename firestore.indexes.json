@@ -21,6 +21,47 @@
       ]
     },
 
+    // ── verification_requests ──────────────────────────────────────
+    // admin queue: verificationStatus + submittedAt DESC
+    {
+      "collectionGroup": "verification_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "verificationStatus", "order": "ASCENDING" },
+        { "fieldPath": "submittedAt",         "order": "DESCENDING" }
+      ]
+    },
+    // admin queue (all): submittedAt DESC (full history)
+    {
+      "collectionGroup": "verification_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "submittedAt", "order": "DESCENDING" }
+      ]
+    },
+
+    // ── verification_logs ───────────────────────────────────────────
+    // getByArtisan: artisanId + timestamp DESC
+    {
+      "collectionGroup": "verification_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "artisanId",  "order": "ASCENDING" },
+        { "fieldPath": "timestamp",  "order": "DESCENDING" }
+      ]
+    },
+
+    // ── admin_notifications ─────────────────────────────────────────
+    // getUnread: isRead + createdAt DESC
+    {
+      "collectionGroup": "admin_notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isRead",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+
     // ── artisans ────────────────────────────────────────────────────
     // getTopRated: isAvailable + rating DESC
     {
@@ -89,6 +130,97 @@
       "fields": [
         { "fieldPath": "participants",  "arrayConfig": "CONTAINS" },
         { "fieldPath": "lastMessageAt", "order": "DESCENDING" }
+      ]
+    },
+
+    // ── escrow ────────────────────────────────────────────────────────────────
+    // getByCustomer: customerId + createdAt DESC
+    {
+      "collectionGroup": "escrow",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "customerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt",  "order": "DESCENDING" }
+      ]
+    },
+    // getByArtisan: artisanId + createdAt DESC
+    {
+      "collectionGroup": "escrow",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "artisanId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    // getByStatus: status + createdAt DESC (admin)
+    {
+      "collectionGroup": "escrow",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+
+    // ── payouts ───────────────────────────────────────────────────────────────
+    // getByUser: userId + createdAt DESC
+    {
+      "collectionGroup": "payouts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    // getByStatus (admin): status + createdAt DESC
+    {
+      "collectionGroup": "payouts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    // getByUserType + status (admin): userType + status + createdAt DESC
+    {
+      "collectionGroup": "payouts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userType",  "order": "ASCENDING" },
+        { "fieldPath": "status",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+
+    // ── commissions ──────────────────────────────────────────────────────────
+    // getByArtisan: artisanId + createdAt DESC
+    {
+      "collectionGroup": "commissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "artisanId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+
+    // ── artisan transactions subcollection ──────────────────────────────────
+    // subscribeToArtisanTransactions: createdAt DESC
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+
+    // ── financialAudit ───────────────────────────────────────────────────────
+    // getByUser: userId + createdAt DESC
+    {
+      "collectionGroup": "financialAudit",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
 

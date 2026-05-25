@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub Admin – Bookings</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    .booking-detail-modal { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s; }
+    .booking-detail-modal.open{opacity:1;pointer-events:all;}
+    .booking-modal-box{background:var(--surface);border-radius:20px;width:100%;max-width:580px;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.18);transform:scale(.96);transition:transform .2s;}
+    .booking-detail-modal.open .booking-modal-box{transform:scale(1);}
+    .bm-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:5;}
+    .bm-title{font-size:16px;font-weight:800;color:var(--text-dark);}
+    .bm-close{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .bm-close svg{width:15px;height:15px;}
+    .bm-body{padding:20px 22px;}
+    .bm-section{margin-bottom:18px;}
+    .bm-section-title{font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--surface-2);}
+    .bm-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--surface-2);gap:8px;}
+    .bm-row:last-child{border-bottom:none;}
+    .bm-key{font-size:12px;color:var(--text-light);font-weight:500;}
+    .bm-val{font-size:13px;color:var(--text-dark);font-weight:600;text-align:right;word-break:break-all;}
+    .bm-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;}
+    .timeline{display:flex;flex-direction:column;gap:0;}
+    .timeline-item{display:flex;gap:12px;padding:8px 0;}
+    .tl-line{display:flex;flex-direction:column;align-items:center;}
+    .tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+    .tl-dot.done{background:var(--success,#22C55E);}
+    .tl-dot.active{background:var(--warning);}
+    .tl-dot.pending{background:var(--border);}
+    .tl-bar{flex:1;width:2px;background:var(--border);margin:3px 0;}
+    .tl-content{flex:1;}
+    .tl-label{font-size:12px;font-weight:600;color:var(--text-dark);}
+    .tl-time{font-size:11px;color:var(--text-light);}
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#fff" stroke-width="2" stroke-linecap="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#fff" stroke-width="2"/></svg></div>
+      <span class="sidebar-logo-text">HandyHub</span><span class="sidebar-logo-badge">Admin</span>
+    </div>
+    <div class="sidebar-section-label">Main</div>
+    <a class="nav-link" href="index.html"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>Overview</a>
+    <a class="nav-link" href="analytics.html"><svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Analytics</a>
+    <div class="sidebar-section-label">Users</div>
+    <a class="nav-link" href="artisans.html"><svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>Artisans</a>
+    <a class="nav-link" href="customers.html"><svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>Customers</a>
+    <a class="nav-link" href="verifications.html"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Verifications<span class="nav-badge" id="verif-badge">0</span></a>
+    <div class="sidebar-section-label">Operations</div>
+    <a class="nav-link active" href="bookings.html"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Bookings</a>
+    <a class="nav-link" href="disputes.html"><svg viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Disputes</a>
+    <div class="sidebar-section-label">Finance</div>
+    <a class="nav-link" href="finance.html"><svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Finance</a>
+    <a class="nav-link" href="payouts.html"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.8"/></svg>Payouts</a>
+    <div class="sidebar-section-label">System</div>
+    <a class="nav-link" href="admins.html"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16 11h6M19 8v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Admin Users</a>
+    <a class="nav-link" href="settings.html"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg>Settings</a>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="admin-avatar">A</div>
+        <div class="sidebar-user-info"><p class="sidebar-user-name" id="admin-name">Admin</p><p class="sidebar-user-role">Super Admin</p></div>
+        <button onclick="signOut()" style="background:none;border:none;cursor:pointer;margin-left:8px;color:#64748B;" title="Sign out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="admin-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><svg viewBox="0 0 24 24" fill="none"><line x1="3" y1="6" x2="21" y2="6" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="12" x2="21" y2="12" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="18" x2="21" y2="18" stroke="#374151" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <span class="page-title-bar">Booking Oversight</span>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#94A3B8" stroke-width="1.8"/><path d="m21 21-4.35-4.35" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input type="text" placeholder="Search customer, artisan, service…" id="search-input" oninput="handleSearch(this.value)" />
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" onclick="window.location.href='verifications.html'"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/></svg><span class="header-badge" id="hdr-verif-badge" style="display:none">0</span></button>
+        <span style="font-size:12px;color:var(--text-light);padding:0 4px;">|</span>
+        <span id="hdr-date" style="font-size:12px;color:var(--text-light);white-space:nowrap;"></span>
+      </div>
+    </header>
+
+    <div class="page-body">
+      <!-- KPIs -->
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-icon brand"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="stat-info"><p class="stat-label">Total Bookings</p><p class="stat-value" id="kpi-total">—</p></div></div>
+        <div class="stat-card"><div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#F97316" stroke-width="1.8"/><line x1="12" y1="8" x2="12" y2="12" stroke="#F97316" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="#F97316" stroke-width="2.5" stroke-linecap="round"/></svg></div><div class="stat-info"><p class="stat-label">Pending</p><p class="stat-value" id="kpi-pending">—</p></div></div>
+        <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="#22C55E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="stat-info"><p class="stat-label">Active / In Progress</p><p class="stat-value" id="kpi-active">—</p></div></div>
+        <div class="stat-card"><div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="stat-info"><p class="stat-label">Revenue (Completed)</p><p class="stat-value" id="kpi-revenue">—</p></div></div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="table-toolbar" style="margin-bottom:12px;">
+        <div class="filter-chips">
+          <button class="filter-chip active" data-filter="all"       onclick="setFilter('all')">All</button>
+          <button class="filter-chip" data-filter="Pending"          onclick="setFilter('Pending')">Pending</button>
+          <button class="filter-chip" data-filter="Active"           onclick="setFilter('Active')">Active</button>
+          <button class="filter-chip" data-filter="In Progress"      onclick="setFilter('In Progress')">In Progress</button>
+          <button class="filter-chip" data-filter="Completed"        onclick="setFilter('Completed')">Completed</button>
+          <button class="filter-chip" data-filter="Cancelled"        onclick="setFilter('Cancelled')">Cancelled</button>
+          <button class="filter-chip" data-filter="Disputed"         onclick="setFilter('Disputed')">Disputed</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <select class="admin-select" id="sort-select" onchange="handleSort(this.value)">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="amount_high">Highest Amount</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV()">
+            <svg viewBox="0 0 24 24" fill="none" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Export
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="admin-card">
+        <div class="card-body" style="padding:0;">
+          <table class="admin-table">
+            <thead><tr>
+              <th style="padding-left:16px;">Booking ID</th>
+              <th>Customer</th>
+              <th>Artisan</th>
+              <th>Service</th>
+              <th>Amount</th>
+              <th>Escrow</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="bookings-tbody"><tr><td colspan="9" style="text-align:center;padding:48px;color:var(--text-light);">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border);">
+          <span id="result-count" style="font-size:12px;color:var(--text-light);"></span>
+          <div class="pagination" id="pagination" style="margin:0;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Booking Detail Modal -->
+<div class="booking-detail-modal" id="bm-overlay" onclick="handleBMOverlayClick(event)">
+  <div class="booking-modal-box">
+    <div class="bm-header">
+      <p class="bm-title">Booking Details</p>
+      <button class="bm-close" onclick="closeBM()"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="bm-body">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div>
+          <p style="font-size:18px;font-weight:800;color:var(--text-dark);" id="bm-service">—</p>
+          <p style="font-size:13px;color:var(--text-mid);" id="bm-id">—</p>
+        </div>
+        <span id="bm-status-badge" class="badge badge-warning">Pending</span>
+      </div>
+      <div class="bm-section">
+        <p class="bm-section-title">Parties</p>
+        <div class="bm-row"><span class="bm-key">Customer</span><span class="bm-val" id="bm-customer">—</span></div>
+        <div class="bm-row"><span class="bm-key">Artisan</span><span class="bm-val" id="bm-artisan">—</span></div>
+        <div class="bm-row"><span class="bm-key">Customer Phone</span><span class="bm-val" id="bm-cphone">—</span></div>
+        <div class="bm-row"><span class="bm-key">Artisan Phone</span><span class="bm-val" id="bm-aphone">—</span></div>
+      </div>
+      <div class="bm-section">
+        <p class="bm-section-title">Service Details</p>
+        <div class="bm-row"><span class="bm-key">Category</span><span class="bm-val" id="bm-cat">—</span></div>
+        <div class="bm-row"><span class="bm-key">Description</span><span class="bm-val" id="bm-desc">—</span></div>
+        <div class="bm-row"><span class="bm-key">Location</span><span class="bm-val" id="bm-loc">—</span></div>
+        <div class="bm-row"><span class="bm-key">Scheduled</span><span class="bm-val" id="bm-scheduled">—</span></div>
+      </div>
+      <div class="bm-section">
+        <p class="bm-section-title">Financials</p>
+        <div class="bm-row"><span class="bm-key">Total Amount</span><span class="bm-val" id="bm-amount">—</span></div>
+        <div class="bm-row"><span class="bm-key">Platform Commission (15%)</span><span class="bm-val" id="bm-commission">—</span></div>
+        <div class="bm-row"><span class="bm-key">Artisan Payout (85%)</span><span class="bm-val" id="bm-payout">—</span></div>
+        <div class="bm-row"><span class="bm-key">Escrow Status</span><span class="bm-val" id="bm-escrow">—</span></div>
+        <div class="bm-row"><span class="bm-key">Payment Method</span><span class="bm-val" id="bm-payment">—</span></div>
+      </div>
+      <div class="bm-section">
+        <p class="bm-section-title">Timeline</p>
+        <div class="timeline" id="bm-timeline"></div>
+      </div>
+    </div>
+    <div class="bm-footer" id="bm-footer"></div>
+  </div>
+</div>
+
+<div class="admin-toast" id="admin-toast"></div>
+
+<script type="module">
+import { db, auth }                    from './js/firebase-admin.js';
+import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
+import { showToast, subscribeVerifBadge, setDateHeader } from './js/ui-utils.js';
+import { collection, doc, getDoc, getDocs, onSnapshot,
+         updateDoc, addDoc, query, where, orderBy, serverTimestamp }
+                          from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+let currentAdmin=null;
+setDateHeader();
+initAdminPage(user => {
+  currentAdmin = user;
+  init();
+});
+window.signOut = signOutAdmin;
+
+let allBookings=[],filtered=[],currentFilter='all',currentSort='newest',searchQ='',currentPage=1;
+const PAGE_SIZE=15;
+let activeBooking=null;
+
+function init(){
+  onSnapshot(query(collection(db,'bookings'),orderBy('createdAt','desc')),snap=>{
+    allBookings=snap.docs.map(d=>({id:d.id,...d.data()}));
+    updateKPIs();
+    applyAndRender();
+  },err=>showToast('Error: '+err.message,'error'));
+
+  subscribeVerifBadge();
+}
+
+function updateKPIs(){
+  document.getElementById('kpi-total').textContent=allBookings.length;
+  document.getElementById('kpi-pending').textContent=allBookings.filter(b=>b.status==='Pending').length;
+  document.getElementById('kpi-active').textContent=allBookings.filter(b=>b.status==='Active'||b.status==='In Progress').length;
+  const rev=allBookings.filter(b=>b.status==='Completed').reduce((s,b)=>s+(b.amount||0),0);
+  document.getElementById('kpi-revenue').textContent=`GHS ${rev.toFixed(2)}`;
+}
+
+window.setFilter=f=>{currentFilter=f;currentPage=1;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.filter===f));applyAndRender();};
+window.handleSearch=v=>{searchQ=v.trim().toLowerCase();currentPage=1;applyAndRender();};
+window.handleSort=v=>{currentSort=v;applyAndRender();};
+
+function applyAndRender(){
+  let list=[...allBookings];
+  if(currentFilter!=='all') list=list.filter(b=>b.status===currentFilter);
+  if(searchQ) list=list.filter(b=>(b.customerName||'').toLowerCase().includes(searchQ)||(b.artisanName||'').toLowerCase().includes(searchQ)||(b.serviceType||b.category||'').toLowerCase().includes(searchQ)||(b.id||'').toLowerCase().includes(searchQ));
+  if(currentSort==='oldest') list.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+  else if(currentSort==='amount_high') list.sort((a,b)=>(b.amount||0)-(a.amount||0));
+  else list.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+  filtered=list;
+  renderTable();
+  renderPagination();
+  document.getElementById('result-count').textContent=`${filtered.length} booking${filtered.length!==1?'s':''}`;
+}
+
+function renderTable(){
+  const tbody=document.getElementById('bookings-tbody');
+  const start=(currentPage-1)*PAGE_SIZE;
+  const page=filtered.slice(start,start+PAGE_SIZE);
+  if(!page.length){tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:48px;color:var(--text-light);">No bookings found</td></tr>`;return;}
+  const sMap={Pending:'badge-warning',Active:'badge-success',Completed:'badge-info','In Progress':'badge-orange',Cancelled:'badge-danger',Disputed:'badge-danger',Refunded:'badge-purple'};
+  const escrowMap={held:'badge-warning',released:'badge-success',refunded:'badge-danger',none:'badge-default'};
+  tbody.innerHTML=page.map(b=>{
+    const ts=b.createdAt?.toDate?.();
+    const ds=ts?ts.toLocaleDateString('en-GH',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+    const amt=b.amount?`GHS ${Number(b.amount).toFixed(2)}`:'—';
+    const escrow=b.escrowStatus||'none';
+    const shortId=b.id.slice(0,8).toUpperCase();
+    return `<tr style="cursor:pointer" onclick="openBookingModal('${b.id}')">
+      <td style="padding-left:16px;"><code style="font-size:11px;background:var(--surface-2);padding:2px 6px;border-radius:4px;">${shortId}</code></td>
+      <td style="font-size:12px;">${esc(b.customerName||'—')}</td>
+      <td style="font-size:12px;">${esc(b.artisanName||'—')}</td>
+      <td><span class="badge badge-info" style="font-size:10px;">${esc(b.serviceType||b.category||'—')}</span></td>
+      <td style="font-size:13px;font-weight:600;">${amt}</td>
+      <td><span class="badge ${escrowMap[escrow]||'badge-default'}" style="font-size:10px;">${escrow}</span></td>
+      <td><span class="badge ${sMap[b.status]||'badge-default'}" style="font-size:10px;">${b.status||'—'}</span></td>
+      <td style="font-size:11px;color:var(--text-light);">${ds}</td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn btn-sm btn-secondary" onclick="openBookingModal('${b.id}')">Details</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination(){
+  const pc=Math.ceil(filtered.length/PAGE_SIZE);
+  const pag=document.getElementById('pagination');
+  if(pc<=1){pag.innerHTML='';return;}
+  let h=`<button class="page-btn" onclick="changePage(-1)" ${currentPage<=1?'disabled':''}>‹</button>`;
+  for(let i=1;i<=pc;i++){
+    if(i===1||i===pc||Math.abs(i-currentPage)<=1) h+=`<button class="page-btn${i===currentPage?' active':''}" onclick="goPage(${i})">${i}</button>`;
+    else if(Math.abs(i-currentPage)===2) h+=`<span style="padding:0 4px;color:var(--text-light);line-height:32px;">…</span>`;
+  }
+  h+=`<button class="page-btn" onclick="changePage(1)" ${currentPage>=pc?'disabled':''}>›</button>`;
+  pag.innerHTML=h;
+}
+window.changePage=dir=>{const pc=Math.ceil(filtered.length/PAGE_SIZE);currentPage=Math.max(1,Math.min(pc,currentPage+dir));applyAndRender();};
+window.goPage=p=>{currentPage=p;applyAndRender();};
+
+window.openBookingModal=function(id){
+  const b=allBookings.find(x=>x.id===id);
+  if(!b) return;
+  activeBooking=b;
+  document.getElementById('bm-service').textContent=b.serviceType||b.category||'Service';
+  document.getElementById('bm-id').textContent='ID: '+b.id.slice(0,12).toUpperCase();
+  const sMap={Pending:'badge-warning',Active:'badge-success',Completed:'badge-info','In Progress':'badge-orange',Cancelled:'badge-danger',Disputed:'badge-danger'};
+  const sb=document.getElementById('bm-status-badge');
+  sb.className=`badge ${sMap[b.status]||'badge-default'}`;
+  sb.textContent=b.status||'—';
+  document.getElementById('bm-customer').textContent=b.customerName||b.customerId||'—';
+  document.getElementById('bm-artisan').textContent=b.artisanName||b.artisanId||'—';
+  document.getElementById('bm-cphone').textContent=b.customerPhone||'—';
+  document.getElementById('bm-aphone').textContent=b.artisanPhone||'—';
+  document.getElementById('bm-cat').textContent=b.category||b.serviceType||'—';
+  document.getElementById('bm-desc').textContent=b.description||b.notes||'—';
+  document.getElementById('bm-loc').textContent=b.location||b.address||'—';
+  const sch=b.scheduledDate||b.preferredDate;
+  document.getElementById('bm-scheduled').textContent=sch||(b.scheduledAt?.toDate?.()?.toLocaleString('en-GH'))||'—';
+  const amt=b.amount||0;
+  document.getElementById('bm-amount').textContent=`GHS ${Number(amt).toFixed(2)}`;
+  document.getElementById('bm-commission').textContent=`GHS ${(amt*0.15).toFixed(2)}`;
+  document.getElementById('bm-payout').textContent=`GHS ${(amt*0.85).toFixed(2)}`;
+  document.getElementById('bm-escrow').textContent=b.escrowStatus||'none';
+  document.getElementById('bm-payment').textContent=b.paymentMethod||'Wallet';
+  // Timeline
+  const statuses=['Pending','Active','In Progress','Completed'];
+  const currentIdx=statuses.indexOf(b.status);
+  document.getElementById('bm-timeline').innerHTML=statuses.map((s,i)=>{
+    const done=i<currentIdx;
+    const active=i===currentIdx;
+    const pending=i>currentIdx;
+    const dotCls=done?'done':active?'active':'pending';
+    const isLast=i===statuses.length-1;
+    return `<div class="timeline-item">
+      <div class="tl-line"><div class="tl-dot ${dotCls}"></div>${!isLast?'<div class="tl-bar"></div>':''}</div>
+      <div class="tl-content"><p class="tl-label" style="color:${done?'var(--success,#22C55E)':active?'var(--warning)':'var(--text-light)'}">${s}</p><p class="tl-time">${done?'Completed':active?'Current':'Pending'}</p></div>
+    </div>`;
+  }).join('');
+  // Footer actions
+  const footer=document.getElementById('bm-footer');
+  footer.innerHTML='';
+  if(b.status==='Disputed'){
+    footer.innerHTML=`<a href="disputes.html?id=${b.id}" class="btn btn-primary" style="flex:1;text-align:center;text-decoration:none;">Resolve Dispute →</a>`;
+  } else if(b.status==='Active'||b.status==='Pending'){
+    footer.innerHTML=`<button class="btn btn-danger" onclick="cancelBooking('${b.id}')">Cancel Booking</button>`;
+  }
+  document.getElementById('bm-overlay').classList.add('open');
+};
+
+window.closeBM=()=>document.getElementById('bm-overlay').classList.remove('open');
+window.handleBMOverlayClick=e=>{if(e.target===document.getElementById('bm-overlay'))closeBM();};
+
+window.cancelBooking=async function(id){
+  if(!confirm('Cancel this booking and issue a refund?')) return;
+  try{
+    await updateDoc(doc(db,'bookings',id),{status:'Cancelled',cancelledAt:serverTimestamp(),cancelledBy:'admin:'+currentAdmin.email,escrowStatus:'refunded'});
+    showToast('Booking cancelled. Refund will be processed.','success');
+    closeBM();
+  }catch(e){showToast('Error: '+e.message,'error');}
+};
+
+window.exportCSV=function(){
+  const h=['ID','Customer','Artisan','Service','Amount','Status','Escrow','Date'];
+  const rows=filtered.map(b=>[b.id||'',b.customerName||'',b.artisanName||'',b.serviceType||b.category||'',b.amount||0,b.status||'',b.escrowStatus||'',b.createdAt?.toDate?.()?.toLocaleDateString('en-GH')||'']);
+  const csv=[h,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='bookings_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
+};
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>

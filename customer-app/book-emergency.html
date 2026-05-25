@@ -563,6 +563,38 @@
         localStorage.setItem('hh_booking_history', JSON.stringify(hist.slice(0,20)));
       }
     } catch(_) {}
+
+    // ── Bridge to Firestore (fire-and-forget) ────────────────────────────────
+    // Write the emergency booking to Firestore and send notifications via the
+    // same bridge used by standard bookings (book-step4.html).
+    // artisanId is null because emergency dispatch uses the PRO_POOL placeholder;
+    // a real matching system will replace this in post-MVP.
+    let detectedAddress = '';
+    try {
+      const locCache = JSON.parse(localStorage.getItem('hh_detected_location') || 'null');
+      if (locCache && locCache.loc) detectedAddress = locCache.loc;
+    } catch (_) {}
+
+    const bookingRecord = {
+      id:          bookRef,
+      service:     svcName,
+      proName:     pro.name,
+      artisanId:   null,          // no real artisan ID until matching system is built
+      dateDisplay: now.toDateString(),
+      time:        now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
+      total:       120,
+      status:      'Emergency',
+      type:        'emergency',
+      ts:          now.toISOString(),
+      eta:         pro.eta + ' min',
+      refCode:     bookRef,
+      notes:       '',
+      address:     detectedAddress,
+    };
+
+    import('../shared/js/utils/bookingConfirmNotify.js')
+      .then(m => m.onBookingConfirmed(bookingRecord))
+      .catch(err => console.warn('[emergency] Firestore bridge failed:', err.message));
   }
 
   /* ─── ETA countdown ─── */

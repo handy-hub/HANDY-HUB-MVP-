@@ -6,6 +6,7 @@ import {
     PROVIDER_META
 } from '../../../shared/js/data/repositories/paymentRepository.js';
 import { initiatePayment } from '../../../shared/js/services/paystackService.js';
+import { createNotification } from '../../../shared/js/services/notificationRepository.js';
 
 const LOGIN_URL = 'login.html';
 
@@ -65,6 +66,7 @@ const ssMethodLogo      = document.getElementById('ss-method-logo');
 const ssMethodName      = document.getElementById('ss-method-name');
 const ssItemSub         = document.getElementById('ss-item-sub');
 const ssMethodAmount    = document.getElementById('ss-method-amount');
+const ssCreditStatus    = document.getElementById('ss-credit-status');
 const ssDownloadBtn     = document.getElementById('ss-download-btn');
 const ssDoneBtn         = document.getElementById('ss-done-btn');
 const ssCloseBtn        = document.getElementById('success-done-btn');
@@ -76,6 +78,12 @@ let currentUid       = null;
 let currentUserEmail = '';
 let paymentRepo      = null;
 let lastSuccessData  = null;
+
+// Wallet-credit detection: set when a topup is submitted, cleared once the
+// webhook lands and the balance rises by at least the expected amount.
+let waitingForCredit = false;
+let expectedCredit   = 0;
+let preTopupBalance  = 0; // wallet balance snapshotted when Confirm is clicked
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatGHC(n) {
@@ -248,6 +256,9 @@ confirmBtn.addEventListener('click', async () => {
     const acc    = savedAccounts.find(a => a.id === selectedAccount);
     if (!acc || !amount || amount <= 0) return;
 
+    // Snapshot balance before opening payment so we can detect the webhook credit later.
+    preTopupBalance = currentBalance;
+
     const { provider, phone } = acc.data;
     const meta = PROVIDER_META[provider];
     let paymentFlowSettled = false;
@@ -265,6 +276,12 @@ confirmBtn.addEventListener('click', async () => {
             email:    currentUserEmail || `${currentUid}@handyhub.app`,
             amount,
             metadata: {
+                // userId + userType are required by the Paystack webhook handler
+                // (functions/financial/webhooks.js) to know which wallet to credit.
+                userId:   currentUid,
+                userType: 'customer',
+                provider,
+                phone,
                 custom_fields: [
                     { display_name: 'Provider', variable_name: 'provider', value: meta?.label || provider },
                     { display_name: 'Phone',    variable_name: 'phone',    value: phone || '' }
@@ -273,21 +290,42 @@ confirmBtn.addEventListener('click', async () => {
             onSuccess: async (response) => {
                 if (paymentFlowSettled) return;
                 paymentFlowSettled = true;
-                confirmBtn.textContent = 'Recording payment…';
+                confirmBtn.textContent = 'Processing…';
+
+                // Write a pending transaction so the user sees immediate feedback.
+                // The webhook (server-side) will upgrade it to 'successful' and
+                // credit the wallet balance — no client-side balance mutation needed.
                 try {
                     await paymentRepo.recordTopUp(currentUid, {
                         amount, provider, phone,
                         paystackRef: response.reference
                     });
-                    showSuccess({ amount, provider, phone, paystackRef: response.reference });
-                    amountInput.value = '';
-                    document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
                 } catch (err) {
-                    console.error('Record top-up error:', err);
-                    showToast(`Payment received but wallet update failed. Quote ref ${response.reference} to support.`, 'error');
-                } finally {
-                    resetBtn();
+                    // Non-fatal: the webhook handles the authoritative wallet credit.
+                    console.warn('[topup] Pending transaction record failed (non-fatal):', err.message);
                 }
+
+                showSuccess({ amount, provider, phone, paystackRef: response.reference });
+                amountInput.value = '';
+                document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+
+                // Arm the credit-detection listener (clears itself once balance rises).
+                expectedCredit   = amount;
+                waitingForCredit = true;
+
+                // Notify user immediately; final "wallet credited" confirmation arrives
+                // via the Firestore subscription when the webhook has landed.
+                createNotification({
+                    receiverId: currentUid,
+                    senderId:   currentUid,   // required by Firestore rule: senderId == auth.uid
+                    type:       'Payments',
+                    title:      '💳 Payment Received',
+                    message:    `GHS ${Number(amount).toFixed(2)} via ${meta?.label || provider} is being credited to your wallet.`,
+                    actionUrl:  'transaction-history.html',
+                    metadata:   { paystackRef: response.reference, amount, provider }
+                }).catch(() => {}); // fire-and-forget — never block the UI
+
+                resetBtn();
             },
             onClose: () => {
                 if (paymentFlowSettled) return;
@@ -384,10 +422,36 @@ authService.subscribeToAuthState(user => {
     currentUserEmail = user.email || '';
     paymentRepo      = createPaymentRepository({ databaseService });
 
-    // Live wallet balance
+    // Live wallet balance — also drives the webhook-credit detection.
     databaseService.subscribeToDocument('customers', user.uid, snap => {
-        if (snap.exists && balanceDisplay) {
-            balanceDisplay.innerHTML = `<span class="balance-currency">GHC</span>${Number(snap.data.walletBalance || 0).toFixed(2)}`;
+        if (!snap.exists) return;
+
+        const balance = Number(snap.data.walletBalance || 0);
+
+        // Keep module-level mirror so the confirm handler can snapshot it as a baseline.
+        currentBalance = balance;
+
+        if (balanceDisplay) {
+            balanceDisplay.innerHTML = `<span class="balance-currency">GHC</span>${balance.toFixed(2)}`;
+        }
+
+        // ── Webhook credit detection ─────────────────────────────────────────
+        // When waitingForCredit is armed, a Paystack charge.success webhook has
+        // been sent and the Cloud Function is processing it. The moment the
+        // balance rises by at least 95 % of the expected amount we know the
+        // webhook has landed and the wallet is actually credited.
+        // (5 % tolerance accommodates any rounding / fee adjustments.)
+        if (waitingForCredit && balance >= preTopupBalance + expectedCredit * 0.95) {
+            waitingForCredit = false;
+
+            // Update the success overlay subtitle (still visible for the user)
+            if (ssCreditStatus) {
+                ssCreditStatus.textContent = '✅ Wallet credited!';
+                ssCreditStatus.style.color = '#16a34a'; // green
+            }
+
+            // Show a persistent toast so the user sees confirmation even if overlay is closed
+            showToast(`GHS ${expectedCredit.toFixed(2)} has been added to your wallet!`, 'success');
         }
     });
 

@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub Admin – Disputes</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* Dispute card */
+    .dispute-card {
+      background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg,16px);
+      padding:20px;cursor:pointer;transition:box-shadow .2s,transform .15s;
+    }
+    .dispute-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);}
+    .dispute-card.urgent{border-left:3px solid var(--danger);}
+    .dc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+    .dc-title{font-size:15px;font-weight:700;color:var(--text-dark);}
+    .dc-sub{font-size:12px;color:var(--text-mid);margin-top:2px;}
+    .dc-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+    .dc-party{display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--text-mid);}
+    .dc-party svg{width:12px;height:12px;}
+    .dc-amount{font-size:14px;font-weight:800;color:var(--text-dark);}
+    .dc-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
+    .dc-age{font-size:11px;color:var(--text-light);}
+    .dc-age.urgent{color:var(--danger);font-weight:600;}
+    .btn-resolve{background:var(--brand);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+    .btn-resolve:hover{opacity:.85;}
+    .dispute-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;}
+
+    /* Resolution modal */
+    .resolve-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
+    .resolve-modal-overlay.open{opacity:1;pointer-events:all;}
+    .resolve-modal{background:var(--surface);border-radius:20px;width:100%;max-width:640px;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.2);transform:scale(.96);transition:transform .2s;}
+    .resolve-modal-overlay.open .resolve-modal{transform:scale(1);}
+    .rm-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:5;}
+    .rm-title{font-size:16px;font-weight:800;color:var(--text-dark);}
+    .rm-close{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .rm-close svg{width:15px;height:15px;}
+    .rm-body{padding:20px 22px;}
+    .rm-section{margin-bottom:20px;}
+    .rm-section-title{font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--surface-2);}
+    .rm-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--surface-2);gap:8px;}
+    .rm-row:last-child{border-bottom:none;}
+    .rm-key{font-size:12px;color:var(--text-light);font-weight:500;}
+    .rm-val{font-size:13px;color:var(--text-dark);font-weight:600;text-align:right;word-break:break-all;}
+    .resolution-options{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;}
+    .res-option{border:1.5px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .15s;}
+    .res-option:hover{border-color:var(--brand);}
+    .res-option.selected{border-color:var(--brand);background:var(--brand-light,#FFF5F5);}
+    .res-option-icon{font-size:24px;margin-bottom:6px;}
+    .res-option-title{font-size:12px;font-weight:700;color:var(--text-dark);}
+    .res-option-sub{font-size:10px;color:var(--text-light);margin-top:2px;}
+    .notes-area{width:100%;height:80px;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text-dark);resize:vertical;outline:none;transition:border-color .2s;}
+    .notes-area:focus{border-color:var(--brand);}
+    .rm-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;}
+    .btn-rm-submit{flex:1;background:var(--brand);color:#fff;border:none;padding:12px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+    .btn-rm-submit:hover{opacity:.85;}
+    .btn-rm-submit:disabled{opacity:.4;cursor:not-allowed;}
+    .btn-rm-cancel{background:var(--surface-2);color:var(--text-mid);border:1.5px solid var(--border);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;}
+
+    .msg-bubble{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+    .msg-header{display:flex;justify-content:space-between;margin-bottom:4px;}
+    .msg-from{font-size:11px;font-weight:700;color:var(--text-dark);}
+    .msg-time{font-size:10px;color:var(--text-light);}
+    .msg-text{font-size:12px;color:var(--text-mid);line-height:1.5;}
+
+    @media(max-width:640px){.resolution-options{grid-template-columns:1fr;}.dispute-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#fff" stroke-width="2" stroke-linecap="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#fff" stroke-width="2"/></svg></div>
+      <span class="sidebar-logo-text">HandyHub</span><span class="sidebar-logo-badge">Admin</span>
+    </div>
+    <div class="sidebar-section-label">Main</div>
+    <a class="nav-link" href="index.html"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>Overview</a>
+    <a class="nav-link" href="analytics.html"><svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Analytics</a>
+    <div class="sidebar-section-label">Users</div>
+    <a class="nav-link" href="artisans.html"><svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>Artisans</a>
+    <a class="nav-link" href="customers.html"><svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>Customers</a>
+    <a class="nav-link" href="verifications.html"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Verifications<span class="nav-badge" id="verif-badge">0</span></a>
+    <div class="sidebar-section-label">Operations</div>
+    <a class="nav-link" href="bookings.html"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Bookings</a>
+    <a class="nav-link active" href="disputes.html"><svg viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Disputes</a>
+    <div class="sidebar-section-label">Finance</div>
+    <a class="nav-link" href="finance.html"><svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Finance</a>
+    <a class="nav-link" href="payouts.html"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.8"/></svg>Payouts</a>
+    <div class="sidebar-section-label">System</div>
+    <a class="nav-link" href="admins.html"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16 11h6M19 8v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Admin Users</a>
+    <a class="nav-link" href="settings.html"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg>Settings</a>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="admin-avatar">A</div>
+        <div class="sidebar-user-info"><p class="sidebar-user-name" id="admin-name">Admin</p><p class="sidebar-user-role">Super Admin</p></div>
+        <button onclick="signOut()" style="background:none;border:none;cursor:pointer;margin-left:8px;color:#64748B;" title="Sign out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="admin-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><svg viewBox="0 0 24 24" fill="none"><line x1="3" y1="6" x2="21" y2="6" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="12" x2="21" y2="12" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="18" x2="21" y2="18" stroke="#374151" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <span class="page-title-bar">Dispute Management</span>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#94A3B8" stroke-width="1.8"/><path d="m21 21-4.35-4.35" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input type="text" placeholder="Search customer, artisan, booking…" id="search-input" oninput="handleSearch(this.value)" />
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" onclick="window.location.href='verifications.html'"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/></svg><span class="header-badge" id="hdr-verif-badge" style="display:none">0</span></button>
+        <span style="font-size:12px;color:var(--text-light);padding:0 4px;">|</span>
+        <span id="hdr-date" style="font-size:12px;color:var(--text-light);white-space:nowrap;"></span>
+      </div>
+    </header>
+
+    <div class="page-body">
+      <!-- KPIs -->
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-icon brand"><svg viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="stat-info"><p class="stat-label">Total Disputes</p><p class="stat-value" id="kpi-total">—</p></div></div>
+        <div class="stat-card"><div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#F97316" stroke-width="1.8"/><line x1="12" y1="8" x2="12" y2="12" stroke="#F97316" stroke-width="2" stroke-linecap="round"/></svg></div><div class="stat-info"><p class="stat-label">Open</p><p class="stat-value" id="kpi-open">—</p></div></div>
+        <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#22C55E" stroke-width="1.8"/><path d="M9 12l2 2 4-4" stroke="#22C55E" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="stat-info"><p class="stat-label">Resolved</p><p class="stat-value" id="kpi-resolved">—</p></div></div>
+        <div class="stat-card"><div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="stat-info"><p class="stat-label">Funds in Dispute</p><p class="stat-value" id="kpi-funds">—</p></div></div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="table-toolbar" style="margin-bottom:16px;">
+        <div class="filter-chips">
+          <button class="filter-chip active" data-filter="all"       onclick="setFilter('all')">All</button>
+          <button class="filter-chip" data-filter="open"             onclick="setFilter('open')">Open</button>
+          <button class="filter-chip" data-filter="under_review"     onclick="setFilter('under_review')">Under Review</button>
+          <button class="filter-chip" data-filter="resolved"         onclick="setFilter('resolved')">Resolved</button>
+          <button class="filter-chip" data-filter="escalated"        onclick="setFilter('escalated')">Escalated</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <select class="admin-select" id="sort-select" onchange="handleSort(this.value)">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="amount">Highest Amount</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Cards grid -->
+      <div class="dispute-grid" id="dispute-grid">
+        <div class="shimmer" style="height:170px;border-radius:16px;"></div>
+        <div class="shimmer" style="height:170px;border-radius:16px;"></div>
+        <div class="shimmer" style="height:170px;border-radius:16px;"></div>
+      </div>
+
+      <!-- Empty state (hidden by default) -->
+      <div id="empty-state" style="display:none;text-align:center;padding:64px 20px;color:var(--text-light);">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" style="margin:0 auto 16px;display:block;opacity:.3;"><circle cx="12" cy="12" r="10" stroke="#374151" stroke-width="1.5"/><path d="M9 12l2 2 4-4" stroke="#374151" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <p style="font-size:15px;font-weight:600;">No disputes found</p>
+        <span style="font-size:13px;">All disputes have been resolved or no matches found.</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Resolution Modal -->
+<div class="resolve-modal-overlay" id="rm-overlay" onclick="handleRMOverlay(event)">
+  <div class="resolve-modal">
+    <div class="rm-header">
+      <p class="rm-title">Dispute Resolution</p>
+      <button class="rm-close" onclick="closeRM()"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="rm-body">
+      <!-- Summary -->
+      <div class="rm-section">
+        <p class="rm-section-title">Dispute Summary</p>
+        <div class="rm-row"><span class="rm-key">Booking</span><span class="rm-val" id="rm-booking">—</span></div>
+        <div class="rm-row"><span class="rm-key">Customer</span><span class="rm-val" id="rm-customer">—</span></div>
+        <div class="rm-row"><span class="rm-key">Artisan</span><span class="rm-val" id="rm-artisan">—</span></div>
+        <div class="rm-row"><span class="rm-key">Disputed Amount</span><span class="rm-val" id="rm-amount">—</span></div>
+        <div class="rm-row"><span class="rm-key">Raised On</span><span class="rm-val" id="rm-date">—</span></div>
+        <div class="rm-row"><span class="rm-key">Reason</span><span class="rm-val" id="rm-reason">—</span></div>
+      </div>
+
+      <!-- Messages -->
+      <div class="rm-section">
+        <p class="rm-section-title">Messages from Parties</p>
+        <div id="rm-messages">
+          <p style="font-size:12px;color:var(--text-light);">No messages provided.</p>
+        </div>
+      </div>
+
+      <!-- Resolution options -->
+      <div class="rm-section">
+        <p class="rm-section-title">Choose Resolution</p>
+        <div class="resolution-options">
+          <div class="res-option" data-res="full_refund" onclick="selectResolution('full_refund')">
+            <div class="res-option-icon">↩️</div>
+            <div class="res-option-title">Full Refund</div>
+            <div class="res-option-sub">Return 100% to customer</div>
+          </div>
+          <div class="res-option" data-res="partial_refund" onclick="selectResolution('partial_refund')">
+            <div class="res-option-icon">⚖️</div>
+            <div class="res-option-title">Partial Refund</div>
+            <div class="res-option-sub">Split between parties</div>
+          </div>
+          <div class="res-option" data-res="release_artisan" onclick="selectResolution('release_artisan')">
+            <div class="res-option-icon">✅</div>
+            <div class="res-option-title">Release to Artisan</div>
+            <div class="res-option-sub">Pay full amount to artisan</div>
+          </div>
+        </div>
+
+        <!-- Partial amount (shown when partial selected) -->
+        <div id="partial-wrap" style="display:none;margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:600;color:var(--text-dark);display:block;margin-bottom:6px;">Customer Refund Amount (GHS)</label>
+          <input type="number" id="partial-amount" min="0" step="0.01" class="notes-area" style="height:44px;border-radius:10px;" placeholder="e.g. 50.00" />
+        </div>
+
+        <label style="font-size:12px;font-weight:600;color:var(--text-dark);display:block;margin-bottom:6px;">Admin Notes <span style="font-weight:400;color:var(--text-light);">(required)</span></label>
+        <textarea class="notes-area" id="rm-notes" placeholder="Explain your resolution decision…"></textarea>
+      </div>
+    </div>
+    <div class="rm-footer">
+      <button class="btn-rm-cancel" onclick="closeRM()">Cancel</button>
+      <button class="btn-rm-submit" id="rm-submit-btn" onclick="submitResolution()" disabled>Submit Resolution</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-toast" id="admin-toast"></div>
+
+<script type="module">
+import { db, auth }                    from './js/firebase-admin.js';
+import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
+import { showToast, subscribeVerifBadge, setDateHeader } from './js/ui-utils.js';
+import { collection, doc, getDoc, getDocs, onSnapshot,
+         updateDoc, addDoc, query, where, orderBy, serverTimestamp, writeBatch }
+                          from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+let currentAdmin=null;
+setDateHeader();
+initAdminPage(user => {
+  currentAdmin = user;
+  init();
+});
+window.signOut = signOutAdmin;
+
+let allDisputes=[],filtered=[],currentFilter='all',currentSort='newest',searchQ='';
+let activeDispute=null, selectedResolution=null;
+
+function init(){
+  // Real-time disputes subscription
+  onSnapshot(
+    query(collection(db,'disputes'), orderBy('createdAt','desc')),
+    snap=>{
+      allDisputes=snap.docs.map(d=>({id:d.id,...d.data()}));
+      updateKPIs(); applyAndRender();
+    },
+    err=>{
+      // Fallback: try bookings with status=Disputed
+      onSnapshot(
+        query(collection(db,'bookings'),where('status','==','Disputed'),orderBy('createdAt','desc')),
+        snap=>{ allDisputes=snap.docs.map(d=>({id:d.id,...d.data(),isFromBooking:true})); updateKPIs(); applyAndRender(); }
+      );
+    }
+  );
+  subscribeVerifBadge();
+}
+
+function updateKPIs(){
+  document.getElementById('kpi-total').textContent=allDisputes.length;
+  document.getElementById('kpi-open').textContent=allDisputes.filter(d=>d.status==='open'||d.status==='Disputed'||!d.resolvedAt).length;
+  document.getElementById('kpi-resolved').textContent=allDisputes.filter(d=>d.status==='resolved').length;
+  const funds=allDisputes.filter(d=>d.status!=='resolved').reduce((s,d)=>s+(d.amount||d.disputedAmount||0),0);
+  document.getElementById('kpi-funds').textContent=`GHS ${funds.toFixed(2)}`;
+}
+
+window.setFilter=f=>{currentFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.filter===f));applyAndRender();};
+window.handleSearch=v=>{searchQ=v.trim().toLowerCase();applyAndRender();};
+window.handleSort=v=>{currentSort=v;applyAndRender();};
+
+function applyAndRender(){
+  let list=[...allDisputes];
+  if(currentFilter==='open')         list=list.filter(d=>d.status==='open'||d.status==='Disputed'||!d.resolvedAt);
+  else if(currentFilter==='under_review') list=list.filter(d=>d.status==='under_review');
+  else if(currentFilter==='resolved') list=list.filter(d=>d.status==='resolved');
+  else if(currentFilter==='escalated') list=list.filter(d=>d.status==='escalated');
+  if(searchQ) list=list.filter(d=>(d.customerName||'').toLowerCase().includes(searchQ)||(d.artisanName||'').toLowerCase().includes(searchQ)||(d.bookingId||d.id||'').toLowerCase().includes(searchQ)||(d.reason||'').toLowerCase().includes(searchQ));
+  if(currentSort==='oldest') list.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+  else if(currentSort==='amount') list.sort((a,b)=>(b.amount||b.disputedAmount||0)-(a.amount||a.disputedAmount||0));
+  else list.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+  filtered=list;
+  renderGrid();
+}
+
+function renderGrid(){
+  const grid=document.getElementById('dispute-grid');
+  const empty=document.getElementById('empty-state');
+  if(!filtered.length){grid.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  const sMap={open:'badge-danger','Disputed':'badge-danger',under_review:'badge-warning',resolved:'badge-success',escalated:'badge-purple'};
+  grid.innerHTML=filtered.map(d=>{
+    const status=d.status||(d.resolvedAt?'resolved':'open');
+    const badgeCls=sMap[status]||'badge-warning';
+    const ts=d.createdAt?.toDate?.();
+    const age=ts?ageStr(ts):'—';
+    const isOld=ts&&(Date.now()-ts.getTime())>72*3600000&&status!=='resolved';
+    const amt=d.amount||d.disputedAmount;
+    return `<div class="dispute-card${isOld?' urgent':''}" onclick="openDispute('${d.id}')">
+      <div class="dc-header">
+        <div>
+          <p class="dc-title">${esc(d.reason||d.serviceType||'Booking Dispute')}</p>
+          <p class="dc-sub">Booking: ${esc((d.bookingId||d.id||'—').slice(0,10).toUpperCase())}</p>
+        </div>
+        <span class="badge ${badgeCls}">${status.replace('_',' ')}</span>
+      </div>
+      <div class="dc-meta">
+        <div class="dc-party"><svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>${esc(d.customerName||'Customer')}</div>
+        <div class="dc-party"><svg viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>${esc(d.artisanName||'Artisan')}</div>
+      </div>
+      ${amt?`<p class="dc-amount">GHS ${Number(amt).toFixed(2)} in dispute</p>`:''}
+      <div class="dc-footer">
+        <span class="dc-age${isOld?' urgent':''}">${age}</span>
+        ${status!=='resolved'?`<button class="btn-resolve" onclick="event.stopPropagation();openDispute('${d.id}')">Resolve →</button>`:'<span style="font-size:11px;color:var(--success,#22C55E);font-weight:600;">✓ Resolved</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Open Resolution Modal ───────────────────────────── */
+window.openDispute = function(id) {
+  const d=allDisputes.find(x=>x.id===id);
+  if(!d) return;
+  activeDispute=d;
+  selectedResolution=null;
+  document.querySelectorAll('.res-option').forEach(o=>o.classList.remove('selected'));
+  document.getElementById('rm-notes').value='';
+  document.getElementById('rm-submit-btn').disabled=true;
+  document.getElementById('partial-wrap').style.display='none';
+
+  document.getElementById('rm-booking').textContent=(d.bookingId||d.id||'—').slice(0,14).toUpperCase();
+  document.getElementById('rm-customer').textContent=d.customerName||d.customerId||'—';
+  document.getElementById('rm-artisan').textContent=d.artisanName||d.artisanId||'—';
+  const amt=d.amount||d.disputedAmount;
+  document.getElementById('rm-amount').textContent=amt?`GHS ${Number(amt).toFixed(2)}`:'—';
+  const ts=d.createdAt?.toDate?.();
+  document.getElementById('rm-date').textContent=ts?ts.toLocaleString('en-GH'):'—';
+  document.getElementById('rm-reason').textContent=d.reason||d.description||'Not specified';
+
+  // Messages
+  const msgs=d.messages||[];
+  const mEl=document.getElementById('rm-messages');
+  if(!msgs.length){mEl.innerHTML='<p style="font-size:12px;color:var(--text-light);">No messages provided.</p>';}
+  else{
+    mEl.innerHTML=msgs.map(m=>`<div class="msg-bubble">
+      <div class="msg-header"><span class="msg-from">${esc(m.from||'Unknown')}</span><span class="msg-time">${m.at||''}</span></div>
+      <p class="msg-text">${esc(m.text||'')}</p>
+    </div>`).join('');
+  }
+
+  // If already resolved, disable actions
+  if(d.status==='resolved'){
+    document.getElementById('rm-submit-btn').disabled=true;
+    document.getElementById('rm-submit-btn').textContent='Already Resolved';
+  } else {
+    document.getElementById('rm-submit-btn').textContent='Submit Resolution';
+  }
+
+  document.getElementById('rm-overlay').classList.add('open');
+};
+
+window.selectResolution = function(res) {
+  selectedResolution=res;
+  document.querySelectorAll('.res-option').forEach(o=>o.classList.toggle('selected',o.dataset.res===res));
+  document.getElementById('partial-wrap').style.display=res==='partial_refund'?'block':'none';
+  checkCanSubmit();
+};
+
+document.getElementById('rm-notes').addEventListener('input',checkCanSubmit);
+function checkCanSubmit(){
+  const hasRes=!!selectedResolution;
+  const hasNotes=document.getElementById('rm-notes').value.trim().length>0;
+  document.getElementById('rm-submit-btn').disabled=!(hasRes&&hasNotes);
+}
+
+window.closeRM=()=>document.getElementById('rm-overlay').classList.remove('open');
+window.handleRMOverlay=e=>{if(e.target===document.getElementById('rm-overlay'))closeRM();};
+
+/* ── Submit Resolution ───────────────────────────────── */
+window.submitResolution = async function() {
+  if(!activeDispute||!selectedResolution) return;
+  const notes=document.getElementById('rm-notes').value.trim();
+  if(!notes){showToast('Admin notes are required.','error');return;}
+
+  const btn=document.getElementById('rm-submit-btn');
+  btn.disabled=true; btn.textContent='Resolving…';
+
+  try{
+    const disputeId=activeDispute.id;
+    const amount=activeDispute.amount||activeDispute.disputedAmount||0;
+    const customerId=activeDispute.customerId;
+    const artisanId=activeDispute.artisanId;
+
+    const batch=writeBatch(db);
+
+    // 1. Update dispute doc
+    const disputeRef = activeDispute.isFromBooking
+      ? doc(db,'bookings',disputeId)
+      : doc(db,'disputes',disputeId);
+
+    batch.update(disputeRef,{
+      status:'resolved',
+      resolvedAt:serverTimestamp(),
+      resolvedBy:currentAdmin.email,
+      resolution:selectedResolution,
+      resolutionNotes:notes,
+    });
+
+    // 2. Handle escrow / wallet based on resolution
+    if(selectedResolution==='full_refund' && customerId){
+      // Refund full amount to customer wallet
+      const custRef=doc(db,'customers',customerId);
+      const custSnap=await getDoc(custRef).catch(()=>null);
+      if(custSnap?.exists()){
+        batch.update(custRef,{walletBalance:(custSnap.data().walletBalance||0)+amount});
+      }
+      // Update booking escrow
+      if(activeDispute.escrowId){
+        batch.update(doc(db,'escrows',activeDispute.escrowId),{status:'refunded',refundedAt:serverTimestamp(),refundedBy:currentAdmin.email,reason:`Dispute: ${notes}`});
+      }
+    } else if(selectedResolution==='release_artisan' && artisanId){
+      // Release to artisan (minus platform fee)
+      const fee=amount*0.15;
+      const artisanPayout=amount-fee;
+      const artRef=doc(db,'artisans',artisanId);
+      const artSnap=await getDoc(artRef).catch(()=>null);
+      if(artSnap?.exists()){
+        batch.update(artRef,{walletBalance:(artSnap.data().walletBalance||0)+artisanPayout});
+      }
+      if(activeDispute.escrowId){
+        batch.update(doc(db,'escrows',activeDispute.escrowId),{status:'released',releasedAt:serverTimestamp(),releasedBy:currentAdmin.email});
+      }
+    } else if(selectedResolution==='partial_refund'){
+      const partialAmt=parseFloat(document.getElementById('partial-amount').value)||0;
+      const artisanAmt=Math.max(0,(amount-partialAmt)*0.85);
+      if(customerId&&partialAmt>0){
+        const custRef=doc(db,'customers',customerId);
+        const cSnap=await getDoc(custRef).catch(()=>null);
+        if(cSnap?.exists()) batch.update(custRef,{walletBalance:(cSnap.data().walletBalance||0)+partialAmt});
+      }
+      if(artisanId&&artisanAmt>0){
+        const artRef=doc(db,'artisans',artisanId);
+        const aSnap=await getDoc(artRef).catch(()=>null);
+        if(aSnap?.exists()) batch.update(artRef,{walletBalance:(aSnap.data().walletBalance||0)+artisanAmt});
+      }
+    }
+
+    await batch.commit();
+
+    // 3. Notifications
+    const resMsg={
+      full_refund:`Your dispute has been resolved. GHS ${Number(amount).toFixed(2)} has been refunded to your wallet.`,
+      release_artisan:`Your dispute has been resolved. Payment has been released.`,
+      partial_refund:`Your dispute has been resolved with a partial settlement.`,
+    };
+    if(customerId){
+      await addDoc(collection(db,'customer_notifications'),{receiverId:customerId,type:'System',title:'⚖️ Dispute Resolved',message:resMsg[selectedResolution]||'Dispute resolved.',isRead:false,createdAt:serverTimestamp()}).catch(()=>{});
+    }
+    if(artisanId){
+      await addDoc(collection(db,'customer_notifications'),{receiverId:artisanId,type:'System',title:'⚖️ Dispute Resolved',message:`A booking dispute has been resolved. ${selectedResolution==='release_artisan'?'Your payment has been processed.':selectedResolution==='full_refund'?'The booking amount has been refunded to the customer.':'A partial settlement has been applied.'}`,isRead:false,createdAt:serverTimestamp()}).catch(()=>{});
+    }
+
+    // 4. Log
+    await addDoc(collection(db,'dispute_logs'),{disputeId,resolution:selectedResolution,notes,adminEmail:currentAdmin.email,adminUid:currentAdmin.uid,timestamp:serverTimestamp()}).catch(()=>{});
+
+    showToast('⚖️ Dispute resolved successfully!','success');
+    closeRM();
+  }catch(e){
+    showToast('Error: '+e.message,'error');
+    console.error(e);
+  }finally{
+    btn.disabled=false;btn.textContent='Submit Resolution';
+  }
+};
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function ageStr(date){if(!date)return '—';const diff=Date.now()-date.getTime();const hrs=Math.floor(diff/3600000);const days=Math.floor(hrs/24);if(days>1)return `${days}d ago`;if(hrs>0)return `${hrs}h ago`;return 'Just now';}
+</script>
+</body>
+</html>
