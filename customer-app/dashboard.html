@@ -56,35 +56,6 @@
                </p>
            </div>
 
-           <!-- Quick Actions -->
-           <p class="sidebar-section-title">QUICK ACTIONS</p>
-           <div class="sidebar-quick-actions">
-               <button class="quick-action-btn">
-                   <div class="quick-action-icon">
-                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                   </div>
-                   <span>Emergency Request</span>
-               </button>
-               <button class="quick-action-btn">
-                   <div class="quick-action-icon">
-                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 14.03 20 12.57 20 11c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="#730201"/></svg>
-                   </div>
-                   <span>Rebook Last Technician</span>
-               </button>
-               <button class="quick-action-btn">
-                   <div class="quick-action-icon">
-                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>
-                   </div>
-                   <span>Track Current Booking</span>
-               </button>
-               <button class="quick-action-btn">
-                   <div class="quick-action-icon">
-                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-                   </div>
-                   <span>Schedule Service</span>
-               </button>
-           </div>
-
            <!-- Main Menu -->
            <p class="sidebar-section-title">MAIN MENU</p>
            <ul class="sidebar-menu-list">
@@ -99,13 +70,6 @@
                    <a href="#" class="sidebar-menu-item">
                        <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
                        <span class="sidebar-menu-label">My Requests</span>
-                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
-                   </a>
-               </li>
-               <li>
-                   <a href="booking.html" class="sidebar-menu-item">
-                       <span class="sidebar-menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span>
-                       <span class="sidebar-menu-label">Booking History</span>
                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
                    </a>
                </li>
@@ -358,14 +322,6 @@
             </svg>
             <span class="active-label">Home</span>
         </a>
-        <a href="booking.html" class="nav-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="#aaa" stroke-width="1.7"/>
-                <path d="M9 12h6M9 16h4" stroke="#aaa" stroke-width="1.7" stroke-linecap="round"/>
-            </svg>
-            <span>Bookings</span>
-        </a>
         <a href="messages.html" class="nav-item">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
@@ -441,17 +397,6 @@
   document.querySelector('.notification-wrapper-button')
     ?.addEventListener('click', () => go('notification.html'));
 
-  /* ── quick action buttons ─────────────────────────────────── */
-  const quickDests = [
-    'book-emergency.html',
-    'booking.html',
-    'tracking.html',
-    'book-step1.html'
-  ];
-  document.querySelectorAll('.quick-action-btn').forEach((btn, i) => {
-    if (quickDests[i]) btn.addEventListener('click', () => { closeSidebar(); go(quickDests[i]); });
-  });
-
   /* ── sidebar menu items with href="#" ─────────────────────── */
   document.querySelectorAll('.sidebar-menu-item[href="#"]').forEach(item => {
     const label = item.querySelector('.sidebar-menu-label')?.textContent.trim() || '';
@@ -459,7 +404,7 @@
       e.preventDefault();
       closeSidebar();
       switch (label) {
-        case 'My Requests':       go('booking.html'); break;
+        case 'My Requests':       toast('Requests — coming soon'); break;
         case 'Reviews & Ratings': toast('Reviews & Ratings — coming soon'); break;
         case 'My Addresses':      go('settings-location.html'); break;
         case 'Promo Codes':       toast('You have 2 promo codes available!'); break;
@@ -476,34 +421,10 @@
     });
   });
 
-  /* ── category buttons ─────────────────────────────────────── */
-  const catActions = {
-    'Fix leaking pipe':       { href: 'book-now.html',       store: { hh_service: 'Plumbing',   hh_task: 'Fix leaking pipe' } },
-    'Install Fan':            { href: 'book-now.html',       store: { hh_service: 'Electrical', hh_task: 'Install Fan' } },
-    'Emergency Electrician':  { href: 'book-emergency.html', store: { hh_service: 'Electrical', hh_task: 'Emergency Electrician' } },
-    'More':                   { href: 'book-step1.html' }
-  };
-  document.querySelectorAll('.cat-btn').forEach(btn => {
-    const text = btn.querySelector('span')?.textContent.trim();
-    const action = catActions[text];
-    if (action) btn.addEventListener('click', () => go(action.href, action.store));
-  });
-
-  /* ── ad banner buttons ────────────────────────────────────── */
-  const adActions = [
-    { href: 'book-now.html' },
-    { href: 'book-now.html', store: { hh_service: 'Cleaning' } },
-    { href: 'book-now.html', store: { hh_service: 'AC Repair' } }
-  ];
-  document.querySelectorAll('.book-now').forEach((btn, i) => {
-    const action = adActions[i];
-    if (action) btn.addEventListener('click', () => go(action.href, action.store));
-  });
-
   /* ── "View All" popular services ──────────────────────────── */
   document.querySelectorAll('section button, section a').forEach(el => {
     if (el.textContent.trim() === 'View All' && el.id !== 'location-changer') {
-      el.addEventListener('click', e => { e.preventDefault(); go('book-step1.html'); });
+      el.addEventListener('click', e => { e.preventDefault(); toast('Browsing — coming soon'); });
     }
   });
 
@@ -511,26 +432,11 @@
   document.getElementById('location-changer')
     ?.addEventListener('click', () => go('settings-location.html'));
 
-  /* ── pro-card "Book Now" buttons ──────────────────────────── */
-  document.querySelectorAll('.pro-card').forEach(card => {
-    const name = card.querySelector('h3')?.textContent.trim();
-    const role = card.querySelector('.pro-type')?.textContent.trim();
-    card.querySelector('.card-book')?.addEventListener('click', () =>
-      go('book-step1.html', { hh_pro_name: name || '', hh_pro_role: role || '' })
-    );
-  });
-
-  /* ── "View More Professionals" ────────────────────────────── */
-  document.querySelector('.view-more-btn')
-    ?.addEventListener('click', () => go('book-now.html'));
-
-  /* ── service slider cards → navigate to booking ───────────── */
+  /* ── service slider cards ─────────────────────────────────── */
   window.handleServiceClick = function (serviceId) {
     const scores = JSON.parse(localStorage.getItem('service_scores') || '{}');
     scores[serviceId] = (scores[serviceId] || 0) + 1;
     localStorage.setItem('service_scores', JSON.stringify(scores));
-    sessionStorage.setItem('hh_service_id', serviceId);
-    go('book-now.html');
   };
 })();
 </script>
