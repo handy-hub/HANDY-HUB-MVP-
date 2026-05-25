@@ -412,8 +412,7 @@
 
     // ── Navigation helper ────────────────────────────────
     function goTo(page) {
-      sessionStorage.setItem('pageTransitionDirection', 'forward');
-      window.location.href = page;
+      HH.nav.navigate(page);
     }
 
     // ── Preferences stored in localStorage ──────────────
@@ -493,7 +492,8 @@
     }
   </script>
 
+  <script src="../shared/js/utils/navManager.js"></script>
   <script type="module" src="js/pages/settingsPage.js"></script>
-<script src="../shared/js/components/fastLoader.js"></script>
+  <script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>

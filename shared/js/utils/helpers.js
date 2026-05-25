@@ -253,8 +253,6 @@ function handleServiceClick(serviceId) {
     renderServices();
 }
 
-window.handleServiceClick = handleServiceClick;
-
 function initNavbar() {
     const navItems = document.querySelectorAll('.nav-item');
     const path = window.location.pathname;

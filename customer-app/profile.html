@@ -57,7 +57,7 @@
           </div>
 
           <button class="uc-edit-btn" aria-label="Edit profile"
-            onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-personal-info.html'">
+            onclick="HH.nav.navigate('settings-personal-info.html')">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
                     stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -137,7 +137,7 @@
           <p class="banner-sub">Add a few details to get better recommendations.</p>
         </div>
         <button class="update-btn"
-          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-personal-info.html'">
+          onclick="HH.nav.navigate('settings-personal-info.html')">
           Update
         </button>
       </div>
@@ -226,7 +226,7 @@
       <!-- Menu List -->
       <div class="menu-list">
         <button class="menu-item"
-          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-location.html'">
+          onclick="HH.nav.navigate('settings-location.html')">
           <div class="menu-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
@@ -241,7 +241,7 @@
         </button>
 
         <button class="menu-item"
-          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-notifications.html'">
+          onclick="HH.nav.navigate('settings-notifications.html')">
           <div class="menu-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
@@ -256,7 +256,7 @@
         </button>
 
         <button class="menu-item"
-          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-help.html'">
+          onclick="HH.nav.navigate('settings-help.html')">
           <div class="menu-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
@@ -289,7 +289,7 @@
         </button>
 
         <button class="menu-item"
-          onclick="sessionStorage.setItem('pageTransitionDirection','forward'); window.location.href='settings-about.html'">
+          onclick="HH.nav.navigate('settings-about.html')">
           <div class="menu-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" stroke="#111" stroke-width="1.7"/>
@@ -359,6 +359,7 @@
 
   <input type="file" id="profile-photo-input" accept="image/*" style="display:none" aria-hidden="true" />
 
+  <script src="../shared/js/utils/navManager.js"></script>
   <script type="module" src="js/pages/profilePage.js"></script>
   <script src="../shared/js/components/fastLoader.js"></script>
 </body>
