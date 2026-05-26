@@ -510,6 +510,10 @@ startMoving();
 initSlide('slide-cancel',  'cancel-fill',  'cancel-label',  'cancel-thumb',  cancelBooking);
 initSlide('slide-confirm', 'confirm-fill', 'confirm-label', 'confirm-thumb', confirmCompletion);
 </script>
+<script type="module">
+  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  await requireAuth();
+</script>
 </body>
 </html>
 

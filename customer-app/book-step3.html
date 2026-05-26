@@ -37,10 +37,10 @@
       </p>
     </div>
     <div class="bk-bell-wrap">
-      <button class="bk-bell-btn">
+      <button class="bk-bell-btn" onclick="window.location.href='notification.html'" aria-label="Notifications">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#111" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#111" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <span class="bk-bell-badge">3</span>
+      <span class="bk-bell-badge" id="bk-bell-badge" style="display:none">0</span>
     </div>
   </div>
 
@@ -95,7 +95,7 @@
         <p class="pro-mini-type" id="pro3-type">Select a professional</p>
         <p class="pro-mini-stats" id="pro3-stats"></p>
       </div>
-      <button class="view-profile-link">
+      <button class="view-profile-link" id="view-profile-btn" onclick="goToArtisanProfile()">
         View Profile
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
@@ -160,7 +160,7 @@
       <div class="detail-bk-body">
         <div class="detail-bk-head">
           <span class="detail-bk-title">Service Location</span>
-          <button class="edit-link">
+          <button class="edit-link" onclick="window.location.href='settings-location.html'">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
             Edit
           </button>
@@ -169,8 +169,8 @@
         <div id="loc-map"></div>
         <div class="loc-address-row">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#730201"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>
-          <span class="loc-address-text">East Legon, Accra, Ghana</span>
-          <a class="loc-open-maps" href="https://www.google.com/maps/search/?api=1&query=East+Legon+Accra+Ghana" target="_blank" rel="noopener">Open Maps</a>
+          <span class="loc-address-text" id="loc-addr-display">Detecting location…</span>
+          <a class="loc-open-maps" id="loc-open-maps-link" href="#" target="_blank" rel="noopener">Open Maps</a>
         </div>
       </div>
     </div>
@@ -200,7 +200,7 @@
     <div class="payment-card">
       <div class="payment-card-head">
         <span class="payment-card-title">Payment Method</span>
-        <button class="payment-change-link">Change</button>
+        <button class="payment-change-link" onclick="window.location.href='topup.html'">Change</button>
       </div>
       <div class="payment-option" onclick="selectPayment(this)">
         <div class="payment-opt-icon" style="background:#fde8e8;">
@@ -275,7 +275,7 @@
       <span class="bk-total-label">Total Payable <span style="color:#bbb; font-size:13px;">ⓘ</span></span>
       <span class="bk-total-value" id="footer3-total">GHC 65.00</span>
     </div>
-    <button class="bk-view-price">
+    <button class="bk-view-price" onclick="document.querySelector('.price-table-card').scrollIntoView({behavior:'smooth',block:'center'})">
       View price details
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
@@ -324,9 +324,47 @@
   const MONTHS_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+  // ── View Profile handler ─────────────────────────────────────────────────
+  window.goToArtisanProfile = function() {
+    const state = getState();
+    const proId = state.professional ? (state.professional.uid || state.professional.id) : null;
+    if (proId) {
+      sessionStorage.setItem('view_artisan_id', proId);
+    }
+    // For now navigate to book-step2 where they can re-select; full profile page is post-MVP
+    window.location.href = 'book-step2.html';
+  };
+
   document.addEventListener('DOMContentLoaded', function() {
-    // Leaflet map – East Legon, Accra
-    const LAT = 5.6343, LNG = -0.1567;
+    // ── Notification badge ──────────────────────────────────────────────────
+    try {
+      const count = parseInt(localStorage.getItem('unread_notifications') || '0', 10);
+      const badge = document.getElementById('bk-bell-badge');
+      if (badge && count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.style.display = ''; }
+    } catch (_) {}
+
+    // ── Location from cache ─────────────────────────────────────────────────
+    let LAT = 5.6343, LNG = -0.1567, locationText = 'East Legon, Accra, Ghana';
+    try {
+      const locCache = JSON.parse(localStorage.getItem('hh_detected_location') || 'null');
+      if (locCache && locCache.lat && locCache.lon) {
+        LAT = locCache.lat; LNG = locCache.lon;
+        if (locCache.loc) locationText = locCache.loc;
+      } else {
+        // also check booking state address
+        const bkState = getState();
+        if (bkState.address) locationText = bkState.address;
+      }
+    } catch(_) {}
+    // Update address display
+    const addrEl = document.getElementById('loc-addr-display');
+    if (addrEl) addrEl.textContent = locationText;
+    const mapsLink = document.getElementById('loc-open-maps-link');
+    if (mapsLink) mapsLink.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(locationText);
+    // Save address to booking state for step4
+    setState({ address: locationText });
+
+    // Leaflet map – user location or fallback
     const map = L.map('loc-map', { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false })
                  .setView([LAT, LNG], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
@@ -507,6 +545,10 @@
     }
     window.location.href = 'book-step4.html';
   }
+</script>
+<script type="module">
+  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  await requireAuth();
 </script>
 </body>
 </html>

@@ -29,6 +29,9 @@ const webhooks  = require('./financial/webhooks');
 // ── Artisan verification module ───────────────────────────────────────────────
 const artisanVerif = require('./artisanVerification');
 
+// ── Booking lifecycle module ──────────────────────────────────────────────────
+const bookingsModule = require('./bookings');
+
 // ─────────────────────────────────────────────────────────────────────────────
 // WEBHOOK  —  Paystack → Firebase (public HTTPS endpoint)
 // Add this URL to your Paystack dashboard → Settings → API Keys & Webhooks
@@ -270,6 +273,21 @@ exports.onVerificationSubmitted = onDocumentCreated(
     { document: 'verification_requests/{artisanId}', region: 'us-central1' },
     (event) => artisanVerif.onVerificationSubmitted(event),
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOKING LIFECYCLE — status-change notifications
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * onBookingStatusChanged — fires on any booking document update.
+ * Sends notifications to the customer or artisan based on the new status:
+ *   pending → accepted    : customer notified
+ *   pending → rejected    : customer notified
+ *   accepted → in_progress: customer notified
+ *   * → completed         : both notified
+ *   * → cancelled         : both notified
+ */
+exports.onBookingStatusChanged = bookingsModule.onBookingStatusChanged;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

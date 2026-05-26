@@ -109,6 +109,10 @@ body[data-page-type="notification"] {
     background: var(--brand-mid);
     color: #ffffff;
 }
+/* Tab whose notification type is turned off in Settings */
+.tab-btn--muted {
+    opacity: 0.45;
+}
 
 /* Badge inside a tab */
 .tab-badge {
@@ -331,6 +335,73 @@ body[data-page-type="notification"] {
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+/* ── Header action cluster (mark-all + gear) ─────────────────────────────── */
+.notif-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+#markAllReadBtn {
+    color: var(--brand-mid);
+}
+#markAllReadBtn:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* ── Swipe-to-delete ─────────────────────────────────────────────────────── */
+
+/* The outer row clips the card as it slides left, revealing the red panel */
+.notif-swipe-row {
+    position: relative;
+    overflow: hidden;
+}
+
+/*
+ * THE KEY FIX: give the card position:relative + z-index:2 + an opaque background
+ * so it sits visually ON TOP of the delete panel at all times.
+ * Without this the delete panel (position:absolute) paints above the card
+ * in CSS stacking order and is visible before any swipe happens.
+ */
+.notif-swipe-row .notif-card {
+    position: relative;
+    z-index: 2;
+    background: #ffffff;   /* opaque — hides the delete panel until card slides */
+}
+.notif-swipe-row .notif-card.notif-card--unread {
+    background: var(--card-new-bg);   /* #fffafa — preserve unread tint */
+}
+
+/* Red delete panel — always present, revealed as the card slides left */
+.notif-delete-action {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 90px;
+    z-index: 1;                     /* behind the card */
+    background: #d32f2f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: #fff;
+    pointer-events: none;
+    user-select: none;
+    transform-origin: right center; /* scale grows from the right edge */
+    will-change: transform, background;
+}
+.notif-delete-action i {
+    font-size: 22px;
+}
+.notif-delete-action span {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 /* ── Bottom nav (injected by navLoader) ─────────────────────────────────── */

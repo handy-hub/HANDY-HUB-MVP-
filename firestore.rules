@@ -224,10 +224,14 @@ service cloud.firestore {
         'availability', 'isAvailable', 'isOnline',
         'baseRate', 'workRadius', 'skills', 'specialty',
         'yearsExperience', 'gender', 'category',
+        // Onboarding KYC fields (written by onboarding.html during application submission)
+        'dob', 'emergencyContact', 'ghanaCardNumber', 'tin',
         // Payout account setup
         'momoProvider', 'momoPhone', 'momoAccountName', 'payoutAccount',
         // Workflow state artisan may set
         'verificationStatus', 'status', 'onboarded',
+        // Presence / heartbeat fields (written by presenceService.js)
+        'lastActive', 'lastHeartbeat', 'presenceUpdatedAt',
         // Timestamps
         'updatedAt', 'createdAt'
       ]);
@@ -569,7 +573,9 @@ service cloud.firestore {
       allow update: if isSignedIn() &&
                        resource.data.receiverId == request.auth.uid &&
                        incoming().diff(existing()).affectedKeys().hasOnly(['isRead', 'readAt']);
-      allow delete: if false;
+
+      // Receiver may delete their own notifications (swipe-to-delete in the app).
+      allow delete: if isSignedIn() && resource.data.receiverId == request.auth.uid;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -679,6 +685,30 @@ service cloud.firestore {
       allow read:          if isSignedIn();
       allow create, update: if hasAdminPermission('operations_admin');
       allow delete:         if isSuperAdmin();
+    }
+    // ═══════════════════════════════════════════════════════════════
+    // IMAGE STORAGE RULES  (profile images, etc.)
+    // ═══════════════════════════════════════════════════════════════
+        // Each customer's profile image: only that user may write;
+    // any authenticated user may read (needed to display avatars in chats/bookings).
+    match /customers/{userId}/profileImage {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Artisan profile images follow the same pattern.
+    match /artisans/{userId}/profileImage {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Deny everything else by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
 
   }

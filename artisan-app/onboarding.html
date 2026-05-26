@@ -759,15 +759,25 @@ async function submitApplication() {
 
     const n = new Date().toISOString();
 
-    // Write artisan profile (active = false until approved)
+    // Write artisan profile update (merge — preserves registration fields like walletBalance)
+    // NOTE: Financial/reputation fields (rating, reviewCount, jobsCompleted, totalEarned,
+    //       availableBalance, pendingBalance) are intentionally OMITTED here — they were
+    //       set to 0 during registration and are owned exclusively by Cloud Functions.
     await databaseService.setDocument('artisans', uid, {
-      id:               uid,
-      name:             `${firstName} ${lastName}`,
+      // Core identity (must always be present for Firestore rules validation)
+      id:        uid,
+      name:      `${firstName} ${lastName}`,
       email,
+      userType:  'artisan',
+      status:    'pending',
+      // Personal details
       phone,
-      dob, gender, address,
+      dob,
+      gender,
+      address,
       gpsAddress:       gps,
       emergencyContact: { name: emergName, phone: emergPhone },
+      // Profile & skills
       profileImage:     docUrls.selfie || null,
       category,
       specialty:        category,
@@ -777,19 +787,15 @@ async function submitApplication() {
       workRadius:       Number(radius) || 10,
       baseRate:         baseRate ? Number(baseRate) : null,
       availability:     avail,
-      isAvailable:      false, // locked until approved
-      verificationStatus: 'pending_review',
+      isAvailable:      false, // stays false until admin approves
+      // KYC documents
       ghanaCardNumber:  ghanaCard,
-      tin,
-      payoutAccount: { provider, phone: momoNum, accountName: acctName },
-      rating:           0,
-      reviewCount:      0,
-      jobsCompleted:    0,
-      totalEarned:      0,
-      availableBalance: 0,
-      pendingBalance:   0,
-      userType:         'artisan',
-      status:           'pending',
+      tin:              tin || null,
+      // Payout account
+      payoutAccount:    { provider, phone: momoNum, accountName: acctName },
+      // Workflow
+      verificationStatus: 'pending_review',
+      // Timestamps
       createdAt:        n,
       updatedAt:        n,
     }, { merge: true });

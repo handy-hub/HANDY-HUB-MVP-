@@ -20,14 +20,14 @@
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#374151" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="icon-badge" id="chat-badge" style="display:none">0</span>
+          <span class="icon-badge" id="chat-badge">0</span>
         </button>
         <button class="icon-btn" aria-label="Notifications" onclick="window.location.href='notifications.html'">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/>
           </svg>
-          <span class="icon-badge" id="notif-badge" style="display:none">0</span>
+          <span class="icon-badge" id="notif-badge">0</span>
         </button>
       </div>
     </header>
@@ -312,7 +312,9 @@
 
 <script type="module">
 import '../shared/js/utils/global-app.js';
-import { getAppContainer } from '../shared/js/app/container.js';
+import { getAppContainer }                            from '../shared/js/app/container.js';
+import { startPresence, stopPresence, setOnlineState } from '../shared/js/services/presenceService.js';
+import { subscribeToUnreadCount }                      from '../shared/js/services/notificationRepository.js';
 
 const { services: { authService, databaseService } } = getAppContainer();
 
@@ -341,6 +343,7 @@ const jobsEmpty       = document.getElementById('jobs-empty');
 const jobsList        = document.getElementById('job-requests-list');
 const scheduleList    = document.getElementById('schedule-list');
 const scheduleEmpty   = document.getElementById('schedule-empty');
+const notifBadge      = document.getElementById('notif-badge');
 
 // Stats
 const statJobs     = document.getElementById('stat-jobs');
@@ -436,13 +439,13 @@ window.toggleOnlineStatus = async function() {
   const next = !isOnline;
   updateStatusUI(next);
   try {
-    await databaseService.updateDocument('artisans', uid, {
-      isAvailable: next,
-      lastActive: new Date().toISOString()
-    });
+    // setOnlineState writes isOnline + lastActive + heartbeat fields atomically
+    await setOnlineState(next);
+    // Also write isAvailable so the profile listener reflects the correct toggle state
+    await databaseService.updateDocument('artisans', uid, { isAvailable: next });
     showToast(next ? 'You\'re now online 🟢' : 'You\'re offline');
   } catch (e) {
-    updateStatusUI(!next); // revert
+    updateStatusUI(!next); // revert on failure
     showToast('Could not update status. Try again.');
   }
 };
@@ -470,17 +473,46 @@ function renderJobCard(booking) {
     </p>
     <p class="job-budget">Budget: <strong>GHC ${Number(d.price||0).toFixed(0)} – ${Number((d.price||0)*1.3).toFixed(0)}</strong></p>
     <div class="job-actions">
-      <button class="btn-view-details" onclick="window.location.href='job-details.html?id=${id}'">View Details</button>
+      <button class="btn-accept" onclick="acceptJob('${id}')">
+        <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Accept Job
+      </button>
       <button class="btn-decline" onclick="declineJob('${id}')">Decline</button>
     </div>`;
   return card;
 }
 
+window.acceptJob = async function(bookingId) {
+  const btn = document.querySelector(`#job-${bookingId} .btn-accept`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Accepting…'; }
+  try {
+    await databaseService.updateDocument('bookings', bookingId, {
+      status:     'accepted',
+      acceptedAt: new Date().toISOString(),
+      updatedAt:  new Date().toISOString()
+    });
+    const el = document.getElementById(`job-${bookingId}`);
+    if (el) {
+      el.style.transition = 'opacity .25s';
+      el.style.opacity    = '0';
+      setTimeout(() => el.remove(), 260);
+    }
+    showToast('✅ Job accepted! The customer will be notified.');
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Accept Job'; }
+    showToast('Could not accept job. Try again.');
+  }
+};
+
 window.declineJob = async function(bookingId) {
   try {
     await databaseService.updateDocument('bookings', bookingId, { status: 'rejected', updatedAt: new Date().toISOString() });
     const el = document.getElementById(`job-${bookingId}`);
-    if (el) el.remove();
+    if (el) {
+      el.style.transition = 'opacity .25s';
+      el.style.opacity    = '0';
+      setTimeout(() => el.remove(), 260);
+    }
     showToast('Job declined');
   } catch(e) { showToast('Could not decline. Try again.'); }
 };
@@ -534,10 +566,32 @@ authService.subscribeToAuthState(async user => {
   if (!user) { window.location.href = 'login.html'; return; }
   uid = user.uid;
 
+  // Start realtime presence (heartbeat + visibility/network/unload handlers)
+  startPresence(uid, databaseService, true);
+
+  // ── Realtime notification badge ──────────────────────
+  const u0 = subscribeToUnreadCount(uid, (count) => {
+    if (count > 0) {
+      notifBadge.textContent    = count > 99 ? '99+' : String(count);
+      notifBadge.style.display  = 'flex';
+    } else {
+      notifBadge.style.display  = 'none';
+    }
+  });
+  unsubs.push(u0);
+
   // Live artisan profile
+  let presenceStarted = false;
   const u1 = databaseService.subscribeToDocument('artisans', uid, snap => {
-    if (snap.exists) applyProfile(snap.data);
-    else {
+    if (snap.exists) {
+      applyProfile(snap.data);
+      // Re-sync presence service with the stored isAvailable value
+      if (!presenceStarted) {
+        presenceStarted = true;
+        const storedOnline = snap.data.isAvailable !== false;
+        startPresence(uid, databaseService, storedOnline);
+      }
+    } else {
       // New artisan — redirect to onboarding
       window.location.href = 'onboarding.html';
     }
@@ -547,7 +601,7 @@ authService.subscribeToAuthState(async user => {
   // Live job requests (pending bookings for this artisan)
   const u2 = databaseService.subscribeToCollection(
     'bookings',
-    [{ field: 'artisanId', op: '==', value: uid }, { field: 'status', op: '==', value: 'Pending' }],
+    [{ field: 'artisanId', op: '==', value: uid }, { field: 'status', op: '==', value: 'pending' }],
     { orderBy: { field: 'createdAt', direction: 'desc' }, limit: 5 },
     records => {
       jobSkeleton?.remove();
@@ -564,12 +618,12 @@ authService.subscribeToAuthState(async user => {
   );
   unsubs.push(u2);
 
-  // Live schedule (accepted / in-progress bookings)
+  // Live schedule (accepted / in-progress bookings — all lowercase to match Firestore writes)
   const today = new Date();
   today.setHours(0,0,0,0);
   const u3 = databaseService.subscribeToCollection(
     'bookings',
-    [{ field: 'artisanId', op: '==', value: uid }, { field: 'status', op: 'in', value: ['accepted', 'In Progress', 'Confirmed'] }],
+    [{ field: 'artisanId', op: '==', value: uid }, { field: 'status', op: 'in', value: ['accepted', 'in_progress'] }],
     { orderBy: { field: 'createdAt', direction: 'asc' }, limit: 5 },
     records => {
       scheduleList.querySelectorAll('.schedule-item').forEach(c => c.remove());
@@ -585,7 +639,10 @@ authService.subscribeToAuthState(async user => {
   unsubs.push(u3);
 });
 
-window.addEventListener('pagehide', () => unsubs.forEach(u => u && u()));
+window.addEventListener('pagehide', () => {
+  unsubs.forEach(u => u && u());
+  stopPresence();
+});
 </script>
 
 <script src="../shared/js/components/fastLoader.js"></script>

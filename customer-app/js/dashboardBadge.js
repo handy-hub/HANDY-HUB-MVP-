@@ -8,7 +8,7 @@ let unsubscribeCount = null;
 function updateBadgeEl(count) {
     try { localStorage.setItem("unread_notifications", count); } catch (_) {}
 
-    const badge = document.querySelector(".notification-badge");
+    const badge = document.getElementById("notif-badge");
     if (!badge) return;
 
     if (count > 0) {

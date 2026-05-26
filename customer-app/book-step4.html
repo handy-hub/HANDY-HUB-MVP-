@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
+  <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Handy Hub – Booking Confirmed</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
@@ -14,7 +15,7 @@
 
   <!-- Header -->
   <div class="bk-header">
-    <button class="bk-back-btn" onclick="window.location.href='dashboard.html'">
+    <button class="bk-back-btn" onclick="window.location.href='booking.html'" aria-label="My Bookings">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
     <div class="bk-header-center">
@@ -26,10 +27,9 @@
       </p>
     </div>
     <div class="bk-bell-wrap">
-      <button class="bk-bell-btn">
+      <button class="bk-bell-btn" onclick="window.location.href='notification.html'" aria-label="Notifications">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#111" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#111" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <span class="bk-bell-badge">3</span>
     </div>
   </div>
 
@@ -83,6 +83,31 @@
       <h1 class="confirmed-title">Booking Confirmed!</h1>
       <p class="confirmed-sub">Your service has been booked successfully.<br>We've sent the details to your email and SMS.</p>
     </div>
+
+    <!-- Live booking status bar -->
+    <div id="live-status-bar" style="
+      margin: 0 16px 14px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      background: #fff8f0;
+      border: 1.5px solid #f5dfc8;
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'DM Sans', sans-serif;
+      transition: background .3s, border-color .3s;
+    ">
+      <span id="lsb-icon" style="font-size:18px">🕐</span>
+      <div style="flex:1">
+        <p id="lsb-title" style="margin:0;font-size:13px;font-weight:700;color:#92400e">Waiting for confirmation…</p>
+        <p id="lsb-sub"   style="margin:2px 0 0;font-size:11.5px;color:#b45309">The professional will respond shortly.</p>
+      </div>
+      <div id="lsb-pulse" style="width:8px;height:8px;border-radius:50%;background:#f97316;animation:lsbPulse 1.2s infinite"></div>
+    </div>
+    <style>
+      @keyframes lsbPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }
+      [data-theme="dark"] #live-status-bar { background:#1e1208; border-color:#3a2000; }
+      [data-theme="dark"] #lsb-title { color:#fbbf24; }
+      [data-theme="dark"] #lsb-sub   { color:#92400e; }
+    </style>
 
     <!-- Booking ID -->
     <div class="booking-id-row">
@@ -157,7 +182,7 @@
     <div class="booking-summary-card">
       <div class="summary-card-head">
         <span class="summary-card-title">Booking Summary</span>
-        <button class="summary-view-details">
+        <button class="summary-view-details" onclick="window.location.href='booking.html'">
           View Details
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
@@ -203,7 +228,7 @@
         <p class="help-label">Need Help?</p>
         <p class="help-sub">Our support team is available 24/7 to assist you.</p>
       </div>
-      <button class="contact-support-btn">
+      <button class="contact-support-btn" onclick="window.location.href='settings-help.html'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#2e7d32" stroke-width="2" stroke-linecap="round"/></svg>
         Contact Support
       </button>
@@ -222,14 +247,28 @@
 <script>
   const BK_KEY = 'hh_booking';
   function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
+  function setState(patch) { localStorage.setItem(BK_KEY, JSON.stringify(Object.assign(getState(), patch))); }
 
   document.addEventListener('DOMContentLoaded', function() {
     const state = getState();
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
 
-    // Generate unique booking ID
-    const bookingId = `HHB-${String(now.getFullYear()).slice(2)}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+    // Generate crypto-random booking ID (only once — reuse if already stored in state)
+    let bookingId = state.bookingId || null;
+    if (!bookingId) {
+      let rnd;
+      try {
+        const arr = new Uint8Array(2);
+        crypto.getRandomValues(arr);
+        rnd = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+      } catch(_) {
+        rnd = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+      }
+      bookingId = `HHB-${String(now.getFullYear()).slice(2)}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}-${rnd}`;
+      // Store it so a page refresh reuses the same ID
+      setState({ bookingId });
+    }
     document.getElementById('booking-id-val').textContent = bookingId;
 
     // Professional info
@@ -259,9 +298,12 @@
       const typeEl = document.getElementById('call-pro-type');
       if (typeEl) typeEl.textContent = `${pro.type} · ${pro.exp}`;
       const statsEl = document.getElementById('call-pro-stats');
-      if (statsEl) statsEl.innerHTML = `★ <strong>${pro.rating}</strong> (${pro.reviews} reviews) &nbsp;|&nbsp; ${pro.jobs} jobs completed`;
+      if (statsEl) {
+        const ratingStr = pro.rating ? `★ <strong>${pro.rating}</strong> (${pro.reviews || 0} reviews) &nbsp;|&nbsp; ` : '';
+        statsEl.innerHTML = ratingStr + `${pro.jobs || 0} jobs completed`;
+      }
       const distEl = document.getElementById('call-pro-dist');
-      if (distEl) distEl.textContent = pro.dist + ' away';
+      if (distEl) distEl.textContent = pro.dist ? pro.dist + ' away' : 'Nearby';
       const chipEl = document.getElementById('call-pro-chip');
       if (chipEl) chipEl.style.display = pro.isTopRated ? '' : 'none';
       const avail = document.getElementById('call-pro-avail');
@@ -307,31 +349,59 @@
       document.getElementById('sum-total').textContent = `GHC ${state.total}.00`;
     }
 
-    // Save to booking history (localStorage)
+    // Save to booking history (via HH_State service when available, else direct write)
+    const artisanId = state.professional
+      ? (state.professional.uid || state.professional.id || null)
+      : null;
     const bookingRecord = {
       id:          bookingId,
       service:     state.services ? state.services[0].name : 'Service',
+      category:    state.services ? (state.services[0].category || '') : '',
       proName:     state.professional ? state.professional.name : 'Professional',
       proType:     state.professional ? state.professional.type : '',
-      proPhoto:    state.professional ? state.professional.photo : null,
-      artisanId:   state.professional ? (state.professional.id || state.professional.uid || null) : null,
-      dateDisplay: state.schedule ? (state.schedule.dateDisplay || '') : '',
-      time:        state.schedule ? state.schedule.time : '',
-      total:       state.total || 65,
+      proPhoto:    state.professional ? (state.professional.photo || null) : null,
+      proRating:   state.professional ? (state.professional.rating || null) : null,
+      proPhone:    state.professional ? (state.professional.phone || null) : null,
+      artisanId,
+      dateDisplay: state.schedule ? (state.schedule.dateDisplay || state.schedule.dateShort || '') : '',
+      date:        state.schedule ? (state.schedule.date || '') : '',
+      time:        state.schedule ? (state.schedule.time || '') : '',
+      address:     state.address || '',
+      notes:       state.notes  || '',
+      total:       state.total  || 65,
+      payment:     state.payment || 'Wallet',
+      // 'Confirmed' = customer confirmed; Firestore gets 'pending' via bookingConfirmNotify
       status:      'Confirmed',
+      type:        'standard',
       ts:          now.toISOString(),
+      reviewLeft:  false,
     };
     try {
-      const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
-      if (!hist.length || hist[0].id !== bookingId) {
-        hist.unshift(bookingRecord);
-        localStorage.setItem('hh_booking_history', JSON.stringify(hist.slice(0, 20)));
+      if (window.HH_State && window.HH_State.history) {
+        // Use the service layer (enforces 50-record limit and proper schema)
+        window.HH_State.history.push(bookingRecord);
+        window.HH_State.booking.patch({ bookingId, status: 'Confirmed', ts: now.toISOString() });
+      } else {
+        // Fallback: direct localStorage write with 50-record cap
+        const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
+        if (!hist.length || hist[0].id !== bookingId) {
+          hist.unshift(bookingRecord);
+          localStorage.setItem('hh_booking_history', JSON.stringify(hist.slice(0, 50)));
+        }
       }
     } catch(e) {}
 
     // Persist booking to Firestore + notify customer (ES module — runs async)
+    // bookingConfirmNotify always writes status:'pending' to Firestore regardless of
+    // the localStorage status value ('Confirmed'). The two layers intentionally differ.
     import('../shared/js/utils/bookingConfirmNotify.js')
-      .then(m => m.onBookingConfirmed(bookingRecord))
+      .then(m => m.onBookingConfirmed({
+        ...bookingRecord,
+        // Ensure artisanId is included for the Firestore write
+        artisanId,
+        service:  bookingRecord.service,
+        proName:  bookingRecord.proName,
+      }))
       .catch(() => { /* non-critical — booking UI already confirmed */ });
 
     // Confetti animation
@@ -355,6 +425,90 @@
       });
     }
   }
+</script>
+
+<!-- ── Realtime booking status listener (module) ──────────────────────────── -->
+<script type="module">
+  import { requireAuth }    from '../shared/js/utils/authGuard.js';
+  import { getAppContainer } from '../shared/js/app/container.js';
+
+  // Auth guard — protected booking confirmation page
+  await requireAuth();
+
+  const STATUS_CONFIG = {
+    pending:     { icon: '🕐', title: 'Waiting for confirmation…',  sub: 'The professional will respond shortly.',       bg: '#fff8f0', border: '#f5dfc8', titleColor: '#92400e', subColor: '#b45309', pulse: true  },
+    accepted:    { icon: '✅', title: 'Booking Accepted!',           sub: 'The professional confirmed your booking.',     bg: '#f0fdf4', border: '#bbf7d0', titleColor: '#166534', subColor: '#15803d', pulse: false },
+    rejected:    { icon: '❌', title: 'Booking Declined',            sub: 'Please try booking another professional.',     bg: '#fef2f2', border: '#fecaca', titleColor: '#991b1b', subColor: '#dc2626', pulse: false },
+    in_progress: { icon: '🔧', title: 'Job In Progress',             sub: 'Your professional is working on your request.', bg: '#eff6ff', border: '#bfdbfe', titleColor: '#1d4ed8', subColor: '#2563eb', pulse: true  },
+    completed:   { icon: '🎉', title: 'Job Completed!',              sub: 'Please rate your experience.',                 bg: '#f0fdf4', border: '#bbf7d0', titleColor: '#166534', subColor: '#15803d', pulse: false },
+    cancelled:   { icon: '🚫', title: 'Booking Cancelled',           sub: 'This booking has been cancelled.',             bg: '#fef2f2', border: '#fecaca', titleColor: '#991b1b', subColor: '#dc2626', pulse: false },
+  };
+
+  function applyStatusBar(status) {
+    const cfg = STATUS_CONFIG[status?.toLowerCase()] || STATUS_CONFIG.pending;
+    const bar   = document.getElementById('live-status-bar');
+    const icon  = document.getElementById('lsb-icon');
+    const title = document.getElementById('lsb-title');
+    const sub   = document.getElementById('lsb-sub');
+    const pulse = document.getElementById('lsb-pulse');
+    if (!bar) return;
+    bar.style.background   = cfg.bg;
+    bar.style.borderColor  = cfg.border;
+    icon.textContent        = cfg.icon;
+    title.textContent       = cfg.title;
+    title.style.color       = cfg.titleColor;
+    sub.textContent         = cfg.sub;
+    sub.style.color         = cfg.subColor;
+    pulse.style.display     = cfg.pulse ? '' : 'none';
+  }
+
+  // Wait for DOMContentLoaded then subscribe
+  document.addEventListener('DOMContentLoaded', () => {
+    const BK_KEY = 'hh_booking';
+    function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
+
+    // Delay slightly so bookingConfirmNotify has time to write the Firestore doc
+    setTimeout(async () => {
+      const state     = getState();
+      const bookingId = state.bookingId;
+      if (!bookingId) return;
+
+      let authService, databaseService;
+      try {
+        const _c = getAppContainer();
+        authService     = _c.services.authService;
+        databaseService = _c.services.databaseService;
+      } catch { return; }
+
+      // Only subscribe once auth is ready
+      authService.subscribeToAuthState(user => {
+        if (!user) return;
+
+        let unsub = null;
+        // Poll for the Firestore doc for up to 10 s (bookingConfirmNotify is async)
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        function trySubscribe() {
+          attempts++;
+          unsub = databaseService.subscribeToDocument('bookings', bookingId, snap => {
+            if (snap.exists) {
+              applyStatusBar(snap.data.status);
+            } else if (attempts < maxAttempts) {
+              // Doc not yet written — retry after 1 s
+              if (unsub) { unsub(); unsub = null; }
+              setTimeout(trySubscribe, 1000);
+            }
+          }, () => {
+            // Error reading — stay on pending state
+          });
+        }
+        trySubscribe();
+
+        window.addEventListener('pagehide', () => { if (unsub) unsub(); });
+      });
+    }, 1500);
+  });
 </script>
 </body>
 </html>

@@ -29,14 +29,14 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span class="hh-badge" id="msg-badge" style="display:none">2</span>
+        <span class="hh-badge" id="msg-badge" style="display:none"></span>
       </button>
       <button class="hh-icon-btn" id="notif-btn" aria-label="Notifications">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
-        <span class="hh-badge" id="notif-badge">3</span>
+        <span class="hh-badge" id="notif-badge"></span>
       </button>
     </div>
   </header>
@@ -495,6 +495,11 @@
 </script>
 
 <!-- ════ SCRIPTS ════ -->
+<!-- Auth guard — redirects to login.html if no active session -->
+<script type="module">
+  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  await requireAuth();
+</script>
 <script src="../shared/js/components/serviceIcons.js"></script>
 <script src="../shared/js/components/pageTransition.js"></script>
 <script type="module" src="../shared/js/services/logoutService.js"></script>

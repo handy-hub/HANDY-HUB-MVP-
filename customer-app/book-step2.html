@@ -26,10 +26,9 @@
       </p>
     </div>
     <div class="bk-bell-wrap">
-      <button class="bk-bell-btn">
+      <button class="bk-bell-btn" onclick="window.location.href='notification.html'" aria-label="Notifications">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#111" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#111" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <span class="bk-bell-badge">3</span>
     </div>
   </div>
 
@@ -89,21 +88,21 @@
 
     <!-- Filters -->
     <div class="filter-pills">
-      <button class="filter-pill active">
+      <button id="fp-recommended" class="filter-pill active" onclick="window.applyFilter('recommended')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#730201"/></svg>
         Recommended
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <button class="filter-pill">
+      <button id="fp-rating" class="filter-pill" onclick="window.applyFilter('rating')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#555" stroke-width="2"/></svg>
         Rating 4.0+
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#555" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <button class="filter-pill">
+      <button id="fp-price" class="filter-pill" onclick="window.applyFilter('price')">
         Price
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#555" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <button class="filter-pill">
+      <button id="fp-more" class="filter-pill" onclick="window.applyFilter('more')">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><line x1="4" y1="6" x2="20" y2="6" stroke="#555" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke="#555" stroke-width="2" stroke-linecap="round"/><line x1="11" y1="18" x2="13" y2="18" stroke="#555" stroke-width="2" stroke-linecap="round"/></svg>
         More Filters
       </button>
@@ -160,120 +159,358 @@
 
 </div>
 
-<script>
+<script type="module">
+  /* ─────────────────────────────────────────────────────────────────
+     book-step2.html — Choose a Professional
+     Loads real artisans from Firestore via artisanRepository.
+     Falls back to empty / error state — never shows fake data.
+  ───────────────────────────────────────────────────────────────── */
+  import { requireAuth }    from '../shared/js/utils/authGuard.js';
+  import { getAppContainer } from '../shared/js/app/container.js';
+
+  await requireAuth();
+
   const BK_KEY = 'hh_booking';
-  function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
+  function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch(_) { return {}; } }
   function setState(patch) { localStorage.setItem(BK_KEY, JSON.stringify(Object.assign(getState(), patch))); }
 
-  /* ── Professional data pool ── */
-  const ALL_PROS = [
-    { id:'pro-emmanuel', name:'Emmanuel Asare', type:'Electrician', exp:'6 yrs', rating:'4.8', reviews:'98',
-      jobs:'240+', dist:'1.4 km', avail:'Available now', isOnline:true, isTopRated:true,
-      photo: null, phone:'tel:+233501234567', bio:'Expert electrician specializing in residential wiring, panel upgrades and fault-finding.' },
-    { id:'pro-kwame', name:'Kwame Mensah', type:'Plumber', exp:'4 yrs', rating:'4.7', reviews:'64',
-      jobs:'180+', dist:'2.1 km', avail:'Available now', isOnline:true, isTopRated:false,
-      photo: null, phone:'tel:+233502345678', bio:'Reliable plumber for leaks, pipe installations and bathroom fixture repairs.' },
-    { id:'pro-kofi', name:'Kofi Boateng', type:'Carpenter / Handyman', exp:'8 yrs', rating:'4.9', reviews:'201',
-      jobs:'520+', dist:'2.8 km', avail:'Busy – 30 min', isOnline:false, isTopRated:true,
-      photo: null, phone:'tel:+233504567890', bio:'Experienced carpenter for furniture, doors, and custom woodwork. Top-rated 3 years running.' },
-    { id:'pro-ama', name:'Ama Sarpong', type:'A/C Technician', exp:'5 yrs', rating:'4.9', reviews:'112',
-      jobs:'310+', dist:'3.5 km', avail:'Available now', isOnline:true, isTopRated:true,
-      photo: null, phone:'tel:+233503456789', bio:'Certified A/C technician for installations, servicing, gas refills and fault diagnosis.' },
-    { id:'pro-abena', name:'Abena Owusu', type:'Cleaner', exp:'3 yrs', rating:'4.6', reviews:'77',
-      jobs:'190+', dist:'1.9 km', avail:'Available now', isOnline:true, isTopRated:false,
-      photo: null, phone:'tel:+233505678901', bio:'Thorough home and office cleaner. Brings own cleaning supplies.' },
-  ];
+  let selectedProId    = null;
+  let loadedArtisans   = []; // all artisans fetched from Firestore
+  let displayedArtisans = []; // after filter/sort applied
+  let currentFilter    = 'recommended';
 
-  let selectedProId = null;
+  /* ── Inject styles ──────────────────────────────────────────────── */
+  const _s = document.createElement('style');
+  _s.textContent = `
+    @keyframes skeleton-pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+    .pro-card {
+      background:#fff;border-radius:16px;padding:14px;margin-bottom:10px;
+      display:flex;align-items:flex-start;gap:12px;cursor:pointer;
+      border:2px solid transparent;transition:border-color 0.15s,box-shadow 0.15s;
+      box-shadow:0 2px 10px rgba(0,0,0,0.06);
+    }
+    .pro-card:active { transform:scale(0.99); }
+    .pro-card-selected { border-color:#730201 !important; box-shadow:0 4px 16px rgba(115,2,1,0.18) !important; }
+    .pro-card-left { display:flex;gap:12px;flex:1;min-width:0; }
+    .pro-info-body { flex:1;min-width:0; }
+    .pro-name { font-size:14px;font-weight:800;color:#111; }
+    .pro-type { font-size:12px;color:#888;margin-top:2px;font-weight:500; }
+    .pro-meta-row { display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap; }
+    .pro-card-right { flex-shrink:0; }
+    .pro-select-circle {
+      width:26px;height:26px;border-radius:50%;border:2px solid #ddd;
+      display:flex;align-items:center;justify-content:center;
+      transition:all 0.15s;background:#fff;
+    }
+    .pro-select-circle.selected { background:#730201;border-color:#730201; }
+    [data-theme="dark"] .pro-card { background:#1e1e1e;box-shadow:none; }
+    [data-theme="dark"] .pro-name { color:#f0f0f0; }
+    [data-theme="dark"] .pro-type { color:#aaa; }
+  `;
+  document.head.appendChild(_s);
 
-  function buildProCard(pro) {
-    const initials = pro.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const avatarHtml = pro.photo
-      ? `<img src="${pro.photo}" alt="${pro.name}" style="width:62px;height:62px;border-radius:50%;object-fit:cover;">`
-      : `<div style="width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;flex-shrink:0;">${initials}</div>`;
+  /* ── Skeleton loader ─────────────────────────────────────────────── */
+  function showSkeleton() {
+    const c = document.getElementById('pro-list-container');
+    if (!c) return;
+    c.innerHTML = [0, 1, 2].map(() => `
+      <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:10px;
+                  display:flex;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+        <div style="width:62px;height:62px;border-radius:50%;background:#f0f0f0;flex-shrink:0;
+                    animation:skeleton-pulse 1.5s ease-in-out infinite;"></div>
+        <div style="flex:1;">
+          <div style="height:14px;background:#f0f0f0;border-radius:6px;margin-bottom:8px;width:60%;
+                      animation:skeleton-pulse 1.5s ease-in-out infinite;"></div>
+          <div style="height:11px;background:#f0f0f0;border-radius:6px;margin-bottom:8px;width:45%;
+                      animation:skeleton-pulse 1.5s ease-in-out infinite;"></div>
+          <div style="height:11px;background:#f0f0f0;border-radius:6px;width:80%;
+                      animation:skeleton-pulse 1.5s ease-in-out infinite;"></div>
+        </div>
+      </div>`).join('');
+  }
+
+  /* ── Empty state ─────────────────────────────────────────────────── */
+  function showEmptyState(category) {
+    const c = document.getElementById('pro-list-container');
+    if (!c) return;
+    c.innerHTML = `
+      <div style="text-align:center;padding:48px 16px;">
+        <div style="width:72px;height:72px;background:#fde8e8;border-radius:24px;
+                    display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="7" r="4" stroke="#730201" stroke-width="2"/>
+          </svg>
+        </div>
+        <p style="font-size:16px;font-weight:800;color:#111;margin-bottom:6px;">No Professionals Available</p>
+        <p style="font-size:13px;color:#888;line-height:1.6;margin-bottom:24px;">
+          There are no ${category ? category + ' ' : ''}professionals available in your area right now.<br>
+          Try a different category or use Emergency Booking.
+        </p>
+        <button onclick="window.location.href='book-step1.html'"
+          style="background:#730201;color:#fff;border:none;padding:12px 24px;border-radius:12px;
+                 font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:block;
+                 margin:0 auto 10px;">
+          Change Service
+        </button>
+        <button onclick="window.location.href='book-emergency.html'"
+          style="background:#fde8e8;color:#730201;border:none;padding:12px 24px;border-radius:12px;
+                 font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:block;margin:0 auto;">
+          🚨 Emergency Booking
+        </button>
+      </div>`;
+  }
+
+  /* ── Error state ─────────────────────────────────────────────────── */
+  function showErrorState() {
+    const c = document.getElementById('pro-list-container');
+    if (!c) return;
+    c.innerHTML = `
+      <div style="text-align:center;padding:48px 16px;">
+        <div style="width:72px;height:72px;background:#fff3e0;border-radius:24px;
+                    display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="#e65100" stroke-width="2"/>
+            <path d="M12 8v4M12 16v.01" stroke="#e65100" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p style="font-size:16px;font-weight:800;color:#111;margin-bottom:6px;">Connection Error</p>
+        <p style="font-size:13px;color:#888;line-height:1.6;margin-bottom:24px;">
+          We couldn't load professionals. Check your connection and try again.
+        </p>
+        <button onclick="window.loadArtisans()"
+          style="background:#730201;color:#fff;border:none;padding:12px 24px;border-radius:12px;
+                 font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
+          Try Again
+        </button>
+      </div>`;
+  }
+
+  /* ── Build card HTML from Firestore artisan record { id, data } ── */
+  function buildProCard(artisan) {
+    const d          = artisan.data || {};
+    const id         = artisan.id;
+    const name       = d.name         || 'Professional';
+    const type       = d.specialty    || d.category || 'Artisan';
+    const exp        = d.yearsExperience ? `${d.yearsExperience} yrs` : '';
+    const rating     = d.rating != null ? Number(d.rating).toFixed(1) : null;
+    const reviews    = d.reviewCount  || 0;
+    const jobs       = d.jobsCompleted || 0;
+    const avail      = d.isAvailable  ? 'Available now' : 'Busy';
+    const isOnline   = Boolean(d.isAvailable);
+    const isTopRated = rating && Number(rating) >= 4.8 && reviews >= 50;
+    const photo      = d.profileImage || null;
+    const bio        = d.bio          || '';
+    const isSelected = selectedProId === id;
+
+    const initials = name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+    const avatarHtml = photo
+      ? `<img src="${photo}" alt="${name}" style="width:62px;height:62px;border-radius:50%;object-fit:cover;">`
+      : `<div style="width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#730201,#a03030);
+              display:flex;align-items:center;justify-content:center;
+              font-size:20px;font-weight:900;color:#fff;flex-shrink:0;">${initials}</div>`;
 
     return `
-    <div class="pro-card ${selectedProId === pro.id ? 'pro-card-selected' : ''}" id="pc-${pro.id}" onclick="selectPro('${pro.id}')">
+    <div class="pro-card ${isSelected ? 'pro-card-selected' : ''}" id="pc-${id}" onclick="window.selectPro('${id}')">
       <div class="pro-card-left">
         <div class="pro-avatar-wrap" style="position:relative;flex-shrink:0;">
           ${avatarHtml}
-          ${pro.isOnline ? '<div style="position:absolute;bottom:2px;right:2px;width:13px;height:13px;border-radius:50%;background:#22c55e;border:2.5px solid #fff;"></div>' : ''}
+          ${isOnline ? '<div style="position:absolute;bottom:2px;right:2px;width:13px;height:13px;border-radius:50%;background:#22c55e;border:2.5px solid #fff;"></div>' : ''}
         </div>
         <div class="pro-info-body">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <span class="pro-name">${pro.name}</span>
-            <div style="width:16px;height:16px;background:#1da1f2;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div>
-            ${pro.isTopRated ? '<span style="background:#fff3e0;color:#e65100;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px;">Top Rated</span>' : ''}
+            <span class="pro-name">${name}</span>
+            <div style="width:16px;height:16px;background:#1da1f2;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+            </div>
+            ${isTopRated ? '<span style="background:#fff3e0;color:#e65100;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px;">Top Rated</span>' : ''}
           </div>
-          <p class="pro-type">${pro.type} · ${pro.exp} exp.</p>
+          <p class="pro-type">${type}${exp ? ' · ' + exp + ' exp.' : ''}</p>
           <div class="pro-meta-row">
-            <span style="color:#f5a623;">★</span>
-            <span style="font-size:12px;font-weight:700;color:#333;">${pro.rating}</span>
-            <span style="font-size:11px;color:#aaa;">(${pro.reviews} reviews)</span>
-            <span style="font-size:11px;color:#aaa;">·</span>
-            <span style="font-size:11px;color:#aaa;">${pro.jobs} jobs</span>
+            ${rating ? `<span style="color:#f5a623;">★</span>
+              <span style="font-size:12px;font-weight:700;color:#333;">${rating}</span>
+              <span style="font-size:11px;color:#aaa;">(${reviews} reviews)</span>
+              <span style="font-size:11px;color:#aaa;">·</span>` : ''}
+            <span style="font-size:11px;color:#aaa;">${jobs} jobs</span>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;">
-            <span style="display:flex;align-items:center;gap:3px;font-size:11px;color:#888;">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#aaa"/></svg>
-              ${pro.dist}
-            </span>
-            <span style="font-size:11px;color:${pro.isOnline ? '#2e7d32' : '#f57c00'};font-weight:700;">${pro.avail}</span>
+          <div style="margin-top:3px;">
+            <span style="font-size:11px;color:${isOnline ? '#2e7d32' : '#f57c00'};font-weight:700;">${avail}</span>
           </div>
-          <p style="font-size:11px;color:#999;margin-top:5px;line-height:1.5;">${pro.bio}</p>
+          ${bio ? `<p style="font-size:11px;color:#999;margin-top:5px;line-height:1.5;">${bio}</p>` : ''}
         </div>
       </div>
       <div class="pro-card-right">
-        <div class="pro-select-circle ${selectedProId === pro.id ? 'selected' : ''}" id="sel-${pro.id}">
-          ${selectedProId === pro.id ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>' : ''}
+        <div class="pro-select-circle ${isSelected ? 'selected' : ''}" id="sel-${id}">
+          ${isSelected ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>' : ''}
         </div>
       </div>
     </div>`;
   }
 
-  function renderPros() {
-    const container = document.getElementById('pro-list-container');
-    if (!container) return;
-    container.innerHTML = ALL_PROS.map(buildProCard).join('');
+  /* ── Render artisan cards ────────────────────────────────────────── */
+  function renderArtisans() {
+    const c = document.getElementById('pro-list-container');
+    if (!c) return;
+    c.innerHTML = displayedArtisans.map(buildProCard).join('');
   }
 
-  function selectPro(id) {
-    selectedProId = id;
-    // Refresh cards to update selected state
-    renderPros();
-    // Save to state
-    const pro = ALL_PROS.find(p => p.id === id);
-    if (pro) {
-      setState({
-        professional: {
-          id:        pro.id,
-          name:      pro.name,
-          type:      pro.type,
-          exp:       pro.exp,
-          rating:    pro.rating,
-          reviews:   pro.reviews,
-          jobs:      pro.jobs,
-          dist:      pro.dist,
-          avail:     pro.avail,
-          phone:     pro.phone,
-          isOnline:  pro.isOnline,
-          isTopRated:pro.isTopRated,
-          photo:     pro.photo,
+  /* ── Filter / sort pill handler ─────────────────────────────────── */
+  window.applyFilter = function(filterName) {
+    // 'more' opens a bottom sheet — no re-render needed
+    if (filterName === 'more') {
+      window.showToast('More Filters coming soon — stay tuned! 🔧');
+      return;
+    }
+
+    currentFilter = filterName;
+
+    // Highlight active pill
+    document.querySelectorAll('.filter-pill').forEach(p => {
+      p.classList.remove('active');
+      // Reset SVG stroke colors to neutral
+      p.querySelectorAll('svg path, svg line').forEach(el => {
+        if (el.getAttribute('fill') === '#730201') el.setAttribute('fill', 'none');
+        if (el.getAttribute('stroke') === '#730201') el.setAttribute('stroke', '#555');
+      });
+    });
+    const pillMap = {
+      recommended: 'fp-recommended',
+      rating:      'fp-rating',
+      price:       'fp-price',
+    };
+    const activePill = document.getElementById(pillMap[filterName]);
+    if (activePill) {
+      activePill.classList.add('active');
+      activePill.querySelectorAll('svg path, svg line').forEach(el => {
+        if (el.getAttribute('fill') === 'none' || el.getAttribute('fill') === '#555') {
+          // leave as-is — active CSS class handles the color
         }
       });
     }
-  }
-  window.selectPro = selectPro;
 
-  function continueToStep3() {
+    let result = [...loadedArtisans];
+
+    switch (filterName) {
+      case 'recommended':
+        // Available first → rating desc → review count desc
+        result.sort((a, b) => {
+          const da = a.data || {}, db = b.data || {};
+          if (Boolean(da.isAvailable) !== Boolean(db.isAvailable)) {
+            return db.isAvailable ? 1 : -1;
+          }
+          const ra = Number(da.rating || 0), rb = Number(db.rating || 0);
+          if (ra !== rb) return rb - ra;
+          return Number(db.reviewCount || 0) - Number(da.reviewCount || 0);
+        });
+        break;
+
+      case 'rating':
+        // Only show 4.0+ stars, sorted best first
+        result = result.filter(a => Number((a.data || {}).rating || 0) >= 4.0);
+        result.sort((a, b) =>
+          Number((b.data || {}).rating || 0) - Number((a.data || {}).rating || 0)
+        );
+        if (!result.length) {
+          const c = document.getElementById('pro-list-container');
+          if (c) c.innerHTML = `
+            <div style="text-align:center;padding:40px 16px;">
+              <p style="font-size:15px;font-weight:700;color:#111;margin-bottom:6px;">No 4.0+ rated professionals right now</p>
+              <p style="font-size:13px;color:#888;margin-bottom:20px;">Try a broader filter to see all available professionals.</p>
+              <button onclick="window.applyFilter('recommended')"
+                style="background:#730201;color:#fff;border:none;padding:11px 22px;
+                       border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
+                Show All Professionals
+              </button>
+            </div>`;
+          return;
+        }
+        break;
+
+      case 'price':
+        // Sort by jobs completed ascending — more experienced pros tend to charge more
+        // This is a proxy until real pricing data is in Firestore
+        result.sort((a, b) =>
+          Number((a.data || {}).jobsCompleted || 0) - Number((b.data || {}).jobsCompleted || 0)
+        );
+        window.showToast('Sorted by estimated price: low to high');
+        break;
+    }
+
+    displayedArtisans = result;
+    renderArtisans();
+  };
+
+  /* ── Load artisans from Firestore ────────────────────────────────── */
+  async function loadArtisans() {
+    const state    = getState();
+    const category = state.services && state.services.length ? state.services[0].category : '';
+
+    showSkeleton();
+
+    try {
+      const { repositories: { artisanRepository } } = getAppContainer();
+
+      // Query by service category first; fall back to top-rated available artisans
+      const results = category
+        ? await artisanRepository.findByCategory(category)
+        : await artisanRepository.getTopRated(15);
+
+      loadedArtisans = Array.isArray(results) ? results : [];
+
+      if (!loadedArtisans.length) {
+        showEmptyState(category);
+        return;
+      }
+
+      // Restore previously selected professional if any
+      const s2 = getState();
+      if (s2.professional) selectedProId = s2.professional.id || s2.professional.uid || null;
+
+      // Initial render via applyFilter so sort logic runs from the start
+      window.applyFilter(currentFilter);
+    } catch (err) {
+      console.error('[book-step2] Artisan load failed:', err);
+      showErrorState();
+    }
+  }
+
+  /* ── Select a professional ──────────────────────────────────────── */
+  window.selectPro = function(id) {
+    const artisan = loadedArtisans.find(a => a.id === id) || displayedArtisans.find(a => a.id === id);
+    if (!artisan) return;
+    const d = artisan.data || {};
+    selectedProId = id;
+    renderArtisans();
+    setState({
+      professional: {
+        id:         id,
+        uid:        id,
+        name:       d.name        || 'Professional',
+        type:       d.specialty   || d.category || 'Artisan',
+        exp:        d.yearsExperience ? `${d.yearsExperience} yrs` : '',
+        rating:     d.rating != null ? String(Number(d.rating).toFixed(1)) : null,
+        reviews:    d.reviewCount  || 0,
+        jobs:       d.jobsCompleted || 0,
+        avail:      d.isAvailable  ? 'Available now' : 'Busy',
+        phone:      d.phone        ? `tel:${d.phone}` : null,
+        isOnline:   Boolean(d.isAvailable),
+        isTopRated: Boolean(d.rating && Number(d.rating) >= 4.8),
+        photo:      d.profileImage || null,
+      },
+    });
+  };
+
+  /* ── Continue to schedule step ──────────────────────────────────── */
+  window.continueToStep3 = function() {
     if (!selectedProId) {
-      showToast('Please select a professional to continue');
+      window.showToast('Please select a professional to continue');
       return;
     }
     window.location.href = 'book-step3.html';
-  }
+  };
 
-  function showToast(msg) {
+  /* ── Toast helper ────────────────────────────────────────────────── */
+  window.showToast = function(msg) {
     document.querySelector('.toast.app-toast')?.remove();
     const t = document.createElement('div');
     t.className = 'toast app-toast info';
@@ -287,58 +524,40 @@
     text.textContent = msg;
     t.append(icon, text);
     document.body.appendChild(t);
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => { t.classList.add('toast-exit'); setTimeout(() => t.remove(), 320); }, 3000);
-  }
+    clearTimeout(window._hh_toast_t);
+    window._hh_toast_t = setTimeout(() => { t.classList.add('toast-exit'); setTimeout(() => t.remove(), 320); }, 3000);
+  };
 
-  /* Add pro-card styles */
-  (function injectProCardStyles() {
-    const s = document.createElement('style');
-    s.textContent = `
-      .pro-card {
-        background:#fff;border-radius:16px;padding:14px;margin-bottom:10px;
-        display:flex;align-items:flex-start;gap:12px;cursor:pointer;
-        border:2px solid transparent;transition:border-color 0.15s,box-shadow 0.15s;
-        box-shadow:0 2px 10px rgba(0,0,0,0.06);
-      }
-      .pro-card:active { transform:scale(0.99); }
-      .pro-card-selected { border-color:#730201 !important; box-shadow:0 4px 16px rgba(115,2,1,0.18) !important; }
-      .pro-card-left { display:flex;gap:12px;flex:1;min-width:0; }
-      .pro-info-body { flex:1;min-width:0; }
-      .pro-name { font-size:14px;font-weight:800;color:#111; }
-      .pro-type { font-size:12px;color:#888;margin-top:2px;font-weight:500; }
-      .pro-meta-row { display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap; }
-      .pro-card-right { flex-shrink:0; }
-      .pro-select-circle {
-        width:26px;height:26px;border-radius:50%;border:2px solid #ddd;
-        display:flex;align-items:center;justify-content:center;
-        transition:all 0.15s;background:#fff;
-      }
-      .pro-select-circle.selected { background:#730201;border-color:#730201; }
-      [data-theme="dark"] .pro-card { background:#1e1e1e;box-shadow:none; }
-      [data-theme="dark"] .pro-name { color:#f0f0f0; }
-    `;
-    document.head.appendChild(s);
-  })();
+  /* Expose for error-state retry button */
+  window.loadArtisans = loadArtisans;
 
+  /* ── Init ────────────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function() {
     const state = getState();
 
-    // Restore service context
+    // Restore service context chip
     if (state.services && state.services.length) {
       const svc = state.services[0];
-      document.querySelector('.svc-ctx-name').textContent = `${svc.category} – ${svc.name}`;
-      document.querySelector('.svc-ctx-desc').textContent = svc.desc;
+      const ctxName = document.querySelector('.svc-ctx-name');
+      const ctxDesc = document.querySelector('.svc-ctx-desc');
+      if (ctxName) ctxName.textContent = `${svc.category || ''} – ${svc.name || ''}`;
+      if (ctxDesc) ctxDesc.textContent  = svc.desc || '';
       const selRows = document.querySelectorAll('.bk-sel-row');
-      if (selRows[0]) selRows[0].querySelector('strong').textContent = svc.name;
-      document.querySelector('.bk-footer-price-val').textContent =
-        `GHC ${state.totalMin || 50} – ${(state.totalMax || 50) + 20}`;
+      if (selRows[0]) { const strong = selRows[0].querySelector('strong'); if (strong) strong.textContent = svc.name || ''; }
+      const priceEl = document.querySelector('.bk-footer-price-val');
+      if (priceEl) priceEl.textContent = `GHC ${state.totalMin || 50} – ${(state.totalMax || 50) + 20}`;
     }
 
-    // Restore previously selected pro
-    if (state.professional) selectedProId = state.professional.id;
+    // Restore address from booking state if available
+    if (state.address) {
+      const selRows = document.querySelectorAll('.bk-sel-row');
+      if (selRows[1]) {
+        const span = selRows[1].querySelector('span:not(:first-child)');
+        if (span) span.textContent = state.address;
+      }
+    }
 
-    renderPros();
+    loadArtisans();
   });
 </script>
 </body>

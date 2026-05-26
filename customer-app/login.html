@@ -56,7 +56,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <a href="#" class="forgot-link">Forgot Password?</a>
+                    <a href="#" class="forgot-link" id="forgot-link">Forgot Password?</a>
                 </div>
 
                 <button type="submit" id="login-btn" class="login-btn" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">Login<img width="20" height="20" src="../shared/assets/icons/icons8-right-24.png" alt="arrow" style="display: block;"></button>
@@ -82,6 +82,93 @@
     <script type="module" src="js/pages/loginPage.js"></script>
     <script src="../shared/js/utils/global-app.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
+
+<!-- ── Forgot Password Modal ── -->
+<div id="fp-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:#fff;border-radius:22px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+    <h3 style="font-size:18px;font-weight:800;color:#111;margin:0 0 6px;">Reset Password</h3>
+    <p style="font-size:13px;color:#888;margin:0 0 20px;line-height:1.55;">Enter the email address linked to your account. We'll send you a reset link.</p>
+    <input id="fp-email" type="email" placeholder="Your email address" autocomplete="email"
+      style="width:100%;border:1.5px solid #ddd;border-radius:12px;padding:13px 14px;font-size:14px;font-family:inherit;box-sizing:border-box;outline:none;color:#111;"
+      onfocus="this.style.borderColor='#730201'" onblur="this.style.borderColor='#ddd'">
+    <div id="fp-msg" style="margin-top:8px;font-size:12.5px;min-height:16px;"></div>
+    <button id="fp-send-btn" onclick="sendResetEmail()"
+      style="margin-top:16px;width:100%;background:#730201;color:#fff;border:none;border-radius:13px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;">
+      Send Reset Link
+    </button>
+    <button onclick="closeFpModal()"
+      style="margin-top:10px;width:100%;background:none;border:none;color:#aaa;font-size:13px;cursor:pointer;font-family:inherit;padding:8px;">
+      Cancel
+    </button>
+  </div>
+</div>
+
+<script type="module">
+  import { getAuth, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+
+  function openFpModal() {
+    const overlay = document.getElementById('fp-overlay');
+    overlay.style.display = 'flex';
+    document.getElementById('fp-email').value = document.getElementById('user-id')?.value?.includes('@') ? document.getElementById('user-id').value : '';
+    document.getElementById('fp-msg').textContent = '';
+    setTimeout(() => document.getElementById('fp-email').focus(), 100);
+  }
+
+  function closeFpModal() {
+    document.getElementById('fp-overlay').style.display = 'none';
+  }
+
+  window.closeFpModal = closeFpModal;
+
+  window.sendResetEmail = async function() {
+    const emailEl  = document.getElementById('fp-email');
+    const msgEl    = document.getElementById('fp-msg');
+    const btn      = document.getElementById('fp-send-btn');
+    const email    = emailEl.value.trim();
+
+    if (!email || !email.includes('@')) {
+      msgEl.style.color = '#e53e3e';
+      msgEl.textContent = 'Please enter a valid email address.';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    msgEl.textContent = '';
+
+    try {
+      const auth = getAuth(getApp());
+      await sendPasswordResetEmail(auth, email);
+      msgEl.style.color = '#2e7d32';
+      msgEl.textContent = '✅ Reset link sent! Check your inbox (and spam folder).';
+      btn.textContent = 'Sent!';
+      setTimeout(closeFpModal, 2800);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Send Reset Link';
+      msgEl.style.color = '#e53e3e';
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
+        msgEl.textContent = 'No account found for that email address.';
+      } else if (err.code === 'auth/too-many-requests') {
+        msgEl.textContent = 'Too many attempts. Please wait a moment and try again.';
+      } else {
+        msgEl.textContent = 'Failed to send reset link. Please try again.';
+      }
+    }
+  };
+
+  // Close on backdrop click
+  document.getElementById('fp-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeFpModal();
+  });
+
+  // Wire the forgot link
+  document.getElementById('forgot-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    openFpModal();
+  });
+</script>
 </body>
 </html>
 

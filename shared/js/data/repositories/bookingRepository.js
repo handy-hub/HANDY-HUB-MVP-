@@ -87,12 +87,15 @@ export function createBookingRepository({
          */
         async create(data) {
             if (!data.customerId) throw new Error("BookingRepository.create: customerId is required.");
-            if (!data.artisanId)  throw new Error("BookingRepository.create: artisanId is required.");
+            // artisanId is required for standard bookings, but null is allowed for emergency
+            // bookings that haven't been matched to an artisan yet.
+            if (data.artisanId === undefined) throw new Error("BookingRepository.create: artisanId is required (pass null for emergency bookings).");
 
             const payload = {
                 customerId:  data.customerId,
-                artisanId:   data.artisanId,
+                artisanId:   data.artisanId ?? null, // null = emergency, unmatched
                 serviceType: data.serviceType  ?? "",
+                type:        data.type         ?? "standard",
                 status:      "pending",
                 scheduledAt: data.scheduledAt  ?? null,
                 price:       data.price        ?? 0,

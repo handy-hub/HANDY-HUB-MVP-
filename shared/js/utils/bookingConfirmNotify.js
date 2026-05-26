@@ -94,7 +94,7 @@ export async function onBookingConfirmed(booking) {
         }
 
         // ── Notify customer ──────────────────────────────────────────────────
-        const customerTitle   = isEmergency ? '🚨 Emergency Booking Sent!' : '📅 Booking Confirmed!';
+        const customerTitle   = isEmergency ? ' Emergency Booking Sent!' : ' Booking Confirmed!';
         const customerMessage = isEmergency
             ? `Your emergency request for ${booking.service} has been dispatched. ETA: ${booking.eta || 'being confirmed'}.`
             : `Your booking for ${booking.service} with ${booking.proName} on ${booking.dateDisplay} has been placed.`;
@@ -110,7 +110,7 @@ export async function onBookingConfirmed(booking) {
 
         // ── Notify artisan ───────────────────────────────────────────────────
         if (booking.artisanId) {
-            const artisanTitle   = isEmergency ? '🚨 Emergency Job Request!' : '🔔 New Booking Request';
+            const artisanTitle   = isEmergency ? ' Emergency Job Request!' : ' New Booking Request';
             const artisanMessage = isEmergency
                 ? `You have an emergency job request for ${booking.service}. Respond immediately.`
                 : `You have a new booking request for ${booking.service} on ${booking.dateDisplay}.`;

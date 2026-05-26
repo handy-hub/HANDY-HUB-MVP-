@@ -9,8 +9,14 @@
   // 1. Keep viewport predictable while preserving zoom accessibility.
   function ensureViewportConfiguration() {
     let metaViewport = document.querySelector('meta[name="viewport"]');
-    const preferredViewport = "width=device-width, initial-scale=1.0, viewport-fit=cover";
-    
+
+    // interactive-widget=resizes-visual  →  Android Chrome: keyboard shrinks only
+    // the VISUAL viewport, not the layout viewport, so the page never reflows
+    // when the on-screen keyboard appears.
+    // viewport-fit=cover                →  iPhone notch / safe-area support.
+    const preferredViewport =
+      "width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-visual";
+
     if (!metaViewport) {
       metaViewport = document.createElement('meta');
       metaViewport.name = 'viewport';
@@ -37,6 +43,16 @@
       img, svg, video, canvas {
         max-width: 100%;
         height: auto;
+      }
+
+      /*
+       * iOS Safari zooms into any input whose font-size is < 16px.
+       * Forcing a minimum of 16px stops the zoom without disabling
+       * user pinch-zoom (accessibility-safe).
+       * !important ensures page-specific CSS cannot override this.
+       */
+      input, input[type], textarea, select {
+        font-size: max(16px, 1em) !important;
       }
     `;
     document.head.appendChild(styleNode);
