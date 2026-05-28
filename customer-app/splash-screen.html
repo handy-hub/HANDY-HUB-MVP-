@@ -8,7 +8,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HandyHub | Splash</title>
     <link rel="stylesheet" href="css/customer.css">
-    <meta http-equiv="refresh" content="2; url=index.html">
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
@@ -19,6 +18,30 @@
     </div>
     <script src="../shared/js/utils/global-app.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
+
+<script type="module">
+  /* ── Splash auth guard ─────────────────────────────────────────────────
+     Check Firebase auth state as quickly as possible.
+     • Logged-in user  → dashboard.html  (skip login flow)
+     • No session      → index.html      (role selection)
+     Fallback: if auth takes > 2.8s (slow device / no network) → index.html.
+  ───────────────────────────────────────────────────────────────────── */
+  import { getAppContainer } from '../shared/js/app/container.js';
+
+  const fallback = setTimeout(() => {
+    window.location.replace('index.html');
+  }, 2800);
+
+  try {
+    const { services: { authService } } = getAppContainer();
+    const user = await authService.waitForUser();
+    clearTimeout(fallback);
+    window.location.replace(user ? 'dashboard.html' : 'index.html');
+  } catch (_) {
+    clearTimeout(fallback);
+    window.location.replace('index.html');
+  }
+</script>
 </body>
 </html>
 

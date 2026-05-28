@@ -73,6 +73,10 @@
 </div>
 
 <script src="../shared/js/utils/global-app.js"></script>
+<script type="module">
+  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  await requireAuth();
+</script>
 <script src="../shared/js/components/floatingNav.js"></script>
 <script>
 (function () {
@@ -234,7 +238,7 @@
           ${hasReview ? `<div class="bk-card-meta-row" style="color:#f5a623;">
             ${'★'.repeat(r.review.rating || 5)} Reviewed
           </div>` : `<div class="bk-card-meta-row">
-            <button style="background:none;border:none;color:#730201;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();window.location.href='review.html'">Leave a review</button>
+            <button style="background:none;border:none;color:#730201;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();openReview('${r.id}')">Leave a review</button>
           </div>`}
         </div>
       </div>
@@ -387,6 +391,12 @@
     // For completed/cancelled, could open a detail sheet. Currently just a no-op navigation.
   };
 
+  /* ──────────── Open review page with booking context ──────────── */
+  window.openReview = function (bookingId) {
+    if (bookingId) sessionStorage.setItem('hh_review_booking_id', String(bookingId));
+    window.location.href = 'review.html';
+  };
+
   /* ──────────── Confirm job done ──────────── */
   window.confirmJobDone = function () {
     if (!confirm('Confirm that the job is complete? This will release payment to the artisan.')) return;
@@ -394,6 +404,8 @@
       const b = JSON.parse(localStorage.getItem(BK_KEY) || '{}');
       b.status = 'completed';
       localStorage.setItem(BK_KEY, JSON.stringify(b));
+      // Pass active booking ID to review page
+      if (b.id) sessionStorage.setItem('hh_review_booking_id', String(b.id));
     } catch(_) {}
     window.location.href = 'review.html';
   };

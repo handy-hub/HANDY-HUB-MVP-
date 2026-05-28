@@ -493,6 +493,10 @@
   </div>
 </div>
 
+<script type="module">
+  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  await requireAuth();
+</script>
 <script>
 (function () {
   'use strict';
@@ -508,13 +512,17 @@
   /* ── Populate receipt & pro card ── */
   document.addEventListener('DOMContentLoaded', function () {
     const state = getState();
+    const now   = new Date();
+    const pad   = n => String(n).padStart(2, '0');
+    const hist  = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
 
-    // Receipt
-    const now  = new Date();
-    const pad  = n => String(n).padStart(2, '0');
-    const hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
-    const last = hist[0] || {};
-    const id   = last.id || ('HHB-' + String(now.getFullYear()).slice(2) + pad(now.getMonth()+1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()));
+    // Prefer the specific booking passed from booking.html (via sessionStorage ID)
+    const targetId     = sessionStorage.getItem('hh_review_booking_id');
+    if (targetId) sessionStorage.removeItem('hh_review_booking_id');
+    const targetRecord = targetId ? (hist.find(h => String(h.id) === String(targetId)) || null) : null;
+    const last         = targetRecord || hist[0] || {};
+
+    const id = last.id || ('HHB-' + String(now.getFullYear()).slice(2) + pad(now.getMonth()+1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()));
     document.getElementById('rv-booking-id').textContent = id;
     document.getElementById('rv-service').textContent    = (state.services && state.services[0] && state.services[0].name) || last.service || 'Service';
     const dateStr = (state.schedule && state.schedule.dateDisplay) || last.dateDisplay || now.toDateString();

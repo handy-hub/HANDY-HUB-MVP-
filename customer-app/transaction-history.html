@@ -453,11 +453,15 @@
   </style>
 
   <script type="module">
-    import '../../shared/js/utils/global-app.js';
-    import { getAppContainer }                         from '../../shared/js/app/container.js';
-    import { showToast }                               from '../../shared/js/components/toast.js';
-    import { createPaymentRepository, PROVIDER_META }  from '../../shared/js/data/repositories/paymentRepository.js';
-    import { initiateWithdrawal }                      from '../../shared/js/services/paystackService.js';
+    import '../shared/js/utils/global-app.js';
+    import { requireAuth }                             from '../shared/js/utils/authGuard.js';
+    import { getAppContainer }                         from '../shared/js/app/container.js';
+    import { showToast }                               from '../shared/js/components/toast.js';
+    import { createPaymentRepository, PROVIDER_META }  from '../shared/js/data/repositories/paymentRepository.js';
+    import { initiateWithdrawal }                      from '../shared/js/services/paystackService.js';
+
+    // Guard — must be authenticated to view financial history
+    await requireAuth();
 
     const LOGIN_URL = 'login.html';
 

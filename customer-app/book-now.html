@@ -4,273 +4,611 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Handy Hub – Book Now</title>
+  <title>Handy Hub – Find a Professional</title>
+  <!-- Leaflet real map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPeE=" crossorigin=""></script>
   <link rel="stylesheet" href="css/book-now.css" />
-
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
 </head>
 <body>
-<div class="bn-shell">
+<div class="bn2-shell">
 
-  <!-- Header -->
-  <div class="bn-header">
-    <button class="bn-back-btn" onclick="history.back()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#333" stroke-width="2.2" stroke-linecap="round"/></svg>
+  <!-- ── Header ── -->
+  <div class="bn2-header">
+    <button class="bn2-back-btn" onclick="history.back()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
-    <span class="bn-header-title">Book Now</span>
-    <div class="bn-header-actions">
-      <button class="bn-icon-btn">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#333" stroke-width="2" stroke-linecap="round"/></svg>
-        <span class="bn-icon-badge">2</span>
-      </button>
-      <button class="bn-icon-btn">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#333" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#333" stroke-width="2" stroke-linecap="round"/></svg>
-        <span class="bn-icon-badge">3</span>
-      </button>
+    <div class="bn2-header-center">
+      <span class="bn2-header-title">Find a Professional</span>
+      <span class="bn2-header-sub" id="hdr-location-sub">Detecting location…</span>
     </div>
   </div>
 
-  <!-- Top section: Location + Categories + Toggle -->
-  <div class="bn-top">
-    <p class="bn-where-label">Where do you need help?</p>
+
+
+  <!-- ── Scrollable body ── -->
+  <div class="bn2-scroll">
 
     <!-- Location card -->
-    <div class="bn-location-card">
-      <div class="bn-location-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#730201"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>
+    <div class="bn2-loc-card">
+      <div class="bn2-loc-pin">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#730201"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>
       </div>
-      <div class="bn-location-body">
-        <p class="bn-location-addr">12 Labone Crescent, Accra</p>
-        <p class="bn-location-change">Change location</p>
+      <div class="bn2-loc-body">
+        <p class="bn2-loc-label">Your location</p>
+        <p class="bn2-loc-addr" id="loc-addr-text">Detecting…</p>
       </div>
-      <svg class="bn-location-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#e0e0e0" stroke-width="1.5"/><path d="M12 8v4m0 0v4m0-4h4m-4 0H8" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-    </div>
-
-    <p class="bn-svc-label">Choose a service</p>
-
-    <!-- Service categories -->
-    <div class="bn-categories">
-      <button class="bn-cat active" id="cat-electrician" onclick="selectCat(this,'electrician')">
-        <div class="bn-cat-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="bn-cat-label">Electrician</span>
-      </button>
-      <button class="bn-cat" id="cat-plumber" onclick="selectCat(this,'plumber')">
-        <div class="bn-cat-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="#888" stroke-width="2"/><path d="M7 10c0 5.52 10 5.52 10 0M12 19v3M9 22h6" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
-        <span class="bn-cat-label">Plumber</span>
-      </button>
-      <button class="bn-cat" id="cat-carpenter" onclick="selectCat(this,'carpenter')">
-        <div class="bn-cat-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
-        <span class="bn-cat-label">Carpenter</span>
-      </button>
-      <button class="bn-cat" id="cat-ac" onclick="selectCat(this,'ac')">
-        <div class="bn-cat-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
-        <span class="bn-cat-label">AC Repair</span>
-      </button>
-      <button class="bn-cat" id="cat-more" onclick="selectCat(this,'more')">
-        <div class="bn-cat-check"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#888"/><circle cx="12" cy="12" r="1.5" fill="#888"/><circle cx="19" cy="12" r="1.5" fill="#888"/></svg>
-        <span class="bn-cat-label">More</span>
+      <button class="bn2-loc-edit-btn" onclick="detectLocation()" title="Refresh location">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.22-8.56" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M21 3v6h-6" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
 
-    <!-- Need help now toggle -->
-    <div class="bn-toggle-card">
-      <div class="bn-toggle-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <!-- Real Leaflet map -->
+    <div class="bn2-map-wrap">
+      <div id="bn2-map" class="bn2-map-canvas"></div>
+      <!-- Nearby badge (hidden until artisans load) -->
+      <div class="bn2-map-nearby-badge" id="nearby-badge" style="display:none">
+        <div class="bn2-nearby-dot"></div>
+        <span id="nearby-count-txt">0 professionals nearby</span>
       </div>
-      <div class="bn-toggle-body">
-        <p class="bn-toggle-title">Need help now?</p>
-        <p class="bn-toggle-sub">We'll find an available professional near you.</p>
-      </div>
-      <button class="bn-toggle-switch" id="help-toggle" onclick="toggleHelp()"></button>
-    </div>
-  </div>
-
-  <!-- Map -->
-  <div class="bn-map" id="map">
-    <!-- Roads -->
-    <div class="bn-road bn-road-h" style="top:38%;height:13px;"></div>
-    <div class="bn-road bn-road-h" style="top:62%;height:9px;left:28%;"></div>
-    <div class="bn-road bn-road-v" style="left:64%;width:11px;"></div>
-    <div class="bn-road bn-road-v" style="left:22%;width:8px;top:15%;height:55%;"></div>
-    <div class="bn-road bn-road-h" style="top:22%;height:7px;left:22%;width:45%;"></div>
-    <!-- Blocks -->
-    <div class="bn-blk" style="top:8%;left:5%;width:14%;height:10%;"></div>
-    <div class="bn-blk" style="top:8%;left:28%;width:32%;height:10%;"></div>
-    <div class="bn-blk" style="top:42%;left:5%;width:14%;height:16%;"></div>
-    <div class="bn-blk" style="top:65%;left:5%;width:14%;height:12%;"></div>
-    <div class="bn-blk" style="top:65%;left:28%;width:30%;height:14%;border-radius:4px;"></div>
-    <div class="bn-blk" style="top:8%;left:68%;width:28%;height:28%;"></div>
-    <div class="bn-blk" style="top:42%;left:68%;width:14%;height:18%;"></div>
-    <div class="bn-blk" style="top:65%;left:68%;width:28%;height:26%;"></div>
-    <!-- Green area (school) -->
-    <div class="bn-green" style="top:12%;left:25%;width:35%;height:25%;"></div>
-    <div class="bn-map-lbl" style="top:17%;left:27%;">Labone Senior<br>High School</div>
-    <!-- Area label -->
-    <div class="bn-map-lbl" style="top:44%;left:6%;">LABONE</div>
-    <!-- Hospital marker -->
-    <div class="bn-hospital" style="top:42%;left:68%;">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" fill="#c62828"/><path d="M12 8v8M8 12h8" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
-      Trust Hospital
-    </div>
-    <!-- Road label -->
-    <div class="bn-map-lbl" style="top:35%;left:65%;transform:rotate(90deg);transform-origin:left top;">Labone Crescent</div>
-    <div class="bn-map-lbl" style="top:60%;left:66%;">Spintex Rd</div>
-
-    <!-- You are here -->
-    <div class="bn-you"><div class="bn-you-dot"></div></div>
-
-    <!-- Pro pin 1 -->
-    <div class="bn-pin" style="top:28%;left:38%;">
-      <div style="position:relative;flex-shrink:0;">
-        <img class="bn-pin-avatar" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772301950/vjx_records/k8oruwmjbtq8bv4mupu4.png" alt="Pro">
-        <div class="bn-pin-online"></div>
-      </div>
-      <div class="bn-pin-bubble">5<br>mins</div>
+      <!-- Locate-me button -->
+      <button class="bn2-map-locate-btn" onclick="locateMe()" title="Centre on my location">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#730201"/><circle cx="12" cy="12" r="7" stroke="#730201" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
     </div>
 
-    <!-- Pro pin 2 -->
-    <div class="bn-pin" style="top:24%;left:72%;">
-      <div style="position:relative;flex-shrink:0;">
-        <img class="bn-pin-avatar" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Pro">
-        <div class="bn-pin-online"></div>
-      </div>
-      <div class="bn-pin-bubble">8<br>mins</div>
+    <!-- Service section -->
+    <div class="bn2-section-hdr">
+      <span class="bn2-section-title">Choose a Service</span>
     </div>
 
-    <!-- Pro pin 3 -->
-    <div class="bn-pin" style="top:48%;left:14%;">
-      <div style="position:relative;flex-shrink:0;">
-        <div class="bn-pin-avatar-grad" style="background:linear-gradient(135deg,#5c6bc0,#3949ab);">J</div>
-        <div class="bn-pin-online"></div>
-      </div>
-      <div class="bn-pin-bubble">6<br>mins</div>
-    </div>
-
-    <!-- Pro pin 4 -->
-    <div class="bn-pin" style="top:68%;left:36%;">
-      <div style="position:relative;flex-shrink:0;">
-        <div class="bn-pin-avatar-grad" style="background:linear-gradient(135deg,#26a69a,#00796b);">K</div>
-        <div class="bn-pin-online"></div>
-      </div>
-      <div class="bn-pin-bubble">7<br>mins</div>
-    </div>
-
-    <!-- Pro pin 5 -->
-    <div class="bn-pin" style="top:72%;left:75%;">
-      <div style="position:relative;flex-shrink:0;">
-        <div class="bn-pin-avatar-grad" style="background:linear-gradient(135deg,#ef5350,#b71c1c);">A</div>
-        <div class="bn-pin-online"></div>
-      </div>
-      <div class="bn-pin-bubble">9<br>mins</div>
-    </div>
-  </div>
-
-  <!-- Bottom sheet -->
-  <div class="bn-sheet">
-    <div class="bn-sheet-handle"></div>
-    <div class="bn-sheet-top">
-      <div class="bn-sheet-svc-icon" id="sheet-icon">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="bn-sheet-svc-body">
-        <p class="bn-sheet-svc-name" id="sheet-svc-name">Electrician</p>
-        <p class="bn-sheet-svc-tag">Immediate Service</p>
-        <p class="bn-sheet-svc-desc" id="sheet-svc-desc">We'll match you with the nearest available electrician.</p>
-      </div>
-      <div class="bn-sheet-stats">
-        <div>
-          <p class="bn-stat-label">Estimated arrival</p>
-          <p class="bn-stat-val" id="sheet-arrival">5 – 10 mins</p>
+    <!-- Service chips -->
+    <div class="bn2-svc-scroll">
+      <button class="bn2-svc-chip active" id="chip-electrician" onclick="selectService('electrician',this)">
+        <div class="bn2-svc-chip-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div>
-          <p class="bn-stat-label">Estimated price</p>
-          <p class="bn-stat-val price" id="sheet-price">GHC 50 – 80 <span class="bn-stat-info">ⓘ</span></p>
+        <span>Electrician</span>
+      </button>
+      <button class="bn2-svc-chip" id="chip-plumber" onclick="selectService('plumber',this)">
+        <div class="bn2-svc-chip-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="2"/><path d="M7 10c0 5.52 10 5.52 10 0M12 19v3M9 22h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </div>
+        <span>Plumber</span>
+      </button>
+      <button class="bn2-svc-chip" id="chip-carpenter" onclick="selectService('carpenter',this)">
+        <div class="bn2-svc-chip-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <span>Carpenter</span>
+      </button>
+      <button class="bn2-svc-chip" id="chip-ac" onclick="selectService('ac',this)">
+        <div class="bn2-svc-chip-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <span>AC Repair</span>
+      </button>
+      <button class="bn2-svc-chip" id="chip-cleaning" onclick="selectService('cleaning',this)">
+        <div class="bn2-svc-chip-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="2"/><path d="M9 22V12h6v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <span>Cleaning</span>
+      </button>
+      <button class="bn2-svc-chip" id="chip-more" onclick="selectService('more',this)">
+        <div class="bn2-svc-chip-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>
+        </div>
+        <span>More</span>
+      </button>
+    </div>
+
+    <!-- Selected service detail card -->
+    <div class="bn2-svc-detail-card">
+      <div class="bn2-svc-detail-icon" id="svc-detail-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="bn2-svc-detail-body">
+        <p class="bn2-svc-detail-name" id="svc-detail-name">Electrician</p>
+        <p class="bn2-svc-detail-desc" id="svc-detail-desc">We'll match you with the nearest available electrician.</p>
+      </div>
+      <div class="bn2-svc-detail-meta">
+        <p class="bn2-svc-detail-price" id="svc-detail-price">GHC 50–80</p>
+        <p class="bn2-svc-detail-arrival" id="svc-detail-arrival">5–10 mins</p>
       </div>
     </div>
 
-    <div class="bn-trust">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="#730201" opacity=".15"/><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="#730201" stroke-width="2"/><path d="M9 12l2 2 4-4" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      You'll see your price before the job starts. No hidden charges.
+    <!-- Urgency selector -->
+    <div class="bn2-section-hdr bn2-section-hdr--mt">
+      <span class="bn2-section-title">When do you need it?</span>
+    </div>
+    <div class="bn2-urgency-row">
+      <button class="bn2-urgency-btn active" id="urg-asap" onclick="selectUrgency('asap',this)">
+        <div class="bn2-urgency-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <span class="bn2-urgency-label">ASAP</span>
+        <span class="bn2-urgency-sub">Emergency dispatch</span>
+      </button>
+      <button class="bn2-urgency-btn" id="urg-today" onclick="selectUrgency('today',this)">
+        <div class="bn2-urgency-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <span class="bn2-urgency-label">Today</span>
+        <span class="bn2-urgency-sub">Choose a time</span>
+      </button>
+      <button class="bn2-urgency-btn" id="urg-schedule" onclick="selectUrgency('schedule',this)">
+        <div class="bn2-urgency-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <span class="bn2-urgency-label">Schedule</span>
+        <span class="bn2-urgency-sub">Pick a date</span>
+      </button>
     </div>
 
-    <button class="bn-request-btn" onclick="requestService()">
-      <div class="bn-request-btn-main">
-        <span id="request-btn-text">Request Electrician</span>
-      </div>
-      <div class="bn-request-btn-sub">
-        Get help now
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-linecap="round"/></svg>
-      </div>
+    <!-- Recommended professionals -->
+    <div class="bn2-section-hdr bn2-section-hdr--mt">
+      <span class="bn2-section-title">Recommended Professionals</span>
+      <span class="bn2-section-badge" id="pros-count-badge" style="display:none">0</span>
+    </div>
+    <div id="pros-list" class="bn2-pros-list">
+      <!-- Skeleton loading state -->
+      <div class="bn2-pro-skeleton"></div>
+      <div class="bn2-pro-skeleton"></div>
+      <div class="bn2-pro-skeleton"></div>
+    </div>
+
+    <!-- Safe-area spacer for sticky bar -->
+    <div style="height:100px"></div>
+  </div><!-- /.bn2-scroll -->
+
+  <!-- ── Sticky bottom bar ── -->
+  <div class="bn2-sticky-bar">
+    <div class="bn2-sticky-info">
+      <p class="bn2-sticky-price" id="sticky-price">GHC 50–80</p>
+      <p class="bn2-sticky-arrive" id="sticky-arrival">Arrives in ~5–10 mins</p>
+    </div>
+    <button class="bn2-sticky-cta" onclick="continueFlow()">
+      <span id="sticky-cta-text">Get Help Now</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
 
-</div>
+</div><!-- /.bn2-shell -->
 
 <div id="bottom-nav-include"></div>
 <script src="../shared/js/components/serviceIcons.js"></script>
 <script src="../shared/js/utils/helpers.js"></script>
 <script src="../shared/js/utils/global-app.js"></script>
-<script>
-  const SERVICES = {
-    electrician: { name:'Electrician', emKey:'Electrical',         desc:'We\'ll match you with the nearest available electrician.', arrival:'5 – 10 mins',  price:'GHC 50 – 80',   icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
-    plumber:     { name:'Plumber',      emKey:'Plumbing',          desc:'We\'ll connect you with a skilled plumber near you.',      arrival:'8 – 15 mins',  price:'GHC 60 – 100',  icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="#730201" stroke-width="2"/><path d="M7 10c0 5.52 10 5.52 10 0" stroke="#730201" stroke-width="2"/></svg>' },
-    carpenter:   { name:'Carpenter',    emKey:'Carpentry',         desc:'We\'ll find an expert carpenter for your woodwork needs.', arrival:'10 – 20 mins', price:'GHC 80 – 150',  icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>' },
-    ac:          { name:'AC Specialist', emKey:'AC Repair',        desc:'Get your AC serviced by a certified technician fast.',    arrival:'15 – 25 mins', price:'GHC 100 – 200', icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>' },
-    more:        { name:'Other Service', emKey:'General Emergency', desc:'Tell us what you need and we\'ll find the right person.', arrival:'5 – 20 mins',  price:'GHC 50 – 200', icon:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#730201"/><circle cx="12" cy="12" r="1.5" fill="#730201"/><circle cx="19" cy="12" r="1.5" fill="#730201"/></svg>' },
-  };
 
-  // Mapping from hh_service session value → SERVICES key
-  const SVC_KEY_MAP = {
-    'Electrical': 'electrician', 'Plumbing': 'plumber',
-    'Carpentry': 'carpenter', 'AC Repair': 'ac', 'Cleaning': 'more',
-  };
+<script type="module">
+// ═══════════════════════════════════════════════════════════════
+//  book-now.html — Module script
+//  Real Leaflet map · Real GPS · Real Firestore artisans
+//  ASAP → book-emergency.html  |  Today/Schedule → book-step1.html
+// ═══════════════════════════════════════════════════════════════
 
-  let currentSvc = 'electrician';
+// ── Auth guard — redirect to login if no session ──────────────
+import { requireAuth } from '../shared/js/utils/authGuard.js';
+await requireAuth();
 
-  function selectCat(btn, svcId) {
-    document.querySelectorAll('.bn-cat').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    currentSvc = svcId;
-    const svc = SERVICES[svcId];
-    document.getElementById('sheet-icon').innerHTML = svc.icon;
-    document.getElementById('sheet-svc-name').textContent = svc.name;
-    document.getElementById('sheet-svc-desc').textContent = svc.desc;
-    document.getElementById('sheet-arrival').textContent = svc.arrival;
-    document.getElementById('sheet-price').innerHTML = svc.price + ' <span class="bn-stat-info">ⓘ</span>';
-    document.getElementById('request-btn-text').textContent = `Request ${svc.name}`;
+// ── Service catalogue ─────────────────────────────────────────
+const SERVICES = {
+  electrician: {
+    name: 'Electrician', category: 'Electrical', emKey: 'Electrical',
+    desc: "We'll match you with the nearest available electrician.",
+    price: 'GHC 50–80', arrival: '5–10 mins',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  },
+  plumber: {
+    name: 'Plumber', category: 'Plumbing', emKey: 'Plumbing',
+    desc: "We'll connect you with a skilled plumber near you.",
+    price: 'GHC 60–100', arrival: '8–15 mins',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="#730201" stroke-width="2"/><path d="M7 10c0 5.52 10 5.52 10 0M12 19v3M9 22h6" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
+  },
+  carpenter: {
+    name: 'Carpenter', category: 'Carpentry', emKey: 'Carpentry',
+    desc: "We'll find an expert carpenter for your woodwork needs.",
+    price: 'GHC 80–150', arrival: '10–20 mins',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
+  },
+  ac: {
+    name: 'AC Specialist', category: 'AC Repair', emKey: 'AC Repair',
+    desc: 'Get your AC serviced by a certified technician fast.',
+    price: 'GHC 100–200', arrival: '15–25 mins',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
+  },
+  cleaning: {
+    name: 'Cleaner', category: 'Cleaning', emKey: 'Cleaning',
+    desc: 'Book a trusted home cleaning professional today.',
+    price: 'GHC 80–150', arrival: '10–20 mins',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#730201" stroke-width="2"/><path d="M9 22V12h6v10" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
+  },
+  more: {
+    name: 'Other Service', category: '', emKey: 'General Emergency',
+    desc: "Tell us what you need and we'll find the right person.",
+    price: 'GHC 50–200', arrival: '5–20 mins',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#730201"/><circle cx="12" cy="12" r="1.5" fill="#730201"/><circle cx="19" cy="12" r="1.5" fill="#730201"/></svg>`,
+  },
+};
+
+const SVC_KEY_MAP = {
+  'Electrical': 'electrician', 'Plumbing': 'plumber', 'Carpentry': 'carpenter',
+  'AC Repair': 'ac', 'Cleaning': 'cleaning', 'General Emergency': 'more',
+};
+
+// ── Module state ─────────────────────────────────────────────────
+let currentSvc     = 'electrician';
+let currentUrgency = 'asap';
+let mapInstance    = null;
+let userMarker     = null;
+let artisanMarkers = [];
+let userLat        = null;
+let userLng        = null;
+let loadedArtisans = [];
+
+// ── DOM refs ─────────────────────────────────────────────────────
+const locAddrEl    = document.getElementById('loc-addr-text');
+const hdrSubEl     = document.getElementById('hdr-location-sub');
+const nearbyBadge  = document.getElementById('nearby-badge');
+const nearbyTxt    = document.getElementById('nearby-count-txt');
+const prosCountBdg = document.getElementById('pros-count-badge');
+const prosList     = document.getElementById('pros-list');
+const stickyPrice  = document.getElementById('sticky-price');
+const stickyArriv  = document.getElementById('sticky-arrival');
+
+// ═══════════════════════════════════════════════════════════════
+//  MAP
+// ═══════════════════════════════════════════════════════════════
+const ACCRA_LAT = 5.6037, ACCRA_LNG = -0.1870; // fallback centre
+
+function initMap(lat, lng) {
+  if (mapInstance) { mapInstance.setView([lat, lng], 15); return; }
+  mapInstance = L.map('bn2-map', {
+    center: [lat, lng], zoom: 15,
+    zoomControl: false,
+    attributionControl: false,
+  });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+  }).addTo(mapInstance);
+  L.control.attribution({ prefix: '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OSM</a>' })
+    .addTo(mapInstance);
+}
+
+function placeUserMarker(lat, lng) {
+  if (userMarker) { userMarker.setLatLng([lat, lng]); return; }
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="bn2-you-marker"><div class="bn2-you-pulse"></div><div class="bn2-you-dot"></div></div>`,
+    iconSize: [30, 30], iconAnchor: [15, 15],
+  });
+  userMarker = L.marker([lat, lng], { icon }).addTo(mapInstance);
+}
+
+function placeArtisanMarkers(artisans) {
+  artisanMarkers.forEach(function(m) { m.remove(); });
+  artisanMarkers = [];
+  artisans.forEach(function(artisan) {
+    const d = artisan.data || {};
+    // Only place markers if the artisan document has real lat/lng
+    if (typeof d.latitude !== 'number' || typeof d.longitude !== 'number') return;
+    const initial = (d.name || '?').charAt(0).toUpperCase();
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="bn2-pro-marker"><span>${initial}</span><div class="bn2-pro-eta-bubble">—</div></div>`,
+      iconSize: [44, 54], iconAnchor: [22, 54],
+    });
+    const m = L.marker([d.latitude, d.longitude], { icon }).addTo(mapInstance);
+    artisanMarkers.push(m);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GEOLOCATION
+// ═══════════════════════════════════════════════════════════════
+window.detectLocation = function detectLocation() {
+  locAddrEl.textContent = 'Detecting…';
+  hdrSubEl.textContent  = 'Detecting location…';
+  if (!navigator.geolocation) { useFallbackLocation(); return; }
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      userLat = lat; userLng = lng;
+      initMap(lat, lng);
+      placeUserMarker(lat, lng);
+      reverseGeocode(lat, lng);
+      loadArtisans();
+    },
+    function() { useFallbackLocation(); },
+    { timeout: 8000, maximumAge: 60000 }
+  );
+};
+
+function useFallbackLocation() {
+  userLat = ACCRA_LAT; userLng = ACCRA_LNG;
+  locAddrEl.textContent = 'Accra, Ghana (approximate)';
+  hdrSubEl.textContent  = 'Accra';
+  initMap(ACCRA_LAT, ACCRA_LNG);
+  placeUserMarker(ACCRA_LAT, ACCRA_LNG);
+  loadArtisans();
+}
+
+function reverseGeocode(lat, lng) {
+  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+    headers: { 'Accept-Language': 'en' }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    const a = data.address || {};
+    const parts = [
+      a.road || a.pedestrian || a.footway,
+      a.suburb || a.neighbourhood || a.quarter,
+      a.city   || a.town          || a.village || a.county,
+    ].filter(Boolean);
+    locAddrEl.textContent = parts.slice(0, 2).join(', ') || 'Your area';
+    hdrSubEl.textContent  = a.suburb || a.city || a.town || 'Nearby';
+  })
+  .catch(function() {
+    locAddrEl.textContent = 'Location detected';
+    hdrSubEl.textContent  = 'Nearby';
+  });
+}
+
+window.locateMe = function locateMe() {
+  if (mapInstance && userLat !== null) {
+    mapInstance.flyTo([userLat, userLng], 16, { duration: 1 });
+  } else {
+    detectLocation();
   }
+};
 
-  function toggleHelp() {
-    const btn = document.getElementById('help-toggle');
-    if (btn) btn.classList.toggle('off');
-  }
+// ═══════════════════════════════════════════════════════════════
+//  ARTISAN LOADING
+// ═══════════════════════════════════════════════════════════════
+function showSkeletons() {
+  prosList.innerHTML =
+    '<div class="bn2-pro-skeleton"></div>' +
+    '<div class="bn2-pro-skeleton"></div>' +
+    '<div class="bn2-pro-skeleton"></div>';
+}
 
-  function requestService() {
-    const svc = SERVICES[currentSvc];
-    // Store the service type name that PRO_POOL in book-emergency.html expects
-    sessionStorage.setItem('em_service', svc.emKey);
-    sessionStorage.setItem('hh_service', svc.emKey);
-    sessionStorage.setItem('hh_task', svc.name);
-    window.location.href = 'book-emergency.html';
-  }
+function showEmptyState(svcName) {
+  prosList.innerHTML = `
+    <div class="bn2-pros-empty">
+      <div class="bn2-pros-empty-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="8" r="4" stroke="#bbb" stroke-width="2"/>
+          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#bbb" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p class="bn2-pros-empty-title">No ${svcName || 'professionals'} available right now</p>
+      <p class="bn2-pros-empty-sub">Try a different service or check back soon.</p>
+    </div>`;
+  nearbyBadge.style.display = 'none';
+  prosCountBdg.style.display = 'none';
+}
 
-  // Pre-select category based on what the dashboard chip stored in sessionStorage
-  document.addEventListener('DOMContentLoaded', function () {
-    const incoming = sessionStorage.getItem('hh_service');
-    if (incoming && SVC_KEY_MAP[incoming]) {
-      const id = SVC_KEY_MAP[incoming];
-      const btn = document.getElementById('cat-' + id);
-      if (btn) selectCat(btn, id);
+function showErrorState() {
+  prosList.innerHTML = `
+    <div class="bn2-pros-empty">
+      <div class="bn2-pros-empty-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="#bbb" stroke-width="2"/>
+          <path d="M12 8v5M12 16v1" stroke="#bbb" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p class="bn2-pros-empty-title">Couldn't load professionals</p>
+      <p class="bn2-pros-empty-sub">Check your connection and
+        <button class="bn2-inline-retry" onclick="loadArtisans()">try again</button>.
+      </p>
+    </div>`;
+}
+
+function buildProCard(artisan) {
+  const d  = artisan.data || {};
+  const id = artisan.id;
+  const name      = d.name          || 'Professional';
+  const specialty = d.specialty     || d.category || '';
+  const rating    = d.rating        ? parseFloat(d.rating).toFixed(1) : null;
+  const reviews   = d.reviewCount   || 0;
+  const jobs      = d.jobsCompleted || 0;
+  const avail     = d.isAvailable   !== false;
+  const photo     = d.profileImage  || null;
+  const location  = d.location      || '';
+
+  const photoHtml = photo
+    ? `<img class="bn2-pro-img" src="${photo}" alt="${name}" loading="lazy">`
+    : `<div class="bn2-pro-img bn2-pro-img-init">${name.charAt(0).toUpperCase()}</div>`;
+
+  const ratingHtml = rating
+    ? `<span class="bn2-pro-rating">★ ${rating}</span><span class="bn2-pro-reviews">(${reviews})</span>`
+    : `<span class="bn2-pro-reviews">No reviews yet</span>`;
+
+  const availHtml = avail
+    ? `<span class="bn2-pro-avail-dot"></span><span class="bn2-pro-avail-lbl">Available</span>`
+    : `<span class="bn2-pro-unavail-dot"></span><span class="bn2-pro-avail-lbl bn2-pro-avail-lbl--off">Busy</span>`;
+
+  // Escape id for safe use in onclick attribute
+  const safeId = id.replace(/'/g, "\\'");
+
+  return `
+    <div class="bn2-pro-card${!avail ? ' bn2-pro-card--dim' : ''}" onclick="window._bnSelectPro('${safeId}')">
+      <div class="bn2-pro-photo-wrap">
+        ${photoHtml}
+        <div class="bn2-pro-avail-badge">${availHtml}</div>
+      </div>
+      <div class="bn2-pro-body">
+        <p class="bn2-pro-name">${name}</p>
+        <p class="bn2-pro-spec">${specialty}${location ? ' · ' + location : ''}</p>
+        <div class="bn2-pro-meta-row">
+          ${ratingHtml}
+          <span class="bn2-pro-dot-sep">·</span>
+          <span class="bn2-pro-jobs">${jobs} jobs</span>
+        </div>
+      </div>
+      <div class="bn2-pro-action">
+        <div class="bn2-pro-select-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Expose selectPro to inline onclick (module scope isolation workaround)
+window._bnSelectPro = function(id) {
+  const artisan = loadedArtisans.find(function(a) { return a.id === id; });
+  if (!artisan) return;
+  const d = artisan.data || {};
+
+  // Highlight selected card
+  document.querySelectorAll('.bn2-pro-card').forEach(function(c) {
+    c.classList.remove('bn2-pro-card--selected');
+  });
+  // Find card by artisan id stored in onclick
+  document.querySelectorAll('.bn2-pro-card').forEach(function(c) {
+    if (c.getAttribute('onclick') && c.getAttribute('onclick').includes(id.replace(/'/g, "\\'"))) {
+      c.classList.add('bn2-pro-card--selected');
     }
   });
+
+  // Persist to booking state for downstream steps
+  try {
+    const BK_KEY = 'hh_booking'; // unified key shared with book-step1 → step4
+    const state  = JSON.parse(localStorage.getItem(BK_KEY) || '{}');
+    state.professional = {
+      id, uid: id,
+      name:         d.name         || '',
+      specialty:    d.specialty    || '',
+      rating:       d.rating       || null,
+      reviewCount:  d.reviewCount  || 0,
+      profileImage: d.profileImage || null,
+      phone:        d.phone        || '',
+    };
+    state.services = [{
+      name:     SERVICES[currentSvc].name,
+      category: SERVICES[currentSvc].category,
+    }];
+    localStorage.setItem(BK_KEY, JSON.stringify(state));
+  } catch (_) {}
+};
+
+window.loadArtisans = async function loadArtisans() {
+  showSkeletons();
+  nearbyBadge.style.display  = 'none';
+  prosCountBdg.style.display = 'none';
+
+  const svc      = SERVICES[currentSvc];
+  const category = svc.category;
+
+  try {
+    const { getAppContainer } = await import('../shared/js/app/container.js');
+    const { repositories: { artisanRepository } } = getAppContainer();
+
+    let results = [];
+    if (category) {
+      results = await artisanRepository.findByCategory(category, 10);
+      if (!results || !results.length) {
+        results = await artisanRepository.getTopRated(8);
+      }
+    } else {
+      results = await artisanRepository.getTopRated(10);
+    }
+
+    loadedArtisans = Array.isArray(results) ? results : [];
+
+    if (!loadedArtisans.length) {
+      showEmptyState(svc.name);
+      return;
+    }
+
+    prosList.innerHTML = loadedArtisans.map(buildProCard).join('');
+
+    const count = loadedArtisans.length;
+    nearbyTxt.textContent    = count + ' professional' + (count !== 1 ? 's' : '') + ' nearby';
+    nearbyBadge.style.display  = 'flex';
+    prosCountBdg.textContent   = count;
+    prosCountBdg.style.display = 'inline-flex';
+
+    // Place real markers only where artisans have stored lat/lng
+    if (mapInstance) placeArtisanMarkers(loadedArtisans);
+
+  } catch (err) {
+    console.error('[book-now] loadArtisans error:', err);
+    showErrorState();
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  SERVICE / URGENCY SELECTION
+// ═══════════════════════════════════════════════════════════════
+window.selectService = function selectService(svcId, btn) {
+  document.querySelectorAll('.bn2-svc-chip').forEach(function(c) { c.classList.remove('active'); });
+  btn.classList.add('active');
+  currentSvc = svcId;
+  _updateDetail();
+  window.loadArtisans();
+};
+
+function _updateDetail() {
+  const svc = SERVICES[currentSvc];
+  document.getElementById('svc-detail-icon').innerHTML    = svc.icon;
+  document.getElementById('svc-detail-name').textContent  = svc.name;
+  document.getElementById('svc-detail-desc').textContent  = svc.desc;
+  document.getElementById('svc-detail-price').textContent = svc.price;
+  document.getElementById('svc-detail-arrival').textContent = svc.arrival;
+  stickyPrice.textContent = svc.price;
+  stickyArriv.textContent = 'Arrives in ~' + svc.arrival;
+}
+
+window.selectUrgency = function selectUrgency(urgId, btn) {
+  document.querySelectorAll('.bn2-urgency-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  currentUrgency = urgId;
+  const ctaEl = document.getElementById('sticky-cta-text');
+  if      (urgId === 'asap')     ctaEl.textContent = 'Get Help Now';
+  else if (urgId === 'today')    ctaEl.textContent = 'Book Today';
+  else                           ctaEl.textContent = 'Schedule Booking';
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  ROUTING
+// ═══════════════════════════════════════════════════════════════
+window.continueFlow = function continueFlow() {
+  const svc = SERVICES[currentSvc];
+  sessionStorage.setItem('hh_service', svc.emKey);
+  sessionStorage.setItem('hh_task',    svc.name);
+  sessionStorage.setItem('em_service', svc.emKey);
+
+  if (currentUrgency === 'asap') {
+    window.location.href = 'book-emergency.html';
+  } else {
+    // Standard booking — step 1 picks category via sessionStorage
+    window.location.href = 'book-step1.html';
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  // Honour incoming service selection from dashboard
+  const incoming = sessionStorage.getItem('hh_service');
+  if (incoming && SVC_KEY_MAP[incoming]) {
+    const id  = SVC_KEY_MAP[incoming];
+    currentSvc = id;
+    document.querySelectorAll('.bn2-svc-chip').forEach(function(c) { c.classList.remove('active'); });
+    const btn = document.getElementById('chip-' + id);
+    if (btn) btn.classList.add('active');
+  }
+  _updateDetail();
+  detectLocation(); // triggers map init + artisan load
+});
 </script>
 </body>
 </html>
-
-

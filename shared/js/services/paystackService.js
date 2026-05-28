@@ -69,7 +69,7 @@ export async function initiatePayment({ email, amount, metadata = {}, onSuccess,
         email:    effectiveEmail,
         amount:   Math.round(amountNum * 100), // pesewas (GHS × 100)
         currency: 'GHS',
-        channels: ['mobile_money'],
+        channels: ['card', 'mobile_money', 'bank'],
         ref:      genRef(),
         metadata,
         callback: function(response) { if (onSuccess) onSuccess(response); },

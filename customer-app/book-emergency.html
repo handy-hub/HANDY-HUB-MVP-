@@ -278,17 +278,17 @@
 
       <div class="em-stats-row">
         <div class="em-stat-item">
-          <p class="em-stat-val" id="em-nearby-count">5</p>
+          <p class="em-stat-val" id="em-nearby-count">—</p>
           <p class="em-stat-lbl">Nearby</p>
         </div>
         <div class="em-stat-divider"></div>
         <div class="em-stat-item">
-          <p class="em-stat-val">★ 4.7</p>
+          <p class="em-stat-val" id="em-avg-rating">—</p>
           <p class="em-stat-lbl">Avg Rating</p>
         </div>
         <div class="em-stat-divider"></div>
         <div class="em-stat-item">
-          <p class="em-stat-val" id="em-eta-search">6 min</p>
+          <p class="em-stat-val" id="em-eta-search">—</p>
           <p class="em-stat-lbl">Est. Arrival</p>
         </div>
       </div>
@@ -434,167 +434,261 @@
 
   /* ─── Read service context from session/storage ─── */
   let svcName = 'Professional';
-  let artisanPhone = null;
-
-  // selectEmergencyType stores a plain service-name string
   const rawSvc = sessionStorage.getItem('em_service') || sessionStorage.getItem('hh_service') || '';
   if (rawSvc) {
-    // Handle both legacy JSON and plain strings
     try {
       const parsed = JSON.parse(rawSvc);
       svcName = (parsed && parsed.name) ? parsed.name : (typeof parsed === 'string' ? parsed : svcName);
-    } catch (_) {
-      svcName = rawSvc; // it's a plain string – use as-is
-    }
+    } catch (_) { svcName = rawSvc; }
   }
 
-  /* ─── Professional pool (realistic, rotated by service type) ─── */
-  const PRO_POOL = {
-    Electrical: { name:'Emmanuel Asare', type:'Electrician', exp:'6 years', rating:'4.8', reviews:'98', eta: 6, phone:'tel:+233501234567' },
-    Plumbing:   { name:'Kwame Mensah',   type:'Plumber',     exp:'4 years', rating:'4.7', reviews:'64', eta: 8, phone:'tel:+233502345678' },
-    'AC Repair':{ name:'Ama Sarpong',    type:'A/C Technician', exp:'5 years', rating:'4.9', reviews:'112', eta: 7, phone:'tel:+233503456789' },
-    Carpentry:  { name:'Kofi Boateng',   type:'Carpenter',   exp:'8 years', rating:'4.9', reviews:'201', eta: 9, phone:'tel:+233504567890' },
-    Cleaning:   { name:'Abena Owusu',    type:'Cleaner',     exp:'3 years', rating:'4.6', reviews:'77', eta: 5, phone:'tel:+233505678901' },
-    default:    { name:'Samuel Ofori',   type:'Artisan',     exp:'5 years', rating:'4.7', reviews:'89', eta: 7, phone:'tel:+233506789012' },
-  };
-  const pro = PRO_POOL[svcName] || PRO_POOL.default;
-  artisanPhone = pro.phone;
+  /* ─── Crypto-random booking reference ─── */
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  let _rnd;
+  try {
+    const arr = new Uint8Array(2);
+    crypto.getRandomValues(arr);
+    _rnd = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+  } catch(_) {
+    _rnd = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+  }
+  const bookRef = `HHB-${String(now.getFullYear()).slice(2)}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}-${_rnd}`;
 
-  /* ─── Update UI with service ─── */
+  /* ─── State ─── */
+  let foundArtisan   = null; // { id, data } from Firestore — null until query resolves
+  let artisanPhone   = null;
+  let etaSeconds     = 0;
+  let etaInterval    = null;
+  let artisanQueryDone = false;
+
+  /* ─── Update searching UI with service name ─── */
   const titleEl = document.getElementById('em-search-title');
   const subEl   = document.getElementById('em-search-sub');
   if (titleEl) titleEl.textContent = `Finding your ${svcName}…`;
-  if (subEl)   subEl.textContent   = `Checking ${svcName.toLowerCase()} professionals\nin your area`;
+  if (subEl)   subEl.textContent   = `Searching ${svcName.toLowerCase()} professionals\nin your area. Please wait.`;
 
-  /* ─── Booking reference ─── */
-  const now = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const bookRef = `HHB-${String(now.getFullYear()).slice(2)}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
-
-  /* ─── State machine ─── */
-  let etaSeconds = pro.eta * 60;
-  let etaInterval = null;
-
+  /* ─── Show state ─── */
   function showState(id) {
     document.querySelectorAll('.em-state').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
   }
 
-  /* ─── Populate matched state ─── */
-  function populateMatchedState() {
+  /* ─── No match state — honest feedback, no fake dispatch ─── */
+  function showNoMatchState() {
+    const titleEl2 = document.getElementById('em-search-title');
+    const subEl2   = document.getElementById('em-search-sub');
+    const dotsEl   = document.querySelector('.em-dots');
+    const statsEl  = document.querySelector('.em-stats-row');
+    const cancelBtn = document.querySelector('.em-cancel-btn');
+
+    if (titleEl2) titleEl2.textContent = 'No Professionals Available';
+    if (subEl2)   subEl2.textContent   = `No ${svcName || ''} professionals are available right now. Try again shortly or use standard booking.`;
+    if (dotsEl)   dotsEl.style.display = 'none';
+    if (statsEl)  statsEl.style.display = 'none';
+    if (cancelBtn) {
+      cancelBtn.textContent = 'Go Back';
+      cancelBtn.onclick = function() {
+        sessionStorage.removeItem('em_service');
+        sessionStorage.removeItem('hh_service');
+        window.location.href = 'dashboard.html';
+      };
+      // Add retry button after cancel
+      const retryBtn = document.createElement('button');
+      retryBtn.className = 'em-cancel-btn';
+      retryBtn.style.marginTop = '12px';
+      retryBtn.textContent = 'Try Again';
+      retryBtn.onclick = function() { window.location.reload(); };
+      cancelBtn.insertAdjacentElement('afterend', retryBtn);
+    }
+  }
+
+  /* ─── Query Firestore for an available artisan ─── */
+  function findNearestArtisan() {
+    return import('../shared/js/app/container.js')
+      .then(function(mod) {
+        const container = mod.getAppContainer();
+        const repo = container.repositories.artisanRepository;
+        // Try category-specific first, fall back to any available artisan
+        return repo.findByCategory(svcName)
+          .then(function(results) {
+            if (results && results.length) return results[0];
+            // Fallback: any top-rated available artisan
+            return repo.getTopRated(5).then(function(any) {
+              return (any && any.length) ? any[0] : null;
+            });
+          });
+      })
+      .catch(function(err) {
+        console.warn('[emergency] Artisan query failed:', err);
+        return null;
+      });
+  }
+
+  /* ─── Populate matched state with real artisan data ─── */
+  function populateMatchedState(artisan) {
+    const d    = artisan.data || {};
+    const name = d.name     || 'Professional';
+    const type = d.specialty || d.category || 'Artisan';
+    const exp  = d.yearsExperience ? `${d.yearsExperience} years` : '';
+    const rating  = d.rating    != null ? Number(d.rating).toFixed(1) : null;
+    const reviews = d.reviewCount || 0;
+
     const matchSub    = document.getElementById('em-match-sub');
     const matchName   = document.getElementById('em-match-name');
     const matchType   = document.getElementById('em-match-type');
     const matchRating = document.getElementById('em-match-rating');
     const matchEta    = document.getElementById('em-match-eta-val');
-    if (matchSub)    matchSub.innerHTML = `Connecting you with<br><strong>${pro.name}</strong>`;
-    if (matchName)   matchName.textContent  = pro.name;
-    if (matchType)   matchType.textContent  = `${pro.type} · ${pro.exp} experience`;
-    if (matchRating) matchRating.textContent = `★ ${pro.rating} (${pro.reviews} reviews)`;
-    if (matchEta)    matchEta.textContent   = `${pro.eta} min`;
 
-    // photo wrap — initials avatar
+    if (matchSub)    matchSub.innerHTML = `Connecting you with<br><strong>${name}</strong>`;
+    if (matchName)   matchName.textContent  = name;
+    if (matchType)   matchType.textContent  = type + (exp ? ' · ' + exp + ' experience' : '');
+    if (matchRating) matchRating.textContent = rating
+      ? `★ ${rating}${reviews ? ' (' + reviews + ' reviews)' : ''}` : '★ Verified professional';
+    if (matchEta)    matchEta.textContent   = 'Confirming…';
+
+    // Avatar
     const photoWrap = document.getElementById('em-match-photo-wrap');
     if (photoWrap) {
-      const initials = pro.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      photoWrap.style.cssText = 'width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;';
-      photoWrap.textContent = initials;
+      if (d.profileImage) {
+        photoWrap.innerHTML = `<img src="${d.profileImage}" alt="${name}"
+          style="width:56px;height:56px;border-radius:14px;object-fit:cover;">`;
+        photoWrap.style.cssText = '';
+      } else {
+        const initials = name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+        photoWrap.style.cssText = 'width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;';
+        photoWrap.textContent = initials;
+      }
     }
   }
 
-  /* ─── Populate confirmed state ─── */
-  function populateConfirmedState() {
-    document.getElementById('em-con-sub').textContent = `${pro.name.split(' ')[0]} is on the way!`;
-    document.getElementById('em-con-name').textContent = pro.name;
-    document.getElementById('em-con-type').textContent = `${pro.type} · ${pro.exp} experience`;
-    document.getElementById('em-con-rating').textContent = `★ ${pro.rating} (${pro.reviews} reviews)`;
-    document.getElementById('em-book-ref').textContent = bookRef;
+  /* ─── Populate confirmed state with real artisan data ─── */
+  function populateConfirmedState(artisan) {
+    const d    = artisan.data || {};
+    const name = d.name     || 'Professional';
+    const type = d.specialty || d.category || 'Artisan';
+    const exp  = d.yearsExperience ? `${d.yearsExperience} years` : '';
+    const rating  = d.rating != null ? Number(d.rating).toFixed(1) : null;
+    const reviews = d.reviewCount || 0;
 
-    // ETA address
+    artisanPhone = d.phone ? `tel:${d.phone}` : null;
+
+    const conSub    = document.getElementById('em-con-sub');
+    const conName   = document.getElementById('em-con-name');
+    const conType   = document.getElementById('em-con-type');
+    const conRating = document.getElementById('em-con-rating');
+    const bookRefEl = document.getElementById('em-book-ref');
+    const etaAddr   = document.getElementById('em-eta-address');
+
+    if (conSub)    conSub.textContent    = `${name.split(' ')[0]} is on the way!`;
+    if (conName)   conName.textContent   = name;
+    if (conType)   conType.textContent   = type + (exp ? ' · ' + exp + ' experience' : '');
+    if (conRating) conRating.textContent = rating
+      ? `★ ${rating}${reviews ? ' (' + reviews + ' reviews)' : ''}` : '★ Verified';
+    if (bookRefEl) bookRefEl.textContent = bookRef;
+
+    // Location address
     try {
       const cache = JSON.parse(localStorage.getItem('hh_detected_location') || 'null');
-      if (cache && cache.loc) document.getElementById('em-eta-address').textContent = cache.loc;
+      if (cache && cache.loc && etaAddr) etaAddr.textContent = cache.loc;
     } catch(_) {}
 
-    // Photo wrap
+    // Avatar
     const photoWrap = document.getElementById('em-con-photo-wrap');
     if (photoWrap) {
-      const initials = pro.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      photoWrap.style.cssText = 'width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;';
-      photoWrap.textContent = initials;
+      if (d.profileImage) {
+        photoWrap.innerHTML = `<img src="${d.profileImage}" alt="${name}"
+          style="width:60px;height:60px;border-radius:16px;object-fit:cover;">`;
+        photoWrap.style.cssText = '';
+      } else {
+        const initials = name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+        photoWrap.style.cssText = 'width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;';
+        photoWrap.textContent = initials;
+      }
     }
 
+    // Start ETA countdown (default 8 min if no data)
+    etaSeconds = 8 * 60;
     startEtaCountdown();
-    saveEmergencyBooking();
+    saveEmergencyBooking(artisan);
   }
 
-  /* ─── Save to booking history & active booking ─── */
-  function saveEmergencyBooking() {
+  /* ─── Save booking to localStorage + Firestore ─── */
+  function saveEmergencyBooking(artisan) {
+    const d = artisan ? (artisan.data || {}) : {};
+    const proName = d.name || 'Professional';
+    const proType = d.specialty || d.category || 'Artisan';
+    const artisanId = artisan ? artisan.id : null;
+
+    let detectedAddress = '';
+    try {
+      const locCache = JSON.parse(localStorage.getItem('hh_detected_location') || 'null');
+      if (locCache && locCache.loc) detectedAddress = locCache.loc;
+    } catch(_) {}
+
     const record = {
       id:          bookRef,
       service:     svcName + ' (Emergency)',
-      proName:     pro.name,
-      proType:     pro.type,
-      proPhoto:    null,
+      proName,
+      proType,
+      proPhoto:    d.profileImage || null,
+      artisanId,
       dateDisplay: now.toDateString(),
-      time:        now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
-      total:       120, // default emergency rate
-      status:      'active',
+      time:        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      total:       0, // collected on completion
+      status:      'Emergency',
+      type:        'emergency',
       isEmergency: true,
       ts:          now.toISOString(),
     };
+
     try {
       // Active booking
       localStorage.setItem('hh_booking', JSON.stringify({
         id:           bookRef,
         service:      svcName + ' (Emergency)',
         services:     [{ name: svcName + ' (Emergency)' }],
-        status:       'active',
+        status:       'Emergency',
+        type:         'emergency',
         isEmergency:  true,
-        artisan:      { name: pro.name, type: pro.type, eta: pro.eta, phone: pro.phone },
-        professional: { name: pro.name, type: pro.type, eta: pro.eta, phone: pro.phone },
-        total:        120,
+        artisanId,
+        artisan:      { id: artisanId, name: proName, type: proType,
+                        phone: d.phone || null, photo: d.profileImage || null },
+        professional: { id: artisanId, uid: artisanId, name: proName, type: proType,
+                        phone: d.phone ? `tel:${d.phone}` : null, photo: d.profileImage || null },
+        total:        0,
         ts:           now.toISOString(),
       }));
-      // History
+      // History (50-record cap)
       const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
       if (!hist.length || hist[0].id !== bookRef) {
         hist.unshift(record);
-        localStorage.setItem('hh_booking_history', JSON.stringify(hist.slice(0,20)));
+        localStorage.setItem('hh_booking_history', JSON.stringify(hist.slice(0, 50)));
       }
     } catch(_) {}
 
     // ── Bridge to Firestore (fire-and-forget) ────────────────────────────────
-    // Write the emergency booking to Firestore and send notifications via the
-    // same bridge used by standard bookings (book-step4.html).
-    // artisanId is null because emergency dispatch uses the PRO_POOL placeholder;
-    // a real matching system will replace this in post-MVP.
-    let detectedAddress = '';
-    try {
-      const locCache = JSON.parse(localStorage.getItem('hh_detected_location') || 'null');
-      if (locCache && locCache.loc) detectedAddress = locCache.loc;
-    } catch (_) {}
-
     const bookingRecord = {
       id:          bookRef,
       service:     svcName,
-      proName:     pro.name,
-      artisanId:   null,          // no real artisan ID until matching system is built
+      proName,
+      artisanId,          // real artisan UID, or null if dispatch not yet matched
       dateDisplay: now.toDateString(),
-      time:        now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
-      total:       120,
+      time:        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      total:       0,
       status:      'Emergency',
       type:        'emergency',
       ts:          now.toISOString(),
-      eta:         pro.eta + ' min',
+      eta:         '8 min',
       refCode:     bookRef,
       notes:       '',
       address:     detectedAddress,
     };
 
     import('../shared/js/utils/bookingConfirmNotify.js')
-      .then(m => m.onBookingConfirmed(bookingRecord))
-      .catch(err => console.warn('[emergency] Firestore bridge failed:', err.message));
+      .then(function(m) { return m.onBookingConfirmed(bookingRecord); })
+      .catch(function(err) { console.warn('[emergency] Firestore bridge failed:', err.message); });
   }
 
   /* ─── ETA countdown ─── */
@@ -605,11 +699,12 @@
       const s = etaSeconds % 60;
       el.textContent = `${m}:${pad(s)}`;
     }
-    etaInterval = setInterval(function () {
+    etaInterval = setInterval(function() {
       if (etaSeconds <= 0) {
         clearInterval(etaInterval);
         if (el) el.textContent = 'Arrived!';
-        document.querySelector('.em-eta-status') && (document.querySelector('.em-eta-status').textContent = 'Arrived');
+        const statusEl = document.querySelector('.em-eta-status');
+        if (statusEl) statusEl.textContent = 'Arrived';
         return;
       }
       etaSeconds--;
@@ -621,37 +716,76 @@
     }, 1000);
   }
 
-  /* ─── State sequence: search → matched → confirmed ─── */
-  setTimeout(function () {
-    populateMatchedState();
+  /* ─── Dispatch after query resolves ─── */
+  function proceedAfterQuery() {
+    if (!foundArtisan) {
+      showNoMatchState();
+      return;
+    }
+    populateMatchedState(foundArtisan);
     showState('state-matched');
-    // Trigger progress bar
-    setTimeout(function () {
+
+    // Update stats with real data
+    const nearbyEl = document.getElementById('em-nearby-count');
+    const ratingEl = document.getElementById('em-avg-rating');
+    const etaEl    = document.getElementById('em-eta-search');
+    if (nearbyEl) nearbyEl.textContent = '1';
+    if (ratingEl && foundArtisan.data && foundArtisan.data.rating != null) {
+      ratingEl.textContent = `★ ${Number(foundArtisan.data.rating).toFixed(1)}`;
+    }
+    if (etaEl) etaEl.textContent = '~8 min';
+
+    // Trigger progress bar then move to confirmed
+    setTimeout(function() {
       const fill = document.getElementById('em-progress-fill');
       if (fill) fill.style.width = '100%';
     }, 100);
-    // → Confirmed after 2.5s
-    setTimeout(function () {
-      populateConfirmedState();
+    setTimeout(function() {
+      populateConfirmedState(foundArtisan);
       showState('state-confirmed');
     }, 2600);
+  }
+
+  /* ─── State sequence — search (+ query) → matched → confirmed ─── */
+  // Start Firestore query immediately (runs in parallel with searching animation)
+  findNearestArtisan().then(function(artisan) {
+    foundArtisan     = artisan;
+    artisanQueryDone = true;
+  }).catch(function() {
+    artisanQueryDone = true; // foundArtisan stays null
+  });
+
+  // After 3.5s: if query is done, proceed; else wait for it
+  setTimeout(function() {
+    if (artisanQueryDone) {
+      proceedAfterQuery();
+    } else {
+      // Query still in flight — poll until it resolves (max 6s extra)
+      var waited = 0;
+      var poll = setInterval(function() {
+        waited += 200;
+        if (artisanQueryDone || waited >= 6000) {
+          clearInterval(poll);
+          proceedAfterQuery();
+        }
+      }, 200);
+    }
   }, 3500);
 
   /* ─── Actions ─── */
-  window.callPro = function () {
+  window.callPro = function() {
     if (artisanPhone) {
       window.location.href = artisanPhone;
     } else {
-      // Graceful fallback if no real number
       const btn = document.getElementById('em-call-btn');
       if (btn) {
         btn.style.background = '#c8f5ce';
-        setTimeout(() => { btn.style.background = ''; }, 1500);
+        setTimeout(function() { btn.style.background = ''; }, 1500);
       }
     }
   };
 
-  window.cancelSearch = function () {
+  window.cancelSearch = function() {
     if (confirm('Cancel this emergency request?')) {
       sessionStorage.removeItem('em_service');
       sessionStorage.removeItem('hh_service');
@@ -659,40 +793,54 @@
     }
   };
 
-  window.confirmCancel = function () {
+  window.confirmCancel = function() {
     if (confirm('Cancel this booking? A fee may apply if the professional is already on the way.')) {
       clearInterval(etaInterval);
+
+      // Update localStorage
       try {
         const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
         b.status = 'cancelled';
         localStorage.setItem('hh_booking', JSON.stringify(b));
-        // Update history status
         const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
-        const idx = hist.findIndex(r => r.id === bookRef);
+        const idx  = hist.findIndex(function(r) { return r.id === bookRef; });
         if (idx >= 0) hist[idx].status = 'cancelled';
         localStorage.setItem('hh_booking_history', JSON.stringify(hist));
       } catch(_) {}
+
+      // Update Firestore booking status (fire-and-forget)
+      import('../shared/js/app/container.js')
+        .then(function(mod) {
+          const container = mod.getAppContainer();
+          return container.repositories.bookingRepository.updateStatus(bookRef, 'cancelled');
+        })
+        .catch(function(err) {
+          console.warn('[emergency] Firestore cancel update failed:', err.message);
+        });
+
       window.location.href = 'booking.html';
     }
   };
 
-  window.shareRef = function () {
+  window.shareRef = function() {
     const ref = document.getElementById('em-book-ref').textContent;
     if (navigator.share) {
-      navigator.share({ title: 'HandyHub Booking', text: `Emergency booking ref: ${ref}`, url: '' }).catch(() => {});
+      navigator.share({ title: 'HandyHub Booking', text: `Emergency booking ref: ${ref}`, url: '' }).catch(function() {});
     } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(ref).then(() => {
+      navigator.clipboard.writeText(ref).then(function() {
         const btn = document.querySelector('.em-share-btn');
-        if (btn) { const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = orig, 1500); }
-      }).catch(() => {});
+        if (btn) { var orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = orig; }, 1500); }
+      }).catch(function() {});
     }
   };
 
-  window.safeBack = function () {
-    cancelSearch();
-  };
+  window.safeBack = function() { window.cancelSearch(); };
 
 })();
+</script>
+<script type="module">
+  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  await requireAuth();
 </script>
 </body>
 </html>

@@ -193,6 +193,10 @@
 =======
 >>>>>>> fc4470d892fa9dff28837d4d867d8a79a3b3484b
 <script src="../shared/js/utils/global-app.js"></script>
+<script type="module">
+  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  await requireAuth();
+</script>
 <script src="../shared/js/components/floatingNav.js"></script>
 <script>
 const TOAST_ICONS = {

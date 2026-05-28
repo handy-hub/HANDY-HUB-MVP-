@@ -51,6 +51,26 @@ textarea {
   color: inherit;
 }
 
+/* ── Prevent iOS Safari from zooming on input focus ──────────────────
+   Safari auto-zooms any input whose computed font-size is < 16px.
+   max(16px, 1em) keeps the inherited size when it's already ≥ 16px,
+   and floors it at 16px when it isn't — no visual change on most
+   inputs, no more page resize, no accessibility harm (user pinch-zoom
+   is still allowed, unlike the user-scalable=no hack).
+─────────────────────────────────────────────────────────────────── */
+input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+input[type="search"],
+input[type="url"],
+textarea,
+select {
+  font-size: max(16px, 1em) !important;
+}
+
 a,
 button,
 [role="button"],

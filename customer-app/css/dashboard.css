@@ -50,7 +50,8 @@ body {
   background: #730201; color: #fff;
   font-size: 8px; font-weight: 800;
   border-radius: 999px;
-  display: flex; align-items: center; justify-content: center;
+  display: none; /* hidden by default; JS sets display:flex when count > 0 */
+  align-items: center; justify-content: center;
   border: 1.5px solid #fff; line-height: 1;
 }
 

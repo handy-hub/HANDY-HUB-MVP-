@@ -17,13 +17,20 @@
 
         <!-- ── Header ─────────────────────────────────────────────────── -->
         <header class="notif-header">
-            <button class="back-to-dashboard header-icon-btn" aria-label="Go back">
+            <button class="back-to-dashboard header-icon-btn" onclick="history.length > 1 ? history.back() : window.location.href='dashboard.html'" aria-label="Go back">
                 <i class="fa-solid fa-chevron-left"></i>
             </button>
             <h1 class="notif-header__title">Notifications</h1>
-            <button class="header-icon-btn" aria-label="Settings">
-                <i class="fa-solid fa-gear"></i>
-            </button>
+            <div class="notif-header-actions">
+                <button class="header-icon-btn" id="markAllReadBtn"
+                    aria-label="Mark all as read" style="display:none" title="Mark all read">
+                    <i class="fa-solid fa-check-double"></i>
+                </button>
+                <button class="header-icon-btn" aria-label="Notification Settings"
+                    onclick="sessionStorage.setItem('notif_settings_ref','notification.html'); window.location.href='settings-notifications.html'">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
         </header>
 
         <!-- ── Filter tabs (rendered by JS) ──────────────────────────── -->
@@ -58,6 +65,12 @@
     <!-- ── Scripts ───────────────────────────────────────────────────── -->
     <script src="../shared/js/components/pageTransition.js"></script>
     <script src="../shared/js/utils/global-app.js"></script>
+
+    <!-- Auth guard — must run before page init -->
+    <script type="module">
+      import { requireAuth } from '../shared/js/utils/authGuard.js';
+      await requireAuth();
+    </script>
 
     <!-- Notification logic as an ES module (needs Firebase imports) -->
     <script type="module" src="js/pages/notificationPage.js"></script>

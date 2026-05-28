@@ -231,6 +231,10 @@
 
   </div><!-- /success-screen -->
 
+  <script type="module">
+    import { requireAuth } from '../shared/js/utils/authGuard.js';
+    await requireAuth();
+  </script>
   <script type="module" src="js/pages/topupPage.js"></script>
   <script src="../shared/js/components/fastLoader.js"></script>
 </body>

@@ -128,21 +128,38 @@
           <p class="loc-value">Home</p>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg>
         </div>
-        <p class="loc-address">East Legon, Accra, Ghana</p>
+        <p class="loc-address" id="step1-loc-address">East Legon, Accra, Ghana</p>
       </div>
-      <button class="loc-add-btn">+ Add New</button>
+      <button class="loc-add-btn" onclick="window.location.href='settings-location.html'">+ Add New</button>
     </div>
 
     <!-- Promo -->
-    <div class="promo-row">
+    <div class="promo-row" id="promo-row-trigger" onclick="togglePromoPanel()" style="cursor:pointer;">
       <div class="promo-row-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="#2e7d32" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="7" r="1" fill="#2e7d32"/></svg>
       </div>
       <div>
-        <p class="promo-row-label">Have a promo code?</p>
-        <p class="promo-row-sub">Apply code & get discount</p>
+        <p class="promo-row-label" id="promo-label">Have a promo code?</p>
+        <p class="promo-row-sub" id="promo-sub">Apply code &amp; get discount</p>
       </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-left:auto; flex-shrink:0;"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-left:auto; flex-shrink:0;" id="promo-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+
+    <!-- Promo input panel (hidden by default) -->
+    <div id="promo-panel" style="display:none; background:#fff; border-radius:14px; padding:14px 16px; margin-top:-6px; box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+      <div style="display:flex; gap:8px;">
+        <input id="promo-input" type="text" placeholder="Enter promo code"
+          style="flex:1; border:1.5px solid #eee; border-radius:10px; padding:10px 12px;
+                 font-size:13px; font-family:inherit; outline:none; text-transform:uppercase;"
+          oninput="this.value=this.value.toUpperCase()"
+          onfocus="this.style.borderColor='#730201'" onblur="this.style.borderColor='#eee'">
+        <button onclick="applyPromoCode()"
+          style="background:#730201; color:#fff; border:none; border-radius:10px;
+                 padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;">
+          Apply
+        </button>
+      </div>
+      <p id="promo-result" style="font-size:12px; margin-top:8px; min-height:16px;"></p>
     </div>
 
   </div>
@@ -343,6 +360,16 @@
     renderServices(currentCat);
     updatePrice();
 
+    // Restore previously applied promo code if user came back to this step
+    if (state.promoCode && VALID_PROMO_CODES[state.promoCode]) {
+      const promo = VALID_PROMO_CODES[state.promoCode];
+      appliedPromo = { code: state.promoCode, ...promo };
+      const label = document.getElementById('promo-label');
+      const sub   = document.getElementById('promo-sub');
+      if (label) label.textContent = `Promo: ${state.promoCode}`;
+      if (sub)   sub.textContent   = promo.label;
+    }
+
     // Notification badge
     try {
       const count = parseInt(localStorage.getItem('unread_notifications') || '0', 10);
@@ -373,6 +400,82 @@
     window.location.href = 'book-step2.html';
   }
 
+  /* ── Dynamic location from GPS cache ── */
+  (function () {
+    try {
+      const locCache = JSON.parse(localStorage.getItem('hh_detected_location') || 'null');
+      const addrEl   = document.getElementById('step1-loc-address');
+      if (addrEl && locCache && locCache.loc) {
+        addrEl.textContent = locCache.loc;
+      } else {
+        // Fallback: read from booking state if address was set previously
+        const st = getState();
+        if (addrEl && st.address) addrEl.textContent = st.address;
+      }
+    } catch (_) {}
+  })();
+
+  /* ── Promo code panel ── */
+  const VALID_PROMO_CODES = {
+    'HANDY10':  { label: '10% off your first booking!',     discount: 0.10, type: 'percent' },
+    'WELCOME20': { label: '20% off — welcome discount!',    discount: 0.20, type: 'percent' },
+    'FLAT50':   { label: 'GHC 50 flat discount applied!',   discount: 50,   type: 'flat'    },
+    'NEWUSER':  { label: '15% off for new users!',          discount: 0.15, type: 'percent' },
+  };
+  let appliedPromo = null;
+  let promoOpen    = false;
+
+  window.togglePromoPanel = function () {
+    promoOpen = !promoOpen;
+    const panel    = document.getElementById('promo-panel');
+    const chevron  = document.getElementById('promo-chevron');
+    if (!panel) return;
+    panel.style.display = promoOpen ? 'block' : 'none';
+    if (chevron) chevron.style.transform = promoOpen ? 'rotate(90deg)' : '';
+    if (promoOpen) setTimeout(() => document.getElementById('promo-input')?.focus(), 80);
+  };
+
+  window.applyPromoCode = function () {
+    const input  = document.getElementById('promo-input');
+    const result = document.getElementById('promo-result');
+    if (!input || !result) return;
+
+    const code = input.value.trim().toUpperCase();
+    if (!code) { result.style.color = '#e53935'; result.textContent = 'Please enter a promo code.'; return; }
+
+    const promo = VALID_PROMO_CODES[code];
+    if (!promo) {
+      result.style.color = '#e53935';
+      result.textContent = `"${code}" is not a valid promo code.`;
+      appliedPromo = null;
+      return;
+    }
+
+    appliedPromo = { code, ...promo };
+    result.style.color = '#2e7d32';
+    result.textContent = `✓ ${promo.label}`;
+
+    // Update the promo row label to show applied code
+    const label = document.getElementById('promo-label');
+    const sub   = document.getElementById('promo-sub');
+    if (label) label.textContent = `Promo: ${code}`;
+    if (sub)   sub.textContent   = promo.label;
+
+    showToast(`Promo code ${code} applied! 🎉`);
+
+    // Persist to booking state for checkout
+    const st = getState();
+    localStorage.setItem(BK_KEY, JSON.stringify({
+      ...st,
+      promoCode:    code,
+      promoDiscount: promo.discount,
+      promoType:    promo.type,
+    }));
+
+    // Close panel after short delay
+    setTimeout(() => window.togglePromoPanel(), 900);
+  };
+
   const BOOK_STEP_TOAST_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 
   function showToast(msg) {
@@ -387,6 +490,10 @@
     clearTimeout(showToast._timer);
     showToast._timer = setTimeout(() => { t.classList.add('toast-exit'); setTimeout(() => t.remove(), 320); }, 3000);
   }
+</script>
+<script type="module">
+  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  await requireAuth();
 </script>
 </body>
 </html>

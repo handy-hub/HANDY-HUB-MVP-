@@ -1,6 +1,7 @@
 import "../../../shared/js/utils/global-app.js";
 import { getAppContainer } from "../../../shared/js/app/container.js";
 import { showToast } from "../../../shared/js/components/toast.js";
+import { consumeReturnUrl } from "../../../shared/js/utils/authGuard.js";
 
 const DASHBOARD_REDIRECT_URL = "dashboard.html";
 const LOGIN_LOADING_TEXT = "Logging in...";
@@ -106,7 +107,10 @@ function socialErrorMessage(error, providerName) {
 
 function redirectToDashboard(delayMs = 1000) {
   setTimeout(() => {
-    window.location.href = DASHBOARD_REDIRECT_URL;
+    // If the user was trying to reach a specific page before being redirected
+    // to login, take them back there. Otherwise go to dashboard.
+    const returnUrl = consumeReturnUrl();
+    window.location.href = returnUrl || DASHBOARD_REDIRECT_URL;
   }, delayMs);
 }
 

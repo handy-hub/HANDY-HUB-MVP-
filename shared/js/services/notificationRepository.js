@@ -210,6 +210,16 @@ export async function createNotification(data) {
 }
 
 /**
+ * Delete a single notification document permanently.
+ * Used by the swipe-to-delete gesture in the notification page.
+ *
+ * @param {string} notificationId  Firestore document ID
+ */
+export async function deleteNotification(notificationId) {
+    await getDb().deleteDocument(COLLECTION, notificationId);
+}
+
+/**
  * Resolves once with the currently signed-in user (or null after 3 s timeout).
  * Convenience re-export so callers don't need to import the auth service directly.
  */

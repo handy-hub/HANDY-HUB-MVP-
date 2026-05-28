@@ -298,6 +298,10 @@
 
         <input type="file" id="profile-photo-input" accept="image/*" style="display:none" aria-hidden="true" />
   <script src="../shared/js/utils/global-app.js"></script>
+  <script type="module">
+    import { requireAuth } from '../shared/js/utils/authGuard.js';
+    await requireAuth();
+  </script>
   <script type="module" src="js/pages/profilePage.js"></script>
   <script src="../shared/js/components/fastLoader.js"></script>
 </body>

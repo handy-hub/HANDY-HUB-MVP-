@@ -78,6 +78,7 @@ let currentUid       = null;
 let currentUserEmail = '';
 let paymentRepo      = null;
 let lastSuccessData  = null;
+let currentBalance   = 0;   // live wallet balance — updated by the Firestore subscription
 
 // Wallet-credit detection: set when a topup is submitted, cleared once the
 // webhook lands and the balance rises by at least the expected amount.
@@ -146,8 +147,8 @@ function renderAccounts() {
 // ── Confirm button state ──────────────────────────────────────────────────────
 function updateConfirmBtn() {
     const amount = parseFloat(amountInput.value);
-    const acc    = savedAccounts.find(a => a.id === selectedAccount);
-    const ready  = !!acc && amount > 0;
+    // A saved account is optional — users can pay by card/bank without one
+    const ready  = amount > 0;
     confirmBtn.disabled    = !ready;
     confirmBtn.textContent = ready
         ? `Top Up ${formatGHC(amount)}`
@@ -253,14 +254,17 @@ addSaveBtn.addEventListener('click', async () => {
 // ── Confirm top up (Paystack flow) ────────────────────────────────────────────
 confirmBtn.addEventListener('click', async () => {
     const amount = parseFloat(amountInput.value);
-    const acc    = savedAccounts.find(a => a.id === selectedAccount);
-    if (!acc || !amount || amount <= 0) return;
+    if (!amount || amount <= 0) return;
 
     // Snapshot balance before opening payment so we can detect the webhook credit later.
     preTopupBalance = currentBalance;
 
-    const { provider, phone } = acc.data;
-    const meta = PROVIDER_META[provider];
+    // Account is optional — used only to attach MoMo details to the transaction record.
+    // When paying by card or bank, no account is needed.
+    const acc      = savedAccounts.find(a => a.id === selectedAccount) || null;
+    const provider = acc?.data?.provider || null;
+    const phone    = acc?.data?.phone    || null;
+    const meta     = provider ? PROVIDER_META[provider] : null;
     let paymentFlowSettled = false;
 
     confirmBtn.disabled    = true;
@@ -319,8 +323,8 @@ confirmBtn.addEventListener('click', async () => {
                     receiverId: currentUid,
                     senderId:   currentUid,   // required by Firestore rule: senderId == auth.uid
                     type:       'Payments',
-                    title:      '💳 Payment Received',
-                    message:    `GHS ${Number(amount).toFixed(2)} via ${meta?.label || provider} is being credited to your wallet.`,
+                    title:      'Payment Received',
+                    message:    `GHS ${Number(amount).toFixed(2)}${meta?.label ? ' via ' + meta.label : ''} is being credited to your wallet.`,
                     actionUrl:  'transaction-history.html',
                     metadata:   { paystackRef: response.reference, amount, provider }
                 }).catch(() => {}); // fire-and-forget — never block the UI
@@ -446,7 +450,7 @@ authService.subscribeToAuthState(user => {
 
             // Update the success overlay subtitle (still visible for the user)
             if (ssCreditStatus) {
-                ssCreditStatus.textContent = '✅ Wallet credited!';
+                ssCreditStatus.textContent = 'Wallet credited!';
                 ssCreditStatus.style.color = '#16a34a'; // green
             }
 

@@ -268,8 +268,11 @@
     wireSwipe();
     document.body.classList.add('hh-has-fnav');
 
-    /* Paint notification badge from localStorage */
+    /* Paint notification badge from localStorage (instant) */
     refreshAlertBadge();
+
+    /* Then upgrade to a realtime Firestore subscription */
+    startRealtimeBadge();
   }
 
   /* ── 12. Notification badge ──────────────────────────────── */
@@ -287,6 +290,44 @@
   }
   /* Keep a global so notificationPage can call it after marking read */
   window.hhRefreshAlertBadge = refreshAlertBadge;
+
+  /* ── 13. Realtime unread-count subscription ───────────────── */
+  var _unreadUnsub = null;
+
+  function startRealtimeBadge() {
+    if (IS_DASHBOARD) return;            // dashboard shows SOS, not alerts badge
+    if (_unreadUnsub)  return;           // already subscribed
+    if (!_scriptEl || !_scriptEl.src) return; // can't resolve module path
+
+    // Derive the root of the shared/ directory from this script's URL
+    // e.g. "https://host/shared/js/components/floatingNav.js" → "https://host/shared"
+    var sharedRoot = _scriptEl.src.replace(/\/js\/components\/floatingNav\.js.*$/, '');
+
+    Promise.resolve()
+      .then(function () { return import(sharedRoot + '/js/app/container.js'); })
+      .then(function (mod) {
+        var container = mod.getAppContainer();
+        return container.services.authService.waitForUser();
+      })
+      .then(function (user) {
+        if (!user) return;
+        return import(sharedRoot + '/js/services/notificationRepository.js')
+          .then(function (repo) {
+            _unreadUnsub = repo.subscribeToUnreadCount(user.uid, function (count) {
+              try { localStorage.setItem('unread_notifications', String(count)); } catch (_) {}
+              refreshAlertBadge();
+            });
+          });
+      })
+      .catch(function (err) {
+        // Non-fatal: badge falls back to stale localStorage value
+        console.warn('[floatingNav] Realtime badge unavailable, using localStorage:', err.message);
+      });
+  }
+
+  window.addEventListener('pagehide', function () {
+    if (_unreadUnsub) { _unreadUnsub(); _unreadUnsub = null; }
+  });
 
   /* ── Run ─────────────────────────────────────────────────── */
   injectCSS();
