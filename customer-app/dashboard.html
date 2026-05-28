@@ -441,41 +441,6 @@
   var CACHE_TTL  = 10 * 60 * 1000;           // 10 min
   var DEFAULT_LAT = 5.6037, DEFAULT_LON = -0.1870; // Accra fallback
 
-<<<<<<< HEAD
-    <!-- View More Button -->
-    <button class="view-more-btn">
-        View More Professionals <span>❯</span>
-    </button>
-</section>
-    <nav class="bottom-nav">
-        <a href="dashboard.html" class="nav-item active">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                <polyline points="9 22 9 12 15 12 15 22" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="active-label">Home</span>
-        </a>
-        <a href="messages.html" class="nav-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Messages</span>
-        </a>
-        <a href="saved.html" class="nav-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Saved</span>
-        </a>
-        <a href="profile.html" class="nav-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#aaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="7" r="4" stroke="#aaa" stroke-width="1.7"/>
-            </svg>
-            <span>Profile</span>
-        </a>
-    </nav>
-=======
   /* ── Tiny helpers ──────────────────────────────────────────── */
   function updateLocationEl(text) {
     var el = document.getElementById('uc-loc-text');
@@ -485,7 +450,6 @@
     el.style.minWidth = '';
     el.style.display  = '';
   }
->>>>>>> fc4470d892fa9dff28837d4d867d8a79a3b3484b
 
   function reverseGeocode(lat, lon, cb) {
     fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat +
@@ -859,18 +823,11 @@
     { id: 'cleaning',   name: 'Cleaner',       img: '../shared/assets/icons/cleaner.png',     base: 85 },
     { id: 'gardening',  name: 'Gardener',      img: '../shared/assets/icons/gardener.png',    base: 65 },
   ];
-  const clicks   = JSON.parse(localStorage.getItem('service_scores') || '{}');
-  const bookScores = {};
-  try {
-    JSON.parse(localStorage.getItem('hh_booking_history') || '[]').forEach(b => {
-      const raw = (b.service || (b.services?.[0]?.name) || (b.professional?.type) || '').toLowerCase();
-      catalog.forEach(c => { if (raw.includes(c.name.toLowerCase()) || raw.includes(c.id)) bookScores[c.id] = (bookScores[c.id] || 0) + 3; });
-    });
-  } catch (_) {}
-  const totalEng = [...Object.values(clicks), ...Object.values(bookScores)].reduce((a, b) => a + b, 0);
-  const scored = catalog.map(s => ({ ...s, score: s.base + (clicks[s.id] || 0) * 2 + (bookScores[s.id] || 0) })).sort((a, b) => b.score - a.score);
+  const clicks = JSON.parse(localStorage.getItem('service_scores') || '{}');
+  const totalEng = Object.values(clicks).reduce((a, b) => a + b, 0);
+  const scored = catalog.map(s => ({ ...s, score: s.base + (clicks[s.id] || 0) * 2 })).sort((a, b) => b.score - a.score);
   container.innerHTML = scored.map((s, i) => {
-    const hot = i < 3 && totalEng > 0 && ((clicks[s.id] || 0) + (bookScores[s.id] || 0) > 0);
+    const hot = i < 3 && totalEng > 0 && (clicks[s.id] || 0) > 0;
     return `<button class="svc-btn" onclick="handleServiceClick('${s.id}')">
       <div class="svc-circle">${hot ? `<span class="svc-hot">Hot</span>` : ''}
         <img src="${s.img}" alt="${s.name}" width="26" height="26" onerror="this.style.opacity='0'">
@@ -908,44 +865,6 @@
   } catch (_) {}
 })();
 
-(function () {
-  var b;
-  try { b = JSON.parse(localStorage.getItem('hh_booking')); } catch { b = null; }
-  if (!b) return;
-
-  // Hide banner for terminal statuses (case-insensitive)
-  var st = (b.status || '').toLowerCase();
-  if (!st || st === 'completed' || st === 'cancelled') return;
-
-  var pro = b.professional || b.artisan || {};
-  var name = pro.name || b.proName || 'Your professional';
-
-  // Choose message + colour based on status
-  var bg   = '#730201';
-  var msg;
-  if (st === 'emergency') {
-    bg  = '#b71c1c';
-    msg = '🆘 Emergency request dispatched — tap to track';
-  } else if (st === 'on the way' || st === 'active' || st === 'in progress') {
-    msg = '⚡ ' + name + ' is on the way — tap to track';
-  } else {
-    // Confirmed / Pending
-    msg = '✅ Booking confirmed — ' + name + ' will be with you soon';
-  }
-
-  var banner = document.createElement('div');
-  banner.id = 'active-booking-banner';
-  banner.style.cssText = 'position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:999;background:' + bg + ';color:#fff;display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;box-shadow:0 2px 10px rgba(115,2,1,0.3);';
-  banner.innerHTML =
-    '<span style="flex:1;font-size:12.5px;font-weight:700;">' + msg + '</span>' +
-    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';
-  banner.onclick = function () { window.location.href = 'live-tracking.html'; };
-  document.body.prepend(banner);
-
-  // Push content down so banner doesn't overlap header
-  var shell = document.querySelector('.phone-shell') || document.querySelector('.app');
-  if (shell) shell.style.paddingTop = '40px';
-})();
 </script>
 
 </body>
