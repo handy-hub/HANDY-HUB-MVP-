@@ -1,121 +1,184 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ===============================================================
-    // Global Safety Net & Helpers
-    // ===============================================================
+
+    // ═══════════════════════════════════════════════════════════════
+    // GLOBAL SAFETY NET  — deny everything not explicitly allowed
+    // ═══════════════════════════════════════════════════════════════
     match /{document=**} { allow read, write: if false; }
 
-    function isSignedIn() { return request.auth != null; }
+    // ═══════════════════════════════════════════════════════════════
+    // HELPER FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════
+
+    function isSignedIn()  { return request.auth != null; }
+    function isOwner(uid)  { return isSignedIn() && request.auth.uid == uid; }
+    function incoming()    { return request.resource.data; }
+    function existing()    { return resource.data; }
+
+    function isSuperAdminEmail() {
+      return request.auth.token.email in [
+        'silas7korda@gmail.com',
+        'clasceth4traders@gmail.com',
+        'paakumisam@gmail.com'
+      ];
+    }
+
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == "silas7korda@gmail.com" ||
-        request.auth.token.email == "clasceth4traders@gmail.com" ||
-        request.auth.token.email == "paakumisam@gmail.com" ||
+        isSuperAdminEmail() ||
         (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.userType == 'admin')
       );
     }
 
     function isSuperAdmin() {
-      return isAdmin() && (
-        request.auth.token.email == "silas7korda@gmail.com" ||
-        request.auth.token.email == "clasceth4traders@gmail.com" ||
-        request.auth.token.email == "paakumisam@gmail.com" ||
-        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin'
+      return isSignedIn() && (
+        isSuperAdminEmail() ||
+        (isAdmin() &&
+         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin')
       );
     }
 
+    // hasAdminPermission('support_admin') — true for super admins AND that specific role
     function hasAdminPermission(role) {
       return isSignedIn() && (
-        request.auth.token.email == "silas7korda@gmail.com" ||
-        request.auth.token.email == "clasceth4traders@gmail.com" ||
-        request.auth.token.email == "paakumisam@gmail.com" ||
+        isSuperAdminEmail() ||
         (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
          (get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin' ||
           get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == role))
       );
     }
 
-    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
-    function isValidEmail(email) { return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"); }
+    function isValidEmail(email) {
+      return email is string &&
+             email.matches('^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$');
+    }
 
-    // ===============================================================
-    // Admin Collection
-    // ===============================================================
+    // Financial guard: a field must be absent from the incoming document OR equal to 0.
+    // Prevents clients from self-inflating balances at creation time.
+    function isZeroOrAbsent(data, field) {
+      return !(field in data) || data[field] == 0;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ADMINS COLLECTION
+    // ═══════════════════════════════════════════════════════════════
     match /admins/{adminId} {
-      allow read: if isAdmin() || isOwner(adminId);
+      allow read:   if isAdmin() || isOwner(adminId);
       allow create: if isSuperAdmin() || (
-        isOwner(adminId) &&
-        (request.auth.token.email == "silas7korda@gmail.com" ||
-         request.auth.token.email == "clasceth4traders@gmail.com" ||
-         request.auth.token.email == "paakumisam@gmail.com") &&
-        incoming().role == 'super_admin' &&
-        incoming().userType == 'admin' &&
-        incoming().status == 'active' &&
-        isValidAdmin(incoming())
-      );
+                      isOwner(adminId) &&
+                      isSuperAdminEmail() &&
+                      incoming().role     == 'super_admin' &&
+                      incoming().userType == 'admin' &&
+                      incoming().status   == 'active' &&
+                      isValidAdminDoc(incoming())
+                    );
       allow update: if isSuperAdmin() || (
-        isOwner(adminId) &&
-        incoming().role == existing().role &&
-        incoming().userType == 'admin' &&
-        isValidAdmin(incoming())
-      );
-      allow delete: if isSuperAdmin();
-    }
-
-    function isValidAdmin(data) {
-      return data.id == request.auth.uid &&
-             data.name is string && data.name.size() > 0 &&
-             isValidEmail(data.email) &&
-             data.userType == 'admin' &&
-             data.status in ['active', 'suspended', 'pending'];
-    }
-
-    // ===============================================================
-    // Artisans Collection
-    // ===============================================================
-    match /artisans/{artisanId} {
-      allow read: if isSignedIn();
-      allow create: if isOwner(artisanId) &&
-                      incoming().userType == 'artisan' &&
-                      (incoming().status == 'pending' || incoming().status == 'active') &&
-                      isValidArtisan(incoming());
-      allow update: if (hasAdminPermission('operations_admin')) || (
-                      isOwner(artisanId) &&
-                      incoming().userType == 'artisan' &&
-                      incoming().status == existing().status &&
-                      isValidArtisan(incoming())
+                      isOwner(adminId) &&
+                      incoming().role     == existing().role &&
+                      incoming().userType == 'admin' &&
+                      isValidAdminDoc(incoming())
                     );
       allow delete: if isSuperAdmin();
     }
 
-    function isValidArtisan(data) {
-      return data.id == request.auth.uid &&
-             data.name is string && data.name.size() > 0 &&
+    function isValidAdminDoc(data) {
+      return data.id        == request.auth.uid &&
+             data.name      is string && data.name.size() > 0 &&
              isValidEmail(data.email) &&
-             data.userType == 'artisan' &&
-             data.status in ['active', 'pending', 'suspended', 'banned'];
+             data.userType  == 'admin' &&
+             data.status    in ['active', 'suspended', 'pending'];
     }
 
-    // ===============================================================
-    // Customers Collection
-    // ===============================================================
+    // ═══════════════════════════════════════════════════════════════
+    // ADMIN SESSIONS  (login audit trail — written by admin login.html)
+    // ═══════════════════════════════════════════════════════════════
+    match /admin_sessions/{uid} {
+      // Admin may read all sessions; super-admins may list/audit them
+      allow read:   if isAdmin();
+      // Each admin writes only their own session doc (keyed by UID)
+      allow create, update: if isOwner(uid) && isAdmin() &&
+                               incoming().adminUid == request.auth.uid;
+      allow delete: if isSuperAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ARTISANS COLLECTION
+    // ═══════════════════════════════════════════════════════════════
+    match /artisans/{artisanId} {
+      // Any signed-in user can read artisan profiles (needed for browse/search)
+      allow read: if isSignedIn();
+
+      // Artisan creates their own document on registration.
+      // Financial fields must be absent or zero — Cloud Functions own all mutations.
+      allow create: if isOwner(artisanId) &&
+                      incoming().userType == 'artisan' &&
+                      incoming().status   in ['pending', 'active'] &&
+                      isValidArtisanBase(incoming()) &&
+                      isZeroOrAbsent(incoming(), 'availableBalance') &&
+                      isZeroOrAbsent(incoming(), 'pendingBalance') &&
+                      isZeroOrAbsent(incoming(), 'totalEarned') &&
+                      isZeroOrAbsent(incoming(), 'withdrawnTotal');
+
+      // ── Artisan self-update (profile, onboarding, availability toggle) ──
+      // Admin may do any update (approve, reject, feature, ban).
+      // Owner may update their own profile fields freely, BUT:
+      //   • cannot escalate their own status to 'active'/'suspended'/'banned'
+      //     (status promotion is admin-only once the doc exists with 'pending')
+      //   • can set verificationStatus to draft/submitted/pending_review only
+      //   • cannot write financial fields (availableBalance, rating, etc.)
+      allow update: if hasAdminPermission('operations_admin') || (
+                      isOwner(artisanId) &&
+                      isValidArtisanBase(incoming()) &&
+                      isSafeArtisanStatusUpdate() &&
+                      isSafeArtisanProfileUpdate()
+                    );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // Base validity: id, name, email, userType, status must always be correct
+    function isValidArtisanBase(data) {
+      return data.id       == request.auth.uid &&
+             data.name     is string && data.name.size() > 0 &&
+             isValidEmail(data.email) &&
+             data.userType == 'artisan' &&
+             data.status   in ['active', 'pending', 'suspended', 'banned'];
+    }
+
+    // Artisan cannot self-promote status from pending → active/suspended/banned.
+    // They CAN keep it the same OR set verificationStatus to draft/submitted/pending_review.
+    function isSafeArtisanStatusUpdate() {
+      // Status must not change to 'active', 'suspended', 'banned' without admin
+      return !(incoming().diff(existing()).affectedKeys().hasAny(['status']) &&
+               incoming().status != existing().status &&
+               existing().status == 'pending') ||
+             incoming().status == existing().status;
+    }
+
+    // Artisan transactions subcollection  (earnings, withdrawals — CF writes only)
+    match /artisans/{artisanId}/transactions/{txnId} {
+      allow read:           if isOwner(artisanId) || isAdmin();
+      allow create, update: if isAdmin();
+      allow delete:         if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CUSTOMERS COLLECTION
+    // ═══════════════════════════════════════════════════════════════
     match /customers/{customerId} {
-      allow read: if isAdmin() || isOwner(customerId);
+      allow read:   if isAdmin() || isOwner(customerId);
 
       allow create: if isOwner(customerId) &&
                       incoming().userType == 'customer' &&
-                      incoming().status == 'active' &&
-                      isValidCustomer(incoming());
+                      incoming().status   == 'active' &&
+                      isValidCustomerDoc(incoming());
 
-      // Admins may do full updates; owners may do partial profile updates
-      // (name, phone, bio, location, profileImage, wallet, searches)
-      // without needing to resupply every required field.
-      allow update: if (hasAdminPermission('support_admin') || hasAdminPermission('operations_admin')) || (
+      // Admin: full updates (flag, ban, unlock accounts).
+      // Owner: only safe profile fields — financial balances are Cloud-Function-only.
+      allow update: if hasAdminPermission('support_admin') ||
+                       hasAdminPermission('operations_admin') || (
                       isOwner(customerId) &&
                       isSafeCustomerProfileUpdate()
                     );
@@ -123,39 +186,62 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    function isValidCustomer(data) {
-      return data.id == request.auth.uid &&
-             data.name is string && data.name.size() > 0 &&
+    function isValidCustomerDoc(data) {
+      return data.id       == request.auth.uid &&
+             data.name     is string && data.name.size() > 0 &&
              isValidEmail(data.email) &&
              data.userType == 'customer' &&
-             data.status in ['active', 'suspended'] &&
+             data.status   in ['active', 'suspended'] &&
              data.bookings is number &&
-             data.spent is number;
+             data.spent    is number &&
+             // Financial fields must be zero on creation — Cloud Functions own all mutations.
+             // A malicious client setting walletBalance > 0 on document creation is blocked here.
+             isZeroOrAbsent(data, 'walletBalance') &&
+             isZeroOrAbsent(data, 'escrowBalance');
     }
 
-    // Only these fields may be touched by the customer themselves on update.
-    // This lets setDoc-merge calls (e.g. profile photo) succeed without
-    // re-supplying every validated field.
+    // Owner-side safe fields for profile page, settings, etc.
+    // walletBalance / escrowBalance / spent are EXCLUDED (Cloud Function owns them).
     function isSafeCustomerProfileUpdate() {
       return incoming().diff(existing()).affectedKeys().hasOnly([
         'name', 'phone', 'location', 'bio', 'profileImage',
-        'walletBalance', 'recentSearches', 'recentSearchesUpdatedAt',
+        'recentSearches', 'recentSearchesUpdatedAt',
         'notificationPreferences', 'privacySettings', 'appPreferences',
         'updatedAt'
       ]);
     }
 
-    // ===============================================================
-    // Customer Payment Accounts Subcollection
-    // ===============================================================
+    // ── Artisan profile self-update allowlist ─────────────────────────────────
+    // Financial balance fields (availableBalance, pendingBalance, totalEarned,
+    // withdrawnTotal) and reputation fields (rating, reviewCount, jobsCompleted)
+    // are intentionally EXCLUDED — Cloud Functions are the sole authority.
+    function isSafeArtisanProfileUpdate() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        // Core identity
+        'id', 'name', 'email', 'phone',
+        // Profile content
+        'bio', 'profileImage', 'location', 'address', 'gpsAddress',
+        'availability', 'isAvailable', 'isOnline',
+        'baseRate', 'workRadius', 'skills', 'specialty',
+        'yearsExperience', 'gender', 'category',
+        // Payout account setup
+        'momoProvider', 'momoPhone', 'momoAccountName', 'payoutAccount',
+        // Workflow state artisan may set
+        'verificationStatus', 'status', 'onboarded',
+        // Timestamps
+        'updatedAt', 'createdAt'
+      ]);
+    }
+
+    // Customer payment accounts subcollection  (MoMo, etc.)
     match /customers/{customerId}/paymentAccounts/{accountId} {
       allow read:   if isOwner(customerId) || isAdmin();
       allow create: if isOwner(customerId) &&
-                       incoming().provider in ['mtn', 'telecel', 'airteltigo'] &&
-                       incoming().phone is string && incoming().phone.size() >= 9 &&
-                       incoming().isDefault is bool &&
-                       incoming().deleted == false &&
-                       incoming().createdAt is string;
+                       incoming().provider    in ['mtn', 'telecel', 'airteltigo'] &&
+                       incoming().phone       is string && incoming().phone.size() >= 9 &&
+                       incoming().isDefault   is bool &&
+                       incoming().deleted     == false &&
+                       incoming().createdAt   is string;
       allow update: if isOwner(customerId) &&
                        incoming().diff(existing()).affectedKeys().hasOnly([
                          'isDefault', 'deleted', 'deletedAt', 'nickname', 'updatedAt'
@@ -163,138 +249,437 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // ===============================================================
-    // Customer Transactions Subcollection
-    // ===============================================================
+    // Customer transactions subcollection
+    // Clients may ONLY create 'topup' records (after a Paystack charge popup).
+    // All other types (withdrawal, escrow_hold, escrow_release, refund) are written
+    // exclusively by Cloud Functions via the Admin SDK — allowing clients to write
+    // these types would let them fabricate fake escrow or refund records.
     match /customers/{customerId}/transactions/{txnId} {
       allow read:   if isOwner(customerId) || isAdmin();
       allow create: if isOwner(customerId) &&
-                       incoming().type in ['topup', 'payment', 'withdrawal', 'referral'] &&
-                       incoming().amount is number && incoming().amount > 0 &&
-                       incoming().status in ['successful', 'pending', 'failed', 'paid', 'credited'] &&
+                       incoming().type      == 'topup' &&
+                       incoming().amount    is number && incoming().amount > 0 &&
+                       incoming().status    in ['pending', 'successful', 'failed'] &&
                        incoming().createdAt is string;
-      // Only admins may update transactions (e.g. mark a withdrawal as completed)
+      // Status updates (e.g., Paystack webhook confirmation) come from Cloud Functions → admin
       allow update: if isAdmin();
       allow delete: if false;
     }
 
-    // ===============================================================
-    // Jobs Collection
-    // ===============================================================
-    match /jobs/{jobId} {
-      allow read: if isAdmin() ||
-                     (isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.artisanId));
-      allow create: if (isSignedIn() && incoming().customerId == request.auth.uid && isValidJob(incoming()));
-      allow update: if isAdmin() ||
-                     (isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.artisanId) && isValidJob(incoming()));
+    // ═══════════════════════════════════════════════════════════════
+    // BOOKINGS COLLECTION
+    // ═══════════════════════════════════════════════════════════════
+    match /bookings/{bookingId} {
+      // Both parties can read their own booking; admin sees all
+      allow read: if isAdmin() || (
+                    isSignedIn() && (
+                      request.auth.uid == resource.data.customerId ||
+                      request.auth.uid == resource.data.artisanId
+                    )
+                  );
+
+      // Customers create bookings
+      allow create: if isSignedIn() &&
+                       incoming().customerId == request.auth.uid &&
+                       // Accept both 'pending' (canonical) and 'Pending' (legacy) at create time
+                       incoming().status     in ['pending', 'Pending'] &&
+                       // artisanId must be a non-empty string for standard bookings, OR
+                       // null for emergency bookings (no artisan matched yet).
+                       (
+                         (incoming().artisanId is string && incoming().artisanId.size() > 0) ||
+                         (incoming().artisanId == null && incoming().bookingType == 'emergency')
+                       ) &&
+                       incoming().serviceType is string &&
+                       incoming().createdAt   is string;
+
+      // Status transitions:
+      //   Customer:  pending → cancelled
+      //   Artisan:   pending → accepted | rejected
+      //   Either:    accepted → completed | En Route | In Progress | Awaiting Confirmation
+      //   Admin:     anything
+      allow update: if isAdmin() || (
+                      isSignedIn() && (
+                        request.auth.uid == resource.data.customerId ||
+                        request.auth.uid == resource.data.artisanId
+                      ) &&
+                      isValidBookingUpdate()
+                    );
+
       allow delete: if isSuperAdmin();
     }
 
-    function isValidJob(data) {
-      return data.customerId is string &&
-             data.status in ["Pending", "In Progress", "En Route", "Awaiting Confirmation", "Completed", "Cancelled"];
+    function isValidBookingUpdate() {
+      let affectedKeys = incoming().diff(existing()).affectedKeys();
+      // Must always include updatedAt when updating
+      return affectedKeys.hasOnly([
+        'status', 'updatedAt', 'notes', 'scheduledAt', 'price',
+        'address', 'artisanNotes', 'rating', 'review', 'reviewedAt',
+        'cancellationReason', 'completedAt', 'acceptedAt', 'rejectedAt',
+        'enRouteAt', 'arrivedAt'
+      ]) &&
+      incoming().status in [
+        'pending', 'accepted', 'rejected', 'cancelled',
+        'En Route', 'In Progress', 'Awaiting Confirmation', 'Completed',
+        'completed', 'Disputed'
+      ];
     }
 
-    // ===============================================================
-    // Disputes Collection
-    // ===============================================================
+    // ═══════════════════════════════════════════════════════════════
+    // JOBS COLLECTION  (alternative / legacy booking flow)
+    // ═══════════════════════════════════════════════════════════════
+    match /jobs/{jobId} {
+      allow read: if isAdmin() || (
+                    isSignedIn() && (
+                      request.auth.uid == resource.data.customerId ||
+                      request.auth.uid == resource.data.artisanId
+                    )
+                  );
+      allow create: if isSignedIn() &&
+                       incoming().customerId == request.auth.uid &&
+                       isValidJobDoc(incoming());
+      allow update: if isAdmin() || (
+                      isSignedIn() && (
+                        request.auth.uid == resource.data.customerId ||
+                        request.auth.uid == resource.data.artisanId
+                      ) &&
+                      isValidJobDoc(incoming())
+                    );
+      allow delete: if isSuperAdmin();
+    }
+
+    function isValidJobDoc(data) {
+      return data.customerId is string &&
+             data.status in [
+               'Pending', 'In Progress', 'En Route',
+               'Awaiting Confirmation', 'Completed', 'Cancelled'
+             ];
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // VERIFICATION REQUESTS  (artisan KYC submissions — doc ID = artisanId)
+    // ═══════════════════════════════════════════════════════════════
+    match /verification_requests/{artisanId} {
+      allow read:   if isAdmin() || isOwner(artisanId);
+
+      allow create: if isOwner(artisanId) &&
+                       incoming().verificationStatus in ['draft', 'submitted', 'pending_review'] ||
+                       // Allow onboarding.html path (uses 'status' field, not 'verificationStatus')
+                       (isOwner(artisanId) &&
+                        incoming().status in ['pending_review', 'draft', 'submitted', 'pending']);
+
+      // Artisan may update their own draft/re-verification fields.
+      // Admin may update any field (approve, reject, request re-verification).
+      allow update: if isAdmin() || (
+                      isOwner(artisanId) &&
+                      incoming().diff(existing()).affectedKeys().hasOnly([
+                        'fullName', 'name', 'phone', 'email', 'dateOfBirth', 'dob',
+                        'address', 'gpsAddress', 'emergencyContact',
+                        'ghanaCardNumber', 'businessRegNumber', 'tin',
+                        'category', 'specialty', 'bio', 'yearsExperience',
+                        'baseRate', 'workRadius', 'availability',
+                        'momoProvider', 'momoPhone', 'momoAccountName', 'payoutAccount',
+                        'documents', 'selfieUrl', 'idFrontUrl', 'idBackUrl',
+                        'bizRegUrl', 'certUrl', 'profileImage',
+                        'updatedAt', 'submittedAt', 'status', 'verificationStatus',
+                        'skills', 'gender', 'trustScore', 'reviewedBy', 'reviewedAt',
+                        'rejectionReason', 'adminNotes'
+                      ]) &&
+                      // Artisan may only submit — cannot approve/reject themselves
+                      (!incoming().diff(existing()).affectedKeys().hasAny(['verificationStatus']) ||
+                       incoming().verificationStatus in [
+                         'draft', 'submitted', 'pending_review', 're_verification_required'
+                       ]) &&
+                      (!incoming().diff(existing()).affectedKeys().hasAny(['status']) ||
+                       incoming().status in ['pending', 'pending_review', 'draft', 'submitted'])
+                    );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // VERIFICATION LOGS  (admin audit trail — immutable)
+    // ═══════════════════════════════════════════════════════════════
+    match /verification_logs/{logId} {
+      allow read:          if isAdmin();
+      allow create:        if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // DISPUTES COLLECTION
+    // ═══════════════════════════════════════════════════════════════
     match /disputes/{disputeId} {
-      allow read: if isAdmin() ||
-                     (isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.artisanId));
-      allow create: if (isSignedIn() && incoming().customerId == request.auth.uid);
+      allow read: if isAdmin() || (
+                    isSignedIn() && (
+                      request.auth.uid == resource.data.customerId ||
+                      request.auth.uid == resource.data.artisanId
+                    )
+                  );
+      // Any party to a booking can raise a dispute.
+      // The caller must be the stated customer or artisan AND must actually be
+      // recorded as a party to the referenced booking in Firestore —
+      // preventing a user from opening a dispute against a booking they don't own.
+      allow create: if isSignedIn() &&
+                       (incoming().customerId == request.auth.uid ||
+                        incoming().artisanId  == request.auth.uid) &&
+                       incoming().bookingId is string &&
+                       exists(/databases/$(database)/documents/bookings/$(incoming().bookingId)) &&
+                       (get(/databases/$(database)/documents/bookings/$(incoming().bookingId)).data.customerId == request.auth.uid ||
+                        get(/databases/$(database)/documents/bookings/$(incoming().bookingId)).data.artisanId  == request.auth.uid);
       allow update: if hasAdminPermission('support_admin');
       allow delete: if isSuperAdmin();
     }
 
-    // ===============================================================
-    // Audit Logs Collection
-    // ===============================================================
+    // ═══════════════════════════════════════════════════════════════
+    // DISPUTE LOGS  (admin audit trail — immutable)
+    // ═══════════════════════════════════════════════════════════════
+    match /dispute_logs/{logId} {
+      allow read:          if isAdmin();
+      allow create:        if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ESCROW COLLECTION  (Cloud Functions only)
+    // ═══════════════════════════════════════════════════════════════
+    match /escrow/{escrowId} {
+      allow read: if isAdmin() || (
+                    isSignedIn() && (
+                      request.auth.uid == resource.data.customerId ||
+                      request.auth.uid == resource.data.artisanId
+                    )
+                  );
+      // All writes from Cloud Functions (admin service account bypasses rules)
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PAYOUTS COLLECTION  (Cloud Functions create; admin may update)
+    // ═══════════════════════════════════════════════════════════════
+    match /payouts/{payoutId} {
+      allow read:   if isAdmin() || (
+                      isSignedIn() && request.auth.uid == resource.data.userId
+                    );
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // COMMISSIONS COLLECTION  (Cloud Functions only)
+    // ═══════════════════════════════════════════════════════════════
+    match /commissions/{commissionId} {
+      allow read:           if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // TRANSFER RECIPIENTS CACHE  (Cloud Functions + artisan read own)
+    // ═══════════════════════════════════════════════════════════════
+    match /transferRecipients/{recipientId} {
+      allow read:   if isAdmin() || (
+                      isSignedIn() && resource.data.userId == request.auth.uid
+                    );
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PLATFORM EARNINGS AGGREGATE  (Cloud Functions only)
+    // ═══════════════════════════════════════════════════════════════
+    match /platform/{docId} {
+      allow read:          if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete:         if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // FINANCIAL AUDIT LOG  (Cloud Functions only — immutable)
+    // ═══════════════════════════════════════════════════════════════
+    match /financialAudit/{logId} {
+      allow read:          if isAdmin();
+      allow create:        if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // WEBHOOK LOCKS  (Paystack idempotency — Cloud Functions only, immutable)
+    // Doc ID = Paystack reference (unique per charge/transfer event).
+    // Written exclusively by Cloud Functions via Admin SDK.
+    // Client access is intentionally blocked for all operations.
+    // ═══════════════════════════════════════════════════════════════
+    match /webhookLocks/{paystackRef} {
+      allow read:           if isAdmin();
+      // Admin SDK (Cloud Functions) bypasses these rules entirely.
+      // Denying create/update/delete from client prevents any client manipulation.
+      allow create, update, delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ADMIN NOTIFICATIONS  (written by admin actions / Cloud Functions)
+    // ═══════════════════════════════════════════════════════════════
+    match /admin_notifications/{notifId} {
+      allow read:   if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(
+                         ['isRead', 'readBy', 'readAt']
+                       );
+      allow delete: if isSuperAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // USER NOTIFICATIONS  (artisan + customer general notifications)
+    // userId field targets a specific user UID, or 'all' for broadcasts.
+    // ═══════════════════════════════════════════════════════════════
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && (
+                    request.auth.uid == resource.data.userId ||
+                    resource.data.userId == 'all'
+                  );
+      allow create: if isAdmin();
+      allow update: if isSignedIn() &&
+                       request.auth.uid == resource.data.userId &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['read', 'readAt']);
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CUSTOMER NOTIFICATIONS  (booking events, messages, payments)
+    // receiverId field targets a specific customer UID.
+    // ═══════════════════════════════════════════════════════════════
+    match /customer_notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.receiverId == request.auth.uid;
+
+      // Any signed-in user (artisan or customer) may send a notification to another
+      // user, but senderId must match the caller — prevents notification spoofing
+      // where user A sends a notification appearing to come from user B.
+      allow create: if isSignedIn() &&
+                       incoming().receiverId is string &&
+                       incoming().receiverId.size() > 0 &&
+                       incoming().senderId == request.auth.uid &&
+                       incoming().type in [
+                         'Bookings', 'Payments', 'Messages',
+                         'Offers', 'Reviews', 'System', 'General'
+                       ] &&
+                       incoming().title   is string && incoming().title.size()   > 0 &&
+                       incoming().message is string && incoming().message.size() > 0 &&
+                       incoming().isRead  == false;
+
+      // Only the receiver may mark it read; no other fields may be changed.
+      allow update: if isSignedIn() &&
+                       resource.data.receiverId == request.auth.uid &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['isRead', 'readAt']);
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // BROADCASTS  (admin → all users)
+    // ═══════════════════════════════════════════════════════════════
+    match /broadcasts/{broadcastId} {
+      allow read:          if isSignedIn();
+      allow create:        if isAdmin();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // USER CHATS  (customer ↔ artisan messaging)
+    // participants[] holds the two UIDs; lastMessage/lastSenderId/lastMessageAt
+    // are the only mutable top-level fields (inbox preview update).
+    // ═══════════════════════════════════════════════════════════════
+    match /chats/{chatId} {
+      // Either participant may read the chat thread.
+      allow read: if isSignedIn() &&
+                     resource.data.participants.hasAny([request.auth.uid]);
+
+      // Any signed-in user can start a new chat, provided they include themselves
+      // and at least one other participant.
+      allow create: if isSignedIn() &&
+                       incoming().participants is list &&
+                       incoming().participants.hasAll([request.auth.uid]) &&
+                       incoming().participants.size() >= 2;
+
+      // Either participant may update only the inbox-preview fields.
+      // (The sendMessage() helper updates these after writing the message.)
+      allow update: if isSignedIn() &&
+                       resource.data.participants.hasAny([request.auth.uid]) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'lastMessage', 'lastSenderId', 'lastMessageAt'
+                       ]);
+
+      allow delete: if isSuperAdmin();
+
+      // ── Messages sub-collection ──────────────────────────────────
+      match /messages/{messageId} {
+        // Either participant may read messages.
+        allow read: if isSignedIn() &&
+                       get(/databases/$(database)/documents/chats/$(chatId))
+                           .data.participants.hasAny([request.auth.uid]);
+
+        // A participant may create a message only as themselves.
+        allow create: if isSignedIn() &&
+                         get(/databases/$(database)/documents/chats/$(chatId))
+                             .data.participants.hasAny([request.auth.uid]) &&
+                         incoming().senderId  == request.auth.uid &&
+                         incoming().text      is string &&
+                         incoming().isRead    == false &&
+                         incoming().createdAt is string;
+
+        // Only the recipient (non-sender) may mark the message as read.
+        allow update: if isSignedIn() &&
+                         resource.data.senderId != request.auth.uid &&
+                         get(/databases/$(database)/documents/chats/$(chatId))
+                             .data.participants.hasAny([request.auth.uid]) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
+
+        allow delete: if false;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ADMIN CHATS  (internal admin messaging)
+    // ═══════════════════════════════════════════════════════════════
+    match /admin_chats/{chatId} {
+      allow read, update: if isAdmin() &&
+                             request.auth.uid in resource.data.participants;
+      allow create:       if isAdmin() &&
+                             incoming().participants.hasAll([request.auth.uid]);
+
+      match /messages/{messageId} {
+        allow read, create: if isAdmin() &&
+                               get(/databases/$(database)/documents/admin_chats/$(chatId))
+                                 .data.participants.hasAny([request.auth.uid]);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // AUDIT LOGS  (admin action log — immutable)
+    // ═══════════════════════════════════════════════════════════════
     match /audit_logs/{logId} {
-      allow list: if isSuperAdmin() || (isAdmin() && request.query.adminId == request.auth.uid);
-      allow get: if isAdmin() && (isSuperAdmin() || resource.data.adminId == request.auth.uid);
+      allow list: if isSuperAdmin() ||
+                     (isAdmin() && request.query.adminId == request.auth.uid);
+      allow get:  if isAdmin() &&
+                     (isSuperAdmin() || resource.data.adminId == request.auth.uid);
       allow create: if isAdmin() && incoming().adminId == request.auth.uid;
       allow update, delete: if false;
     }
 
-    // ===============================================================
-    // Settings Collection
-    // ===============================================================
+    // ═══════════════════════════════════════════════════════════════
+    // SETTINGS COLLECTION
+    // ═══════════════════════════════════════════════════════════════
     match /settings/{docId} {
-      allow read: if isAdmin() || (isOwner(request.auth.uid) && docId == 'platform');
+      allow read:          if isAdmin() || isSignedIn();  // apps read platform config
       allow create, update: if isSuperAdmin();
-      allow delete: if false;
+      allow delete:         if false;
     }
 
-    // ===============================================================
-    // Regions Collection
-    // ===============================================================
+    // ═══════════════════════════════════════════════════════════════
+    // REGIONS COLLECTION
+    // ═══════════════════════════════════════════════════════════════
     match /regions/{regionId} {
-      allow read: if isSignedIn();
+      allow read:          if isSignedIn();
       allow create, update: if hasAdminPermission('operations_admin');
-      allow delete: if isSuperAdmin();
+      allow delete:         if isSuperAdmin();
     }
 
-    // ===============================================================
-    // Payouts Collection
-    // ===============================================================
-    match /payouts/{payoutId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.artisanId);
-      allow create: if (isSignedIn() && incoming().artisanId == request.auth.uid);
-      allow update: if hasAdminPermission('finance_admin');
-      allow delete: if isSuperAdmin();
-    }
-
-    // ===============================================================
-    // Admin Notifications (used by admin app — field: userId)
-    // ===============================================================
-    match /notifications/{notificationId} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || resource.data.userId == 'all');
-      allow create: if isAdmin();
-      allow update: if isSignedIn() && request.auth.uid == resource.data.userId &&
-                      incoming().diff(existing()).affectedKeys().hasOnly(['read']);
-      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
-    }
-
-    // ===============================================================
-    // Customer App Notifications (used by customer app — field: receiverId)
-    // Separate collection to avoid clashing with the admin notifications above.
-    // ===============================================================
-    match /customer_notifications/{notificationId} {
-      // Only the addressee may read their own notifications
-      allow read: if isSignedIn() && resource.data.receiverId == request.auth.uid;
-
-      // Any signed-in user may create (booking events, messages, payments)
-      allow create: if isSignedIn()
-                    && request.resource.data.receiverId is string
-                    && request.resource.data.receiverId.size() > 0;
-
-      // Only the receiver may update, and only to mark it read
-      allow update: if isSignedIn()
-                    && resource.data.receiverId == request.auth.uid
-                    && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
-
-      allow delete: if false;
-    }
-
-    // ===============================================================
-    // Broadcasts Collection
-    // ===============================================================
-    match /broadcasts/{broadcastId} {
-      allow read: if isSignedIn();
-      allow create: if isAdmin();
-      allow update, delete: if isSuperAdmin();
-    }
-
-    // ===============================================================
-    // Admin Chats
-    // ===============================================================
-    match /admin_chats/{chatId} {
-      allow read, update: if isAdmin() && request.auth.uid in resource.data.participants;
-      allow create: if isAdmin() && incoming().participants.hasAll([request.auth.uid]);
-
-      match /messages/{messageId} {
-        allow read, create: if isAdmin() && get(/databases/$(database)/documents/admin_chats/$(chatId)).data.participants.hasAny([request.auth.uid]);
-      }
-    }
   }
 }

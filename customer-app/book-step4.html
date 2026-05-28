@@ -307,27 +307,32 @@
       document.getElementById('sum-total').textContent = `GHC ${state.total}.00`;
     }
 
-    // Save to booking history
+    // Save to booking history (localStorage)
+    const bookingRecord = {
+      id:          bookingId,
+      service:     state.services ? state.services[0].name : 'Service',
+      proName:     state.professional ? state.professional.name : 'Professional',
+      proType:     state.professional ? state.professional.type : '',
+      proPhoto:    state.professional ? state.professional.photo : null,
+      artisanId:   state.professional ? (state.professional.id || state.professional.uid || null) : null,
+      dateDisplay: state.schedule ? (state.schedule.dateDisplay || '') : '',
+      time:        state.schedule ? state.schedule.time : '',
+      total:       state.total || 65,
+      status:      'Confirmed',
+      ts:          now.toISOString(),
+    };
     try {
-      const record = {
-        id: bookingId,
-        service:     state.services ? state.services[0].name : 'Service',
-        proName:     state.professional ? state.professional.name : 'Professional',
-        proType:     state.professional ? state.professional.type : '',
-        proPhoto:    state.professional ? state.professional.photo : null,
-        dateDisplay: state.schedule ? (state.schedule.dateDisplay || '') : '',
-        time:        state.schedule ? state.schedule.time : '',
-        total:       state.total || 65,
-        status:      'Confirmed',
-        ts:          now.toISOString(),
-      };
       const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
-      // Avoid duplicate saves on page reload
       if (!hist.length || hist[0].id !== bookingId) {
-        hist.unshift(record);
+        hist.unshift(bookingRecord);
         localStorage.setItem('hh_booking_history', JSON.stringify(hist.slice(0, 20)));
       }
     } catch(e) {}
+
+    // Persist booking to Firestore + notify customer (ES module — runs async)
+    import('../shared/js/utils/bookingConfirmNotify.js')
+      .then(m => m.onBookingConfirmed(bookingRecord))
+      .catch(() => { /* non-critical — booking UI already confirmed */ });
 
     // Confetti animation
     document.querySelectorAll('.confetti').forEach((el, i) => {

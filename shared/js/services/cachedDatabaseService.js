@@ -18,13 +18,24 @@
  *   → Pass through to Firestore unchanged, but warm the cache on every snapshot
  *     so any subsequent one-shot read for the same doc is served from memory.
  *
+ * IMPORTANT — Financial data is NEVER cached via one-shot reads.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * walletBalance, escrowBalance, and spent live on customer documents and change
+ * when Cloud Functions process payments. Pages displaying financial data MUST
+ * use real-time subscriptions (subscribeToDocument), NOT getDocument. The cache
+ * TTL for 'customers' only applies to non-financial profile fields.
+ *
+ * The subscription path (subscribeToDocument) bypasses the cache and provides
+ * fresh data on every Firestore snapshot — which is the correct approach for
+ * all financial display.
+ *
  * Per-collection TTLs (ms)
  * ────────────────────────
- *   customers              60 000   (profile data — rare changes)
+ *   customers              30 000   (profile only — financial data must use subscriptions)
  *   artisans              120 000   (artisan listings — very stable)
- *   bookings               30 000   (status can change frequently)
- *   customer_notifications  15 000  (time-sensitive)
- *   payment_accounts        45 000
+ *   bookings               20 000   (status changes — prefer subscriptions)
+ *   customer_notifications  10 000  (time-sensitive)
+ *   paymentAccounts         45 000  (MoMo account list — rarely changes)
  *   default                 30 000
  */
 
@@ -32,13 +43,17 @@ import { createMemoryCache } from './memoryCacheService.js';
 
 // ── Per-collection TTLs ────────────────────────────────────────────────────────
 const COLLECTION_TTL = {
-    customers:              60_000,
-    artisans:              120_000,
-    bookings:               30_000,
-    customer_notifications: 15_000,
-    payment_accounts:       45_000
+    customers:              30_000,   // profile only — financial fields must use subscriptions
+    artisans:              120_000,   // artisan listings — very stable
+    bookings:               20_000,   // can change fast — prefer real-time subscriptions
+    customer_notifications: 10_000,   // time-sensitive
+    paymentAccounts:        45_000,   // MoMo accounts — rarely change
 };
 const DEFAULT_TTL = 30_000;
+
+// Collections where financial data lives — one-shot reads should be avoided
+// in favour of real-time subscriptions for these collections.
+const FINANCIAL_COLLECTIONS = new Set(['customers', 'artisans', 'escrow', 'payouts', 'commissions']);
 
 function ttlFor(collectionName) {
     return COLLECTION_TTL[collectionName] ?? DEFAULT_TTL;

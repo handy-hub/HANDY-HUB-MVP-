@@ -4,8 +4,18 @@ const TRANSACTIONS = 'transactions';
 
 function now() { return new Date().toISOString(); }
 
+/**
+ * Generate a cryptographically random reference string.
+ * Uses the Web Crypto API (available in all modern browsers and Node ≥ 15).
+ * 4 random bytes → 8 uppercase hex chars → 4 294 967 296 possible values.
+ * Replaces the old Math.random() version which had only 90 000 possible values
+ * and is not cryptographically secure (CRIT-4 fix).
+ */
 function genRef(prefix) {
-    return prefix + '-' + Math.floor(10000 + Math.random() * 90000);
+    const arr = new Uint8Array(4);
+    crypto.getRandomValues(arr);
+    const hex = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    return `${prefix}-${Date.now()}-${hex}`;
 }
 
 export function createPaymentRepository({ databaseService: db }) {
@@ -77,58 +87,48 @@ export function createPaymentRepository({ databaseService: db }) {
     }
 
     /**
-     * Record a top-up transaction AND credit the customer's walletBalance.
-     * Returns the new transaction doc ID.
+     * Record a PENDING top-up transaction in the customer's transaction sub-collection.
+     *
+     * ⚠️  This does NOT update walletBalance — Firestore client rules prohibit it.
+     *     The authoritative wallet credit (and status upgrade to 'successful') is
+     *     performed server-side by the Paystack webhook → creditWalletFromCharge().
+     *
+     * Storing paystackRef here lets the webhook detect the pending record and
+     * upgrade it in-place rather than creating a duplicate entry.
+     *
+     * @returns {Promise<string>} new transaction doc ID
      */
     async function recordTopUp(uid, { amount, provider, phone, paystackRef }) {
         const amountNum = Number(amount);
         if (!amountNum || amountNum <= 0) throw new Error('Invalid amount');
 
-        // Credit wallet
-        const snap = await db.getDocument(CUSTOMERS, uid);
-        const prev = snap.exists ? (Number(snap.data.walletBalance) || 0) : 0;
-        await db.updateDocument(CUSTOMERS, uid, { walletBalance: prev + amountNum, updatedAt: now() });
-
-        // Record transaction
         return db.addSubDocument(CUSTOMERS, uid, TRANSACTIONS, {
             type:        'topup',
             amount:      amountNum,
-            provider:    provider || null,
-            phone:       phone    || null,
+            provider:    provider    || null,
+            phone:       phone       || null,
             description: `Wallet Top Up via ${PROVIDER_NAMES[provider] || provider}`,
-            status:      'successful',
+            status:      'pending',   // webhook upgrades to 'successful' and credits wallet
             ref:         paystackRef || genRef('TP'),
+            paystackRef: paystackRef || null,
             bookingId:   null,
             createdAt:   now()
         });
     }
 
     /**
-     * Deduct from wallet and record a pending withdrawal transaction.
-     * Actual payout is fulfilled by a backend process.
+     * ⛔  REMOVED — recordWithdrawal() was removed because it performed a
+     * read-then-write of walletBalance from the frontend without a Firestore
+     * transaction (TOCTOU race → potential double-spend).
+     *
+     * All withdrawals MUST go through the `processWithdrawal` Cloud Function
+     * which uses an atomic Firestore transaction and calls the Paystack API
+     * server-side.
+     *
+     * Frontend usage:
+     *   import { initiateWithdrawal } from '../services/paystackService.js';
+     *   await initiateWithdrawal({ amount, provider, phone });
      */
-    async function recordWithdrawal(uid, { amount, provider, phone }) {
-        const amountNum = Number(amount);
-        if (!amountNum || amountNum <= 0) throw new Error('Invalid amount');
-
-        const snap    = await db.getDocument(CUSTOMERS, uid);
-        const balance = snap.exists ? (Number(snap.data.walletBalance) || 0) : 0;
-        if (amountNum > balance) throw new Error('Insufficient wallet balance');
-
-        await db.updateDocument(CUSTOMERS, uid, { walletBalance: balance - amountNum, updatedAt: now() });
-
-        return db.addSubDocument(CUSTOMERS, uid, TRANSACTIONS, {
-            type:        'withdrawal',
-            amount:      amountNum,
-            provider:    provider || null,
-            phone:       phone    || null,
-            description: `Withdrawal via ${PROVIDER_NAMES[provider] || provider || 'Mobile Money'}`,
-            status:      'pending',
-            ref:         genRef('WD'),
-            bookingId:   null,
-            createdAt:   now()
-        });
-    }
 
     return {
         getAccounts,
@@ -138,7 +138,7 @@ export function createPaymentRepository({ databaseService: db }) {
         subscribeToAccounts,
         subscribeToTransactions,
         recordTopUp,
-        recordWithdrawal
+        // recordWithdrawal intentionally removed — use Cloud Function instead
     };
 }
 

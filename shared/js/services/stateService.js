@@ -223,8 +223,23 @@
 
   /* ── ID generator ────────────────────────────────────────────────── */
   function generateBookingId(date) {
-    var d = date || new Date();
+    var d   = date || new Date();
     var pad = function (n) { return String(n).padStart(2, '0'); };
+
+    // 4 random hex chars (2 bytes → 65 536 combinations) appended after the
+    // minute-precision timestamp so two users booking in the same minute still
+    // get distinct Firestore document IDs (previously they would collide).
+    var rnd;
+    try {
+      var arr = new Uint8Array(2);
+      crypto.getRandomValues(arr);
+      rnd = Array.from(arr, function (b) { return b.toString(16).padStart(2, '0'); })
+                 .join('').toUpperCase();
+    } catch (_) {
+      // Fallback for environments where crypto is unavailable (non-browser contexts)
+      rnd = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+    }
+
     return (
       'HHB-' +
       String(d.getFullYear()).slice(2) +
@@ -232,7 +247,8 @@
       pad(d.getDate()) +
       '-' +
       pad(d.getHours()) +
-      pad(d.getMinutes())
+      pad(d.getMinutes()) +
+      '-' + rnd
     );
   }
 

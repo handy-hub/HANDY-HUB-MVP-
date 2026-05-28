@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>HandyHub – Artisan Verification</title>
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <link rel="stylesheet" href="css/onboarding.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+<div class="phone-shell">
+
+  <!-- ── Header ─────────────────────────────────────── -->
+  <header class="ob-header">
+    <button class="back-btn" id="back-btn" aria-label="Go back">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#374151" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <span class="ob-title" id="ob-title">Identity Verification</span>
+    <span class="ob-step-label" id="ob-step-label">Step 1 of 5</span>
+  </header>
+
+  <!-- ── Progress ───────────────────────────────────── -->
+  <div class="progress-bar-wrap">
+    <div class="progress-steps">
+      <div class="progress-step active" id="ps-1"></div>
+      <div class="progress-step" id="ps-2"></div>
+      <div class="progress-step" id="ps-3"></div>
+      <div class="progress-step" id="ps-4"></div>
+      <div class="progress-step" id="ps-5"></div>
+    </div>
+    <div class="progress-labels">
+      <span class="progress-label active" id="pl-1">Personal</span>
+      <span class="progress-label" id="pl-2">Identity</span>
+      <span class="progress-label" id="pl-3">Skills</span>
+      <span class="progress-label" id="pl-4">Payout</span>
+      <span class="progress-label" id="pl-5">Review</span>
+    </div>
+  </div>
+
+  <!-- ── Steps ──────────────────────────────────────── -->
+  <div class="ob-scroll">
+
+    <!-- ═══════════════════════════════════════════════
+         STEP 1 — Personal Information
+    ═══════════════════════════════════════════════════ -->
+    <div class="step-panel active" id="step-1">
+      <h1 class="step-heading">Personal Information</h1>
+      <p class="step-sub">Tell us about yourself. This information will be used for identity verification.</p>
+
+      <div class="trust-badge">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#166534" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <p>Your data is encrypted and stored securely. We comply with Ghana's Data Protection Act.</p>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="first-name">First Name <span class="required">*</span></label>
+          <input class="field-input" type="text" id="first-name" placeholder="Kwame" autocomplete="given-name" />
+          <span class="field-error" id="err-first-name">Required</span>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="last-name">Last Name <span class="required">*</span></label>
+          <input class="field-input" type="text" id="last-name" placeholder="Mensah" autocomplete="family-name" />
+          <span class="field-error" id="err-last-name">Required</span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="phone">Phone Number <span class="required">*</span></label>
+        <input class="field-input" type="tel" id="phone" placeholder="024 000 0000" autocomplete="tel" />
+        <span class="field-hint">Ghana phone number (MTN, Telecel, AirtelTigo)</span>
+        <span class="field-error" id="err-phone">Enter a valid Ghana phone number</span>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="email">Email Address <span class="required">*</span></label>
+        <input class="field-input" type="email" id="email" placeholder="kwame@example.com" autocomplete="email" />
+        <span class="field-error" id="err-email">Enter a valid email address</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="dob">Date of Birth <span class="required">*</span></label>
+          <input class="field-input" type="date" id="dob" />
+          <span class="field-error" id="err-dob">Must be 18+</span>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="gender">Gender</label>
+          <select class="field-input" id="gender">
+            <option value="">Select</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="address">Residential Address <span class="required">*</span></label>
+        <input class="field-input" type="text" id="address" placeholder="e.g. East Legon, Accra" />
+        <span class="field-error" id="err-address">Required</span>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="gps-address">Ghana Post GPS Address</label>
+        <input class="field-input" type="text" id="gps-address" placeholder="e.g. GA-123-4567" />
+        <span class="field-hint">Optional but recommended</span>
+      </div>
+
+      <div class="section-divider"><span>Emergency Contact</span></div>
+
+      <div class="field-group">
+        <label class="field-label" for="emergency-name">Emergency Contact Name</label>
+        <input class="field-input" type="text" id="emergency-name" placeholder="Full name" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="emergency-phone">Emergency Contact Phone</label>
+        <input class="field-input" type="tel" id="emergency-phone" placeholder="024 000 0000" />
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Profile Photo <span class="required">*</span></label>
+        <p style="font-size:12px;color:var(--text-mid);margin-bottom:10px;">Take a clear selfie or upload a recent passport photo</p>
+        <div style="position:relative;">
+          <div class="selfie-ring" id="selfie-ring" onclick="document.getElementById('selfie-input').click()">
+            <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="#9CA3AF" stroke-width="1.8"/><circle cx="12" cy="13" r="4" stroke="#9CA3AF" stroke-width="1.8"/></svg>
+            <img src="" alt="Selfie" id="selfie-preview" />
+            <input type="file" id="selfie-input" accept="image/*" capture="user" style="display:none" />
+          </div>
+          <p style="text-align:center;font-size:12px;color:var(--text-light);margin-top:8px;">Tap to take photo or upload</p>
+        </div>
+        <span class="field-error" id="err-selfie">Profile photo is required</span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         STEP 2 — Identity Verification
+    ═══════════════════════════════════════════════════ -->
+    <div class="step-panel" id="step-2">
+      <h1 class="step-heading">Identity Verification</h1>
+      <p class="step-sub">Upload your Ghana Card to verify your identity. Documents are encrypted and only seen by our verification team.</p>
+
+      <div class="trust-badge">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#166534" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <p>Bank-grade 256-bit encryption. Documents are not shared publicly and are deleted after verification.</p>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="ghana-card-no">Ghana Card Number <span class="required">*</span></label>
+        <input class="field-input" type="text" id="ghana-card-no" placeholder="GHA-000000000-0" style="text-transform:uppercase;" />
+        <span class="field-hint">Format: GHA-000000000-0</span>
+        <span class="field-error" id="err-ghana-card">Enter valid Ghana Card number</span>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Ghana Card — Front <span class="required">*</span></label>
+        <div class="upload-box" id="id-front-box" onclick="document.getElementById('id-front-input').click()">
+          <div class="upload-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <p class="upload-title">Upload Front of ID</p>
+          <p class="upload-sub">JPG, PNG or PDF · Max 5MB</p>
+          <img class="upload-preview" id="id-front-preview" alt="ID Front" />
+          <input type="file" id="id-front-input" accept="image/*,.pdf" style="display:none;" />
+        </div>
+        <span class="field-error" id="err-id-front">Required</span>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Ghana Card — Back <span class="required">*</span></label>
+        <div class="upload-box" id="id-back-box" onclick="document.getElementById('id-back-input').click()">
+          <div class="upload-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <p class="upload-title">Upload Back of ID</p>
+          <p class="upload-sub">JPG, PNG or PDF · Max 5MB</p>
+          <img class="upload-preview" id="id-back-preview" alt="ID Back" />
+          <input type="file" id="id-back-input" accept="image/*,.pdf" style="display:none;" />
+        </div>
+        <span class="field-error" id="err-id-back">Required</span>
+      </div>
+
+      <div class="section-divider"><span>Optional Documents</span></div>
+
+      <div class="field-group">
+        <label class="field-label">Business Registration (if applicable)</label>
+        <div class="upload-box" id="biz-reg-box" onclick="document.getElementById('biz-reg-input').click()">
+          <div class="upload-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#9CA3AF" stroke-width="1.8"/><polyline points="14 2 14 8 20 8" stroke="#9CA3AF" stroke-width="1.8"/></svg>
+          </div>
+          <p class="upload-title">Upload Registration Document</p>
+          <p class="upload-sub">Optional · Max 5MB</p>
+          <input type="file" id="biz-reg-input" accept="image/*,.pdf" style="display:none;" />
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="tin">Tax Identification Number (TIN)</label>
+        <input class="field-input" type="text" id="tin" placeholder="C0000000000" />
+        <span class="field-hint">Optional — required for tax reporting if earnings exceed GHS 20,000/year</span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         STEP 3 — Professional Information
+    ═══════════════════════════════════════════════════ -->
+    <div class="step-panel" id="step-3">
+      <h1 class="step-heading">Your Skills &amp; Services</h1>
+      <p class="step-sub">Tell customers what you do best. This helps us match you with the right jobs.</p>
+
+      <div class="field-group">
+        <label class="field-label">Primary Category <span class="required">*</span></label>
+        <select class="field-input" id="category">
+          <option value="">Select your main trade</option>
+          <option value="Plumbing">🔧 Plumbing</option>
+          <option value="Electrical">⚡ Electrical Work</option>
+          <option value="Carpentry">🪚 Carpentry</option>
+          <option value="Painting">🖌️ Painting</option>
+          <option value="Tiling">🏠 Tiling &amp; Flooring</option>
+          <option value="AC">❄️ AC &amp; Appliance Repair</option>
+          <option value="Roofing">🏗️ Roofing</option>
+          <option value="Welding">🔩 Welding &amp; Fabrication</option>
+          <option value="Cleaning">🧹 Cleaning Services</option>
+          <option value="Moving">🚚 Moving &amp; Delivery</option>
+          <option value="Landscaping">🌿 Landscaping &amp; Gardening</option>
+          <option value="Security">🔒 Security Systems</option>
+          <option value="Other">Other</option>
+        </select>
+        <span class="field-error" id="err-category">Select a category</span>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Additional Skills</label>
+        <p style="font-size:12px;color:var(--text-mid);margin-bottom:8px;">Select all that apply</p>
+        <div class="skill-tags" id="skill-tags-container">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="bio">Professional Bio <span class="required">*</span></label>
+        <textarea class="field-input" id="bio" rows="4" placeholder="Describe your experience, specialties, and what makes you the best choice for customers…" style="resize:none;"></textarea>
+        <span class="field-hint">Minimum 50 characters. Be specific — customers read this.</span>
+        <span class="field-error" id="err-bio">Please write at least 50 characters</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="experience">Years of Experience <span class="required">*</span></label>
+          <select class="field-input" id="experience">
+            <option value="">Select</option>
+            <option value="1">Less than 1 year</option>
+            <option value="2">1–2 years</option>
+            <option value="5">3–5 years</option>
+            <option value="10">6–10 years</option>
+            <option value="15">10+ years</option>
+          </select>
+          <span class="field-error" id="err-experience">Required</span>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="work-radius">Work Radius</label>
+          <select class="field-input" id="work-radius">
+            <option value="5">Within 5 km</option>
+            <option value="10" selected>Within 10 km</option>
+            <option value="20">Within 20 km</option>
+            <option value="50">Within 50 km</option>
+            <option value="100">Anywhere in region</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Availability <span class="required">*</span></label>
+        <p style="font-size:12px;color:var(--text-mid);margin-bottom:8px;">Select your available days</p>
+        <div class="avail-grid" id="avail-grid">
+          <button type="button" class="avail-btn selected" data-day="Mon">Mon</button>
+          <button type="button" class="avail-btn selected" data-day="Tue">Tue</button>
+          <button type="button" class="avail-btn selected" data-day="Wed">Wed</button>
+          <button type="button" class="avail-btn selected" data-day="Thu">Thu</button>
+          <button type="button" class="avail-btn selected" data-day="Fri">Fri</button>
+          <button type="button" class="avail-btn" data-day="Sat">Sat</button>
+          <button type="button" class="avail-btn" data-day="Sun">Sun</button>
+          <button type="button" class="avail-btn" data-day="Emergency">🚨 24/7</button>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="base-rate">Starting Rate (GHS/hour)</label>
+        <input class="field-input" type="number" id="base-rate" placeholder="e.g. 80" min="0" />
+        <span class="field-hint">Leave blank if pricing varies per job</span>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Certifications &amp; Licenses</label>
+        <div class="upload-box" id="certs-box" onclick="document.getElementById('certs-input').click()">
+          <div class="upload-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#9CA3AF" stroke-width="1.8"/><polyline points="14 2 14 8 20 8" stroke="#9CA3AF" stroke-width="1.8"/></svg>
+          </div>
+          <p class="upload-title">Upload Certifications</p>
+          <p class="upload-sub">Optional · PNG, JPG, PDF</p>
+          <input type="file" id="certs-input" accept="image/*,.pdf" multiple style="display:none;" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         STEP 4 — Payout Setup
+    ═══════════════════════════════════════════════════ -->
+    <div class="step-panel" id="step-4">
+      <h1 class="step-heading">Payout Setup</h1>
+      <p class="step-sub">Add your Mobile Money details to receive payments. HandyHub pays within 24 hours of job completion.</p>
+
+      <div class="trust-badge">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke="#166534" stroke-width="1.8"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z" stroke="#166534" stroke-width="1.8"/><circle cx="17" cy="14" r="1" fill="#166534"/></svg>
+        <p>Your financial details are encrypted. HandyHub deducts a 15% platform commission from each completed job.</p>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Preferred MoMo Provider <span class="required">*</span></label>
+        <div class="momo-cards">
+
+          <!-- MTN -->
+          <div class="momo-card" id="momo-mtn" onclick="selectMomo('mtn')">
+            <div class="momo-card-header">
+              <div class="momo-logo mtn">MTN</div>
+              <div>
+                <p class="momo-name">MTN Mobile Money</p>
+                <p class="momo-sub">024, 025, 053, 054, 055, 059</p>
+              </div>
+            </div>
+            <div class="momo-input-wrap">
+              <input class="field-input" type="tel" id="mtn-number" placeholder="024 000 0000" />
+            </div>
+          </div>
+
+          <!-- Telecel -->
+          <div class="momo-card" id="momo-telecel" onclick="selectMomo('telecel')">
+            <div class="momo-card-header">
+              <div class="momo-logo telecel">VDF</div>
+              <div>
+                <p class="momo-name">Telecel Cash</p>
+                <p class="momo-sub">020, 050</p>
+              </div>
+            </div>
+            <div class="momo-input-wrap">
+              <input class="field-input" type="tel" id="telecel-number" placeholder="020 000 0000" />
+            </div>
+          </div>
+
+          <!-- AirtelTigo -->
+          <div class="momo-card" id="momo-airteltigo" onclick="selectMomo('airteltigo')">
+            <div class="momo-card-header">
+              <div class="momo-logo airteltigo">ATL</div>
+              <div>
+                <p class="momo-name">AirtelTigo Money</p>
+                <p class="momo-sub">026, 027, 056, 057</p>
+              </div>
+            </div>
+            <div class="momo-input-wrap">
+              <input class="field-input" type="tel" id="airteltigo-number" placeholder="026 000 0000" />
+            </div>
+          </div>
+
+        </div>
+        <span class="field-error" id="err-momo">Select a provider and enter your number</span>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="account-name">Account Holder Name <span class="required">*</span></label>
+        <input class="field-input" type="text" id="account-name" placeholder="Name registered on MoMo account" />
+        <span class="field-hint">Must match your MoMo registration name</span>
+        <span class="field-error" id="err-account-name">Required</span>
+      </div>
+
+      <div style="background:var(--surface-2);border-radius:var(--radius-md);padding:14px;margin-top:4px;">
+        <p style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:6px;">💰 Commission Structure</p>
+        <p style="font-size:12px;color:var(--text-mid);line-height:1.6;">For every completed job, HandyHub takes a <strong>15% platform fee</strong>. You receive <strong>85%</strong> of the agreed job price, paid directly to your MoMo account within 24 hours.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         STEP 5 — Review & Submit
+    ═══════════════════════════════════════════════════ -->
+    <div class="step-panel" id="step-5">
+      <h1 class="step-heading">Review &amp; Submit</h1>
+      <p class="step-sub">Review your information before submitting for verification. Our team reviews applications within 1–2 business days.</p>
+
+      <div id="review-summary" style="display:flex;flex-direction:column;gap:12px;">
+        <!-- Populated by JS -->
+      </div>
+
+      <div style="background:var(--surface-2);border-radius:var(--radius-lg);padding:16px;margin-top:16px;">
+        <p style="font-size:14px;font-weight:700;color:var(--text-dark);margin-bottom:10px;">📋 What Happens Next?</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:var(--primary);">1</div>
+            <div><p style="font-size:13px;font-weight:600;color:var(--text-dark);">Application Under Review</p><p style="font-size:12px;color:var(--text-mid);">Our team verifies your identity and documents (1–2 business days)</p></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:var(--primary);">2</div>
+            <div><p style="font-size:13px;font-weight:600;color:var(--text-dark);">Profile Goes Live</p><p style="font-size:12px;color:var(--text-mid);">Approved artisans are immediately visible to customers in their area</p></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:var(--primary);">3</div>
+            <div><p style="font-size:13px;font-weight:600;color:var(--text-dark);">Start Earning</p><p style="font-size:12px;color:var(--text-mid);">Accept bookings, complete jobs, and receive MoMo payments within 24 hours</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="agree-terms" style="width:18px;height:18px;margin-top:2px;accent-color:var(--primary);" />
+          <span style="font-size:13px;color:var(--text-mid);line-height:1.5;">I agree to HandyHub's <a href="../customer-app/settings-terms.html" style="color:var(--primary);font-weight:600;">Terms of Service</a> and <a href="../customer-app/settings-privacy-policy.html" style="color:var(--primary);font-weight:600;">Privacy Policy</a>. I confirm that all information provided is accurate and truthful.</span>
+        </label>
+        <span class="field-error" id="err-terms" style="margin-top:6px;">Please accept the terms to continue</span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         PENDING SCREEN (after submit)
+    ═══════════════════════════════════════════════════ -->
+    <div class="step-panel" id="step-pending">
+      <div class="status-screen">
+        <div class="status-icon-big pending">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#F59E0B" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h2 class="status-screen-title">Application Submitted!</h2>
+        <p class="status-screen-sub">Your verification is under review. Our team will check your documents and get back to you within <strong>1–2 business days</strong>.</p>
+        <div style="margin-top:24px;display:flex;flex-direction:column;gap:12px;width:100%;">
+          <div style="background:var(--surface-2);border-radius:var(--radius-md);padding:14px;text-align:left;">
+            <p style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:4px;">While you wait…</p>
+            <p style="font-size:12px;color:var(--text-mid);">You'll receive an SMS and email once your account is approved. You can also check back here anytime.</p>
+          </div>
+          <button onclick="window.location.href='dashboard.html'" style="background:var(--primary);color:#fff;border:none;padding:14px;border-radius:var(--radius-md);font-size:16px;font-weight:700;cursor:pointer;width:100%;">Go to Dashboard</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.ob-scroll -->
+
+  <!-- ── Footer CTA ──────────────────────────────────── -->
+  <div class="ob-footer" id="ob-footer">
+    <button class="btn-prev" id="btn-prev" aria-label="Previous">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#374151" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button class="btn-next" id="btn-next">Continue</button>
+  </div>
+
+</div><!-- /.phone-shell -->
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import '../shared/js/utils/global-app.js';
+import { getAppContainer } from '../shared/js/app/container.js';
+
+const { services: { authService, databaseService, storageService } } = getAppContainer();
+
+// ── Step management ────────────────────────────────────
+let currentStep = 1;
+const TOTAL_STEPS = 5;
+let uid = null;
+let uploadedFiles = {}; // key → { url, path }
+
+const STEP_TITLES = [
+  'Personal Information',
+  'Identity Verification',
+  'Skills & Services',
+  'Payout Setup',
+  'Review & Submit'
+];
+
+const SKILLS_BY_CATEGORY = {
+  Plumbing:   ['Pipe Repair','Leak Detection','Drain Cleaning','Water Heater','Toilet Installation','Bathroom Fitting'],
+  Electrical: ['Wiring','Panel Upgrade','Lighting','Generator Install','CCTV','Solar Systems'],
+  Carpentry:  ['Furniture Making','Cabinet Installation','Door/Window Frames','Roofing Carpentry','Decking'],
+  Painting:   ['Interior Painting','Exterior Painting','Waterproofing','Texture Coating','Wall Décor'],
+  Tiling:     ['Floor Tiling','Wall Tiling','Bathroom Tiling','Waterproofing','Grouting'],
+  Cleaning:   ['Home Cleaning','Office Cleaning','Post-Construction','Carpet Cleaning','Deep Cleaning'],
+  AC:         ['AC Installation','AC Servicing','Fridge Repair','Washing Machine','TV Repair'],
+  Other:      ['General Repairs','Handyman','Installation','Maintenance']
+};
+
+// ── DOM shortcuts ──────────────────────────────────────
+const toast    = document.getElementById('toast');
+const btnNext  = document.getElementById('btn-next');
+const btnPrev  = document.getElementById('btn-prev');
+const obFooter = document.getElementById('ob-footer');
+
+function showToast(msg, isError) {
+  toast.textContent = msg;
+  toast.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => toast.className = 'toast', 2500);
+}
+
+// ── Update progress UI ──────────────────────────────────
+function updateProgress(step) {
+  document.getElementById('ob-title').textContent = STEP_TITLES[step-1] || 'Complete';
+  document.getElementById('ob-step-label').textContent = step <= TOTAL_STEPS ? `Step ${step} of ${TOTAL_STEPS}` : '';
+
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const ps = document.getElementById(`ps-${i}`);
+    const pl = document.getElementById(`pl-${i}`);
+    if (!ps) continue;
+    if (i < step)      { ps.className = 'progress-step done';   pl.className = 'progress-label done'; }
+    else if (i === step){ ps.className = 'progress-step active'; pl.className = 'progress-label active'; }
+    else               { ps.className = 'progress-step';        pl.className = 'progress-label'; }
+  }
+
+  // Hide/show panels
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const panel = document.getElementById(`step-${i}`);
+    if (panel) panel.classList.toggle('active', i === step);
+  }
+  document.getElementById('step-pending')?.classList.remove('active');
+
+  btnPrev.style.display  = step > 1 ? 'flex' : 'none';
+  btnNext.textContent    = step === TOTAL_STEPS ? 'Submit Application' : 'Continue';
+  obFooter.style.display = 'flex';
+}
+
+// ── Validate step ──────────────────────────────────────
+function clearErrors() {
+  document.querySelectorAll('.field-error.show').forEach(e => e.classList.remove('show'));
+  document.querySelectorAll('.field-input.error').forEach(e => e.classList.remove('error'));
+}
+
+function showErr(id, inputId) {
+  const e = document.getElementById(id);
+  if (e) e.classList.add('show');
+  if (inputId) {
+    const el = document.getElementById(inputId);
+    if (el) el.classList.add('error');
+  }
+}
+
+function validateStep(step) {
+  clearErrors();
+  let valid = true;
+  if (step === 1) {
+    if (!document.getElementById('first-name').value.trim()) { showErr('err-first-name','first-name'); valid=false; }
+    if (!document.getElementById('last-name').value.trim())  { showErr('err-last-name','last-name');  valid=false; }
+    const phone = document.getElementById('phone').value.replace(/\s/g,'');
+    if (!/^(0[2-9][0-9]{8}|233[2-9][0-9]{8})$/.test(phone)) { showErr('err-phone','phone'); valid=false; }
+    const email = document.getElementById('email').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('err-email','email'); valid=false; }
+    const dob = document.getElementById('dob').value;
+    if (dob) { const age = (Date.now() - new Date(dob)) / (365.25*24*3600*1000); if (age < 18) { showErr('err-dob','dob'); valid=false; } }
+    else { showErr('err-dob','dob'); valid=false; }
+    if (!document.getElementById('address').value.trim()) { showErr('err-address','address'); valid=false; }
+    if (!uploadedFiles.selfie) { showErr('err-selfie'); valid=false; }
+  }
+  if (step === 2) {
+    const gcn = document.getElementById('ghana-card-no').value.trim().toUpperCase();
+    if (!/^GHA-\d{9}-\d$/.test(gcn)) { showErr('err-ghana-card','ghana-card-no'); valid=false; }
+    if (!uploadedFiles.idFront) { showErr('err-id-front'); valid=false; }
+    if (!uploadedFiles.idBack)  { showErr('err-id-back');  valid=false; }
+  }
+  if (step === 3) {
+    if (!document.getElementById('category').value) { showErr('err-category','category'); valid=false; }
+    const bio = document.getElementById('bio').value.trim();
+    if (bio.length < 50) { showErr('err-bio','bio'); valid=false; }
+    if (!document.getElementById('experience').value) { showErr('err-experience','experience'); valid=false; }
+  }
+  if (step === 4) {
+    const sel = document.querySelector('.momo-card.active');
+    if (!sel) { showErr('err-momo'); valid=false; }
+    else {
+      const provider = sel.id.replace('momo-','');
+      const numInput = document.getElementById(`${provider}-number`);
+      if (!numInput || !numInput.value.trim()) { showErr('err-momo'); valid=false; }
+    }
+    if (!document.getElementById('account-name').value.trim()) { showErr('err-account-name','account-name'); valid=false; }
+  }
+  if (step === 5) {
+    if (!document.getElementById('agree-terms').checked) { showErr('err-terms'); valid=false; }
+  }
+  return valid;
+}
+
+// ── Next step ──────────────────────────────────────────
+btnNext.addEventListener('click', async () => {
+  if (!validateStep(currentStep)) {
+    showToast('Please fill in all required fields', true);
+    return;
+  }
+  if (currentStep < TOTAL_STEPS) {
+    currentStep++;
+    updateProgress(currentStep);
+    if (currentStep === 3) buildSkillTags();
+    if (currentStep === TOTAL_STEPS) buildReviewSummary();
+    window.scrollTo(0,0);
+  } else {
+    await submitApplication();
+  }
+});
+
+btnPrev.addEventListener('click', () => {
+  if (currentStep > 1) {
+    currentStep--;
+    updateProgress(currentStep);
+    window.scrollTo(0,0);
+  } else {
+    window.history.back();
+  }
+});
+
+document.getElementById('back-btn').addEventListener('click', () => {
+  if (currentStep > 1) { currentStep--; updateProgress(currentStep); }
+  else window.history.back();
+});
+
+// ── Skill tags ─────────────────────────────────────────
+let selectedSkills = new Set();
+function buildSkillTags() {
+  const cat      = document.getElementById('category').value;
+  const skills   = SKILLS_BY_CATEGORY[cat] || SKILLS_BY_CATEGORY.Other;
+  const container = document.getElementById('skill-tags-container');
+  container.innerHTML = '';
+  skills.forEach(s => {
+    const tag = document.createElement('button');
+    tag.type = 'button';
+    tag.className = 'skill-tag' + (selectedSkills.has(s) ? ' selected' : '');
+    tag.textContent = s;
+    tag.onclick = () => {
+      if (selectedSkills.has(s)) { selectedSkills.delete(s); tag.classList.remove('selected'); }
+      else { selectedSkills.add(s); tag.classList.add('selected'); }
+    };
+    container.appendChild(tag);
+  });
+}
+
+// ── Availability ───────────────────────────────────────
+document.querySelectorAll('.avail-btn').forEach(btn => {
+  btn.addEventListener('click', () => btn.classList.toggle('selected'));
+});
+
+// ── MoMo selection ─────────────────────────────────────
+window.selectMomo = function(provider) {
+  document.querySelectorAll('.momo-card').forEach(c => c.classList.remove('active'));
+  document.getElementById(`momo-${provider}`)?.classList.add('active');
+};
+
+// ── File upload handlers ───────────────────────────────
+function setupUpload(inputId, previewId, boxId, fileKey, isImage) {
+  const input   = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  const box     = document.getElementById(boxId);
+  if (!input) return;
+  input.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { showToast('File too large (max 5MB)', true); return; }
+    if (isImage && preview) {
+      const url = URL.createObjectURL(file);
+      preview.src = url;
+      preview.classList.add('show');
+    }
+    box?.classList.add('has-file');
+    box?.querySelector('.upload-title') && (box.querySelector('.upload-title').textContent = file.name.length > 20 ? file.name.slice(0,20)+'…' : file.name);
+    uploadedFiles[fileKey] = { file, localUrl: isImage ? URL.createObjectURL(file) : null };
+  });
+}
+
+// Selfie
+document.getElementById('selfie-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5*1024*1024) { showToast('File too large', true); return; }
+  const ring    = document.getElementById('selfie-ring');
+  const preview = document.getElementById('selfie-preview');
+  preview.src   = URL.createObjectURL(file);
+  ring.classList.add('has-photo');
+  uploadedFiles.selfie = { file };
+});
+
+setupUpload('id-front-input','id-front-preview','id-front-box','idFront', true);
+setupUpload('id-back-input', 'id-back-preview', 'id-back-box', 'idBack',  true);
+setupUpload('biz-reg-input', null,               'biz-reg-box','bizReg',  false);
+setupUpload('certs-input',   null,               'certs-box',  'certs',   false);
+
+// ── Review summary ─────────────────────────────────────
+function buildReviewSummary() {
+  const summary = document.getElementById('review-summary');
+  const firstName = document.getElementById('first-name').value;
+  const lastName  = document.getElementById('last-name').value;
+  const phone     = document.getElementById('phone').value;
+  const email     = document.getElementById('email').value;
+  const category  = document.getElementById('category').value;
+  const bio       = document.getElementById('bio').value.trim();
+  const experience = document.getElementById('experience').selectedOptions[0]?.text || '';
+  const momoCard  = document.querySelector('.momo-card.active');
+  const momoName  = momoCard?.querySelector('.momo-name')?.textContent || '—';
+  const provider  = momoCard?.id?.replace('momo-','') || '';
+  const momoNum   = document.getElementById(`${provider}-number`)?.value || '—';
+
+  summary.innerHTML = `
+    ${_reviewItem('👤 Name',       `${firstName} ${lastName}`)}
+    ${_reviewItem('📱 Phone',      phone)}
+    ${_reviewItem('✉️ Email',      email)}
+    ${_reviewItem('🔧 Category',   category)}
+    ${_reviewItem('📋 Bio',        bio.slice(0,80)+'…')}
+    ${_reviewItem('🕐 Experience', experience)}
+    ${_reviewItem('💳 Payout',     `${momoName} · ${momoNum}`)}
+    ${_reviewItem('📄 Documents',  `${Object.keys(uploadedFiles).length} file(s) ready to upload`)}
+  `;
+}
+function _reviewItem(label, value) {
+  return `<div style="background:var(--surface-2);border-radius:var(--radius-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+    <span style="font-size:13px;font-weight:600;color:var(--text-mid);flex-shrink:0;">${label}</span>
+    <span style="font-size:13px;color:var(--text-dark);text-align:right;">${value}</span>
+  </div>`;
+}
+
+// ── Submit ─────────────────────────────────────────────
+async function submitApplication() {
+  if (!uid) { showToast('You must be signed in', true); return; }
+  btnNext.disabled = true;
+  btnNext.classList.add('loading');
+  btnNext.textContent = 'Uploading…';
+
+  try {
+    // 1. Upload documents to Firebase Storage
+    const docUrls = {};
+    for (const [key, val] of Object.entries(uploadedFiles)) {
+      if (!val.file) continue;
+      const ext  = val.file.name.split('.').pop() || 'jpg';
+      const path = `artisans/${uid}/documents/${key}.${ext}`;
+      try {
+        await storageService.uploadFile(path, val.file, { contentType: val.file.type });
+        docUrls[key] = await storageService.getDownloadUrl(path);
+      } catch(e) { console.warn('Upload failed for', key, e); }
+    }
+
+    // 2. Build artisan profile
+    const firstName  = document.getElementById('first-name').value.trim();
+    const lastName   = document.getElementById('last-name').value.trim();
+    const phone      = document.getElementById('phone').value.trim();
+    const email      = document.getElementById('email').value.trim();
+    const dob        = document.getElementById('dob').value;
+    const gender     = document.getElementById('gender').value;
+    const address    = document.getElementById('address').value.trim();
+    const gps        = document.getElementById('gps-address').value.trim();
+    const emergName  = document.getElementById('emergency-name').value.trim();
+    const emergPhone = document.getElementById('emergency-phone').value.trim();
+    const ghanaCard  = document.getElementById('ghana-card-no').value.trim().toUpperCase();
+    const tin        = document.getElementById('tin').value.trim();
+    const category   = document.getElementById('category').value;
+    const bio        = document.getElementById('bio').value.trim();
+    const experience = document.getElementById('experience').value;
+    const radius     = document.getElementById('work-radius').value;
+    const baseRate   = document.getElementById('base-rate').value;
+    const momoCard   = document.querySelector('.momo-card.active');
+    const provider   = momoCard?.id?.replace('momo-','') || '';
+    const momoNum    = document.getElementById(`${provider}-number`)?.value?.trim() || '';
+    const acctName   = document.getElementById('account-name').value.trim();
+    const avail      = [...document.querySelectorAll('.avail-btn.selected')].map(b => b.dataset.day);
+
+    const n = new Date().toISOString();
+
+    // Write artisan profile (active = false until approved)
+    await databaseService.setDocument('artisans', uid, {
+      id:               uid,
+      name:             `${firstName} ${lastName}`,
+      email,
+      phone,
+      dob, gender, address,
+      gpsAddress:       gps,
+      emergencyContact: { name: emergName, phone: emergPhone },
+      profileImage:     docUrls.selfie || null,
+      category,
+      specialty:        category,
+      skills:           [...selectedSkills],
+      bio,
+      yearsExperience:  Number(experience) || 0,
+      workRadius:       Number(radius) || 10,
+      baseRate:         baseRate ? Number(baseRate) : null,
+      availability:     avail,
+      isAvailable:      false, // locked until approved
+      verificationStatus: 'pending_review',
+      ghanaCardNumber:  ghanaCard,
+      tin,
+      payoutAccount: { provider, phone: momoNum, accountName: acctName },
+      rating:           0,
+      reviewCount:      0,
+      jobsCompleted:    0,
+      totalEarned:      0,
+      availableBalance: 0,
+      pendingBalance:   0,
+      userType:         'artisan',
+      status:           'pending',
+      createdAt:        n,
+      updatedAt:        n,
+    }, { merge: true });
+
+    // 3. Write verification request for admin review
+    await databaseService.setDocument('verification_requests', uid, {
+      artisanId:    uid,
+      name:         `${firstName} ${lastName}`,
+      email,
+      phone,
+      category,
+      ghanaCardNumber: ghanaCard,
+      documents:    docUrls,
+      status:       'pending_review',
+      submittedAt:  n,
+      reviewedBy:   null,
+      reviewedAt:   null,
+      rejectionReason: null,
+      adminNotes:   '',
+      trustScore:   50,
+    });
+
+    // Done!
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('step-pending').classList.add('active');
+    obFooter.style.display = 'none';
+
+  } catch(err) {
+    console.error('Submit error:', err);
+    showToast('Submission failed. Please try again.', true);
+  } finally {
+    btnNext.disabled = false;
+    btnNext.classList.remove('loading');
+    btnNext.textContent = 'Submit Application';
+  }
+}
+
+// ── Auth bootstrap ─────────────────────────────────────
+authService.subscribeToAuthState(user => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  uid = user.uid;
+
+  // Pre-fill email from auth
+  const emailEl = document.getElementById('email');
+  if (emailEl && user.email) emailEl.value = user.email;
+
+  // Check if already submitted
+  databaseService.getDocument('artisans', uid).then(snap => {
+    if (snap.exists && snap.data.verificationStatus === 'pending_review') {
+      document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('step-pending').classList.add('active');
+      obFooter.style.display = 'none';
+    } else if (snap.exists && snap.data.verificationStatus === 'approved') {
+      window.location.href = 'dashboard.html';
+    }
+  });
+});
+</script>
+<script src="../shared/js/components/fastLoader.js"></script>
+</body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub – My Earnings</title>
+  <link rel="stylesheet" href="css/wallet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+</head>
+<body>
+
+<div class="phone-shell">
+  <div class="scroll-area">
+
+    <!-- Header -->
+    <div class="page-header">
+      <button class="back-btn" aria-label="Go back" onclick="history.back()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1 class="page-title">My Earnings</h1>
+      <div style="width:36px"></div>
+    </div>
+
+    <!-- Hero Balance Card -->
+    <div class="hero-card">
+      <p class="hero-label">Available to Withdraw</p>
+      <p class="hero-amount" id="available-balance">GHC —</p>
+      <p class="hero-sub">Completed job earnings</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <p class="hero-stat-label">Pending</p>
+          <p class="hero-stat-value pending" id="pending-balance">GHC —</p>
+        </div>
+        <div class="hero-stat">
+          <p class="hero-stat-label">Total Earned</p>
+          <p class="hero-stat-value" id="total-earned">GHC —</p>
+        </div>
+        <div class="hero-stat">
+          <p class="hero-stat-label">Withdrawn</p>
+          <p class="hero-stat-value" id="total-withdrawn">GHC —</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Withdraw Button -->
+    <button class="withdraw-cta-btn" id="withdraw-btn" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M12 5v14M5 12l7 7 7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Withdraw Earnings
+    </button>
+
+    <!-- Info pills -->
+    <div class="info-pills">
+      <div class="info-pill">
+        <p class="pill-label">Commission</p>
+        <p class="pill-value" id="commission-rate">15%</p>
+      </div>
+      <div class="info-pill">
+        <p class="pill-label">Min. Withdrawal</p>
+        <p class="pill-value">GHC 5</p>
+      </div>
+      <div class="info-pill">
+        <p class="pill-label">Payout Time</p>
+        <p class="pill-value green">~1 min</p>
+      </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="section-wrap">
+      <div class="section-header">
+        <span class="section-title">Transaction History</span>
+      </div>
+
+      <!-- Loading shimmer -->
+      <div id="txn-loading" class="shimmer-list">
+        <div class="shimmer-row"></div>
+        <div class="shimmer-row"></div>
+        <div class="shimmer-row"></div>
+      </div>
+
+      <!-- Live list -->
+      <div class="txns-card" id="txn-list" style="display:none"></div>
+
+      <!-- Empty state -->
+      <div id="txn-empty" class="empty-state" style="display:none">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+          <rect x="2" y="5" width="20" height="14" rx="2" stroke="#ddd" stroke-width="1.5"/>
+          <path d="M2 10h20" stroke="#ddd" stroke-width="1.5"/>
+        </svg>
+        <p>No transactions yet</p>
+        <span>Complete your first booking to start earning.</span>
+      </div>
+    </div>
+
+  </div><!-- /scroll-area -->
+
+  <!-- ── Withdrawal Modal ──────────────────────────────────────────────────── -->
+  <div id="wd-overlay" class="wd-overlay" aria-hidden="true">
+    <div id="wd-sheet" class="wd-sheet" role="dialog" aria-label="Withdraw Earnings">
+      <div class="wd-handle"></div>
+
+      <div class="wd-header">
+        <p class="wd-header-title">Withdraw Earnings</p>
+        <p class="wd-header-balance" id="wd-avail">GHC 0.00</p>
+        <p class="wd-header-sub">Available balance</p>
+      </div>
+
+      <div class="wd-body">
+
+        <!-- Amount -->
+        <p class="wd-label">Amount (GHC)</p>
+        <div class="wd-amount-wrap">
+          <span class="wd-ghc">GHC</span>
+          <input type="number" id="wd-amount" class="wd-amount-input"
+                 placeholder="0.00" min="5" step="0.01" inputmode="decimal" />
+        </div>
+        <div class="wd-quick-row">
+          <button class="wd-quick" data-amount="20">GHC 20</button>
+          <button class="wd-quick" data-amount="50">GHC 50</button>
+          <button class="wd-quick" data-amount="100">GHC 100</button>
+          <button class="wd-quick" data-amount="200">GHC 200</button>
+        </div>
+
+        <!-- MoMo Provider -->
+        <p class="wd-label">Mobile Money Network</p>
+        <div class="wd-provider-row" id="wd-provider-row">
+          <button class="wd-provider-btn" data-provider="mtn">
+            <div class="logo">
+              <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="20" cy="20" r="20" fill="#FFCC00"/>
+                <text x="20" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" font-weight="900" fill="#111">MTN</text>
+              </svg>
+            </div>
+            MTN MoMo
+          </button>
+          <button class="wd-provider-btn" data-provider="telecel">
+            <div class="logo">
+              <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="20" cy="20" r="20" fill="#E00000"/>
+                <text x="21" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" font-weight="900" fill="#fff">t</text>
+              </svg>
+            </div>
+            Telecel
+          </button>
+          <button class="wd-provider-btn" data-provider="airteltigo">
+            <div class="logo">
+              <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <defs><clipPath id="at"><circle cx="20" cy="20" r="20"/></clipPath></defs>
+                <rect width="40" height="20" fill="#003F7F" clip-path="url(#at)"/>
+                <rect y="20" width="40" height="20" fill="#E00000" clip-path="url(#at)"/>
+                <text x="20" y="27.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="900" fill="#fff">at</text>
+              </svg>
+            </div>
+            AirtelTigo
+          </button>
+        </div>
+
+        <!-- Phone number -->
+        <p class="wd-label">MoMo Phone Number</p>
+        <div class="wd-phone-wrap">
+          <span class="wd-phone-prefix">+233</span>
+          <input type="tel" id="wd-phone" class="wd-phone-input"
+                 placeholder="0XX XXX XXXX" maxlength="11" inputmode="tel" />
+        </div>
+
+        <button id="wd-confirm-btn" class="wd-confirm-btn" disabled>Confirm Withdrawal</button>
+        <button id="wd-cancel-btn" class="wd-cancel-btn">Cancel</button>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone-shell -->
+
+<script type="module">
+  import '../shared/js/utils/global-app.js';
+  import { getAppContainer }           from '../shared/js/app/container.js';
+  import { showToast }                 from '../shared/js/components/toast.js';
+  import { createWalletRepository }    from '../shared/js/data/repositories/walletRepository.js';
+  import { withdrawArtisan }           from '../shared/js/services/walletService.js';
+
+  const LOGIN_URL = 'index.html';
+
+  // ── DOM refs ────────────────────────────────────────────────────────────────
+  const availEl     = document.getElementById('available-balance');
+  const pendingEl   = document.getElementById('pending-balance');
+  const totalEl     = document.getElementById('total-earned');
+  const withdrawnEl = document.getElementById('total-withdrawn');
+  const withdrawBtn = document.getElementById('withdraw-btn');
+  const loadingEl   = document.getElementById('txn-loading');
+  const listEl      = document.getElementById('txn-list');
+  const emptyEl     = document.getElementById('txn-empty');
+
+  const wdOverlay     = document.getElementById('wd-overlay');
+  const wdAvail       = document.getElementById('wd-avail');
+  const wdAmountInput = document.getElementById('wd-amount');
+  const wdConfirmBtn  = document.getElementById('wd-confirm-btn');
+  const wdCancelBtn   = document.getElementById('wd-cancel-btn');
+  const wdPhoneInput  = document.getElementById('wd-phone');
+
+  // ── State ───────────────────────────────────────────────────────────────────
+  let currentWallet    = { available: 0, pending: 0, totalEarned: 0, withdrawn: 0 };
+  let selectedProvider = null;
+  let currentUid       = null;
+  let artisanData      = {};
+
+  // ── Formatting ──────────────────────────────────────────────────────────────
+  const fmtGHC  = (n) => `GHC ${Number(n).toFixed(2)}`;
+  const fmtDate = (iso) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+         + ' · '
+         + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // ── Wallet display ──────────────────────────────────────────────────────────
+  function updateWalletDisplay(w) {
+    if (!w) return;
+    currentWallet = w;
+    availEl.textContent     = fmtGHC(w.available);
+    pendingEl.textContent   = fmtGHC(w.pending);
+    totalEl.textContent     = fmtGHC(w.totalEarned);
+    withdrawnEl.textContent = fmtGHC(w.withdrawn);
+    withdrawBtn.disabled    = w.available < 5;
+  }
+
+  // ── Transaction list ────────────────────────────────────────────────────────
+  function txnIcon(type) {
+    if (type === 'earning') {
+      return `<div class="txn-icon earning">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M12 19V5M5 12l7-7 7 7" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg></div>`;
+    }
+    return `<div class="txn-icon debit">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M12 5v14M5 12l7 7 7-7" stroke="#e53e3e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg></div>`;
+  }
+
+  function statusClass(s) {
+    const map = { completed: 'completed', successful: 'completed', processing: 'processing', failed: 'failed', pending: 'pending' };
+    return map[s] || 'pending';
+  }
+
+  function buildTxnHTML(t, isLast) {
+    const d        = t.data;
+    const isCredit = d.type === 'earning';
+    const sign     = isCredit ? '+' : '−';
+    const amtClass = isCredit ? 'credit' : 'debit';
+
+    const commissionNote = (d.type === 'earning' && d.commission)
+      ? `<p class="txn-ref">After ${(d.commissionRate * 100).toFixed(0)}% commission · Gross GHC ${Number(d.totalAmount).toFixed(2)}</p>`
+      : (d.ref ? `<p class="txn-ref">Ref: ${d.ref}</p>` : '');
+
+    return `
+      <div class="txn-item">
+        ${txnIcon(d.type)}
+        <div class="txn-details">
+          <p class="txn-title">${d.description || 'Transaction'}</p>
+          <p class="txn-meta">${fmtDate(d.createdAt)}</p>
+          ${commissionNote}
+        </div>
+        <div class="txn-amount-col">
+          <p class="txn-amount ${amtClass}">${sign} GHC ${Number(d.amount).toFixed(2)}</p>
+          <span class="txn-status ${statusClass(d.status)}">${d.status || '—'}</span>
+        </div>
+      </div>
+      ${isLast ? '' : '<div class="txn-divider"></div>'}`;
+  }
+
+  function renderTxns(records) {
+    loadingEl.style.display = 'none';
+    if (!records.length) {
+      listEl.style.display  = 'none';
+      emptyEl.style.display = '';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    listEl.style.display  = '';
+    listEl.innerHTML = records.map((t, i) => buildTxnHTML(t, i === records.length - 1)).join('');
+  }
+
+  // ── Withdrawal modal ─────────────────────────────────────────────────────────
+
+  function openWithdrawModal() {
+    wdAmountInput.value = '';
+    wdPhoneInput.value  = '';
+    selectedProvider    = null;
+    document.querySelectorAll('.wd-provider-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
+    wdAvail.textContent = fmtGHC(currentWallet.available);
+    wdOverlay.classList.add('open');
+    wdOverlay.setAttribute('aria-hidden', 'false');
+    updateConfirm();
+  }
+
+  function closeWithdrawModal() {
+    wdOverlay.classList.remove('open');
+    wdOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  function updateConfirm() {
+    const amount = parseFloat(wdAmountInput.value);
+    const phone  = wdPhoneInput.value.trim();
+    const ready  = selectedProvider && amount >= 5 && amount <= currentWallet.available && phone.length >= 9;
+    wdConfirmBtn.disabled    = !ready;
+    wdConfirmBtn.textContent = ready
+      ? `Withdraw GHC ${amount.toFixed(2)}`
+      : 'Confirm Withdrawal';
+  }
+
+  // Provider selection
+  document.querySelectorAll('.wd-provider-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.wd-provider-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedProvider = btn.dataset.provider;
+      updateConfirm();
+    });
+  });
+
+  // Quick amounts
+  document.querySelectorAll('.wd-quick').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      wdAmountInput.value = btn.dataset.amount;
+      updateConfirm();
+    });
+  });
+
+  wdAmountInput.addEventListener('input', () => {
+    document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
+    updateConfirm();
+  });
+  wdPhoneInput.addEventListener('input', updateConfirm);
+
+  withdrawBtn.addEventListener('click',  openWithdrawModal);
+  wdCancelBtn.addEventListener('click',  closeWithdrawModal);
+  wdOverlay.addEventListener('click', e => { if (e.target === wdOverlay) closeWithdrawModal(); });
+
+  // Confirm withdrawal
+  wdConfirmBtn.addEventListener('click', async () => {
+    const amount = parseFloat(wdAmountInput.value);
+    const phone  = wdPhoneInput.value.trim();
+    if (!selectedProvider || !amount || !phone) return;
+
+    wdConfirmBtn.disabled    = true;
+    wdConfirmBtn.textContent = 'Sending to Paystack…';
+
+    try {
+      const { ref } = await withdrawArtisan({
+        amount,
+        provider:    selectedProvider,
+        phone,
+        artisanName: artisanData.name || null,
+      });
+
+      closeWithdrawModal();
+      showToast(`GHC ${amount.toFixed(2)} sent to ${phone}. Ref: ${ref}`, 'success');
+
+    } catch (err) {
+      console.error('Artisan withdrawal error:', err);
+      showToast(err.message || 'Withdrawal failed. Please try again.', 'error');
+      wdConfirmBtn.disabled = false;
+      updateConfirm();
+    }
+  });
+
+  // ── Auth + Firebase subscriptions ──────────────────────────────────────────
+  const { services: { authService, databaseService } } = getAppContainer();
+  const walletRepo = createWalletRepository({ databaseService });
+
+  authService.subscribeToAuthState(user => {
+    if (!user) { window.location.href = LOGIN_URL; return; }
+    currentUid = user.uid;
+
+    // Live artisan doc (for name + wallet)
+    databaseService.subscribeToDocument('artisans', user.uid, snap => {
+      if (snap.exists) {
+        artisanData = snap.data || {};
+        updateWalletDisplay({
+          available:   parseFloat((Number(snap.data.availableBalance) || 0).toFixed(2)),
+          pending:     parseFloat((Number(snap.data.pendingBalance)   || 0).toFixed(2)),
+          totalEarned: parseFloat((Number(snap.data.totalEarned)      || 0).toFixed(2)),
+          withdrawn:   parseFloat((Number(snap.data.withdrawnTotal)   || 0).toFixed(2)),
+        });
+      }
+    });
+
+    // Live transactions
+    walletRepo.subscribeToArtisanTransactions(
+      user.uid,
+      records => renderTxns(records),
+      err => {
+        console.error('Transactions error:', err);
+        loadingEl.style.display = 'none';
+        emptyEl.style.display   = '';
+      },
+    );
+  });
+</script>
+
+<script src="../shared/js/components/fastLoader.js"></script>
+</body>
+</html>

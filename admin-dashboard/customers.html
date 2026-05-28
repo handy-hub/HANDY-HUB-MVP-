@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub Admin – Customers</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    .customer-drawer {
+      position:fixed;right:-460px;top:0;bottom:0;width:460px;max-width:92vw;
+      background:var(--surface);border-left:1px solid var(--border);
+      box-shadow:-8px 0 32px rgba(0,0,0,.12);z-index:900;
+      transition:right .3s cubic-bezier(.4,0,.2,1);
+      display:flex;flex-direction:column;
+    }
+    .customer-drawer.open{right:0;}
+    .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:899;display:none;}
+    .drawer-overlay.open{display:block;}
+    .drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
+    .drawer-close{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .drawer-body{flex:1;overflow-y:auto;padding:20px;}
+    .profile-top{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+    .profile-avatar{width:62px;height:62px;border-radius:50%;background:var(--surface-2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--text-mid);flex-shrink:0;}
+    .profile-name{font-size:17px;font-weight:800;color:var(--text-dark);margin-bottom:2px;}
+    .profile-sub{font-size:12px;color:var(--text-mid);}
+    .info-section{margin-bottom:18px;}
+    .info-section-title{font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--surface-2);}
+    .info-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--surface-2);gap:8px;}
+    .info-row:last-child{border-bottom:none;}
+    .info-key{font-size:12px;color:var(--text-light);font-weight:500;}
+    .info-val{font-size:13px;color:var(--text-dark);font-weight:600;text-align:right;word-break:break-all;}
+    .stats-row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+    .mini-stat{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+    .mini-stat-val{font-size:18px;font-weight:800;color:var(--text-dark);}
+    .mini-stat-lbl{font-size:10px;color:var(--text-light);margin-top:2px;}
+    .booking-list{display:flex;flex-direction:column;gap:8px;}
+    .mini-booking{background:var(--surface-2);border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;}
+    .mini-booking-title{font-size:12px;font-weight:600;color:var(--text-dark);}
+    .mini-booking-sub{font-size:11px;color:var(--text-light);}
+    .drawer-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;}
+    .btn-flag{flex:1;background:#FEF3C7;color:#92400E;border:1.5px solid #FDE68A;padding:10px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .btn-flag:hover{background:#FDE68A;}
+    .btn-ban{background:#FEF2F2;color:#991B1B;border:1.5px solid #FECACA;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .btn-ban:hover{background:#FECACA;}
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#fff" stroke-width="2" stroke-linecap="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#fff" stroke-width="2"/></svg></div>
+      <span class="sidebar-logo-text">HandyHub</span><span class="sidebar-logo-badge">Admin</span>
+    </div>
+    <div class="sidebar-section-label">Main</div>
+    <a class="nav-link" href="index.html"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>Overview</a>
+    <a class="nav-link" href="analytics.html"><svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Analytics</a>
+    <div class="sidebar-section-label">Users</div>
+    <a class="nav-link" href="artisans.html"><svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>Artisans</a>
+    <a class="nav-link active" href="customers.html"><svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Customers</a>
+    <a class="nav-link" href="verifications.html"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Verifications<span class="nav-badge" id="verif-badge">0</span></a>
+    <div class="sidebar-section-label">Operations</div>
+    <a class="nav-link" href="bookings.html"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Bookings</a>
+    <a class="nav-link" href="disputes.html"><svg viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Disputes</a>
+    <div class="sidebar-section-label">Finance</div>
+    <a class="nav-link" href="finance.html"><svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Finance</a>
+    <a class="nav-link" href="payouts.html"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.8"/></svg>Payouts</a>
+    <div class="sidebar-section-label">System</div>
+    <a class="nav-link" href="admins.html"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16 11h6M19 8v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Admin Users</a>
+    <a class="nav-link" href="settings.html"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg>Settings</a>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="admin-avatar">A</div>
+        <div class="sidebar-user-info"><p class="sidebar-user-name" id="admin-name">Admin</p><p class="sidebar-user-role">Super Admin</p></div>
+        <button onclick="signOut()" style="background:none;border:none;cursor:pointer;margin-left:8px;color:#64748B;" title="Sign out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="admin-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><svg viewBox="0 0 24 24" fill="none"><line x1="3" y1="6" x2="21" y2="6" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="12" x2="21" y2="12" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="18" x2="21" y2="18" stroke="#374151" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <span class="page-title-bar">Customer Management</span>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#94A3B8" stroke-width="1.8"/><path d="m21 21-4.35-4.35" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input type="text" placeholder="Search name, phone, email…" id="search-input" oninput="handleSearch(this.value)" />
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" onclick="window.location.href='verifications.html'" title="Pending verifications"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/></svg><span class="header-badge" id="hdr-verif-badge" style="display:none">0</span></button>
+        <span style="font-size:12px;color:var(--text-light);padding:0 4px;">|</span>
+        <span id="hdr-date" style="font-size:12px;color:var(--text-light);white-space:nowrap;"></span>
+      </div>
+    </header>
+
+    <div class="page-body">
+      <!-- KPIs -->
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-icon brand"><svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="1.8"/><circle cx="9" cy="7" r="4" stroke="#730201" stroke-width="1.8"/></svg></div><div class="stat-info"><p class="stat-label">Total Customers</p><p class="stat-value" id="kpi-total">—</p></div></div>
+        <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#22C55E" stroke-width="1.8"/><path d="M9 12l2 2 4-4" stroke="#22C55E" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="stat-info"><p class="stat-label">Active (30d)</p><p class="stat-value" id="kpi-active">—</p></div></div>
+        <div class="stat-card"><div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="stat-info"><p class="stat-label">Total Wallet Funds</p><p class="stat-value" id="kpi-wallet">—</p></div></div>
+        <div class="stat-card"><div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#F59E0B" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="stat-info"><p class="stat-label">Total Bookings</p><p class="stat-value" id="kpi-bookings">—</p></div></div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="table-toolbar" style="margin-bottom:12px;">
+        <div class="filter-chips">
+          <button class="filter-chip active" data-filter="all" onclick="setFilter('all')">All</button>
+          <button class="filter-chip" data-filter="active" onclick="setFilter('active')">Has Bookings</button>
+          <button class="filter-chip" data-filter="wallet" onclick="setFilter('wallet')">Has Wallet Balance</button>
+          <button class="filter-chip" data-filter="flagged" onclick="setFilter('flagged')">Flagged</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <select class="admin-select" id="sort-select" onchange="handleSort(this.value)">
+            <option value="newest">Newest First</option>
+            <option value="name_az">Name A–Z</option>
+            <option value="wallet_high">Highest Wallet</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV()">
+            <svg viewBox="0 0 24 24" fill="none" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Export
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="admin-card">
+        <div class="card-body" style="padding:0;">
+          <table class="admin-table">
+            <thead><tr>
+              <th style="padding-left:16px;">Customer</th>
+              <th>Phone</th>
+              <th>Wallet</th>
+              <th>Bookings</th>
+              <th>Last Active</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="customer-tbody"><tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-light);">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border);">
+          <span id="result-count" style="font-size:12px;color:var(--text-light);"></span>
+          <div class="pagination" id="pagination" style="margin:0;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="customer-drawer" id="profile-drawer">
+  <div class="drawer-header">
+    <p style="font-size:14px;font-weight:700;color:var(--text-dark);">Customer Profile</p>
+    <button class="drawer-close" onclick="closeDrawer()"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="drawer-body">
+    <div class="profile-top">
+      <div class="profile-avatar" id="d-avatar">?</div>
+      <div>
+        <p class="profile-name" id="d-name">—</p>
+        <p class="profile-sub" id="d-email">—</p>
+        <div style="margin-top:6px;display:flex;gap:6px;">
+          <span id="d-status" class="badge badge-success">Active</span>
+          <span id="d-flagged" class="badge badge-warning" style="display:none;">⚠ Flagged</span>
+        </div>
+      </div>
+    </div>
+    <div class="stats-row-3">
+      <div class="mini-stat"><div class="mini-stat-val" id="d-wallet">—</div><div class="mini-stat-lbl">Wallet</div></div>
+      <div class="mini-stat"><div class="mini-stat-val" id="d-bookings-count">—</div><div class="mini-stat-lbl">Bookings</div></div>
+      <div class="mini-stat"><div class="mini-stat-val" id="d-spent">—</div><div class="mini-stat-lbl">Total Spent</div></div>
+    </div>
+    <div class="info-section">
+      <p class="info-section-title">Account Info</p>
+      <div class="info-row"><span class="info-key">Phone</span><span class="info-val" id="d-phone">—</span></div>
+      <div class="info-row"><span class="info-key">Address</span><span class="info-val" id="d-address">—</span></div>
+      <div class="info-row"><span class="info-key">Joined</span><span class="info-val" id="d-joined">—</span></div>
+      <div class="info-row"><span class="info-key">Last Active</span><span class="info-val" id="d-last-active">—</span></div>
+      <div class="info-row"><span class="info-key">Preferred Currency</span><span class="info-val" id="d-currency">GHS</span></div>
+    </div>
+    <div class="info-section">
+      <p class="info-section-title">Recent Bookings</p>
+      <div class="booking-list" id="d-bookings">
+        <p style="font-size:12px;color:var(--text-light);">Loading…</p>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-flag" id="d-btn-flag" onclick="toggleFlag()">⚠ Flag Account</button>
+    <button class="btn-ban" onclick="banCustomer()">🚫 Ban</button>
+  </div>
+</div>
+
+<div class="admin-toast" id="admin-toast"></div>
+
+<script type="module">
+import { db, auth }                    from './js/firebase-admin.js';
+import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
+import { showToast, subscribeVerifBadge, setDateHeader } from './js/ui-utils.js';
+import { collection, doc, getDoc, getDocs, onSnapshot,
+         updateDoc, addDoc, query, where, orderBy, limit, serverTimestamp }
+                          from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+let currentAdmin=null;
+setDateHeader();
+initAdminPage(user => {
+  currentAdmin = user;
+  init();
+});
+window.signOut = signOutAdmin;
+
+let allCustomers=[],filtered=[],currentFilter='all',currentSort='newest',searchQ='',currentPage=1;
+const PAGE_SIZE=15;
+let activeCustomer=null;
+
+function init(){
+  subscribeCustomers();
+  subscribeVerifBadge();
+}
+
+function subscribeCustomers(){
+  onSnapshot(collection(db,'customers'), snap => {
+    allCustomers=snap.docs.map(d=>({id:d.id,...d.data()}));
+    updateKPIs();
+    applyAndRender();
+  });
+}
+
+/* subscribeVerifBadge() is imported from ./js/ui-utils.js */
+
+function updateKPIs(){
+  const total=allCustomers.length;
+  const thirtyDaysAgo=Date.now()-30*86400000;
+  const active=allCustomers.filter(c=>c.lastActive?.seconds&&c.lastActive.seconds*1000>thirtyDaysAgo).length;
+  const totalWallet=allCustomers.reduce((s,c)=>s+(c.walletBalance||0),0);
+  document.getElementById('kpi-total').textContent=total;
+  document.getElementById('kpi-active').textContent=active;
+  document.getElementById('kpi-wallet').textContent=`GHS ${totalWallet.toFixed(2)}`;
+}
+
+window.setFilter=f=>{currentFilter=f;currentPage=1;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.filter===f));applyAndRender();};
+window.handleSearch=v=>{searchQ=v.trim().toLowerCase();currentPage=1;applyAndRender();};
+window.handleSort=v=>{currentSort=v;applyAndRender();};
+
+function applyAndRender(){
+  let list=[...allCustomers];
+  if(currentFilter==='active') list=list.filter(c=>(c.bookingsCount||0)>0);
+  else if(currentFilter==='wallet') list=list.filter(c=>(c.walletBalance||0)>0);
+  else if(currentFilter==='flagged') list=list.filter(c=>c.isFlagged===true);
+  if(searchQ) list=list.filter(c=>(c.displayName||'').toLowerCase().includes(searchQ)||(c.email||'').toLowerCase().includes(searchQ)||(c.phone||'').includes(searchQ));
+  if(currentSort==='name_az') list.sort((a,b)=>(a.displayName||'').localeCompare(b.displayName||''));
+  else if(currentSort==='wallet_high') list.sort((a,b)=>(b.walletBalance||0)-(a.walletBalance||0));
+  else list.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+  filtered=list;
+  renderTable();
+  renderPagination();
+  document.getElementById('result-count').textContent=`${filtered.length} customer${filtered.length!==1?'s':''}`;
+  // KPI bookings count
+  const totalBookings=allCustomers.reduce((s,c)=>s+(c.bookingsCount||0),0);
+  document.getElementById('kpi-bookings').textContent=totalBookings;
+}
+
+function renderTable(){
+  const tbody=document.getElementById('customer-tbody');
+  const start=(currentPage-1)*PAGE_SIZE;
+  const page=filtered.slice(start,start+PAGE_SIZE);
+  if(!page.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-light);">No customers found</td></tr>`;return;}
+  tbody.innerHTML=page.map(c=>{
+    const ts=c.createdAt?.toDate?.();
+    const la=c.lastActive?.toDate?.();
+    const joined=ts?ts.toLocaleDateString('en-GH',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+    const lastAct=la?la.toLocaleDateString('en-GH',{day:'2-digit',month:'short'}):'—';
+    const wallet=c.walletBalance!=null?`GHS ${Number(c.walletBalance).toFixed(2)}`:'—';
+    const initials=(c.displayName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    const statusCls=c.isBanned?'badge-danger':c.isFlagged?'badge-warning':'badge-success';
+    const statusLbl=c.isBanned?'Banned':c.isFlagged?'Flagged':'Active';
+    return `<tr style="cursor:pointer" onclick="openDrawer('${c.id}')">
+      <td style="padding-left:16px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--surface-2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">${initials}</div>
+          <div><p style="font-size:13px;font-weight:600;color:var(--text-dark);">${esc(c.displayName||'—')}</p><p style="font-size:11px;color:var(--text-light);">${esc(c.email||'—')}</p></div>
+        </div>
+      </td>
+      <td style="font-size:12px;">${esc(c.phone||'—')}</td>
+      <td style="font-size:13px;font-weight:600;">${wallet}</td>
+      <td style="font-size:13px;font-weight:600;">${c.bookingsCount||0}</td>
+      <td style="font-size:11px;color:var(--text-light);">${lastAct}</td>
+      <td><span class="badge ${statusCls}" style="font-size:10px;">${statusLbl}</span></td>
+      <td style="font-size:11px;color:var(--text-light);">${joined}</td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn btn-sm btn-secondary" onclick="openDrawer('${c.id}')">View</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination(){
+  const pc=Math.ceil(filtered.length/PAGE_SIZE);
+  const pag=document.getElementById('pagination');
+  if(pc<=1){pag.innerHTML='';return;}
+  let h=`<button class="page-btn" onclick="changePage(-1)" ${currentPage<=1?'disabled':''}>‹</button>`;
+  for(let i=1;i<=pc;i++){
+    if(i===1||i===pc||Math.abs(i-currentPage)<=1) h+=`<button class="page-btn${i===currentPage?' active':''}" onclick="goPage(${i})">${i}</button>`;
+    else if(Math.abs(i-currentPage)===2) h+=`<span style="padding:0 4px;color:var(--text-light);line-height:32px;">…</span>`;
+  }
+  h+=`<button class="page-btn" onclick="changePage(1)" ${currentPage>=pc?'disabled':''}>›</button>`;
+  pag.innerHTML=h;
+}
+window.changePage=dir=>{const pc=Math.ceil(filtered.length/PAGE_SIZE);currentPage=Math.max(1,Math.min(pc,currentPage+dir));applyAndRender();};
+window.goPage=p=>{currentPage=p;applyAndRender();};
+
+window.openDrawer=async function(uid){
+  const c=allCustomers.find(x=>x.id===uid);
+  if(!c) return;
+  activeCustomer=c;
+  const initials=(c.displayName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('d-avatar').textContent=initials;
+  document.getElementById('d-name').textContent=c.displayName||'—';
+  document.getElementById('d-email').textContent=c.email||'—';
+  const sb=document.getElementById('d-status');
+  sb.className=`badge ${c.isBanned?'badge-danger':c.isFlagged?'badge-warning':'badge-success'}`;
+  sb.textContent=c.isBanned?'Banned':c.isFlagged?'Flagged':'Active';
+  document.getElementById('d-flagged').style.display=c.isFlagged?'inline-flex':'none';
+  document.getElementById('d-wallet').textContent=c.walletBalance!=null?`GHS ${Number(c.walletBalance).toFixed(2)}`:'GHS 0';
+  document.getElementById('d-bookings-count').textContent=c.bookingsCount||0;
+  document.getElementById('d-spent').textContent=c.totalSpent!=null?`GHS ${Number(c.totalSpent).toFixed(2)}`:'—';
+  document.getElementById('d-phone').textContent=c.phone||'—';
+  document.getElementById('d-address').textContent=c.appPreferences?.address||c.address||'—';
+  const ts=c.createdAt?.toDate?.();
+  const la=c.lastActive?.toDate?.();
+  document.getElementById('d-joined').textContent=ts?ts.toLocaleDateString('en-GH'):'—';
+  document.getElementById('d-last-active').textContent=la?la.toLocaleString('en-GH'):'—';
+  document.getElementById('d-currency').textContent=c.appPreferences?.currency||'GHS';
+  document.getElementById('d-btn-flag').textContent=c.isFlagged?'✓ Unflag Account':'⚠ Flag Account';
+  loadCustomerBookings(uid);
+  document.getElementById('profile-drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+};
+
+window.closeDrawer=function(){
+  document.getElementById('profile-drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+};
+
+async function loadCustomerBookings(uid){
+  const el=document.getElementById('d-bookings');
+  try{
+    const snap=await getDocs(query(collection(db,'bookings'),where('customerId','==',uid),orderBy('createdAt','desc'),limit(5)));
+    if(snap.empty){el.innerHTML='<p style="font-size:12px;color:var(--text-light);">No bookings yet.</p>';return;}
+    const sMap={Pending:'badge-warning',Active:'badge-success',Completed:'badge-info',Cancelled:'badge-danger'};
+    el.innerHTML=snap.docs.map(d=>{
+      const b=d.data();
+      const ts=b.createdAt?.toDate?.();
+      const ds=ts?ts.toLocaleDateString('en-GH',{day:'2-digit',month:'short'}):'—';
+      return `<div class="mini-booking">
+        <div><p class="mini-booking-title">${esc(b.serviceType||b.category||'Service')}</p>
+        <p class="mini-booking-sub">${ds} · ${esc(b.artisanName||'—')}</p></div>
+        <span class="badge ${sMap[b.status]||'badge-default'}" style="font-size:10px;">${b.status||'—'}</span>
+      </div>`;
+    }).join('');
+  }catch{el.innerHTML='<p style="font-size:12px;color:var(--text-light);">Could not load.</p>';}
+}
+
+window.toggleFlag=async function(){
+  if(!activeCustomer)return;
+  const newVal=!activeCustomer.isFlagged;
+  try{
+    await updateDoc(doc(db,'customers',activeCustomer.id),{isFlagged:newVal,flaggedBy:currentAdmin.email,flaggedAt:serverTimestamp()});
+    showToast(newVal?'⚠ Account flagged.':'✓ Flag removed.','success');
+    closeDrawer();
+  }catch(e){showToast('Error: '+e.message,'error');}
+};
+
+window.banCustomer=async function(){
+  if(!activeCustomer)return;
+  const reason=prompt(`Ban ${activeCustomer.displayName||'this customer'}?\nThis is permanent. Enter reason:`);
+  if(reason===null)return;
+  if(!reason.trim()){showToast('Reason required.','error');return;}
+  try{
+    await updateDoc(doc(db,'customers',activeCustomer.id),{isBanned:true,bannedAt:serverTimestamp(),bannedBy:currentAdmin.email,banReason:reason});
+    showToast('🚫 Customer banned.','success');
+    closeDrawer();
+  }catch(e){showToast('Error: '+e.message,'error');}
+};
+
+window.exportCSV=function(){
+  const h=['Name','Email','Phone','Wallet','Bookings','Status','Joined'];
+  const rows=filtered.map(c=>[c.displayName||'',c.email||'',c.phone||'',c.walletBalance||0,c.bookingsCount||0,c.isBanned?'Banned':c.isFlagged?'Flagged':'Active',c.createdAt?.toDate?.()?.toLocaleDateString('en-GH')||'']);
+  const csv=[h,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='customers_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
+};
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>

@@ -1,25 +1,593 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Artisan Dashboard | HandyHub</title>
-  <link rel="stylesheet" href="css/dashboard.css">
-
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>HandyHub – Artisan Dashboard</title>
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <div class="app">
-    <header class="profile-card">
-      <h2 class="name">Artisan Dashboard</h2>
-      <p class="location">Monitor your new and active bookings.</p>
+<div class="phone-shell">
+  <div class="scroll-area">
+
+    <!-- ── Top Bar ──────────────────────────────────── -->
+    <header class="top-bar">
+      <span class="top-bar-logo">Handy <span>Hub</span></span>
+      <div class="top-bar-actions">
+        <button class="icon-btn" aria-label="Messages" onclick="window.location.href='messages.html'">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#374151" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="icon-badge" id="chat-badge" style="display:none">0</span>
+        </button>
+        <button class="icon-btn" aria-label="Notifications" onclick="window.location.href='notifications.html'">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#374151" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <span class="icon-badge" id="notif-badge" style="display:none">0</span>
+        </button>
+      </div>
     </header>
-    <main style="margin-top: 20px; padding: 16px;">
-      <p>Your artisan dashboard is being prepared.</p>
-    </main>
-  </div>
-  <script type="module" src="js/app.js"></script>
+
+    <!-- ── KYC Banner (shown when not approved) ─────── -->
+    <div class="kyc-banner" id="kyc-banner" style="display:none">
+      <span class="kyc-icon">🔐</span>
+      <div>
+        <p class="kyc-title">Verification Pending</p>
+        <p class="kyc-sub">Complete KYC to start receiving jobs</p>
+      </div>
+      <button class="kyc-btn" onclick="window.location.href='onboarding.html'">Complete</button>
+    </div>
+
+    <!-- ── Profile Card ──────────────────────────────── -->
+    <div class="profile-card">
+      <div class="avatar-wrap">
+        <img src="https://ui-avatars.com/api/?background=F97316&color=fff&size=128&name=A"
+             alt="Profile" class="avatar-img" id="profile-avatar" />
+        <span class="avatar-online" id="online-dot"></span>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name-row">
+          <span class="profile-name" id="profile-name">Loading…</span>
+          <span class="verified-badge" id="verified-badge" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" width="10" height="10">
+              <path d="M20 6L9 17l-5-5" stroke="#F97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Verified
+          </span>
+        </div>
+        <p class="profile-role" id="profile-role">—</p>
+        <p class="profile-location">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#9CA3AF"/></svg>
+          <span id="profile-location">Accra, Ghana</span>
+        </p>
+      </div>
+      <button class="edit-area-btn" onclick="window.location.href='profile.html'">Edit Area</button>
+    </div>
+
+    <!-- ── Wallet Card ────────────────────────────────── -->
+    <div class="wallet-card">
+      <div>
+        <p class="wallet-label">Wallet Balance</p>
+        <p class="wallet-balance">
+          <span class="currency">GHC</span>
+          <span id="wallet-amount">0.00</span>
+        </p>
+        <p class="wallet-pending">Pending: <span id="pending-amount">GHC 0.00</span></p>
+      </div>
+      <button class="withdraw-btn" onclick="window.location.href='wallet.html'">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+        Withdraw
+      </button>
+    </div>
+
+    <!-- ── Online / Offline Toggle ───────────────────── -->
+    <div class="status-card" id="status-card">
+      <div class="status-icon-wrap">
+        <div class="status-icon" id="status-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 4L12 14.01l-3-3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <p class="status-title" id="status-title">You are online</p>
+          <p class="status-sub" id="status-sub">You're visible to customers</p>
+        </div>
+      </div>
+      <button class="toggle-status-btn" id="toggle-status-btn" onclick="toggleOnlineStatus()">Go Offline</button>
+    </div>
+
+    <!-- ── Stats Row ──────────────────────────────────── -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#F97316" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <span class="stat-value" id="stat-jobs">0</span>
+        <span class="stat-label">Jobs Completed</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="#F97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="stat-value" id="stat-rating">0.0</span>
+        <span class="stat-label">Rating</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#F97316" stroke-width="1.8"/><path d="M12 6v6l4 2" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <span class="stat-value" id="stat-response">—</span>
+        <span class="stat-label">Response Rate</span>
+      </div>
+      <div class="stat-card stat-top-pro">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" stroke="#F97316" stroke-width="1.8"/></svg>
+        </div>
+        <span class="stat-value" id="stat-level">New</span>
+        <span class="stat-label">Level</span>
+      </div>
+    </div>
+
+    <!-- ── New Job Requests ───────────────────────────── -->
+    <div class="section-header">
+      <span class="section-title">New Job Requests</span>
+      <a href="jobs.html" class="view-all-link">
+        View all
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#F97316" stroke-width="2" stroke-linecap="round"/></svg>
+      </a>
+    </div>
+    <div id="job-requests-list">
+      <!-- Populated by JS -->
+      <div class="empty-state" id="jobs-empty" style="display:none">
+        <p>No new job requests right now</p>
+      </div>
+      <!-- Skeleton -->
+      <div class="job-request-card" id="job-skeleton">
+        <div class="job-badge-row">
+          <span class="skel" style="width:120px;height:22px;border-radius:20px;"></span>
+          <span class="skel" style="width:60px;height:14px;"></span>
+        </div>
+        <div class="skel" style="width:60%;height:22px;margin-bottom:8px;"></div>
+        <div class="skel" style="width:45%;height:14px;margin-bottom:6px;"></div>
+        <div class="skel" style="width:38%;height:14px;margin-bottom:14px;"></div>
+        <div style="display:flex;gap:10px;">
+          <div class="skel" style="flex:1;height:42px;border-radius:14px;"></div>
+          <div class="skel" style="width:70px;height:42px;border-radius:14px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Today's Schedule ───────────────────────────── -->
+    <div class="section-header mt-8">
+      <span class="section-title">Today's Schedule</span>
+      <a href="jobs.html?tab=upcoming" class="view-all-link">
+        View all
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#F97316" stroke-width="2" stroke-linecap="round"/></svg>
+      </a>
+    </div>
+    <div class="schedule-list" id="schedule-list">
+      <div class="empty-state" id="schedule-empty" style="display:none">
+        <p>No scheduled jobs for today</p>
+      </div>
+    </div>
+
+    <!-- ── Performance ────────────────────────────────── -->
+    <div class="section-header mt-10">
+      <span class="section-title">Your Performance</span>
+      <button class="perf-period-select" id="perf-period-btn">
+        This Week
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#6B7280" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="performance-card">
+      <div class="perf-grid">
+        <div class="perf-item">
+          <div class="perf-icon-row">
+            <div class="perf-icon">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#F97316" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <span class="perf-label">Jobs Completed</span>
+          </div>
+          <span class="perf-value" id="perf-jobs">0</span>
+          <p class="perf-delta" id="perf-jobs-delta">+0%</p>
+        </div>
+        <div class="perf-item">
+          <div class="perf-icon-row">
+            <div class="perf-icon">
+              <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <span class="perf-label">Earnings</span>
+          </div>
+          <span class="perf-value" id="perf-earnings">GHS 0</span>
+          <p class="perf-delta" id="perf-earnings-delta">+0%</p>
+        </div>
+        <div class="perf-item">
+          <div class="perf-icon-row">
+            <div class="perf-icon">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#F97316" stroke-width="1.8"/><path d="M12 6v6l4 2" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <span class="perf-label">Response Rate</span>
+          </div>
+          <span class="perf-value" id="perf-response">—</span>
+          <p class="perf-delta" id="perf-response-delta">+0%</p>
+        </div>
+        <div class="perf-item">
+          <div class="perf-icon-row">
+            <div class="perf-icon">
+              <svg viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="#F97316" stroke-width="1.8"/></svg>
+            </div>
+            <span class="perf-label">Rating</span>
+          </div>
+          <span class="perf-value" id="perf-rating">0.0</span>
+          <p class="perf-delta" id="perf-rating-delta">+0.0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Quick Access ───────────────────────────────── -->
+    <div class="section-header mt-10">
+      <span class="section-title">Quick Access</span>
+    </div>
+    <div class="quick-access-row">
+      <a class="quick-item" href="bookings.html">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#F97316" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <span class="quick-label">My Bookings</span>
+      </a>
+      <a class="quick-item" href="wallet.html">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke="#F97316" stroke-width="1.8"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z" stroke="#F97316" stroke-width="1.8"/><circle cx="17" cy="14" r="1" fill="#F97316"/></svg>
+        </div>
+        <span class="quick-label">Earnings</span>
+      </a>
+      <a class="quick-item" href="reviews.html">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="#F97316" stroke-width="1.8"/></svg>
+        </div>
+        <span class="quick-label">Reviews</span>
+      </a>
+      <a class="quick-item" href="performance.html">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <span class="quick-label">Performance</span>
+      </a>
+      <a class="quick-item" href="support.html">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#F97316" stroke-width="1.8"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="#F97316"/></svg>
+        </div>
+        <span class="quick-label">Support</span>
+      </a>
+    </div>
+
+    <div class="pb-16"></div>
+
+  </div><!-- /.scroll-area -->
+
+  <!-- ── Bottom Navigation ────────────────────────────── -->
+  <nav class="bottom-nav">
+    <a class="nav-item active" href="dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#F97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="9 22 9 12 15 12 15 22" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <span style="color:#F97316">Home</span>
+    </a>
+    <a class="nav-item" href="bookings.html">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <span>Bookings</span>
+    </a>
+    <a class="nav-center-btn" href="jobs.html" aria-label="New Job">
+      <svg viewBox="0 0 24 24" fill="none">
+        <line x1="12" y1="5" x2="12" y2="19" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="5" y1="12" x2="19" y2="12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </a>
+    <a class="nav-item" href="messages.html">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Messages</span>
+    </a>
+    <a class="nav-item" href="profile.html">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" stroke-width="1.8"/>
+      </svg>
+      <span>Profile</span>
+    </a>
+  </nav>
+
+</div><!-- /.phone-shell -->
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import '../shared/js/utils/global-app.js';
+import { getAppContainer } from '../shared/js/app/container.js';
+
+const { services: { authService, databaseService } } = getAppContainer();
+
+// ── State ──────────────────────────────────────────────
+let uid           = null;
+let isOnline      = true;
+let unsubs        = [];
+
+// ── DOM ────────────────────────────────────────────────
+const profileName     = document.getElementById('profile-name');
+const profileRole     = document.getElementById('profile-role');
+const profileLocation = document.getElementById('profile-location');
+const profileAvatar   = document.getElementById('profile-avatar');
+const verifiedBadge   = document.getElementById('verified-badge');
+const onlineDot       = document.getElementById('online-dot');
+const walletAmount    = document.getElementById('wallet-amount');
+const pendingAmount   = document.getElementById('pending-amount');
+const statusCard      = document.getElementById('status-card');
+const statusIcon      = document.getElementById('status-icon');
+const statusTitle     = document.getElementById('status-title');
+const statusSub       = document.getElementById('status-sub');
+const toggleBtn       = document.getElementById('toggle-status-btn');
+const kycBanner       = document.getElementById('kyc-banner');
+const jobSkeleton     = document.getElementById('job-skeleton');
+const jobsEmpty       = document.getElementById('jobs-empty');
+const jobsList        = document.getElementById('job-requests-list');
+const scheduleList    = document.getElementById('schedule-list');
+const scheduleEmpty   = document.getElementById('schedule-empty');
+
+// Stats
+const statJobs     = document.getElementById('stat-jobs');
+const statRating   = document.getElementById('stat-rating');
+const statResponse = document.getElementById('stat-response');
+const statLevel    = document.getElementById('stat-level');
+
+// ── Toast ──────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Level from jobs completed ──────────────────────────
+function getLevel(jobs) {
+  if (jobs >= 100) return 'Top Pro';
+  if (jobs >= 50)  return 'Pro';
+  if (jobs >= 20)  return 'Rising';
+  return 'New';
+}
+
+// ── Apply artisan profile ──────────────────────────────
+function applyProfile(data) {
+  const name     = data.name     || 'Artisan';
+  const role     = data.specialty || data.category || 'Service Provider';
+  const location = data.location || 'Accra, Ghana';
+  const photo    = data.profileImage;
+  const jobs     = data.jobsCompleted  || 0;
+  const rating   = data.rating         || 0;
+  const response = data.responseRate   ? data.responseRate + '%' : '—';
+  const level    = getLevel(jobs);
+
+  profileName.textContent     = name;
+  profileRole.textContent     = role;
+  profileLocation.textContent = location;
+  if (photo) profileAvatar.src = photo;
+  else profileAvatar.src = `https://ui-avatars.com/api/?background=F97316&color=fff&size=128&name=${encodeURIComponent(name.slice(0,2))}`;
+
+  // Verified
+  if (data.verificationStatus === 'approved') {
+    verifiedBadge.style.display = 'inline-flex';
+  }
+
+  // KYC banner
+  if (!data.verificationStatus || data.verificationStatus === 'draft' || data.verificationStatus === 'pending_review') {
+    kycBanner.style.display = 'flex';
+    if (data.verificationStatus === 'pending_review') {
+      kycBanner.querySelector('.kyc-title').textContent = 'Under Review';
+      kycBanner.querySelector('.kyc-sub').textContent   = 'We\'re reviewing your documents. This takes 1–2 days.';
+      kycBanner.querySelector('.kyc-btn').style.display = 'none';
+    }
+  }
+
+  // Online status
+  isOnline = data.isAvailable !== false;
+  updateStatusUI(isOnline);
+
+  // Stats
+  statJobs.textContent     = jobs;
+  statRating.textContent   = Number(rating).toFixed(1);
+  statResponse.textContent = response;
+  statLevel.textContent    = level;
+
+  // Wallet
+  const available = Number(data.availableBalance || 0);
+  const pending   = Number(data.pendingBalance   || 0);
+  walletAmount.textContent = available.toFixed(2);
+  pendingAmount.textContent = `GHS ${pending.toFixed(2)}`;
+
+  // Performance
+  document.getElementById('perf-jobs').textContent     = jobs;
+  document.getElementById('perf-earnings').textContent = `GHS ${Number(data.totalEarned || 0).toFixed(0)}`;
+  document.getElementById('perf-response').textContent = response;
+  document.getElementById('perf-rating').textContent   = Number(rating).toFixed(1);
+}
+
+function updateStatusUI(online) {
+  isOnline = online;
+  onlineDot.classList.toggle('offline', !online);
+  statusCard.classList.toggle('offline', !online);
+  statusIcon.innerHTML = online
+    ? `<svg viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><path d="M4.93 4.93l14.14 14.14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
+  statusTitle.textContent = online ? 'You are online' : 'You are offline';
+  statusSub.textContent   = online ? 'You\'re visible to customers' : 'Go online to receive job requests';
+  toggleBtn.textContent   = online ? 'Go Offline' : 'Go Online';
+}
+
+window.toggleOnlineStatus = async function() {
+  if (!uid) return;
+  const next = !isOnline;
+  updateStatusUI(next);
+  try {
+    await databaseService.updateDocument('artisans', uid, {
+      isAvailable: next,
+      lastActive: new Date().toISOString()
+    });
+    showToast(next ? 'You\'re now online 🟢' : 'You\'re offline');
+  } catch (e) {
+    updateStatusUI(!next); // revert
+    showToast('Could not update status. Try again.');
+  }
+};
+
+// ── Render job request card ────────────────────────────
+function renderJobCard(booking) {
+  const d = booking.data;
+  const id = booking.id;
+  const card = document.createElement('div');
+  card.className = 'job-request-card';
+  card.id = `job-${id}`;
+  const timeAgo = _timeAgo(d.createdAt);
+  card.innerHTML = `
+    <div class="job-badge-row">
+      <span class="job-badge">
+        <svg viewBox="0 0 24 24" fill="none" width="11" height="11"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" stroke="#fff" stroke-width="1.8"/><polyline points="14 2 14 8 20 8" stroke="#fff" stroke-width="1.8"/></svg>
+        New Job Request
+      </span>
+      <span class="job-time">${timeAgo}</span>
+    </div>
+    <p class="job-title">${d.serviceType || d.service || 'Service Request'}</p>
+    <p class="job-location">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#9CA3AF"/></svg>
+      ${d.address || d.location || 'Location not set'}
+    </p>
+    <p class="job-budget">Budget: <strong>GHC ${Number(d.price||0).toFixed(0)} – ${Number((d.price||0)*1.3).toFixed(0)}</strong></p>
+    <div class="job-actions">
+      <button class="btn-view-details" onclick="window.location.href='job-details.html?id=${id}'">View Details</button>
+      <button class="btn-decline" onclick="declineJob('${id}')">Decline</button>
+    </div>`;
+  return card;
+}
+
+window.declineJob = async function(bookingId) {
+  try {
+    await databaseService.updateDocument('bookings', bookingId, { status: 'rejected', updatedAt: new Date().toISOString() });
+    const el = document.getElementById(`job-${bookingId}`);
+    if (el) el.remove();
+    showToast('Job declined');
+  } catch(e) { showToast('Could not decline. Try again.'); }
+};
+
+// ── Render schedule item ───────────────────────────────
+function renderScheduleItem(booking) {
+  const d = booking.data;
+  const date = d.scheduledAt ? new Date(d.scheduledAt) : (d.createdAt ? new Date(d.createdAt) : new Date());
+  const hours = date.getHours();
+  const mins  = String(date.getMinutes()).padStart(2, '0');
+  const ampm  = hours >= 12 ? 'PM' : 'AM';
+  const h12   = ((hours % 12) || 12);
+  const today = new Date();
+  const isToday = date.toDateString() === today.toDateString();
+  const statusClass = d.status === 'accepted' ? 'status-upcoming' : d.status === 'In Progress' ? 'status-progress' : 'status-pending';
+  const statusLabel = d.status === 'accepted' ? 'Upcoming' : d.status === 'In Progress' ? 'In Progress' : 'Pending';
+
+  const el = document.createElement('div');
+  el.className = 'schedule-item';
+  el.innerHTML = `
+    <div class="schedule-time">
+      <div class="time">${h12}:${mins} ${ampm}</div>
+      <div class="day">${isToday ? 'Today' : date.toLocaleDateString('en-GH',{month:'short',day:'numeric'})}</div>
+    </div>
+    <div class="schedule-divider"></div>
+    <div class="schedule-info">
+      <p class="schedule-service">${d.serviceType || d.service || 'Service'}</p>
+      <p class="schedule-loc">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#9CA3AF"/></svg>
+        ${d.address || d.location || 'Location TBD'}
+      </p>
+    </div>
+    <span class="schedule-status ${statusClass}">${statusLabel}</span>`;
+  return el;
+}
+
+// ── Time ago ───────────────────────────────────────────
+function _timeAgo(iso) {
+  if (!iso) return 'Just now';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'Just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h/24)}d ago`;
+}
+
+// ── Auth bootstrap ────────────────────────────────────
+authService.subscribeToAuthState(async user => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  uid = user.uid;
+
+  // Live artisan profile
+  const u1 = databaseService.subscribeToDocument('artisans', uid, snap => {
+    if (snap.exists) applyProfile(snap.data);
+    else {
+      // New artisan — redirect to onboarding
+      window.location.href = 'onboarding.html';
+    }
+  });
+  unsubs.push(u1);
+
+  // Live job requests (pending bookings for this artisan)
+  const u2 = databaseService.subscribeToCollection(
+    'bookings',
+    [{ field: 'artisanId', op: '==', value: uid }, { field: 'status', op: '==', value: 'Pending' }],
+    { orderBy: { field: 'createdAt', direction: 'desc' }, limit: 5 },
+    records => {
+      jobSkeleton?.remove();
+      // Remove existing job cards
+      jobsList.querySelectorAll('.job-request-card').forEach(c => c.remove());
+      if (!records.length) {
+        jobsEmpty.style.display = 'block';
+      } else {
+        jobsEmpty.style.display = 'none';
+        records.forEach(b => jobsList.appendChild(renderJobCard(b)));
+      }
+    },
+    () => { jobSkeleton?.remove(); jobsEmpty.style.display = 'block'; }
+  );
+  unsubs.push(u2);
+
+  // Live schedule (accepted / in-progress bookings)
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const u3 = databaseService.subscribeToCollection(
+    'bookings',
+    [{ field: 'artisanId', op: '==', value: uid }, { field: 'status', op: 'in', value: ['accepted', 'In Progress', 'Confirmed'] }],
+    { orderBy: { field: 'createdAt', direction: 'asc' }, limit: 5 },
+    records => {
+      scheduleList.querySelectorAll('.schedule-item').forEach(c => c.remove());
+      if (!records.length) {
+        scheduleEmpty.style.display = 'block';
+      } else {
+        scheduleEmpty.style.display = 'none';
+        records.forEach(b => scheduleList.appendChild(renderScheduleItem(b)));
+      }
+    },
+    () => { scheduleEmpty.style.display = 'block'; }
+  );
+  unsubs.push(u3);
+});
+
+window.addEventListener('pagehide', () => unsubs.forEach(u => u && u()));
+</script>
+
 <script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>
-
