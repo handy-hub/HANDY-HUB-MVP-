@@ -2,176 +2,1162 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | HandyHub</title>
-    <link rel="stylesheet" href="css/customer.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Login · HandyHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+    <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+<style>
+/* ════════════════════════════════════════════════════════════════
+   DESIGN SYSTEM
+   HandyHub Login — Immersive Hero + Floating Card
+   ════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    /* Brand */
+    --red-900:   #3d0101;
+    --red-800:   #5a0101;
+    --red-700:   #730201;
+    --red-600:   #8a0302;
+    --red-400:   #b10c0c;
+
+    /* Surface */
+    --white:     #ffffff;
+    --grey-50:   #f7f7f7;
+    --grey-100:  #f0f0f0;
+    --grey-200:  #e4e4e4;
+    --grey-400:  #aaaaaa;
+    --grey-600:  #666666;
+    --grey-900:  #111111;
+
+    /* Semantic */
+    --text-primary:   var(--grey-900);
+    --text-secondary: var(--grey-600);
+    --text-hint:      #b0b0b0;
+    --border-rest:    transparent;
+    --border-focus:   var(--red-700);
+    --input-bg-rest:  var(--grey-50);
+    --input-bg-focus: var(--white);
+
+    /* Motion */
+    --spring:   cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+    --ease-in:  cubic-bezier(0.4, 0.0, 1, 1);
+
+    /* Radii */
+    --r-sm:  10px;
+    --r-md:  14px;
+    --r-lg:  16px;
+    --r-xl:  20px;
+    --r-2xl: 28px;
+    --r-3xl: 32px;
+
+    /* Shadows */
+    --shadow-input-focus: 0 0 0 3.5px rgba(115,2,1,0.10);
+    --shadow-btn:         0 8px 24px rgba(115,2,1,0.38);
+    --shadow-btn-press:   0 2px  8px rgba(115,2,1,0.22);
+    --shadow-card:        0 -3px 40px rgba(0,0,0,0.09);
+}
+
+/* ── Reset body (override global.css) ─────────────────────────── */
+html { min-height: 100%; }
+body {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 100dvh;
+    background: #f0ece8;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   PAGE SHELL
+   ════════════════════════════════════════════════════════════════ */
+.ln-page {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   HERO  — brand canvas at the top
+   ════════════════════════════════════════════════════════════════ */
+.ln-hero {
+    position: relative;
+    overflow: hidden;
+    /* Warm stone — works with any color logo */
+    background: #f0ece8;
+    padding: 0 0 56px;   /* extra bottom padding → card overlaps this */
+}
+
+/* Very subtle brand-tinted dot pattern */
+.ln-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(circle, rgba(115,2,1,0.07) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+}
+
+/* Soft warm glow bottom-left — creates gentle depth on the light bg */
+.ln-hero::after {
+    content: '';
+    position: absolute;
+    bottom: 20px;
+    left: -40px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(115,2,1,0.06) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* ── Hero nav ───────────────────────────────────────────────── */
+.ln-nav {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 0;
+}
+
+.ln-back-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.09);
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--grey-900);
+    transition: background 0.18s;
+    -webkit-tap-highlight-color: transparent;
+}
+.ln-back-btn:active { background: rgba(0,0,0,0.12); }
+
+/* Glass language pill */
+.ln-lang-wrap { position: relative; }
+
+.ln-lang-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 13px;
+    background: rgba(255,255,255,0.70);
+    border: 1px solid rgba(0,0,0,0.10);
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--grey-900);
+    transition: background 0.18s;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+}
+.ln-lang-btn:active { background: rgba(255,255,255,0.90); }
+
+.ln-lang-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 10px);
+    background: #fff;
+    border: 1.5px solid var(--grey-200);
+    border-radius: var(--r-md);
+    list-style: none;
+    overflow: hidden;
+    min-width: 152px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+    z-index: 200;
+}
+.ln-lang-menu.open { display: block; }
+.ln-lang-menu li {
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: background 0.12s;
+}
+.ln-lang-menu li:hover { background: var(--grey-50); }
+.ln-lang-menu li + li { border-top: 1px solid #f2f2f2; }
+
+/* ── Hero brand ─────────────────────────────────────────────── */
+.ln-brand {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 22px 24px 0;
+}
+
+.ln-logo {
+    /* Full logo-text image — show in original brand colors */
+    width: 220px;
+    max-width: 80%;
+    height: auto;
+    object-fit: contain;
+    /* mix-blend-mode: multiply makes the white PNG background
+       invisible on any light surface — logo colors show through */
+    mix-blend-mode: multiply;
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   FORM CARD  — white sheet that rises from the bottom
+   ════════════════════════════════════════════════════════════════ */
+.ln-card {
+    flex: 1;
+    background: var(--white);
+    border-radius: var(--r-3xl) var(--r-3xl) 0 0;
+    margin-top: -28px;           /* overlaps hero, creating depth */
+    box-shadow: var(--shadow-card);
+    padding: 10px 24px 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Drag handle bar */
+.ln-handle {
+    width: 38px;
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    margin: 0 auto 24px;
+}
+
+/* ── Card headings ──────────────────────────────────────────── */
+.ln-heading {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+    margin-bottom: 5px;
+}
+
+.ln-subheading {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-bottom: 28px;
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   INPUTS  — filled style, brand-focus treatment
+   ════════════════════════════════════════════════════════════════ */
+.ln-field { margin-bottom: 16px; }
+
+.ln-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--grey-600);
+    margin-bottom: 7px;
+    letter-spacing: 0.1px;
+}
+
+.ln-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Leading icon */
+.ln-input-icon {
+    position: absolute;
+    left: 15px;
+    width: 18px;
+    height: 18px;
+    color: var(--grey-400);
+    pointer-events: none;
+    flex-shrink: 0;
+    transition: color 0.2s var(--ease-out);
+}
+
+.ln-input {
+    width: 100%;
+    height: 54px;
+    padding: 0 46px 0 44px;
+    border: 1.5px solid transparent;
+    border-radius: var(--r-md);
+    background: var(--input-bg-rest);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text-primary);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition:
+        background     0.2s var(--ease-out),
+        border-color   0.2s var(--ease-out),
+        box-shadow     0.2s var(--ease-out);
+}
+
+.ln-input::placeholder {
+    color: var(--text-hint);
+    font-weight: 400;
+}
+
+/* Focus: input brightens + brand border appears */
+.ln-input-wrap:focus-within .ln-input {
+    background: var(--input-bg-focus);
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-input-focus);
+}
+
+/* Focus: icon inherits brand color */
+.ln-input-wrap:focus-within .ln-input-icon {
+    color: var(--red-700);
+}
+
+/* Error state */
+.ln-input.ln-error {
+    border-color: #e53e3e !important;
+    box-shadow: 0 0 0 3px rgba(229,62,62,0.10) !important;
+}
+
+/* Eye toggle */
+.ln-eye {
+    position: absolute;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--grey-400);
+    border-radius: 8px;
+    transition: color 0.15s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.ln-eye:hover,
+.ln-eye:focus-visible { color: var(--grey-600); background: var(--grey-100); }
+
+
+/* ── Forgot password ────────────────────────────────────────── */
+.ln-forgot-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+    margin-bottom: 24px;
+}
+
+.ln-forgot {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--red-700);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s;
+}
+.ln-forgot:active { opacity: 0.6; }
+
+
+/* ════════════════════════════════════════════════════════════════
+   LOGIN BUTTON
+   ════════════════════════════════════════════════════════════════ */
+.ln-btn {
+    width: 100%;
+    height: 56px;
+    background: var(--red-700);
+    color: #fff;
+    border: none;
+    border-radius: var(--r-lg);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    cursor: pointer;
+    box-shadow: var(--shadow-btn);
+    transition:
+        background   0.2s var(--ease-out),
+        box-shadow   0.2s var(--ease-out),
+        transform    0.12s var(--spring),
+        opacity      0.2s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle shimmer overlay */
+.ln-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        105deg,
+        transparent 40%,
+        rgba(255,255,255,0.09) 50%,
+        transparent 60%
+    );
+    background-size: 200% 100%;
+    background-position: -100% 0;
+    transition: background-position 0.5s var(--ease-out);
+}
+
+.ln-btn:hover:not(:disabled)::before {
+    background-position: 200% 0;
+}
+
+.ln-btn:hover:not(:disabled) {
+    background: var(--red-600);
+    box-shadow: 0 10px 28px rgba(115,2,1,0.45);
+}
+
+.ln-btn:active:not(:disabled) {
+    transform: scale(0.975);
+    box-shadow: var(--shadow-btn-press);
+}
+
+.ln-btn:disabled {
+    opacity: 0.62;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Arrow slides right on hover */
+.ln-btn-arrow {
+    font-size: 18px;
+    line-height: 1;
+    display: inline-block;
+    transition: transform 0.22s var(--spring);
+}
+.ln-btn:hover:not(:disabled) .ln-btn-arrow {
+    transform: translateX(4px);
+}
+
+/* Spinner — referenced by loginPage.js as .button-loader */
+.button-loader,
+.ln-spin {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.28);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.65s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+
+/* ════════════════════════════════════════════════════════════════
+   DIVIDER
+   ════════════════════════════════════════════════════════════════ */
+.ln-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 26px 0 20px;
+}
+.ln-divider::before,
+.ln-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #ebebeb;
+}
+.ln-divider span {
+    font-size: 12.5px;
+    color: var(--grey-400);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   SOCIAL BUTTONS
+   ════════════════════════════════════════════════════════════════ */
+.ln-social-row {
+    display: flex;
+    gap: 10px;
+}
+
+.ln-social-btn {
+    flex: 1;
+    height: 50px;
+    border: 1.5px solid var(--grey-200);
+    border-radius: var(--r-md);
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        background   0.15s,
+        box-shadow   0.15s,
+        transform    0.1s var(--spring);
+    -webkit-tap-highlight-color: transparent;
+}
+.ln-social-btn:hover:not(:disabled) {
+    border-color: #c8c8c8;
+    background: var(--grey-50);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.ln-social-btn:active:not(:disabled) {
+    transform: scale(0.96);
+    background: var(--grey-100);
+}
+.ln-social-btn:disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+}
+.ln-social-btn img {
+    width: 19px;
+    height: 19px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   SIGN-UP FOOTER
+   ════════════════════════════════════════════════════════════════ */
+.ln-footer {
+    margin-top: auto;
+    padding-top: 28px;
+}
+
+.ln-footer-inner {
+    background: #fdf3f3;
+    border-radius: 20px 20px 0 0;
+    padding: 18px 0;
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+    text-align: center;
+    margin: 0 -24px;          /* bleed to card edges */
+}
+
+.ln-footer-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.ln-footer-link {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--red-700);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.ln-footer-link:active { opacity: 0.65; }
+
+
+/* ════════════════════════════════════════════════════════════════
+   ENTRANCE ANIMATIONS
+   ════════════════════════════════════════════════════════════════ */
+
+/* Hero fades in */
+@keyframes hero-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Card springs up */
+@keyframes card-in {
+    from { opacity: 0; transform: translateY(48px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Individual element fade-up */
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.ln-hero {
+    animation: hero-in 0.4s var(--ease-out) both;
+}
+
+.ln-card {
+    animation: card-in 0.52s var(--spring) 0.08s both;
+}
+
+/* Staggered children */
+.ln-a1 { animation: fade-up 0.44s var(--spring) 0.22s both; }
+.ln-a2 { animation: fade-up 0.44s var(--spring) 0.28s both; }
+.ln-a3 { animation: fade-up 0.44s var(--spring) 0.34s both; }
+.ln-a4 { animation: fade-up 0.44s var(--spring) 0.40s both; }
+.ln-a5 { animation: fade-up 0.44s var(--spring) 0.46s both; }
+.ln-a6 { animation: fade-up 0.44s var(--spring) 0.52s both; }
+.ln-a7 { animation: fade-up 0.44s var(--spring) 0.58s both; }
+
+
+/* ════════════════════════════════════════════════════════════════
+   FORGOT PASSWORD — BOTTOM SHEET
+   ════════════════════════════════════════════════════════════════ */
+.fp-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    align-items: flex-end;
+    justify-content: center;
+}
+.fp-overlay.fp-open { display: flex; }
+
+.fp-sheet {
+    background: var(--white);
+    border-radius: var(--r-3xl) var(--r-3xl) 0 0;
+    padding: 12px 24px;
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+    width: 100%;
+    max-width: 430px;
+    box-shadow: 0 -4px 40px rgba(0,0,0,0.14);
+    animation: fp-up 0.34s var(--spring) both;
+}
+@keyframes fp-up {
+    from { transform: translateY(100%); opacity: 0.6; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+.fp-handle {
+    width: 36px;
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    margin: 0 auto 22px;
+}
+
+.fp-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+}
+
+.fp-sub {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin-bottom: 22px;
+}
+
+.fp-input {
+    width: 100%;
+    height: 52px;
+    padding: 0 16px;
+    border: 1.5px solid var(--grey-200);
+    border-radius: var(--r-md);
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+}
+.fp-input:focus {
+    border-color: var(--red-700);
+    box-shadow: var(--shadow-input-focus);
+}
+
+.fp-msg {
+    min-height: 18px;
+    margin-top: 8px;
+    font-size: 12.5px;
+    font-weight: 500;
+}
+
+.fp-send {
+    margin-top: 18px;
+    width: 100%;
+    height: 54px;
+    background: var(--red-700);
+    color: #fff;
+    border: none;
+    border-radius: var(--r-lg);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--shadow-btn);
+    transition: opacity 0.18s, transform 0.12s;
+}
+.fp-send:active { transform: scale(0.98); }
+.fp-send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.fp-cancel {
+    margin-top: 10px;
+    width: 100%;
+    height: 44px;
+    background: none;
+    border: none;
+    color: var(--grey-400);
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: var(--r-sm);
+    transition: background 0.15s;
+}
+.fp-cancel:hover { background: var(--grey-50); }
+
+
+/* ════════════════════════════════════════════════════════════════
+   RESPONSIVE  — desktop card
+   ════════════════════════════════════════════════════════════════ */
+@media (min-width: 431px) {
+    body { background: #d8d0c8 !important; }
+    .ln-page {
+        margin-top: 32px;
+        margin-bottom: 32px;
+        min-height: auto;
+        border-radius: var(--r-2xl);
+        overflow: hidden;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.36);
+    }
+    .ln-card { border-radius: var(--r-3xl); margin-top: -28px; }
+}
+
+/* Accessibility: respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .ln-hero, .ln-card,
+    .ln-a1, .ln-a2, .ln-a3, .ln-a4,
+    .ln-a5, .ln-a6, .ln-a7 {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   BOTTOM SHEET OVERRIDES
+   JS takes over card positioning. These resolve conflicts with
+   the static flex layout and CSS entrance animation.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Hero becomes the full-viewport background canvas */
+.ln-hero {
+    min-height: 100dvh;
+    padding-bottom: 0;
+}
+
+/* Strip static layout from card — JS sets position:fixed + transform */
+.ln-card {
+    flex      : none  !important;
+    margin-top: 0     !important;
+    animation : none  !important;
+    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+}
+
+/* Drag handle — larger hit-target, grab cursor */
+.ln-handle {
+    cursor  : grab;
+    padding : 10px 0 6px;
+    margin  : -10px 0 18px;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.bs-dragging .ln-handle { cursor: grabbing; }
+
+/* Stagger classes resolved immediately (JS controls entrance) */
+.ln-a1, .ln-a2, .ln-a3, .ln-a4,
+.ln-a5, .ln-a6, .ln-a7 {
+    animation: none;
+    opacity  : 1;
+    transform: none;
+}
+
+/* Desktop: fixed card with border-radius still looks good */
+@media (min-width: 431px) {
+    .ln-page { overflow: visible; }
+    .ln-card { border-radius: var(--r-3xl) !important; }
+}
+</style>
 </head>
 <body>
-    <div class="app">
-        <!-- TOP NAVIGATION -->
-        <nav class="nav-top">
-            <button class="back-btn" aria-label="Go back">
+
+<div class="ln-page">
+
+    <!-- ══ HERO ═══════════════════════════════════════════════ -->
+    <div class="ln-hero">
+
+        <!-- Nav -->
+        <nav class="ln-nav">
+            <button class="ln-back-btn" aria-label="Go back" onclick="history.back()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.3"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </button>
 
-            <div class="lang-dropdown">
-                <button class="lang-btn" id="lang-trigger" aria-haspopup="listbox">
-                    <span class="globe-icon">
-                        <img width="20" height="20" src="data:image/png;base64,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" alt="">
-                    </span>
-                    <span id="current-lang">English (US)</span>
-                    <span class="arrow">▾</span>
+            <div class="ln-lang-wrap">
+                <button class="ln-lang-btn" id="lang-trigger" aria-haspopup="listbox"
+                        aria-expanded="false">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                              stroke="currentColor" stroke-width="1.8"/>
+                    </svg>
+                    <span id="current-lang">English</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2"
+                              stroke-linecap="round"/>
+                    </svg>
                 </button>
-                <ul class="lang-list" id="lang-menu" role="listbox">
-                    <li data-lang="en" role="option">English (US)</li>
-                    <li data-lang="fr" role="option">Français (French)</li>
-                    <li data-lang="es" role="option">Español (Spanish)</li>
+
+                <ul class="ln-lang-menu" id="lang-menu" role="listbox">
+                    <li data-lang="en" role="option">🇬🇧 English</li>
+                    <li data-lang="fr" role="option">🇫🇷 Français</li>
+                    <li data-lang="es" role="option">🇪🇸 Español</li>
                 </ul>
             </div>
         </nav>
 
-        <!-- BRANDING SECTION -->
-        <header class="branding">
-            <div class="handyhub-icon">
-                <img src="../shared/assets/images/handyhub-logo-text.png" alt="HandyHub Logo">
+        <!-- Brand — logo-text.png already contains the icon, name, and tagline -->
+        <div class="ln-brand">
+            <img class="ln-logo"
+                 src="../shared/assets/images/handyhub-logo-text.png"
+                 alt="HandyHub — Trusted Professionals, Right Around You.">
+        </div>
+
+    </div><!-- /.ln-hero -->
+
+
+    <!-- ══ FORM CARD ══════════════════════════════════════════ -->
+    <div class="ln-card">
+
+        <div class="ln-handle" aria-hidden="true"></div>
+
+        <h2 class="ln-heading ln-a1">Welcome Back!</h2>
+        <p class="ln-subheading ln-a1">Sign in to continue to your account</p>
+
+        <form id="login-form" action="#" method="POST" novalidate autocomplete="on">
+
+            <!-- Email / Phone ─────────────────────────────── -->
+            <div class="ln-field ln-a2">
+                <label class="ln-label" for="user-id">Email or Phone Number</label>
+                <div class="ln-input-wrap">
+                    <svg class="ln-input-icon" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
+                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        <circle cx="12" cy="7" r="4"
+                                stroke="currentColor" stroke-width="1.8"/>
+                    </svg>
+                    <input class="ln-input"
+                           type="text"
+                           id="user-id"
+                           name="user-id"
+                           placeholder="Enter email or phone"
+                           autocomplete="username"
+                           inputmode="email"
+                           required>
+                </div>
             </div>
-            <h2>Welcome Back!</h2>
-            <p>Login to continue to your account</p>
-        </header>
 
-        <!-- LOGIN FORM -->
-        <main class="login-container">
-            <form id="login-form" action="#" method="POST" class="login-form">
-                <div class="input-group">
-                    <label for="user-id">Email or Phone Number</label>
-                     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAACUklEQVR4nO1WTY9MURA9p15mCPGxIiyFDRGxaGvxAzAEsWeMj6ZfVb9MQqR/AInMAnsL7P0FY3yMDjZCImMitiYxjAUJqfdui0F3v27vNZKppDbvVtU5t+re8y6wZP+bVYHVKrhowqYKP7ibcMoEZxrAcKngNWCbCt+Y8GsbbybAxlLAx4E1JpxxIBXeNWB3A1iRAKs0wn4TPg9rj0vphArOh10+qwLL2hAMJHC6cAImbKbFI+xtF1OPMBJIThVOQIUf0+LAuk4HNIzh/V8hMJ6NoRwClmMEFuFAIHBv4IfwHLDWhC+yGJwqnEA1m296DU04aRH2GLAy/Z7tPIBzehQYQolCNNtBiKZrwAaUaYkLj+CCg5lwPvikt720nf+zdgiI3AcClgBbvM1K3lLh09D61uzn02/kTRWcjIHNhYA2gGETjKrwYZtD9yX479Ye1AXH+/4xxREO/nTi54y87YQMqPi9X6QBQCUWnMhiONfK8xpeqydwJS//APxEBUcbwPK8+R7rOWFUWR3yUq5k8x1mzD/5PAGwJ/aLiYjX8Fpe00fSNUmFr4OcHu4X+NeaOBI6MdM12IQLHuyvnaIIuGQHAgtdg1V4P3RgrDACgrHcDxXN3nd+Bj4rOeH63zcwUFHyqtdKz0CEkVyJKqi3klqzU/KGCZL02QVUXJjOAutrwCb3GNhVj7DPBBbE6vsVzmq5lvVgMbBdyesqfNfh79fRVfhWySsGbP0jvVdgZ5DhCSPvmPCRCl86gAlfuftzPF0jr6ngWAzs8GvYN/CSYUD2DWEYG1KWmZPiAAAAAElFTkSuQmCC" alt="user">
-                    <input type="text" id="user-id" name="user-id" placeholder="Enter email or phone number" autocomplete="username" required>
+            <!-- Password ─────────────────────────────────── -->
+            <div class="ln-field ln-a3">
+                <label class="ln-label" for="password">Password</label>
+                <div class="ln-input-wrap">
+                    <svg class="ln-input-icon" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="11" width="18" height="11" rx="2"
+                              stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"
+                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    <input class="ln-input"
+                           type="password"
+                           id="password"
+                           name="password"
+                           placeholder="Enter your password"
+                           autocomplete="current-password"
+                           required>
+                    <button type="button" class="ln-eye" id="toggle-pw"
+                            aria-label="Show password">
+                        <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                                  stroke="currentColor" stroke-width="1.8"/>
+                            <circle cx="12" cy="12" r="3"
+                                    stroke="currentColor" stroke-width="1.8"/>
+                        </svg>
+                    </button>
                 </div>
-
-                <div class="input-group">
-                    <label for="password">Password</label>
-                    <img src="../shared/assets/icons/icons8-lock-24.png" alt="lock--v1">
-                    <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" required>
-                </div>
-
-                <div class="form-actions">
-                    <a href="#" class="forgot-link" id="forgot-link">Forgot Password?</a>
-                </div>
-
-                <button type="submit" id="login-btn" class="login-btn" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">Login<img width="20" height="20" src="../shared/assets/icons/icons8-right-24.png" alt="arrow" style="display: block;"></button>
-            </form>
-
-            <div class="divider">
-                <span>or continue with</span>
             </div>
 
-            <!-- SOCIAL LOGIN -->
-            <section class="social-login">
-                <button type="button" id="google-login-btn" class="social-btn"><img width="20" height="20" src="https://img.icons8.com/color/48/google-logo.png" alt="google-logo"/>Google</button>
-                <button type="button" id="apple-login-btn" class="social-btn"><img width="20" height="20" src="https://img.icons8.com/ios-filled/50/mac-os.png" alt="mac-os"/>Apple</button>
-                <button type="button" id="facebook-login-btn" class="social-btn"><img width="48" height="48" src="https://img.icons8.com/color/48/facebook-new.png" alt="facebook-new"/>Facebook</button>
-            </section>
+            <!-- Forgot ───────────────────────────────────── -->
+            <div class="ln-forgot-row ln-a4">
+                <a href="#" class="ln-forgot" id="forgot-link">Forgot Password?</a>
+            </div>
 
-            <!-- FOOTER PROMPT -->
-                   <p class="login-footer">Don't have an account? <a href="signup.html">Signup</a></p>
+            <!-- CTA ─────────────────────────────────────── -->
+            <div class="ln-a4">
+                <button type="submit" id="login-btn" class="ln-btn">
+                    Login
+                    <span class="ln-btn-arrow" aria-hidden="true">→</span>
+                </button>
+            </div>
 
-        </main>
+        </form>
+
+        <!-- Divider ──────────────────────────────────────── -->
+        <div class="ln-divider ln-a5">
+            <span>or continue with</span>
+        </div>
+
+        <!-- Social ───────────────────────────────────────── -->
+        <div class="ln-social-row ln-a5">
+            <button type="button" id="google-login-btn" class="ln-social-btn"
+                    aria-label="Continue with Google">
+                <img src="https://img.icons8.com/color/48/google-logo.png" alt="Google">
+                Google
+            </button>
+            <button type="button" id="facebook-login-btn" class="ln-social-btn"
+                    aria-label="Continue with Facebook">
+                <img src="https://img.icons8.com/color/48/facebook-new.png" alt="Facebook">
+                Facebook
+            </button>
+            <button type="button" id="apple-login-btn" class="ln-social-btn"
+                    aria-label="Continue with Apple">
+                <!-- Apple mark — inline SVG, zero external dependency -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"
+                     style="flex-shrink:0;" aria-hidden="true">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79
+                             -1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45
+                             4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0
+                             2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15
+                             3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5
+                             c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83
+                             1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                Apple
+            </button>
+        </div>
+
+        <!-- Footer ───────────────────────────────────────── -->
+        <footer class="ln-footer ln-a6">
+            <div class="ln-footer-inner">
+                <p class="ln-footer-text">
+                    Don't have an account?&nbsp;
+                    <a class="ln-footer-link" href="signup.html">Sign up &rsaquo;</a>
+                </p>
+            </div>
+        </footer>
+
+    </div><!-- /.ln-card -->
+
+</div><!-- /.ln-page -->
+
+
+<!-- ══ FORGOT PASSWORD SHEET ══════════════════════════════════ -->
+<div id="fp-overlay" class="fp-overlay" role="dialog" aria-modal="true"
+     aria-label="Reset your password">
+    <div class="fp-sheet">
+        <div class="fp-handle"></div>
+        <h3 class="fp-title">Reset Password</h3>
+        <p class="fp-sub">
+            Enter the email linked to your account and we'll send a reset link.
+        </p>
+        <input id="fp-email" class="fp-input" type="email"
+               placeholder="Your email address" autocomplete="email">
+        <div id="fp-msg" class="fp-msg"></div>
+        <button id="fp-send-btn" class="fp-send" onclick="sendResetEmail()">
+            Send Reset Link
+        </button>
+        <button class="fp-cancel" onclick="closeFpModal()">Cancel</button>
     </div>
-
-    <script type="module" src="js/pages/loginPage.js"></script>
-    <script src="../shared/js/utils/global-app.js"></script>
-<script src="../shared/js/components/fastLoader.js"></script>
-
-<!-- ── Forgot Password Modal ── -->
-<div id="fp-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;align-items:center;justify-content:center;padding:24px;">
-  <div style="background:#fff;border-radius:22px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
-    <h3 style="font-size:18px;font-weight:800;color:#111;margin:0 0 6px;">Reset Password</h3>
-    <p style="font-size:13px;color:#888;margin:0 0 20px;line-height:1.55;">Enter the email address linked to your account. We'll send you a reset link.</p>
-    <input id="fp-email" type="email" placeholder="Your email address" autocomplete="email"
-      style="width:100%;border:1.5px solid #ddd;border-radius:12px;padding:13px 14px;font-size:14px;font-family:inherit;box-sizing:border-box;outline:none;color:#111;"
-      onfocus="this.style.borderColor='#730201'" onblur="this.style.borderColor='#ddd'">
-    <div id="fp-msg" style="margin-top:8px;font-size:12.5px;min-height:16px;"></div>
-    <button id="fp-send-btn" onclick="sendResetEmail()"
-      style="margin-top:16px;width:100%;background:#730201;color:#fff;border:none;border-radius:13px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;">
-      Send Reset Link
-    </button>
-    <button onclick="closeFpModal()"
-      style="margin-top:10px;width:100%;background:none;border:none;color:#aaa;font-size:13px;cursor:pointer;font-family:inherit;padding:8px;">
-      Cancel
-    </button>
-  </div>
 </div>
 
-<script type="module">
-  import { getAuth, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 
-  function openFpModal() {
-    const overlay = document.getElementById('fp-overlay');
-    overlay.style.display = 'flex';
-    document.getElementById('fp-email').value = document.getElementById('user-id')?.value?.includes('@') ? document.getElementById('user-id').value : '';
-    document.getElementById('fp-msg').textContent = '';
-    setTimeout(() => document.getElementById('fp-email').focus(), 100);
-  }
+<!-- ══ SCRIPTS ════════════════════════════════════════════════ -->
 
-  function closeFpModal() {
-    document.getElementById('fp-overlay').style.display = 'none';
-  }
+<!-- Firebase auth logic -->
+<script type="module" src="js/pages/loginPage.js"></script>
 
-  window.closeFpModal = closeFpModal;
+<!-- Global bootstrap -->
+<script src="../shared/js/utils/global-app.js"></script>
 
-  window.sendResetEmail = async function() {
-    const emailEl  = document.getElementById('fp-email');
-    const msgEl    = document.getElementById('fp-msg');
-    const btn      = document.getElementById('fp-send-btn');
-    const email    = emailEl.value.trim();
+<!-- Page transitions -->
+<script src="../shared/js/components/fastLoader.js"></script>
 
-    if (!email || !email.includes('@')) {
-      msgEl.style.color = '#e53e3e';
-      msgEl.textContent = 'Please enter a valid email address.';
-      return;
+<!-- UI interactions — no module needed -->
+<script>
+(function () {
+    'use strict';
+
+    /* ── Password toggle ─────────────────────────────────── */
+    var pwEl   = document.getElementById('password');
+    var eyeBtn = document.getElementById('toggle-pw');
+    var eyeIco = document.getElementById('eye-icon');
+
+    var ICON_OPEN   = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>';
+    var ICON_CLOSED = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
+
+    if (eyeBtn && pwEl && eyeIco) {
+        eyeBtn.addEventListener('click', function () {
+            var hidden = pwEl.type === 'password';
+            pwEl.type        = hidden ? 'text' : 'password';
+            eyeIco.innerHTML = hidden ? ICON_CLOSED : ICON_OPEN;
+            eyeBtn.setAttribute('aria-label', hidden ? 'Hide password' : 'Show password');
+        });
     }
 
-    btn.disabled = true;
+    /* ── Language dropdown ───────────────────────────────── */
+    var trigger  = document.getElementById('lang-trigger');
+    var menu     = document.getElementById('lang-menu');
+    var langText = document.getElementById('current-lang');
+
+    if (trigger && menu) {
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var open = menu.classList.toggle('open');
+            trigger.setAttribute('aria-expanded', String(open));
+        });
+
+        document.addEventListener('click', function () {
+            menu.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+        });
+
+        menu.querySelectorAll('li').forEach(function (li) {
+            li.addEventListener('click', function () {
+                if (langText) langText.textContent = this.textContent;
+                menu.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
+            });
+        });
+    }
+
+
+})();
+</script>
+
+<!-- Forgot password (module — needs Firebase) -->
+<script type="module">
+import { getAuth, sendPasswordResetEmail }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getApp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+
+/* ── Helpers ─────────────────────────────────────────────── */
+function openFpModal() {
+    var overlay = document.getElementById('fp-overlay');
+    var idVal   = (document.getElementById('user-id') || {}).value || '';
+    document.getElementById('fp-email').value =
+        idVal.includes('@') ? idVal : '';
+    var msgEl = document.getElementById('fp-msg');
+    msgEl.textContent = '';
+    msgEl.style.color = '';
+    var btn = document.getElementById('fp-send-btn');
+    btn.disabled = false;
+    btn.textContent = 'Send Reset Link';
+    overlay.classList.add('fp-open');
+    setTimeout(function () {
+        document.getElementById('fp-email').focus();
+    }, 380);
+}
+
+function closeFpModal() {
+    document.getElementById('fp-overlay').classList.remove('fp-open');
+}
+
+window.closeFpModal = closeFpModal;
+
+/* ── Send reset email ────────────────────────────────────── */
+window.sendResetEmail = async function () {
+    var emailEl = document.getElementById('fp-email');
+    var msgEl   = document.getElementById('fp-msg');
+    var btn     = document.getElementById('fp-send-btn');
+    var email   = (emailEl.value || '').trim();
+
+    if (!email || !email.includes('@')) {
+        msgEl.style.color = '#e53e3e';
+        msgEl.textContent = 'Enter a valid email address.';
+        emailEl.focus();
+        return;
+    }
+
+    btn.disabled    = true;
     btn.textContent = 'Sending…';
     msgEl.textContent = '';
 
     try {
-      const auth = getAuth(getApp());
-      await sendPasswordResetEmail(auth, email);
-      msgEl.style.color = '#2e7d32';
-      msgEl.textContent = '✅ Reset link sent! Check your inbox (and spam folder).';
-      btn.textContent = 'Sent!';
-      setTimeout(closeFpModal, 2800);
+        await sendPasswordResetEmail(getAuth(getApp()), email);
+        msgEl.style.color = '#2e7d32';
+        msgEl.textContent = ' Reset link sent! Check your inbox.';
+        btn.textContent   = 'Sent!';
+        setTimeout(closeFpModal, 2800);
     } catch (err) {
-      btn.disabled = false;
-      btn.textContent = 'Send Reset Link';
-      msgEl.style.color = '#e53e3e';
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
-        msgEl.textContent = 'No account found for that email address.';
-      } else if (err.code === 'auth/too-many-requests') {
-        msgEl.textContent = 'Too many attempts. Please wait a moment and try again.';
-      } else {
-        msgEl.textContent = 'Failed to send reset link. Please try again.';
-      }
+        btn.disabled    = false;
+        btn.textContent = 'Send Reset Link';
+        msgEl.style.color = '#e53e3e';
+        msgEl.textContent =
+            (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email')
+                ? 'No account found for that email.'
+            : err.code === 'auth/too-many-requests'
+                ? 'Too many attempts. Please wait a moment.'
+                : 'Could not send reset link. Please try again.';
     }
-  };
+};
 
-  // Close on backdrop click
-  document.getElementById('fp-overlay').addEventListener('click', function(e) {
+/* ── Wire events ─────────────────────────────────────────── */
+document.getElementById('fp-overlay').addEventListener('click', function (e) {
     if (e.target === this) closeFpModal();
-  });
+});
 
-  // Wire the forgot link
-  document.getElementById('forgot-link').addEventListener('click', function(e) {
+document.getElementById('fp-email').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); window.sendResetEmail(); }
+});
+
+document.getElementById('forgot-link').addEventListener('click', function (e) {
     e.preventDefault();
     openFpModal();
-  });
+});
 </script>
+
+<!-- ══ BOTTOM SHEET ENGINE ════════════════════════════════════ -->
+<script type="module">
+import { initBottomSheet } from './js/bottomSheet.js';
+
+document.addEventListener('DOMContentLoaded', function () {
+    var card   = document.querySelector('.ln-card');
+    var handle = document.querySelector('.ln-handle');
+    // Only pass inputs inside the card — not the forgot-password overlay
+    var inputs = Array.from(card.querySelectorAll('.ln-input'));
+
+    window._loginSheet = initBottomSheet({ card: card, handle: handle, inputs: inputs });
+});
+</script>
+
 </body>
 </html>
-
-
-
-

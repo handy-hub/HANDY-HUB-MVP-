@@ -2,111 +2,1080 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>customer-signup</title>
-    <link rel="stylesheet" href="css/customer.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sign Up · HandyHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+    <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+<style>
+/* ════════════════════════════════════════════════════════════════
+   DESIGN SYSTEM — shared with login.html
+   HandyHub Sign Up — Immersive Hero + Floating Card
+   ════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --red-900:   #3d0101;
+    --red-800:   #5a0101;
+    --red-700:   #730201;
+    --red-600:   #8a0302;
+    --red-400:   #b10c0c;
+
+    --white:     #ffffff;
+    --grey-50:   #f7f7f7;
+    --grey-100:  #f0f0f0;
+    --grey-200:  #e4e4e4;
+    --grey-400:  #aaaaaa;
+    --grey-600:  #666666;
+    --grey-900:  #111111;
+
+    --text-primary:   var(--grey-900);
+    --text-secondary: var(--grey-600);
+    --text-hint:      #b8b8b8;
+
+    --input-bg-rest:  var(--grey-50);
+    --input-bg-focus: var(--white);
+
+    --spring:   cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+
+    --r-sm:  10px;
+    --r-md:  14px;
+    --r-lg:  16px;
+    --r-2xl: 28px;
+    --r-3xl: 32px;
+
+    --shadow-input-focus: 0 0 0 3.5px rgba(115,2,1,0.10);
+    --shadow-btn:         0 8px 24px rgba(115,2,1,0.38);
+    --shadow-btn-press:   0 2px  8px rgba(115,2,1,0.22);
+    --shadow-card:        0 -3px 40px rgba(0,0,0,0.09);
+}
+
+html { min-height: 100%; }
+body {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 100dvh;
+    background: #f0ece8;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PAGE SHELL
+   ════════════════════════════════════════════════════════════════ */
+.su-page {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HERO  — same warm stone as login
+   ════════════════════════════════════════════════════════════════ */
+.su-hero {
+    position: relative;
+    overflow: hidden;
+    background: #f0ece8;
+    padding: 0 0 52px;
+    flex-shrink: 0;
+}
+
+.su-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(circle, rgba(115,2,1,0.07) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+}
+
+.su-hero::after {
+    content: '';
+    position: absolute;
+    bottom: 20px;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(115,2,1,0.06) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* ── Nav ──────────────────────────────────────────────────── */
+.su-nav {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 0;
+}
+
+.su-back-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.09);
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--grey-900);
+    transition: background 0.18s;
+    -webkit-tap-highlight-color: transparent;
+}
+.su-back-btn:active { background: rgba(0,0,0,0.12); }
+
+.su-lang-wrap { position: relative; }
+
+.su-lang-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 13px;
+    background: rgba(255,255,255,0.70);
+    border: 1px solid rgba(0,0,0,0.10);
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--grey-900);
+    transition: background 0.18s;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+}
+.su-lang-btn:active { background: rgba(255,255,255,0.90); }
+
+.su-lang-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 10px);
+    background: #fff;
+    border: 1.5px solid var(--grey-200);
+    border-radius: var(--r-md);
+    list-style: none;
+    overflow: hidden;
+    min-width: 152px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+    z-index: 200;
+}
+.su-lang-menu.open { display: block; }
+.su-lang-menu li {
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: background 0.12s;
+}
+.su-lang-menu li:hover { background: var(--grey-50); }
+.su-lang-menu li + li { border-top: 1px solid #f2f2f2; }
+
+/* ── Brand ────────────────────────────────────────────────── */
+.su-brand {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    padding: 18px 24px 0;
+}
+
+.su-logo {
+    width: 200px;
+    max-width: 75%;
+    height: auto;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   FORM CARD
+   ════════════════════════════════════════════════════════════════ */
+.su-card {
+    flex: 1;
+    background: var(--white);
+    border-radius: var(--r-3xl) var(--r-3xl) 0 0;
+    margin-top: -28px;
+    box-shadow: var(--shadow-card);
+    padding: 10px 24px 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.su-handle {
+    width: 38px;
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    margin: 0 auto 22px;
+    flex-shrink: 0;
+}
+
+.su-heading {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+}
+
+.su-subheading {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-bottom: 24px;
+    flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   INPUTS  — identical to login
+   ════════════════════════════════════════════════════════════════ */
+.su-field { margin-bottom: 14px; }
+
+.su-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--grey-600);
+    margin-bottom: 6px;
+    letter-spacing: 0.1px;
+}
+
+.su-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.su-input-icon {
+    position: absolute;
+    left: 14px;
+    width: 17px;
+    height: 17px;
+    color: var(--grey-400);
+    pointer-events: none;
+    flex-shrink: 0;
+    transition: color 0.2s var(--ease-out);
+}
+
+.su-input {
+    width: 100%;
+    height: 52px;
+    padding: 0 44px 0 42px;
+    border: 1.5px solid transparent;
+    border-radius: var(--r-md);
+    background: var(--input-bg-rest);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text-primary);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition:
+        background   0.2s var(--ease-out),
+        border-color 0.2s var(--ease-out),
+        box-shadow   0.2s var(--ease-out);
+}
+
+.su-input::placeholder {
+    color: var(--text-hint);
+    font-weight: 400;
+}
+
+.su-input-wrap:focus-within .su-input {
+    background: var(--input-bg-focus);
+    border-color: var(--red-700);
+    box-shadow: var(--shadow-input-focus);
+}
+
+.su-input-wrap:focus-within .su-input-icon {
+    color: var(--red-700);
+}
+
+/* Eye + trailing action buttons */
+.su-trail-btn {
+    position: absolute;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--grey-400);
+    border-radius: 8px;
+    transition: color 0.15s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+}
+.su-trail-btn:hover,
+.su-trail-btn:focus-visible {
+    color: var(--grey-600);
+    background: var(--grey-100);
+}
+
+/* Password hint */
+.su-pw-hint {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--grey-400);
+    font-weight: 500;
+    padding-left: 2px;
+}
+.su-pw-hint svg { flex-shrink: 0; }
+
+/* Password strength bar */
+.su-pw-strength {
+    display: flex;
+    gap: 4px;
+    margin-top: 7px;
+}
+.su-pw-bar {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--grey-200);
+    transition: background 0.3s;
+}
+.su-pw-bar.weak   { background: #f59e0b; }
+.su-pw-bar.fair   { background: #f59e0b; }
+.su-pw-bar.good   { background: #22c55e; }
+.su-pw-bar.strong { background: #16a34a; }
+
+/* ── Terms row ──────────────────────────────────────────── */
+.su-terms {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 6px 0 22px;
+}
+
+.su-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--grey-200);
+    border-radius: 5px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 1px;
+    accent-color: var(--red-700);
+}
+
+.su-terms-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    font-weight: 400;
+}
+.su-terms-label a {
+    color: var(--red-700);
+    font-weight: 600;
+    text-decoration: none;
+}
+.su-terms-label a:hover { text-decoration: underline; }
+
+/* ════════════════════════════════════════════════════════════════
+   SUBMIT BUTTON
+   ════════════════════════════════════════════════════════════════ */
+.su-btn {
+    width: 100%;
+    height: 56px;
+    background: var(--red-700);
+    color: #fff;
+    border: none;
+    border-radius: var(--r-lg);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    cursor: pointer;
+    box-shadow: var(--shadow-btn);
+    transition:
+        background  0.2s var(--ease-out),
+        box-shadow  0.2s var(--ease-out),
+        transform   0.12s var(--spring),
+        opacity     0.2s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.su-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        105deg,
+        transparent 40%,
+        rgba(255,255,255,0.09) 50%,
+        transparent 60%
+    );
+    background-size: 200% 100%;
+    background-position: -100% 0;
+    transition: background-position 0.5s var(--ease-out);
+}
+.su-btn:hover:not(:disabled)::before { background-position: 200% 0; }
+
+.su-btn:hover:not(:disabled) {
+    background: var(--red-600);
+    box-shadow: 0 10px 28px rgba(115,2,1,0.45);
+}
+.su-btn:active:not(:disabled) {
+    transform: scale(0.975);
+    box-shadow: var(--shadow-btn-press);
+}
+.su-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.su-btn-arrow {
+    font-size: 18px;
+    line-height: 1;
+    display: inline-block;
+    transition: transform 0.22s var(--spring);
+}
+.su-btn:hover:not(:disabled) .su-btn-arrow { transform: translateX(4px); }
+
+/* Spinner for signupPageController.js (.button-loader) */
+.button-loader,
+.su-spin {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.28);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.65s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════════════════════════════════════════════════
+   DIVIDER + SOCIAL  — identical to login
+   ════════════════════════════════════════════════════════════════ */
+.su-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0 18px;
+}
+.su-divider::before,
+.su-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #ebebeb;
+}
+.su-divider span {
+    font-size: 12.5px;
+    color: var(--grey-400);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.su-social-row {
+    display: flex;
+    gap: 10px;
+}
+
+.su-social-btn {
+    flex: 1;
+    height: 48px;
+    border: 1.5px solid var(--grey-200);
+    border-radius: var(--r-md);
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        background   0.15s,
+        box-shadow   0.15s,
+        transform    0.1s var(--spring);
+    -webkit-tap-highlight-color: transparent;
+}
+.su-social-btn:hover:not(:disabled) {
+    border-color: #c8c8c8;
+    background: var(--grey-50);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.su-social-btn:active:not(:disabled) {
+    transform: scale(0.96);
+    background: var(--grey-100);
+}
+.su-social-btn:disabled { opacity: 0.52; cursor: not-allowed; }
+.su-social-btn img {
+    width: 19px;
+    height: 19px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LOGIN FOOTER
+   ════════════════════════════════════════════════════════════════ */
+.su-footer {
+    margin-top: auto;
+    padding-top: 24px;
+}
+.su-footer-inner {
+    background: #fdf3f3;
+    border-radius: 20px 20px 0 0;
+    padding: 18px 0;
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+    text-align: center;
+    margin: 0 -24px;
+}
+.su-footer-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+.su-footer-link {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--red-700);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.su-footer-link:active { opacity: 0.65; }
+
+/* ════════════════════════════════════════════════════════════════
+   ENTRANCE ANIMATIONS
+   ════════════════════════════════════════════════════════════════ */
+@keyframes hero-in  { from { opacity:0 } to { opacity:1 } }
+@keyframes card-in  {
+    from { opacity:0; transform:translateY(44px) }
+    to   { opacity:1; transform:translateY(0) }
+}
+@keyframes fade-up  {
+    from { opacity:0; transform:translateY(12px) }
+    to   { opacity:1; transform:translateY(0) }
+}
+
+.su-hero { animation: hero-in 0.4s var(--ease-out) both; }
+.su-card { animation: card-in 0.52s var(--spring) 0.08s both; }
+
+.su-a1 { animation: fade-up 0.42s var(--spring) 0.20s both; }
+.su-a2 { animation: fade-up 0.42s var(--spring) 0.26s both; }
+.su-a3 { animation: fade-up 0.42s var(--spring) 0.31s both; }
+.su-a4 { animation: fade-up 0.42s var(--spring) 0.36s both; }
+.su-a5 { animation: fade-up 0.42s var(--spring) 0.41s both; }
+.su-a6 { animation: fade-up 0.42s var(--spring) 0.46s both; }
+.su-a7 { animation: fade-up 0.42s var(--spring) 0.51s both; }
+.su-a8 { animation: fade-up 0.42s var(--spring) 0.56s both; }
+
+@media (prefers-reduced-motion: reduce) {
+    .su-hero, .su-card,
+    .su-a1, .su-a2, .su-a3, .su-a4,
+    .su-a5, .su-a6, .su-a7, .su-a8 {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
+
+/* ── Desktop ──────────────────────────────────────────────── */
+@media (min-width: 431px) {
+    body { background: #d8d0c8 !important; }
+    .su-page {
+        margin-top: 32px;
+        margin-bottom: 32px;
+        min-height: auto;
+        border-radius: var(--r-2xl);
+        overflow: hidden;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.36);
+    }
+    .su-card { border-radius: var(--r-3xl); margin-top: -28px; }
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   BOTTOM SHEET OVERRIDES
+   ════════════════════════════════════════════════════════════════ */
+
+/* Hero as full-viewport background canvas */
+.su-hero {
+    min-height: 100dvh;
+    padding-bottom: 0;
+}
+
+/* Strip static layout — JS applies position:fixed + transform */
+.su-card {
+    flex      : none  !important;
+    margin-top: 0     !important;
+    animation : none  !important;
+    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+}
+
+/* Drag handle */
+.su-handle {
+    cursor  : grab;
+    padding : 10px 0 6px;
+    margin  : -10px 0 16px;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.bs-dragging .su-handle { cursor: grabbing; }
+
+/* Stagger classes resolved immediately */
+.su-a1, .su-a2, .su-a3, .su-a4,
+.su-a5, .su-a6, .su-a7, .su-a8 {
+    animation: none;
+    opacity  : 1;
+    transform: none;
+}
+
+@media (min-width: 431px) {
+    .su-page { overflow: visible; }
+    .su-card { border-radius: var(--r-3xl) !important; }
+}
+</style>
 </head>
-<body class="fade-in">
-<div class="app signup-page">
-    <nav class="nav-top">
-    <button class="back-btn" aria-label="Go back">
-        <img width="20" height="20" src="../shared/assets/icons/angle-lefft-red.png" alt="">
-    </button>
-     <div class="lang-dropdown">
-                <button class="lang-btn" id="lang-trigger" aria-haspopup="listbox">
-                    <span class="globe-icon">
-                        <img width="20" height="20" src="data:image/png;base64,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" alt="">
-                    </span>
-                    <span id="current-lang">English (US)</span>
-                    <span class="arrow">▾</span>
+<body>
+
+<div class="su-page">
+
+    <!-- ══ HERO ═══════════════════════════════════════════════ -->
+    <div class="su-hero">
+
+        <nav class="su-nav">
+            <button class="su-back-btn" aria-label="Go back" onclick="history.back()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.3"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+
+            <div class="su-lang-wrap">
+                <button class="su-lang-btn" id="lang-trigger" aria-haspopup="listbox"
+                        aria-expanded="false">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                              stroke="currentColor" stroke-width="1.8"/>
+                    </svg>
+                    <span id="current-lang">English</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2"
+                              stroke-linecap="round"/>
+                    </svg>
                 </button>
-                <ul class="lang-list" id="lang-menu" role="listbox">
-                    <li data-lang="en" role="option">English (US)</li>
-                    <li data-lang="fr" role="option">Français (French)</li>
-                    <li data-lang="es" role="option">Español (Spanish)</li>
+                <ul class="su-lang-menu" id="lang-menu" role="listbox">
+                    <li data-lang="en" role="option">🇬🇧 English</li>
+                    <li data-lang="fr" role="option">🇫🇷 Français</li>
+                    <li data-lang="es" role="option">🇪🇸 Español</li>
                 </ul>
             </div>
-    </nav>
+        </nav>
 
-    <header class="branding">
-         <div class="handyhub-icon">
-                <img src="../shared/assets/images/handyhub-logo-text.png" alt="HandyHub Logo">
-            </div>
-             <h2>Create Your Account</h2>
-        <p>Join Handy Hub and get things done with ease.</p>
-    </header>
+        <div class="su-brand">
+            <img class="su-logo"
+                 src="../shared/assets/images/handyhub-logo-text.png"
+                 alt="HandyHub — Trusted Professionals, Right Around You.">
+        </div>
+
+    </div><!-- /.su-hero -->
 
 
-    <main class="signup-container">
-        <form id="signup-form">
-            <div class="input-signup">
-                <label>Full Name</label>
-                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAACUklEQVR4nO1WTY9MURA9p15mCPGxIiyFDRGxaGvxAzAEsWeMj6ZfVb9MQqR/AInMAnsL7P0FY3yMDjZCImMitiYxjAUJqfdui0F3v27vNZKppDbvVtU5t+re8y6wZP+bVYHVKrhowqYKP7ibcMoEZxrAcKngNWCbCt+Y8GsbbybAxlLAx4E1JpxxIBXeNWB3A1iRAKs0wn4TPg9rj0vphArOh10+qwLL2hAMJHC6cAImbKbFI+xtF1OPMBJIThVOQIUf0+LAuk4HNIzh/V8hMJ6NoRwClmMEFuFAIHBv4IfwHLDWhC+yGJwqnEA1m296DU04aRH2GLAy/Z7tPIBzehQYQolCNNtBiKZrwAaUaYkLj+CCg5lwPvikt720nf+zdgiI3AcClgBbvM1K3lLh09D61uzn02/kTRWcjIHNhYA2gGETjKrwYZtD9yX479Ye1AXH+/4xxREO/nTi54y87YQMqPi9X6QBQCUWnMhiONfK8xpeqydwJS//APxEBUcbwPK8+R7rOWFUWR3yUq5k8x1mzD/5PAGwJ/aLiYjX8Fpe00fSNUmFr4OcHu4X+NeaOBI6MdM12IQLHuyvnaIIuGQHAgtdg1V4P3RgrDACgrHcDxXN3nd+Bj4rOeH63zcwUFHyqtdKz0CEkVyJKqi3klqzU/KGCZL02QVUXJjOAutrwCb3GNhVj7DPBBbE6vsVzmq5lvVgMbBdyesqfNfh79fRVfhWySsGbP0jvVdgZ5DhCSPvmPCRCl86gAlfuftzPF0jr6ngWAzs8GvYN/CSYUD2DWEYG1KWmZPiAAAAAElFTkSuQmCC" class="in-input">
-                <input type="text" id="full-name" placeholder="Enter your full name" autocomplete="name">
-            </div>
+    <!-- ══ FORM CARD ══════════════════════════════════════════ -->
+    <div class="su-card">
 
-            <div class="input-signup">
-                <label>Email</label>
-                <img src="../shared/assets/icons/icons8-email-24.png" class="in-input">
-                <input type="email" id="email" placeholder="Enter email" autocomplete="email">
-            </div>
-               <div class="input-signup">
-                <label>Phone Number</label>
-                <img src="../shared/assets/icons/icons8-phone-32.png" class="in-input">
-                <input id="tel-no" type="tel" placeholder="Phone number" autocomplete="tel">
-            </div>
-            <div class="input-signup">
-                <label>Location</label>
-                <img src="../shared/assets/icons/icons8-location-pin-24.png" class="in-input">
-                <input id="location" type="text" placeholder="Auto detection location" autocomplete="address-level2">
-            </div>
-            <div class="input-signup">
-                <label>Password</label>
-                <img src="../shared/assets/icons/icons8-lock-24.png" class="in-input">
-                <input type="password" id="pass" placeholder="Create a password" autocomplete="new-password">
-                <img src="../shared/assets/icons/icons8-eye-96.png" class="eye-icon">
-                <div class="pass-hint">
-                    <img src="../shared/assets/icons/icons8-protect-96.png" width="12">
-                    <span>Password must be at least 8 characters</span>
+        <div class="su-handle" aria-hidden="true"></div>
+
+        <h2 class="su-heading su-a1">Create Your Account</h2>
+        <p class="su-subheading su-a1">Join HandyHub and get things done with ease.</p>
+
+        <form id="signup-form" action="#" method="POST" novalidate autocomplete="on">
+
+            <!-- Full Name ─────────────────────────────────── -->
+            <div class="su-field su-a2">
+                <label class="su-label" for="full-name">Full Name</label>
+                <div class="su-input-wrap">
+                    <svg class="su-input-icon" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
+                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        <circle cx="12" cy="7" r="4"
+                                stroke="currentColor" stroke-width="1.8"/>
+                    </svg>
+                    <input class="su-input" type="text" id="full-name"
+                           placeholder="Enter your full name"
+                           autocomplete="name" required>
                 </div>
             </div>
 
-            <div class="input-signup">
-                <label>Confirm Password</label>
-                <img src="../shared/assets/icons/icons8-lock-24.png" class="in-input">
-                <input type="password" id="confirm" placeholder="Confirm your password" autocomplete="new-password">
-                <img src="../shared/assets/icons/icons8-eye-96.png" class="eye-icon">
+            <!-- Email ────────────────────────────────────── -->
+            <div class="su-field su-a3">
+                <label class="su-label" for="email">Email Address</label>
+                <div class="su-input-wrap">
+                    <svg class="su-input-icon" viewBox="0 0 24 24" fill="none">
+                        <rect x="2" y="4" width="20" height="16" rx="2"
+                              stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M2 7l10 7 10-7"
+                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    <input class="su-input" type="email" id="email"
+                           placeholder="Enter your email"
+                           autocomplete="email" inputmode="email" required>
+                </div>
             </div>
 
-            <div class="terms-row">
-                <input type="checkbox">
-                <label>I agree to the <span><a  href="#">Terms of Service</a> </span> and <span><a  href="#">Privacy Policy</a></span></label>
+            <!-- Phone ────────────────────────────────────── -->
+            <div class="su-field su-a3">
+                <label class="su-label" for="tel-no">Phone Number</label>
+                <div class="su-input-wrap">
+                    <svg class="su-input-icon" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    <input class="su-input" type="tel" id="tel-no"
+                           placeholder="e.g. 0244 000 000"
+                           autocomplete="tel" inputmode="tel">
+                </div>
             </div>
 
-<button type="submit" id="submit-btn" class="login-btn" disabled>Sign Up <img width="20" height="20" src="../shared/assets/icons/icons8-right-24.png" alt="arrow" style="display: inline-block; margin-left: 8px; vertical-align: middle;"></button>
+            <!-- Location ─────────────────────────────────── -->
+            <div class="su-field su-a4">
+                <label class="su-label" for="location">Location</label>
+                <div class="su-input-wrap">
+                    <svg class="su-input-icon" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                              stroke="currentColor" stroke-width="1.8"/>
+                        <circle cx="12" cy="9" r="2.5"
+                                stroke="currentColor" stroke-width="1.8"/>
+                    </svg>
+                    <input class="su-input" type="text" id="location"
+                           placeholder="Enter or detect location"
+                           autocomplete="address-level2">
+                    <!-- GPS detect button -->
+                    <button type="button" class="su-trail-btn" id="detect-loc-btn"
+                            aria-label="Detect my location" title="Use my location">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="3"
+                                    stroke="currentColor" stroke-width="1.8"/>
+                            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"
+                                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Password ─────────────────────────────────── -->
+            <div class="su-field su-a4">
+                <label class="su-label" for="pass">Password</label>
+                <div class="su-input-wrap">
+                    <svg class="su-input-icon" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="11" width="18" height="11" rx="2"
+                              stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"
+                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    <input class="su-input" type="password" id="pass"
+                           placeholder="Create a password"
+                           autocomplete="new-password" required>
+                    <button type="button" class="su-trail-btn" id="toggle-pw"
+                            aria-label="Show password">
+                        <svg id="pw-eye" width="17" height="17" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                                  stroke="currentColor" stroke-width="1.8"/>
+                            <circle cx="12" cy="12" r="3"
+                                    stroke="currentColor" stroke-width="1.8"/>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Strength bar -->
+                <div class="su-pw-strength" id="pw-strength" aria-hidden="true">
+                    <div class="su-pw-bar" id="pw-bar-1"></div>
+                    <div class="su-pw-bar" id="pw-bar-2"></div>
+                    <div class="su-pw-bar" id="pw-bar-3"></div>
+                    <div class="su-pw-bar" id="pw-bar-4"></div>
+                </div>
+                <div class="su-pw-hint">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    At least 8 characters
+                </div>
+            </div>
+
+            <!-- Confirm Password ─────────────────────────── -->
+            <div class="su-field su-a5">
+                <label class="su-label" for="confirm">Confirm Password</label>
+                <div class="su-input-wrap">
+                    <svg class="su-input-icon" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="11" width="18" height="11" rx="2"
+                              stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"
+                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    <input class="su-input" type="password" id="confirm"
+                           placeholder="Repeat your password"
+                           autocomplete="new-password" required>
+                    <button type="button" class="su-trail-btn" id="toggle-confirm"
+                            aria-label="Show password">
+                        <svg id="confirm-eye" width="17" height="17" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                                  stroke="currentColor" stroke-width="1.8"/>
+                            <circle cx="12" cy="12" r="3"
+                                    stroke="currentColor" stroke-width="1.8"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Terms ────────────────────────────────────── -->
+            <div class="su-terms su-a6">
+                <input class="su-checkbox" type="checkbox" id="terms-check"
+                       aria-label="Agree to terms">
+                <label class="su-terms-label" for="terms-check">
+                    I agree to the
+                    <a href="#">Terms of Service</a>
+                    and
+                    <a href="#">Privacy Policy</a>
+                </label>
+            </div>
+
+            <!-- Submit ───────────────────────────────────── -->
+            <div class="su-a6">
+                <button type="submit" id="submit-btn" class="su-btn" disabled>
+                    Sign Up
+                    <span class="su-btn-arrow" aria-hidden="true">→</span>
+                </button>
+            </div>
+
         </form>
 
-        <div class="divider">
+        <!-- Divider ──────────────────────────────────────── -->
+        <div class="su-divider su-a7">
             <span>or continue with</span>
         </div>
 
-            <section class="social-login">
-                <button id="google-signup-btn" type="button" class="social-btn"><img width="20" height="20" src="https://img.icons8.com/color/48/google-logo.png" alt="google-logo"/>Google</button>
-                <button id="apple-signup-btn" type="button" class="social-btn"><img width="20" height="20" src="https://img.icons8.com/ios-filled/50/mac-os.png" alt="mac-os"/>Apple</button>
-                <button id="facebook-signup-btn" type="button" class="social-btn"><img width="48" height="48" src="https://img.icons8.com/color/48/facebook-new.png" alt="facebook-new"/>Facebook</button>
-            </section>
+        <!-- Social ───────────────────────────────────────── -->
+        <div class="su-social-row su-a7">
+            <button type="button" id="google-signup-btn" class="su-social-btn"
+                    aria-label="Sign up with Google">
+                <img src="https://img.icons8.com/color/48/google-logo.png" alt="Google">
+                Google
+            </button>
+            <button type="button" id="facebook-signup-btn" class="su-social-btn"
+                    aria-label="Sign up with Facebook">
+                <img src="https://img.icons8.com/color/48/facebook-new.png" alt="Facebook">
+                Facebook
+            </button>
+            <button type="button" id="apple-signup-btn" class="su-social-btn"
+                    aria-label="Sign up with Apple">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"
+                     style="flex-shrink:0;" aria-hidden="true">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79
+                             -1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45
+                             4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0
+                             2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15
+                             3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5
+                             c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83
+                             1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                Apple
+            </button>
+        </div>
 
-        <p class="login-footer">Already have an account? <a href="login.html">Login</a></p>
-    </main>
-</div>
+        <!-- Login footer ─────────────────────────────────── -->
+        <footer class="su-footer su-a8">
+            <div class="su-footer-inner">
+                <p class="su-footer-text">
+                    Already have an account?&nbsp;
+                    <a class="su-footer-link" href="login.html">Login &rsaquo;</a>
+                </p>
+            </div>
+        </footer>
+
+    </div><!-- /.su-card -->
+
+</div><!-- /.su-page -->
+
+
+<!-- ══ SCRIPTS ════════════════════════════════════════════════ -->
 <script type="module" src="../shared/js/ui/customer/signupPageController.js"></script>
-<script type="module" src="../shared/js/services/authService.js"></script>
-<script type="module" src="../shared/js/utils/helpers.js"></script>
-<script type="module" src="../shared/js/utils/logicGate.js"></script>
-    <script src="../shared/js/utils/global-app.js"></script>
+<script src="../shared/js/utils/global-app.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
+
+<!-- UI interactions -->
+<script>
+(function () {
+    'use strict';
+
+    /* ── Eye icons ───────────────────────────────────────── */
+    var ICON_OPEN   = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>';
+    var ICON_CLOSED = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
+
+    function wireEye(btnId, inputEl, iconEl) {
+        var btn  = document.getElementById(btnId);
+        var icon = document.getElementById(iconEl);
+        var inp  = document.getElementById(inputEl);
+        if (!btn || !icon || !inp) return;
+        btn.addEventListener('click', function () {
+            var hidden = inp.type === 'password';
+            inp.type       = hidden ? 'text' : 'password';
+            icon.innerHTML = hidden ? ICON_CLOSED : ICON_OPEN;
+            btn.setAttribute('aria-label', hidden ? 'Hide password' : 'Show password');
+        });
+    }
+
+    wireEye('toggle-pw',      'pass',    'pw-eye');
+    wireEye('toggle-confirm', 'confirm', 'confirm-eye');
+
+    /* ── Password strength bar ───────────────────────────── */
+    var pwInput = document.getElementById('pass');
+    var bars    = [
+        document.getElementById('pw-bar-1'),
+        document.getElementById('pw-bar-2'),
+        document.getElementById('pw-bar-3'),
+        document.getElementById('pw-bar-4'),
+    ];
+
+    function getStrength(pw) {
+        if (!pw || pw.length < 4) return 0;
+        var score = 0;
+        if (pw.length >= 8)  score++;
+        if (pw.length >= 12) score++;
+        if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+        if (/[0-9]/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score++;
+        return Math.min(score, 4);
+    }
+
+    var LEVELS = ['', 'weak', 'fair', 'good', 'strong'];
+
+    if (pwInput && bars[0]) {
+        pwInput.addEventListener('input', function () {
+            var s = getStrength(pwInput.value);
+            bars.forEach(function (bar, i) {
+                bar.className = 'su-pw-bar';
+                if (i < s) bar.classList.add(LEVELS[s]);
+            });
+        });
+    }
+
+    /* ── GPS location detect ─────────────────────────────── */
+    var detectBtn  = document.getElementById('detect-loc-btn');
+    var locationEl = document.getElementById('location');
+
+    if (detectBtn && locationEl && navigator.geolocation) {
+        detectBtn.addEventListener('click', function () {
+            detectBtn.style.opacity = '0.5';
+            detectBtn.disabled = true;
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    var lat = pos.coords.latitude.toFixed(5);
+                    var lon = pos.coords.longitude.toFixed(5);
+                    // Reverse geocode via open Nominatim (no API key needed)
+                    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon)
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            var addr = d.address || {};
+                            locationEl.value = addr.city || addr.town || addr.village ||
+                                               addr.county || (lat + ', ' + lon);
+                            locationEl.dispatchEvent(new Event('input'));
+                        })
+                        .catch(function () {
+                            locationEl.value = lat + ', ' + lon;
+                            locationEl.dispatchEvent(new Event('input'));
+                        })
+                        .finally(function () {
+                            detectBtn.style.opacity = '';
+                            detectBtn.disabled = false;
+                        });
+                },
+                function () {
+                    detectBtn.style.opacity = '';
+                    detectBtn.disabled = false;
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        });
+    }
+
+    /* ── Language dropdown ───────────────────────────────── */
+    var trigger  = document.getElementById('lang-trigger');
+    var menu     = document.getElementById('lang-menu');
+    var langText = document.getElementById('current-lang');
+
+    if (trigger && menu) {
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var open = menu.classList.toggle('open');
+            trigger.setAttribute('aria-expanded', String(open));
+        });
+        document.addEventListener('click', function () {
+            menu.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+        });
+        menu.querySelectorAll('li').forEach(function (li) {
+            li.addEventListener('click', function () {
+                if (langText) langText.textContent = this.textContent;
+                menu.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
+            });
+        });
+    }
+
+    /* ── Fix: checkbox selector for signupPageController ── */
+    // The controller queries ".terms-row input[type='checkbox']"
+    // Our checkbox has class su-checkbox inside su-terms.
+    // We add the terms-row class to the wrapper so the selector still works.
+    var termsWrap = document.querySelector('.su-terms');
+    if (termsWrap) termsWrap.classList.add('terms-row');
+
+})();
+</script>
+
+<!-- ══ BOTTOM SHEET ENGINE ════════════════════════════════════ -->
+<script type="module">
+import { initBottomSheet } from './js/bottomSheet.js';
+
+document.addEventListener('DOMContentLoaded', function () {
+    var card   = document.querySelector('.su-card');
+    var handle = document.querySelector('.su-handle');
+    var inputs = Array.from(card.querySelectorAll('.su-input'));
+
+    window._signupSheet = initBottomSheet({ card: card, handle: handle, inputs: inputs });
+});
+</script>
+
 </body>
 </html>
-
