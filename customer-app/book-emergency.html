@@ -3,428 +3,864 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HandyHub – Emergency Dispatch</title>
-  <link rel="stylesheet" href="css/book-now.css" />
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>HandyHub – Emergency</title>
+
+  <!-- Leaflet (same CDN + integrity as book-now.html) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPeE=" crossorigin=""></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+
   <style>
-    /* ── Emergency shell ── */
-    .em-shell {
-      max-width: 430px; margin: 0 auto;
-      min-height: 100vh; position: relative; overflow: hidden;
-      font-family: 'DM Sans', -apple-system, sans-serif;
-    }
+/* ── Reset ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
 
-    /* ── States ── */
-    .em-state { display: none; min-height: 100vh; flex-direction: column; }
-    .em-state.active { display: flex; }
+body {
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  background: #f5f5f5;
+  color: #111;
+  -webkit-font-smoothing: antialiased;
+}
 
-    /* ── STATE 1: SEARCHING ── */
-    .em-searching-bg {
-      flex: 1; background: linear-gradient(160deg, #730201 0%, #4a0101 100%);
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 32px 24px; text-align: center;
-      position: relative; min-height: 100vh;
-    }
-    .em-back-btn-overlay {
-      position: absolute; top: 56px; left: 20px;
-      width: 40px; height: 40px; background: rgba(255,255,255,0.18);
-      border: none; border-radius: 12px; display: flex; align-items: center;
-      justify-content: center; cursor: pointer; color: #fff;
-    }
-    .em-rings { position: relative; width: 200px; height: 200px; margin-bottom: 28px; }
-    .em-ring {
-      position: absolute; top: 50%; left: 50%; border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.18);
-      transform: translate(-50%,-50%);
-      animation: pulse-ring 2.4s ease-out infinite;
-    }
-    .em-ring-1 { width: 80px; height: 80px; animation-delay: 0s; }
-    .em-ring-2 { width: 130px; height: 130px; animation-delay: 0.6s; }
-    .em-ring-3 { width: 190px; height: 190px; animation-delay: 1.2s; }
-    @keyframes pulse-ring {
-      0%   { opacity: 0.8; transform: translate(-50%,-50%) scale(0.85); }
-      100% { opacity: 0;   transform: translate(-50%,-50%) scale(1.05); }
-    }
-    .em-center-avatar {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%,-50%);
-      width: 64px; height: 64px; border-radius: 50%;
-      background: rgba(255,255,255,0.2);
-      display: flex; align-items: center; justify-content: center;
-      border: 3px solid rgba(255,255,255,0.45);
-    }
-    .em-search-title { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 8px; }
-    .em-search-sub { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.6; margin-bottom: 32px; }
-    .em-dots { display: flex; gap: 8px; margin-bottom: 32px; }
-    .em-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5);
-      animation: dot-bounce 1.4s ease-in-out infinite;
-    }
-    .em-dot:nth-child(2) { animation-delay: 0.2s; }
-    .em-dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes dot-bounce { 0%,80%,100% { opacity:0.3; transform:scale(0.7); } 40% { opacity:1; transform:scale(1); } }
+/* ── Shell: full-height, map + sheet stacked ─────────── */
+.em-shell {
+  max-width: 430px;
+  margin: 0 auto;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
 
-    .em-stats-row { display: flex; gap: 24px; margin-bottom: 32px; }
-    .em-stat-item { text-align: center; }
-    .em-stat-val { font-size: 22px; font-weight: 900; color: #fff; }
-    .em-stat-lbl { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
-    .em-stat-divider { width: 1px; background: rgba(255,255,255,0.12); }
+/* ── MAP (fills space above sheet) ───────────────────── */
+#em-map {
+  flex: 1;
+  min-height: 0;
+  z-index: 0;
+  background: #e5e0d8;
+}
 
-    .em-cancel-btn {
-      background: rgba(255,255,255,0.15); color: #fff;
-      border: 1.5px solid rgba(255,255,255,0.35); border-radius: 14px;
-      padding: 14px 32px; font-size: 14px; font-weight: 700;
-      cursor: pointer; font-family: inherit; transition: background 0.15s;
-    }
-    .em-cancel-btn:active { background: rgba(255,255,255,0.25); }
+/* ── Map overlay header ──────────────────────────────── */
+.em-map-hdr {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: env(safe-area-inset-top, 48px) 16px 14px;
+  padding-top: max(env(safe-area-inset-top, 0px), 48px);
+  background: linear-gradient(to bottom,
+    rgba(255,255,255,0.96) 0%,
+    rgba(255,255,255,0.7)  65%,
+    transparent 100%);
+  pointer-events: none;
+}
+.em-map-hdr > * { pointer-events: all; }
 
-    /* ── STATE 2: MATCH FOUND ── */
-    .em-matched-bg {
-      flex: 1; background: linear-gradient(160deg, #1b5e20 0%, #0a2e0d 100%);
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 32px 24px; text-align: center; min-height: 100vh;
-    }
-    .em-match-check {
-      width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 20px;
-      animation: pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
-    }
-    @keyframes pop-in { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .em-match-title { font-size: 26px; font-weight: 900; color: #fff; margin-bottom: 8px; }
-    .em-match-sub { font-size: 14px; color: rgba(255,255,255,0.75); margin-bottom: 28px; line-height: 1.6; }
-    .em-match-pro-card {
-      background: rgba(255,255,255,0.15); border-radius: 18px;
-      display: flex; align-items: center; gap: 14px;
-      padding: 16px; width: 100%; max-width: 340px; margin-bottom: 24px;
-      backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);
-    }
-    .em-match-photo {
-      width: 56px; height: 56px; border-radius: 14px; object-fit: cover;
-      border: 2px solid rgba(255,255,255,0.4); flex-shrink: 0;
-      background: rgba(255,255,255,0.15);
-    }
-    .em-match-info { flex: 1; text-align: left; }
-    .em-match-name { font-size: 15px; font-weight: 800; color: #fff; }
-    .em-match-type { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
-    .em-match-rating { font-size: 12px; color: rgba(255,255,255,0.85); margin-top: 4px; }
-    .em-match-eta { text-align: right; flex-shrink: 0; }
-    .em-match-eta-label { font-size: 10px; color: rgba(255,255,255,0.6); }
-    .em-match-eta-val { font-size: 22px; font-weight: 900; color: #fff; }
-    .em-progress-wrap { width: 100%; max-width: 320px; }
-    .em-progress-track { height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
-    .em-progress-fill { height: 100%; background: #fff; border-radius: 2px; width: 0%; transition: width 2.2s linear; }
-    .em-progress-text { font-size: 12px; color: rgba(255,255,255,0.6); text-align: center; margin-top: 8px; }
+.em-hdr-back {
+  width: 38px; height: 38px;
+  background: #fff;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #111;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+.em-hdr-back:active { background: #f5f5f5; }
 
-    /* ── STATE 3: CONFIRMED ── */
-    .em-con-header {
-      background: linear-gradient(135deg, #730201, #5a0101);
-      padding: 52px 16px 16px;
-      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
-    }
-    .em-con-header-back {
-      width: 40px; height: 40px; background: rgba(255,255,255,0.2);
-      border: none; border-radius: 12px; display: flex; align-items: center;
-      justify-content: center; cursor: pointer; flex-shrink: 0; color: #fff;
-    }
-    .em-con-header-text { flex: 1; }
-    .em-con-header-title { font-size: 16px; font-weight: 800; color: #fff; }
-    .em-con-header-sub { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 2px; }
-    .em-notif-btn {
-      width: 40px; height: 40px; background: rgba(255,255,255,0.15);
-      border: none; border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; flex-shrink: 0; cursor: pointer; color: #fff;
-    }
+.em-hdr-logo {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: -0.3px;
+}
+.em-hdr-logo span { color: #730201; }
 
-    .em-con-scroll {
-      flex: 1; overflow-y: auto; padding: 16px 16px 100px;
-      background: var(--bg, #f5f5f5);
-      -webkit-overflow-scrolling: touch;
-    }
+.em-hdr-end { width: 38px; flex-shrink: 0; }
 
-    /* ETA card */
-    .em-eta-card {
-      background: var(--surface, #fff); border-radius: 18px;
-      display: flex; align-items: center; gap: 14px; padding: 16px;
-      margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-    .em-eta-icon { width: 48px; height: 48px; background: #fde8e8; border-radius: 14px;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .em-eta-body { flex: 1; }
-    .em-eta-label { font-size: 11px; color: #888; font-weight: 600; margin-bottom: 2px; }
-    .em-eta-val { font-size: 28px; font-weight: 900; color: #111; letter-spacing: -1px; }
-    .em-eta-sub { font-size: 12px; color: #aaa; margin-top: 2px; }
-    .em-eta-status {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 11px; font-weight: 700; color: #2e7d32; flex-shrink: 0;
-    }
-    .em-eta-dot-live {
-      width: 8px; height: 8px; border-radius: 50%; background: #2e7d32;
-      animation: live-pulse 1.2s ease-in-out infinite;
-    }
-    @keyframes live-pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+/* ── User location pin (pulsing, brand color) ────────── */
+.em-user-pin-wrap {
+  position: relative;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
+.em-user-dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #730201;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 10px rgba(115,2,1,0.45);
+  position: relative; z-index: 1;
+}
+.em-user-pin-wrap::before,
+.em-user-pin-wrap::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(115,2,1,0.35);
+  animation: em-pin-ring 2.4s ease-out infinite;
+}
+.em-user-pin-wrap::before { width: 34px; height: 34px; animation-delay: 0s; }
+.em-user-pin-wrap::after  { width: 44px; height: 44px; animation-delay: 0.9s; border-color: rgba(115,2,1,0.15); }
+@keyframes em-pin-ring {
+  0%   { opacity: 0.9; transform: scale(0.7); }
+  100% { opacity: 0;   transform: scale(1.1); }
+}
 
-    /* Pro card */
-    .em-pro-card {
-      background: var(--surface, #fff); border-radius: 18px;
-      display: flex; align-items: center; gap: 14px; padding: 16px;
-      margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-    .em-pro-photo-wrap { position: relative; flex-shrink: 0; }
-    .em-pro-photo {
-      width: 60px; height: 60px; border-radius: 16px; object-fit: cover;
-      background: linear-gradient(135deg, #730201, #a03030);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px; font-weight: 800; color: #fff;
-    }
-    .em-pro-photo img { width: 100%; height: 100%; border-radius: 16px; object-fit: cover; }
-    .em-pro-online {
-      position: absolute; bottom: 2px; right: 2px;
-      width: 14px; height: 14px; border-radius: 50%;
-      background: #22c55e; border: 2.5px solid #fff;
-    }
-    .em-pro-info { flex: 1; }
-    .em-pro-name { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 3px; }
-    .em-pro-type { font-size: 12px; color: #888; font-weight: 500; }
-    .em-pro-rating { font-size: 12px; color: #666; margin-top: 4px; }
-    .em-pro-call-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0;
-    }
-    .em-pro-call-circle {
-      width: 46px; height: 46px; background: #fde8e8; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      border: none; cursor: pointer; transition: background 0.15s;
-    }
-    .em-pro-call-circle:active { background: #f5c2c2; }
-    .em-pro-call-label { font-size: 10px; color: #730201; font-weight: 700; }
+/* ── BOTTOM SHEET ────────────────────────────────────── */
+.em-sheet {
+  flex-shrink: 0;
+  height: 56vh;
+  min-height: 300px;
+  max-height: 480px;
+  background: #fff;
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -3px 24px rgba(0,0,0,0.10);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+}
 
-    /* Action buttons */
-    .em-actions { display: flex; gap: 10px; margin-bottom: 12px; }
-    .em-action-btn {
-      flex: 1; padding: 14px; border-radius: 14px; font-size: 13.5px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      cursor: pointer; border: none; font-family: inherit; transition: opacity 0.15s;
-    }
-    .em-action-btn:active { opacity: 0.85; }
-    .em-action-call { background: #730201; color: #fff; }
-    .em-action-msg { background: var(--surface, #fff); color: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.em-sheet-handle {
+  width: 36px; height: 4px;
+  background: #ddd;
+  border-radius: 2px;
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
 
-    /* Trust banner */
-    .em-trust-banner {
-      background: #e8f5e9; border-radius: 14px; padding: 12px 14px;
-      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
-      font-size: 12.5px; font-weight: 600; color: #2e7d32;
-    }
+/* ── Progress strip (inside sheet, minimal) ──────────── */
+.em-strip {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px 0;
+  flex-shrink: 0;
+}
+.em-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.em-step-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #ddd;
+  transition: background 0.25s;
+}
+.em-step.active .em-step-dot {
+  background: #730201;
+  box-shadow: 0 0 0 4px rgba(115,2,1,0.12);
+}
+.em-step.done .em-step-dot { background: #22c55e; }
+.em-step-lbl {
+  font-size: 9.5px; font-weight: 600;
+  color: #bbb; white-space: nowrap;
+}
+.em-step.active .em-step-lbl { color: #730201; }
+.em-step.done   .em-step-lbl { color: #22c55e; }
+.em-strip-line {
+  flex: 1;
+  height: 2px;
+  background: #eee;
+  margin-bottom: 12px;
+  transition: background 0.25s;
+}
+.em-strip-line.done { background: #22c55e; }
 
-    /* Booking ref */
-    .em-ref-card {
-      background: var(--surface, #fff); border-radius: 14px; padding: 14px;
-      margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .em-ref-info { flex: 1; }
-    .em-ref-label { font-size: 11px; color: #888; }
-    .em-ref-val { font-size: 14px; font-weight: 800; color: #111; }
-    .em-share-btn {
-      background: #fde8e8; color: #730201; border: none; padding: 7px 12px;
-      border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;
-    }
-    .em-cancel-link {
-      display: block; width: 100%; background: none; border: none;
-      padding: 14px; font-size: 13px; font-weight: 700; color: #e53e3e;
-      cursor: pointer; font-family: inherit; text-align: center;
-    }
+/* ── Sheet scrollable content area ──────────────────── */
+.em-sheet-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 18px 24px;
+  display: flex;
+  flex-direction: column;
+}
 
-    /* Dark mode */
-    [data-theme="dark"] .em-con-scroll { background: #0a0a0a; }
-    [data-theme="dark"] .em-eta-card,
-    [data-theme="dark"] .em-pro-card,
-    [data-theme="dark"] .em-ref-card { background: #1e1e1e; box-shadow: none; }
-    [data-theme="dark"] .em-eta-val,
-    [data-theme="dark"] .em-pro-name { color: #f0f0f0; }
-    [data-theme="dark"] .em-action-msg { background: #1e1e1e; color: #ccc; }
+/* ── States (only sheet content changes) ─────────────── */
+.em-state { display: none; flex: 1; flex-direction: column; }
+.em-state.active { display: flex; }
+
+/* ── Shared: section label ───────────────────────────── */
+.em-label {
+  font-size: 11px; font-weight: 700;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 8px;
+}
+
+/* ── Shared: artisan card ────────────────────────────── */
+.em-artisan-card {
+  background: #f9f9f9;
+  border: 1px solid #f0f0f0;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.em-av-wrap { position: relative; flex-shrink: 0; }
+.em-av {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #730201, #a03030);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 800; color: #fff;
+  overflow: hidden;
+}
+.em-av img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.em-av-online {
+  position: absolute; bottom: 1px; right: 1px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid #fff;
+}
+.em-artisan-info { flex: 1; min-width: 0; }
+.em-artisan-name {
+  font-size: 15px; font-weight: 800; color: #111;
+  margin-bottom: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.em-artisan-role { font-size: 12.5px; color: #888; }
+.em-artisan-stars {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 12.5px; font-weight: 600; color: #111;
+  margin-top: 4px;
+}
+.em-artisan-rev { font-weight: 400; color: #aaa; }
+.em-artisan-eta { flex-shrink: 0; text-align: right; }
+.em-artisan-eta-val {
+  font-size: 20px; font-weight: 900; color: #730201; line-height: 1;
+}
+.em-artisan-eta-lbl { font-size: 10px; color: #aaa; margin-top: 2px; }
+
+/* ── Shared: skeleton ────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skel {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e5e5e5 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 5px;
+}
+.em-skel-card {
+  background: #f9f9f9;
+  border: 1px solid #f0f0f0;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 8px;
+}
+.em-skel-av { width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; }
+.em-skel-body { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.em-skel-line { height: 12px; }
+.em-skel-r { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.em-skel-num { width: 36px; height: 20px; border-radius: 4px; }
+.em-skel-cap { width: 20px; height: 10px; }
+
+/* ── Shared: trust pills ─────────────────────────────── */
+.em-trust-row {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.em-trust-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #f9f9f9;
+  border: 1px solid #f0f0f0;
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 11.5px; font-weight: 600; color: #666;
+}
+.em-trust-pill.green { background: #f0fdf4; color: #2e7d32; border-color: rgba(34,197,94,0.2); }
+
+/* ── Shared: location strip ──────────────────────────── */
+.em-loc {
+  display: flex; align-items: center; gap: 10px;
+  background: #f9f9f9;
+  border: 1px solid #f0f0f0;
+  border-radius: 14px;
+  padding: 11px 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.em-loc-pin {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  background: #fde8e8;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.em-loc-body { flex: 1; min-width: 0; }
+.em-loc-caption { font-size: 10px; font-weight: 700; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; }
+.em-loc-addr {
+  font-size: 13px; font-weight: 700; color: #111;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.em-loc-edit { font-size: 12px; font-weight: 700; color: #730201; flex-shrink: 0; }
+
+/* ── Shared: primary CTA ─────────────────────────────── */
+.em-cta {
+  width: 100%; height: 52px;
+  background: #730201; color: #fff;
+  border: none; border-radius: 14px;
+  font-family: inherit;
+  font-size: 15px; font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(115,2,1,0.30);
+  transition: opacity 0.15s, transform 0.1s;
+  flex-shrink: 0;
+}
+.em-cta:active  { opacity: 0.88; transform: scale(0.99); }
+.em-cta:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; transform: none; }
+
+/* Cancel text link */
+.em-cancel-link {
+  background: none; border: none;
+  font-family: inherit;
+  font-size: 13.5px; font-weight: 600;
+  color: #aaa;
+  cursor: pointer;
+  padding: 10px 0 0;
+  text-align: center;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+.em-cancel-link:hover { color: #666; }
+
+/* ══════════════════════════════════════════
+   STATE 1 — SEARCHING
+══════════════════════════════════════════ */
+.em-s1-headline {
+  font-size: 20px; font-weight: 800; color: #111;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.em-s1-sub { font-size: 13px; color: #999; margin-bottom: 14px; }
+
+.em-searching-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.em-searching-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #730201;
+  animation: em-dot-pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes em-dot-pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+.em-searching-text { font-size: 13px; font-weight: 500; color: #888; }
+
+/* Service chips */
+.em-chips {
+  display: flex; flex-wrap: wrap; gap: 7px;
+  margin-bottom: 14px;
+}
+.em-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 12.5px; font-weight: 600; color: #888;
+}
+.em-chip.active {
+  background: #730201; border-color: #730201; color: #fff;
+}
+
+/* ══════════════════════════════════════════
+   STATE 2 — MATCH FOUND
+══════════════════════════════════════════ */
+.em-match-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #f0fdf4; color: #2e7d32;
+  border-radius: 20px; padding: 4px 11px;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 8px; align-self: flex-start;
+}
+.em-s2-headline {
+  font-size: 20px; font-weight: 800; color: #111;
+  letter-spacing: -0.3px; margin-bottom: 12px;
+  line-height: 1.2;
+}
+.em-s2-headline em { font-style: normal; color: #730201; }
+
+/* ══════════════════════════════════════════
+   STATE 3 — WAITING
+══════════════════════════════════════════ */
+.em-wait-center {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; text-align: center;
+  padding-top: 4px;
+}
+.em-wait-av-wrap {
+  position: relative;
+  width: 72px; height: 72px;
+  margin-bottom: 14px;
+}
+.em-wait-ring {
+  position: absolute; border-radius: 50%;
+  border: 1.5px solid rgba(115,2,1,0.18);
+  animation: em-wait-ring 2.6s ease-out infinite;
+}
+.em-wait-ring:nth-child(1) { inset: -10px; animation-delay: 0s; }
+.em-wait-ring:nth-child(2) { inset: -20px; animation-delay: 0.9s; border-color: rgba(115,2,1,0.09); }
+@keyframes em-wait-ring { 0%{opacity:0.9;transform:scale(0.88);} 100%{opacity:0;transform:scale(1.04);} }
+.em-wait-av {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg, #730201, #a03030);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 800; color: #fff;
+  overflow: hidden;
+  position: relative; z-index: 1;
+  box-shadow: 0 4px 16px rgba(115,2,1,0.25);
+}
+.em-wait-av img { width:100%;height:100%;object-fit:cover;border-radius:50%; }
+
+.em-amber-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #fffbeb; color: #92400e;
+  border-radius: 20px; padding: 4px 11px;
+  font-size: 11.5px; font-weight: 700;
+  margin-bottom: 10px;
+}
+.em-amber-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #f59e0b;
+  animation: em-dot-pulse 1.3s ease-in-out infinite;
+}
+.em-wait-name { font-size: 16px; font-weight: 800; color: #111; margin-bottom: 2px; }
+.em-wait-role { font-size: 12.5px; color: #888; margin-bottom: 8px; }
+.em-wait-status { font-size: 13.5px; color: #555; line-height: 1.55; margin-bottom: 4px; }
+.em-wait-timer { font-size: 12px; color: #bbb; margin-bottom: 14px; }
+
+/* ══════════════════════════════════════════
+   STATE 4 — CONFIRMED
+══════════════════════════════════════════ */
+.em-con-hero {
+  display: flex; align-items: center; gap: 10px;
+  background: #f0fdf4;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.em-con-check {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  animation: em-check-pop 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes em-check-pop { from{transform:scale(0.3);opacity:0;} to{transform:scale(1);opacity:1;} }
+.em-con-hero-body {}
+.em-con-title { font-size: 15px; font-weight: 800; color: #2e7d32; }
+.em-con-sub   { font-size: 12px; color: #888; margin-top: 1px; }
+
+/* ETA bar */
+.em-eta-bar {
+  display: flex; align-items: center;
+  background: #fde8e8;
+  border-radius: 14px;
+  padding: 12px 16px;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.em-eta-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.em-eta-body { flex: 1; }
+.em-eta-caption { font-size: 10px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+.em-eta-val {
+  font-size: 26px; font-weight: 900; color: #730201;
+  line-height: 1; letter-spacing: -1px;
+}
+.em-eta-addr { font-size: 11px; color: #aaa; margin-top: 1px; }
+.em-eta-live {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 700; color: #2e7d32;
+  flex-shrink: 0;
+}
+.em-eta-live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #22c55e;
+  animation: em-dot-pulse 1.3s ease-in-out infinite;
+}
+
+/* Action pair */
+.em-action-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.em-action-btn {
+  flex: 1; height: 48px;
+  border-radius: 13px; border: none;
+  font-family: inherit; font-size: 13.5px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.em-action-btn:active { opacity: 0.82; }
+.em-action-primary { background: #730201; color: #fff; }
+.em-action-ghost   { background: #f5f5f5; color: #111; }
+
+.em-track-btn {
+  width: 100%; height: 48px;
+  background: #f5f5f5; color: #111;
+  border: none; border-radius: 13px;
+  font-family: inherit; font-size: 13.5px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  cursor: pointer; margin-bottom: 8px;
+  transition: background 0.12s;
+}
+.em-track-btn:active { background: #ebebeb; }
+
+/* Ref row */
+.em-ref-row {
+  display: flex; align-items: center; gap: 10px;
+  background: #f9f9f9; border: 1px solid #f0f0f0;
+  border-radius: 13px; padding: 11px 14px;
+  margin-bottom: 0;
+}
+.em-ref-body { flex: 1; }
+.em-ref-caption { font-size: 10px; font-weight: 700; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; }
+.em-ref-val { font-size: 14px; font-weight: 800; color: #111; letter-spacing: 0.3px; }
+.em-share-btn {
+  background: #fde8e8; color: #730201; border: none;
+  border-radius: 8px; padding: 6px 12px;
+  font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+
+/* Cancel danger link */
+.em-cancel-danger {
+  background: none; border: none;
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  color: #e53e3e; cursor: pointer;
+  padding: 10px 0 0; text-align: center; flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════
+   STATE 5 — NO MATCH
+══════════════════════════════════════════ */
+.em-s5-icon {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: #f5f5f5; border: 1px solid #e8e8e8;
+  display: flex; align-items: center; justify-content: center;
+  margin: 4px auto 14px;
+}
+.em-s5-title { font-size: 18px; font-weight: 800; color: #111; text-align: center; margin-bottom: 8px; }
+.em-s5-sub { font-size: 13px; color: #888; text-align: center; line-height: 1.6; margin-bottom: 18px; }
+.em-s5-secondary {
+  width: 100%; height: 48px;
+  background: #f5f5f5; color: #555;
+  border: none; border-radius: 14px;
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; margin-top: 8px;
+  transition: background 0.12s;
+}
+.em-s5-secondary:active { background: #ebebeb; }
   </style>
 </head>
 <body>
 <div class="em-shell">
 
-  <!-- ══ STATE 1: SEARCHING ══ -->
-  <div class="em-state active" id="state-searching">
-    <div class="em-searching-bg">
-      <button class="em-back-btn-overlay" onclick="safeBack()" aria-label="Go back">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
-      </button>
-
-      <div class="em-rings">
-        <div class="em-ring em-ring-1"></div>
-        <div class="em-ring em-ring-2"></div>
-        <div class="em-ring em-ring-3"></div>
-        <div class="em-center-avatar">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-            <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-      </div>
-
-      <p class="em-search-title" id="em-search-title">Finding your Professional…</p>
-      <p class="em-search-sub" id="em-search-sub">Searching nearby professionals<br>in your area. Please wait.</p>
-
-      <div class="em-dots">
-        <div class="em-dot"></div>
-        <div class="em-dot"></div>
-        <div class="em-dot"></div>
-      </div>
-
-      <div class="em-stats-row">
-        <div class="em-stat-item">
-          <p class="em-stat-val" id="em-nearby-count">—</p>
-          <p class="em-stat-lbl">Nearby</p>
-        </div>
-        <div class="em-stat-divider"></div>
-        <div class="em-stat-item">
-          <p class="em-stat-val" id="em-avg-rating">—</p>
-          <p class="em-stat-lbl">Avg Rating</p>
-        </div>
-        <div class="em-stat-divider"></div>
-        <div class="em-stat-item">
-          <p class="em-stat-val" id="em-eta-search">—</p>
-          <p class="em-stat-lbl">Est. Arrival</p>
-        </div>
-      </div>
-
-      <button class="em-cancel-btn" onclick="cancelSearch()">Cancel Request</button>
-    </div>
+  <!-- ── Map overlay header (absolute, above the map) ── -->
+  <div class="em-map-hdr">
+    <button class="em-hdr-back" id="em-hdr-back-btn" onclick="safeBack()" aria-label="Go back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="em-hdr-logo">Handy <span>Hub</span></div>
+    <div class="em-hdr-end"></div>
   </div>
 
-  <!-- ══ STATE 2: MATCH FOUND ══ -->
-  <div class="em-state" id="state-matched">
-    <div class="em-matched-bg">
-      <div class="em-match-check">
-        <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
-          <path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <p class="em-match-title">Match Found!</p>
-      <p class="em-match-sub" id="em-match-sub">Connecting you with a nearby professional</p>
+  <!-- ── Leaflet map ── -->
+  <div id="em-map"></div>
 
-      <div class="em-match-pro-card">
-        <div class="em-match-photo" id="em-match-photo-wrap">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="#fff" stroke-width="2"/></svg>
-        </div>
-        <div class="em-match-info">
-          <p class="em-match-name" id="em-match-name">Finding…</p>
-          <p class="em-match-type" id="em-match-type">Searching nearby</p>
-          <p class="em-match-rating" id="em-match-rating">★ — verified professional</p>
-        </div>
-        <div class="em-match-eta">
-          <p class="em-match-eta-label">ETA</p>
-          <p class="em-match-eta-val" id="em-match-eta-val">—</p>
-        </div>
-      </div>
+  <!-- ══════════════════════════════════════════
+       BOTTOM SHEET — states live here
+  ══════════════════════════════════════════ -->
+  <div class="em-sheet">
+    <div class="em-sheet-handle"></div>
 
-      <div class="em-progress-wrap">
-        <div class="em-progress-track">
-          <div class="em-progress-fill" id="em-progress-fill"></div>
-        </div>
-        <p class="em-progress-text">Confirming booking…</p>
+    <!-- ── Progress strip (shared, updated per state) ── -->
+    <div class="em-strip" id="em-strip">
+      <div class="em-step active" id="ps-1">
+        <div class="em-step-dot"></div>
+        <div class="em-step-lbl">Request</div>
+      </div>
+      <div class="em-strip-line" id="ps-line-1"></div>
+      <div class="em-step" id="ps-2">
+        <div class="em-step-dot"></div>
+        <div class="em-step-lbl">Matched</div>
+      </div>
+      <div class="em-strip-line" id="ps-line-2"></div>
+      <div class="em-step" id="ps-3">
+        <div class="em-step-dot"></div>
+        <div class="em-step-lbl">En route</div>
       </div>
     </div>
-  </div>
 
-  <!-- ══ STATE 3: CONFIRMED ══ -->
-  <div class="em-state" id="state-confirmed">
+    <div class="em-sheet-scroll">
 
-    <div class="em-con-header">
-      <button class="em-con-header-back" onclick="window.location.href='booking.html'" aria-label="Bookings">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
-      </button>
-      <div class="em-con-header-text">
-        <p class="em-con-header-title">Professional Assigned</p>
-        <p class="em-con-header-sub" id="em-con-sub">Your professional is on the way!</p>
-      </div>
-      <button class="em-notif-btn" onclick="window.location.href='notification.html'" aria-label="Notifications">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
+      <!-- ════════════ STATE 1: SEARCHING ════════════ -->
+      <div class="em-state active" id="state-searching">
 
-    <div class="em-con-scroll">
+        <p class="em-s1-headline" id="em-s1-headline">Finding your professional</p>
+        <p class="em-s1-sub">Scanning nearby specialists in real time</p>
 
-      <!-- ETA card -->
-      <div class="em-eta-card">
-        <div class="em-eta-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-        </div>
-        <div class="em-eta-body">
-          <p class="em-eta-label">Estimated Arrival</p>
-          <p class="em-eta-val" id="em-eta-countdown">—</p>
-          <p class="em-eta-sub" id="em-eta-address">Your location</p>
-        </div>
-        <div class="em-eta-status">
-          <div class="em-eta-dot-live"></div>
-          On the way
-        </div>
-      </div>
-
-      <!-- Pro card -->
-      <div class="em-pro-card">
-        <div class="em-pro-photo-wrap">
-          <div class="em-pro-photo" id="em-con-photo-wrap">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="#fff" stroke-width="2"/></svg>
+        <!-- Service type context chips -->
+        <div class="em-chips" id="em-svc-chips">
+          <div class="em-chip" data-svc="Plumbing">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.24 2 7 4.24 7 7c0 2.85 2.92 6.21 4.53 8.02.26.3.68.3.94 0C14.08 13.21 17 9.85 17 7c0-2.76-2.24-5-5-5z" stroke="currentColor" stroke-width="2"/></svg>Plumbing
           </div>
-          <div class="em-pro-online"></div>
+          <div class="em-chip" data-svc="Electrical">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Electrical
+          </div>
+          <div class="em-chip" data-svc="Locksmith">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Locksmith
+          </div>
+          <div class="em-chip" data-svc="AC Repair">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>AC Repair
+          </div>
+          <div class="em-chip" data-svc="Carpentry">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Carpentry
+          </div>
+          <div class="em-chip" data-svc="Cleaning">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="2"/></svg>Cleaning
+          </div>
         </div>
-        <div class="em-pro-info">
-          <p class="em-pro-name" id="em-con-name">Professional</p>
-          <p class="em-pro-type" id="em-con-type">Service</p>
-          <p class="em-pro-rating" id="em-con-rating">★ — verified</p>
+
+        <!-- Skeleton matching artisan card shape -->
+        <div class="em-searching-row">
+          <div class="em-searching-dot"></div>
+          <div class="em-searching-text">Scanning nearby professionals…</div>
         </div>
-        <div class="em-pro-call-btn">
-          <button class="em-pro-call-circle" id="em-call-btn" onclick="callPro()" aria-label="Call professional">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#730201" stroke-width="2"/></svg>
+        <div class="em-skel-card">
+          <div class="em-skel-av skel"></div>
+          <div class="em-skel-body">
+            <div class="em-skel-line skel" style="width:70%;"></div>
+            <div class="em-skel-line skel" style="width:50%;"></div>
+            <div class="em-skel-line skel" style="width:38%;"></div>
+          </div>
+          <div class="em-skel-r">
+            <div class="em-skel-num skel"></div>
+            <div class="em-skel-cap skel"></div>
+          </div>
+        </div>
+        <div class="em-skel-card" style="opacity:0.45;">
+          <div class="em-skel-av skel"></div>
+          <div class="em-skel-body">
+            <div class="em-skel-line skel" style="width:60%;"></div>
+            <div class="em-skel-line skel" style="width:42%;"></div>
+          </div>
+        </div>
+
+        <div style="flex:1;"></div>
+        <button class="em-cancel-link" onclick="cancelSearch()">Cancel request</button>
+      </div>
+
+
+      <!-- ════════════ STATE 2: MATCH FOUND ════════════ -->
+      <div class="em-state" id="state-matched">
+
+        <div class="em-match-pill">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>
+          Professional found
+        </div>
+
+        <p class="em-s2-headline" id="em-match-headline">Your <em id="em-match-svc">specialist</em><br>is nearby</p>
+
+        <!-- Real artisan card from Firestore -->
+        <div class="em-artisan-card">
+          <div class="em-av-wrap">
+            <div class="em-av" id="em-match-av">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="#fff" stroke-width="2"/></svg>
+            </div>
+            <div class="em-av-online"></div>
+          </div>
+          <div class="em-artisan-info">
+            <div class="em-artisan-name" id="em-match-name">Professional</div>
+            <div class="em-artisan-role" id="em-match-role">Specialist</div>
+            <div class="em-artisan-stars" id="em-match-stars">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span>—</span>
+            </div>
+          </div>
+          <div class="em-artisan-eta">
+            <div class="em-artisan-eta-val" id="em-match-eta">~10m</div>
+            <div class="em-artisan-eta-lbl">ETA</div>
+          </div>
+        </div>
+
+        <!-- Trust signals before CTA -->
+        <div class="em-trust-row">
+          <div class="em-trust-pill green" id="em-trust-verified">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="#4caf50"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Verified
+          </div>
+          <div class="em-trust-pill" id="em-trust-jobs">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="#666" stroke-width="1.8" stroke-linecap="round"/></svg>
+            — jobs
+          </div>
+          <div class="em-trust-pill" id="em-trust-resp">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#666" stroke-width="1.8"/><path d="M12 6v6l4 2" stroke="#666" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Quick responder
+          </div>
+        </div>
+
+        <!-- Location confirm -->
+        <div class="em-loc" onclick="typeof openLocationPicker==='function'?openLocationPicker():window.location.href='settings-location.html'">
+          <div class="em-loc-pin">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#730201"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>
+          </div>
+          <div class="em-loc-body">
+            <div class="em-loc-caption">Service address</div>
+            <div class="em-loc-addr" id="em-match-loc">Your current location</div>
+          </div>
+          <div class="em-loc-edit">Change</div>
+        </div>
+
+        <div style="flex:1;"></div>
+        <button class="em-cta" id="em-cta-btn" onclick="confirmEmergencyBooking()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" fill="#fff"/></svg>
+          Book emergency now
+        </button>
+        <button class="em-cancel-link" onclick="safeBack()">Cancel request</button>
+      </div>
+
+
+      <!-- ════════════ STATE 3: WAITING ════════════ -->
+      <div class="em-state" id="state-waiting">
+        <div class="em-wait-center">
+          <div class="em-wait-av-wrap">
+            <div class="em-wait-ring"></div>
+            <div class="em-wait-ring"></div>
+            <div class="em-wait-av" id="em-wait-av">?</div>
+          </div>
+          <div class="em-amber-badge">
+            <div class="em-amber-dot"></div>
+            Awaiting confirmation
+          </div>
+          <div class="em-wait-name" id="em-wait-name">Professional</div>
+          <div class="em-wait-role" id="em-wait-role">Specialist</div>
+          <div class="em-wait-status" id="em-wait-status" style="margin-top:10px;">
+            Waiting for the professional to accept…
+          </div>
+          <div class="em-wait-timer" id="em-wait-timer">Contacting artisan…</div>
+        </div>
+        <button class="em-cancel-link" onclick="cancelWaiting()" style="color:#e53e3e;">Cancel request</button>
+      </div>
+
+
+      <!-- ════════════ STATE 4: CONFIRMED ════════════ -->
+      <div class="em-state" id="state-confirmed">
+
+        <!-- Confirmed banner -->
+        <div class="em-con-hero">
+          <div class="em-con-check">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="em-con-hero-body">
+            <div class="em-con-title">Booking confirmed!</div>
+            <div class="em-con-sub" id="em-con-sub">Your professional is on the way</div>
+          </div>
+        </div>
+
+        <!-- ETA bar -->
+        <div class="em-eta-bar">
+          <div class="em-eta-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="em-eta-body">
+            <div class="em-eta-caption">Estimated arrival</div>
+            <div class="em-eta-val" id="em-eta-countdown">10:00</div>
+            <div class="em-eta-addr" id="em-eta-addr">Your location</div>
+          </div>
+          <div class="em-eta-live">
+            <div class="em-eta-live-dot"></div>
+            En route
+          </div>
+        </div>
+
+        <!-- Artisan card (compact) -->
+        <div class="em-artisan-card">
+          <div class="em-av-wrap">
+            <div class="em-av" id="em-con-av">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="#fff" stroke-width="2"/></svg>
+            </div>
+            <div class="em-av-online"></div>
+          </div>
+          <div class="em-artisan-info">
+            <div class="em-artisan-name" id="em-con-name">Professional</div>
+            <div class="em-artisan-role" id="em-con-role">Specialist</div>
+            <div class="em-artisan-stars" id="em-con-stars">★ Verified</div>
+          </div>
+          <button class="em-share-btn" style="display:flex;align-items:center;gap:5px;" onclick="callPro()" id="em-call-btn" aria-label="Call">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#730201" stroke-width="2"/></svg>
+            Call
           </button>
-          <span class="em-pro-call-label">Call</span>
         </div>
-      </div>
 
-      <!-- Action buttons -->
-      <div class="em-actions">
-        <button class="em-action-btn em-action-call" onclick="callPro()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#fff" stroke-width="2"/></svg>
-          Call Professional
-        </button>
-        <button class="em-action-btn em-action-msg" onclick="window.location.href='messages.html'">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#333" stroke-width="2" stroke-linecap="round"/></svg>
-          Message
-        </button>
-      </div>
-
-      <!-- Trust banner -->
-      <div class="em-trust-banner">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="#4caf50"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
-        Safe arrival guaranteed — your professional is background-verified.
-      </div>
-
-      <!-- Track live button -->
-      <button style="width:100%;background:#730201;color:#fff;border:none;border-radius:14px;padding:14px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="window.location.href='live-tracking.html'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="#fff" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
-        Track Live Location
-      </button>
-
-      <!-- Booking ref -->
-      <div class="em-ref-card">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-        <div class="em-ref-info">
-          <p class="em-ref-label">Booking Reference</p>
-          <p class="em-ref-val" id="em-book-ref">—</p>
+        <!-- Actions -->
+        <div class="em-action-row">
+          <button class="em-action-btn em-action-primary" onclick="callPro()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#fff" stroke-width="2"/></svg>
+            Call
+          </button>
+          <button class="em-action-btn em-action-ghost" onclick="window.location.href='messages.html'">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Message
+          </button>
         </div>
-        <button class="em-share-btn" onclick="shareRef()">Share</button>
+        <button class="em-track-btn" onclick="window.location.href='live-tracking.html'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Track live location
+        </button>
+        <div class="em-ref-row">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#bbb" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+          <div class="em-ref-body">
+            <div class="em-ref-caption">Booking ref</div>
+            <div class="em-ref-val" id="em-book-ref">—</div>
+          </div>
+          <button class="em-share-btn" onclick="shareRef()">Share</button>
+        </div>
+        <button class="em-cancel-danger" onclick="confirmCancel()">Cancel booking</button>
       </div>
 
-      <button class="em-cancel-link" onclick="confirmCancel()">Cancel Booking</button>
 
-    </div>
-  </div>
+      <!-- ════════════ STATE 5: NO MATCH ════════════ -->
+      <div class="em-state" id="state-no-match">
+        <div class="em-s5-icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#bbb" stroke-width="1.8"/><path d="M12 8v5" stroke="#bbb" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="0.5" fill="#bbb" stroke="#bbb" stroke-width="1.5"/></svg>
+        </div>
+        <p class="em-s5-title" id="em-s5-title">No professionals available</p>
+        <p class="em-s5-sub" id="em-s5-sub">No one is available right now. Try again in a few minutes or use standard booking.</p>
+        <button class="em-cta" onclick="window.location.reload()">Try again</button>
+        <button class="em-s5-secondary" onclick="window.location.href='book-now.html'">Use standard booking</button>
+      </div>
+
+    </div><!-- /em-sheet-scroll -->
+  </div><!-- /em-sheet -->
 
 </div><!-- /.em-shell -->
 
@@ -432,415 +868,541 @@
 (function () {
   'use strict';
 
-  /* ─── Read service context from session/storage ─── */
+  /* ── Service from sessionStorage ── */
   let svcName = 'Professional';
   const rawSvc = sessionStorage.getItem('em_service') || sessionStorage.getItem('hh_service') || '';
   if (rawSvc) {
     try {
-      const parsed = JSON.parse(rawSvc);
-      svcName = (parsed && parsed.name) ? parsed.name : (typeof parsed === 'string' ? parsed : svcName);
+      const p = JSON.parse(rawSvc);
+      svcName = (p && p.name) ? p.name : (typeof p === 'string' ? p : svcName);
     } catch (_) { svcName = rawSvc; }
   }
 
-  /* ─── Crypto-random booking reference ─── */
-  const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
+  /* ── Crypto booking reference ── */
+  const _now = new Date();
+  const _pad = n => String(n).padStart(2, '0');
   let _rnd;
   try {
-    const arr = new Uint8Array(2);
-    crypto.getRandomValues(arr);
-    _rnd = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-  } catch(_) {
-    _rnd = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+    const a = new Uint8Array(2); crypto.getRandomValues(a);
+    _rnd = Array.from(a, b => b.toString(16).padStart(2,'0')).join('').toUpperCase();
+  } catch (_) {
+    _rnd = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4,'0');
   }
-  const bookRef = `HHB-${String(now.getFullYear()).slice(2)}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}-${_rnd}`;
+  const bookRef = `HHB-${String(_now.getFullYear()).slice(2)}${_pad(_now.getMonth()+1)}${_pad(_now.getDate())}-${_pad(_now.getHours())}${_pad(_now.getMinutes())}-${_rnd}`;
 
-  /* ─── State ─── */
-  let foundArtisan   = null; // { id, data } from Firestore — null until query resolves
-  let artisanPhone   = null;
-  let etaSeconds     = 0;
-  let etaInterval    = null;
+  /* ── Auth bridge ── */
+  let _authResolve;
+  const _authReady = new Promise(r => { _authResolve = r; window.__emergencyResolveAuth = r; });
+
+  /* ── Location cache ── */
+  let _detectedAddress = '';
+  try { const l = JSON.parse(localStorage.getItem('hh_detected_location')||'null'); if (l&&l.loc) _detectedAddress = l.loc; } catch(_){}
+
+  /* ── State vars ── */
+  let foundArtisan     = null;
+  let artisanPhone     = null;
   let artisanQueryDone = false;
+  let etaSeconds       = 10 * 60;
+  let etaInterval      = null;
+  let _bookingUnsub    = null;
+  let _waitingTimeout  = null;
+  let _waitingTimerInt = null;
+  let _bookingCreated  = false;
 
-  /* ─── Update searching UI with service name ─── */
-  const titleEl = document.getElementById('em-search-title');
-  const subEl   = document.getElementById('em-search-sub');
-  if (titleEl) titleEl.textContent = `Finding your ${svcName}…`;
-  if (subEl)   subEl.textContent   = `Searching ${svcName.toLowerCase()} professionals\nin your area. Please wait.`;
+  /* ── Leaflet map ── */
+  let _map, _userMarker, _artisanMarker;
+  const ACC_LAT = 5.6037, ACC_LNG = -0.1870;
 
-  /* ─── Show state ─── */
+  function initMap() {
+    _map = L.map('em-map', {
+      zoomControl: false,
+      attributionControl: false,
+      scrollWheelZoom: false,
+    }).setView([ACC_LAT, ACC_LNG], 14);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_map);
+
+    const userIcon = L.divIcon({
+      className: '',
+      html: '<div class="em-user-pin-wrap"><div class="em-user-dot"></div></div>',
+      iconSize: [44, 44], iconAnchor: [22, 22],
+    });
+    _userMarker = L.marker([ACC_LAT, ACC_LNG], { icon: userIcon }).addTo(_map);
+
+    // Get real GPS
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const lat = pos.coords.latitude, lng = pos.coords.longitude;
+          _userMarker.setLatLng([lat, lng]);
+          _map.setView([lat, lng], 15);
+        },
+        () => {}, // keep Accra fallback silently
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 }
+      );
+    }
+
+    setTimeout(() => _map && _map.invalidateSize(), 300);
+  }
+
+  /* Show artisan pin on map if they have coordinates */
+  function showArtisanOnMap(artisan) {
+    const d = artisan ? (artisan.data || {}) : {};
+    const aLat = d.latitude || d.lat || null;
+    const aLng = d.longitude || d.lng || null;
+    if (!aLat || !aLng || !_map) return;
+    const artisanIcon = L.divIcon({
+      className: '',
+      html: `<div style="width:38px;height:38px;border-radius:50%;background:#111;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;">
+               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+             </div>`,
+      iconSize: [38, 38], iconAnchor: [19, 19],
+    });
+    if (_artisanMarker) { _artisanMarker.setLatLng([aLat, aLng]); }
+    else { _artisanMarker = L.marker([aLat, aLng], { icon: artisanIcon }).addTo(_map); }
+    _map.fitBounds([[aLat, aLng], _userMarker.getLatLng()], { padding: [50, 50] });
+  }
+
+  /* ── Progress strip updater ── */
+  function setProgress(step) {
+    // step: 1 = searching, 2 = matched/waiting, 3 = confirmed
+    const steps = [
+      document.getElementById('ps-1'),
+      document.getElementById('ps-2'),
+      document.getElementById('ps-3'),
+    ];
+    const lines = [
+      document.getElementById('ps-line-1'),
+      document.getElementById('ps-line-2'),
+    ];
+    const checkSvg = `<svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.8" stroke-linecap="round"/></svg>`;
+    steps.forEach((s, i) => {
+      s.classList.remove('active', 'done');
+      const dot = s.querySelector('.em-step-dot');
+      if (dot) dot.innerHTML = '';
+      if (i + 1 < step)  { s.classList.add('done'); if (dot) dot.innerHTML = checkSvg; }
+      if (i + 1 === step) { s.classList.add('active'); }
+    });
+    lines.forEach((l, i) => {
+      l.classList.toggle('done', i + 1 < step);
+    });
+  }
+
+  /* ── State machine ── */
   function showState(id) {
     document.querySelectorAll('.em-state').forEach(s => s.classList.remove('active'));
     const el = document.getElementById(id);
     if (el) el.classList.add('active');
+    // Scroll sheet to top
+    const scroll = document.querySelector('.em-sheet-scroll');
+    if (scroll) scroll.scrollTop = 0;
   }
 
-  /* ─── No match state — honest feedback, no fake dispatch ─── */
-  function showNoMatchState() {
-    const titleEl2 = document.getElementById('em-search-title');
-    const subEl2   = document.getElementById('em-search-sub');
-    const dotsEl   = document.querySelector('.em-dots');
-    const statsEl  = document.querySelector('.em-stats-row');
-    const cancelBtn = document.querySelector('.em-cancel-btn');
+  /* ── Cleanup ── */
+  function cleanupSubs() {
+    if (_bookingUnsub) { try { _bookingUnsub(); } catch (_) {} _bookingUnsub = null; }
+    clearTimeout(_waitingTimeout);
+    clearInterval(_waitingTimerInt);
+  }
+  window.addEventListener('pagehide', cleanupSubs);
 
-    if (titleEl2) titleEl2.textContent = 'No Professionals Available';
-    if (subEl2)   subEl2.textContent   = `No ${svcName || ''} professionals are available right now. Try again shortly or use standard booking.`;
-    if (dotsEl)   dotsEl.style.display = 'none';
-    if (statsEl)  statsEl.style.display = 'none';
-    if (cancelBtn) {
-      cancelBtn.textContent = 'Go Back';
-      cancelBtn.onclick = function() {
-        sessionStorage.removeItem('em_service');
-        sessionStorage.removeItem('hh_service');
-        window.location.href = 'dashboard.html';
-      };
-      // Add retry button after cancel
-      const retryBtn = document.createElement('button');
-      retryBtn.className = 'em-cancel-btn';
-      retryBtn.style.marginTop = '12px';
-      retryBtn.textContent = 'Try Again';
-      retryBtn.onclick = function() { window.location.reload(); };
-      cancelBtn.insertAdjacentElement('afterend', retryBtn);
+  /* ── Avatar renderer ── */
+  function renderAv(el, d) {
+    if (!el) return;
+    if (d && d.profileImage) {
+      el.innerHTML = `<img src="${d.profileImage}" alt="${d.name||''}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    } else {
+      el.innerHTML = '';
+      const name = (d && d.name) ? d.name : svcName;
+      el.textContent = name.split(' ').map(w => w[0]||'').join('').slice(0,2).toUpperCase() || '?';
     }
   }
 
-  /* ─── Query Firestore for an available artisan ─── */
-  function findNearestArtisan() {
-    return import('../shared/js/app/container.js')
-      .then(function(mod) {
-        const container = mod.getAppContainer();
-        const repo = container.repositories.artisanRepository;
-        // Try category-specific first, fall back to any available artisan
-        return repo.findByCategory(svcName)
-          .then(function(results) {
-            if (results && results.length) return results[0];
-            // Fallback: any top-rated available artisan
-            return repo.getTopRated(5).then(function(any) {
-              return (any && any.length) ? any[0] : null;
-            });
-          });
-      })
-      .catch(function(err) {
-        console.warn('[emergency] Artisan query failed:', err);
-        return null;
-      });
-  }
+  /* ── Init labels ── */
+  const s1HeadEl = document.getElementById('em-s1-headline');
+  if (s1HeadEl) s1HeadEl.textContent = `Finding your ${svcName.toLowerCase()}`;
 
-  /* ─── Populate matched state with real artisan data ─── */
+  const locEl = document.getElementById('em-loc-text'); // in s1 (doesn't exist but safe)
+  const matchLocEl = document.getElementById('em-match-loc');
+  if (matchLocEl) matchLocEl.textContent = _detectedAddress || 'Your current location';
+
+  document.querySelectorAll('.em-chip').forEach(chip => {
+    if ((chip.dataset.svc || '').toLowerCase() === svcName.toLowerCase()) chip.classList.add('active');
+  });
+
+  /* ── Populate STATE 2 ── */
   function populateMatchedState(artisan) {
-    const d    = artisan.data || {};
-    const name = d.name     || 'Professional';
-    const type = d.specialty || d.category || 'Artisan';
-    const exp  = d.yearsExperience ? `${d.yearsExperience} years` : '';
-    const rating  = d.rating    != null ? Number(d.rating).toFixed(1) : null;
-    const reviews = d.reviewCount || 0;
+    const d    = artisan ? (artisan.data || {}) : {};
+    const name = d.name      || 'Professional';
+    const role = d.specialty || d.category || svcName;
+    const exp  = d.yearsExperience;
+    const rating = d.rating != null ? Number(d.rating).toFixed(1) : null;
+    const revs   = d.reviewCount || 0;
+    const jobs   = d.jobsCompleted;
 
-    const matchSub    = document.getElementById('em-match-sub');
-    const matchName   = document.getElementById('em-match-name');
-    const matchType   = document.getElementById('em-match-type');
-    const matchRating = document.getElementById('em-match-rating');
-    const matchEta    = document.getElementById('em-match-eta-val');
+    document.getElementById('em-match-name').textContent = name;
+    document.getElementById('em-match-role').textContent = role + (exp ? ` · ${exp} yr exp` : '');
+    document.getElementById('em-match-headline').innerHTML = `Your <em>${role.toLowerCase()}</em><br>is nearby`;
+    document.getElementById('em-match-svc').textContent = role.toLowerCase();
 
-    if (matchSub)    matchSub.innerHTML = `Connecting you with<br><strong>${name}</strong>`;
-    if (matchName)   matchName.textContent  = name;
-    if (matchType)   matchType.textContent  = type + (exp ? ' · ' + exp + ' experience' : '');
-    if (matchRating) matchRating.textContent = rating
-      ? `★ ${rating}${reviews ? ' (' + reviews + ' reviews)' : ''}` : '★ Verified professional';
-    if (matchEta)    matchEta.textContent   = 'Confirming…';
-
-    // Avatar
-    const photoWrap = document.getElementById('em-match-photo-wrap');
-    if (photoWrap) {
-      if (d.profileImage) {
-        photoWrap.innerHTML = `<img src="${d.profileImage}" alt="${name}"
-          style="width:56px;height:56px;border-radius:14px;object-fit:cover;">`;
-        photoWrap.style.cssText = '';
-      } else {
-        const initials = name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
-        photoWrap.style.cssText = 'width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;';
-        photoWrap.textContent = initials;
-      }
+    const starsEl = document.getElementById('em-match-stars');
+    if (starsEl && rating) {
+      starsEl.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span>${rating}</span><span class="em-artisan-rev"> (${revs})</span>`;
     }
+    renderAv(document.getElementById('em-match-av'), d);
+
+    if (jobs != null) {
+      const jobsEl = document.getElementById('em-trust-jobs');
+      if (jobsEl) jobsEl.lastChild.textContent = ` ${jobs} jobs`;
+    }
+    const verEl = document.getElementById('em-trust-verified');
+    if (verEl && d.verificationStatus !== 'approved') verEl.lastChild.textContent = ' Verified';
+
+    showArtisanOnMap(artisan);
   }
 
-  /* ─── Populate confirmed state with real artisan data ─── */
-  function populateConfirmedState(artisan) {
-    const d    = artisan.data || {};
-    const name = d.name     || 'Professional';
-    const type = d.specialty || d.category || 'Artisan';
-    const exp  = d.yearsExperience ? `${d.yearsExperience} years` : '';
-    const rating  = d.rating != null ? Number(d.rating).toFixed(1) : null;
-    const reviews = d.reviewCount || 0;
+  /* ── Populate STATE 3 ── */
+  function populateWaitingState(artisan) {
+    const d    = artisan ? (artisan.data || {}) : {};
+    const name = d.name || 'Professional';
+    const role = d.specialty || d.category || svcName;
+    document.getElementById('em-wait-name').textContent = name;
+    document.getElementById('em-wait-role').textContent = role;
+    document.getElementById('em-wait-status').innerHTML =
+      `Waiting for <strong>${name.split(' ')[0]}</strong> to accept…`;
+    renderAv(document.getElementById('em-wait-av'), d);
+    showArtisanOnMap(artisan);
+  }
 
+  /* ── Populate STATE 4 ── */
+  function populateConfirmedState(artisan) {
+    const d      = artisan ? (artisan.data || {}) : {};
+    const name   = d.name     || 'Professional';
+    const role   = d.specialty || d.category || svcName;
+    const rating = d.rating != null ? Number(d.rating).toFixed(1) : null;
+    const revs   = d.reviewCount || 0;
     artisanPhone = d.phone ? `tel:${d.phone}` : null;
 
-    const conSub    = document.getElementById('em-con-sub');
-    const conName   = document.getElementById('em-con-name');
-    const conType   = document.getElementById('em-con-type');
-    const conRating = document.getElementById('em-con-rating');
-    const bookRefEl = document.getElementById('em-book-ref');
-    const etaAddr   = document.getElementById('em-eta-address');
+    document.getElementById('em-con-name').textContent  = name;
+    document.getElementById('em-con-role').textContent  = role;
+    document.getElementById('em-con-stars').textContent = rating ? `★ ${rating} (${revs} reviews)` : '★ Verified';
+    document.getElementById('em-con-sub').textContent   = `${name.split(' ')[0]} is on the way`;
+    document.getElementById('em-book-ref').textContent  = bookRef;
+    if (_detectedAddress) document.getElementById('em-eta-addr').textContent = _detectedAddress;
 
-    if (conSub)    conSub.textContent    = `${name.split(' ')[0]} is on the way!`;
-    if (conName)   conName.textContent   = name;
-    if (conType)   conType.textContent   = type + (exp ? ' · ' + exp + ' experience' : '');
-    if (conRating) conRating.textContent = rating
-      ? `★ ${rating}${reviews ? ' (' + reviews + ' reviews)' : ''}` : '★ Verified';
-    if (bookRefEl) bookRefEl.textContent = bookRef;
-
-    // Location address
-    try {
-      const cache = JSON.parse(localStorage.getItem('hh_detected_location') || 'null');
-      if (cache && cache.loc && etaAddr) etaAddr.textContent = cache.loc;
-    } catch(_) {}
-
-    // Avatar
-    const photoWrap = document.getElementById('em-con-photo-wrap');
-    if (photoWrap) {
-      if (d.profileImage) {
-        photoWrap.innerHTML = `<img src="${d.profileImage}" alt="${name}"
-          style="width:60px;height:60px;border-radius:16px;object-fit:cover;">`;
-        photoWrap.style.cssText = '';
-      } else {
-        const initials = name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
-        photoWrap.style.cssText = 'width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;';
-        photoWrap.textContent = initials;
-      }
-    }
-
-    // Start ETA countdown (default 8 min if no data)
-    etaSeconds = 8 * 60;
+    renderAv(document.getElementById('em-con-av'), d);
+    showArtisanOnMap(artisan);
     startEtaCountdown();
-    saveEmergencyBooking(artisan);
-  }
+    saveEmergencyBookingLocally(artisan);
 
-  /* ─── Save booking to localStorage + Firestore ─── */
-  function saveEmergencyBooking(artisan) {
-    const d = artisan ? (artisan.data || {}) : {};
-    const proName = d.name || 'Professional';
-    const proType = d.specialty || d.category || 'Artisan';
+    // ── Escrow: hold funds once artisan has confirmed ────────────────────────
+    // Emergency bookings have a call-out fee (currently 0 for MVP — wire is in
+    // place for when pricing is added). artisanId is required for release.
+    const emergencyAmount = parseFloat(d.callOutFee || 0);
     const artisanId = artisan ? artisan.id : null;
 
-    let detectedAddress = '';
-    try {
-      const locCache = JSON.parse(localStorage.getItem('hh_detected_location') || 'null');
-      if (locCache && locCache.loc) detectedAddress = locCache.loc;
-    } catch(_) {}
+    if (emergencyAmount > 0 && artisanId) {
+      _authReady.then(function (auth) {
+        if (!auth || !auth.uid) return;
 
-    const record = {
-      id:          bookRef,
-      service:     svcName + ' (Emergency)',
-      proName,
-      proType,
-      proPhoto:    d.profileImage || null,
-      artisanId,
-      dateDisplay: now.toDateString(),
-      time:        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      total:       0, // collected on completion
-      status:      'Emergency',
-      type:        'emergency',
-      isEmergency: true,
-      ts:          now.toISOString(),
-    };
+        // Idempotency: skip if already held (e.g. re-entering confirmed state)
+        try {
+          const bk = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+          if (bk.escrowId) return;
+        } catch (_) {}
 
-    try {
-      // Active booking
-      localStorage.setItem('hh_booking', JSON.stringify({
-        id:           bookRef,
-        service:      svcName + ' (Emergency)',
-        services:     [{ name: svcName + ' (Emergency)' }],
-        status:       'Emergency',
-        type:         'emergency',
-        isEmergency:  true,
-        artisanId,
-        artisan:      { id: artisanId, name: proName, type: proType,
-                        phone: d.phone || null, photo: d.profileImage || null },
-        professional: { id: artisanId, uid: artisanId, name: proName, type: proType,
-                        phone: d.phone ? `tel:${d.phone}` : null, photo: d.profileImage || null },
-        total:        0,
-        ts:           now.toISOString(),
-      }));
-      // History (50-record cap)
-      const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
-      if (!hist.length || hist[0].id !== bookRef) {
-        hist.unshift(record);
-        localStorage.setItem('hh_booking_history', JSON.stringify(hist.slice(0, 50)));
-      }
-    } catch(_) {}
-
-    // ── Bridge to Firestore (fire-and-forget) ────────────────────────────────
-    const bookingRecord = {
-      id:          bookRef,
-      service:     svcName,
-      proName,
-      artisanId,          // real artisan UID, or null if dispatch not yet matched
-      dateDisplay: now.toDateString(),
-      time:        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      total:       0,
-      status:      'Emergency',
-      type:        'emergency',
-      ts:          now.toISOString(),
-      eta:         '8 min',
-      refCode:     bookRef,
-      notes:       '',
-      address:     detectedAddress,
-    };
-
-    import('../shared/js/utils/bookingConfirmNotify.js')
-      .then(function(m) { return m.onBookingConfirmed(bookingRecord); })
-      .catch(function(err) { console.warn('[emergency] Firestore bridge failed:', err.message); });
+        import('../shared/js/services/walletService.js')
+          .then(function (m) {
+            return m.holdBookingFunds({
+              bookingId: bookRef,
+              artisanId,
+              amount:    emergencyAmount,
+            });
+          })
+          .then(function (result) {
+            // Persist escrowId so live-tracking.html can release on completion
+            try {
+              const bk = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+              bk.escrowId = result.escrowId;
+              localStorage.setItem('hh_booking', JSON.stringify(bk));
+            } catch (_) {}
+            console.log('[emergency] Escrow held:', result.escrowId);
+          })
+          .catch(function (err) {
+            console.warn('[emergency] Escrow hold failed:', err.message);
+          });
+      }).catch(function (_) {});
+    }
   }
 
-  /* ─── ETA countdown ─── */
+  /* ── ETA countdown ── */
   function startEtaCountdown() {
     const el = document.getElementById('em-eta-countdown');
-    if (el) {
-      const m = Math.floor(etaSeconds / 60);
-      const s = etaSeconds % 60;
-      el.textContent = `${m}:${pad(s)}`;
-    }
-    etaInterval = setInterval(function() {
-      if (etaSeconds <= 0) {
-        clearInterval(etaInterval);
-        if (el) el.textContent = 'Arrived!';
-        const statusEl = document.querySelector('.em-eta-status');
-        if (statusEl) statusEl.textContent = 'Arrived';
-        return;
-      }
-      etaSeconds--;
-      if (el) {
-        const m = Math.floor(etaSeconds / 60);
-        const s = etaSeconds % 60;
-        el.textContent = `${m}:${pad(s)}`;
-      }
+    const tick = () => { if (!el) return; el.textContent = `${Math.floor(etaSeconds/60)}:${_pad(etaSeconds%60)}`; };
+    tick();
+    etaInterval = setInterval(() => {
+      if (etaSeconds <= 0) { clearInterval(etaInterval); if (el) el.textContent = 'Arrived'; return; }
+      etaSeconds--; tick();
     }, 1000);
   }
 
-  /* ─── Dispatch after query resolves ─── */
-  function proceedAfterQuery() {
-    if (!foundArtisan) {
-      showNoMatchState();
-      return;
-    }
-    populateMatchedState(foundArtisan);
-    showState('state-matched');
-
-    // Update stats with real data
-    const nearbyEl = document.getElementById('em-nearby-count');
-    const ratingEl = document.getElementById('em-avg-rating');
-    const etaEl    = document.getElementById('em-eta-search');
-    if (nearbyEl) nearbyEl.textContent = '1';
-    if (ratingEl && foundArtisan.data && foundArtisan.data.rating != null) {
-      ratingEl.textContent = `★ ${Number(foundArtisan.data.rating).toFixed(1)}`;
-    }
-    if (etaEl) etaEl.textContent = '~8 min';
-
-    // Trigger progress bar then move to confirmed
-    setTimeout(function() {
-      const fill = document.getElementById('em-progress-fill');
-      if (fill) fill.style.width = '100%';
-    }, 100);
-    setTimeout(function() {
-      populateConfirmedState(foundArtisan);
-      showState('state-confirmed');
-    }, 2600);
+  /* ── Save booking locally ── */
+  function saveEmergencyBookingLocally(artisan) {
+    const d = artisan ? (artisan.data || {}) : {};
+    const proName   = d.name || 'Professional';
+    const proType   = d.specialty || d.category || svcName;
+    const artisanId = artisan ? artisan.id : null;
+    const record = {
+      id: bookRef, service: svcName + ' (Emergency)', proName, proType,
+      proPhoto: d.profileImage || null, artisanId,
+      dateDisplay: _now.toDateString(),
+      time: _now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+      total: 0, status: 'pending', type: 'emergency', isEmergency: true, ts: _now.toISOString(),
+    };
+    try {
+      localStorage.setItem('hh_booking', JSON.stringify({
+        id: bookRef, bookingId: bookRef,
+        service: svcName + ' (Emergency)', services: [{name: svcName + ' (Emergency)'}],
+        status: 'pending', type: 'emergency', isEmergency: true, artisanId,
+        artisan:      {id:artisanId, name:proName, type:proType, phone:d.phone||null, photo:d.profileImage||null},
+        professional: {id:artisanId, uid:artisanId, name:proName, type:proType, phone:d.phone?`tel:${d.phone}`:null, photo:d.profileImage||null},
+        total: 0, ts: _now.toISOString(),
+      }));
+      const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
+      if (!hist.length || hist[0].id !== bookRef) {
+        hist.unshift(record); localStorage.setItem('hh_booking_history', JSON.stringify(hist.slice(0, 50)));
+      }
+    } catch (_) {}
   }
 
-  /* ─── State sequence — search (+ query) → matched → confirmed ─── */
-  // Start Firestore query immediately (runs in parallel with searching animation)
-  findNearestArtisan().then(function(artisan) {
-    foundArtisan     = artisan;
-    artisanQueryDone = true;
-  }).catch(function() {
-    artisanQueryDone = true; // foundArtisan stays null
-  });
+  /* ── Create Firestore booking + subscription ── */
+  async function createFirestoreBookingAndSubscribe(artisan) {
+    if (_bookingCreated) return;
+    _bookingCreated = true;
+    const btn = document.getElementById('em-cta-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending request…'; }
 
-  // After 3.5s: if query is done, proceed; else wait for it
-  setTimeout(function() {
-    if (artisanQueryDone) {
-      proceedAfterQuery();
-    } else {
-      // Query still in flight — poll until it resolves (max 6s extra)
-      var waited = 0;
-      var poll = setInterval(function() {
-        waited += 200;
-        if (artisanQueryDone || waited >= 6000) {
-          clearInterval(poll);
-          proceedAfterQuery();
+    let uid = null, db = null;
+    try {
+      const auth = await Promise.race([
+        _authReady,
+        new Promise(r => setTimeout(() => r({uid:null,db:null}), 5000)),
+      ]);
+      uid = auth.uid; db = auth.db;
+    } catch (_) {}
+
+    if (!uid || !db) { populateConfirmedState(artisan); showState('state-confirmed'); setProgress(3); return; }
+
+    const d = artisan ? (artisan.data || {}) : {};
+    const artisanId = artisan ? artisan.id : null;
+    const nowISO = _now.toISOString();
+    const doc = {
+      customerId: uid, artisanId, serviceType: svcName,
+      proName: d.name || 'Professional',
+      type: 'emergency', status: 'pending', isEmergency: true,
+      eta: '10 min', refCode: bookRef, refId: bookRef,
+      notes: '', address: _detectedAddress || '', price: 0,
+      scheduledAt: null, createdAt: nowISO, updatedAt: nowISO,
+    };
+
+    try { await db.setDocument('bookings', bookRef, doc); }
+    catch (err) { console.warn('[emergency] Firestore write failed:', err.message); }
+
+    import('../shared/js/utils/bookingConfirmNotify.js')
+      .then(m => m.onBookingConfirmed({
+        id: bookRef, service: svcName, proName: d.name || 'Professional',
+        artisanId, dateDisplay: _now.toDateString(),
+        time: _now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+        total: 0, status: 'pending', type: 'emergency',
+        ts: nowISO, eta: '10 min', refCode: bookRef, notes: '', address: _detectedAddress,
+      }))
+      .catch(err => console.warn('[emergency] Notify failed:', err.message));
+
+    populateWaitingState(artisan);
+    showState('state-waiting');
+    setProgress(2);
+
+    let elapsed = 0;
+    _waitingTimerInt = setInterval(() => {
+      elapsed++;
+      const t = document.getElementById('em-wait-timer');
+      if (t) t.textContent = `Waiting ${elapsed}s…`;
+    }, 1000);
+
+    _waitingTimeout = setTimeout(() => { cleanupSubs(); showNoMatchState('timeout'); }, 60000);
+
+    _bookingUnsub = db.subscribeToDocument('bookings', bookRef,
+      snap => {
+        if (!snap || !snap.data) return;
+        const st = (snap.data.status || '').toLowerCase();
+        if (st === 'accepted') {
+          cleanupSubs();
+          populateConfirmedState(artisan);
+          showState('state-confirmed');
+          setProgress(3);
+        } else if (st === 'rejected') {
+          cleanupSubs(); showNoMatchState('rejected');
+        } else if (st === 'cancelled') {
+          cleanupSubs(); window.location.href = 'dashboard.html';
         }
-      }, 200);
-    }
-  }, 3500);
+      },
+      err => console.warn('[emergency] Booking subscription error:', err)
+    );
+  }
 
-  /* ─── Actions ─── */
-  window.callPro = function() {
-    if (artisanPhone) {
-      window.location.href = artisanPhone;
+  /* ── No-match state ── */
+  function showNoMatchState(reason) {
+    const t = document.getElementById('em-s5-title');
+    const s = document.getElementById('em-s5-sub');
+    if (reason === 'rejected') {
+      if (t) t.textContent = 'Request declined';
+      if (s) s.textContent = `The professional couldn't take your ${svcName} request. Try again shortly.`;
+    } else if (reason === 'timeout') {
+      if (t) t.textContent = 'No response';
+      if (s) s.textContent = `The professional didn't respond in time. Try again or use standard booking.`;
     } else {
-      const btn = document.getElementById('em-call-btn');
-      if (btn) {
-        btn.style.background = '#c8f5ce';
-        setTimeout(function() { btn.style.background = ''; }, 1500);
-      }
+      if (t) t.textContent = 'No professionals available';
+      if (s) s.textContent = `No ${svcName} specialists are available right now.`;
     }
+    showState('state-no-match');
+    setProgress(1);
+  }
+
+  /* ── Artisan query ── */
+  function findNearestArtisan() {
+    return import('../shared/js/app/container.js')
+      .then(mod => {
+        const repo = mod.getAppContainer().repositories.artisanRepository;
+        return repo.findByCategory(svcName)
+          .then(res => res && res.length ? res[0]
+            : repo.getTopRated(5).then(any => any && any.length ? any[0] : null));
+      })
+      .catch(err => { console.warn('[emergency] Artisan query failed:', err); return null; });
+  }
+
+  function proceedAfterQuery() {
+    if (!foundArtisan) { showNoMatchState('none'); return; }
+    populateMatchedState(foundArtisan);
+    showState('state-matched');
+    setProgress(2);
+  }
+
+  /* ── CTA: user explicitly books ── */
+  window.confirmEmergencyBooking = function () {
+    if (!foundArtisan) return;
+    createFirestoreBookingAndSubscribe(foundArtisan);
   };
 
-  window.cancelSearch = function() {
+  /* ── Launch query + searching animation in parallel ── */
+  findNearestArtisan()
+    .then(a => { foundArtisan = a; artisanQueryDone = true; })
+    .catch(() => { artisanQueryDone = true; });
+
+  setTimeout(() => {
+    if (artisanQueryDone) { proceedAfterQuery(); return; }
+    const poll = setInterval(() => {
+      if (artisanQueryDone) { clearInterval(poll); proceedAfterQuery(); }
+    }, 200);
+    setTimeout(() => { clearInterval(poll); if (!artisanQueryDone) { artisanQueryDone = true; proceedAfterQuery(); } }, 8000);
+  }, 3500);
+
+  /* ── Actions ── */
+  window.callPro = function () {
+    if (artisanPhone) { window.location.href = artisanPhone; return; }
+    const btn = document.getElementById('em-call-btn');
+    if (btn) { const o = btn.style.background; btn.style.background='#d4edda'; setTimeout(()=>{btn.style.background=o;},1500); }
+  };
+
+  window.cancelSearch = function () {
     if (confirm('Cancel this emergency request?')) {
-      sessionStorage.removeItem('em_service');
-      sessionStorage.removeItem('hh_service');
+      sessionStorage.removeItem('em_service'); sessionStorage.removeItem('hh_service');
+      history.back();
+    }
+  };
+  window.safeBack = window.cancelSearch;
+
+  function _emGetEscrowId() {
+    try { return JSON.parse(localStorage.getItem('hh_booking') || '{}').escrowId || null; }
+    catch (_) { return null; }
+  }
+
+  function _emRefundEscrow(reason) {
+    const escrowId = _emGetEscrowId();
+    if (!escrowId) return;
+    import('../shared/js/services/walletService.js')
+      .then(function (m) {
+        m.refundBooking(escrowId, reason)
+          .then(function () { console.log('[emergency] Escrow refunded.'); })
+          .catch(function (err) { console.warn('[emergency] Escrow refund failed (auto-release fallback active):', err.message); });
+      });
+  }
+
+  window.cancelWaiting = function () {
+    if (confirm('Cancel this emergency request?')) {
+      cleanupSubs();
+      import('../shared/js/app/container.js')
+        .then(mod => mod.getAppContainer().repositories.bookingRepository.updateStatus(bookRef, 'cancelled'))
+        .catch(err => console.warn('[emergency] Cancel write failed:', err.message));
+      try {
+        const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+        if (b.id === bookRef) { b.status = 'cancelled'; localStorage.setItem('hh_booking', JSON.stringify(b)); }
+      } catch (_) {}
+      // Refund escrow if funds were held (fire-and-forget)
+      _emRefundEscrow('Customer cancelled while waiting for professional');
+      sessionStorage.removeItem('em_service'); sessionStorage.removeItem('hh_service');
       window.location.href = 'dashboard.html';
     }
   };
 
-  window.confirmCancel = function() {
+  window.confirmCancel = function () {
     if (confirm('Cancel this booking? A fee may apply if the professional is already on the way.')) {
-      clearInterval(etaInterval);
-
-      // Update localStorage
-      try {
-        const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
-        b.status = 'cancelled';
-        localStorage.setItem('hh_booking', JSON.stringify(b));
-        const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
-        const idx  = hist.findIndex(function(r) { return r.id === bookRef; });
-        if (idx >= 0) hist[idx].status = 'cancelled';
-        localStorage.setItem('hh_booking_history', JSON.stringify(hist));
-      } catch(_) {}
-
-      // Update Firestore booking status (fire-and-forget)
+      clearInterval(etaInterval); cleanupSubs();
       import('../shared/js/app/container.js')
-        .then(function(mod) {
-          const container = mod.getAppContainer();
-          return container.repositories.bookingRepository.updateStatus(bookRef, 'cancelled');
-        })
-        .catch(function(err) {
-          console.warn('[emergency] Firestore cancel update failed:', err.message);
-        });
-
+        .then(mod => mod.getAppContainer().repositories.bookingRepository.updateStatus(bookRef, 'cancelled'))
+        .catch(err => console.warn('[emergency] Cancel write failed:', err.message));
+      try { const b = JSON.parse(localStorage.getItem('hh_booking')||'{}'); b.status='cancelled'; localStorage.setItem('hh_booking',JSON.stringify(b)); } catch(_){}
+      // Refund escrow if funds were held (fire-and-forget)
+      _emRefundEscrow('Customer cancelled confirmed emergency booking');
       window.location.href = 'booking.html';
     }
   };
 
-  window.shareRef = function() {
+  window.shareRef = function () {
     const ref = document.getElementById('em-book-ref').textContent;
-    if (navigator.share) {
-      navigator.share({ title: 'HandyHub Booking', text: `Emergency booking ref: ${ref}`, url: '' }).catch(function() {});
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(ref).then(function() {
-        const btn = document.querySelector('.em-share-btn');
-        if (btn) { var orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = orig; }, 1500); }
-      }).catch(function() {});
+    if (navigator.share) { navigator.share({ title: 'HandyHub Emergency', text: `Booking ref: ${ref}` }).catch(()=>{}); }
+    else if (navigator.clipboard) {
+      navigator.clipboard.writeText(ref).then(() => {
+        const btn = document.querySelector('[onclick="shareRef()"]');
+        if (btn) { const t=btn.textContent; btn.textContent='Copied!'; setTimeout(()=>{btn.textContent=t;},1500); }
+      }).catch(()=>{});
     }
   };
 
-  window.safeBack = function() { window.cancelSearch(); };
+  /* ── Init map when DOM is ready ── */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMap);
+  } else {
+    initMap();
+  }
 
 })();
 </script>
+
+<!-- Auth module: resolves the auth bridge so Firestore writes get the real customer UID -->
 <script type="module">
-  import { requireAuth } from '../shared/js/utils/authGuard.js';
-  await requireAuth();
+  import { requireAuth }     from '../shared/js/utils/authGuard.js';
+  import { getAppContainer } from '../shared/js/app/container.js';
+  try {
+    await requireAuth();
+    const container = getAppContainer();
+    const user      = await container.services.authService.waitForUser();
+    if (window.__emergencyResolveAuth) {
+      window.__emergencyResolveAuth({ uid: user?.uid || null, db: container.services.databaseService });
+    }
+  } catch (e) {
+    if (window.__emergencyResolveAuth) window.__emergencyResolveAuth({ uid: null, db: null });
+  }
 </script>
 </body>
 </html>

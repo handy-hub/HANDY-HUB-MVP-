@@ -72,7 +72,12 @@
     /** Return true if there is an active booking in progress */
     hasActive: function () {
       var b = booking.get();
-      return b && b.status && ['Confirmed', 'Active', 'On the way', 'In Progress'].includes(b.status);
+      if (!b || !b.status) return false;
+      var active = [
+        'pending', 'dispatching', 'searching', 'dispatched', 'assigned',
+        'accepted', 'en_route', 'in_progress', 'awaiting',
+      ];
+      return active.includes(b.status.toLowerCase());
     },
   };
 

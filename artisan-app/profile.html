@@ -1,25 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Artisan Profile | HandyHub</title>
-  <link rel="stylesheet" href="css/artisan.css">
-
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile | HandyHub Artisan</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
 </head>
 <body>
-  <div class="app">
-    <header class="profile-card">
-      <h2 class="name">Artisan Profile</h2>
-      <p class="location">Manage your artisan account.</p>
-    </header>
-    <main style="margin-top: 20px; padding: 16px;">
-      <p>Profile details will be available soon.</p>
-    </main>
+<div class="phone-shell">
+  <div class="scroll-area" style="padding-bottom:80px;">
+
+    <div class="page-header" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#fff;border-bottom:1px solid #E5E7EB;position:sticky;top:0;z-index:10;">
+      <button onclick="history.back()" style="width:36px;height:36px;border:none;background:#F3F4F6;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;" aria-label="Back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+      <h1 style="font-size:17px;font-weight:800;color:#111827;flex:1;">My Profile</h1>
+    </div>
+
+    <div id="profile-content" style="padding:16px;">
+      <!-- Profile content rendered by JS below -->
+      <div style="text-align:center;padding:48px 24px;color:#9CA3AF;">
+        <p style="font-size:13px;">Loading profile…</p>
+      </div>
+    </div>
+
   </div>
-  <script type="module" src="js/app.js"></script>
-<script src="../shared/js/components/fastLoader.js"></script>
+
+  <nav class="bottom-nav">
+    <a class="nav-item" href="dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Home</span>
+    </a>
+    <a class="nav-item" href="jobs.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Jobs</span>
+    </a>
+    <a class="nav-center-btn" href="jobs.html" aria-label="Jobs">
+      <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+    </a>
+    <a class="nav-item" href="wallet.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke="#9CA3AF" stroke-width="1.8"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z" stroke="#9CA3AF" stroke-width="1.8"/></svg>
+      <span>Wallet</span>
+    </a>
+    <a class="nav-item active" href="profile.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="#F97316" stroke-width="1.8"/></svg>
+      <span style="color:#F97316;">Profile</span>
+    </a>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../shared/js/utils/global-app.js"></script>
+<script type="module">
+import { getAppContainer }    from '../shared/js/app/container.js';
+import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+
+// Blocking guard — all artisans (including pending) can view/edit their profile
+const { user, artisan } = await requireArtisanAuth({ allowPending: true });
+
+const { services: { databaseService } } = getAppContainer();
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function render(data) {
+  const name       = data.name       || '';
+  const email      = data.email      || '';
+  const phone      = data.phone      || '';
+  const specialty  = data.specialty  || data.category || '';
+  const location   = data.location   || '';
+  const bio        = data.bio        || '';
+  const kycStatus  = data.verificationStatus || 'draft';
+  const kycLabel   = { approved: '✅ Verified', pending_review: '⏳ Under Review', rejected: '❌ Rejected', draft: '📋 Not Submitted' };
+  const kycColor   = { approved: '#16a34a', pending_review: '#f97316', rejected: '#dc2626', draft: '#9CA3AF' };
+
+  document.getElementById('profile-content').innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+        <div style="width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,#F97316,#EA580C);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;flex-shrink:0;">
+          ${(name || 'A').slice(0,2).toUpperCase()}
+        </div>
+        <div>
+          <p style="font-size:17px;font-weight:800;color:#111827;margin:0 0 2px;">${name || 'Artisan'}</p>
+          <p style="font-size:12px;color:#9CA3AF;margin:0;">${specialty || 'Service Provider'}</p>
+          <p style="font-size:11px;font-weight:700;color:${kycColor[kycStatus]||'#9CA3AF'};margin:4px 0 0;">${kycLabel[kycStatus]||kycStatus}</p>
+        </div>
+      </div>
+      ${kycStatus !== 'approved' ? `<div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:13px;color:#92400E;">
+        <strong>Complete your verification</strong> to start receiving jobs and earning on HandyHub.
+        <br><a href="onboarding.html" style="color:#F97316;font-weight:700;text-decoration:none;">Go to KYC →</a>
+      </div>` : ''}
+    </div>
+
+    <div style="background:#fff;border-radius:16px;padding:20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);">
+      <p style="font-size:13px;font-weight:800;color:#374151;margin:0 0 14px;text-transform:uppercase;letter-spacing:.5px;">Personal Details</p>
+      ${field('Full Name',      name,      'text',  'name')}
+      ${field('Email',          email,     'email', 'email')}
+      ${field('Phone',          phone,     'tel',   'phone')}
+      ${field('Specialty',      specialty, 'text',  'specialty')}
+      ${field('Location',       location,  'text',  'location')}
+    </div>
+
+    <div style="background:#fff;border-radius:16px;padding:20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);">
+      <p style="font-size:13px;font-weight:800;color:#374151;margin:0 0 14px;text-transform:uppercase;letter-spacing:.5px;">About You</p>
+      <textarea id="field-bio" placeholder="Tell customers about your experience and services…"
+        style="width:100%;min-height:100px;border:1.5px solid #E5E7EB;border-radius:12px;padding:12px;font-family:inherit;font-size:14px;resize:vertical;outline:none;color:#111827;"
+        onfocus="this.style.borderColor='#F97316'" onblur="this.style.borderColor='#E5E7EB'">${bio}</textarea>
+    </div>
+
+    <button onclick="saveProfile()" style="width:100%;height:52px;background:#F97316;color:#fff;border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;">
+      Save Profile
+    </button>
+
+    <button onclick="signOut()" style="width:100%;height:48px;background:#F3F4F6;color:#6B7280;border:none;border-radius:14px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;">
+      Sign Out
+    </button>
+  `;
+}
+
+function field(label, value, type, id) {
+  return `<div style="margin-bottom:14px;">
+    <p style="font-size:12px;font-weight:600;color:#6B7280;margin:0 0 5px;">${label}</p>
+    <input id="field-${id}" type="${type}" value="${(value||'').replace(/"/g,'&quot;')}"
+      style="width:100%;height:46px;border:1.5px solid #E5E7EB;border-radius:10px;padding:0 14px;font-family:inherit;font-size:14px;color:#111827;outline:none;"
+      onfocus="this.style.borderColor='#F97316'" onblur="this.style.borderColor='#E5E7EB'" />
+  </div>`;
+}
+
+window.saveProfile = async function() {
+  const get = id => (document.getElementById(id)?.value || '').trim();
+  const updates = {
+    name:      get('field-name'),
+    phone:     get('field-phone'),
+    specialty: get('field-specialty'),
+    location:  get('field-location'),
+    bio:       get('field-bio'),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!updates.name) { showToast('Name is required.'); return; }
+
+  const btn = document.querySelector('button[onclick="saveProfile()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  try {
+    await databaseService.updateDocument('artisans', user.uid, updates);
+    showToast('Profile saved ✓');
+  } catch(e) {
+    showToast('Could not save. Try again.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save Profile'; }
+  }
+};
+
+window.signOut = async function() {
+  try {
+    const { services: { sessionService } } = getAppContainer();
+    await sessionService.logout();
+  } catch(_) {}
+  window.location.replace('login.html');
+};
+
+// Subscribe to live artisan document
+databaseService.subscribeToDocument('artisans', user.uid, snap => {
+  if (snap && snap.exists) render(snap.data);
+});
+</script>
 </body>
 </html>
-

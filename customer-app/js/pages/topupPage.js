@@ -430,32 +430,40 @@ authService.subscribeToAuthState(user => {
     databaseService.subscribeToDocument('customers', user.uid, snap => {
         if (!snap.exists) return;
 
-        const balance = Number(snap.data.walletBalance || 0);
+        const balance  = Number(snap.data.walletBalance  || 0);
+        const inEscrow = Number(snap.data.escrowBalance   || 0);
 
         // Keep module-level mirror so the confirm handler can snapshot it as a baseline.
         currentBalance = balance;
 
         if (balanceDisplay) {
+            balanceDisplay.style.opacity    = '';
+            balanceDisplay.style.fontStyle  = '';
+            balanceDisplay.style.fontSize   = '';
             balanceDisplay.innerHTML = `<span class="balance-currency">GHC</span>${balance.toFixed(2)}`;
         }
 
+        // Show escrow balance sub-note so customer understands why available balance
+        // may be lower than expected after a booking hold.
+        const noteEl = document.getElementById('balance-note');
+        if (noteEl) {
+            if (inEscrow > 0) {
+                noteEl.innerHTML = `Available to spend &nbsp;·&nbsp; <span style="color:#f97316;font-weight:700;">GHC ${inEscrow.toFixed(2)} in escrow</span>`;
+            } else {
+                noteEl.textContent = 'Available to spend';
+            }
+        }
+
         // ── Webhook credit detection ─────────────────────────────────────────
-        // When waitingForCredit is armed, a Paystack charge.success webhook has
-        // been sent and the Cloud Function is processing it. The moment the
-        // balance rises by at least 95 % of the expected amount we know the
-        // webhook has landed and the wallet is actually credited.
-        // (5 % tolerance accommodates any rounding / fee adjustments.)
         if (waitingForCredit && balance >= preTopupBalance + expectedCredit * 0.95) {
             waitingForCredit = false;
 
-            // Update the success overlay subtitle (still visible for the user)
             if (ssCreditStatus) {
                 ssCreditStatus.textContent = 'Wallet credited!';
-                ssCreditStatus.style.color = '#16a34a'; // green
+                ssCreditStatus.style.color = '#16a34a';
             }
 
-            // Show a persistent toast so the user sees confirmation even if overlay is closed
-            showToast(`GHS ${expectedCredit.toFixed(2)} has been added to your wallet!`, 'success');
+            showToast(`GHC ${expectedCredit.toFixed(2)} has been added to your wallet!`, 'success');
         }
     });
 

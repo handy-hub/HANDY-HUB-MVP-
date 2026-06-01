@@ -27,7 +27,22 @@
 
 const DEFAULT_COLLECTION = "bookings";
 
-const VALID_STATUSES = ["pending", "accepted", "rejected", "completed", "cancelled"];
+// All statuses in the canonical booking state machine (snake_case, Firestore authoritative)
+const VALID_STATUSES = [
+    "pending",       // created, waiting for dispatch
+    "dispatching",   // dispatch engine searching
+    "searching",     // emergency — scanning for artisan
+    "dispatched",    // artisan has been notified, awaiting response
+    "assigned",      // artisan assigned via admin or manual flow
+    "accepted",      // artisan accepted
+    "rejected",      // artisan declined (dispatch re-tries)
+    "en_route",      // artisan travelling to customer
+    "in_progress",   // job underway
+    "awaiting",      // artisan marked done, waiting for customer confirmation
+    "completed",     // customer confirmed done / auto-released
+    "cancelled",     // cancelled by customer, artisan, or admin
+    "unfulfilled",   // dispatch exhausted all artisans — no match found
+];
 
 function now() {
     return new Date().toISOString();
@@ -61,7 +76,7 @@ export function createBookingRepository({
             }
             return databaseService.queryWithOptions(collectionName, conditions, {
                 orderBy: { field: "createdAt", direction: "desc" },
-                limit:   options.limit ?? 20
+                limit:   options.limit ?? 50
             });
         },
 
@@ -76,7 +91,7 @@ export function createBookingRepository({
             }
             return databaseService.queryWithOptions(collectionName, conditions, {
                 orderBy: { field: "createdAt", direction: "desc" },
-                limit:   options.limit ?? 20
+                limit:   options.limit ?? 50
             });
         },
 

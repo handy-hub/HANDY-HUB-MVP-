@@ -266,20 +266,50 @@ import { doc, getDoc, setDoc, serverTimestamp }
    before the artisan document is created in Firestore */
 let isRegistering = false;
 
+const RETURN_KEY = 'hh_artisan_return_url';
+
+function consumeReturnUrl() {
+  try {
+    const url = sessionStorage.getItem(RETURN_KEY);
+    if (url) sessionStorage.removeItem(RETURN_KEY);
+    // Only honour same-origin URLs — prevent open-redirect
+    if (url && new URL(url).origin === window.location.origin) return url;
+  } catch (_) {}
+  return null;
+}
+
 onAuthStateChanged(auth, async user => {
   if (!user || isRegistering) return;
+
   const snap = await getDoc(doc(db, 'artisans', user.uid)).catch(() => null);
-  if (snap?.exists()) {
-    const data = snap.data();
-    /* Draft / no status → needs onboarding; anything else → dashboard */
-    if (!data.verificationStatus || data.verificationStatus === 'draft') {
-      location.href = 'onboarding.html';
-    } else {
-      location.href = 'dashboard.html';
-    }
+
+  if (!snap?.exists()) {
+    // New artisan — no document yet — send to onboarding
+    location.replace('onboarding.html');
+    return;
+  }
+
+  const data   = snap.data();
+  const status = (data.status || '').toLowerCase();
+
+  // Suspended/banned artisans redirected to dashboard where guard shows the error screen
+  if (status === 'suspended' || status === 'banned') {
+    location.replace('dashboard.html');
+    return;
+  }
+
+  // Check for return URL saved by artisanAuthGuard (e.g. user bookmarked jobs.html)
+  const returnUrl = consumeReturnUrl();
+  if (returnUrl) {
+    location.replace(returnUrl);
+    return;
+  }
+
+  // Default routing: draft → onboarding; everything else → dashboard
+  if (!data.verificationStatus || data.verificationStatus === 'draft') {
+    location.replace('onboarding.html');
   } else {
-    /* No artisan doc yet — send to onboarding to complete profile */
-    location.href = 'onboarding.html';
+    location.replace('dashboard.html');
   }
 });
 

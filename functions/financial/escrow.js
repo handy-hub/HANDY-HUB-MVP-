@@ -90,6 +90,26 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
     const commission   = fmt(amountNum * COMMISSION_RATE);
     const artisanShare = fmt(amountNum - commission);
 
+    // ── Idempotency: one escrow per booking ───────────────────────────────────
+    // Prevent duplicate deductions if the client calls this twice for the same booking
+    // (e.g. page refresh, double-tap, retry after transient network failure).
+    const existingQuery = await firestore.collection('escrow')
+        .where('bookingId',  '==', bookingId)
+        .where('customerId', '==', customerId)
+        .where('status',     'in', ['held', 'disputed'])
+        .limit(1)
+        .get();
+
+    if (!existingQuery.empty) {
+        const existing = existingQuery.docs[0];
+        console.log(`[escrow] Idempotent: escrow ${existing.id} already held for booking ${bookingId}.`);
+        return {
+            escrowId:     existing.id,
+            commission:   existing.data().commission,
+            artisanShare: existing.data().artisanShare,
+        };
+    }
+
     const customerRef = firestore.collection('customers').doc(customerId);
     const escrowRef   = firestore.collection('escrow').doc();
     const auditRef    = firestore.collection('financialAudit').doc();
@@ -195,7 +215,21 @@ async function releaseEscrow(escrowId, { releasedBy = 'system', callerAuth } = {
     }
     // If callerAuth is null, the caller is the system (auto-release timeout) — allowed.
 
-    const { customerId, artisanId, amount, artisanShare, commission, bookingId } = escrow;
+    const { customerId, amount, artisanShare, commission, bookingId } = escrow;
+
+    // Resolve artisanId: may be null if escrow was created before dispatch assigned an artisan.
+    // Read the authoritative artisanId from the booking document at release time.
+    let artisanId = escrow.artisanId;
+    if (!artisanId && bookingId) {
+        const bookingSnap = await firestore.collection('bookings').doc(bookingId).get();
+        if (bookingSnap.exists) artisanId = bookingSnap.data().artisanId || null;
+    }
+    if (!artisanId) {
+        throw new Error(
+            'Cannot release escrow: artisan is not yet assigned to this booking. ' +
+            'Release will happen automatically once an artisan accepts.'
+        );
+    }
 
     const customerRef  = firestore.collection('customers').doc(customerId);
     const artisanRef   = firestore.collection('artisans').doc(artisanId);

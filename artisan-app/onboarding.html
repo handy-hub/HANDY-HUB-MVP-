@@ -453,7 +453,13 @@
 
 <script type="module">
 import '../shared/js/utils/global-app.js';
-import { getAppContainer } from '../shared/js/app/container.js';
+import { getAppContainer }    from '../shared/js/app/container.js';
+import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+
+// Onboarding is accessible to ALL artisans regardless of KYC status,
+// including pending and rejected — this IS the KYC submission page.
+// Suspended artisans are still blocked (guard handles that).
+await requireArtisanAuth({ allowPending: true });
 
 const { services: { authService, databaseService, storageService } } = getAppContainer();
 

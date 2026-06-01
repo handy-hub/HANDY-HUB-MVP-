@@ -73,350 +73,391 @@
 </div>
 
 <script src="../shared/js/utils/global-app.js"></script>
-<script type="module">
-  import { requireAuth } from '../shared/js/utils/authGuard.js';
-  await requireAuth();
-</script>
 <script src="../shared/js/components/floatingNav.js"></script>
-<script>
-(function () {
-  'use strict';
 
-  const HIST_KEY = 'hh_booking_history';
-  const BK_KEY   = 'hh_booking';
+<script type="module">
+import { requireAuth }              from '../shared/js/utils/authGuard.js';
+import { getAppContainer }          from '../shared/js/app/container.js';
+import { createBookingRepository }  from '../shared/js/data/repositories/bookingRepository.js';
+import { releaseEscrow }            from '../shared/js/services/walletService.js';
 
-  /* ──────────── Helpers ──────────── */
-  function getHistory() {
-    try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch { return []; }
-  }
+await requireAuth();
 
-  function getActive() {
-    try {
-      const b = JSON.parse(localStorage.getItem(BK_KEY) || 'null');
-      if (!b) return null;
-      if (b.status === 'completed' || b.status === 'cancelled') return null;
-      return b;
-    } catch { return null; }
-  }
+// ── STATUS CONSTANTS  (must match Firestore exactly — all snake_case) ─────────
+const TAB_STATUSES = {
+  upcoming:  ['pending', 'dispatching', 'searching', 'dispatched', 'assigned'],
+  ongoing:   ['accepted', 'en_route', 'in_progress', 'awaiting'],
+  completed: ['completed'],
+  cancelled: ['cancelled', 'rejected', 'unfulfilled'],
+};
 
-  function statusClass(status) {
-    switch ((status || '').toLowerCase()) {
-      case 'upcoming':  case 'confirmed': return 'bk-status-upcoming';
-      case 'active':    case 'ongoing':   return 'bk-status-ongoing';
-      case 'completed':                   return 'bk-status-completed';
-      case 'cancelled':                   return 'bk-status-cancelled';
-      default:                            return 'bk-status-upcoming';
-    }
-  }
-  function statusLabel(status) {
-    switch ((status || '').toLowerCase()) {
-      case 'confirmed': return 'Upcoming';
-      case 'active':    return 'Active';
-      case 'cancelled': return 'Cancelled';
-      case 'completed': return 'Completed';
-      default: return status || 'Pending';
-    }
-  }
+const STATUS_META = {
+  pending:      { label: 'Pending',      cls: 'bk-status-upcoming'  },
+  dispatching:  { label: 'Dispatching',  cls: 'bk-status-upcoming'  },
+  searching:    { label: 'Searching',    cls: 'bk-status-upcoming'  },
+  dispatched:   { label: 'Dispatching',  cls: 'bk-status-upcoming'  },
+  assigned:     { label: 'Assigned',     cls: 'bk-status-upcoming'  },
+  accepted:     { label: 'Accepted',     cls: 'bk-status-ongoing'   },
+  en_route:     { label: 'En Route',     cls: 'bk-status-ongoing'   },
+  in_progress:  { label: 'In Progress',  cls: 'bk-status-ongoing'   },
+  awaiting:     { label: 'Awaiting',     cls: 'bk-status-ongoing'   },
+  completed:    { label: 'Completed',    cls: 'bk-status-completed' },
+  cancelled:    { label: 'Cancelled',    cls: 'bk-status-cancelled' },
+  rejected:     { label: 'Declined',     cls: 'bk-status-cancelled' },
+  unfulfilled:  { label: 'Unmatched',    cls: 'bk-status-cancelled' },
+};
 
-  function avatarHtml(record) {
-    const name = record.proName || record.artisanName || 'Pro';
-    const photo = record.proPhoto || null;
-    const initials = name.split(' ').map(w => w[0] || '').join('').slice(0,2).toUpperCase();
-    const gradient = 'linear-gradient(135deg,#730201,#a03030)';
-    if (photo) return `<img class="bk-card-photo" src="${photo}" alt="${name}" onerror="this.style.display='none'">`;
-    return `<div class="bk-card-photo-grad" style="background:${gradient};">${initials}</div>`;
-  }
+// Progress bar % and label per active status
+const ACTIVE_PROGRESS = {
+  accepted:    { pct: 15, label: 'Booking Accepted'      },
+  en_route:    { pct: 40, label: 'Artisan En Route'      },
+  in_progress: { pct: 70, label: 'Job In Progress'       },
+  awaiting:    { pct: 90, label: 'Awaiting Confirmation' },
+};
 
-  /* ──────────── Card builders ──────────── */
-  function buildUpcomingCard(r) {
-    return `
-    <div class="bk-card" onclick="viewBooking('${r.id}')">
+// ── MODULE STATE ──────────────────────────────────────────────────────────────
+let _allBookings = [];
+let _unsub       = null;
+let _firstPaint  = false;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(d) {
+  if (!d) return null;
+  try {
+    const dt = d?.toDate ? d.toDate() : new Date(d);
+    if (isNaN(dt)) return String(d);
+    return dt.toLocaleDateString('en-GH', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch { return String(d); }
+}
+
+function getMeta(status) {
+  return STATUS_META[(status || '').toLowerCase()] || { label: status || 'Pending', cls: 'bk-status-upcoming' };
+}
+
+function avatarHtml(name, photo) {
+  const initials = (name || 'P').split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+  if (photo) return `<img class="bk-card-photo" src="${escHtml(photo)}" alt="${escHtml(name)}" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='')">`;
+  return `<div class="bk-card-photo-grad" style="background:linear-gradient(135deg,#730201,#a03030);">${initials}</div>`;
+}
+
+// ── SKELETON ──────────────────────────────────────────────────────────────────
+function skeletonCard() {
+  return `<div class="bk-card" style="pointer-events:none;animation:bkPulse 1.4s ease-in-out infinite;">
+    <div class="bk-card-photo-wrap"><div class="bk-card-photo-grad" style="background:#e8e8e8;"></div></div>
+    <div class="bk-card-body">
+      <div style="height:13px;width:55%;border-radius:6px;background:#e8e8e8;margin-bottom:9px;"></div>
+      <div style="height:11px;width:38%;border-radius:6px;background:#efefef;margin-bottom:7px;"></div>
+      <div style="height:10px;width:48%;border-radius:6px;background:#efefef;"></div>
+    </div>
+    <div class="bk-card-right">
+      <div style="height:22px;width:62px;border-radius:10px;background:#e8e8e8;"></div>
+    </div>
+  </div>`;
+}
+
+function showSkeletons(id, count = 3) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = Array(count).fill(skeletonCard()).join('');
+}
+
+// ── EMPTY STATES ──────────────────────────────────────────────────────────────
+function emptyState(icon, title, sub, btnText, href) {
+  return `<div class="bk-empty">
+    <div class="bk-empty-icon">${icon}</div>
+    <p class="bk-empty-title">${title}</p>
+    <p class="bk-empty-sub">${sub}</p>
+    <button class="bk-empty-btn" onclick="window.location.href='${href}'">${btnText}</button>
+  </div>`;
+}
+
+const CAL_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`;
+const CLK_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`;
+const CHK_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`;
+const CAN_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M15 9l-6 6M9 9l6 6" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`;
+
+// ── CARD BUILDERS ─────────────────────────────────────────────────────────────
+function buildUpcomingCard(b) {
+  const meta  = getMeta(b.status);
+  const name  = b.proName || b.artisanName || 'Professional';
+  const photo = b.proPhoto || null;
+  const date  = b.dateDisplay || fmtDate(b.scheduledAt) || fmtDate(b.createdAt) || 'Scheduled';
+  return `
+  <div class="bk-card" onclick="window._viewBooking('${escHtml(b.id)}')">
+    <div class="bk-card-photo-wrap">
+      ${avatarHtml(name, photo)}
+      <div class="bk-card-svc-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></div>
+    </div>
+    <div class="bk-card-body">
+      <p class="bk-card-service">${escHtml(b.serviceType || b.service || 'Service')}</p>
+      <div class="bk-card-pro-row">
+        <span class="bk-card-pro-name">${escHtml(name)}</span>
+        <div class="bk-verified"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      </div>
+      <div class="bk-card-meta">
+        <div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>${escHtml(date)}</div>
+        ${b.time ? `<div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#aaa" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#aaa" stroke-width="2" stroke-linecap="round"/></svg>${escHtml(b.time)}</div>` : ''}
+      </div>
+    </div>
+    <div class="bk-card-right">
+      <span class="bk-status-tag ${meta.cls}">${meta.label}</span>
+      <div class="bk-total" style="margin-top:auto;"><p class="bk-total-label">Total</p><p class="bk-total-val">GHC ${b.total || b.price || '—'}</p></div>
+    </div>
+  </div>`;
+}
+
+function buildActiveCard(b) {
+  const name  = b.proName || b.artisanName || 'Professional';
+  const photo = b.proPhoto || null;
+  const prog  = ACTIVE_PROGRESS[(b.status || '').toLowerCase()] || { pct: 10, label: 'Processing' };
+  const meta  = getMeta(b.status);
+  const isAwaiting = (b.status || '').toLowerCase() === 'awaiting';
+  return `
+  <div class="bk-active-card">
+    <div class="bk-active-top">
       <div class="bk-card-photo-wrap">
-        ${avatarHtml(r)}
-        <div class="bk-card-svc-badge">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-        </div>
+        ${avatarHtml(name, photo)}
+        <div class="bk-card-svc-badge" style="background:#e3f2fd;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#1565c0"/></svg></div>
       </div>
       <div class="bk-card-body">
-        <p class="bk-card-service">${escHtml(r.service || 'Service')}</p>
+        <p class="bk-card-service">${escHtml(b.serviceType || b.service || 'Service')}</p>
         <div class="bk-card-pro-row">
-          <span class="bk-card-pro-name">${escHtml(r.proName || 'Professional')}</span>
-          ${r.verified !== false ? `<div class="bk-verified"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div>` : ''}
-        </div>
-        <div class="bk-card-meta">
-          <div class="bk-card-meta-row">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>
-            ${escHtml(r.dateDisplay || r.date || 'Scheduled')}
-          </div>
-          ${r.time ? `<div class="bk-card-meta-row">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#aaa" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#aaa" stroke-width="2" stroke-linecap="round"/></svg>
-            ${escHtml(r.time)}
-          </div>` : ''}
-        </div>
-      </div>
-      <div class="bk-card-right">
-        <span class="bk-status-tag ${statusClass(r.status)}">${statusLabel(r.status)}</span>
-        <div class="bk-total" style="margin-top:auto;">
-          <p class="bk-total-label">Total</p>
-          <p class="bk-total-val">GHC ${r.total || '—'}</p>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  function buildActiveCard(r, isLive) {
-    const pro = r.artisan || r.professional || {};
-    const name = r.proName || pro.name || 'Professional';
-    return `
-    <div class="bk-active-card">
-      <div class="bk-active-top">
-        <div class="bk-card-photo-wrap">
-          ${avatarHtml({ proName: name, proPhoto: r.proPhoto || pro.photo })}
-          <div class="bk-card-svc-badge" style="background:#e3f2fd;">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#1565c0"/></svg>
-          </div>
-        </div>
-        <div class="bk-card-body">
-          <p class="bk-card-service">${escHtml(r.service || r.services?.[0]?.name || 'Service')}</p>
-          <div class="bk-card-pro-row">
-            <span class="bk-card-pro-name">${escHtml(name)}</span>
-            <div class="bk-verified"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div>
-          </div>
-          <div class="bk-card-meta">
-            <div class="bk-card-meta-row">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>
-              ${escHtml(r.dateDisplay || r.schedule?.dateDisplay || 'Today')}
-            </div>
-          </div>
-        </div>
-        <div class="bk-completed-right">
-          <span class="bk-status-tag bk-status-ongoing">Active</span>
-          <p class="bk-completed-amount">GHC ${r.total || r.serviceFee || '—'}</p>
-        </div>
-      </div>
-      <div class="bk-progress-wrap">
-        <div class="bk-progress-bar"><div class="bk-progress-fill" style="width:40%"></div></div>
-        <div class="bk-progress-labels"><span>En Route</span><span>In Progress</span></div>
-      </div>
-      <div class="bk-active-actions">
-        <button class="bk-active-btn bk-active-btn--track" onclick="window.location.href='live-tracking.html'">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="#730201" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-          Track
-        </button>
-        <button class="bk-active-btn bk-active-btn--outline" onclick="window.location.href='messages.html'">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#555" stroke-width="2" stroke-linecap="round"/></svg>
-          Message
-        </button>
-        <button class="bk-active-btn bk-active-btn--confirm" onclick="confirmJobDone()">
-          Confirm Done
-        </button>
-      </div>
-    </div>`;
-  }
-
-  function buildCompletedCard(r) {
-    const hasReview = !!(r.review);
-    return `
-    <div class="bk-card" onclick="viewBooking('${r.id}')">
-      <div class="bk-card-photo-wrap">
-        ${avatarHtml(r)}
-        <div class="bk-card-svc-badge" style="background:#e8f5e9;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/></svg>
-        </div>
-      </div>
-      <div class="bk-card-body">
-        <p class="bk-card-service">${escHtml(r.service || 'Service')}</p>
-        <div class="bk-card-pro-row">
-          <span class="bk-card-pro-name">${escHtml(r.proName || 'Professional')}</span>
+          <span class="bk-card-pro-name">${escHtml(name)}</span>
           <div class="bk-verified"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div>
         </div>
         <div class="bk-card-meta">
-          <div class="bk-card-meta-row">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>
-            ${escHtml(r.dateDisplay || r.date || 'Completed')}
-          </div>
-          ${hasReview ? `<div class="bk-card-meta-row" style="color:#f5a623;">
-            ${'★'.repeat(r.review.rating || 5)} Reviewed
-          </div>` : `<div class="bk-card-meta-row">
-            <button style="background:none;border:none;color:#730201;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();openReview('${r.id}')">Leave a review</button>
-          </div>`}
+          <div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>${escHtml(b.dateDisplay || 'Today')}</div>
         </div>
       </div>
-      <div class="bk-card-right">
-        <span class="bk-status-tag bk-status-completed">Done</span>
-        <div class="bk-total" style="margin-top:auto;">
-          <p class="bk-total-label">Paid</p>
-          <p class="bk-total-val">GHC ${r.total || '—'}</p>
-        </div>
+      <div class="bk-completed-right">
+        <span class="bk-status-tag ${meta.cls}">${meta.label}</span>
+        <p class="bk-completed-amount">GHC ${b.total || b.price || '—'}</p>
       </div>
-    </div>`;
+    </div>
+    <div class="bk-progress-wrap">
+      <div class="bk-progress-bar"><div class="bk-progress-fill" style="width:${prog.pct}%;transition:width .6s ease;"></div></div>
+      <div class="bk-progress-labels"><span>${prog.label}</span></div>
+    </div>
+    <div class="bk-active-actions">
+      <button class="bk-active-btn bk-active-btn--track" onclick="window._trackBooking('${escHtml(b.id)}')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="#730201" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>Track
+      </button>
+      <button class="bk-active-btn bk-active-btn--outline" onclick="window.location.href='messages.html'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#555" stroke-width="2" stroke-linecap="round"/></svg>Message
+      </button>
+      ${isAwaiting ? `<button class="bk-active-btn bk-active-btn--confirm" onclick="window._confirmJobDone('${escHtml(b.id)}','${escHtml(b.escrowId || '')}',this)">Confirm Done</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildCompletedCard(b) {
+  const name     = b.proName || b.artisanName || 'Professional';
+  const photo    = b.proPhoto || null;
+  const hasReview= !!(b.reviewLeft || b.review);
+  const date     = b.dateDisplay || fmtDate(b.completedAt) || fmtDate(b.createdAt) || 'Completed';
+  return `
+  <div class="bk-card" onclick="window._viewBooking('${escHtml(b.id)}')">
+    <div class="bk-card-photo-wrap">
+      ${avatarHtml(name, photo)}
+      <div class="bk-card-svc-badge" style="background:#e8f5e9;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+    </div>
+    <div class="bk-card-body">
+      <p class="bk-card-service">${escHtml(b.serviceType || b.service || 'Service')}</p>
+      <div class="bk-card-pro-row">
+        <span class="bk-card-pro-name">${escHtml(name)}</span>
+        <div class="bk-verified"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      </div>
+      <div class="bk-card-meta">
+        <div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>${escHtml(date)}</div>
+        ${hasReview
+          ? `<div class="bk-card-meta-row" style="color:#f5a623;">★★★★★ Reviewed</div>`
+          : `<div class="bk-card-meta-row"><button style="background:none;border:none;color:#730201;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();window._openReview('${escHtml(b.id)}')">Leave a review</button></div>`}
+      </div>
+    </div>
+    <div class="bk-card-right">
+      <span class="bk-status-tag bk-status-completed">Done</span>
+      <div class="bk-total" style="margin-top:auto;"><p class="bk-total-label">Paid</p><p class="bk-total-val">GHC ${b.total || b.price || '—'}</p></div>
+    </div>
+  </div>`;
+}
+
+function buildCancelledCard(b) {
+  const name  = b.proName || b.artisanName || 'Professional';
+  const photo = b.proPhoto || null;
+  const meta  = getMeta(b.status);
+  const date  = b.dateDisplay || fmtDate(b.createdAt) || 'Cancelled';
+  return `
+  <div class="bk-card">
+    <div class="bk-card-photo-wrap">
+      ${avatarHtml(name, photo)}
+      <div class="bk-card-svc-badge" style="background:#fde8e8;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></div>
+    </div>
+    <div class="bk-card-body">
+      <p class="bk-card-service">${escHtml(b.serviceType || b.service || 'Service')}</p>
+      <div class="bk-card-pro-row"><span class="bk-card-pro-name">${escHtml(name)}</span></div>
+      <div class="bk-card-meta">
+        <div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>${escHtml(date)}</div>
+        <div class="bk-card-meta-row"><button style="background:none;border:none;color:#730201;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();window.location.href='book-now.html'">Rebook</button></div>
+      </div>
+    </div>
+    <div class="bk-card-right">
+      <span class="bk-status-tag ${meta.cls}">${meta.label}</span>
+      <div class="bk-total" style="margin-top:auto;"><p class="bk-total-label">Amount</p><p class="bk-total-val" style="color:#aaa;">GHC ${b.total || b.price || '—'}</p></div>
+    </div>
+  </div>`;
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────────
+function render(bookings) {
+  const upcoming  = bookings.filter(b => TAB_STATUSES.upcoming.includes((b.status  || '').toLowerCase()));
+  const ongoing   = bookings.filter(b => TAB_STATUSES.ongoing.includes((b.status   || '').toLowerCase()));
+  const completed = bookings.filter(b => TAB_STATUSES.completed.includes((b.status || '').toLowerCase()));
+  const cancelled = bookings.filter(b => TAB_STATUSES.cancelled.includes((b.status || '').toLowerCase()));
+
+  document.getElementById('list-upcoming').innerHTML = upcoming.length
+    ? upcoming.map(buildUpcomingCard).join('')
+    : emptyState(CAL_ICO, 'No Upcoming Bookings', 'Book a trusted professional near you.', 'Book a Service', 'book-now.html');
+
+  document.getElementById('list-ongoing').innerHTML = ongoing.length
+    ? ongoing.map(buildActiveCard).join('')
+    : emptyState(CLK_ICO, 'No Active Jobs', 'You have no ongoing jobs right now.', 'Book a Service', 'book-now.html');
+
+  document.getElementById('list-completed').innerHTML = completed.length
+    ? completed.map(buildCompletedCard).join('')
+    : emptyState(CHK_ICO, 'No Completed Bookings', 'Completed bookings will appear here.', 'Book a Service', 'book-now.html');
+
+  document.getElementById('list-cancelled').innerHTML = cancelled.length
+    ? cancelled.map(buildCancelledCard).join('')
+    : emptyState(CAN_ICO, 'No Cancelled Bookings', "Great! You haven't cancelled any bookings.", 'Book a Service', 'book-now.html');
+
+  // Tab counts
+  const labels = ['Upcoming','Active','Completed','Cancelled'];
+  const counts = [upcoming.length, ongoing.length, completed.length, cancelled.length];
+  document.querySelectorAll('.bk-tab').forEach((tab, i) => {
+    tab.textContent = counts[i] > 0 ? `${labels[i]} (${counts[i]})` : labels[i];
+  });
+
+  // Active dot on bell
+  const dot = document.getElementById('notif-dot');
+  if (dot) dot.style.display = ongoing.length > 0 ? '' : 'none';
+}
+
+// ── GLOBAL ACTIONS ────────────────────────────────────────────────────────────
+window.switchTab = function(tab, btn) {
+  document.querySelectorAll('.bk-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.bk-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab)?.classList.add('active');
+};
+
+window._viewBooking = function(id) {
+  const b  = _allBookings.find(bk => bk.id === id);
+  if (!b) return;
+  const st = (b.status || '').toLowerCase();
+
+  if (TAB_STATUSES.ongoing.includes(st)) {
+    // Seed localStorage so live-tracking.html has context
+    try {
+      const lk = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+      Object.assign(lk, {
+        bookingId:   b.id, id: b.id, status: b.status,
+        service:     b.serviceType || b.service,
+        artisanId:   b.artisanId,
+        escrowId:    b.escrowId || lk.escrowId || null,
+        professional:{ id: b.artisanId, uid: b.artisanId, name: b.proName, photo: b.proPhoto || null },
+      });
+      localStorage.setItem('hh_booking', JSON.stringify(lk));
+    } catch(_) {}
+    window.location.href = 'live-tracking.html';
   }
+  // TODO: open detail bottom sheet for completed/cancelled bookings
+};
 
-  function buildCancelledCard(r) {
-    return `
-    <div class="bk-card" onclick="viewBooking('${r.id}')">
-      <div class="bk-card-photo-wrap">
-        ${avatarHtml(r)}
-        <div class="bk-card-svc-badge" style="background:#fde8e8;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-        </div>
-      </div>
-      <div class="bk-card-body">
-        <p class="bk-card-service">${escHtml(r.service || 'Service')}</p>
-        <div class="bk-card-pro-row">
-          <span class="bk-card-pro-name">${escHtml(r.proName || 'Professional')}</span>
-        </div>
-        <div class="bk-card-meta">
-          <div class="bk-card-meta-row">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>
-            ${escHtml(r.dateDisplay || r.date || 'Cancelled')}
-          </div>
-          <div class="bk-card-meta-row">
-            <button style="background:none;border:none;color:#730201;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();window.location.href='book-now.html'">Rebook</button>
-          </div>
-        </div>
-      </div>
-      <div class="bk-card-right">
-        <span class="bk-status-tag bk-status-cancelled">Cancelled</span>
-        <div class="bk-total" style="margin-top:auto;">
-          <p class="bk-total-label">Amount</p>
-          <p class="bk-total-val" style="color:#aaa;">GHC ${r.total || '—'}</p>
-        </div>
-      </div>
-    </div>`;
-  }
+window._trackBooking  = window._viewBooking;
+window.viewBooking    = window._viewBooking;
 
-  /* ──────────── Empty states ──────────── */
-  function emptyState(icon, title, sub, btnText, href) {
-    return `<div class="bk-empty">
-      <div class="bk-empty-icon">${icon}</div>
-      <p class="bk-empty-title">${title}</p>
-      <p class="bk-empty-sub">${sub}</p>
-      <button class="bk-empty-btn" onclick="window.location.href='${href}'">${btnText}</button>
-    </div>`;
-  }
+window._openReview = function(bookingId) {
+  if (bookingId) sessionStorage.setItem('hh_review_booking_id', String(bookingId));
+  window.location.href = 'review.html';
+};
+window.openReview = window._openReview;
 
-  /* ──────────── Main render ──────────── */
-  function render() {
-    const history = getHistory();
-    const active  = getActive();
+window._confirmJobDone = async function(bookingId, escrowId, btn) {
+  if (!confirm('Confirm the job is complete? This releases payment to the artisan.')) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Confirming…'; }
 
-    /* Classify records */
-    const upcoming  = history.filter(r => ['confirmed','upcoming','pending'].includes((r.status||'').toLowerCase()));
-    const completed = history.filter(r => (r.status||'').toLowerCase() === 'completed');
-    const cancelled = history.filter(r => (r.status||'').toLowerCase() === 'cancelled');
+  try {
+    const { services: { databaseService } } = getAppContainer();
+    const n = new Date().toISOString();
 
-    /* ── Upcoming panel ── */
-    const upEl = document.getElementById('list-upcoming');
-    if (upcoming.length === 0) {
-      upEl.innerHTML = emptyState(
-        `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
-        'No Upcoming Bookings',
-        'You have no upcoming bookings. Book a service to get started.',
-        'Book a Service', 'book-now.html'
-      );
-    } else {
-      upEl.innerHTML = upcoming.map(buildUpcomingCard).join('');
-    }
-
-    /* ── Active panel ── */
-    const onEl = document.getElementById('list-ongoing');
-    if (!active && !history.some(r => ['active','ongoing'].includes((r.status||'').toLowerCase()))) {
-      onEl.innerHTML = emptyState(
-        `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
-        'No Active Jobs',
-        'You have no ongoing jobs right now.',
-        'Book a Service', 'book-now.html'
-      );
-    } else {
-      const activeFromHistory = history.filter(r => ['active','ongoing'].includes((r.status||'').toLowerCase()));
-      const all = active ? [active, ...activeFromHistory] : activeFromHistory;
-      onEl.innerHTML = all.map(r => buildActiveCard(r, true)).join('');
-    }
-
-    /* ── Completed panel ── */
-    const comEl = document.getElementById('list-completed');
-    if (completed.length === 0) {
-      comEl.innerHTML = emptyState(
-        `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
-        'No Completed Bookings',
-        'Completed bookings will appear here once you\'ve had a service.',
-        'Book a Service', 'book-now.html'
-      );
-    } else {
-      comEl.innerHTML = completed.map(buildCompletedCard).join('');
-    }
-
-    /* ── Cancelled panel ── */
-    const canEl = document.getElementById('list-cancelled');
-    if (cancelled.length === 0) {
-      canEl.innerHTML = emptyState(
-        `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M15 9l-6 6M9 9l6 6" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
-        'No Cancelled Bookings',
-        'Great! You haven\'t cancelled any bookings.',
-        'Book a Service', 'book-now.html'
-      );
-    } else {
-      canEl.innerHTML = cancelled.map(buildCancelledCard).join('');
-    }
-
-    /* Tab counts */
-    const tabs = document.querySelectorAll('.bk-tab');
-    const counts = [upcoming.length, active ? 1 : 0, completed.length, cancelled.length];
-    tabs.forEach((tab, i) => {
-      const base = ['Upcoming','Active','Completed','Cancelled'][i];
-      tab.textContent = counts[i] > 0 ? `${base} (${counts[i]})` : base;
+    await databaseService.updateDocument('bookings', bookingId, {
+      status: 'completed', completedAt: n, updatedAt: n,
     });
 
-    /* Active booking notification dot */
-    if (active) document.getElementById('notif-dot').style.display = '';
-  }
-
-  /* ──────────── Tab switch ──────────── */
-  window.switchTab = function (tab, btn) {
-    document.querySelectorAll('.bk-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.bk-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('panel-' + tab).classList.add('active');
-  };
-
-  /* ──────────── View booking detail ──────────── */
-  window.viewBooking = function (id) {
-    sessionStorage.setItem('hh_view_booking_id', id);
-    // Navigate to live tracking if active, otherwise just show info (could open a detail modal)
-    const active = getActive();
-    if (active && active.id === id) {
-      window.location.href = 'live-tracking.html';
+    // Release escrow
+    const eid = escrowId || (() => {
+      try { return JSON.parse(localStorage.getItem('hh_booking') || '{}').escrowId || null; } catch { return null; }
+    })();
+    if (eid) {
+      await releaseEscrow(eid).catch(e => console.warn('[booking] escrow release:', e.message));
     }
-    // For completed/cancelled, could open a detail sheet. Currently just a no-op navigation.
-  };
 
-  /* ──────────── Open review page with booking context ──────────── */
-  window.openReview = function (bookingId) {
     if (bookingId) sessionStorage.setItem('hh_review_booking_id', String(bookingId));
     window.location.href = 'review.html';
-  };
 
-  /* ──────────── Confirm job done ──────────── */
-  window.confirmJobDone = function () {
-    if (!confirm('Confirm that the job is complete? This will release payment to the artisan.')) return;
-    try {
-      const b = JSON.parse(localStorage.getItem(BK_KEY) || '{}');
-      b.status = 'completed';
-      localStorage.setItem(BK_KEY, JSON.stringify(b));
-      // Pass active booking ID to review page
-      if (b.id) sessionStorage.setItem('hh_review_booking_id', String(b.id));
-    } catch(_) {}
-    window.location.href = 'review.html';
-  };
-
-  /* ──────────── Escape html ──────────── */
-  function escHtml(str) {
-    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  } catch(e) {
+    console.error('[booking] confirmJobDone failed:', e);
+    if (btn) { btn.disabled = false; btn.textContent = 'Confirm Done'; }
+    alert('Could not confirm. Please try again or use the tracking screen.');
   }
+};
+window.confirmJobDone = window._confirmJobDone;
 
-  render();
-})();
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+// 1. Show skeletons immediately
+['list-upcoming','list-ongoing','list-completed','list-cancelled'].forEach(id => showSkeletons(id));
+
+// 2. Fast first paint from cache
+try {
+  const cached = JSON.parse(localStorage.getItem('hh_bk_cache') || '[]');
+  if (cached.length) { render(cached); _firstPaint = true; }
+} catch(_) {}
+
+// 3. Live Firestore subscription
+const { services: { authService, databaseService } } = getAppContainer();
+const bookingRepo = createBookingRepository({ databaseService });
+
+authService.subscribeToAuthState(user => {
+  if (!user) return;
+  if (_unsub) { _unsub(); _unsub = null; }
+
+  _unsub = bookingRepo.subscribeByCustomerId(
+    user.uid,
+    records => {
+      _allBookings = records.map(r => ({ id: r.id, ...(r.data || {}) }));
+      try { localStorage.setItem('hh_bk_cache', JSON.stringify(_allBookings.slice(0, 30))); } catch(_) {}
+      render(_allBookings);
+    },
+    err => {
+      console.error('[booking] Firestore subscription error:', err);
+      if (!_firstPaint) {
+        ['list-upcoming','list-ongoing','list-completed','list-cancelled'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerHTML = '<p style="text-align:center;padding:32px 16px;color:#999;">Could not load bookings. Check your connection and refresh.</p>';
+        });
+      }
+    }
+  );
+});
+
+window.addEventListener('pagehide', () => { if (_unsub) _unsub(); });
 </script>
+
+<style>
+@keyframes bkPulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+</style>
 </body>
 </html>

@@ -97,13 +97,14 @@
       <!-- Toolbar -->
       <div class="table-toolbar" style="margin-bottom:12px;">
         <div class="filter-chips">
-          <button class="filter-chip active" data-filter="all"       onclick="setFilter('all')">All</button>
-          <button class="filter-chip" data-filter="Pending"          onclick="setFilter('Pending')">Pending</button>
-          <button class="filter-chip" data-filter="Active"           onclick="setFilter('Active')">Active</button>
-          <button class="filter-chip" data-filter="In Progress"      onclick="setFilter('In Progress')">In Progress</button>
-          <button class="filter-chip" data-filter="Completed"        onclick="setFilter('Completed')">Completed</button>
-          <button class="filter-chip" data-filter="Cancelled"        onclick="setFilter('Cancelled')">Cancelled</button>
-          <button class="filter-chip" data-filter="Disputed"         onclick="setFilter('Disputed')">Disputed</button>
+          <button class="filter-chip active" data-filter="all"         onclick="setFilter('all')">All</button>
+          <button class="filter-chip" data-filter="pending"          onclick="setFilter('pending')">Pending</button>
+          <button class="filter-chip" data-filter="accepted"         onclick="setFilter('accepted')">Accepted</button>
+          <button class="filter-chip" data-filter="en_route"         onclick="setFilter('en_route')">En Route</button>
+          <button class="filter-chip" data-filter="in_progress"      onclick="setFilter('in_progress')">In Progress</button>
+          <button class="filter-chip" data-filter="awaiting"         onclick="setFilter('awaiting')">Awaiting</button>
+          <button class="filter-chip" data-filter="completed"        onclick="setFilter('completed')">Completed</button>
+          <button class="filter-chip" data-filter="cancelled"        onclick="setFilter('cancelled')">Cancelled</button>
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0;">
           <select class="admin-select" id="sort-select" onchange="handleSort(this.value)">
@@ -223,12 +224,17 @@ function init(){
   subscribeVerifBadge();
 }
 
+const ACTIVE_STATUSES    = ['accepted','en_route','in_progress','awaiting'];
+const COMPLETED_STATUSES = ['completed'];
+const PENDING_STATUSES   = ['pending','dispatching','searching','dispatched','assigned'];
+
 function updateKPIs(){
-  document.getElementById('kpi-total').textContent=allBookings.length;
-  document.getElementById('kpi-pending').textContent=allBookings.filter(b=>b.status==='Pending').length;
-  document.getElementById('kpi-active').textContent=allBookings.filter(b=>b.status==='Active'||b.status==='In Progress').length;
-  const rev=allBookings.filter(b=>b.status==='Completed').reduce((s,b)=>s+(b.amount||0),0);
-  document.getElementById('kpi-revenue').textContent=`GHS ${rev.toFixed(2)}`;
+  const norm = s => (s || '').toLowerCase();
+  document.getElementById('kpi-total').textContent   = allBookings.length;
+  document.getElementById('kpi-pending').textContent  = allBookings.filter(b=>PENDING_STATUSES.includes(norm(b.status))).length;
+  document.getElementById('kpi-active').textContent   = allBookings.filter(b=>ACTIVE_STATUSES.includes(norm(b.status))).length;
+  const rev = allBookings.filter(b=>COMPLETED_STATUSES.includes(norm(b.status))).reduce((s,b)=>s+(Number(b.total||b.price||b.amount)||0),0);
+  document.getElementById('kpi-revenue').textContent  = `GHS ${rev.toFixed(2)}`;
 }
 
 window.setFilter=f=>{currentFilter=f;currentPage=1;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.filter===f));applyAndRender();};
@@ -237,7 +243,7 @@ window.handleSort=v=>{currentSort=v;applyAndRender();};
 
 function applyAndRender(){
   let list=[...allBookings];
-  if(currentFilter!=='all') list=list.filter(b=>b.status===currentFilter);
+  if(currentFilter!=='all') list=list.filter(b=>(b.status||'').toLowerCase()===currentFilter.toLowerCase());
   if(searchQ) list=list.filter(b=>(b.customerName||'').toLowerCase().includes(searchQ)||(b.artisanName||'').toLowerCase().includes(searchQ)||(b.serviceType||b.category||'').toLowerCase().includes(searchQ)||(b.id||'').toLowerCase().includes(searchQ));
   if(currentSort==='oldest') list.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
   else if(currentSort==='amount_high') list.sort((a,b)=>(b.amount||0)-(a.amount||0));
@@ -253,7 +259,7 @@ function renderTable(){
   const start=(currentPage-1)*PAGE_SIZE;
   const page=filtered.slice(start,start+PAGE_SIZE);
   if(!page.length){tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:48px;color:var(--text-light);">No bookings found</td></tr>`;return;}
-  const sMap={Pending:'badge-warning',Active:'badge-success',Completed:'badge-info','In Progress':'badge-orange',Cancelled:'badge-danger',Disputed:'badge-danger',Refunded:'badge-purple'};
+  const sMap={pending:'badge-warning',dispatching:'badge-warning',searching:'badge-warning',dispatched:'badge-warning',assigned:'badge-warning',accepted:'badge-success',en_route:'badge-success','in_progress':'badge-orange',awaiting:'badge-orange',completed:'badge-info',cancelled:'badge-danger',rejected:'badge-danger',unfulfilled:'badge-danger',disputed:'badge-danger',refunded:'badge-purple'};
   const escrowMap={held:'badge-warning',released:'badge-success',refunded:'badge-danger',none:'badge-default'};
   tbody.innerHTML=page.map(b=>{
     const ts=b.createdAt?.toDate?.();
@@ -268,7 +274,7 @@ function renderTable(){
       <td><span class="badge badge-info" style="font-size:10px;">${esc(b.serviceType||b.category||'—')}</span></td>
       <td style="font-size:13px;font-weight:600;">${amt}</td>
       <td><span class="badge ${escrowMap[escrow]||'badge-default'}" style="font-size:10px;">${escrow}</span></td>
-      <td><span class="badge ${sMap[b.status]||'badge-default'}" style="font-size:10px;">${b.status||'—'}</span></td>
+      <td><span class="badge ${sMap[(b.status||'').toLowerCase()]||'badge-default'}" style="font-size:10px;">${b.status||'—'}</span></td>
       <td style="font-size:11px;color:var(--text-light);">${ds}</td>
       <td onclick="event.stopPropagation()">
         <button class="btn btn-sm btn-secondary" onclick="openBookingModal('${b.id}')">Details</button>

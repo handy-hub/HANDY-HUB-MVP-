@@ -123,16 +123,25 @@ export function createArtisanRepository({
         /**
          * Recompute the artisan's average rating after a new review is submitted.
          *
+         * KNOWN TOCTOU: This reads rating/reviewCount then writes. Two concurrent
+         * reviews could produce a wrong average. The safe fix is a Cloud Function
+         * triggered on the `reviews` collection that uses a Firestore transaction.
+         * Acceptable risk at current scale — move to server-side when review volume
+         * justifies it.
+         *
          * @param {string} artisanId
          * @param {number} newRatingScore  The score from the new review (1–5)
          */
         async applyNewReview(artisanId, newRatingScore) {
+            const score = Math.max(1, Math.min(5, Number(newRatingScore)));
+            if (isNaN(score)) throw new Error("newRatingScore must be a number between 1 and 5.");
+
             const record = await this.getById(artisanId);
             if (!record?.exists) throw new Error("Artisan not found.");
 
             const { rating = 0, reviewCount = 0 } = record.data;
             const nextCount  = reviewCount + 1;
-            const nextRating = ((rating * reviewCount) + newRatingScore) / nextCount;
+            const nextRating = ((rating * reviewCount) + score) / nextCount;
 
             await databaseService.updateDocument(collectionName, artisanId, {
                 rating:      Math.round(nextRating * 10) / 10,
@@ -152,16 +161,21 @@ export function createArtisanRepository({
         },
 
         /**
-         * Increment jobsCompleted after a booking is marked complete.
+         * @deprecated — jobsCompleted is now atomically incremented by the
+         * `onBookingStatusChanged` Cloud Function (functions/bookings.js) using
+         * FieldValue.increment(1) when a booking transitions to 'completed'.
+         * Do NOT call this from client code — the counter will double-count.
+         *
+         * Kept here so existing call-sites get a clear deprecation message at
+         * runtime instead of a silent crash.
          */
         async incrementJobsCompleted(artisanId) {
-            const record = await this.getById(artisanId);
-            if (!record?.exists) throw new Error("Artisan not found.");
-
-            await databaseService.updateDocument(collectionName, artisanId, {
-                jobsCompleted: (record.data.jobsCompleted ?? 0) + 1,
-                updatedAt:     now()
-            });
+            console.warn(
+                '[artisanRepository] incrementJobsCompleted() is deprecated. ' +
+                'jobsCompleted is now incremented by the onBookingStatusChanged Cloud Function. ' +
+                'Remove calls to this method from client code.'
+            );
+            // No-op — Cloud Function handles this atomically.
         }
     };
 }

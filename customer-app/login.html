@@ -70,7 +70,7 @@ body {
     padding: 0 !important;
     margin: 0 !important;
     min-height: 100dvh;
-    background: #f0ece8;
+    background: #fefefe;
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
@@ -99,7 +99,7 @@ body {
     position: relative;
     overflow: hidden;
     /* Warm stone — works with any color logo */
-    background: #f0ece8;
+    background: #fefefe;
     padding: 0 0 56px;   /* extra bottom padding → card overlaps this */
 }
 
@@ -230,7 +230,7 @@ body {
     flex: 1;
     background: var(--white);
     border-radius: var(--r-3xl) var(--r-3xl) 0 0;
-    margin-top: -28px;           /* overlaps hero, creating depth */
+    margin-top: -50px;           /* overlaps hero, creating depth */
     box-shadow: var(--shadow-card);
     padding: 10px 24px 0;
     display: flex;
@@ -251,19 +251,20 @@ body {
 
 /* ── Card headings ──────────────────────────────────────────── */
 .ln-heading {
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 800;
     color: var(--text-primary);
     letter-spacing: -0.5px;
     line-height: 1.15;
     margin-bottom: 5px;
+    margin-top: 15px;
 }
 
 .ln-subheading {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-secondary);
     font-weight: 400;
-    margin-bottom: 28px;
+    margin-bottom: 20px;
 }
 
 
@@ -293,7 +294,7 @@ body {
     left: 15px;
     width: 18px;
     height: 18px;
-    color: var(--grey-400);
+    color: var(--red-700);
     pointer-events: none;
     flex-shrink: 0;
     transition: color 0.2s var(--ease-out);
@@ -307,7 +308,7 @@ body {
     border-radius: var(--r-md);
     background: var(--input-bg-rest);
     font-family: inherit;
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 400;
     color: var(--text-primary);
     outline: none;
@@ -322,6 +323,7 @@ body {
 .ln-input::placeholder {
     color: var(--text-hint);
     font-weight: 400;
+    font-size: 14px;
 }
 
 /* Focus: input brightens + brand border appears */
@@ -401,7 +403,6 @@ body {
     justify-content: center;
     gap: 9px;
     cursor: pointer;
-    box-shadow: var(--shadow-btn);
     transition:
         background   0.2s var(--ease-out),
         box-shadow   0.2s var(--ease-out),
@@ -559,7 +560,6 @@ body {
 }
 
 .ln-footer-inner {
-    background: #fdf3f3;
     border-radius: 20px 20px 0 0;
     padding: 18px 0;
     padding-bottom: max(18px, env(safe-area-inset-bottom));
@@ -761,49 +761,6 @@ body {
 }
 
 
-/* ════════════════════════════════════════════════════════════════
-   BOTTOM SHEET OVERRIDES
-   JS takes over card positioning. These resolve conflicts with
-   the static flex layout and CSS entrance animation.
-   ════════════════════════════════════════════════════════════════ */
-
-/* Hero becomes the full-viewport background canvas */
-.ln-hero {
-    min-height: 100dvh;
-    padding-bottom: 0;
-}
-
-/* Strip static layout from card — JS sets position:fixed + transform */
-.ln-card {
-    flex      : none  !important;
-    margin-top: 0     !important;
-    animation : none  !important;
-    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
-}
-
-/* Drag handle — larger hit-target, grab cursor */
-.ln-handle {
-    cursor  : grab;
-    padding : 10px 0 6px;
-    margin  : -10px 0 18px;
-    touch-action: none;
-    -webkit-tap-highlight-color: transparent;
-}
-.bs-dragging .ln-handle { cursor: grabbing; }
-
-/* Stagger classes resolved immediately (JS controls entrance) */
-.ln-a1, .ln-a2, .ln-a3, .ln-a4,
-.ln-a5, .ln-a6, .ln-a7 {
-    animation: none;
-    opacity  : 1;
-    transform: none;
-}
-
-/* Desktop: fixed card with border-radius still looks good */
-@media (min-width: 431px) {
-    .ln-page { overflow: visible; }
-    .ln-card { border-radius: var(--r-3xl) !important; }
-}
 </style>
 </head>
 <body>
@@ -857,8 +814,6 @@ body {
 
     <!-- ══ FORM CARD ══════════════════════════════════════════ -->
     <div class="ln-card">
-
-        <div class="ln-handle" aria-hidden="true"></div>
 
         <h2 class="ln-heading ln-a1">Welcome Back!</h2>
         <p class="ln-subheading ln-a1">Sign in to continue to your account</p>
@@ -1145,19 +1100,6 @@ document.getElementById('forgot-link').addEventListener('click', function (e) {
 });
 </script>
 
-<!-- ══ BOTTOM SHEET ENGINE ════════════════════════════════════ -->
-<script type="module">
-import { initBottomSheet } from './js/bottomSheet.js';
-
-document.addEventListener('DOMContentLoaded', function () {
-    var card   = document.querySelector('.ln-card');
-    var handle = document.querySelector('.ln-handle');
-    // Only pass inputs inside the card — not the forgot-password overlay
-    var inputs = Array.from(card.querySelectorAll('.ln-input'));
-
-    window._loginSheet = initBottomSheet({ card: card, handle: handle, inputs: inputs });
-});
-</script>
 
 </body>
 </html>

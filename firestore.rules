@@ -207,6 +207,8 @@ service cloud.firestore {
         'name', 'phone', 'location', 'bio', 'profileImage',
         'recentSearches', 'recentSearchesUpdatedAt',
         'notificationPreferences', 'privacySettings', 'appPreferences',
+        // Saved items — managed by the customer via saved.html
+        'savedProfessionals', 'savedServices',
         'updatedAt'
       ]);
     }
@@ -288,10 +290,12 @@ service cloud.firestore {
                        // Accept both 'pending' (canonical) and 'Pending' (legacy) at create time
                        incoming().status     in ['pending', 'Pending'] &&
                        // artisanId must be a non-empty string for standard bookings, OR
-                       // null for emergency bookings (no artisan matched yet).
+                       // null for emergency bookings awaiting dispatch assignment.
+                       // Note: check both 'type' and legacy 'bookingType' field names.
                        (
                          (incoming().artisanId is string && incoming().artisanId.size() > 0) ||
-                         (incoming().artisanId == null && incoming().bookingType == 'emergency')
+                         (incoming().artisanId == null &&
+                          (incoming().type == 'emergency' || incoming().bookingType == 'emergency'))
                        ) &&
                        incoming().serviceType is string &&
                        incoming().createdAt   is string;
@@ -312,20 +316,106 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
+    // Strict booking state machine.
+    // Firestore Rules functions must have a single return expression — no if/else blocks.
+    // Each transition is locked to the party that may trigger it.
+    // Timestamp fields are only writable alongside their matching status transition.
     function isValidBookingUpdate() {
-      let affectedKeys = incoming().diff(existing()).affectedKeys();
-      // Must always include updatedAt when updating
-      return affectedKeys.hasOnly([
-        'status', 'updatedAt', 'notes', 'scheduledAt', 'price',
-        'address', 'artisanNotes', 'rating', 'review', 'reviewedAt',
-        'cancellationReason', 'completedAt', 'acceptedAt', 'rejectedAt',
-        'enRouteAt', 'arrivedAt'
-      ]) &&
-      incoming().status in [
-        'pending', 'accepted', 'rejected', 'cancelled',
-        'En Route', 'In Progress', 'Awaiting Confirmation', 'Completed',
-        'completed', 'Disputed'
-      ];
+      let prev       = existing().status;
+      let next       = incoming().status;
+      let keys       = incoming().diff(existing()).affectedKeys();
+      let isCustomer = request.auth.uid == resource.data.customerId;
+      let isArtisan  = request.auth.uid == resource.data.artisanId;
+
+      // ── Artisan eligibility check (server-enforced) ──────────────
+      // An artisan may only perform job actions if their account is:
+      //   • verificationStatus == 'approved'
+      //   • status             == 'active'   (not suspended/banned/pending)
+      // This prevents suspended or pending artisans from accepting/advancing
+      // jobs even if they bypass the frontend KYC check.
+      let artisanProfile = isArtisan
+        ? get(/databases/$(database)/documents/artisans/$(request.auth.uid)).data
+        : null;
+      let artisanEligible = isArtisan &&
+        artisanProfile.verificationStatus == 'approved' &&
+        artisanProfile.status             == 'active';
+
+      // Canonical status values (all snake_case lowercase):
+      //   pending → accepted → en_route → in_progress → awaiting → completed
+      //   Any non-terminal → cancelled | disputed
+      //   pending → rejected (artisan declines; dispatch re-assigns immediately)
+
+      return keys.hasAll(['updatedAt']) && (
+
+        // ── Customer actions ────────────────────────────────────────
+        (isCustomer && (
+          // Cancel a pending or accepted booking
+          (keys.hasAny(['status']) &&
+           keys.hasOnly(['status', 'updatedAt', 'cancellationReason']) &&
+           prev in ['pending', 'Pending', 'accepted'] && next == 'cancelled') ||
+          // Leave a review — only after job is completed, no status change
+          (!keys.hasAny(['status']) &&
+           keys.hasOnly(['rating', 'review', 'reviewedAt', 'updatedAt']) &&
+           prev in ['completed']) ||
+          // Update notes/address before artisan accepts — no status change
+          (!keys.hasAny(['status']) &&
+           keys.hasOnly(['notes', 'address', 'scheduledAt', 'updatedAt']) &&
+           prev in ['pending', 'Pending']) ||
+          // Confirm job completion: awaiting → completed
+          (keys.hasAny(['status']) &&
+           keys.hasOnly(['status', 'completedAt', 'updatedAt']) &&
+           prev == 'awaiting' && next == 'completed') ||
+          // Raise a dispute while booking is active
+          (keys.hasAny(['status']) &&
+           keys.hasOnly(['status', 'updatedAt']) &&
+           prev in ['accepted', 'en_route', 'in_progress', 'awaiting'] &&
+           next == 'disputed')
+        )) ||
+
+        // ── Artisan actions — gated by artisanEligible ──────────────
+        // All artisan-side status changes require verificationStatus == 'approved'
+        // AND status == 'active'. Reject/decline is the only exception — artisans
+        // can always decline a job, even during review (prevents jobs being stuck).
+        (isArtisan && (
+          // Reject/decline: always allowed (artisan may be pending — job must not be stuck)
+          (keys.hasAny(['status']) &&
+           keys.hasOnly(['status', 'rejectedAt', 'artisanNotes', 'updatedAt']) &&
+           prev in ['pending', 'Pending'] && next == 'rejected') ||
+          // Cancel an accepted booking — also always allowed (cannot trap accepted bookings)
+          (keys.hasAny(['status']) &&
+           keys.hasOnly(['status', 'updatedAt', 'cancellationReason']) &&
+           prev == 'accepted' && next == 'cancelled') ||
+          // Add artisan notes without status change — always allowed
+          (!keys.hasAny(['status']) &&
+           keys.hasOnly(['artisanNotes', 'updatedAt'])) ||
+
+          // ── Below: only approved + active artisans ────────────────
+          (artisanEligible && (
+            // Accept: pending → accepted
+            (keys.hasAny(['status']) &&
+             keys.hasOnly(['status', 'acceptedAt', 'updatedAt']) &&
+             prev in ['pending', 'Pending'] && next == 'accepted') ||
+            // En route: accepted → en_route
+            (keys.hasAny(['status']) &&
+             keys.hasOnly(['status', 'enRouteAt', 'updatedAt']) &&
+             prev == 'accepted' && next == 'en_route') ||
+            // Arrived / in progress: en_route → in_progress
+            (keys.hasAny(['status']) &&
+             keys.hasOnly(['status', 'arrivedAt', 'updatedAt']) &&
+             prev == 'en_route' && next == 'in_progress') ||
+            // Job done — awaiting customer confirmation: in_progress → awaiting
+            (keys.hasAny(['status']) &&
+             keys.hasOnly(['status', 'jobDoneAt', 'updatedAt']) &&
+             prev == 'in_progress' && next == 'awaiting') ||
+            // Raise a dispute while booking is active
+            (keys.hasAny(['status']) &&
+             keys.hasOnly(['status', 'updatedAt']) &&
+             prev in ['accepted', 'en_route', 'in_progress', 'awaiting'] &&
+             next == 'disputed')
+          ))
+        ))
+
+      );
     }
 
     // ═══════════════════════════════════════════════════════════════

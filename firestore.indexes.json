@@ -81,9 +81,19 @@
         { "fieldPath": "rating",   "order": "DESCENDING" }
       ]
     },
+    // dispatch.findEligibleArtisans: status + isAvailable + verificationStatus
+    {
+      "collectionGroup": "artisans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",             "order": "ASCENDING" },
+        { "fieldPath": "isAvailable",        "order": "ASCENDING" },
+        { "fieldPath": "verificationStatus", "order": "ASCENDING" }
+      ]
+    },
 
     // ── bookings ────────────────────────────────────────────────────
-    // getByCustomerId: customerId + createdAt DESC
+    // subscribeByCustomerId (booking.html): customerId + createdAt DESC
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -92,7 +102,7 @@
         { "fieldPath": "createdAt",  "order": "DESCENDING" }
       ]
     },
-    // getByArtisanId: artisanId + createdAt DESC
+    // subscribeByArtisanId (jobs.html): artisanId + createdAt DESC
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -101,7 +111,7 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-    // getByCustomerId filtered by status
+    // getByCustomerId filtered by status (one-shot)
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -111,7 +121,7 @@
         { "fieldPath": "createdAt",  "order": "DESCENDING" }
       ]
     },
-    // getByArtisanId filtered by status
+    // getByArtisanId filtered by status (one-shot)
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -119,6 +129,35 @@
         { "fieldPath": "artisanId", "order": "ASCENDING" },
         { "fieldPath": "status",    "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    // artisanId + status + updatedAt — artisan dashboard active jobs
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "artisanId",  "order": "ASCENDING" },
+        { "fieldPath": "status",     "order": "ASCENDING" },
+        { "fieldPath": "updatedAt",  "order": "DESCENDING" }
+      ]
+    },
+    // customerId + type — emergency booking queries
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "customerId", "order": "ASCENDING" },
+        { "fieldPath": "type",       "order": "ASCENDING" },
+        { "fieldPath": "createdAt",  "order": "DESCENDING" }
+      ]
+    },
+    // dispatch.checkExpiredDispatches: dispatchStatus + responseDeadline ASC
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dispatchStatus",   "order": "ASCENDING" },
+        { "fieldPath": "responseDeadline", "order": "ASCENDING" }
       ]
     },
 
@@ -134,6 +173,16 @@
     },
 
     // ── escrow ────────────────────────────────────────────────────────────────
+    // holdFundsForBooking idempotency check: bookingId + customerId + status
+    {
+      "collectionGroup": "escrow",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bookingId",  "order": "ASCENDING" },
+        { "fieldPath": "customerId", "order": "ASCENDING" },
+        { "fieldPath": "status",     "order": "ASCENDING" }
+      ]
+    },
     // getByCustomer: customerId + createdAt DESC
     {
       "collectionGroup": "escrow",

@@ -61,24 +61,32 @@ export async function onBookingConfirmed(booking) {
         const doc = {
             customerId:  user.uid,
             artisanId:   booking.artisanId || null,
+            // Display fields — stored on the booking document so booking.html
+            // can render cards from Firestore without additional lookups.
             serviceType: booking.service,
-            proName:     booking.proName,
-            dateDisplay: booking.dateDisplay,
-            time:        booking.time,
-            total:       booking.total,
-            notes:       booking.notes   || '',
-            address:     booking.address || '',
-            // Emergency bookings are created with status 'pending' so the
-            // Firestore create rule passes. The emergency flag is stored separately.
+            service:     booking.service,       // alias for display layer
+            proName:     booking.proName     || '',
+            proPhoto:    booking.proPhoto    || null,
+            proPhone:    booking.proPhone    || null,
+            proRating:   booking.proRating   || null,
+            proType:     booking.proType     || '',
+            category:    booking.category    || '',
+            dateDisplay: booking.dateDisplay || '',
+            time:        booking.time        || '',
+            total:       booking.total       || 0,
+            notes:       booking.notes       || '',
+            address:     booking.address     || '',
+            payment:     booking.payment     || 'Wallet',
             status:      'pending',
             type:        isEmergency ? 'emergency' : 'standard',
-            // Emergency-specific fields
+            reviewLeft:  false,
+            escrowId:    null,  // populated by holdBookingFunds after escrow is held
             ...(isEmergency && {
-                eta:     booking.eta     || null,
-                refCode: booking.refCode || booking.id,
+                eta:         booking.eta     || null,
+                refCode:     booking.refCode || booking.id,
                 isEmergency: true,
             }),
-            refId:     booking.id,   // mirrors the localStorage booking ID
+            refId:     booking.id,
             createdAt: n,
             updatedAt: n,
         };

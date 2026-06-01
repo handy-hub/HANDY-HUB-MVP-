@@ -1,28 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Artisan | HandyHub</title>
-  <link rel="stylesheet" href="css/artisan.css">
-
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub Artisan</title>
+  <style>
+    body { margin: 0; font-family: 'DM Sans', sans-serif; background: #F5F6FA;
+           display: flex; align-items: center; justify-content: center; min-height: 100dvh; }
+    .spin { width: 36px; height: 36px; border: 3px solid #f0f0f0; border-top-color: #F97316;
+            border-radius: 50%; animation: s .7s linear infinite; }
+    @keyframes s { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
-  <div class="app">
-    <header class="profile-card">
-      <h2 class="name">Artisan Portal</h2>
-      <p class="location">Access your jobs, profile, and bookings.</p>
-    </header>
-    <main style="margin-top: 20px; padding: 16px;">
-      <p>Welcome to the Artisan app. Use the links below to manage your profile and jobs.</p>
-      <a href="login.html">Login</a>
-      <br>
-      <a href="signup.html">Signup</a>
-    </main>
-  </div>
-  <script type="module" src="js/app.js"></script>
-<script src="../shared/js/components/fastLoader.js"></script>
+  <div class="spin"></div>
+
+  <script src="../shared/js/utils/global-app.js"></script>
+  <script type="module">
+    import { getAppContainer } from '../shared/js/app/container.js';
+
+    const { services: { authService, databaseService } } = getAppContainer();
+
+    // Smart entry-point: check auth state and route appropriately.
+    // If already logged in and is a valid artisan → dashboard.
+    // If already logged in but not an artisan → kick to login with error.
+    // If not logged in → login.
+    try {
+      const user = await Promise.race([
+        authService.waitForUser(),
+        new Promise(r => setTimeout(() => r(null), 4000)),
+      ]);
+
+      if (!user) {
+        window.location.replace('login.html');
+        return;
+      }
+
+      // Check artisan document
+      const snap = await databaseService.getDocument('artisans', user.uid).catch(() => null);
+
+      if (!snap || !snap.exists || snap.data?.userType !== 'artisan') {
+        // Not an artisan — send to login
+        window.location.replace('login.html');
+        return;
+      }
+
+      const status = (snap.data.status || '').toLowerCase();
+      if (status === 'suspended' || status === 'banned') {
+        // Guard on destination page will show the suspended screen
+        window.location.replace('dashboard.html');
+        return;
+      }
+
+      // Valid artisan → go to dashboard
+      window.location.replace('dashboard.html');
+
+    } catch (_) {
+      window.location.replace('login.html');
+    }
+  </script>
 </body>
 </html>
-

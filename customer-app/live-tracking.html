@@ -284,7 +284,17 @@ const stages = [
   },
 ];
 
-let currentStageIndex = 1;
+// Initialize stage from the current booking status so the UI reflects real state.
+let currentStageIndex = (function () {
+  try {
+    const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+    const s = (b.status || '').toLowerCase();
+    if (s === 'in_progress') return 3;
+    if (s === 'awaiting')    return 4;
+    if (s === 'completed')   return 5;
+    return 0; // 'accepted' or just-confirmed → show at stage 0
+  } catch (_) { return 0; }
+}());
 
 function renderStages() {
   const container = document.getElementById('trk-stages');
@@ -388,21 +398,93 @@ function initSlide(actionId, fillId, labelId, thumbId, onComplete) {
   document.addEventListener('mouseup',   onUp);
 }
 
+function _getBookingId() {
+  try {
+    const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+    return b.bookingId || b.id || null;
+  } catch (_) { return null; }
+}
+
+function _getEscrowId() {
+  try { return JSON.parse(localStorage.getItem('hh_booking') || '{}').escrowId || null; }
+  catch (_) { return null; }
+}
+
+// Debounce guard — prevents double-tap triggering two cancel/confirm operations
+let _actionInProgress = false;
+
 function cancelBooking() {
+  if (_actionInProgress) return;
+  _actionInProgress = true;
+
   try {
     const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
     b.status = 'cancelled';
     localStorage.setItem('hh_booking', JSON.stringify(b));
-  } catch(_) {}
+  } catch (_) {}
+
+  const bkId    = _getBookingId();
+  const escrowId = _getEscrowId();
+
+  // Write cancellation to Firestore (fire-and-forget)
+  if (bkId) {
+    import('../shared/js/app/container.js').then(function (mod) {
+      mod.getAppContainer().repositories.bookingRepository.updateStatus(bkId, 'cancelled')
+        .catch(function (err) { console.warn('[tracking] Cancel Firestore write failed:', err); });
+    });
+  }
+
+  // Refund escrow if funds were held — fire-and-forget, do not block navigation.
+  // The Cloud Function is idempotent: a second call after a successful refund is rejected safely.
+  if (escrowId) {
+    import('../shared/js/services/walletService.js').then(function (m) {
+      m.refundBooking(escrowId, 'Customer cancelled booking')
+        .then(function () { console.log('[tracking] Escrow refunded for booking.'); })
+        .catch(function (err) { console.warn('[tracking] Escrow refund failed (auto-release will recover):', err.message); });
+    });
+  }
+
   window.location.href = 'dashboard.html';
 }
 
-function confirmCompletion() {
+async function confirmCompletion() {
+  if (_actionInProgress) return;
+  _actionInProgress = true;
+
+  // Show processing state on the slider label immediately
+  const confirmLabel = document.getElementById('confirm-label');
+  if (confirmLabel) confirmLabel.textContent = '⏳ Releasing payment…';
+
   try {
     const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
     b.status = 'completed';
     localStorage.setItem('hh_booking', JSON.stringify(b));
-  } catch(_) {}
+  } catch (_) {}
+
+  const bkId    = _getBookingId();
+  const escrowId = _getEscrowId();
+
+  // Write completed status to Firestore — triggers artisan jobsCompleted increment in bookings.js
+  if (bkId) {
+    import('../shared/js/app/container.js').then(function (mod) {
+      mod.getAppContainer().repositories.bookingRepository.updateStatus(bkId, 'completed')
+        .catch(function (err) { console.warn('[tracking] Complete Firestore write failed:', err); });
+    });
+  }
+
+  // Release escrow so artisan is paid — await this before navigation.
+  // The Cloud Function re-checks status inside a transaction so double-calls are safe.
+  if (escrowId) {
+    try {
+      const { releaseEscrow } = await import('../shared/js/services/walletService.js');
+      await releaseEscrow(escrowId);
+      console.log('[tracking] Escrow released — artisan wallet credited.');
+    } catch (err) {
+      // Log and continue: 7-day auto-release is the fallback, artisan will still be paid.
+      console.warn('[tracking] Escrow release failed (auto-release fallback active):', err.message);
+    }
+  }
+
   window.location.href = 'review.html';
 }
 
@@ -424,6 +506,23 @@ function callArtisan() {
   }
 }
 
+// ── Booking status gate — redirect if artisan hasn't accepted yet ────────────
+// This check runs immediately so customers can't manually navigate here before
+// the artisan has responded. The definitive gate is the Firestore status check
+// in the module script below; this local check is a fast first pass.
+(function enforceTrackingGate() {
+  try {
+    const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+    const gatedStatuses = ['accepted', 'en_route', 'in_progress', 'awaiting', 'completed'];
+    if (!gatedStatuses.includes(b.status)) {
+      // Booking not yet accepted — redirect to the waiting screen
+      window.location.replace('book-step4.html');
+    }
+  } catch(_) {
+    window.location.replace('dashboard.html');
+  }
+})();
+
 // ── Load booking data ────────────────────────────────────────
 const booking = JSON.parse(localStorage.getItem('hh_booking') || '{}');
 const _pro    = booking.artisan || booking.professional;
@@ -440,11 +539,11 @@ if (_pro) {
 }
 
 // ── Leaflet map ──────────────────────────────────────────────
-const userLat = 5.6037, userLng = -0.1870;
-let artisanLat = userLat + 0.009, artisanLng = userLng + 0.003;
+// Start with Accra as the fallback centre; replaced by real GPS below.
+let userLat = 5.6037, userLng = -0.1870;
 
 const map = L.map('tracking-map', { zoomControl: false, attributionControl: false })
-  .setView([(userLat + artisanLat) / 2, (userLng + artisanLng) / 2], 15);
+  .setView([userLat, userLng], 15);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
@@ -464,55 +563,163 @@ const artisanIcon = L.divIcon({
   iconSize: [42, 42], iconAnchor: [21, 21],
 });
 
-L.marker([userLat, userLng], { icon: userIcon }).addTo(map).bindPopup('Your location').openPopup();
-const artisanMarker = L.marker([artisanLat, artisanLng], { icon: artisanIcon }).addTo(map).bindPopup('Artisan');
+const userMarker = L.marker([userLat, userLng], { icon: userIcon }).addTo(map).bindPopup('Your location');
+let artisanMarker = null;
+let routeLine = null;
+let locationUnsub = null;
 
-const routeLine = L.polyline([[artisanLat, artisanLng], [userLat, userLng]], {
-  color: '#730201', weight: 3, dashArray: '6 6', opacity: 0.7,
-}).addTo(map);
+// ── Real user GPS ────────────────────────────────────────────
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      userMarker.setLatLng([userLat, userLng]);
+      map.setView([userLat, userLng], 15);
+    },
+    () => {} // keep Accra fallback silently
+  );
+}
 
-function advanceStage() {
-  if (currentStageIndex < stages.length - 1) {
-    currentStageIndex++;
-    renderStages();
-    if (stages[currentStageIndex].key === 'arrived') {
-      document.getElementById('eta-chip').textContent = 'Arrived';
-      setTimeout(() => { currentStageIndex++; renderStages(); }, 3000);
+// ── Artisan location from Firestore ─────────────────────────
+// The artisan app writes currentLat/currentLng to artisans/{artisanId}
+// when they are en route. We subscribe and update the map in real time.
+window.showTrackingUnavailable = function showTrackingUnavailable() {
+  const chip = document.getElementById('eta-chip');
+  if (chip) chip.textContent = 'Awaiting';
+  const label = document.getElementById('stage-label');
+  if (label && label.textContent === stages[0].label) {
+    // Show a non-intrusive note on the map only when no artisan marker yet
+    if (!artisanMarker) {
+      L.popup({ closeButton: false, autoClose: false, closeOnClick: false })
+        .setLatLng([userLat, userLng])
+        .setContent('<div style="font-size:12px;font-weight:600;color:#555;text-align:center;padding:2px 4px;">Live tracking will appear<br>when artisan is en route</div>')
+        .openOn(map);
     }
   }
 }
 
-function startMoving() {
-  const steps = 60;
-  let tick = 0;
-  const iv = setInterval(() => {
-    if (tick >= steps) {
-      clearInterval(iv);
-      artisanLat = userLat; artisanLng = userLng;
-      artisanMarker.setLatLng([artisanLat, artisanLng]);
-      routeLine.setLatLngs([[artisanLat, artisanLng], [userLat, userLng]]);
-      advanceStage();
-      return;
-    }
-    const t = tick / steps;
-    artisanLat = (userLat + 0.009) + (userLat - (userLat + 0.009)) * t;
-    artisanLng = (userLng + 0.003) + (userLng - (userLng + 0.003)) * t;
-    artisanMarker.setLatLng([artisanLat, artisanLng]);
-    routeLine.setLatLngs([[artisanLat, artisanLng], [userLat, userLng]]);
-    const remaining = Math.max(0, Math.round((1 - t) * 12));
-    if (remaining > 0) document.getElementById('eta-chip').textContent = `~${remaining} min`;
-    tick++;
-  }, 1000);
+window.updateArtisanMarker = function updateArtisanMarker(aLat, aLng) {
+  if (!artisanMarker) {
+    artisanMarker = L.marker([aLat, aLng], { icon: artisanIcon }).addTo(map).bindPopup('Artisan');
+    routeLine = L.polyline([[aLat, aLng], [userLat, userLng]], {
+      color: '#730201', weight: 3, dashArray: '6 6', opacity: 0.7,
+    }).addTo(map);
+    map.closePopup();
+    map.fitBounds([[aLat, aLng], [userLat, userLng]], { padding: [40, 40] });
+  } else {
+    artisanMarker.setLatLng([aLat, aLng]);
+    routeLine.setLatLngs([[aLat, aLng], [userLat, userLng]]);
+  }
 }
 
+(function subscribeArtisanLocation() {
+  const artisanId = (_pro && _pro.id) || booking.proId || null;
+  if (!artisanId) { showTrackingUnavailable(); return; }
+
+  // Use Firebase SDK loaded by the module block below via the shared container
+  // The subscription is set up after auth resolves (see module script at bottom).
+  window._trkSubscribeArtisan = artisanId;
+})();
+
 renderStages();
-startMoving();
 initSlide('slide-cancel',  'cancel-fill',  'cancel-label',  'cancel-thumb',  cancelBooking);
 initSlide('slide-confirm', 'confirm-fill', 'confirm-label', 'confirm-thumb', confirmCompletion);
+
+// Show initial unavailable state; real location updates arrive via Firestore below
+showTrackingUnavailable();
 </script>
 <script type="module">
-  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  import { requireAuth }    from '../shared/js/utils/authGuard.js';
+  import { getAppContainer } from '../shared/js/app/container.js';
+
   await requireAuth();
+
+  // ── Firestore status gate — definitive server-side check ──
+  // Reject access if Firestore shows the booking isn't accepted.
+  const _bookingId = (JSON.parse(localStorage.getItem('hh_booking') || '{}')).bookingId
+                   || (JSON.parse(localStorage.getItem('hh_booking') || '{}')).id;
+  if (_bookingId) {
+    try {
+      const { services: { databaseService: _ds } } = getAppContainer();
+      const _snap = await new Promise((resolve, reject) => {
+        const _unsub = _ds.subscribeToDocument('bookings', _bookingId, s => {
+          _unsub();
+          resolve(s);
+        }, reject);
+      });
+      const _allowed = ['accepted', 'en_route', 'in_progress', 'awaiting', 'completed'];
+      if (_snap?.data && !_allowed.includes(_snap.data.status)) {
+        window.location.replace('book-step4.html');
+        throw new Error('booking not yet accepted');
+      }
+    } catch (e) {
+      if (e.message === 'booking not yet accepted') throw e;
+      // Firestore error — fall through and let the local gate stand
+    }
+  }
+
+  // ── Real-time artisan location from Firestore ──────────────
+  const artisanId = window._trkSubscribeArtisan;
+  if (artisanId) {
+    try {
+      const { services: { databaseService } } = getAppContainer();
+      window._trkLocationUnsub = databaseService.subscribeToDocument(
+        'artisans', artisanId,
+        snap => {
+          if (!snap || !snap.data) { window.showTrackingUnavailable?.(); return; }
+          const d    = snap.data;
+          const aLat = d.currentLat ?? d.lat ?? null;
+          const aLng = d.currentLng ?? d.lng ?? null;
+          if (aLat && aLng) {
+            window.updateArtisanMarker(aLat, aLng);
+          } else {
+            window.showTrackingUnavailable?.();
+          }
+        },
+        err => {
+          console.warn('[live-tracking] Firestore location subscribe error:', err);
+          window.showTrackingUnavailable?.();
+        }
+      );
+    } catch (e) {
+      console.warn('[live-tracking] Could not subscribe to artisan location:', e);
+      window.showTrackingUnavailable?.();
+    }
+  }
+
+  // ── Real-time booking status → drives stage progression ──────────────
+  // When the artisan advances status (in_progress, awaiting, completed),
+  // the stage indicator updates without a page reload.
+  if (_bookingId) {
+    try {
+      const _statusUnsub = databaseService.subscribeToDocument(
+        'bookings', _bookingId,
+        snap => {
+          if (!snap || !snap.data) return;
+          const s = (snap.data.status || '').toLowerCase();
+          let newStage = 0;
+          if (s === 'in_progress') newStage = 3;
+          else if (s === 'awaiting')    newStage = 4;
+          else if (s === 'completed')   newStage = 5;
+          else if (s === 'accepted')    newStage = 0;
+          if (newStage !== currentStageIndex) {
+            currentStageIndex = newStage;
+            renderStages();
+          }
+        },
+        err => console.warn('[tracking] Booking status subscription error:', err)
+      );
+      window.addEventListener('pagehide', () => { if (typeof _statusUnsub === 'function') _statusUnsub(); });
+    } catch (e) {
+      console.warn('[tracking] Could not subscribe to booking status:', e);
+    }
+  }
+
+  // Clean up location listener when user navigates away
+  window.addEventListener('pagehide', () => {
+    if (window._trkLocationUnsub) { window._trkLocationUnsub(); }
+  });
 </script>
 </body>
 </html>

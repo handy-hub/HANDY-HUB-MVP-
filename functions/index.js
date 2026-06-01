@@ -18,6 +18,7 @@
 const { initializeApp }    = require('firebase-admin/app');
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const { onDocumentCreated }            = require('firebase-functions/v2/firestore');
+const { onSchedule }                   = require('firebase-functions/v2/scheduler');
 
 initializeApp();
 
@@ -31,6 +32,9 @@ const artisanVerif = require('./artisanVerification');
 
 // ── Booking lifecycle module ──────────────────────────────────────────────────
 const bookingsModule = require('./bookings');
+
+// ── Dispatch engine module ────────────────────────────────────────────────────
+const dispatchModule = require('./dispatch');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WEBHOOK  —  Paystack → Firebase (public HTTPS endpoint)
@@ -56,16 +60,19 @@ exports.paystackWebhook = onRequest(
 exports.holdBookingFunds = onCall({ region: 'us-central1' }, async (request) => {
     _requireAuth(request);
     const { bookingId, artisanId, amount } = request.data;
-    _validate({ bookingId, artisanId, amount }, ['bookingId', 'artisanId', 'amount']);
+    // artisanId may be null for dispatch-assigned bookings (artisan not yet selected).
+    // escrow.holdFundsForBooking accepts null artisanId and the release will read the
+    // artisanId from the escrow document when the booking is completed.
+    _validate({ bookingId, amount }, ['bookingId', 'amount']);
     if (Number(amount) <= 0) throw new HttpsError('invalid-argument', 'Amount must be greater than 0.');
 
     try {
         return await escrow.holdFundsForBooking({
             bookingId,
-            customerId: request.auth.uid,
-            artisanId,
+            customerId:  request.auth.uid,
+            artisanId:   artisanId || null,
             amount,
-            callerAuth: request.auth,   // Authorization verified inside escrow.holdFundsForBooking
+            callerAuth:  request.auth,
         });
     } catch (err) {
         throw new HttpsError('failed-precondition', err.message);
@@ -287,7 +294,18 @@ exports.onVerificationSubmitted = onDocumentCreated(
  *   * → completed         : both notified
  *   * → cancelled         : both notified
  */
-exports.onBookingStatusChanged = bookingsModule.onBookingStatusChanged;
+exports.onBookingStatusChanged  = bookingsModule.onBookingStatusChanged;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DISPATCH ENGINE — Uber/Bolt-style sequential artisan matching
+//
+// onBookingCreated       : fires when booking doc is created → first dispatch round
+// onBookingDispatchEvent : fires on update → handles rejection (re-dispatch) + acceptance
+// checkExpiredDispatches : scheduled every 1 min → re-dispatches timed-out rounds
+// ─────────────────────────────────────────────────────────────────────────────
+exports.onBookingCreated        = dispatchModule.onBookingCreated;
+exports.onBookingDispatchEvent  = dispatchModule.onBookingDispatchEvent;
+exports.checkExpiredDispatches  = dispatchModule.checkExpiredDispatches;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

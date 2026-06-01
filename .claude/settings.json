@@ -7,10 +7,19 @@
       "Bash(Select-Object FullName, PSIsContainer)",
       "Bash(Format-Table -AutoSize)",
       "Bash(Out-String -Width 300)",
-      "Read(//c/Users/Herty/.claude/projects/c--Users-Herty-OneDrive-Desktop-Lunch-HANDY-HUB-MVP-/memory/**)"
+      "Read(//c/Users/Herty/.claude/projects/c--Users-Herty-OneDrive-Desktop-Lunch-HANDY-HUB-MVP-/memory/**)",
+      "Bash(grep -E \"\\\\.html$\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Herty\\\\OneDrive\\\\Desktop\\\\Lunch\\\\HANDY-HUB-MVP-\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)",
+      "Bash(Format-List FullName)",
+      "Bash(git restore *)",
+      "Bash(python3 -c ' *)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\Herty\\\\OneDrive\\\\Desktop\\\\HandyHub_Production_Roadmap.html\")",
+      "Bash(firebase functions:list)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\Herty\\.claude\\projects\\c--Users-Herty-OneDrive-Desktop-Lunch-HANDY-HUB-MVP-\\memory"
+      "c:\\Users\\Herty\\.claude\\projects\\c--Users-Herty-OneDrive-Desktop-Lunch-HANDY-HUB-MVP-\\memory",
+      "C:\\Users\\Herty\\OneDrive\\Desktop"
     ]
   }
 }

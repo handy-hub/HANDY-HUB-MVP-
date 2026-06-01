@@ -162,6 +162,20 @@
       </div>
     </div>
 
+    <!-- ── Active Jobs (accepted / in-progress — need action) ── -->
+    <div class="section-header mt-8">
+      <span class="section-title">Active Jobs</span>
+      <a href="jobs.html?tab=active" class="view-all-link">
+        View all
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#F97316" stroke-width="2" stroke-linecap="round"/></svg>
+      </a>
+    </div>
+    <div id="active-jobs-list">
+      <div class="empty-state" id="active-jobs-empty" style="display:none">
+        <p>No active jobs right now</p>
+      </div>
+    </div>
+
     <!-- ── Today's Schedule ───────────────────────────── -->
     <div class="section-header mt-8">
       <span class="section-title">Today's Schedule</span>
@@ -312,11 +326,21 @@
 
 <script type="module">
 import '../shared/js/utils/global-app.js';
-import { getAppContainer }                            from '../shared/js/app/container.js';
+import { getAppContainer }                             from '../shared/js/app/container.js';
 import { startPresence, stopPresence, setOnlineState } from '../shared/js/services/presenceService.js';
 import { subscribeToUnreadCount }                      from '../shared/js/services/notificationRepository.js';
+import { requireArtisanAuth, canAcceptJobs }           from './js/utils/artisanAuthGuard.js';
+
+// ── BLOCKING AUTH GUARD ───────────────────────────────────────────────────────
+// Verifies: authenticated + role=artisan + not suspended.
+// Pending/rejected artisans are allowed on the dashboard (they see the KYC banner).
+// Suspended artisans see a full-screen error and cannot proceed.
+const { artisan: _guardArtisan } = await requireArtisanAuth({ allowPending: true });
 
 const { services: { authService, databaseService } } = getAppContainer();
+
+// Expose artisan session data for KYC-gated functions below
+let _currentArtisan = _guardArtisan || {};
 
 // ── State ──────────────────────────────────────────────
 let uid           = null;
@@ -450,39 +474,120 @@ window.toggleOnlineStatus = async function() {
   }
 };
 
+// ── Response deadline countdown ────────────────────────
+const _activeCountdowns = {};
+
+function _startJobCountdown(bookingId, deadlineMillis) {
+  if (_activeCountdowns[bookingId]) clearInterval(_activeCountdowns[bookingId]);
+  const el = document.getElementById(`job-countdown-${bookingId}`);
+  const bar = document.getElementById(`job-bar-${bookingId}`);
+
+  function tick() {
+    const remaining = Math.max(0, deadlineMillis - Date.now());
+    const totalSec  = Math.floor(remaining / 1000);
+    const totalMs   = deadlineMillis - Date.now();
+    const span      = deadlineMillis - (deadlineMillis - totalMs);  // full span unknown; use 3hr or 30s
+
+    if (el) {
+      if (totalSec <= 0) {
+        el.textContent = 'Expired';
+        el.style.color = '#ef4444';
+      } else {
+        const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        const s = totalSec % 60;
+        el.textContent = h > 0
+          ? `${h}h ${m}m`
+          : `${m}:${String(s).padStart(2, '0')}`;
+        // Warn when under 1 minute
+        if (totalSec < 60) el.style.color = '#ef4444';
+      }
+    }
+
+    if (totalSec <= 0) {
+      clearInterval(_activeCountdowns[bookingId]);
+      // Card will be removed by Firestore listener when dispatch engine re-assigns
+    }
+  }
+  tick();
+  _activeCountdowns[bookingId] = setInterval(tick, 1000);
+}
+
 // ── Render job request card ────────────────────────────
 function renderJobCard(booking) {
-  const d = booking.data;
-  const id = booking.id;
+  const d    = booking.data;
+  const id   = booking.id;
+  const isEmergency = d.bookingType === 'emergency' || d.type === 'emergency';
+
+  // Parse deadline
+  let deadlineMs = null;
+  if (d.responseDeadline) {
+    deadlineMs = d.responseDeadline.toMillis
+      ? d.responseDeadline.toMillis()
+      : Number(d.responseDeadline) * 1000;
+  }
+  const hasDeadline = deadlineMs && deadlineMs > Date.now();
+
   const card = document.createElement('div');
   card.className = 'job-request-card';
   card.id = `job-${id}`;
-  const timeAgo = _timeAgo(d.createdAt);
+
   card.innerHTML = `
     <div class="job-badge-row">
-      <span class="job-badge">
-        <svg viewBox="0 0 24 24" fill="none" width="11" height="11"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" stroke="#fff" stroke-width="1.8"/><polyline points="14 2 14 8 20 8" stroke="#fff" stroke-width="1.8"/></svg>
-        New Job Request
+      <span class="job-badge" style="${isEmergency ? 'background:#ef4444' : ''}">
+        ${isEmergency
+          ? '<svg viewBox="0 0 24 24" fill="none" width="11" height="11"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Emergency'
+          : '<svg viewBox="0 0 24 24" fill="none" width="11" height="11"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" stroke="#fff" stroke-width="1.8"/><polyline points="14 2 14 8 20 8" stroke="#fff" stroke-width="1.8"/></svg> New Request'
+        }
       </span>
-      <span class="job-time">${timeAgo}</span>
+      ${hasDeadline
+        ? `<span style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#730201">
+            <svg viewBox="0 0 24 24" fill="none" width="11" height="11"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+            Respond in <span id="job-countdown-${id}">—</span>
+           </span>`
+        : `<span class="job-time">${_timeAgo(d.createdAt)}</span>`
+      }
     </div>
+
     <p class="job-title">${d.serviceType || d.service || 'Service Request'}</p>
-    <p class="job-location">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#9CA3AF"/></svg>
-      ${d.address || d.location || 'Location not set'}
-    </p>
-    <p class="job-budget">Budget: <strong>GHC ${Number(d.price||0).toFixed(0)} – ${Number((d.price||0)*1.3).toFixed(0)}</strong></p>
+
+    <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px">
+      <p class="job-location" style="margin:0">
+        <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#9CA3AF"/></svg>
+        ${d.address || d.location || 'Location not set'}
+      </p>
+      ${d.dateDisplay || d.scheduledAt ? `
+      <p style="margin:0;font-size:11.5px;color:#777;display:flex;align-items:center;gap:4px">
+        <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#9CA3AF" stroke-width="1.8"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"/></svg>
+        ${d.dateDisplay || new Date(d.scheduledAt).toLocaleDateString('en-GH')}
+      </p>` : ''}
+    </div>
+
+    <p class="job-budget">Budget: <strong>GHC ${Number(d.total || d.price || 0).toFixed(0)}</strong></p>
+
     <div class="job-actions">
       <button class="btn-accept" onclick="acceptJob('${id}')">
         <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Accept Job
+        Accept
       </button>
       <button class="btn-decline" onclick="declineJob('${id}')">Decline</button>
     </div>`;
+
+  // Start countdown after card is in DOM
+  if (hasDeadline) {
+    requestAnimationFrame(() => _startJobCountdown(id, deadlineMs));
+  }
+
   return card;
 }
 
 window.acceptJob = async function(bookingId) {
+  // KYC enforcement — only approved artisans may accept jobs
+  if (!canAcceptJobs(_currentArtisan)) {
+    showToast('Complete your verification before accepting jobs.');
+    window.location.href = 'onboarding.html';
+    return;
+  }
   const btn = document.querySelector(`#job-${bookingId} .btn-accept`);
   if (btn) { btn.disabled = true; btn.textContent = 'Accepting…'; }
   try {
@@ -505,16 +610,154 @@ window.acceptJob = async function(bookingId) {
 };
 
 window.declineJob = async function(bookingId) {
+  const btn = document.querySelector(`#job-${bookingId} .btn-decline`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Declining…'; }
   try {
-    await databaseService.updateDocument('bookings', bookingId, { status: 'rejected', updatedAt: new Date().toISOString() });
+    const now = new Date().toISOString();
+    await databaseService.updateDocument('bookings', bookingId, {
+      status:     'rejected',
+      rejectedAt: now,
+      updatedAt:  now,
+    });
+    // Clear countdown and remove card — dispatch engine will re-assign immediately
+    if (_activeCountdowns[bookingId]) clearInterval(_activeCountdowns[bookingId]);
     const el = document.getElementById(`job-${bookingId}`);
     if (el) {
       el.style.transition = 'opacity .25s';
       el.style.opacity    = '0';
       setTimeout(() => el.remove(), 260);
     }
-    showToast('Job declined');
-  } catch(e) { showToast('Could not decline. Try again.'); }
+    showToast('Job declined — customer will be matched with another professional.');
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Decline'; }
+    showToast('Could not decline. Try again.');
+  }
+};
+
+// ── Status label / pill helpers ────────────────────────
+const STATUS_META = {
+  accepted:    { label: 'Accepted',     pillCls: 'pill-accepted',    hint: 'Customer is waiting — head to their location.' },
+  en_route:    { label: 'En Route',     pillCls: 'pill-en_route',    hint: 'On your way — mark arrived when you get there.' },
+  in_progress: { label: 'In Progress',  pillCls: 'pill-in_progress', hint: 'Job in progress — mark done when finished.' },
+  awaiting:    { label: 'Awaiting',     pillCls: 'pill-awaiting',    hint: 'Waiting for the customer to confirm completion.' },
+};
+
+// Steps for the in-card mini stepper (index = how many are 'done')
+const ACTIVE_STEPS = ['Accepted', 'En Route', 'In Progress', 'Awaiting', 'Complete'];
+const STEP_IDX = { accepted: 0, en_route: 1, in_progress: 2, awaiting: 3, completed: 4 };
+
+// ── Render active job card (with progression button) ───
+function renderActiveJobCard(booking) {
+  const d      = booking.data;
+  const id     = booking.id;
+  const status = (d.status || '').toLowerCase();
+  const meta   = STATUS_META[status] || { label: status, pillCls: 'pill-accepted', hint: '' };
+  const doneIdx = STEP_IDX[status] ?? 0;
+
+  // Build mini stepper HTML
+  const steps = ACTIVE_STEPS.map((lbl, i) => {
+    const isDone   = i < doneIdx;
+    const isActive = i === doneIdx;
+    const cls      = isDone ? 'done' : isActive ? 'active' : '';
+    const dotContent = isDone
+      ? `<svg viewBox="0 0 24 24" fill="none" width="10" height="10"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`
+      : String(i + 1);
+    const lineHtml = i < ACTIVE_STEPS.length - 1
+      ? `<div class="aj-line ${isDone ? 'done' : ''}"></div>`
+      : '';
+    return `<div class="aj-step ${cls}"><div class="aj-step-dot">${dotContent}</div><div class="aj-step-lbl">${lbl}</div></div>${lineHtml}`;
+  }).join('');
+
+  // Progression button HTML
+  let btnHtml = '';
+  if (status === 'accepted') {
+    btnHtml = `<button class="btn-progress btn-progress-orange" onclick="markEnRoute('${id}')">
+      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Mark En Route
+    </button>`;
+  } else if (status === 'en_route') {
+    btnHtml = `<button class="btn-progress btn-progress-orange" onclick="markArrived('${id}')">
+      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.5" fill="rgba(249,115,22,0.8)"/></svg>
+      Mark Arrived & Started
+    </button>`;
+  } else if (status === 'in_progress') {
+    btnHtml = `<button class="btn-progress btn-progress-green" onclick="markJobDone('${id}')">
+      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+      Mark Job Done
+    </button>`;
+  } else if (status === 'awaiting') {
+    btnHtml = `<button class="btn-progress btn-progress-grey" disabled>
+      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Waiting for customer…
+    </button>`;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'active-job-card';
+  card.id = `active-job-${id}`;
+  card.innerHTML = `
+    <div class="active-job-status-row">
+      <span class="active-job-status-pill ${meta.pillCls}">${meta.label}</span>
+      <span style="font-size:11px;color:#9CA3AF">${_timeAgo(d.acceptedAt || d.createdAt)}</span>
+    </div>
+    <p class="active-job-title">${d.serviceType || d.service || 'Service Request'}</p>
+    <div class="active-job-meta">
+      <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#9CA3AF"/></svg>
+      ${d.address || d.location || 'Location not set'}
+    </div>
+    <div class="active-job-stepper">${steps}</div>
+    <p class="active-job-hint">${meta.hint}</p>
+    ${btnHtml}`;
+  return card;
+}
+
+// ── Job progression actions ────────────────────────────
+window.markEnRoute = async function(bookingId) {
+  const btn = document.querySelector(`#active-job-${bookingId} .btn-progress`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+  try {
+    await databaseService.updateDocument('bookings', bookingId, {
+      status:    'en_route',
+      enRouteAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    showToast('🚗 Marked as en route — customer notified.');
+  } catch (e) {
+    if (btn) { btn.disabled = false; }
+    showToast('Could not update status. Try again.');
+  }
+};
+
+window.markArrived = async function(bookingId) {
+  const btn = document.querySelector(`#active-job-${bookingId} .btn-progress`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+  try {
+    await databaseService.updateDocument('bookings', bookingId, {
+      status:    'in_progress',
+      arrivedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    showToast('🔧 Job started — customer notified.');
+  } catch (e) {
+    if (btn) { btn.disabled = false; }
+    showToast('Could not update status. Try again.');
+  }
+};
+
+window.markJobDone = async function(bookingId) {
+  const btn = document.querySelector(`#active-job-${bookingId} .btn-progress`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+  try {
+    await databaseService.updateDocument('bookings', bookingId, {
+      status:    'awaiting',
+      jobDoneAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    showToast('✅ Marked done — waiting for customer to confirm.');
+  } catch (e) {
+    if (btn) { btn.disabled = false; }
+    showToast('Could not update status. Try again.');
+  }
 };
 
 // ── Render schedule item ───────────────────────────────
@@ -527,8 +770,9 @@ function renderScheduleItem(booking) {
   const h12   = ((hours % 12) || 12);
   const today = new Date();
   const isToday = date.toDateString() === today.toDateString();
-  const statusClass = d.status === 'accepted' ? 'status-upcoming' : d.status === 'In Progress' ? 'status-progress' : 'status-pending';
-  const statusLabel = d.status === 'accepted' ? 'Upcoming' : d.status === 'In Progress' ? 'In Progress' : 'Pending';
+  const sm = STATUS_META[d.status] || {};
+  const statusClass = d.status === 'accepted' ? 'status-upcoming' : d.status === 'in_progress' ? 'status-progress' : 'status-pending';
+  const statusLabel = sm.label || d.status || 'Pending';
 
   const el = document.createElement('div');
   el.className = 'schedule-item';
@@ -562,9 +806,17 @@ function _timeAgo(iso) {
 }
 
 // ── Auth bootstrap ────────────────────────────────────
+// Guard above already verified auth. subscribeToAuthState handles session
+// expiry and signs out if the token is revoked after page load.
 authService.subscribeToAuthState(async user => {
-  if (!user) { window.location.href = 'login.html'; return; }
+  if (!user) { window.location.replace('login.html'); return; }
   uid = user.uid;
+  // Keep _currentArtisan in sync when profile updates
+  if (user.uid) {
+    databaseService.getDocument('artisans', user.uid)
+      .then(s => { if (s && s.exists) _currentArtisan = s.data; })
+      .catch(() => {});
+  }
 
   // Start realtime presence (heartbeat + visibility/network/unload handlers)
   startPresence(uid, databaseService, true);
@@ -618,12 +870,33 @@ authService.subscribeToAuthState(async user => {
   );
   unsubs.push(u2);
 
-  // Live schedule (accepted / in-progress bookings — all lowercase to match Firestore writes)
-  const today = new Date();
-  today.setHours(0,0,0,0);
+  // ── Active jobs (accepted / en_route / in_progress / awaiting → need action) ──
+  const activeJobsList  = document.getElementById('active-jobs-list');
+  const activeJobsEmpty = document.getElementById('active-jobs-empty');
+
   const u3 = databaseService.subscribeToCollection(
     'bookings',
-    [{ field: 'artisanId', op: '==', value: uid }, { field: 'status', op: 'in', value: ['accepted', 'in_progress'] }],
+    [{ field: 'artisanId', op: '==', value: uid },
+     { field: 'status',    op: 'in', value: ['accepted', 'en_route', 'in_progress', 'awaiting'] }],
+    { orderBy: { field: 'updatedAt', direction: 'desc' }, limit: 10 },
+    records => {
+      activeJobsList.querySelectorAll('.active-job-card').forEach(c => c.remove());
+      if (!records.length) {
+        activeJobsEmpty.style.display = 'block';
+      } else {
+        activeJobsEmpty.style.display = 'none';
+        records.forEach(b => activeJobsList.appendChild(renderActiveJobCard(b)));
+      }
+    },
+    () => { activeJobsEmpty.style.display = 'block'; }
+  );
+  unsubs.push(u3);
+
+  // ── Schedule (upcoming standard bookings — future scheduledAt) ──
+  const u4 = databaseService.subscribeToCollection(
+    'bookings',
+    [{ field: 'artisanId', op: '==', value: uid },
+     { field: 'status',    op: 'in', value: ['accepted', 'en_route', 'in_progress', 'awaiting'] }],
     { orderBy: { field: 'createdAt', direction: 'asc' }, limit: 5 },
     records => {
       scheduleList.querySelectorAll('.schedule-item').forEach(c => c.remove());
@@ -636,7 +909,7 @@ authService.subscribeToAuthState(async user => {
     },
     () => { scheduleEmpty.style.display = 'block'; }
   );
-  unsubs.push(u3);
+  unsubs.push(u4);
 });
 
 window.addEventListener('pagehide', () => {

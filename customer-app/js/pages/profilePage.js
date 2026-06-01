@@ -68,9 +68,10 @@ function populateProfile(data) {
     const location = data.location || 'No location set';
     const bio      = data.bio      || '';
     const photo    = data.profileImage || '';
-    const wallet   = Number(data.walletBalance || 0);
-    const bookings = Number(data.bookings      || 0);
-    const spent    = Number(data.spent         || 0);
+    const wallet   = Number(data.walletBalance  || 0);
+    const inEscrow = Number(data.escrowBalance  || 0);
+    const bookings = Number(data.bookings       || 0);
+    const spent    = Number(data.spent          || 0);
 
     if (greetingEl)  { greetingEl.textContent  = buildGreeting(name); removeSkel(greetingEl); }
     if (nameEl)      { nameEl.textContent       = name;               removeSkel(nameEl); }
@@ -92,6 +93,17 @@ function populateProfile(data) {
     // Wallet balance displays
     if (walletDisplay) walletDisplay.textContent = formatGHC(wallet);
     if (statWallet)    statWallet.textContent    = formatGHCShort(wallet);
+
+    // Show escrow note so customer understands why balance may look lower
+    const escrowNote = document.getElementById('wallet-escrow-note');
+    if (escrowNote) {
+        if (inEscrow > 0) {
+            escrowNote.textContent = `GHC ${inEscrow.toFixed(2)} held in escrow`;
+            escrowNote.style.display = '';
+        } else {
+            escrowNote.style.display = 'none';
+        }
+    }
     if (statBookings)  statBookings.textContent  = String(bookings);
     if (statSpent)     statSpent.textContent     = formatGHCShort(spent);
 

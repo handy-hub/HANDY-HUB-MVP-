@@ -1,25 +1,369 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Artisan Jobs | HandyHub</title>
-  <link rel="stylesheet" href="css/jobs.css">
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Jobs | HandyHub Artisan</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <style>
+    .jobs-shell { max-width: 430px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; background: var(--surface-2); }
+    .jobs-header { background: var(--surface); padding: 14px 16px 0; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .jobs-header-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .jobs-back { width: 36px; height: 36px; border: none; background: var(--surface-3); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .jobs-title { font-size: 17px; font-weight: 800; color: var(--text-dark); flex: 1; }
+    .jobs-tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
+    .jobs-tabs::-webkit-scrollbar { display: none; }
+    .jobs-tab { flex-shrink: 0; padding: 10px 16px; font-size: 13px; font-weight: 700; color: var(--text-light); border: none; background: none; cursor: pointer; border-bottom: 2.5px solid transparent; white-space: nowrap; transition: color .15s, border-color .15s; }
+    .jobs-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .jobs-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .jobs-panel { display: none; padding: 12px 14px; }
+    .jobs-panel.active { display: block; }
 
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+    /* ── Job card ── */
+    .job-card { background: var(--surface); border-radius: var(--radius-md); margin-bottom: 10px; padding: 14px; box-shadow: var(--shadow-sm); }
+    .job-card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .job-av { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg,#730201,#a03030); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; font-weight: 800; flex-shrink: 0; overflow: hidden; }
+    .job-av img { width: 100%; height: 100%; object-fit: cover; }
+    .job-info { flex: 1; min-width: 0; }
+    .job-service { font-size: 14px; font-weight: 800; color: var(--text-dark); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .job-customer { font-size: 12px; color: var(--text-mid); margin: 0 0 4px; }
+    .job-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    .job-meta-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-light); }
+    .job-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+    .job-amount { font-size: 15px; font-weight: 800; color: var(--text-dark); }
+    .job-status-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+    .pill-pending     { background: #fff8f0; color: #c2410c; }
+    .pill-accepted    { background: #f0fdf4; color: #15803d; }
+    .pill-en_route    { background: #eff6ff; color: #1d4ed8; }
+    .pill-in_progress { background: #eff6ff; color: #1d4ed8; }
+    .pill-awaiting    { background: #fefce8; color: #854d0e; }
+    .pill-completed   { background: #f0fdf4; color: #166534; }
+    .pill-cancelled   { background: #fef2f2; color: #991b1b; }
+    .pill-rejected    { background: #fef2f2; color: #991b1b; }
+    .job-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .job-btn { height: 36px; padding: 0 14px; border-radius: 10px; font-family: inherit; font-size: 12px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity .15s, transform .1s; }
+    .job-btn:active { transform: scale(0.97); }
+    .job-btn-accept  { background: #22c55e; color: #fff; }
+    .job-btn-decline { background: var(--surface-3); color: var(--text-mid); }
+    .job-btn-track   { background: var(--primary); color: #fff; }
+    .job-btn-outline { background: none; border: 1.5px solid var(--border); color: var(--text-mid); }
+
+    /* ── Skeleton ── */
+    .job-skel { background: var(--surface); border-radius: var(--radius-md); margin-bottom: 10px; padding: 14px; animation: jPulse 1.4s ease-in-out infinite; }
+    .jsk { height: 12px; border-radius: 6px; background: #ebebeb; margin-bottom: 8px; }
+    @keyframes jPulse { 0%,100%{opacity:1}50%{opacity:.5} }
+
+    /* ── Empty ── */
+    .jobs-empty { text-align: center; padding: 56px 24px; }
+    .jobs-empty-icon { font-size: 36px; margin-bottom: 12px; }
+    .jobs-empty-title { font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0 0 6px; }
+    .jobs-empty-sub { font-size: 13px; color: var(--text-light); margin: 0; }
+
+    /* ── Error toast ── */
+    .jobs-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 12px; display: none; z-index: 9999; }
+  </style>
 </head>
 <body>
-  <div class="app">
-    <header class="profile-card">
-      <h2 class="name">Jobs</h2>
-      <p class="location">View and manage your service requests.</p>
-    </header>
-    <main style="margin-top: 20px; padding: 16px;">
-      <p>Job listings will appear here.</p>
-    </main>
+<div class="jobs-shell">
+
+  <!-- Header -->
+  <div class="jobs-header">
+    <div class="jobs-header-row">
+      <button class="jobs-back" onclick="history.back()" aria-label="Back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+      <span class="jobs-title">My Jobs</span>
+      <span id="live-badge" style="display:none;background:#22c55e;color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;"></span>
+    </div>
+    <div class="jobs-tabs" role="tablist">
+      <button class="jobs-tab active" role="tab" onclick="switchJobTab('pending',  this)">Pending</button>
+      <button class="jobs-tab"        role="tab" onclick="switchJobTab('active',   this)">Active</button>
+      <button class="jobs-tab"        role="tab" onclick="switchJobTab('completed',this)">Completed</button>
+      <button class="jobs-tab"        role="tab" onclick="switchJobTab('cancelled',this)">Cancelled</button>
+    </div>
   </div>
-  <script type="module" src="js/app.js"></script>
-<script src="../shared/js/components/fastLoader.js"></script>
+
+  <!-- Panels -->
+  <div class="jobs-body">
+    <div class="jobs-panel active" id="jp-pending">
+      <div id="list-pending"></div>
+    </div>
+    <div class="jobs-panel" id="jp-active">
+      <div id="list-active"></div>
+    </div>
+    <div class="jobs-panel" id="jp-completed">
+      <div id="list-completed"></div>
+    </div>
+    <div class="jobs-panel" id="jp-cancelled">
+      <div id="list-cancelled"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="jobs-toast" class="jobs-toast"></div>
+
+<script src="../shared/js/utils/global-app.js"></script>
+<script type="module">
+import { getAppContainer }                   from '../shared/js/app/container.js';
+import { createBookingRepository }           from '../shared/js/data/repositories/bookingRepository.js';
+import { requireArtisanAuth, canAcceptJobs } from './js/utils/artisanAuthGuard.js';
+
+// Blocking guard: auth + role + not suspended
+// Pending artisans can VIEW jobs (they just can't accept them)
+const { artisan: _guardArtisan } = await requireArtisanAuth({ allowPending: true });
+let _currentArtisan = _guardArtisan || {};
+
+const LOGIN_URL = 'login.html';
+
+// ── STATUS MAPS ───────────────────────────────────────────────────────────────
+const TAB_MAP = {
+  pending:   ['pending', 'dispatching', 'searching', 'dispatched', 'assigned'],
+  active:    ['accepted', 'en_route', 'in_progress', 'awaiting'],
+  completed: ['completed'],
+  cancelled: ['cancelled', 'rejected', 'unfulfilled'],
+};
+
+const PILL_META = {
+  pending:     { label: 'Pending',      cls: 'pill-pending'     },
+  dispatching: { label: 'Dispatching',  cls: 'pill-pending'     },
+  searching:   { label: 'Searching',    cls: 'pill-pending'     },
+  dispatched:  { label: 'Waiting',      cls: 'pill-pending'     },
+  assigned:    { label: 'Assigned',     cls: 'pill-pending'     },
+  accepted:    { label: 'Accepted',     cls: 'pill-accepted'    },
+  en_route:    { label: 'En Route',     cls: 'pill-en_route'    },
+  in_progress: { label: 'In Progress',  cls: 'pill-in_progress' },
+  awaiting:    { label: 'Awaiting',     cls: 'pill-awaiting'    },
+  completed:   { label: 'Completed',    cls: 'pill-completed'   },
+  cancelled:   { label: 'Cancelled',    cls: 'pill-cancelled'   },
+  rejected:    { label: 'Declined',     cls: 'pill-rejected'    },
+  unfulfilled: { label: 'Unmatched',    cls: 'pill-cancelled'   },
+};
+
+// Status → next action label for progression
+const NEXT_ACTION = {
+  accepted:    { label: 'Mark En Route',    next: 'en_route',    field: 'enRouteAt'    },
+  en_route:    { label: 'Mark Arrived',     next: 'in_progress', field: 'arrivedAt'    },
+  in_progress: { label: 'Mark Job Done',    next: 'awaiting',    field: 'jobDoneAt'    },
+  awaiting:    { label: 'Waiting…',         next: null,          field: null           },
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let _allJobs    = [];
+let _unsub      = null;
+let _uid        = null;
+let _dbService  = null;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function fmtDate(d) {
+  if (!d) return null;
+  try { const dt = d?.toDate ? d.toDate() : new Date(d); return isNaN(dt) ? String(d) : dt.toLocaleDateString('en-GH', { day: 'numeric', month: 'short' }); }
+  catch { return String(d); }
+}
+
+function getPill(status) {
+  return PILL_META[(status || '').toLowerCase()] || { label: status || '—', cls: 'pill-pending' };
+}
+
+function showToast(msg, dur = 2800) {
+  const el = document.getElementById('jobs-toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, dur);
+}
+
+// ── SKELETON ──────────────────────────────────────────────────────────────────
+function skeleton() {
+  return `<div class="job-skel"><div class="jsk" style="width:50%;"></div><div class="jsk" style="width:35%;"></div><div class="jsk" style="width:70%;margin-bottom:0;"></div></div>`;
+}
+
+function showSkeletons(id) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = skeleton() + skeleton() + skeleton();
+}
+
+// ── CARD BUILDER ─────────────────────────────────────────────────────────────
+function buildJobCard(b) {
+  const pill    = getPill(b.status);
+  const st      = (b.status || '').toLowerCase();
+  const action  = NEXT_ACTION[st];
+  const isPending = TAB_MAP.pending.includes(st);
+  const isActive  = TAB_MAP.active.includes(st);
+
+  const name    = b.customerName || b.proName || 'Customer';
+  const initials= name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+  const date    = b.dateDisplay || fmtDate(b.scheduledAt) || fmtDate(b.createdAt) || '—';
+  const amount  = b.total || b.price || 0;
+
+  let actionsHtml = '';
+  if (isPending) {
+    actionsHtml = `
+      <button class="job-btn job-btn-accept"  onclick="acceptJob('${esc(b.id)}', this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>Accept
+      </button>
+      <button class="job-btn job-btn-decline" onclick="declineJob('${esc(b.id)}', this)">Decline</button>`;
+  } else if (isActive && action) {
+    const disabled = action.next === null ? 'disabled style="opacity:.5;cursor:default;"' : '';
+    actionsHtml = `
+      ${action.next ? `<button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','${action.next}','${action.field}',this)" ${disabled}>${esc(action.label)}</button>` : `<button class="job-btn job-btn-decline" disabled style="opacity:.5;">Awaiting Customer…</button>`}
+      <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
+  } else if (isActive) {
+    actionsHtml = `<button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">View on Dashboard</button>`;
+  } else if (st === 'completed') {
+    actionsHtml = `<button class="job-btn job-btn-outline" onclick="window.location.href='wallet.html'">View Earnings</button>`;
+  }
+
+  return `
+  <div class="job-card" id="jcard-${esc(b.id)}">
+    <div class="job-card-top">
+      <div class="job-av">${initials}</div>
+      <div class="job-info">
+        <p class="job-service">${esc(b.serviceType || b.service || 'Service Request')}</p>
+        <p class="job-customer">${esc(b.customerName || 'Customer')}</p>
+        <div class="job-meta">
+          <div class="job-meta-item">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#9CA3AF" stroke-width="1.8"/><path d="M3 10h18" stroke="#9CA3AF" stroke-width="1.8"/></svg>
+            ${esc(date)}
+          </div>
+          ${b.address ? `<div class="job-meta-item">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#9CA3AF"/></svg>
+            ${esc(b.address.slice(0, 28))}${b.address.length > 28 ? '…' : ''}
+          </div>` : ''}
+        </div>
+      </div>
+      <div class="job-right">
+        <span class="job-amount">GHC ${Number(amount).toFixed(0)}</span>
+        <span class="job-status-pill ${pill.cls}">${pill.label}</span>
+      </div>
+    </div>
+    ${actionsHtml ? `<div class="job-actions">${actionsHtml}</div>` : ''}
+  </div>`;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(jobs) {
+  const pending   = jobs.filter(b => TAB_MAP.pending.includes((b.status   || '').toLowerCase()));
+  const active    = jobs.filter(b => TAB_MAP.active.includes((b.status    || '').toLowerCase()));
+  const completed = jobs.filter(b => TAB_MAP.completed.includes((b.status || '').toLowerCase()));
+  const cancelled = jobs.filter(b => TAB_MAP.cancelled.includes((b.status || '').toLowerCase()));
+
+  function setPanel(id, items, emptyMsg) {
+    document.getElementById(id).innerHTML = items.length
+      ? items.map(buildJobCard).join('')
+      : `<div class="jobs-empty"><div class="jobs-empty-icon">📋</div><p class="jobs-empty-title">${emptyMsg}</p><p class="jobs-empty-sub">Pull to refresh if you expect new jobs.</p></div>`;
+  }
+
+  setPanel('list-pending',   pending,   'No pending requests');
+  setPanel('list-active',    active,    'No active jobs');
+  setPanel('list-completed', completed, 'No completed jobs yet');
+  setPanel('list-cancelled', cancelled, 'No cancelled jobs');
+
+  // Tab counts
+  const tabLabels = ['Pending','Active','Completed','Cancelled'];
+  const tabCounts = [pending.length, active.length, completed.length, cancelled.length];
+  document.querySelectorAll('.jobs-tab').forEach((tab, i) => {
+    tab.textContent = tabCounts[i] > 0 ? `${tabLabels[i]} (${tabCounts[i]})` : tabLabels[i];
+  });
+
+  // Live badge
+  const badge = document.getElementById('live-badge');
+  if (badge) {
+    if (active.length > 0) { badge.textContent = `${active.length} active`; badge.style.display = ''; }
+    else { badge.style.display = 'none'; }
+  }
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+window.switchJobTab = function(tab, btn) {
+  document.querySelectorAll('.jobs-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.jobs-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('jp-' + tab)?.classList.add('active');
+};
+
+window.acceptJob = async function(bookingId, btn) {
+  if (!canAcceptJobs(_currentArtisan)) {
+    showToast('Complete your KYC verification before accepting jobs.');
+    window.location.href = 'onboarding.html';
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Accepting…'; }
+  try {
+    const n = new Date().toISOString();
+    await _dbService.updateDocument('bookings', bookingId, { status: 'accepted', acceptedAt: n, updatedAt: n });
+    showToast('✅ Job accepted! Customer notified.');
+    const card = document.getElementById(`jcard-${bookingId}`);
+    if (card) { card.style.opacity = '0'; card.style.transition = 'opacity .25s'; setTimeout(() => card.remove(), 260); }
+  } catch(e) {
+    showToast('Could not accept. Try again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Accept'; }
+  }
+};
+
+window.declineJob = async function(bookingId, btn) {
+  if (!confirm('Decline this job request?')) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Declining…'; }
+  try {
+    const n = new Date().toISOString();
+    await _dbService.updateDocument('bookings', bookingId, { status: 'rejected', rejectedAt: n, updatedAt: n });
+    showToast('Job declined.');
+    const card = document.getElementById(`jcard-${bookingId}`);
+    if (card) { card.style.opacity = '0'; card.style.transition = 'opacity .25s'; setTimeout(() => card.remove(), 260); }
+  } catch(e) {
+    showToast('Could not decline. Try again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Decline'; }
+  }
+};
+
+window.advanceJob = async function(bookingId, nextStatus, timestampField, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+  try {
+    const n = new Date().toISOString();
+    const update = { status: nextStatus, updatedAt: n };
+    if (timestampField) update[timestampField] = n;
+    await _dbService.updateDocument('bookings', bookingId, update);
+    showToast('Status updated.');
+  } catch(e) {
+    showToast('Could not update status. Try again.');
+    if (btn) { btn.disabled = false; }
+  }
+};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+['list-pending','list-active','list-completed','list-cancelled'].forEach(showSkeletons);
+
+const { services: { authService, databaseService } } = getAppContainer();
+_dbService = databaseService;
+
+const bookingRepo = createBookingRepository({ databaseService });
+
+authService.subscribeToAuthState(user => {
+  if (!user) { window.location.replace(LOGIN_URL); return; }
+  _uid = user.uid;
+
+  if (_unsub) { _unsub(); _unsub = null; }
+
+  _unsub = bookingRepo.subscribeByArtisanId(
+    user.uid,
+    records => {
+      _allJobs = records.map(r => ({ id: r.id, ...(r.data || {}) }));
+      render(_allJobs);
+    },
+    err => {
+      console.error('[jobs] Subscription error:', err);
+      showToast('Could not load jobs. Check your connection.', 4000);
+    }
+  );
+});
+
+window.addEventListener('pagehide', () => { if (_unsub) _unsub(); });
+</script>
 </body>
 </html>
-

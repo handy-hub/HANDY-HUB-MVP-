@@ -2,98 +2,510 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HandyHub | Get Started</title>
-    <link rel="stylesheet" href="css/customer.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>HandyHub · Get Started</title>
+
     <link rel="preload" as="image" href="../shared/assets/images/customer-img.png">
+    <link rel="preload" as="image" href="../shared/assets/images/handyhub-logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --red:        #730201;
+    --red-bg:     #FEF2EE;
+    --red-circle: #F5C5B0;
+
+    --amb:        #D4880E;
+    --amb-bg:     #FEF6EC;
+    --amb-circle: #EDD49A;
+
+    --page-bg:    #fefefe;
+    --dark:       #161616;
+    --mid:        #606060;
+    --muted:      #9A9A9A;
+
+    --font: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html { height: 100%; }
+
+body {
+    font-family: var(--font);
+    background: var(--page-bg);
+    color: var(--dark);
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+/* ── Page shell ─────────────────────────────────────────── */
+.gs-page {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: 0 20px;
+    padding-bottom: max(32px, env(safe-area-inset-bottom));
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.gs-header {
+    padding-top: max(env(safe-area-inset-top, 0px), 20px);
+    padding-bottom: 28px;
+    text-align: center;
+    flex-shrink: 0;
+    animation: fadeDown 0.5s var(--ease-out) both;
+}
+
+@keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.gs-logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.gs-logo {
+    width: 172px;
+    height: auto;
+    display: block;
+    animation: logoIn 0.6s var(--spring) 0.08s both;
+}
+
+@keyframes logoIn {
+    from { opacity: 0; transform: scale(0.86); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.gs-headline {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--dark);
+    letter-spacing: -0.55px;
+    line-height: 1.24;
+    margin-bottom: 9px;
+    animation: fadeUp 0.5s var(--ease-out) 0.22s both;
+}
+
+.gs-subtext {
+    font-size: 10.5px;
+    color: var(--mid);
+    line-height: 1.55;
+    font-weight: 400;
+    animation: fadeUp 0.5s var(--ease-out) 0.3s both;
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Cards container ────────────────────────────────────── */
+.gs-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex: 1;
+    margin-bottom: 16px;
+}
+
+/* ── Card button ────────────────────────────────────────── */
+.gs-card {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    text-align: left;
+    border-radius: 22px;
+    display: block;
+    animation: cardUp 0.6s var(--spring) both;
+}
+
+.gs-card:nth-child(1) { animation-delay: 0.38s; }
+.gs-card:nth-child(2) { animation-delay: 0.50s; }
+
+@keyframes cardUp {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.gs-card:active { transform: scale(0.972); }
+
+/* ── Card inner ─────────────────────────────────────────── */
+.gs-card-inner {
+    display: flex;
+    align-items: center;
+    border-radius: 22px;
+    overflow: hidden;
+    height: 162px;
+    box-shadow:
+        0 1px 3px rgba(0,0,0,0.06),
+        0 4px 16px rgba(0,0,0,0.08);
+    transition: box-shadow 0.28s ease, transform 0.28s var(--spring);
+}
+
+.gs-card:hover .gs-card-inner {
+    box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+    transform: translateY(-2px);
+}
+
+.gs-card:active .gs-card-inner {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transform: translateY(0);
+}
+
+.gs-card--red .gs-card-inner { background: var(--red-bg); }
+.gs-card--amb .gs-card-inner { background: var(--amb-bg); }
+
+/* ── Photo section ──────────────────────────────────────── */
+.gs-photo-section {
+    position: relative;
+    width: 140px;
+    height: 100%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Soft circle behind person */
 
 
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+
+.gs-card--amb  .gs-photo-circle {
+    width: 116px; height: 116px;
+    background: var(--amb-circle);
+}
+
+/* Customer photo — image already contains circle, so we let it breathe */
+.gs-person-photo {
+    position: relative;
+    width: 150px;
+    height: 200px;
+    margin-top:10px;
+    align-self: center;
+    padding: 2px;
+    transition: transform 0.32s var(--spring);
+}
+
+.gs-card:hover .gs-person-photo { transform: scale(1.04); }
+
+
+
+.gs-card:hover .gs-artisan-figure { transform: scale(1.04); }
+
+
+
+/* ── Content section ────────────────────────────────────── */
+.gs-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 7px;
+    padding: 20px 0 20px 16px;
+    min-width: 0;
+}
+
+.gs-title-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.gs-icon-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.28s var(--spring);
+}
+
+.gs-card--red .gs-icon-circle { background: var(--red); }
+.gs-card--amb .gs-icon-circle { background: var(--amb); }
+
+.gs-card:hover .gs-icon-circle { transform: scale(1.1); }
+
+.gs-icon-circle svg {
+    width: 15px;
+    height: 15px;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.gs-card-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--dark);
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+}
+
+.gs-card-desc {
+    font-size: 12.5px;
+    color: var(--mid);
+    line-height: 1.52;
+    font-weight: 400;
+    padding-right: 6px;
+}
+
+/* ── Arrow button ───────────────────────────────────────── */
+.gs-arrow-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-right: 16px;
+    transition: transform 0.28s var(--spring);
+}
+
+.gs-card--red .gs-arrow-btn {
+    background: var(--red);
+}
+
+.gs-card--amb .gs-arrow-btn {
+    background: var(--amb);
+}
+
+.gs-card:hover .gs-arrow-btn  { transform: translateX(3px) scale(1.06); }
+.gs-card:active .gs-arrow-btn { transform: scale(0.9); }
+
+.gs-arrow-btn svg {
+    width: 18px;
+    height: 18px;
+    color: #fff;
+}
+
+/* ── Trust badge ────────────────────────────────────────── */
+.gs-trust {
+    display: flex;
+    align-items: center;
+    margin-top: 45px;
+    gap: 13px;
+    border-radius: 18px;
+    padding: 15px 12px;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.055);
+    animation: fadeUp 0.5s var(--ease-out) 0.62s both;
+}
+
+.gs-trust-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    color: var(--red);
+}
+
+.gs-trust-icon svg { width: 34px; height: 34px; }
+
+.gs-trust-text strong {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--dark);
+    letter-spacing: -0.1px;
+    line-height: 1.35;
+    margin-bottom: 2px;
+}
+
+.gs-trust-text span {
+    font-size: 9.5px;
+    color: var(--muted);
+    font-weight: 400;
+}
+
+/* ── Reduced motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}
+
+/* ── Desktop wrapper ────────────────────────────────────── */
+@media (min-width: 431px) {
+    body {
+        background: linear-gradient(135deg, #ddd8d2 0%, #cac3bb 100%);
+        padding: 40px 20px;
+    }
+    .gs-page {
+        min-height: auto;
+        border-radius: 36px;
+        background: var(--page-bg);
+        overflow: hidden;
+        box-shadow: 0 32px 100px rgba(0,0,0,0.22);
+        padding-bottom: 32px;
+    }
+    .gs-header { padding-top: 56px; }
+}
+</style>
 </head>
+
 <body>
-    <div  class="app">
-        <section class="header-image">
-            <center style="margin-top: 10px;">
-                <img width="50%" height="50%" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1777027993/image-removebg-preview_63_z1xbv2.png" alt="HandyHub Logo">
-            </center>
-        </section>
-        <section class="header-text">
-            <center>
-                <h3>How would you like to continue?</h3>
-            </center>
-            <center>
-                <p>Choose the option that best describes you</p>
-            </center>
-            <center>
-                <p>to get started</p>
-            </center>
-        </section>
-        <button id="continue-customer" class="continue-customer">
-<div class="banner">
-    <!-- Left: Circular Profile Section -->
-    <div class="banner-left">
-        <div class="circle-bg">
-            <img src="../shared/assets/images/customer-img.png" alt="Customer" fetchpriority="high">
-        </div>
-    </div>
-    <!-- Mid: Text Content -->
-    <section class="banner-mid">
-        <div class="title-row">
-            <div class="user-icon">
-                <img src="../shared/assets/icons/user-icon-white.png" alt="user icon">
-            </div>
-            <h3>I'm a Customer</h3>
-        </div>
-        <div class="ban-mid-sec-two">
-            <p>Find and book trusted professionals for your home or office services.</p>
-        </div>
-    </section>
+<div class="gs-page">
 
-    <!-- Right: Arrow Action -->
-    <section class="banner-right">
-        <span class="arrow-btn">❯</span>
-    </section>
-</div>
-        </button>
-        <button id="continue-artisan" class="continue-artisan">
-    <div class="banner-artisan">
-        <section class="banner-left">
-            <div class="circle-bg-artisan">
-                <img src="../shared/assets/images/customer-img.png" alt="Artisan">
-            </div>
-        </section>
+    <!-- ══ HEADER ══════════════════════════════════════════════ -->
+    <header class="gs-header">
+        <div class="gs-logo-wrap">
+            <img class="gs-logo"
+                 src="../shared/assets/images/handyhub-logo.png"
+                 alt="Handy Hub — Trusted Professionals, Right Around You.">
+        </div>
+        <h1 class="gs-headline">How would you like to continue?</h1>
+        <p class="gs-subtext">Choose the option that best describes you<br>to get started</p>
+    </header>
 
-        <section class="banner-mid">
-            <div class="title-row">
-                <div class="user-icon-artisan">
-                    <!-- Briefcase Icon -->
-                    <img src="../shared/assets/icons/suite-case-white.png" alt="artisan icon">
+
+    <!-- ══ ROLE CARDS ══════════════════════════════════════════ -->
+    <main class="gs-cards">
+
+        <!-- Customer ──────────────────────────────────────────── -->
+        <button id="btn-customer" class="gs-card gs-card--red"
+                aria-label="Continue as a Customer">
+            <div class="gs-card-inner">
+
+                <div class="gs-photo-section" aria-hidden="true">
+                    <div class="gs-photo-circle"></div>
+                    <img class="gs-person-photo"
+                         src="../shared/assets/images/customer-img.png"
+                         alt=""
+                         loading="eager"
+                         draggable="false">
                 </div>
-                <h3>I'm an Artisan</h3>
-            </div>
-            <div class="ban-mid-sec-two">
-                <p>Offer your services, get bookings and grow your business with Handy Hub.</p>
-            </div>
-        </section>
 
-        <section class="banner-right">
-            <span style="font-size: 15px;" class="arrow-btn-artisan">❯</span>
-        </section>
+                <div class="gs-card-content">
+                    <div class="gs-title-row">
+                        <div class="gs-icon-circle" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                        <span class="gs-card-name">I'm a Customer</span>
+                    </div>
+                    <p class="gs-card-desc">Find and book trusted professionals for your home or office services.</p>
+                </div>
+
+                <div class="gs-arrow-btn" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                </div>
+
+            </div>
+        </button>
+
+
+        <!-- Artisan ───────────────────────────────────────────── -->
+        <button id="btn-artisan" class="gs-card gs-card--amb"
+                aria-label="Continue as an Artisan">
+            <div class="gs-card-inner">
+
+                <div class="gs-photo-section" aria-hidden="true">
+                    <div class="gs-photo-circle"></div>
+                </div>
+
+                <div class="gs-card-content">
+                    <div class="gs-title-row">
+                        <div class="gs-icon-circle" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                            </svg>
+                        </div>
+                        <span class="gs-card-name">I'm an Artisan</span>
+                    </div>
+                    <p class="gs-card-desc">Offer your services, get booked and grow your business with Handy Hub.</p>
+                </div>
+
+                <div class="gs-arrow-btn" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                </div>
+
+            </div>
+        </button>
+
+    </main>
+
+
+    <!-- ══ TRUST BADGE ═════════════════════════════════════════ -->
+    <div class="gs-trust" role="complementary" aria-label="Security assurance">
+        <div class="gs-trust-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1z"
+                      opacity="0.14"/>
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1z"
+                      fill="none" stroke="currentColor" stroke-width="1.6"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 12l2 2 4-4" fill="none" stroke="currentColor"
+                      stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="gs-trust-text">
+            <strong>Safe. Secure. Trusted by thousands of users</strong>
+            <span>Your data is protected with industry standard security.</span>
+        </div>
     </div>
-</button>
-<div class="security-banner">
-    <div class="security-icon">
-        <!-- Shield Check Icon -->
-<img src="../shared/assets/icons/icons8-protection-96 red.png" alt="security-checked">    </div>
-    <div class="security-text">
-        <h4>Safe. Secure. Trusted by thousands of users</h4>
-        <p>Your data is protected with industry standard security.</p>
-    </div>
-</div>
+
+</div><!-- /.gs-page -->
+
+
+<!-- ══ SCRIPTS ═══════════════════════════════════════════════ -->
 <script src="../shared/js/utils/logicGate.js"></script>
-    <script src="../shared/js/utils/global-app.js"></script>
+<script src="../shared/js/utils/global-app.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
+
+<script>
+(function () {
+    'use strict';
+
+    function navigate(url) {
+        if (navigator.vibrate) navigator.vibrate(8);
+        window.location.href = url;
+    }
+
+    document.getElementById('btn-customer').addEventListener('click', function () {
+        navigate('login.html');
+    });
+
+    document.getElementById('btn-artisan').addEventListener('click', function () {
+        navigate('../artisan-app/login.html');
+    });
+
+    // Passive haptic on touch start
+    document.querySelectorAll('.gs-card').forEach(function (card) {
+        card.addEventListener('touchstart', function () {
+            if (navigator.vibrate) navigator.vibrate(5);
+        }, { passive: true });
+    });
+}());
+</script>
+
 </body>
 </html>
-
-

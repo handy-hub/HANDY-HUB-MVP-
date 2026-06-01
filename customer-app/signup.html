@@ -60,7 +60,7 @@ body {
     padding: 0 !important;
     margin: 0 !important;
     min-height: 100dvh;
-    background: #f0ece8;
+    background: #fefefe;
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
@@ -86,7 +86,7 @@ body {
 .su-hero {
     position: relative;
     overflow: hidden;
-    background: #f0ece8;
+    background: #fefefe;
     padding: 0 0 52px;
     flex-shrink: 0;
 }
@@ -209,7 +209,7 @@ body {
     flex: 1;
     background: var(--white);
     border-radius: var(--r-3xl) var(--r-3xl) 0 0;
-    margin-top: -28px;
+    margin-top: -50px;
     box-shadow: var(--shadow-card);
     padding: 10px 24px 0;
     display: flex;
@@ -229,17 +229,18 @@ body {
 }
 
 .su-heading {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 800;
     color: var(--text-primary);
     letter-spacing: -0.5px;
     line-height: 1.15;
     margin-bottom: 4px;
     flex-shrink: 0;
+    margin-top: 8px;
 }
 
 .su-subheading {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-secondary);
     font-weight: 400;
     margin-bottom: 24px;
@@ -271,7 +272,7 @@ body {
     left: 14px;
     width: 17px;
     height: 17px;
-    color: var(--grey-400);
+    color: var(--red-700);
     pointer-events: none;
     flex-shrink: 0;
     transition: color 0.2s var(--ease-out);
@@ -285,7 +286,7 @@ body {
     border-radius: var(--r-md);
     background: var(--input-bg-rest);
     font-family: inherit;
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 400;
     color: var(--text-primary);
     outline: none;
@@ -300,6 +301,7 @@ body {
 .su-input::placeholder {
     color: var(--text-hint);
     font-weight: 400;
+    font-size: 14px;
 }
 
 .su-input-wrap:focus-within .su-input {
@@ -556,7 +558,6 @@ body {
     padding-top: 24px;
 }
 .su-footer-inner {
-    background: #fdf3f3;
     border-radius: 20px 20px 0 0;
     padding: 18px 0;
     padding-bottom: max(18px, env(safe-area-inset-bottom));
@@ -626,46 +627,6 @@ body {
 }
 
 
-/* ════════════════════════════════════════════════════════════════
-   BOTTOM SHEET OVERRIDES
-   ════════════════════════════════════════════════════════════════ */
-
-/* Hero as full-viewport background canvas */
-.su-hero {
-    min-height: 100dvh;
-    padding-bottom: 0;
-}
-
-/* Strip static layout — JS applies position:fixed + transform */
-.su-card {
-    flex      : none  !important;
-    margin-top: 0     !important;
-    animation : none  !important;
-    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
-}
-
-/* Drag handle */
-.su-handle {
-    cursor  : grab;
-    padding : 10px 0 6px;
-    margin  : -10px 0 16px;
-    touch-action: none;
-    -webkit-tap-highlight-color: transparent;
-}
-.bs-dragging .su-handle { cursor: grabbing; }
-
-/* Stagger classes resolved immediately */
-.su-a1, .su-a2, .su-a3, .su-a4,
-.su-a5, .su-a6, .su-a7, .su-a8 {
-    animation: none;
-    opacity  : 1;
-    transform: none;
-}
-
-@media (min-width: 431px) {
-    .su-page { overflow: visible; }
-    .su-card { border-radius: var(--r-3xl) !important; }
-}
 </style>
 </head>
 <body>
@@ -716,8 +677,6 @@ body {
 
     <!-- ══ FORM CARD ══════════════════════════════════════════ -->
     <div class="su-card">
-
-        <div class="su-handle" aria-hidden="true"></div>
 
         <h2 class="su-heading su-a1">Create Your Account</h2>
         <p class="su-subheading su-a1">Join HandyHub and get things done with ease.</p>
@@ -1064,18 +1023,6 @@ body {
 })();
 </script>
 
-<!-- ══ BOTTOM SHEET ENGINE ════════════════════════════════════ -->
-<script type="module">
-import { initBottomSheet } from './js/bottomSheet.js';
-
-document.addEventListener('DOMContentLoaded', function () {
-    var card   = document.querySelector('.su-card');
-    var handle = document.querySelector('.su-handle');
-    var inputs = Array.from(card.querySelectorAll('.su-input'));
-
-    window._signupSheet = initBottomSheet({ card: card, handle: handle, inputs: inputs });
-});
-</script>
 
 </body>
 </html>

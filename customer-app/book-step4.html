@@ -5,7 +5,7 @@
   <script src="../shared/js/utils/themeManager.js"></script>
   <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Handy Hub – Booking Confirmed</title>
+  <title>Handy Hub – Request Sent</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
@@ -67,12 +67,15 @@
   <!-- Scroll -->
   <div class="bk-scroll">
 
-    <!-- Success hero -->
-    <div class="confirmed-hero">
+    <!-- Request sent hero — updates to accepted/rejected via Firestore listener below -->
+    <div class="confirmed-hero" id="bk-hero">
       <div class="confirmed-ring-wrap">
-        <div class="confirmed-outer">
-          <div class="confirmed-circle">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="confirmed-outer" id="hero-outer" style="background:rgba(249,115,22,0.12)">
+          <div class="confirmed-circle" id="hero-circle" style="background:linear-gradient(135deg,#f97316,#ea580c)">
+            <!-- Clock icon shown while pending; swapped to checkmark on acceptance -->
+            <svg id="hero-icon-pending" width="36" height="36" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2.5"/><path d="M12 6v6l4 2" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+            <svg id="hero-icon-accepted" width="36" height="36" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg id="hero-icon-rejected" width="36" height="36" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
           </div>
         </div>
         <div class="confetti confetti-1"></div>
@@ -80,40 +83,86 @@
         <div class="confetti confetti-3"></div>
         <div class="confetti confetti-4"></div>
       </div>
-      <h1 class="confirmed-title">Booking Confirmed!</h1>
-      <p class="confirmed-sub">Your service has been booked successfully.<br>We've sent the details to your email and SMS.</p>
+      <h1 class="confirmed-title" id="hero-title">Request Sent</h1>
+      <p class="confirmed-sub" id="hero-sub">Waiting for the artisan to accept your request.<br>You'll be notified as soon as they respond.</p>
     </div>
 
-    <!-- Live booking status bar -->
+    <!-- Live dispatch status bar -->
     <div id="live-status-bar" style="
-      margin: 0 16px 14px;
-      padding: 12px 16px;
-      border-radius: 14px;
-      background: #fff8f0;
-      border: 1.5px solid #f5dfc8;
+      margin: 0 16px 14px; padding: 12px 16px; border-radius: 14px;
+      background: #fff8f0; border: 1.5px solid #f5dfc8;
       display: flex; align-items: center; gap: 10px;
-      font-family: 'DM Sans', sans-serif;
-      transition: background .3s, border-color .3s;
+      font-family: 'DM Sans', sans-serif; transition: background .3s, border-color .3s;
     ">
       <span id="lsb-icon" style="font-size:18px">🕐</span>
       <div style="flex:1">
-        <p id="lsb-title" style="margin:0;font-size:13px;font-weight:700;color:#92400e">Waiting for confirmation…</p>
-        <p id="lsb-sub"   style="margin:2px 0 0;font-size:11.5px;color:#b45309">The professional will respond shortly.</p>
+        <p id="lsb-title" style="margin:0;font-size:13px;font-weight:700;color:#92400e">Searching for a professional…</p>
+        <p id="lsb-sub"   style="margin:2px 0 0;font-size:11.5px;color:#b45309">Finding the best match near you.</p>
       </div>
       <div id="lsb-pulse" style="width:8px;height:8px;border-radius:50%;background:#f97316;animation:lsbPulse 1.2s infinite"></div>
     </div>
+
+    <!-- Dispatch artisan card — shown once dispatch engine assigns an artisan -->
+    <div id="dispatch-card" style="
+      display:none; margin: 0 16px 14px; background:#fff; border-radius:16px;
+      border:1.5px solid #e8e8e8; padding:14px 16px;
+      font-family:'DM Sans',sans-serif; box-shadow:0 2px 12px rgba(0,0,0,.06);
+    ">
+      <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px">Request Sent To</p>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="dc-avatar" style="
+          width:48px;height:48px;border-radius:14px;flex-shrink:0;
+          background:linear-gradient(135deg,#730201,#a03030);
+          display:flex;align-items:center;justify-content:center;
+          font-size:18px;font-weight:800;color:#fff;overflow:hidden;
+        "></div>
+        <div style="flex:1;min-width:0">
+          <p id="dc-name"     style="margin:0 0 2px;font-size:15px;font-weight:800;color:#0a0a0a"></p>
+          <p id="dc-category" style="margin:0 0 4px;font-size:12px;color:#730201;font-weight:600"></p>
+          <div style="display:flex;align-items:center;gap:4px">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <span id="dc-rating" style="font-size:11px;font-weight:700;color:#555"></span>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <p style="margin:0 0 2px;font-size:10px;color:#aaa;font-weight:600">RESPONDS IN</p>
+          <p id="dc-countdown" style="margin:0;font-size:20px;font-weight:900;color:#730201;letter-spacing:-0.5px;font-variant-numeric:tabular-nums">—</p>
+        </div>
+      </div>
+      <div id="dc-round-row" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #f5f5f5">
+        <p id="dc-round-text" style="margin:0;font-size:11px;color:#aaa;font-weight:600;text-align:center"></p>
+      </div>
+    </div>
+
+    <!-- ── Escrow / payment security status bar ──────────────────────────── -->
+    <div id="escrow-bar" style="
+      display:none; margin: 0 16px 14px; padding: 12px 16px; border-radius: 14px;
+      align-items: center; gap: 10px;
+      font-family: 'DM Sans', sans-serif; transition: background .3s, border-color .3s;
+    ">
+      <span id="esb-icon" style="font-size:18px; flex-shrink:0;">💳</span>
+      <div style="flex:1; min-width:0;">
+        <p id="esb-title" style="margin:0; font-size:13px; font-weight:700;"></p>
+        <p id="esb-sub"   style="margin:2px 0 0; font-size:11.5px;"></p>
+      </div>
+      <div id="esb-action" style="flex-shrink:0;"></div>
+    </div>
+
     <style>
       @keyframes lsbPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }
       [data-theme="dark"] #live-status-bar { background:#1e1208; border-color:#3a2000; }
       [data-theme="dark"] #lsb-title { color:#fbbf24; }
       [data-theme="dark"] #lsb-sub   { color:#92400e; }
+      [data-theme="dark"] #dispatch-card { background:#1a1a1a; border-color:#333; }
+      [data-theme="dark"] #dc-name   { color:#fff; }
+      [data-theme="dark"] #escrow-bar { filter: brightness(0.85); }
     </style>
 
     <!-- Booking ID -->
     <div class="booking-id-row">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#2e7d32" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#2e7d32" stroke-width="2" stroke-linecap="round"/></svg>
       <div class="booking-id-text">
-        Booking ID: <strong id="booking-id-val">HHB-260521-1000</strong>
+        Booking ID: <strong id="booking-id-val">—</strong>
       </div>
       <button class="share-btn-bk" onclick="shareBooking()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="3" stroke="#2e7d32" stroke-width="2"/><circle cx="6" cy="12" r="3" stroke="#2e7d32" stroke-width="2"/><circle cx="18" cy="19" r="3" stroke="#2e7d32" stroke-width="2"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="#2e7d32" stroke-width="2" stroke-linecap="round"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="#2e7d32" stroke-width="2" stroke-linecap="round"/></svg>
@@ -130,7 +179,7 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="#730201" stroke-width="2"/></svg>
           </div>
           <p class="next-step-label">Professional Assigned</p>
-          <p class="next-step-sub" id="next-pro-name">Emmanuel will review your booking and confirm soon.</p>
+          <p class="next-step-sub" id="next-pro-name">Your professional will review your booking and confirm soon.</p>
         </div>
         <div class="next-connector"></div>
         <div class="next-step-item">
@@ -193,14 +242,14 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
           </div>
           <span class="summary-cell-label">Service</span>
-          <span class="summary-cell-val" id="sum-service">Fix Switch / Socket</span>
+          <span class="summary-cell-val" id="sum-service">—</span>
         </div>
         <div class="summary-cell">
           <div class="summary-cell-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
           </div>
           <span class="summary-cell-label">Date &amp; Time</span>
-          <span class="summary-cell-val" id="sum-date">Sat, 25 May 2026<br>10:00 AM – 12:00 PM</span>
+          <span class="summary-cell-val" id="sum-date">—</span>
         </div>
         <div class="summary-cell">
           <div class="summary-cell-icon">
@@ -214,7 +263,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#730201" stroke-width="2"/><path d="M2 10h20" stroke="#730201" stroke-width="2"/></svg>
           </div>
           <span class="summary-cell-label">Total Paid</span>
-          <span class="summary-cell-val red" id="sum-total">GHC 65.00</span>
+          <span class="summary-cell-val red" id="sum-total">—</span>
         </div>
       </div>
     </div>
@@ -380,7 +429,7 @@
       if (window.HH_State && window.HH_State.history) {
         // Use the service layer (enforces 50-record limit and proper schema)
         window.HH_State.history.push(bookingRecord);
-        window.HH_State.booking.patch({ bookingId, status: 'Confirmed', ts: now.toISOString() });
+        window.HH_State.booking.patch({ bookingId, status: 'pending', ts: now.toISOString() });
       } else {
         // Fallback: direct localStorage write with 50-record cap
         const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
@@ -404,13 +453,7 @@
       }))
       .catch(() => { /* non-critical — booking UI already confirmed */ });
 
-    // Confetti animation
-    document.querySelectorAll('.confetti').forEach((el, i) => {
-      el.style.transition = `transform 0.8s ease ${i * 0.1}s, opacity 0.8s ease ${i * 0.1}s`;
-      setTimeout(() => {
-        el.style.transform = `translate(${(i%2===0?1:-1)*(20+i*8)}px, ${-30-i*10}px) rotate(${i*45}deg)`;
-      }, 100);
-    });
+    // Confetti fires only when artisan accepts (see applyStatusBar below)
   });
 
   function shareBooking() {
@@ -427,13 +470,130 @@
   }
 </script>
 
-<!-- ── Realtime booking status listener (module) ──────────────────────────── -->
+<!-- ── Realtime booking status listener + escrow integration (module) ─────── -->
 <script type="module">
-  import { requireAuth }    from '../shared/js/utils/authGuard.js';
-  import { getAppContainer } from '../shared/js/app/container.js';
+  import { requireAuth }      from '../shared/js/utils/authGuard.js';
+  import { getAppContainer }  from '../shared/js/app/container.js';
+  import { holdBookingFunds } from '../shared/js/services/walletService.js';
 
   // Auth guard — protected booking confirmation page
   await requireAuth();
+
+  // ── Escrow bar helpers ────────────────────────────────────────────────────────
+  const ESB_CONFIGS = {
+    loading:        { bg: '#eff6ff', border: '#bfdbfe', tc: '#1d4ed8', sc: '#2563eb', icon: '⏳', title: 'Securing payment…',       sub: 'Holding your funds safely in escrow.' },
+    held:           { bg: '#f0fdf4', border: '#bbf7d0', tc: '#166534', sc: '#15803d', icon: '🔒', title: 'Payment Secured',          sub: 'Funds are locked in escrow until the job is complete.' },
+    pending_artisan:{ bg: '#eff6ff', border: '#bfdbfe', tc: '#1d4ed8', sc: '#2563eb', icon: '⏱️', title: 'Payment Pending',          sub: 'Funds will be locked once a professional accepts your request.' },
+    error_balance:  { bg: '#fef2f2', border: '#fecaca', tc: '#991b1b', sc: '#b91c1c', icon: '⚠️', title: 'Insufficient Balance',     sub: 'Top up your wallet to fully secure this booking.' },
+    error:          { bg: '#fef2f2', border: '#fecaca', tc: '#991b1b', sc: '#b91c1c', icon: '⚠️', title: 'Payment Not Secured',      sub: 'There was an issue holding the funds. Our team has been notified.' },
+  };
+
+  function applyEscrowBar(state, customSub, topupButton) {
+    const bar = document.getElementById('escrow-bar');
+    if (!bar) return;
+    const cfg = ESB_CONFIGS[state];
+    if (!cfg) { bar.style.display = 'none'; return; }
+
+    bar.style.display     = 'flex';
+    bar.style.background  = cfg.bg;
+    bar.style.border      = `1.5px solid ${cfg.border}`;
+
+    const icon  = document.getElementById('esb-icon');
+    const title = document.getElementById('esb-title');
+    const sub   = document.getElementById('esb-sub');
+    const act   = document.getElementById('esb-action');
+
+    if (icon)  icon.textContent  = cfg.icon;
+    if (title) { title.textContent = cfg.title;            title.style.color = cfg.tc; }
+    if (sub)   { sub.textContent   = customSub || cfg.sub; sub.style.color   = cfg.sc; }
+    if (act) {
+      act.innerHTML = topupButton
+        ? `<button onclick="window.location.href='topup.html'" style="
+             background:#730201;color:#fff;border:none;border-radius:8px;
+             padding:7px 13px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
+             Top Up
+           </button>`
+        : '';
+    }
+  }
+
+  // Idempotent escrow hold — called once after auth confirms.
+  // Skips silently if escrowId already stored (page refresh protection).
+  // Live wallet balance subscription — set up once, drives the escrow bar sub-text.
+  let _walletUnsub = null;
+
+  function _subscribeWalletBalance(amount) {
+    if (_walletUnsub) return; // already subscribed
+    try {
+      const { services: { databaseService, authService } } = getAppContainer();
+      authService.subscribeToAuthState(user => {
+        if (!user || _walletUnsub) return;
+        _walletUnsub = databaseService.subscribeToDocument('customers', user.uid, snap => {
+          if (!snap || !snap.data) return;
+          const remaining = parseFloat(Number(snap.data.walletBalance || 0).toFixed(2));
+          const inEscrow  = parseFloat(Number(snap.data.escrowBalance  || 0).toFixed(2));
+          const BK_KEY2   = 'hh_booking';
+          const st        = (() => { try { return JSON.parse(localStorage.getItem(BK_KEY2) || '{}'); } catch { return {}; } })();
+          // Only update sub-text if escrow is confirmed as held
+          if (st.escrowId) {
+            applyEscrowBar(
+              'held',
+              `GHS ${amount.toFixed(2)} secured in escrow · Wallet balance: GHS ${remaining.toFixed(2)}`
+            );
+          }
+        });
+        window.addEventListener('pagehide', () => { if (_walletUnsub) { _walletUnsub(); _walletUnsub = null; } }, { once: true });
+      });
+    } catch (_) { /* non-critical — escrow bar still shows generic held state */ }
+  }
+
+  async function ensureEscrowHeld() {
+    const BK_KEY   = 'hh_booking';
+    const _get     = () => { try { return JSON.parse(localStorage.getItem(BK_KEY) || '{}'); } catch { return {}; } };
+    const _set     = (p) => { localStorage.setItem(BK_KEY, JSON.stringify(Object.assign(_get(), p))); };
+
+    const state     = _get();
+    const bookingId = state.bookingId;
+    const artisanId = state.professional ? (state.professional.uid || state.professional.id || null) : null;
+    const amount    = parseFloat(state.total || 0);
+
+    // Already held — show current status with live balance and exit
+    if (state.escrowId) {
+      applyEscrowBar('held', `GHS ${amount.toFixed(2)} is secured in escrow for this booking.`);
+      _subscribeWalletBalance(amount);
+      return;
+    }
+
+    // No amount to hold (free booking or price not yet set)
+    if (!bookingId || !amount || amount <= 0) return;
+
+    // Artisan not yet assigned (dispatch flow) — show pending state
+    if (!artisanId) {
+      applyEscrowBar('pending_artisan');
+      return;
+    }
+
+    applyEscrowBar('loading');
+
+    try {
+      const result = await holdBookingFunds({ bookingId, artisanId, amount });
+      _set({ escrowId: result.escrowId });
+      applyEscrowBar('held', `GHS ${amount.toFixed(2)} secured in escrow.`);
+      // Subscribe to live wallet balance to show remaining amount
+      _subscribeWalletBalance(amount);
+    } catch (err) {
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('insufficient') || msg.includes('balance')) {
+        applyEscrowBar('error_balance', null, true);
+      } else if (msg.includes('already') || msg.includes('duplicate')) {
+        applyEscrowBar('held', `GHS ${amount.toFixed(2)} is secured in escrow.`);
+        _subscribeWalletBalance(amount);
+      } else {
+        applyEscrowBar('error');
+        console.error('[escrow] holdBookingFunds failed:', err.message);
+      }
+    }
+  }
 
   const STATUS_CONFIG = {
     pending:     { icon: '🕐', title: 'Waiting for confirmation…',  sub: 'The professional will respond shortly.',       bg: '#fff8f0', border: '#f5dfc8', titleColor: '#92400e', subColor: '#b45309', pulse: true  },
@@ -446,26 +606,72 @@
 
   function applyStatusBar(status) {
     const cfg = STATUS_CONFIG[status?.toLowerCase()] || STATUS_CONFIG.pending;
+
+    // ── Status bar ────────────────────────────────────────────
     const bar   = document.getElementById('live-status-bar');
     const icon  = document.getElementById('lsb-icon');
     const title = document.getElementById('lsb-title');
     const sub   = document.getElementById('lsb-sub');
     const pulse = document.getElementById('lsb-pulse');
-    if (!bar) return;
-    bar.style.background   = cfg.bg;
-    bar.style.borderColor  = cfg.border;
-    icon.textContent        = cfg.icon;
-    title.textContent       = cfg.title;
-    title.style.color       = cfg.titleColor;
-    sub.textContent         = cfg.sub;
-    sub.style.color         = cfg.subColor;
-    pulse.style.display     = cfg.pulse ? '' : 'none';
+    if (bar) {
+      bar.style.background  = cfg.bg;
+      bar.style.borderColor = cfg.border;
+      icon.textContent       = cfg.icon;
+      title.textContent      = cfg.title;
+      title.style.color      = cfg.titleColor;
+      sub.textContent        = cfg.sub;
+      sub.style.color        = cfg.subColor;
+      pulse.style.display    = cfg.pulse ? '' : 'none';
+    }
+
+    // ── Hero section — driven by real Firestore status ────────
+    const heroTitle  = document.getElementById('hero-title');
+    const heroSub    = document.getElementById('hero-sub');
+    const heroOuter  = document.getElementById('hero-outer');
+    const heroCircle = document.getElementById('hero-circle');
+    const s = status?.toLowerCase();
+
+    if (s === 'accepted') {
+      if (heroTitle)  heroTitle.textContent  = 'Booking Accepted!';
+      if (heroSub)    heroSub.innerHTML      = 'The artisan confirmed your booking.<br>You\'ll receive updates as they make their way.';
+      if (heroOuter)  heroOuter.style.background  = 'rgba(34,197,94,0.12)';
+      if (heroCircle) heroCircle.style.background = 'linear-gradient(135deg,#16a34a,#15803d)';
+      document.getElementById('hero-icon-pending')?.setAttribute('style', 'display:none');
+      document.getElementById('hero-icon-accepted')?.removeAttribute('style');
+      document.getElementById('hero-icon-rejected')?.setAttribute('style', 'display:none');
+      // Confetti celebration — artisan actually accepted
+      document.querySelectorAll('.confetti').forEach((el, i) => {
+        el.style.transition = `transform 0.8s ease ${i * 0.1}s, opacity 0.8s ease ${i * 0.1}s`;
+        setTimeout(() => {
+          el.style.transform = `translate(${(i%2===0?1:-1)*(20+i*8)}px,${-30-i*10}px) rotate(${i*45}deg)`;
+        }, 80);
+      });
+    } else if (s === 'rejected') {
+      if (heroTitle)  heroTitle.textContent  = 'Request Declined';
+      if (heroSub)    heroSub.innerHTML      = 'The artisan couldn\'t take this booking.<br>Try another professional.';
+      if (heroOuter)  heroOuter.style.background  = 'rgba(239,68,68,0.12)';
+      if (heroCircle) heroCircle.style.background = 'linear-gradient(135deg,#dc2626,#b91c1c)';
+      document.getElementById('hero-icon-pending')?.setAttribute('style', 'display:none');
+      document.getElementById('hero-icon-accepted')?.setAttribute('style', 'display:none');
+      document.getElementById('hero-icon-rejected')?.removeAttribute('style');
+    } else if (s === 'cancelled') {
+      if (heroTitle)  heroTitle.textContent  = 'Request Cancelled';
+      if (heroSub)    heroSub.innerHTML      = 'This booking request has been cancelled.';
+      if (heroOuter)  heroOuter.style.background  = 'rgba(107,114,128,0.12)';
+      if (heroCircle) heroCircle.style.background = 'linear-gradient(135deg,#6b7280,#4b5563)';
+      document.getElementById('hero-icon-pending')?.setAttribute('style', 'display:none');
+      document.getElementById('hero-icon-rejected')?.removeAttribute('style');
+    }
+    // 'pending', 'in_progress', 'completed' — hero stays as set by HTML
   }
 
-  // Wait for DOMContentLoaded then subscribe
+  // Wait for DOMContentLoaded then run escrow + Firestore subscription
   document.addEventListener('DOMContentLoaded', () => {
     const BK_KEY = 'hh_booking';
     function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
+
+    // Trigger escrow hold immediately after auth confirms (idempotent — safe on refresh)
+    ensureEscrowHeld();
 
     // Delay slightly so bookingConfirmNotify has time to write the Firestore doc
     setTimeout(async () => {
@@ -489,11 +695,93 @@
         let attempts = 0;
         const maxAttempts = 10;
 
+        let countdownTimer = null;
+
+        function startCountdown(deadlineMillis) {
+          if (countdownTimer) clearInterval(countdownTimer);
+          const el = document.getElementById('dc-countdown');
+          function tick() {
+            const remaining = Math.max(0, deadlineMillis - Date.now());
+            if (!el) return;
+            if (remaining <= 0) { el.textContent = '0:00'; clearInterval(countdownTimer); return; }
+            const totalSec = Math.floor(remaining / 1000);
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            el.textContent = h > 0
+              ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+              : `${m}:${String(s).padStart(2,'0')}`;
+          }
+          tick();
+          countdownTimer = setInterval(tick, 1000);
+        }
+
+        function applyDispatchCard(data) {
+          const card   = document.getElementById('dispatch-card');
+          if (!card) return;
+
+          // If dispatch just assigned an artisan and escrow is still pending, trigger hold now
+          const bkState = getState();
+          if (!bkState.escrowId && data.artisanId && (bkState.total || 0) > 0) {
+            ensureEscrowHeld();
+          }
+
+          const dispatchStatus  = data.dispatchStatus || 'searching';
+          const artisanName     = data.currentArtisanName  || null;
+          const artisanPhoto    = data.currentArtisanPhoto  || null;
+          const artisanRating   = data.currentArtisanRating || null;
+          const artisanCategory = data.currentArtisanCategory || null;
+          const deadline        = data.responseDeadline    || null;
+          const round           = data.currentDispatchRound || 1;
+
+          // Hide card if no artisan assigned yet or booking resolved
+          const showCard = dispatchStatus === 'dispatched' && artisanName;
+          card.style.display = showCard ? '' : 'none';
+          if (!showCard) return;
+
+          // Avatar
+          const avatarEl = document.getElementById('dc-avatar');
+          if (avatarEl) {
+            if (artisanPhoto) {
+              avatarEl.innerHTML = `<img src="${artisanPhoto}" style="width:100%;height:100%;object-fit:cover" alt="${artisanName}">`;
+            } else {
+              avatarEl.textContent = (artisanName || 'A').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            }
+          }
+
+          const nameEl     = document.getElementById('dc-name');
+          const catEl      = document.getElementById('dc-category');
+          const ratingEl   = document.getElementById('dc-rating');
+          const roundRow   = document.getElementById('dc-round-row');
+          const roundText  = document.getElementById('dc-round-text');
+
+          if (nameEl)   nameEl.textContent   = artisanName;
+          if (catEl)    catEl.textContent    = artisanCategory || '';
+          if (ratingEl) ratingEl.textContent = artisanRating ? `${Number(artisanRating).toFixed(1)} rating` : 'Verified';
+
+          // Show round info if re-dispatched
+          if (roundRow && roundText) {
+            if (round > 1) {
+              roundRow.style.display = '';
+              roundText.textContent  = `Round ${round} — previous professional did not respond`;
+            } else {
+              roundRow.style.display = 'none';
+            }
+          }
+
+          // Countdown
+          if (deadline) {
+            const deadlineMs = deadline.toMillis ? deadline.toMillis() : Number(deadline) * 1000;
+            startCountdown(deadlineMs);
+          }
+        }
+
         function trySubscribe() {
           attempts++;
           unsub = databaseService.subscribeToDocument('bookings', bookingId, snap => {
             if (snap.exists) {
               applyStatusBar(snap.data.status);
+              applyDispatchCard(snap.data);
             } else if (attempts < maxAttempts) {
               // Doc not yet written — retry after 1 s
               if (unsub) { unsub(); unsub = null; }
@@ -505,7 +793,10 @@
         }
         trySubscribe();
 
-        window.addEventListener('pagehide', () => { if (unsub) unsub(); });
+        window.addEventListener('pagehide', () => {
+          if (unsub) unsub();
+          if (countdownTimer) clearInterval(countdownTimer);
+        });
       });
     }, 1500);
   });

@@ -33,14 +33,16 @@
   }
 
   /* ── Status constants ────────────────────────────────────────────── */
+  // These values must match the Firestore bookings schema exactly.
+  // 'pending' (lowercase) is the canonical create-time status per firestore.rules.
   var STATUS = {
-    PENDING:    'Pending',
-    CONFIRMED:  'Confirmed',
-    ACTIVE:     'Active',
-    ON_THE_WAY: 'On the way',
-    COMPLETED:  'Completed',
-    CANCELLED:  'Cancelled',
-    EMERGENCY:  'Emergency',
+    PENDING:    'pending',
+    CONFIRMED:  'pending',    // alias — both map to 'pending' in Firestore
+    ACTIVE:     'in_progress',
+    ON_THE_WAY: 'en_route',
+    COMPLETED:  'completed',
+    CANCELLED:  'cancelled',
+    EMERGENCY:  'pending',    // emergency bookings start as 'pending'
   };
 
   /* ── Core booking actions ────────────────────────────────────────── */
@@ -180,8 +182,8 @@
   function classify() {
     var all = _state.history.getAll();
     return {
-      upcoming:  all.filter(function (r) { return ['Pending','Confirmed'].includes(r.status); }),
-      active:    all.filter(function (r) { return ['Active','On the way','In Progress','Emergency'].includes(r.status); }),
+      upcoming:  all.filter(function (r) { return ['pending','Pending','Confirmed'].includes(r.status); }),
+      active:    all.filter(function (r) { return ['Active','On the way','In Progress','En Route','Emergency'].includes(r.status); }),
       completed: all.filter(function (r) { return r.status === STATUS.COMPLETED; }),
       cancelled: all.filter(function (r) { return r.status === STATUS.CANCELLED; }),
     };
