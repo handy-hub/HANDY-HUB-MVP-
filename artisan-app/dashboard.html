@@ -461,16 +461,24 @@ function updateStatusUI(online) {
 window.toggleOnlineStatus = async function() {
   if (!uid) return;
   const next = !isOnline;
-  updateStatusUI(next);
+  
+  // Visual feedback during Geolocation retrieval
+  toggleBtn.disabled = true;
+  toggleBtn.textContent = next ? '🛰️ Getting GPS…' : 'Updating…';
+  
   try {
-    // setOnlineState writes isOnline + lastActive + heartbeat fields atomically
+    // setOnlineState will acquire coordinates if next is true
     await setOnlineState(next);
-    // Also write isAvailable so the profile listener reflects the correct toggle state
-    await databaseService.updateDocument('artisans', uid, { isAvailable: next });
     showToast(next ? 'You\'re now online 🟢' : 'You\'re offline');
   } catch (e) {
-    updateStatusUI(!next); // revert on failure
-    showToast('Could not update status. Try again.');
+    updateStatusUI(!next); // revert UI
+    console.error('[dashboard] Geolocation toggle error:', e);
+    // Write offline state to ensure DB availability is false
+    const { repositories: { artisanRepository } } = getAppContainer();
+    await artisanRepository.updatePresenceAndLocation(uid, { isOnline: false, isAvailable: false }).catch(()=>{});
+    showToast(e.message || 'Could not get location. Offline.');
+  } finally {
+    toggleBtn.disabled = false;
   }
 };
 
@@ -818,8 +826,21 @@ authService.subscribeToAuthState(async user => {
       .catch(() => {});
   }
 
+  // Start presence options with location error handling
+  const presenceOptions = {
+    onLocationError: (err) => {
+      showToast(err.message || 'Location error. Set to offline.');
+      updateStatusUI(false);
+      const { repositories: { artisanRepository } } = getAppContainer();
+      artisanRepository.updatePresenceAndLocation(uid, { isOnline: false, isAvailable: false }).catch(()=>{});
+    },
+    onStatusChange: (online) => {
+      updateStatusUI(online);
+    }
+  };
+
   // Start realtime presence (heartbeat + visibility/network/unload handlers)
-  startPresence(uid, databaseService, true);
+  startPresence(uid, databaseService, true, presenceOptions);
 
   // ── Realtime notification badge ──────────────────────
   const u0 = subscribeToUnreadCount(uid, (count) => {
@@ -841,7 +862,7 @@ authService.subscribeToAuthState(async user => {
       if (!presenceStarted) {
         presenceStarted = true;
         const storedOnline = snap.data.isAvailable !== false;
-        startPresence(uid, databaseService, storedOnline);
+        startPresence(uid, databaseService, storedOnline, presenceOptions);
       }
     } else {
       // New artisan — redirect to onboarding

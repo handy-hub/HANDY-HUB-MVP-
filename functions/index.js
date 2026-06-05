@@ -23,9 +23,11 @@ const { onSchedule }                   = require('firebase-functions/v2/schedule
 initializeApp();
 
 // ── Financial modules ─────────────────────────────────────────────────────────
-const escrow    = require('./financial/escrow');
-const transfers = require('./financial/transfers');
-const webhooks  = require('./financial/webhooks');
+const escrow            = require('./financial/escrow');
+const escrowAutoRelease = require('./financial/escrowAutoRelease');
+const transfers         = require('./financial/transfers');
+const webhooks          = require('./financial/webhooks');
+const { checkRateLimit } = require('./middleware/rateLimiter');
 
 // ── Artisan verification module ───────────────────────────────────────────────
 const artisanVerif = require('./artisanVerification');
@@ -59,6 +61,7 @@ exports.paystackWebhook = onRequest(
  */
 exports.holdBookingFunds = onCall({ region: 'us-central1' }, async (request) => {
     _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'holdBookingFunds');
     const { bookingId, artisanId, amount } = request.data;
     // artisanId may be null for dispatch-assigned bookings (artisan not yet selected).
     // escrow.holdFundsForBooking accepts null artisanId and the release will read the
@@ -88,6 +91,7 @@ exports.holdBookingFunds = onCall({ region: 'us-central1' }, async (request) => 
  */
 exports.releaseEscrow = onCall({ region: 'us-central1' }, async (request) => {
     _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'releaseEscrow');
     const { escrowId } = request.data;
     if (!escrowId) throw new HttpsError('invalid-argument', 'escrowId is required.');
 
@@ -111,6 +115,7 @@ exports.releaseEscrow = onCall({ region: 'us-central1' }, async (request) => {
  */
 exports.refundBooking = onCall({ region: 'us-central1' }, async (request) => {
     _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'refundBooking');
     const { escrowId, reason } = request.data;
     if (!escrowId) throw new HttpsError('invalid-argument', 'escrowId is required.');
 
@@ -134,6 +139,7 @@ exports.refundBooking = onCall({ region: 'us-central1' }, async (request) => {
  */
 exports.raiseDispute = onCall({ region: 'us-central1' }, async (request) => {
     _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'raiseDispute');
     const { escrowId, disputeId } = request.data;
     if (!escrowId) throw new HttpsError('invalid-argument', 'escrowId is required.');
 
@@ -161,6 +167,7 @@ exports.raiseDispute = onCall({ region: 'us-central1' }, async (request) => {
  */
 exports.processWithdrawal = onCall({ region: 'us-central1' }, async (request) => {
     _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'processWithdrawal');
     const { amount, provider, phone } = request.data;
     _validate({ amount, provider, phone }, ['amount', 'provider', 'phone']);
 
@@ -185,6 +192,7 @@ exports.processWithdrawal = onCall({ region: 'us-central1' }, async (request) =>
  */
 exports.processArtisanWithdrawal = onCall({ region: 'us-central1' }, async (request) => {
     _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'processArtisanWithdrawal');
     const { amount, provider, phone } = request.data;
     _validate({ amount, provider, phone }, ['amount', 'provider', 'phone']);
 
@@ -306,6 +314,68 @@ exports.onBookingStatusChanged  = bookingsModule.onBookingStatusChanged;
 exports.onBookingCreated        = dispatchModule.onBookingCreated;
 exports.onBookingDispatchEvent  = dispatchModule.onBookingDispatchEvent;
 exports.checkExpiredDispatches  = dispatchModule.checkExpiredDispatches;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ESCROW LIFECYCLE — automated release of expired escrow records
+//
+// autoReleaseEscrow
+//   Scheduled: every 6 hours.
+//   Queries escrow where status=='held' AND autoReleaseAt<=now, pages through
+//   results in batches of 100, and calls releaseEscrow() or refundEscrow()
+//   per document based on the associated booking's status.
+//   Safe under repeated execution — idempotent by design.
+//
+// adminBackfillEscrowLocks (callable — admin only)
+//   One-time migration: creates _escrow_locks documents for all pre-existing
+//   "held" escrow records that were created before the C1 lock-document fix.
+//   Call once after deploying the new escrow.js. Safe to re-run.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Scheduled escrow auto-release.
+ * Runs every 6 hours. Memory 512 MiB. Timeout 540 s.
+ *
+ * Writes observability docs to:
+ *   _auto_release_runs/{runId}         — run summary (start, end, counts, status)
+ *   _auto_release_failures/{escrowId}  — per-escrow failure details for admin review
+ */
+exports.autoReleaseEscrow = onSchedule(
+    {
+        schedule:        'every 6 hours',
+        region:          'us-central1',
+        timeoutSeconds:  540,
+        memory:          '512MiB',
+    },
+    async () => {
+        await escrowAutoRelease.runAutoRelease();
+    }
+);
+
+/**
+ * Admin-callable one-time migration: backfill _escrow_locks for pre-existing escrows.
+ * Only super-admins may call this — enforced inside backfillEscrowLocks().
+ *
+ *   const backfill = httpsCallable(functions, 'adminBackfillEscrowLocks');
+ *   const { data } = await backfill({});
+ *   // data → { processed, skipped, errors }
+ */
+exports.adminBackfillEscrowLocks = onCall(
+    { region: 'us-central1', timeoutSeconds: 540, memory: '512MiB' },
+    async (request) => {
+        _requireAuth(request);
+        // Restrict to super-admins only — backfill touches all escrow records.
+        const { ADMIN_EMAILS } = require('./config');
+        const callerEmail = request.auth.token?.email;
+        if (!ADMIN_EMAILS.includes(callerEmail)) {
+            throw new HttpsError('permission-denied', 'Super-admin access required.');
+        }
+        try {
+            return await escrow.backfillEscrowLocks();
+        } catch (err) {
+            throw new HttpsError('internal', err.message);
+        }
+    }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

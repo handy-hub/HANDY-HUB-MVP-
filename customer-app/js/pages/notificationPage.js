@@ -20,7 +20,6 @@ const TYPE_ICON = {
 
 const TAB_TYPES = ["Bookings", "Messages", "Offers"];
 
-// Maps Firestore notification type → customer.notificationPreferences key
 const TYPE_TO_PREF = {
     Bookings: 'bookings',
     Messages: 'messages',
@@ -28,42 +27,41 @@ const TYPE_TO_PREF = {
     Payments: 'payments',
     Reviews:  'reviews',
     System:   'system',
-    // 'General' has no toggle → always shown
 };
 
 // ─── Module state ────────────────────────────────────────────────────────────
-let allNotifications  = [];   // raw list from Firestore (never filtered)
+let allNotifications  = [];
 let currentFilter     = "All";
 let unsubscribeFn     = null;
 let prefsUnsubFn      = null;
 let currentUserId     = null;
 let _initialized      = false;
 
-// Live notification preferences (mirrors customer.notificationPreferences in Firestore)
-// Default: all on — any disabled key must be explicitly false
 let notificationPrefs = {
     bookings: true, messages: true, offers: true,
     payments: true, reviews:  true, system: true,
 };
 
-// Used to suppress a card-click that fires immediately after a swipe gesture
+// IDs currently in the undo-pending window.
+// Firestore subscription updates filter these out so the optimistic removal
+// is not clobbered by a Firestore snapshot that still contains the item.
+const _pendingDeletionIds = new Set();
+
 let _lastSwipeTime = 0;
 
 // ─── Preference filter ───────────────────────────────────────────────────────
-/**
- * Returns only the notifications whose type hasn't been turned off in Settings.
- * 'General' and any unknown types are always included.
- */
 function applyPrefsFilter(notifications) {
     return notifications.filter(n => {
         const key = TYPE_TO_PREF[n.type];
-        if (!key) return true;                  // General / unknown → always show
-        return notificationPrefs[key] !== false; // default true if key absent
+        if (!key) return true;
+        return notificationPrefs[key] !== false;
     });
 }
 
-// ─── Notification cache (stale-while-revalidate) ─────────────────────────────
-const NOTIF_CACHE_KEY = 'hh_notifications_cache';
+// ─── Notification cache ──────────────────────────────────────────────────────
+const NOTIF_CACHE_BASE = 'hh_notifications_cache';
+// Scoped to uid in init() — defaults to bare base key as safety fallback
+let NOTIF_CACHE_KEY = NOTIF_CACHE_BASE;
 
 function saveNotifCache(notifications) {
     try {
@@ -111,7 +109,6 @@ function formatTime(date) {
     return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-// Count unread per tab — operates on ALREADY-FILTERED notifications
 function getTabCounts(visibleNotifications) {
     const counts = { All: 0 };
     TAB_TYPES.forEach(t => { counts[t] = 0; });
@@ -124,8 +121,6 @@ function getTabCounts(visibleNotifications) {
     return counts;
 }
 
-// Badge count and localStorage — uses pref-filtered set so the badge matches
-// exactly what the user can see in the notification list
 function syncBadge(notifications) {
     const visible = applyPrefsFilter(notifications);
     const count   = visible.filter(n => !n.isRead).length;
@@ -136,26 +131,23 @@ function syncBadge(notifications) {
 function updateMarkAllReadBtn() {
     const btn = dom.markAllBtn();
     if (!btn) return;
-    // Only show if there are unread notifications the user can currently see
     const hasVisibleUnread = applyPrefsFilter(allNotifications).some(n => !n.isRead);
     btn.style.display = hasVisibleUnread ? 'flex' : 'none';
 }
 
-// ─── Render: tabs ────────────────────────────────────────────────────────────
+// ─── Render: tabs ─────────────────────────────────────────────────────────────
 function renderTabs(notifications) {
     const container = dom.tabContainer();
     if (!container) return;
 
-    // Tab badge counts are based on what's visible after pref filtering
     const visible = applyPrefsFilter(notifications);
     const counts  = getTabCounts(visible);
     const tabs    = ["All", ...TAB_TYPES];
 
     container.innerHTML = tabs.map(name => {
-        const isActive  = currentFilter === name;
-        const count     = counts[name] ?? 0;
-        // Grey out tab label if the type is disabled in settings
-        const prefKey   = TYPE_TO_PREF[name];
+        const isActive   = currentFilter === name;
+        const count      = counts[name] ?? 0;
+        const prefKey    = TYPE_TO_PREF[name];
         const isDisabled = prefKey && notificationPrefs[prefKey] === false;
         return `
             <button type="button" data-filter="${name}"
@@ -176,7 +168,7 @@ function renderTabs(notifications) {
     });
 }
 
-// ─── Render: single card ─────────────────────────────────────────────────────
+// ─── Render: single card ──────────────────────────────────────────────────────
 function buildCard(n) {
     const icon     = TYPE_ICON[n.type] ?? "fa-bell";
     const isUnread = !n.isRead;
@@ -208,10 +200,7 @@ function renderList(notifications) {
     const list = dom.notifList();
     if (!list) return;
 
-    // Step 1: apply notification settings (disabled types hidden)
     const prefFiltered = applyPrefsFilter(notifications);
-
-    // Step 2: apply the active tab filter on top
     const filtered = currentFilter === "All"
         ? prefFiltered
         : prefFiltered.filter(n => n.type === currentFilter);
@@ -252,15 +241,11 @@ function buildEmptyState(allNotifs, visibleNotifs) {
     let title, sub, icon = "fa-regular fa-bell";
 
     if (allNotifs.length === 0) {
-        // Nothing in Firestore at all
         title = "No notifications yet";
         sub   = "You're all caught up. We'll notify you when something new arrives.";
-
     } else if (currentFilter !== "All") {
-        // A specific tab is selected
         const prefKey = TYPE_TO_PREF[currentFilter];
         if (prefKey && notificationPrefs[prefKey] === false) {
-            // This type is turned off in settings
             icon  = "fa-solid fa-bell-slash";
             title = `${currentFilter} notifications are off`;
             sub   = `Go to Notification Settings to turn them back on.`;
@@ -268,9 +253,7 @@ function buildEmptyState(allNotifs, visibleNotifs) {
             title = `No ${currentFilter.toLowerCase()} notifications`;
             sub   = "Nothing here yet.";
         }
-
     } else {
-        // "All" tab but everything is hidden by prefs
         if (visibleNotifs.length === 0 && allNotifs.length > 0) {
             icon  = "fa-solid fa-bell-slash";
             title = "All notification types are muted";
@@ -288,6 +271,162 @@ function buildEmptyState(allNotifs, visibleNotifs) {
             <p class="empty-sub">${sub}</p>
         </div>`;
 }
+
+// ─── Undo-delete toast ────────────────────────────────────────────────────────
+/**
+ * Manages a single bottom toast for the undo-delete pattern.
+ *
+ * Only one pending deletion is held at a time. If a second delete arrives
+ * while a toast is showing, the first is immediately committed before the
+ * new toast is shown.
+ *
+ * Lifecycle:
+ *   show(id, notification, originalIndex, onUndo)
+ *     → stores pending state, shows toast, starts 6s timer
+ *
+ *   timer expires   → _commit()  → calls deleteNotification(id)
+ *   user taps Undo  → onUndo(restoreData) is called, toast hides
+ *   new delete arrives while pending → _commit() first pending, then show
+ *   pagehide        → commitAll() → commits any pending deletion synchronously
+ */
+const UndoToast = (function () {
+    const DURATION_MS = 6000;
+
+    let _pending  = null;  // { id, notification, originalIndex }
+    let _timer    = null;
+    let _hostEl   = null;
+    let _toastEl  = null;
+
+    function _ensureHost() {
+        if (_hostEl && _hostEl.isConnected) return;
+        _hostEl = document.createElement('div');
+        _hostEl.className = 'undo-toast-host';
+        _hostEl.setAttribute('aria-live', 'polite');
+        _hostEl.setAttribute('aria-atomic', 'true');
+        document.body.appendChild(_hostEl);
+    }
+
+    function _clearTimer() {
+        if (_timer !== null) { clearTimeout(_timer); _timer = null; }
+    }
+
+    function _commitPending() {
+        if (!_pending) return;
+        const { id } = _pending;
+        _pending = null;
+        _pendingDeletionIds.delete(id);
+        // Persist cache now that deletion is final
+        saveNotifCache(allNotifications);
+        syncBadge(allNotifications);
+        updateMarkAllReadBtn();
+        deleteNotification(id).catch(err => {
+            console.warn('[notifPage] Undo-toast commit failed:', err);
+        });
+    }
+
+    function _hide(onDone) {
+        if (!_toastEl) { onDone?.(); return; }
+        _toastEl.classList.remove('is-visible');
+        _toastEl.classList.add('is-hiding');
+        const el = _toastEl;
+        setTimeout(() => {
+            if (el.parentNode) el.parentNode.innerHTML = '';
+            _toastEl = null;
+            onDone?.();
+        }, 340);
+    }
+
+    /**
+     * Show the undo toast for a just-deleted notification.
+     *
+     * @param {string}   id             Notification Firestore ID
+     * @param {object}   notification   The full notification object (for restoration)
+     * @param {number}   originalIndex  Position in allNotifications before removal
+     * @param {function} onUndo         Callback invoked with restoreData when user taps Undo
+     */
+    function show(id, notification, originalIndex, onUndo) {
+        _ensureHost();
+
+        // If another deletion is already pending, commit it immediately
+        if (_pending) {
+            _clearTimer();
+            _commitPending();
+        }
+
+        _pending = { id, notification, originalIndex };
+        _pendingDeletionIds.add(id);
+
+        _hostEl.innerHTML = `
+            <div class="undo-toast"
+                 role="status"
+                 aria-label="Notification deleted. Tap Undo to restore.">
+                <div class="undo-toast__icon" aria-hidden="true">
+                    <i class="fa-solid fa-trash-can"></i>
+                </div>
+                <span class="undo-toast__msg">Notification deleted</span>
+                <button class="undo-toast__undo"
+                        type="button"
+                        aria-label="Undo: restore deleted notification">
+                    Undo
+                </button>
+                <div class="undo-toast__progress" aria-hidden="true">
+                    <div class="undo-toast__progress-fill"
+                         style="--toast-duration: ${DURATION_MS}ms"></div>
+                </div>
+            </div>`;
+
+        _toastEl = _hostEl.querySelector('.undo-toast');
+
+        // Wire the Undo button
+        _hostEl.querySelector('.undo-toast__undo').addEventListener('click', () => {
+            _clearTimer();
+            const restoreData = _pending;
+            _pending = null;
+            if (restoreData) _pendingDeletionIds.delete(restoreData.id);
+            _hide(() => { onUndo?.(restoreData); });
+        });
+
+        // Enter animation — double rAF ensures transition fires after paint
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (_toastEl) _toastEl.classList.add('is-visible');
+            });
+        });
+
+        // Auto-dismiss after DURATION_MS
+        _timer = setTimeout(() => {
+            _timer = null;
+            const toCommit = _pending;
+            _pending = null;
+            if (toCommit) _pendingDeletionIds.delete(toCommit.id);
+            _hide(() => {
+                if (!toCommit) return;
+                saveNotifCache(allNotifications);
+                syncBadge(allNotifications);
+                updateMarkAllReadBtn();
+                deleteNotification(toCommit.id).catch(err => {
+                    console.warn('[notifPage] Auto-commit failed:', err);
+                });
+            });
+        }, DURATION_MS);
+    }
+
+    /**
+     * Called on pagehide to commit any pending deletion so it is not lost
+     * when the page unloads. Uses fire-and-forget since the page is closing.
+     */
+    function commitAll() {
+        _clearTimer();
+        if (!_pending) return;
+        const { id } = _pending;
+        _pending = null;
+        _pendingDeletionIds.delete(id);
+        saveNotifCache(allNotifications);
+        deleteNotification(id).catch(() => {});
+    }
+
+    return { show, commitAll };
+})();
 
 // ─── Swipe-to-delete ─────────────────────────────────────────────────────────
 function wireSwipeToDelete(listEl) {
@@ -355,7 +494,8 @@ function wireSwipeToDelete(listEl) {
                     row.style.height     = '0';
                     setTimeout(() => {
                         if (row.parentNode) row.remove();
-                        handleDeleteNotification(id);
+                        // ── Undo-delete: defer Firestore write by DURATION_MS ──
+                        initiateDelete(id);
                     }, 270);
                 }, 210);
             } else {
@@ -381,20 +521,51 @@ function wireSwipeToDelete(listEl) {
     });
 }
 
-// ─── Actions ─────────────────────────────────────────────────────────────────
-async function handleDeleteNotification(id) {
+// ─── Delete with undo ─────────────────────────────────────────────────────────
+/**
+ * Optimistically removes a notification from the UI and shows the undo toast.
+ * The actual Firestore deletion is deferred until:
+ *   a) The toast timer expires (user did not tap Undo), OR
+ *   b) A second deletion arrives (previous one is committed first), OR
+ *   c) The page is about to unload (pagehide → commitAll).
+ *
+ * The cache is intentionally NOT updated here. It is updated only on commit.
+ * This means a page refresh during the undo window will restore the item from
+ * the Firestore subscription (correct behaviour — refresh acts as implicit undo).
+ */
+function initiateDelete(id) {
+    const index        = allNotifications.findIndex(n => n.id === id);
+    const notification = index >= 0 ? allNotifications[index] : null;
+
+    // Guard: already pending or not found
+    if (!notification || _pendingDeletionIds.has(id)) return;
+
+    // Optimistic removal from live state (not from cache yet)
     allNotifications = allNotifications.filter(n => n.id !== id);
+
+    // Update badges + tabs without the deleted item
     syncBadge(allNotifications);
     renderTabs(allNotifications);
-    saveNotifCache(allNotifications);
     updateMarkAllReadBtn();
-    try {
-        await deleteNotification(id);
-    } catch (err) {
-        console.error('[notifPage] Failed to delete from Firestore:', err);
-    }
+    // NOTE: renderList is NOT called here — the DOM row was already removed
+    // by the swipe animation. This avoids a jarring re-render.
+
+    UndoToast.show(id, notification, index, (restoreData) => {
+        if (!restoreData) return;
+
+        // Re-insert at original position (clamped to current array length)
+        const insertAt = Math.min(restoreData.originalIndex, allNotifications.length);
+        allNotifications.splice(insertAt, 0, restoreData.notification);
+
+        // Full re-render with restored item + update cache
+        syncBadge(allNotifications);
+        renderTabs(allNotifications);
+        renderList(allNotifications);
+        saveNotifCache(allNotifications);
+    });
 }
 
+// ─── Actions ──────────────────────────────────────────────────────────────────
 async function handleCardClick(id) {
     const notif = allNotifications.find(n => n.id === id);
     if (!notif) return;
@@ -430,14 +601,13 @@ function showError(msg) {
         </div>`;
 }
 
-// ─── Bootstrap ───────────────────────────────────────────────────────────────
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
 async function init() {
     if (_initialized) return;
     _initialized = true;
 
     if (unsubscribeFn) { unsubscribeFn(); unsubscribeFn = null; }
 
-    // Paint from cache immediately (stale-while-revalidate)
     const cached = loadNotifCache();
     if (cached && cached.length > 0) {
         allNotifications = cached;
@@ -451,13 +621,12 @@ async function init() {
 
     const user = await waitForCurrentUser();
     if (!user) { showError("Sign in to see your notifications"); return; }
-    currentUserId = user.uid;
+    currentUserId    = user.uid;
+    NOTIF_CACHE_KEY  = NOTIF_CACHE_BASE + '_' + user.uid; // uid-scope the cache key
 
     const { services: { databaseService } } = getAppContainer();
 
     // ── 1. Live notification preferences ─────────────────────────────────────
-    // Subscribe to the customer document so any toggle change in settings is
-    // reflected instantly here without a page reload.
     prefsUnsubFn = databaseService.subscribeToDocument('customers', user.uid, (snap) => {
         const raw = snap.exists ? (snap.data?.notificationPreferences ?? {}) : {};
         notificationPrefs = {
@@ -468,7 +637,6 @@ async function init() {
             reviews:  raw.reviews  !== false,
             system:   raw.system   !== false,
         };
-        // Re-render the list and badge with the updated pref filter applied
         renderTabs(allNotifications);
         renderList(allNotifications);
         syncBadge(allNotifications);
@@ -495,15 +663,20 @@ async function init() {
         });
     }
 
-    // ── 3. Realtime notifications stream ─────────────────────────────────────
+    // ── 3. Realtime notifications stream ──────────────────────────────────────
+    // IMPORTANT: filter out any notifications currently in the pending-deletion
+    // window so a Firestore snapshot does not clobber the optimistic removal.
     unsubscribeFn = subscribeToUserNotifications(
         user.uid,
         (notifications) => {
-            allNotifications = notifications;
-            syncBadge(notifications);
-            renderTabs(notifications);
-            renderList(notifications);
-            saveNotifCache(notifications);
+            // Strip items still pending deletion — they will either be committed
+            // (and then genuinely absent from Firestore) or restored via Undo.
+            const withoutPending = notifications.filter(n => !_pendingDeletionIds.has(n.id));
+            allNotifications = withoutPending;
+            syncBadge(withoutPending);
+            renderTabs(withoutPending);
+            renderList(withoutPending);
+            saveNotifCache(withoutPending);
         },
         (err) => {
             console.error("[notifPage] Notification stream error:", err);
@@ -522,4 +695,6 @@ document.addEventListener("DOMContentLoaded", init);
 window.addEventListener("pagehide", () => {
     if (unsubscribeFn)  { unsubscribeFn();  unsubscribeFn  = null; }
     if (prefsUnsubFn)   { prefsUnsubFn();   prefsUnsubFn   = null; }
+    // Commit any pending deletion so it is not silently lost on page unload
+    UndoToast.commitAll();
 });

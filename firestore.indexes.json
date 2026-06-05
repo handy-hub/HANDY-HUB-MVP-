@@ -183,6 +183,17 @@
         { "fieldPath": "status",     "order": "ASCENDING" }
       ]
     },
+    // autoReleaseEscrow scheduler: status + autoReleaseAt ASC
+    // Query: status == 'held' AND autoReleaseAt <= now, ordered by autoReleaseAt ASC
+    // Required for paginated auto-release with startAfter cursor.
+    {
+      "collectionGroup": "escrow",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",        "order": "ASCENDING" },
+        { "fieldPath": "autoReleaseAt", "order": "ASCENDING" }
+      ]
+    },
     // getByCustomer: customerId + createdAt DESC
     {
       "collectionGroup": "escrow",

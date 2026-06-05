@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
+  <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Handy Hub – Live Tracking</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
@@ -287,7 +288,7 @@ const stages = [
 // Initialize stage from the current booking status so the UI reflects real state.
 let currentStageIndex = (function () {
   try {
-    const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+    const b = window.HH_State ? window.HH_State.booking.get() : {};
     const s = (b.status || '').toLowerCase();
     if (s === 'in_progress') return 3;
     if (s === 'awaiting')    return 4;
@@ -400,14 +401,16 @@ function initSlide(actionId, fillId, labelId, thumbId, onComplete) {
 
 function _getBookingId() {
   try {
-    const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+    const b = window.HH_State ? window.HH_State.booking.get() : {};
     return b.bookingId || b.id || null;
   } catch (_) { return null; }
 }
 
 function _getEscrowId() {
-  try { return JSON.parse(localStorage.getItem('hh_booking') || '{}').escrowId || null; }
-  catch (_) { return null; }
+  try {
+    const b = window.HH_State ? window.HH_State.booking.get() : {};
+    return b.escrowId || null;
+  } catch (_) { return null; }
 }
 
 // Debounce guard — prevents double-tap triggering two cancel/confirm operations
@@ -417,11 +420,7 @@ function cancelBooking() {
   if (_actionInProgress) return;
   _actionInProgress = true;
 
-  try {
-    const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
-    b.status = 'cancelled';
-    localStorage.setItem('hh_booking', JSON.stringify(b));
-  } catch (_) {}
+  if (window.HH_State) window.HH_State.booking.patch({ status: 'cancelled' });
 
   const bkId    = _getBookingId();
   const escrowId = _getEscrowId();
@@ -455,11 +454,7 @@ async function confirmCompletion() {
   const confirmLabel = document.getElementById('confirm-label');
   if (confirmLabel) confirmLabel.textContent = '⏳ Releasing payment…';
 
-  try {
-    const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
-    b.status = 'completed';
-    localStorage.setItem('hh_booking', JSON.stringify(b));
-  } catch (_) {}
+  if (window.HH_State) window.HH_State.booking.patch({ status: 'completed' });
 
   const bkId    = _getBookingId();
   const escrowId = _getEscrowId();
@@ -489,7 +484,7 @@ async function confirmCompletion() {
 }
 
 function callArtisan() {
-  const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+  const b   = window.HH_State ? window.HH_State.booking.get() : {};
   const pro = b.artisan || b.professional || {};
   if (pro.phone) {
     window.location.href = pro.phone;
@@ -512,10 +507,9 @@ function callArtisan() {
 // in the module script below; this local check is a fast first pass.
 (function enforceTrackingGate() {
   try {
-    const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+    const b = window.HH_State ? window.HH_State.booking.get() : {};
     const gatedStatuses = ['accepted', 'en_route', 'in_progress', 'awaiting', 'completed'];
-    if (!gatedStatuses.includes(b.status)) {
-      // Booking not yet accepted — redirect to the waiting screen
+    if (!gatedStatuses.includes((b.status || '').toLowerCase())) {
       window.location.replace('book-step4.html');
     }
   } catch(_) {
@@ -524,7 +518,7 @@ function callArtisan() {
 })();
 
 // ── Load booking data ────────────────────────────────────────
-const booking = JSON.parse(localStorage.getItem('hh_booking') || '{}');
+const booking = window.HH_State ? window.HH_State.booking.get() : {};
 const _pro    = booking.artisan || booking.professional;
 if (_pro) {
   document.getElementById('trk-name').textContent = _pro.name || 'Artisan';
@@ -632,18 +626,19 @@ showTrackingUnavailable();
 <script type="module">
   import { requireAuth }    from '../shared/js/utils/authGuard.js';
   import { getAppContainer } from '../shared/js/app/container.js';
+  import { getHaversineDistanceKm, estimateEtaMinutes } from '../shared/js/utils/geo.js';
 
   await requireAuth();
+  const { services: { databaseService } } = getAppContainer();
 
   // ── Firestore status gate — definitive server-side check ──
   // Reject access if Firestore shows the booking isn't accepted.
-  const _bookingId = (JSON.parse(localStorage.getItem('hh_booking') || '{}')).bookingId
-                   || (JSON.parse(localStorage.getItem('hh_booking') || '{}')).id;
+  const _bk        = window.HH_State ? window.HH_State.booking.get() : {};
+  const _bookingId = _bk.bookingId || _bk.id || null;
   if (_bookingId) {
     try {
-      const { services: { databaseService: _ds } } = getAppContainer();
       const _snap = await new Promise((resolve, reject) => {
-        const _unsub = _ds.subscribeToDocument('bookings', _bookingId, s => {
+        const _unsub = databaseService.subscribeToDocument('bookings', _bookingId, s => {
           _unsub();
           resolve(s);
         }, reject);
@@ -663,7 +658,6 @@ showTrackingUnavailable();
   const artisanId = window._trkSubscribeArtisan;
   if (artisanId) {
     try {
-      const { services: { databaseService } } = getAppContainer();
       window._trkLocationUnsub = databaseService.subscribeToDocument(
         'artisans', artisanId,
         snap => {
@@ -673,6 +667,16 @@ showTrackingUnavailable();
           const aLng = d.currentLng ?? d.lng ?? null;
           if (aLat && aLng) {
             window.updateArtisanMarker(aLat, aLng);
+
+            // Calculate dynamic ETA and update chip
+            if (userLat !== null && userLng !== null) {
+              const distKm = getHaversineDistanceKm(userLat, userLng, aLat, aLng);
+              if (distKm !== null) {
+                const etaMin = estimateEtaMinutes(distKm);
+                const etaChip = document.getElementById('eta-chip');
+                if (etaChip) etaChip.textContent = `~${etaMin} min`;
+              }
+            }
           } else {
             window.showTrackingUnavailable?.();
           }

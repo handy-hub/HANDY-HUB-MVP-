@@ -15,7 +15,8 @@
       "Bash(git restore *)",
       "Bash(python3 -c ' *)",
       "Bash(Remove-Item \"C:\\\\Users\\\\Herty\\\\OneDrive\\\\Desktop\\\\HandyHub_Production_Roadmap.html\")",
-      "Bash(firebase functions:list)"
+      "Bash(firebase functions:list)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Herty\\\\OneDrive\\\\Desktop\\\\Lunch\\\\HANDY-HUB-MVP-\" -Force)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Herty\\.claude\\projects\\c--Users-Herty-OneDrive-Desktop-Lunch-HANDY-HUB-MVP-\\memory",

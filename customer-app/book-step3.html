@@ -308,9 +308,9 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  const BK_KEY = 'hh_booking';
-  function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
-  function setState(patch) { localStorage.setItem(BK_KEY, JSON.stringify(Object.assign(getState(), patch))); }
+  function _bkKey() { return window.HH_State ? window.HH_State.scopedKey('hh_booking') : 'hh_booking'; }
+  function getState() { try { return JSON.parse(localStorage.getItem(_bkKey())) || {}; } catch { return {}; } }
+  function setState(patch) { localStorage.setItem(_bkKey(), JSON.stringify(Object.assign(getState(), patch))); }
 
   const TIME_SLOTS = [
     '8:00 AM – 10:00 AM', '9:00 AM – 11:00 AM', '10:00 AM – 12:00 PM',

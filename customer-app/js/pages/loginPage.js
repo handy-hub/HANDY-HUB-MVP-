@@ -2,9 +2,10 @@ import "../../../shared/js/utils/global-app.js";
 import { getAppContainer } from "../../../shared/js/app/container.js";
 import { showToast } from "../../../shared/js/components/toast.js";
 import { consumeReturnUrl } from "../../../shared/js/utils/authGuard.js";
+import { checkAndRecord, showRateLimitToast } from "../../../shared/js/services/rateLimitService.js";
 
 const DASHBOARD_REDIRECT_URL = "dashboard.html";
-const LOGIN_LOADING_TEXT = "Logging in...";
+const LOGIN_LOADING_TEXT = "Logging in";
 
 const {
   services: { customerAuthService }
@@ -177,6 +178,13 @@ function wireEmailPasswordLogin() {
 
     if (!identifier || !password) {
       showToast("Enter both identifier and password.", "error");
+      return;
+    }
+
+    // Frontend rate limit: 5 attempts per 5 minutes (keyed by device fingerprint)
+    const rl = checkAndRecord("LOGIN_ATTEMPT", null);
+    if (!rl.allowed) {
+      showRateLimitToast(rl.waitMs, "auth");
       return;
     }
 

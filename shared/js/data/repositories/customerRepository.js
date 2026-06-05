@@ -142,6 +142,21 @@ export function createCustomerRepository({
         },
 
         /**
+         * Atomic search-history write.
+         * Uses updateDocument (no pre-read) — safe because the user is
+         * always authenticated and their doc always exists at this point.
+         * Called exclusively by SearchHistoryService; never call directly.
+         */
+        async updateSearchHistory(customerId, items) {
+            const sanitized = Array.isArray(items) ? items.slice(0, 5) : [];
+            await databaseService.updateDocument(collectionName, customerId, {
+                recentSearches:          sanitized,
+                recentSearchesUpdatedAt: now(),
+                updatedAt:               now(),
+            });
+        },
+
+        /**
          * ⛔  REMOVED — adjustWalletBalance() was removed.
          *
          * Wallet balance mutations are EXCLUSIVELY a Cloud Function responsibility.

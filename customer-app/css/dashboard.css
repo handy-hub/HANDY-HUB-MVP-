@@ -3,7 +3,7 @@
 
 body {
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f2f2f7;
+  background: #fefefe;
   display: flex; justify-content: center;
   min-height: 100dvh;
   overflow-y: auto; overflow-x: hidden;
@@ -11,7 +11,7 @@ body {
 }
 .app {
   width: 100%; max-width: 430px;
-  background: #f2f2f7;
+  background: #fefefe;
   min-height: 100dvh;
   padding-bottom: 76px;
   position: relative;

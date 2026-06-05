@@ -18,6 +18,11 @@
 
 import { getAppContainer }    from '../app/container.js';
 import { createNotification } from '../services/notificationRepository.js';
+import { checkAndRecord, showRateLimitToast } from '../services/rateLimitService.js';
+
+// In-flight guard — prevents the same confirmation firing twice from double-click
+// or rapid page navigation. One pending write at a time per browser tab.
+let _writePending = false;
 
 /**
  * @param {{
@@ -38,6 +43,14 @@ import { createNotification } from '../services/notificationRepository.js';
  * }} booking
  */
 export async function onBookingConfirmed(booking) {
+    // ── In-flight guard ──────────────────────────────────────────────────────
+    // Prevents double-click or rapid navigation from firing two concurrent writes.
+    if (_writePending) {
+        console.warn('[bookingConfirmNotify] Write already in progress — skipped duplicate call.');
+        return;
+    }
+    _writePending = true;
+
     try {
         const { services: { authService, databaseService } } = getAppContainer();
 
@@ -48,6 +61,15 @@ export async function onBookingConfirmed(booking) {
         ]);
         if (!user) {
             console.warn('[bookingConfirmNotify] No authenticated user — Firestore write skipped.');
+            return;
+        }
+
+        // ── Frontend rate limit ──────────────────────────────────────────────
+        const actionKey = booking.type === 'emergency' ? 'EMERGENCY_BOOKING' : 'BOOKING_CREATE';
+        const rl = checkAndRecord(actionKey, user.uid);
+        if (!rl.allowed) {
+            showRateLimitToast(rl.waitMs, 'booking');
+            console.warn('[bookingConfirmNotify] Rate limited — Firestore write skipped.');
             return;
         }
 
@@ -135,5 +157,7 @@ export async function onBookingConfirmed(booking) {
 
     } catch (err) {
         console.warn('[bookingConfirmNotify] Unexpected error:', err.message);
+    } finally {
+        _writePending = false;
     }
 }

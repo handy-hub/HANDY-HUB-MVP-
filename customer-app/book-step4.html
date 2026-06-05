@@ -294,28 +294,21 @@
 </div>
 
 <script>
-  const BK_KEY = 'hh_booking';
-  function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
-  function setState(patch) { localStorage.setItem(BK_KEY, JSON.stringify(Object.assign(getState(), patch))); }
+  function _bkKey() { return window.HH_State ? window.HH_State.scopedKey('hh_booking') : 'hh_booking'; }
+  function getState() { try { return JSON.parse(localStorage.getItem(_bkKey())) || {}; } catch { return {}; } }
+  function setState(patch) { localStorage.setItem(_bkKey(), JSON.stringify(Object.assign(getState(), patch))); }
 
   document.addEventListener('DOMContentLoaded', function() {
     const state = getState();
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
 
-    // Generate crypto-random booking ID (only once — reuse if already stored in state)
+    // Generate booking ID once — reuse if already stored so page refreshes are idempotent.
     let bookingId = state.bookingId || null;
     if (!bookingId) {
-      let rnd;
-      try {
-        const arr = new Uint8Array(2);
-        crypto.getRandomValues(arr);
-        rnd = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-      } catch(_) {
-        rnd = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-      }
-      bookingId = `HHB-${String(now.getFullYear()).slice(2)}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}-${rnd}`;
-      // Store it so a page refresh reuses the same ID
+      bookingId = (window.HH_State && window.HH_State.generateBookingId)
+        ? window.HH_State.generateBookingId(now)
+        : `HHB-${String(now.getFullYear()).slice(2)}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}-FFFF`;
       setState({ bookingId });
     }
     document.getElementById('booking-id-val').textContent = bookingId;
@@ -419,8 +412,8 @@
       notes:       state.notes  || '',
       total:       state.total  || 65,
       payment:     state.payment || 'Wallet',
-      // 'Confirmed' = customer confirmed; Firestore gets 'pending' via bookingConfirmNotify
-      status:      'Confirmed',
+      // 'pending' matches Firestore — canonical status throughout the system
+      status:      'pending',
       type:        'standard',
       ts:          now.toISOString(),
       reviewLeft:  false,
@@ -667,8 +660,8 @@
 
   // Wait for DOMContentLoaded then run escrow + Firestore subscription
   document.addEventListener('DOMContentLoaded', () => {
-    const BK_KEY = 'hh_booking';
-    function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
+    // _bkKey() is already defined in the outer script scope above
+    function getState() { try { return JSON.parse(localStorage.getItem(_bkKey())) || {}; } catch { return {}; } }
 
     // Trigger escrow hold immediately after auth confirms (idempotent — safe on refresh)
     ensureEscrowHeld();

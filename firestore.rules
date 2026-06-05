@@ -226,6 +226,9 @@ service cloud.firestore {
         'availability', 'isAvailable', 'isOnline',
         'baseRate', 'workRadius', 'skills', 'specialty',
         'yearsExperience', 'gender', 'category',
+        // Location coordinates (newly added for GPS tracking)
+        'latitude', 'longitude', 'lat', 'lng', 'currentLat', 'currentLng',
+        'locationAccuracy', 'locationSource', 'lastLocationUpdate',
         // Onboarding KYC fields (written by onboarding.html during application submission)
         'dob', 'emergencyContact', 'ghanaCardNumber', 'tin',
         // Payout account setup
@@ -593,6 +596,43 @@ service cloud.firestore {
       allow read:          if isAdmin();
       allow create:        if isAdmin();
       allow update, delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ESCROW LOCKS  (escrow idempotency — Cloud Functions only)
+    // Doc ID = bookingId (one lock per booking, forever).
+    // Written exclusively by Cloud Functions via Admin SDK inside
+    // holdFundsForBooking(). Acts as a distributed mutex preventing
+    // concurrent escrow creation for the same booking.
+    // Never read or modified by clients.
+    // ═══════════════════════════════════════════════════════════════
+    match /_escrow_locks/{bookingId} {
+      allow read:                    if false;
+      allow create, update, delete:  if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // AUTO-RELEASE RUN LOG  (Cloud Functions writes, admins read)
+    // Doc ID = auto-generated run ID (e.g. AR-1718000000-AB12CD34).
+    // Written by autoReleaseEscrow scheduler at start and end of each
+    // execution. Admins can audit all runs from the Firebase console.
+    // Clients never access this collection.
+    // ═══════════════════════════════════════════════════════════════
+    match /_auto_release_runs/{runId} {
+      allow read:           if isAdmin();
+      allow write:          if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // AUTO-RELEASE FAILURE LOG  (Cloud Functions writes, admins read)
+    // Doc ID = escrowId. Written when an escrow fails to auto-release
+    // with an unexpected error. One record per failed escrow — re-runs
+    // overwrite the record with the latest failure reason.
+    // Admins review these to find and manually resolve stuck escrows.
+    // ═══════════════════════════════════════════════════════════════
+    match /_auto_release_failures/{escrowId} {
+      allow read:           if isAdmin();
+      allow write:          if false;
     }
 
     // ═══════════════════════════════════════════════════════════════

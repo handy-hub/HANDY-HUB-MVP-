@@ -90,6 +90,9 @@ export async function requireAuth() {
       .then((user) => {
         clearTimeout(timeout);
         if (user) {
+          // Activate uid-scoped storage so all HH_State reads/writes are
+          // isolated to this user. This runs on every protected page.
+          if (window.HH_State) window.HH_State.setUser(user.uid);
           resolve(user);
         } else {
           redirectToLogin();

@@ -33,13 +33,13 @@
   }
 
   /* ── Status constants ────────────────────────────────────────────── */
-  // These values must match the Firestore bookings schema exactly.
-  // 'pending' (lowercase) is the canonical create-time status per firestore.rules.
+  // All values match Firestore bookings schema exactly (snake_case).
   var STATUS = {
     PENDING:    'pending',
-    CONFIRMED:  'pending',    // alias — both map to 'pending' in Firestore
-    ACTIVE:     'in_progress',
-    ON_THE_WAY: 'en_route',
+    ACCEPTED:   'accepted',
+    EN_ROUTE:   'en_route',
+    IN_PROGRESS:'in_progress',
+    AWAITING:   'awaiting',
     COMPLETED:  'completed',
     CANCELLED:  'cancelled',
     EMERGENCY:  'pending',    // emergency bookings start as 'pending'
@@ -66,7 +66,7 @@
     var pro   = opts.professional || {};
     var svc   = opts.services && opts.services.length ? opts.services[0] : {};
     var sched = opts.schedule || {};
-    var status = opts.type === 'emergency' ? STATUS.EMERGENCY : STATUS.CONFIRMED;
+    var status = opts.type === 'emergency' ? STATUS.EMERGENCY : STATUS.PENDING;
 
     var record = {
       id:          id,
@@ -182,10 +182,10 @@
   function classify() {
     var all = _state.history.getAll();
     return {
-      upcoming:  all.filter(function (r) { return ['pending','Pending','Confirmed'].includes(r.status); }),
-      active:    all.filter(function (r) { return ['Active','On the way','In Progress','En Route','Emergency'].includes(r.status); }),
-      completed: all.filter(function (r) { return r.status === STATUS.COMPLETED; }),
-      cancelled: all.filter(function (r) { return r.status === STATUS.CANCELLED; }),
+      upcoming:  all.filter(function (r) { return ['pending','dispatching','searching','dispatched','assigned'].includes((r.status || '').toLowerCase()); }),
+      active:    all.filter(function (r) { return ['accepted','en_route','in_progress','awaiting'].includes((r.status || '').toLowerCase()); }),
+      completed: all.filter(function (r) { return (r.status || '').toLowerCase() === STATUS.COMPLETED; }),
+      cancelled: all.filter(function (r) { return (r.status || '').toLowerCase() === STATUS.CANCELLED; }),
     };
   }
 

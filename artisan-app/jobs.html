@@ -111,6 +111,7 @@
 import { getAppContainer }                   from '../shared/js/app/container.js';
 import { createBookingRepository }           from '../shared/js/data/repositories/bookingRepository.js';
 import { requireArtisanAuth, canAcceptJobs } from './js/utils/artisanAuthGuard.js';
+import { startPresence, stopPresence }       from '../shared/js/services/presenceService.js';
 
 // Blocking guard: auth + role + not suspended
 // Pending artisans can VIEW jobs (they just can't accept them)
@@ -344,7 +345,7 @@ _dbService = databaseService;
 
 const bookingRepo = createBookingRepository({ databaseService });
 
-authService.subscribeToAuthState(user => {
+authService.subscribeToAuthState(async user => {
   if (!user) { window.location.replace(LOGIN_URL); return; }
   _uid = user.uid;
 
@@ -361,9 +362,25 @@ authService.subscribeToAuthState(user => {
       showToast('Could not load jobs. Check your connection.', 4000);
     }
   );
+
+  // Re-establish GPS presence tracking so the customer's live-tracking map
+  // keeps updating while the artisan is on this page advancing job status.
+  try {
+    const snap = await databaseService.getDocument('artisans', user.uid);
+    if (snap?.exists && snap.data.isAvailable !== false) {
+      startPresence(user.uid, databaseService, true, {
+        onLocationError: err => console.warn('[jobs] GPS:', err.message),
+      });
+    }
+  } catch (e) {
+    console.warn('[jobs] Could not resume presence:', e);
+  }
 });
 
-window.addEventListener('pagehide', () => { if (_unsub) _unsub(); });
+window.addEventListener('pagehide', () => {
+  if (_unsub) _unsub();
+  stopPresence();
+});
 </script>
 </body>
 </html>

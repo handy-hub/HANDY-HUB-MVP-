@@ -1,6 +1,7 @@
 import "../../utils/global-app.js";
 import { getAppContainer } from "../../app/container.js";
 import { showToast } from "../../components/toast.js";
+import { checkAndRecord, showRateLimitToast } from "../../services/rateLimitService.js";
 
 const SIGNUP_BUTTON_TEXT = "Sign Up ->";
 const SIGNUP_BUTTON_LOADING_TEXT = "Creating Account...";
@@ -304,6 +305,13 @@ function setupEmailSignupForm() {
 
     if (profileInput.phone !== "" && profileInput.phone.length < 10) {
       showToast("Phone number must be at least 10 digits or left blank.", "error");
+      return;
+    }
+
+    // Frontend rate limit: 3 signups per 10 minutes (keyed by device fingerprint)
+    const rl = checkAndRecord("SIGNUP_ATTEMPT", null);
+    if (!rl.allowed) {
+      showRateLimitToast(rl.waitMs, "auth");
       return;
     }
 

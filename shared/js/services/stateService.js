@@ -3,43 +3,64 @@
    shared/js/services/stateService.js
 
    Centralised localStorage / sessionStorage abstraction.
-   All keys live here — no more magic strings scattered across pages.
+   All user-specific keys are uid-scoped (e.g. hh_booking_<uid>)
+   to prevent cross-account data leakage on shared devices.
 
-   Usage (as a plain <script> tag, no bundler needed):
-     <script src="../shared/js/services/stateService.js"></script>
+   Usage:
+     // 1. On every protected page (called automatically by requireAuth):
+     HH_State.setUser(user.uid);
+
+     // 2. Use any API:
      const booking = window.HH_State.booking.get();
 
-   Migration path → when moving to a real backend (Firebase / Supabase /
-   REST) replace the read / write helpers below; page code doesn't change.
+   On logout, call clearUserSession(uid) which also calls HH_State.clearUser().
 ════════════════════════════════════════════════════════════════════ */
 (function (global) {
   'use strict';
 
-  /* ── Local storage keys ──────────────────────────────────────────── */
-  var KEYS = {
-    BOOKING:         'hh_booking',           // active booking state object
-    HISTORY:         'hh_booking_history',   // array of completed / past records
-    SAVED:           'hh_saved_items',       // { professionals:[], services:[] }
-    PROFILE:         'hh_profile_cache',     // logged-in user profile snapshot
-    LOCATION:        'hh_detected_location', // { lat, lng, address }
-    SCORES:          'service_scores',       // { [serviceId]: clickCount }
+  /* ── Current session uid (set by requireAuth / setUser) ─────────────── */
+  var _uid = null;
+
+  /* ── Base key names (never written to storage directly) ─────────────── */
+  var BASE_KEYS = {
+    BOOKING:  'hh_booking',
+    HISTORY:  'hh_booking_history',
+    SAVED:    'hh_saved_items',
+    PROFILE:  'hh_profile_cache',
+    LOCATION: 'hh_detected_location',
+    SCORES:   'service_scores',
   };
 
-  /* ── Session storage keys ────────────────────────────────────────── */
+  /* ── Session storage keys (per-tab, not uid-scoped) ─────────────────── */
   var SESSION_KEYS = {
-    SERVICE:    'hh_service',    // service name string for booking flow
-    TASK:       'hh_task',       // task description string
-    SERVICE_ID: 'hh_service_id', // service catalogue ID
-    EM_SERVICE: 'em_service',    // emergency service name string
+    SERVICE:    'hh_service',
+    TASK:       'hh_task',
+    SERVICE_ID: 'hh_service_id',
+    EM_SERVICE: 'em_service',
   };
 
-  /* ── Low-level helpers ───────────────────────────────────────────── */
-  function _read(key) {
-    try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+  /* ── Key scoping ─────────────────────────────────────────────────────── */
+  /**
+   * Returns the uid-scoped storage key.
+   * Falls back to the bare base key if uid is not yet set (e.g., during
+   * the instant-paint before requireAuth resolves — should be rare).
+   */
+  function _key(base) {
+    return _uid ? base + '_' + _uid : base;
   }
-  function _write(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+
+  /* ── Low-level localStorage helpers ─────────────────────────────────── */
+  function _read(base) {
+    try { return JSON.parse(localStorage.getItem(_key(base))); } catch { return null; }
   }
+  function _write(base, value) {
+    try { localStorage.setItem(_key(base), JSON.stringify(value)); return true; } catch { return false; }
+  }
+  function _del(base) {
+    try { localStorage.removeItem(_key(base)); } catch {}
+  }
+
+  /* ── Session storage helpers ─────────────────────────────────────────── */
   function _readSession(key) {
     try { return sessionStorage.getItem(key); } catch { return null; }
   }
@@ -50,91 +71,57 @@
     try { sessionStorage.removeItem(key); } catch {}
   }
 
-  /* ── Booking state (active in-progress booking) ─────────────────── */
+  /* ── Booking state ───────────────────────────────────────────────────── */
   var booking = {
-    /** Return the active booking object, or {} if none */
-    get: function () { return _read(KEYS.BOOKING) || {}; },
-
-    /** Merge a patch into the active booking state */
+    get: function () { return _read(BASE_KEYS.BOOKING) || {}; },
     patch: function (patch) {
-      var current = booking.get();
-      return _write(KEYS.BOOKING, Object.assign({}, current, patch));
+      return _write(BASE_KEYS.BOOKING, Object.assign({}, booking.get(), patch));
     },
-
-    /** Replace the full active booking state */
-    set: function (obj) { return _write(KEYS.BOOKING, obj); },
-
-    /** Clear the active booking (after completion / cancellation) */
-    clear: function () {
-      try { localStorage.removeItem(KEYS.BOOKING); return true; } catch { return false; }
-    },
-
-    /** Return true if there is an active booking in progress */
+    set: function (obj) { return _write(BASE_KEYS.BOOKING, obj); },
+    clear: function () { _del(BASE_KEYS.BOOKING); return true; },
     hasActive: function () {
       var b = booking.get();
       if (!b || !b.status) return false;
       var active = [
-        'pending', 'dispatching', 'searching', 'dispatched', 'assigned',
-        'accepted', 'en_route', 'in_progress', 'awaiting',
+        'pending','dispatching','searching','dispatched','assigned',
+        'accepted','en_route','in_progress','awaiting',
       ];
-      return active.includes(b.status.toLowerCase());
+      return active.includes((b.status || '').toLowerCase());
     },
   };
 
-  /* ── Booking history (array of records) ─────────────────────────── */
+  /* ── Booking history ─────────────────────────────────────────────────── */
   var history = {
     MAX_RECORDS: 50,
-
-    /** Return the booking history array (most recent first) */
-    getAll: function () { return _read(KEYS.HISTORY) || []; },
-
-    /** Return a single record by ID */
+    getAll: function () { return _read(BASE_KEYS.HISTORY) || []; },
     getById: function (id) {
       return history.getAll().find(function (r) { return r.id === id; }) || null;
     },
-
-    /**
-     * Prepend a new record.
-     * Will not duplicate if the same ID already exists at position 0.
-     */
     push: function (record) {
       var list = history.getAll();
-      if (list.length && list[0].id === record.id) return false; // guard against double-save on page reload
+      if (list.length && list[0].id === record.id) return false;
       list.unshift(record);
-      return _write(KEYS.HISTORY, list.slice(0, history.MAX_RECORDS));
+      return _write(BASE_KEYS.HISTORY, list.slice(0, history.MAX_RECORDS));
     },
-
-    /**
-     * Update a single field (or whole record) by ID.
-     * @param {string} id
-     * @param {object} patch
-     */
     update: function (id, patch) {
       var list = history.getAll();
       var idx  = list.findIndex(function (r) { return r.id === id; });
       if (idx < 0) return false;
       list[idx] = Object.assign({}, list[idx], patch);
-      return _write(KEYS.HISTORY, list);
+      return _write(BASE_KEYS.HISTORY, list);
     },
-
-    /** Return records filtered by status string(s) */
     byStatus: function (statusOrArray) {
       var statuses = Array.isArray(statusOrArray) ? statusOrArray : [statusOrArray];
       return history.getAll().filter(function (r) { return statuses.includes(r.status); });
     },
-
-    /** Clear all history (use with care!) */
-    clearAll: function () {
-      try { localStorage.removeItem(KEYS.HISTORY); return true; } catch { return false; }
-    },
+    clearAll: function () { _del(BASE_KEYS.HISTORY); return true; },
   };
 
-  /* ── Saved items ─────────────────────────────────────────────────── */
+  /* ── Saved items ─────────────────────────────────────────────────────── */
   var saved = {
     _default: function () { return { professionals: [], services: [] }; },
-    get: function () { return _read(KEYS.SAVED) || saved._default(); },
-    set: function (obj) { return _write(KEYS.SAVED, obj); },
-
+    get: function () { return _read(BASE_KEYS.SAVED) || saved._default(); },
+    set: function (obj) { return _write(BASE_KEYS.SAVED, obj); },
     savePro: function (pro) {
       var data = saved.get();
       if (!data.professionals.find(function (p) { return p.id === pro.id; })) {
@@ -142,9 +129,8 @@
         saved.set(data);
         return true;
       }
-      return false; // already saved
+      return false;
     },
-
     removePro: function (id) {
       var data = saved.get();
       var before = data.professionals.length;
@@ -152,7 +138,6 @@
       if (data.professionals.length < before) { saved.set(data); return true; }
       return false;
     },
-
     saveService: function (svc) {
       var data = saved.get();
       if (!data.services.find(function (s) { return s.id === svc.id; })) {
@@ -162,7 +147,6 @@
       }
       return false;
     },
-
     removeService: function (id) {
       var data = saved.get();
       var before = data.services.length;
@@ -170,105 +154,152 @@
       if (data.services.length < before) { saved.set(data); return true; }
       return false;
     },
-
     isProSaved: function (id) {
       return !!saved.get().professionals.find(function (p) { return p.id === id; });
     },
-
     isServiceSaved: function (id) {
       return !!saved.get().services.find(function (s) { return s.id === id; });
     },
   };
 
-  /* ── User profile cache ──────────────────────────────────────────── */
+  /* ── User profile cache ──────────────────────────────────────────────── */
   var profile = {
-    get:   function () { return _read(KEYS.PROFILE) || {}; },
-    set:   function (obj) { return _write(KEYS.PROFILE, obj); },
-    patch: function (patch) { return _write(KEYS.PROFILE, Object.assign(profile.get(), patch)); },
-    clear: function () { try { localStorage.removeItem(KEYS.PROFILE); } catch {} },
+    TTL_MS: 24 * 60 * 60 * 1000,
+
+    get: function () { return _read(BASE_KEYS.PROFILE) || {}; },
+
+    /** Return cache only if uid matches and data is within TTL. */
+    getForUser: function (uid) {
+      if (!uid) return {};
+      var p = _read(BASE_KEYS.PROFILE);
+      if (!p) return {};
+      if (p._uid && p._uid !== uid) return {};
+      if (Date.now() - (p._cachedAt || 0) > profile.TTL_MS) return {};
+      return p;
+    },
+
+    /** Write full profile, stamping _uid and _cachedAt. */
+    set: function (obj, uid) {
+      var stamped = Object.assign({}, obj, {
+        _uid:      uid || _uid || (obj && obj._uid) || null,
+        _cachedAt: Date.now(),
+      });
+      return _write(BASE_KEYS.PROFILE, stamped);
+    },
+
+    /** Merge patch, preserving uid + refreshing timestamp. */
+    patch: function (patch, uid) {
+      var current = _read(BASE_KEYS.PROFILE) || {};
+      var effectiveUid = uid || _uid;
+      if (effectiveUid && current._uid && current._uid !== effectiveUid) {
+        current = {};
+      }
+      return _write(BASE_KEYS.PROFILE, Object.assign({}, current, patch, {
+        _uid:      effectiveUid || current._uid || null,
+        _cachedAt: Date.now(),
+      }));
+    },
+
+    clear:  function () { _del(BASE_KEYS.PROFILE); return true; },
+
+    isValidFor: function (uid) {
+      var p = _read(BASE_KEYS.PROFILE);
+      if (!p || !uid) return false;
+      if (p._uid && p._uid !== uid) return false;
+      return (Date.now() - (p._cachedAt || 0)) < profile.TTL_MS;
+    },
   };
 
-  /* ── Detected location ───────────────────────────────────────────── */
+  /* ── Detected location ───────────────────────────────────────────────── */
   var location = {
-    get: function () { return _read(KEYS.LOCATION) || null; },
-    set: function (obj) { return _write(KEYS.LOCATION, obj); }, // { lat, lng, address }
-    clear: function () { try { localStorage.removeItem(KEYS.LOCATION); } catch {} },
+    get:   function () { return _read(BASE_KEYS.LOCATION) || null; },
+    set:   function (obj) { return _write(BASE_KEYS.LOCATION, obj); },
+    clear: function () { _del(BASE_KEYS.LOCATION); },
   };
 
-  /* ── Service click scores (for ranking the service grid) ─────────── */
+  /* ── Service click scores ────────────────────────────────────────────── */
   var scores = {
-    get: function () { return _read(KEYS.SCORES) || {}; },
+    get: function () { return _read(BASE_KEYS.SCORES) || {}; },
     increment: function (serviceId) {
       var s = scores.get();
       s[serviceId] = (s[serviceId] || 0) + 1;
-      _write(KEYS.SCORES, s);
+      _write(BASE_KEYS.SCORES, s);
     },
-    reset: function () { try { localStorage.removeItem(KEYS.SCORES); } catch {} },
+    reset: function () { _del(BASE_KEYS.SCORES); },
   };
 
-  /* ── Session (navigation context between pages) ──────────────────── */
+  /* ── Session navigation context ──────────────────────────────────────── */
   var session = {
     getService:   function () { return _readSession(SESSION_KEYS.SERVICE); },
     setService:   function (v) { _writeSession(SESSION_KEYS.SERVICE, v); },
-
     getTask:      function () { return _readSession(SESSION_KEYS.TASK); },
     setTask:      function (v) { _writeSession(SESSION_KEYS.TASK, v); },
-
     getServiceId: function () { return _readSession(SESSION_KEYS.SERVICE_ID); },
     setServiceId: function (v) { _writeSession(SESSION_KEYS.SERVICE_ID, v); },
-
     getEmService: function () { return _readSession(SESSION_KEYS.EM_SERVICE); },
     setEmService: function (v) { _writeSession(SESSION_KEYS.EM_SERVICE, v); },
-
-    /** Clear all session navigation keys (call on booking flow exit) */
-    clearNavKeys: function () {
-      Object.values(SESSION_KEYS).forEach(_removeSession);
-    },
+    clearNavKeys: function () { Object.values(SESSION_KEYS).forEach(_removeSession); },
   };
 
-  /* ── ID generator ────────────────────────────────────────────────── */
+  /* ── Booking ID generator ────────────────────────────────────────────── */
   function generateBookingId(date) {
     var d   = date || new Date();
     var pad = function (n) { return String(n).padStart(2, '0'); };
-
-    // 4 random hex chars (2 bytes → 65 536 combinations) appended after the
-    // minute-precision timestamp so two users booking in the same minute still
-    // get distinct Firestore document IDs (previously they would collide).
     var rnd;
     try {
       var arr = new Uint8Array(2);
       crypto.getRandomValues(arr);
       rnd = Array.from(arr, function (b) { return b.toString(16).padStart(2, '0'); })
-                 .join('').toUpperCase();
+               .join('').toUpperCase();
     } catch (_) {
-      // Fallback for environments where crypto is unavailable (non-browser contexts)
       rnd = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
     }
-
-    return (
-      'HHB-' +
-      String(d.getFullYear()).slice(2) +
-      pad(d.getMonth() + 1) +
-      pad(d.getDate()) +
-      '-' +
-      pad(d.getHours()) +
-      pad(d.getMinutes()) +
-      '-' + rnd
-    );
+    return 'HHB-' +
+      String(d.getFullYear()).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) +
+      '-' + pad(d.getHours()) + pad(d.getMinutes()) +
+      '-' + rnd;
   }
 
-  /* ── Public API ──────────────────────────────────────────────────── */
+  /* ── Public API ──────────────────────────────────────────────────────── */
   global.HH_State = {
-    booking:            booking,
-    history:            history,
-    saved:              saved,
-    profile:            profile,
-    location:           location,
-    scores:             scores,
-    session:            session,
-    generateBookingId:  generateBookingId,
-    KEYS:               KEYS,
-    SESSION_KEYS:       SESSION_KEYS,
+    booking:           booking,
+    history:           history,
+    saved:             saved,
+    profile:           profile,
+    location:          location,
+    scores:            scores,
+    session:           session,
+    generateBookingId: generateBookingId,
+
+    /** Return the current uid-scoped key for a given base key string. */
+    scopedKey: function (base) { return _key(base); },
+
+    /** Return the current authenticated uid (or null). */
+    currentUid: function () { return _uid; },
+
+    /**
+     * Activate uid-scoped storage for the authenticated user.
+     * Called by requireAuth() on every protected page.
+     * Also saves hh_last_session_uid for the dashboard instant-paint.
+     */
+    setUser: function (uid) {
+      _uid = uid || null;
+      if (_uid) {
+        try { localStorage.setItem('hh_last_session_uid', _uid); } catch {}
+      }
+    },
+
+    /**
+     * Deactivate uid-scoped storage (called on logout before page redirect).
+     * Does NOT clear any storage — use clearUserSession() for that.
+     */
+    clearUser: function () { _uid = null; },
+
+    BASE_KEYS:    BASE_KEYS,
+    SESSION_KEYS: SESSION_KEYS,
+
+    /* Backward-compat alias — old code used KEYS */
+    KEYS: BASE_KEYS,
   };
 
 })(typeof window !== 'undefined' ? window : global);

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <script src="../shared/js/utils/themeManager.js"></script>
+  <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HandyHub | Bookings</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -359,17 +360,19 @@ window._viewBooking = function(id) {
   const st = (b.status || '').toLowerCase();
 
   if (TAB_STATUSES.ongoing.includes(st)) {
-    // Seed localStorage so live-tracking.html has context
+    // Seed active-booking state so live-tracking.html has full context
     try {
-      const lk = JSON.parse(localStorage.getItem('hh_booking') || '{}');
-      Object.assign(lk, {
-        bookingId:   b.id, id: b.id, status: b.status,
-        service:     b.serviceType || b.service,
-        artisanId:   b.artisanId,
-        escrowId:    b.escrowId || lk.escrowId || null,
-        professional:{ id: b.artisanId, uid: b.artisanId, name: b.proName, photo: b.proPhoto || null },
-      });
-      localStorage.setItem('hh_booking', JSON.stringify(lk));
+      if (window.HH_State) {
+        window.HH_State.booking.patch({
+          bookingId:    b.id,
+          id:           b.id,
+          status:       b.status,
+          service:      b.serviceType || b.service,
+          artisanId:    b.artisanId,
+          escrowId:     b.escrowId || window.HH_State.booking.get().escrowId || null,
+          professional: { id: b.artisanId, uid: b.artisanId, name: b.proName, photo: b.proPhoto || null },
+        });
+      }
     } catch(_) {}
     window.location.href = 'live-tracking.html';
   }
@@ -398,9 +401,7 @@ window._confirmJobDone = async function(bookingId, escrowId, btn) {
     });
 
     // Release escrow
-    const eid = escrowId || (() => {
-      try { return JSON.parse(localStorage.getItem('hh_booking') || '{}').escrowId || null; } catch { return null; }
-    })();
+    const eid = escrowId || (window.HH_State ? window.HH_State.booking.get().escrowId : null) || null;
     if (eid) {
       await releaseEscrow(eid).catch(e => console.warn('[booking] escrow release:', e.message));
     }
@@ -420,9 +421,14 @@ window.confirmJobDone = window._confirmJobDone;
 // 1. Show skeletons immediately
 ['list-upcoming','list-ongoing','list-completed','list-cancelled'].forEach(id => showSkeletons(id));
 
-// 2. Fast first paint from cache
+// 2. Fast first paint from uid-scoped cache
+const BK_CACHE_BASE = 'hh_bk_cache';
+let   BK_CACHE_KEY  = BK_CACHE_BASE; // scoped to uid once auth resolves
 try {
-  const cached = JSON.parse(localStorage.getItem('hh_bk_cache') || '[]');
+  const lastUid = (window.HH_State && window.HH_State.currentUid())
+      || (function(){ try { return localStorage.getItem('hh_last_session_uid'); } catch { return null; } }());
+  if (lastUid) BK_CACHE_KEY = BK_CACHE_BASE + '_' + lastUid;
+  const cached = JSON.parse(localStorage.getItem(BK_CACHE_KEY) || '[]');
   if (cached.length) { render(cached); _firstPaint = true; }
 } catch(_) {}
 
@@ -434,11 +440,14 @@ authService.subscribeToAuthState(user => {
   if (!user) return;
   if (_unsub) { _unsub(); _unsub = null; }
 
+  // Activate uid-scoped cache key for this user
+  BK_CACHE_KEY = BK_CACHE_BASE + '_' + user.uid;
+
   _unsub = bookingRepo.subscribeByCustomerId(
     user.uid,
     records => {
       _allBookings = records.map(r => ({ id: r.id, ...(r.data || {}) }));
-      try { localStorage.setItem('hh_bk_cache', JSON.stringify(_allBookings.slice(0, 30))); } catch(_) {}
+      try { localStorage.setItem(BK_CACHE_KEY, JSON.stringify(_allBookings.slice(0, 30))); } catch(_) {}
       render(_allBookings);
     },
     err => {

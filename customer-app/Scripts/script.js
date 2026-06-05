@@ -1,128 +1,99 @@
-// --- SEARCH UI, DYNAMIC CONTENT & TRACKING INITIALIZATION ---
+// --- POPULAR SERVICES: dynamic tag cloud + expand/collapse ---
+// This file owns ONLY the popular-services API fetch and the
+// "See more / See less" expand toggle.
+// All search history and search execution logic lives in trackingPage.js.
+
 document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('tracking-search-input');
-  const tagCloud = document.querySelector('.tag-cloud');
-  
-  // Local array caching database entries up to 8 max items
+  const tagCloud    = document.querySelector('.tag-cloud');
+
   let cachedServices = [];
-  let isExpanded = false;
+  // Restore expand state so returning users don't re-collapse the list every visit
+  let isExpanded = (function() {
+    try { return sessionStorage.getItem('hh_tags_expanded') === '1'; } catch { return false; }
+  }());
 
-  // 1. Instantly focus the input for rapid desktop and mobile typing
-  if (searchInput) {
-    searchInput.focus();
-  }
-
-  // 2. Mapping table correlating database lookup strings to your assets
   const logoMap = {
     'electricals': '../shared/assets/icons/electricals.png',
-    'plumbing': '../shared/assets/icons/plummer.png',
-    'cooling': '../shared/assets/icons/cooling.png',
-    'painter': '../shared/assets/icons/painter.png',
-    'carpenter': '../shared/assets/icons/carpenter.png',
-    'welder': '../shared/assets/icons/welder.png'
+    'electrical':  '../shared/assets/icons/electricals.png',
+    'plumbing':    '../shared/assets/icons/plummer.png',
+    'plummer':     '../shared/assets/icons/plummer.png',
+    'cooling':     '../shared/assets/icons/cooling.png',
+    'ac repair':   '../shared/assets/icons/cooling.png',
+    'painter':     '../shared/assets/icons/painter.png',
+    'painting':    '../shared/assets/icons/painter.png',
+    'carpenter':   '../shared/assets/icons/carpenter.png',
+    'carpentry':   '../shared/assets/icons/carpenter.png',
+    'welder':      '../shared/assets/icons/welder.png',
+    'welding':     '../shared/assets/icons/welder.png',
+    'cleaning':    '../shared/assets/icons/cleaner.png',
+    'cleaner':     '../shared/assets/icons/cleaner.png',
+    'tiling':      '../shared/assets/icons/carpenter.png',
+    'gardening':   '../shared/assets/icons/more.png',
   };
 
-  // 3. UI Redraw Engine
   function renderTags() {
     if (!tagCloud) return;
-
-    // Toggle rules: slice array down to 5 initial tags or pull all 8 tags
-    const limit = isExpanded ? 8 : 5;
+    const limit        = isExpanded ? 8 : 5;
     const itemsToRender = cachedServices.slice(0, limit);
+    let html = '';
 
-    let tagsHTML = '';
     itemsToRender.forEach(item => {
       const logoSrc = logoMap[item.type?.toLowerCase()] || '../shared/assets/icons/more.png';
-      tagsHTML += `
+      html += `
         <button type="button" class="search-tag" data-search="${item.name}">
           <img src="${logoSrc}" alt="">
-          <p> ${item.name}</p>
-        </button>
-      `;
+          <p>${item.name}</p>
+        </button>`;
     });
 
-    // Provide expansion button if database yields more items than standard display cap
     if (cachedServices.length > 5) {
-      const toggleText = isExpanded ? 'See less' : 'See more';
-      tagsHTML += `
-        <button type="button" class="search-tag toggle-expand" data-search="${toggleText}">
-          <p> ${toggleText}</p>
-        </button>
-      `;
+      const label = isExpanded ? 'See less' : 'See more';
+      html += `
+        <button type="button" class="search-tag toggle-expand" data-search="${label}">
+          <p>${label}</p>
+        </button>`;
     }
 
-    tagCloud.innerHTML = tagsHTML;
+    tagCloud.innerHTML = html;
   }
 
-  // 4. Fetch dynamic payload array from server database endpoint
-  async function loadPopularServices() {
-    try {
-      const response = await fetch('/api/popular-searches'); 
-      const data = await response.json(); 
-      
-      if (!Array.isArray(data) || data.length === 0) return;
-      
-      // Cache server results up to strict maximum display ceiling
-      cachedServices = data.slice(0, 8);
-      renderTags();
-    } catch (error) {
-      console.error('Failed to load popular services from DB:', error);
-      // Fallback state: harvest static tags pre-built into HTML template if database fails
-      harvestStaticFallback();
-    }
+  function loadPopularServices() {
+    // No remote popular-searches API exists in this project.
+    // The static tags already in the HTML are the source of truth.
+    harvestStaticFallback();
   }
 
-  // Parses hardcoded elements in case API fails or goes offline
   function harvestStaticFallback() {
+    if (!tagCloud) return;
     const staticTags = tagCloud.querySelectorAll('.search-tag:not(.toggle-expand)');
     cachedServices = Array.from(staticTags).map(btn => ({
       name: btn.getAttribute('data-search') || btn.textContent.trim(),
-      type: btn.querySelector('img')?.src.split('/').pop().split('.')[0] || 'more'
+      type: btn.querySelector('img')?.src.split('/').pop().split('.')[0] || 'more',
     }));
   }
 
-  // Start initialization lifecycle
-  loadPopularServices();
-
-  // 5. Unified Event Delegation Controller (DOUBLE-GUARDED)
+  // Handle only the expand/collapse toggle.
+  // Non-toggle tag clicks fall through to trackingPage.js's wirePopularTags().
   if (tagCloud) {
-    tagCloud.addEventListener('click', (event) => {
-      const clickedTag = event.target.closest('.search-tag');
-      if (!clickedTag) return;
+    tagCloud.addEventListener('click', e => {
+      const tag = e.target.closest('.search-tag');
+      if (!tag) return;
+      const isToggle =
+        tag.classList.contains('toggle-expand') ||
+        ['see more', 'see less'].includes((tag.getAttribute('data-search') || '').toLowerCase());
 
-      const queryValue = clickedTag.getAttribute('data-search') || '';
-
-      // Intercept layout expansion if the button has the class OR if the text matches the toggle text
-      if (clickedTag.classList.contains('toggle-expand') || queryValue === 'See more' || queryValue === 'See less') {
-        isExpanded = !isExpanded; 
-        renderTags(); 
+      if (isToggle) {
+        isExpanded = !isExpanded;
+        try { sessionStorage.setItem('hh_tags_expanded', isExpanded ? '1' : '0'); } catch {}
+        renderTags();
         if (searchInput) searchInput.focus();
-        return; // HALT HERE: Stops it from running the input injection below
+        // Stop so trackingPage.js doesn't treat "See more" as a search query
+        e.stopPropagation();
       }
-      
-      // Handle standard queries (Only injects actual keywords)
-      if (queryValue && searchInput) {
-        searchInput.value = queryValue;
-        searchInput.focus();
-        
-        // Optional: Run execution method directly upon tag click
-        // executeSearch(queryValue);
-      }
+      // Non-toggle clicks: let event bubble to trackingPage.js
     });
   }
 
-  // 6. Global safety-critical logic loading
-  function injectScript(src, onError) {
-    const script = document.createElement("script");
-    script.src = src;
-    script.defer = true;
-    if (typeof onError === "function") {
-      script.onerror = onError;
-    }
-    document.head.appendChild(script);
-  }
-
-  injectScript("js/pages/trackingPage.js", () => {
-    console.warn("trackingPage.js failed to load.");
-  });
+  loadPopularServices();
 });

@@ -1,7 +1,8 @@
 import '../../../shared/js/utils/global-app.js';
-import { getAppContainer }     from '../../../shared/js/app/container.js';
-import { showToast } from '../../../shared/js/components/toast.js';
-import { initPaymentModal }    from './paymentMethodsModal.js';
+import { getAppContainer }   from '../../../shared/js/app/container.js';
+import { showToast }         from '../../../shared/js/components/toast.js';
+import { initPaymentModal }  from './paymentMethodsModal.js';
+import { clearUserSession }  from '../../../shared/js/utils/clearUserSession.js';
 
 const LOGIN_URL = 'login.html';
 
@@ -113,14 +114,23 @@ function populateProfile(data) {
         completeBanner.style.display = isComplete ? 'none' : '';
     }
 
-    // Persist for instant reload on next visit (stale-while-revalidate)
-    try { localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data)); } catch (_) {}
+    // Persist for instant reload on next visit (stale-while-revalidate).
+    // Use HH_State if available for UID-scoped, timestamped write.
+    if (window.HH_State && currentUserId) {
+        window.HH_State.profile.set(data, currentUserId);
+    } else {
+        try { localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data)); } catch (_) {}
+    }
 }
 
-// ── Paint from cache immediately (before Firestore responds) ──────────────────
+// ── Paint from cache immediately (before Firestore responds) ─────────────────
+// uid is not yet known here, so we accept the raw cache. dashboardBadge.js
+// guarantees the cache was cleared on logout, so this is always the current user.
 try {
-    const _cached = JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || 'null');
-    if (_cached) populateProfile(_cached);
+    const _cached = window.HH_State
+        ? window.HH_State.profile.get()
+        : JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || 'null');
+    if (_cached && _cached.name) populateProfile(_cached);
 } catch (_) {}
 
 // ── Avatar error fallback ─────────────────────────────────────────────────────
@@ -178,6 +188,9 @@ if (logoutBtn) {
         logoutBtn.textContent = 'Logging out…';
         logoutBtn.disabled    = true;
         try {
+            // Full session wipe — clears all uid-scoped keys, sessionStorage,
+            // and resets HH_State uid. Must run before signOut so uid is known.
+            clearUserSession(currentUserId);
             const { services: { sessionService } } = getAppContainer();
             await sessionService.logout();
         } catch (err) {

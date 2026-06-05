@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
+  <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HandyHub | Saved</title>
   <link rel="stylesheet" href="css/saved.css" />
@@ -354,19 +355,17 @@
 
   window.bookPro = function (id) {
     const pro = (window._svPros || []).find(function (p) { return p.id === id; });
-    if (pro) {
-      try {
-        const bk = JSON.parse(localStorage.getItem('hh_booking') || '{}');
-        bk.professional = {
-          id:       pro.id,
-          name:     pro.name,
-          type:     pro.specialty || pro.category || '',
-          rating:   pro.rating,
-          reviews:  pro.reviewCount,
-          photo:    pro.profileImage || null,
-        };
-        localStorage.setItem('hh_booking', JSON.stringify(bk));
-      } catch (_) {}
+    if (pro && window.HH_State) {
+      window.HH_State.booking.patch({
+        professional: {
+          id:      pro.id,
+          name:    pro.name,
+          type:    pro.specialty || pro.category || '',
+          rating:  pro.rating,
+          reviews: pro.reviewCount,
+          photo:   pro.profileImage || null,
+        },
+      });
     }
     window.location.href = 'book-now.html';
   };

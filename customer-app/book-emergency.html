@@ -894,6 +894,16 @@ body {
   let _authResolve;
   const _authReady = new Promise(r => { _authResolve = r; window.__emergencyResolveAuth = r; });
 
+  /* ── Dynamic Geospatial Helper Imports ── */
+  let getHaversineDistanceKm = null;
+  let estimateEtaMinutes = null;
+  import('../shared/js/utils/geo.js')
+    .then(m => {
+      getHaversineDistanceKm = m.getHaversineDistanceKm;
+      estimateEtaMinutes     = m.estimateEtaMinutes;
+    })
+    .catch(err => console.warn('[emergency] Failed to load geo helper:', err));
+
   /* ── Location cache ── */
   let _detectedAddress = '';
   try { const l = JSON.parse(localStorage.getItem('hh_detected_location')||'null'); if (l&&l.loc) _detectedAddress = l.loc; } catch(_){}
@@ -1052,13 +1062,36 @@ body {
     }
     renderAv(document.getElementById('em-match-av'), d);
 
-    if (jobs != null) {
-      const jobsEl = document.getElementById('em-trust-jobs');
-      if (jobsEl) jobsEl.lastChild.textContent = ` ${jobs} jobs`;
+    // Calculate distance and ETA dynamically
+    let etaVal = '—';
+    const userLatLng = _userMarker ? _userMarker.getLatLng() : { lat: ACC_LAT, lng: ACC_LNG };
+    const aLat = d.latitude ?? d.lat;
+    const aLng = d.longitude ?? d.lng;
+    if (getHaversineDistanceKm && userLatLng && typeof aLat === 'number') {
+      const distKm = getHaversineDistanceKm(userLatLng.lat, userLatLng.lng, aLat, aLng);
+      if (distKm !== null) {
+        const etaMin = estimateEtaMinutes(distKm);
+        etaVal = `~${etaMin}m`;
+        etaSeconds = etaMin * 60; // Sync the timer
+
+        // Update trust badge with distance
+        const jobsEl = document.getElementById('em-trust-jobs');
+        if (jobsEl) {
+          jobsEl.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="none" stroke="#666" stroke-width="1.8"/><circle cx="12" cy="9" r="2.5" fill="#666"/></svg>
+            ${distKm.toFixed(1)} km away`;
+        }
+      }
+    } else {
+      if (jobs != null) {
+        const jobsEl = document.getElementById('em-trust-jobs');
+        if (jobsEl) jobsEl.lastChild.textContent = ` ${jobs} jobs`;
+      }
     }
+
     const verEl = document.getElementById('em-trust-verified');
     if (verEl && d.verificationStatus !== 'approved') verEl.lastChild.textContent = ' Verified';
 
+    document.getElementById('em-match-eta').textContent = etaVal;
     showArtisanOnMap(artisan);
   }
 
@@ -1090,6 +1123,18 @@ body {
     document.getElementById('em-con-sub').textContent   = `${name.split(' ')[0]} is on the way`;
     document.getElementById('em-book-ref').textContent  = bookRef;
     if (_detectedAddress) document.getElementById('em-eta-addr').textContent = _detectedAddress;
+
+    // Calculate dynamic ETA seconds
+    const userLatLng = _userMarker ? _userMarker.getLatLng() : { lat: ACC_LAT, lng: ACC_LNG };
+    const aLat = d.latitude ?? d.lat;
+    const aLng = d.longitude ?? d.lng;
+    if (getHaversineDistanceKm && userLatLng && typeof aLat === 'number') {
+      const distKm = getHaversineDistanceKm(userLatLng.lat, userLatLng.lng, aLat, aLng);
+      if (distKm !== null) {
+        const etaMin = estimateEtaMinutes(distKm);
+        etaSeconds = etaMin * 60;
+      }
+    }
 
     renderAv(document.getElementById('em-con-av'), d);
     showArtisanOnMap(artisan);
@@ -1275,8 +1320,46 @@ body {
       .then(mod => {
         const repo = mod.getAppContainer().repositories.artisanRepository;
         return repo.findByCategory(svcName)
-          .then(res => res && res.length ? res[0]
-            : repo.getTopRated(5).then(any => any && any.length ? any[0] : null));
+          .then(res => res && res.length ? res
+            : repo.getTopRated(5).then(any => any && any.length ? any : []));
+      })
+      .then(candidates => {
+        if (!candidates || !candidates.length) return null;
+
+        // Filter: must be available and online, and have valid coordinates
+        const available = candidates.filter(c => {
+          const d = c.data || {};
+          const isAvail = d.isAvailable !== false && d.isOnline !== false;
+          const lat = d.latitude ?? d.lat;
+          const lng = d.longitude ?? d.lng;
+          return isAvail && typeof lat === 'number' && typeof lng === 'number';
+        });
+
+        if (!available.length) return null;
+
+        // Sort by Haversine distance ascending
+        const userLatLng = _userMarker ? _userMarker.getLatLng() : { lat: ACC_LAT, lng: ACC_LNG };
+
+        available.sort((a, b) => {
+          const d1 = a.data || {};
+          const d2 = b.data || {};
+          const latA = d1.latitude ?? d1.lat;
+          const lngA = d1.longitude ?? d1.lng;
+          const latB = d2.latitude ?? d2.lat;
+          const lngB = d2.longitude ?? d2.lng;
+
+          const distA = getHaversineDistanceKm
+            ? getHaversineDistanceKm(userLatLng.lat, userLatLng.lng, latA, lngA)
+            : 0;
+          const distB = getHaversineDistanceKm
+            ? getHaversineDistanceKm(userLatLng.lat, userLatLng.lng, latB, lngB)
+            : 0;
+
+          return distA - distB;
+        });
+
+        // Return the closest one
+        return available[0];
       })
       .catch(err => { console.warn('[emergency] Artisan query failed:', err); return null; });
   }

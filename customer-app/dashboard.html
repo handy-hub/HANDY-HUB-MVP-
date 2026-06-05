@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <script src="../shared/js/utils/themeManager.js"></script>
+  <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HandyHub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -133,8 +134,13 @@
     </div>
     <input type="text" id="dynamic-search" class="hh-search-input" placeholder="What service do you need today?">
     <button class="hh-search-ai" aria-label="AI search">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-        <path d="M12 3l1.8 5.6H19l-4.6 3.4 1.8 5.6L12 14.2l-4.2 3.4 1.8-5.6L5 8.6h5.2z" stroke="#730201" stroke-width="1.8" stroke-linejoin="round"/>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Large centre spark -->
+        <path d="M12 2L13.2 9.8L21 11L13.2 12.2L12 20L10.8 12.2L3 11L10.8 9.8L12 2Z" fill="#730201"/>
+        <!-- Top-right small spark -->
+        <path d="M19 2L19.6 4.4L22 5L19.6 5.6L19 8L18.4 5.6L16 5L18.4 4.4L19 2Z" fill="#730201"/>
+        <!-- Bottom-left small spark -->
+        <path d="M5 16L5.5 18L7.5 18.5L5.5 19L5 21L4.5 19L2.5 18.5L4.5 18L5 16Z" fill="#730201"/>
       </svg>
     </button>
   </div>
@@ -320,8 +326,10 @@
   function saveToCache(loc, lat, lon) {
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify({ loc:loc, lat:lat, lon:lon, ts:Date.now() }));
-      var p = JSON.parse(localStorage.getItem('hh_profile_cache') || 'null');
-      if (p) { p.location = loc; localStorage.setItem('hh_profile_cache', JSON.stringify(p)); }
+      // Update profile cache location through the service layer (preserves _uid + _cachedAt)
+      if (window.HH_State) {
+        window.HH_State.profile.patch({ location: loc });
+      }
     } catch(_){}
   }
 
@@ -624,11 +632,45 @@
     }
   });
 
-  /* service click handler */
+  /* ── Search bar → tracking.html ───────────────────────────────────────────
+     The search input is a primary navigation entry point. Any interaction
+     (focus, click, or Enter) should take the customer to the search page.
+     If text is already present (browser autofill), carry it as ?q= so
+     tracking.html can execute the search immediately on arrival.
+  ───────────────────────────────────────────────────────────────────────── */
+  (function wireSearchBar() {
+    const dynSearch = document.getElementById('dynamic-search');
+    if (!dynSearch) return;
+    function goToSearch() {
+      const q = dynSearch.value.trim();
+      window.location.href = q ? `tracking.html?q=${encodeURIComponent(q)}` : 'tracking.html';
+    }
+    dynSearch.addEventListener('focus', goToSearch);
+    dynSearch.addEventListener('click', goToSearch);
+    dynSearch.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); goToSearch(); } });
+  })();
+
+  /* ── Popular service button handler ───────────────────────────────────────
+     Records the click for personalisation scoring AND navigates to the
+     service discovery map with the matching category pre-selected.
+  ───────────────────────────────────────────────────────────────────────── */
+  const _SVC_MAP = {
+    electrical: 'Electrical', plumbing: 'Plumbing', carpentry: 'Carpentry',
+    ac_repair:  'AC Repair',  welding:  'Welding',  painting:  'Painting',
+    cleaning:   'Cleaning',   gardening: 'Gardening',
+  };
+
   window.handleServiceClick = function (serviceId) {
     const scores = JSON.parse(localStorage.getItem('service_scores') || '{}');
     scores[serviceId] = (scores[serviceId] || 0) + 1;
     localStorage.setItem('service_scores', JSON.stringify(scores));
+    const category = _SVC_MAP[serviceId];
+    if (category) {
+      sessionStorage.setItem('hh_service', category);
+      window.location.href = 'book-now.html';
+    } else {
+      window.location.href = 'book-step1.html';
+    }
   };
 
 })();
@@ -667,30 +709,38 @@
 <!-- Emergency modal + floating nav injected by floatingNav.js -->
 
 
-<!-- Profile cache + active booking banner -->
+<!-- Profile cache paint — instant render before Firestore responds.
+     Uses hh_last_session_uid to read the correct uid-scoped cache key
+     without waiting for auth to resolve. -->
 <script>
 (function () {
   function removeSkel(el) { if (el) { el.classList.remove('skel','skel-circle'); el.style.minWidth = ''; } }
   try {
-    const p = JSON.parse(localStorage.getItem('hh_profile_cache') || 'null');
-    if (!p) return;
-    const nameEl = document.getElementById('uc-name');
-    const imgEl  = document.getElementById('uc-avatar');
-    const sideNameEl = document.getElementById('sidebar-name');
-    const sideImgEl  = document.getElementById('sidebar-profile-img');
-    const locEl  = document.getElementById('uc-loc-text');
-    
-    // Fixed line below to show the entire name string
-    if (nameEl && p.name) { nameEl.textContent = p.name; removeSkel(nameEl); }
-    
-    if (sideNameEl && p.name) sideNameEl.textContent = p.name;
-    if (locEl && p.location) { locEl.textContent = p.location; removeSkel(locEl); }
-    const src = p.profileImage || (p.name ? 'https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=' + encodeURIComponent(p.name.slice(0,2).toUpperCase()) : null);
-    if (imgEl && src) { imgEl.src = src; removeSkel(imgEl); }
-    if (sideImgEl && src) sideImgEl.src = src;
+    // Resolve uid from the last-session marker or HH_State (if already set)
+    var lastUid = (window.HH_State && window.HH_State.currentUid())
+        || (function(){ try { return localStorage.getItem('hh_last_session_uid'); } catch { return null; } }());
+    var cacheKey = lastUid ? 'hh_profile_cache_' + lastUid : 'hh_profile_cache';
+    var p = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+    if (!p || !p.name) return; // empty or no cache — wait for live subscription
+
+    var nameEl    = document.getElementById('uc-name');
+    var imgEl     = document.getElementById('uc-avatar');
+    var sideNameEl = document.getElementById('sidebar-name');
+    var sideImgEl  = document.getElementById('sidebar-profile-img');
+    var locEl     = document.getElementById('uc-loc-text');
+
+    if (nameEl    && p.name)     { nameEl.textContent     = p.name;     removeSkel(nameEl); }
+    if (sideNameEl && p.name)      sideNameEl.textContent = p.name;
+    if (locEl     && p.location) { locEl.textContent      = p.location; removeSkel(locEl); }
+
+    var src = p.profileImage || (p.name
+      ? 'https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=' +
+        encodeURIComponent(p.name.slice(0, 2).toUpperCase())
+      : null);
+    if (imgEl     && src) { imgEl.src     = src; removeSkel(imgEl); }
+    if (sideImgEl && src)   sideImgEl.src = src;
   } catch (_) {}
 })();
-
 </script>
 
 </body>

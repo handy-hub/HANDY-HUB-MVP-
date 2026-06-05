@@ -192,6 +192,7 @@
 
 // ── Auth guard — redirect to login if no session ──────────────
 import { requireAuth } from '../shared/js/utils/authGuard.js';
+import { getHaversineDistanceKm, estimateEtaMinutes } from '../shared/js/utils/geo.js';
 await requireAuth();
 
 // ── Service catalogue ─────────────────────────────────────────
@@ -294,14 +295,33 @@ function placeArtisanMarkers(artisans) {
   artisans.forEach(function(artisan) {
     const d = artisan.data || {};
     // Only place markers if the artisan document has real lat/lng
-    if (typeof d.latitude !== 'number' || typeof d.longitude !== 'number') return;
+    const lat = d.latitude ?? d.lat;
+    const lng = d.longitude ?? d.lng;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return;
     const initial = (d.name || '?').charAt(0).toUpperCase();
+    const isAvail = d.isAvailable !== false && d.isOnline !== false;
+    
+    // Calculate dynamic ETA if customer position is available
+    let etaLabel = '—';
+    if (userLat !== null && userLng !== null) {
+      const distKm = getHaversineDistanceKm(userLat, userLng, lat, lng);
+      if (distKm !== null) {
+        const etaMin = estimateEtaMinutes(distKm);
+        etaLabel = etaMin + 'm';
+      }
+    }
+    if (!isAvail) etaLabel = 'Busy';
+
     const icon = L.divIcon({
       className: '',
-      html: `<div class="bn2-pro-marker"><span>${initial}</span><div class="bn2-pro-eta-bubble">—</div></div>`,
+      html: `<div class="bn2-pro-marker" style="${isAvail ? '' : 'filter: grayscale(1) opacity(0.65)'}">
+               <span>${initial}</span>
+               <div class="bn2-pro-eta-bubble" style="${isAvail ? '' : 'color: #777'}">${etaLabel}</div>
+             </div>`,
       iconSize: [44, 54], iconAnchor: [22, 54],
     });
-    const m = L.marker([d.latitude, d.longitude], { icon }).addTo(mapInstance);
+    const m = L.marker([lat, lng], { icon }).addTo(mapInstance);
+    m.bindPopup(`<strong>${d.name || 'Professional'}</strong><br>${d.specialty || ''} (${isAvail ? 'Available' : 'Busy'})`);
     artisanMarkers.push(m);
   });
 }
@@ -416,7 +436,7 @@ function buildProCard(artisan) {
   const rating    = d.rating        ? parseFloat(d.rating).toFixed(1) : null;
   const reviews   = d.reviewCount   || 0;
   const jobs      = d.jobsCompleted || 0;
-  const avail     = d.isAvailable   !== false;
+  const avail     = d.isAvailable   !== false && d.isOnline !== false;
   const photo     = d.profileImage  || null;
   const location  = d.location      || '';
 
@@ -432,6 +452,16 @@ function buildProCard(artisan) {
     ? `<span class="bn2-pro-avail-dot"></span><span class="bn2-pro-avail-lbl">Available</span>`
     : `<span class="bn2-pro-unavail-dot"></span><span class="bn2-pro-avail-lbl bn2-pro-avail-lbl--off">Busy</span>`;
 
+  let distanceText = '';
+  const lat = d.latitude ?? d.lat;
+  const lng = d.longitude ?? d.lng;
+  if (userLat !== null && userLng !== null && typeof lat === 'number' && typeof lng === 'number') {
+    const distKm = getHaversineDistanceKm(userLat, userLng, lat, lng);
+    if (distKm !== null) {
+      distanceText = ` · ${distKm.toFixed(1)} km`;
+    }
+  }
+
   // Escape id for safe use in onclick attribute
   const safeId = id.replace(/'/g, "\\'");
 
@@ -443,7 +473,7 @@ function buildProCard(artisan) {
       </div>
       <div class="bn2-pro-body">
         <p class="bn2-pro-name">${name}</p>
-        <p class="bn2-pro-spec">${specialty}${location ? ' · ' + location : ''}</p>
+        <p class="bn2-pro-spec">${specialty}${location ? ' · ' + location : ''}${distanceText}</p>
         <div class="bn2-pro-meta-row">
           ${ratingHtml}
           <span class="bn2-pro-dot-sep">·</span>
@@ -479,7 +509,7 @@ window._bnSelectPro = function(id) {
 
   // Persist to booking state for downstream steps
   try {
-    const BK_KEY = 'hh_booking'; // unified key shared with book-step1 → step4
+    const BK_KEY = window.HH_State ? window.HH_State.scopedKey('hh_booking') : 'hh_booking';
     const state  = JSON.parse(localStorage.getItem(BK_KEY) || '{}');
     state.professional = {
       id, uid: id,
@@ -525,6 +555,33 @@ window.loadArtisans = async function loadArtisans() {
     if (!loadedArtisans.length) {
       showEmptyState(svc.name);
       return;
+    }
+
+    // Dynamic distance-based sorting
+    if (userLat !== null && userLng !== null) {
+      loadedArtisans.sort((a, b) => {
+        const d1 = a.data || {};
+        const d2 = b.data || {};
+        const latA = d1.latitude ?? d1.lat;
+        const lngA = d1.longitude ?? d1.lng;
+        const latB = d2.latitude ?? d2.lat;
+        const lngB = d2.longitude ?? d2.lng;
+
+        const distA = (typeof latA === 'number' && typeof lngA === 'number')
+          ? getHaversineDistanceKm(userLat, userLng, latA, lngA)
+          : Infinity;
+        const distB = (typeof latB === 'number' && typeof lngB === 'number')
+          ? getHaversineDistanceKm(userLat, userLng, latB, lngB)
+          : Infinity;
+
+        // Prioritize online & available ones first, even if slightly further
+        const availA = d1.isAvailable !== false && d1.isOnline !== false;
+        const availB = d2.isAvailable !== false && d2.isOnline !== false;
+        if (availA && !availB) return -1;
+        if (!availA && availB) return 1;
+
+        return distA - distB;
+      });
     }
 
     prosList.innerHTML = loadedArtisans.map(buildProCard).join('');

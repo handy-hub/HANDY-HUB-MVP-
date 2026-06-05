@@ -501,12 +501,12 @@
 (function () {
   'use strict';
 
-  const BK_KEY   = 'hh_booking';
-  const HIST_KEY = 'hh_booking_history';
+  function _bkKey()   { return window.HH_State ? window.HH_State.scopedKey('hh_booking')         : 'hh_booking'; }
+  function _histKey() { return window.HH_State ? window.HH_State.scopedKey('hh_booking_history') : 'hh_booking_history'; }
 
   /* ── Read state ── */
   function getState() {
-    try { return JSON.parse(localStorage.getItem(BK_KEY) || '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem(_bkKey()) || '{}'); } catch { return {}; }
   }
 
   /* ── Populate receipt & pro card ── */
@@ -514,7 +514,7 @@
     const state = getState();
     const now   = new Date();
     const pad   = n => String(n).padStart(2, '0');
-    const hist  = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+    const hist  = JSON.parse(localStorage.getItem(_histKey()) || '[]');
 
     // Prefer the specific booking passed from booking.html (via sessionStorage ID)
     const targetId     = sessionStorage.getItem('hh_review_booking_id');
@@ -630,11 +630,11 @@
 
     // Update last booking record with review
     try {
-      const hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+      const hist = JSON.parse(localStorage.getItem(_histKey()) || '[]');
       if (hist.length) {
         hist[0].review  = reviewData;
         hist[0].status  = 'Completed';
-        localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+        localStorage.setItem(_histKey(), JSON.stringify(hist));
       }
     } catch(_) {}
 
@@ -650,10 +650,10 @@
   window.skipReview = function () {
     // Mark completed even without review
     try {
-      const hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+      const hist = JSON.parse(localStorage.getItem(_histKey()) || '[]');
       if (hist.length && hist[0].status !== 'Completed') {
         hist[0].status = 'Completed';
-        localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+        localStorage.setItem(_histKey(), JSON.stringify(hist));
       }
       localStorage.removeItem(BK_KEY);
     } catch(_) {}

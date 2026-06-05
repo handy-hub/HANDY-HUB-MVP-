@@ -161,6 +161,44 @@ export function createArtisanRepository({
         },
 
         /**
+         * Update the artisan's online presence and GPS coordinates.
+         * Enforces database portability by wrapping Firestore updates.
+         */
+        async updatePresenceAndLocation(artisanId, {
+            isOnline,
+            isAvailable,
+            latitude,
+            longitude,
+            accuracy,
+            source
+        }) {
+            const nowISO = now();
+            const payload = {
+                isOnline: Boolean(isOnline),
+                isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : Boolean(isOnline),
+                lastActive: nowISO,
+                updatedAt: nowISO,
+                presenceUpdatedAt: nowISO,
+                lastHeartbeat: nowISO
+            };
+
+            // Only update location fields if valid coordinate data is provided
+            if (typeof latitude === 'number' && typeof longitude === 'number') {
+                payload.latitude           = latitude;
+                payload.longitude          = longitude;
+                payload.lat                = latitude;          // backend dispatch compatibility
+                payload.lng                = longitude;          // backend dispatch compatibility
+                payload.currentLat         = latitude;          // tracking page compatibility
+                payload.currentLng         = longitude;          // tracking page compatibility
+                payload.locationAccuracy   = typeof accuracy === 'number' ? accuracy : null;
+                payload.locationSource     = source || 'browser';
+                payload.lastLocationUpdate = nowISO;
+            }
+
+            await databaseService.updateDocument(collectionName, artisanId, payload);
+        },
+
+        /**
          * @deprecated — jobsCompleted is now atomically incremented by the
          * `onBookingStatusChanged` Cloud Function (functions/bookings.js) using
          * FieldValue.increment(1) when a booking transitions to 'completed'.

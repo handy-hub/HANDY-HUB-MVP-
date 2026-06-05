@@ -1,6 +1,8 @@
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+import { getAuth }                     from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { firebaseApp }                 from '../backend/providers/firebase/firebaseConfig.js';
 import { PAYSTACK_CONFIG, PLATFORM_CONFIG, FUNCTIONS_REGION } from '../config/appConfig.js';
+import { checkAndRecord, showRateLimitToast } from './rateLimitService.js';
 
 const PUBLIC_KEY = PAYSTACK_CONFIG.publicKey;
 const SDK_URL    = PAYSTACK_CONFIG.sdkUrl;
@@ -51,6 +53,17 @@ export async function initiatePayment({ email, amount, metadata = {}, onSuccess,
     if (!amountNum || amountNum <= 0) throw new Error('Invalid amount');
     if (amountNum < PLATFORM_CONFIG.minTopupGHS) {
         throw new Error(`Minimum top-up amount is ${PLATFORM_CONFIG.currencySymbol} ${PLATFORM_CONFIG.minTopupGHS}.`);
+    }
+
+    // ── Frontend rate limit — max 5 topups per hour per user ──────────────────
+    const userId = getAuth(firebaseApp).currentUser?.uid ?? null;
+    const rl = checkAndRecord('TOPUP_INITIATION', userId);
+    if (!rl.allowed) {
+        showRateLimitToast(rl.waitMs, 'payment');
+        throw Object.assign(
+            new Error(`Topup rate limit exceeded. Wait ${Math.ceil(rl.waitMs / 1000)}s.`),
+            { code: 'rate-limited', waitMs: rl.waitMs },
+        );
     }
 
     // Paystack requires a valid email.

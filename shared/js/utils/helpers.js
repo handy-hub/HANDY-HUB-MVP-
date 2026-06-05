@@ -245,6 +245,11 @@ function renderServices() {
     `).join('');
 }
 
+// Inline onclick="handleServiceClick(...)" attributes rendered by renderServices()
+// are evaluated at click time. By that point dashboard.html's inline script has
+// already set window.handleServiceClick to its navigating version, which is what
+// runs. This local function is kept as a safe non-navigating fallback for any
+// hypothetical page that renders the old slider without its own override.
 function handleServiceClick(serviceId) {
     if (!serviceId) return;
     const scores = JSON.parse(localStorage.getItem('service_scores') || '{}');
@@ -253,7 +258,13 @@ function handleServiceClick(serviceId) {
     renderServices();
 }
 
-window.handleServiceClick = handleServiceClick;
+// Do NOT assign to window here. dashboard.html's inline script is the sole owner
+// of window.handleServiceClick and sets the navigating version. Assigning here
+// creates a race that dashboard.html silently wins anyway — removing the
+// assignment eliminates the confusion without changing observable behaviour.
+if (typeof window.handleServiceClick === 'undefined') {
+    window.handleServiceClick = handleServiceClick;
+}
 
 function initNavbar() {
     const navItems = document.querySelectorAll('.nav-item');
