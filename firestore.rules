@@ -836,6 +836,38 @@ service cloud.firestore {
                    && request.resource.contentType.matches('image/.*');
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // SERVICE REQUESTS  (artisans who select "Other" during signup/onboarding)
+    // One document per artisan (keyed by their UID).
+    // Admin reviews these and promotes popular trades to official categories.
+    // ═══════════════════════════════════════════════════════════════
+    match /service_requests/{artisanId} {
+      // Artisan creates or overwrites their own request
+      allow create: if isSignedIn() &&
+                       request.auth.uid == artisanId &&
+                       incoming().artisanId           == artisanId &&
+                       incoming().artisanName          is string &&
+                       incoming().artisanName.size()   >  0 &&
+                       incoming().requestedService     is string &&
+                       incoming().requestedService.size() > 0 &&
+                       incoming().operationalCategory  is string &&
+                       incoming().status               == 'pending' &&
+                       incoming().createdAt            is string;
+
+      // Artisan can read their own; admin can read all
+      allow read: if isSignedIn() &&
+                     (request.auth.uid == artisanId || isAdmin());
+
+      // Only admin may update the status (approve / reject / promote)
+      allow update: if isAdmin() &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'status', 'reviewedBy', 'reviewedAt',
+                         'adminNotes', 'promotedCategory'
+                       ]);
+
+      allow delete: if isSuperAdmin();
+    }
+
     // Deny everything else by default.
     match /{allPaths=**} {
       allow read, write: if false;

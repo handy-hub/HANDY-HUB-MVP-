@@ -4,8 +4,9 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Handy Hub – Schedule & Confirm</title>
+  <title>Schedule and Confirm | HandyHub</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
+  <link rel="stylesheet" href="../shared/css/pageTransitions.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     #loc-map { width: 100%; height: 148px; border-radius: 12px; margin-top: 10px; z-index: 0; }
@@ -208,19 +209,18 @@
         </div>
         <div>
           <p class="payment-opt-label">Wallet Balance</p>
-          <p class="payment-opt-sub">Available: GHC 120.00</p>
+          <p class="payment-opt-sub" id="wallet-balance-sub">Loading balance…</p>
         </div>
         <div class="radio-btn selected"></div>
       </div>
-      <div class="payment-option" onclick="selectPayment(this)">
-        <div class="payment-opt-icon" style="background:#f0f4ff; font-style:italic; color:#1a1f71; font-size:16px; font-weight:900;">
-          VISA
+      <div class="payment-option add-card-row" style="opacity:0.6;cursor:default;" title="Coming soon">
+        <div class="payment-opt-icon" style="background:#f5f5f5;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#aaa" stroke-width="2" stroke-linecap="round"/></svg>
         </div>
         <div>
-          <p class="payment-opt-label">Visa ending in 4242</p>
-          <p class="payment-opt-sub">Expires 12/26</p>
+          <p class="payment-opt-label" style="color:#aaa;">Add Payment Card</p>
+          <p class="payment-opt-sub">Coming soon</p>
         </div>
-        <div class="radio-btn"></div>
       </div>
     </div>
 
@@ -317,7 +317,7 @@
     '11:00 AM – 1:00 PM', '1:00 PM – 3:00 PM',  '2:00 PM – 4:00 PM',
     '3:00 PM – 5:00 PM',  '4:00 PM – 6:00 PM',  '6:00 PM – 8:00 PM',
   ];
-  const UNAVAILABLE = [0, 1];
+  const UNAVAILABLE = []; // No slots are hardcoded unavailable — driven by real artisan schedule
   let schedTime = '10:00 AM – 12:00 PM';
 
   const DAYS_FULL  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -327,12 +327,21 @@
   // ── View Profile handler ─────────────────────────────────────────────────
   window.goToArtisanProfile = function() {
     const state = getState();
-    const proId = state.professional ? (state.professional.uid || state.professional.id) : null;
-    if (proId) {
-      sessionStorage.setItem('view_artisan_id', proId);
-    }
-    // For now navigate to book-step2 where they can re-select; full profile page is post-MVP
-    window.location.href = 'book-step2.html';
+    const pro = state.professional || {};
+    sessionStorage.setItem('hh_artisan_view', JSON.stringify({
+      id:            pro.uid  || pro.id   || '',
+      uid:           pro.uid  || pro.id   || '',
+      name:          pro.name || '',
+      specialty:     pro.type || '',
+      category:      pro.type || '',
+      rating:        pro.rating      || 0,
+      reviewCount:   pro.reviews     || 0,
+      jobsCompleted: pro.jobs        || 0,
+      profileImage:  pro.photo       || null,
+      location:      pro.location    || '',
+      isAvailable:   pro.isOnline    || false,
+    }));
+    window.location.href = 'artisan-profile.html';
   };
 
   document.addEventListener('DOMContentLoaded', function() {
@@ -365,9 +374,9 @@
     setState({ address: locationText });
 
     // Leaflet map – user location or fallback
-    const map = L.map('loc-map', { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false })
+    const map = L.map('loc-map', { zoomControl: false, attributionControl: true, dragging: false, scrollWheelZoom: false, doubleClickZoom: false })
                  .setView([LAT, LNG], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
     const icon = L.divIcon({
       html: '<div style="width:32px;height:32px;background:#730201;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 8px rgba(115,2,1,0.4);"></div>',
       iconSize: [32, 32], iconAnchor: [16, 32], className: ''
@@ -532,24 +541,45 @@
     if (notesVal) setState({ notes: notesVal });
     const state = getState();
     if (!state.schedule) {
-      // Auto-set schedule to 4 days from now with default time
-      const d = new Date();
-      d.setDate(d.getDate() + 4);
-      const pad = n => String(n).padStart(2,'0');
-      const dateDisplay = `${DAYS_FULL[d.getDay()]}, ${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
-      const dateShort   = `${DAYS_FULL[d.getDay()].slice(0,3)}, ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
-      setState({ schedule: {
-        date: `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,
-        dateDisplay, dateShort, time: schedTime,
-      }});
+      // Require explicit date selection — do not silently auto-default
+      showToast('Please choose a date and time before continuing');
+      openScheduleModal();
+      return;
     }
     window.location.href = 'book-step4.html';
   }
 </script>
 <script type="module">
-  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  import { requireAuth }    from '../shared/js/utils/authGuard.js';
+  import { getAppContainer } from '../shared/js/app/container.js';
+
   await requireAuth();
+
+  /* ── Fetch real wallet balance ─────────────────────────────────────── */
+  try {
+    const { repositories: { walletRepository }, authService } = getAppContainer();
+    const user = await authService.waitForUser();
+    if (user) {
+      const balEl = document.getElementById('wallet-balance-sub');
+      const unsub = walletRepository.subscribeToBalance
+        ? walletRepository.subscribeToBalance(user.uid, (bal) => {
+            if (balEl) balEl.textContent = `Available: GHC ${Number(bal || 0).toFixed(2)}`;
+          })
+        : null;
+
+      /* Fallback: one-shot read if no subscription method */
+      if (!unsub) {
+        const doc = await walletRepository.getById(user.uid);
+        const bal = doc?.data?.walletBalance ?? doc?.data?.balance ?? 0;
+        if (balEl) balEl.textContent = `Available: GHC ${Number(bal).toFixed(2)}`;
+      }
+    }
+  } catch (e) {
+    const balEl = document.getElementById('wallet-balance-sub');
+    if (balEl) balEl.textContent = 'Balance unavailable';
+  }
 </script>
+<script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>
 

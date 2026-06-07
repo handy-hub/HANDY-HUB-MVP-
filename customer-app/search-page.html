@@ -4,7 +4,22 @@
     <meta charset="UTF-8">
     <script src="../shared/js/utils/themeManager.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Services</title>
+    <title>Search Services | HandyHub</title>
+    <!-- Smart redirect: if the customer has an active trackable booking, send them
+         to live-tracking.html instead of the search page. Customers reaching this
+         page from the dashboard search bar (no active booking) see the search UI. -->
+    <script>
+      (function() {
+        try {
+          var st = window.HH_State;
+          var b  = st ? st.booking.get() : null;
+          var trackable = ['accepted','en_route','in_progress'];
+          if (b && trackable.indexOf((b.status || '').toLowerCase()) !== -1) {
+            window.location.replace('live-tracking.html');
+          }
+        } catch (_) { /* no booking state — stay on search page */ }
+      })();
+    </script>
     <link rel="stylesheet" href="css/tracking.css">
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
@@ -100,7 +115,6 @@
     <script src="../shared/js/utils/global-app.js"></script>
     <script src="../shared/js/components/fastLoader.js"></script>
     <script src="Scripts/script.js"></script>
-    <!-- Scripts/history.js intentionally omitted — file is empty, see history.js comment -->
     <script type="module" src="js/pages/trackingPage.js"></script>
 </body>
 </html>

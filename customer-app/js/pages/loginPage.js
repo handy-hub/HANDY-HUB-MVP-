@@ -5,7 +5,7 @@ import { consumeReturnUrl } from "../../../shared/js/utils/authGuard.js";
 import { checkAndRecord, showRateLimitToast } from "../../../shared/js/services/rateLimitService.js";
 
 const DASHBOARD_REDIRECT_URL = "dashboard.html";
-const LOGIN_LOADING_TEXT = "Logging in";
+const LOGIN_LOADING_TEXT = " ";
 
 const {
   services: { customerAuthService }

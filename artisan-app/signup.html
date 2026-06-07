@@ -534,7 +534,8 @@ body {
         <div class="as-brand">
             <img class="as-logo"
                  src="../shared/assets/images/handyhub-logo-text.png"
-                 alt="HandyHub — Trusted Professionals, Right Around You.">
+                 alt="HandyHub — Trusted Professionals, Right Around You."
+                 onerror="this.onerror=null;this.style.display='none';this.insertAdjacentHTML('afterend','<span style=&quot;font-weight:800;font-size:22px;color:#730201;letter-spacing:-0.5px;&quot;>HandyHub</span>')">
         </div>
 
     </div><!-- /.as-hero -->
@@ -619,6 +620,52 @@ body {
                         <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2"
                               stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
+                </div>
+            </div>
+
+            <!-- "Other" expand panel — visible only when Other is selected -->
+            <div id="as-other-panel" style="display:none;background:var(--surface-2,#F9FAFB);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:14px 16px;margin-top:-4px;">
+                <p style="font-size:12px;font-weight:600;color:var(--text-mid,#6B7280);margin:0 0 12px;">
+                    Tell us more — we'll review it within 48 hrs
+                </p>
+
+                <!-- What they actually do -->
+                <div style="margin-bottom:12px;">
+                    <label class="as-label" for="as-other-desc" style="margin-bottom:6px;display:block;">
+                        Describe your specialty <span style="color:#EF4444;">*</span>
+                    </label>
+                    <div class="as-input-wrap">
+                        <input class="as-input" type="text" id="as-other-desc"
+                               placeholder="e.g. Solar Inverter Installation"
+                               maxlength="120" autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Best-fit bucket so they can still be dispatched now -->
+                <div>
+                    <label class="as-label" for="as-other-bucket" style="margin-bottom:6px;display:block;">
+                        Closest existing category <span style="color:#EF4444;">*</span>
+                    </label>
+                    <p style="font-size:11px;color:var(--text-dim,#9CA3AF);margin:0 0 6px;">
+                        You'll receive jobs in this category while your trade is being reviewed.
+                    </p>
+                    <div class="as-input-wrap">
+                        <select class="as-select" id="as-other-bucket">
+                            <option value="" disabled selected>Select closest trade</option>
+                            <option value="electrical">Electrical</option>
+                            <option value="plumbing">Plumbing</option>
+                            <option value="carpentry">Carpentry</option>
+                            <option value="painting">Painting</option>
+                            <option value="welding">Welding</option>
+                            <option value="ac_cooling">A/C &amp; Cooling</option>
+                            <option value="tiling">Tiling</option>
+                            <option value="cleaning">Cleaning</option>
+                        </select>
+                        <svg class="as-select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2"
+                                  stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
                 </div>
             </div>
 
@@ -770,19 +817,36 @@ const emailInp  = document.getElementById('as-email');
 const catInp    = document.getElementById('as-category');
 
 function checkReady() {
+    const isOther  = catInp.value === 'other';
+    const otherDesc   = document.getElementById('as-other-desc');
+    const otherBucket = document.getElementById('as-other-bucket');
+    const otherOk  = !isOther || (
+        otherDesc   && otherDesc.value.trim().length > 0 &&
+        otherBucket && otherBucket.value !== ''
+    );
     const ready =
         nameInp.value.trim().length > 0 &&
         emailInp.value.includes('@') &&
         catInp.value !== '' &&
+        otherOk &&
         pwInput.value.length >= 8 &&
         termsChk.checked;
     submitBtn.disabled = !ready;
 }
 
-[nameInp, emailInp, catInp, pwInput, termsChk].forEach(el => {
+[nameInp, emailInp, pwInput, termsChk].forEach(el => {
     el.addEventListener('input',  checkReady);
     el.addEventListener('change', checkReady);
 });
+
+catInp.addEventListener('change', () => {
+    const panel = document.getElementById('as-other-panel');
+    panel.style.display = catInp.value === 'other' ? 'block' : 'none';
+    checkReady();
+});
+
+document.getElementById('as-other-desc').addEventListener('input', checkReady);
+document.getElementById('as-other-bucket').addEventListener('change', checkReady);
 
 /* ── Form submit ──────────────────────────────────────────── */
 form.addEventListener('submit', async (e) => {
@@ -796,25 +860,51 @@ form.addEventListener('submit', async (e) => {
         const password = pwInput.value;
         const name     = nameInp.value.trim();
         const phone    = document.getElementById('as-phone').value.trim();
-        const category = catInp.value;
+        const selected = catInp.value;
+
+        // "Other" artisans get dispatched under their best-fit bucket
+        // while their custom specialty waits for admin review.
+        const isOther          = selected === 'other';
+        const category         = isOther
+            ? document.getElementById('as-other-bucket').value
+            : selected;
+        const requestedService = isOther
+            ? document.getElementById('as-other-desc').value.trim()
+            : null;
 
         const cred = await authService.createUserWithEmailAndPassword(email, password);
         const uid  = cred.user.uid;
+        const now  = new Date().toISOString();
 
-        await databaseService.setDocument('artisans', uid, {
+        const artisanDoc = {
             uid,
-            fullName:          name,
+            fullName:           name,
             email,
             phone,
             category,
-            isOnline:          false,
-            isAvailable:       false,
+            isOnline:           false,
+            isAvailable:        false,
             verificationStatus: 'draft',
-            rating:            0,
-            reviewCount:       0,
-            jobsCompleted:     0,
-            createdAt:         new Date().toISOString(),
-        });
+            rating:             0,
+            reviewCount:        0,
+            jobsCompleted:      0,
+            createdAt:          now,
+        };
+        if (requestedService) artisanDoc.requestedService = requestedService;
+
+        await databaseService.setDocument('artisans', uid, artisanDoc);
+
+        // Write to admin review queue — non-critical, never blocks signup
+        if (requestedService) {
+            databaseService.setDocument('service_requests', uid, {
+                artisanId:           uid,
+                artisanName:         name,
+                requestedService,
+                operationalCategory: category,
+                status:              'pending',
+                createdAt:           now,
+            }).catch(e => console.warn('[signup] service_requests:', e.message));
+        }
 
         window.location.replace('dashboard.html');
     } catch (err) {

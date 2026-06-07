@@ -4,9 +4,9 @@ window.serviceIcons = {
     carpenter: '../shared/assets/icons/carpenter.png',
     acUnit: '../shared/assets/icons/cooling.png',
     welder: '../shared/assets/icons/welder.png',
-    gardener: '../shared/assets/icons/gardener.png',
+    gardener: '../shared/assets/icons/gardener.svg',
     painter: '../shared/assets/icons/painter.png',
-    cleaner: '../shared/assets/icons/cleaner.png',
+    cleaner: '../shared/assets/icons/cleaner.svg',
         // ... your existing service icons (electrician, plumber, etc.) ...
     search: '',
 

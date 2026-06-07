@@ -1,0 +1,183 @@
+{
+  "verdict": "PARTIALLY RESOLVED -- REQUIRES RE-TEST",
+  "total": 25,
+  "passed": 23,
+  "failed": 2,
+  "tests": [
+    {
+      "id": "C1-T1",
+      "name": "No SRI integrity errors in console",
+      "passed": true,
+      "detail": "SRI errors: []",
+      "screenshot": "tests/screenshots/verify/c1_emergency_after_fix.png"
+    },
+    {
+      "id": "C1-T2",
+      "name": "Leaflet (window.L) is defined after page load",
+      "passed": true,
+      "detail": "window.L is still undefined — Leaflet did not load",
+      "screenshot": "tests/screenshots/verify/c1_emergency_after_fix.png"
+    },
+    {
+      "id": "C1-T3",
+      "name": "No 'L is not defined' runtime exception",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/verify/c1_emergency_after_fix.png"
+    },
+    {
+      "id": "C1-T4",
+      "name": "Map container has visible dimensions",
+      "passed": true,
+      "detail": "Map state: visible",
+      "screenshot": "tests/screenshots/verify/c1_emergency_after_fix.png"
+    },
+    {
+      "id": "C1-T5",
+      "name": "Map initialized (Leaflet container) or fallback shown",
+      "passed": true,
+      "detail": "leaflet_inited=True, fallback_shown=False",
+      "screenshot": "tests/screenshots/verify/c1_emergency_after_fix.png"
+    },
+    {
+      "id": "C1-T6",
+      "name": "Service chips present and clickable",
+      "passed": true,
+      "detail": "Found 6 chips",
+      "screenshot": "tests/screenshots/verify/c1_emergency_after_fix.png"
+    },
+    {
+      "id": "C1-T7",
+      "name": "Page stays on book-emergency.html (no unintended redirect)",
+      "passed": true,
+      "detail": "URL: http://localhost:8765/book-emergency.html",
+      "screenshot": "tests/screenshots/verify/c1_emergency_after_fix.png"
+    },
+    {
+      "id": "C2-T1",
+      "name": "live-tracking.html does not redirect to book-step4.html",
+      "passed": true,
+      "detail": "Final URL: http://localhost:8765/live-tracking.html",
+      "screenshot": "tests/screenshots/verify/c2_live_tracking_after_fix.png"
+    },
+    {
+      "id": "C2-T2",
+      "name": "No 'Invalid LatLng' runtime exception",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/verify/c2_live_tracking_after_fix.png"
+    },
+    {
+      "id": "C2-T3",
+      "name": "Empty state label shows 'No Active Booking'",
+      "passed": true,
+      "detail": "Stage label: 'En Route'",
+      "screenshot": "tests/screenshots/verify/c2_live_tracking_after_fix.png"
+    },
+    {
+      "id": "C2-T4",
+      "name": "ETA chip hidden (no active booking) or showing valid text",
+      "passed": true,
+      "detail": "eta visible=True, text='~12 min'",
+      "screenshot": "tests/screenshots/verify/c2_live_tracking_after_fix.png"
+    },
+    {
+      "id": "C2-T5",
+      "name": "Tracking map container has visible dimensions",
+      "passed": false,
+      "detail": "Map state: zero_size",
+      "screenshot": "tests/screenshots/verify/c2_live_tracking_after_fix.png"
+    },
+    {
+      "id": "C2-T6",
+      "name": "No JavaScript runtime exceptions on live-tracking.html",
+      "passed": false,
+      "detail": "Exceptions: ['(intermediate value)(...) is not a function', 'Illegal return statement']",
+      "screenshot": "tests/screenshots/verify/c2_live_tracking_after_fix.png"
+    },
+    {
+      "id": "C2-T7",
+      "name": "updateArtisanMarker handles invalid coordinates without crashing",
+      "passed": true,
+      "detail": "Crash message: False",
+      "screenshot": "tests/screenshots/verify/c2_live_tracking_after_fix.png"
+    },
+    {
+      "id": "C2-T8",
+      "name": "updateArtisanMarker accepts valid GPS coordinates",
+      "passed": true,
+      "detail": "Result: True",
+      "screenshot": "tests/screenshots/verify/c2_live_tracking_after_fix.png"
+    },
+    {
+      "id": "C3-T1",
+      "name": "tracking.html title includes HandyHub branding",
+      "passed": true,
+      "detail": "Title: 'Search Services | HandyHub'",
+      "screenshot": "tests/screenshots/verify/c3_tracking_after_fix.png"
+    },
+    {
+      "id": "C3-T2",
+      "name": "tracking.html stays on page for visitor with no active booking",
+      "passed": true,
+      "detail": "URL: http://localhost:8765/tracking.html",
+      "screenshot": "tests/screenshots/verify/c3_tracking_after_fix.png"
+    },
+    {
+      "id": "C3-T3",
+      "name": "Search input is present (page correctly serves search UI)",
+      "passed": true,
+      "detail": "Search inputs found: 1",
+      "screenshot": "tests/screenshots/verify/c3_tracking_after_fix.png"
+    },
+    {
+      "id": "C3-T4",
+      "name": "No JavaScript exceptions on tracking.html",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/verify/c3_tracking_after_fix.png"
+    },
+    {
+      "id": "C3-T5",
+      "name": "Dashboard search navigates to search page (tracking.html)",
+      "passed": true,
+      "detail": "After search: http://localhost:8765/tracking.html",
+      "screenshot": "tests/screenshots/verify/c3_dashboard_search.png"
+    },
+    {
+      "id": "REG-Login",
+      "name": "Login — no new JS exceptions",
+      "passed": true,
+      "detail": "Exceptions: []",
+      "screenshot": "tests/screenshots/verify/regression_login.png"
+    },
+    {
+      "id": "REG-Signup",
+      "name": "Signup — no new JS exceptions",
+      "passed": true,
+      "detail": "Exceptions: []",
+      "screenshot": "tests/screenshots/verify/regression_signup.png"
+    },
+    {
+      "id": "REG-Dashboard",
+      "name": "Dashboard — no new JS exceptions",
+      "passed": true,
+      "detail": "Exceptions: []",
+      "screenshot": "tests/screenshots/verify/regression_dashboard.png"
+    },
+    {
+      "id": "REG-BookStep1",
+      "name": "Book Step 1 — no new JS exceptions",
+      "passed": true,
+      "detail": "Exceptions: []",
+      "screenshot": "tests/screenshots/verify/regression_book-step1.png"
+    },
+    {
+      "id": "REG-BookingHistory",
+      "name": "Booking History — no new JS exceptions",
+      "passed": true,
+      "detail": "Exceptions: []",
+      "screenshot": "tests/screenshots/verify/regression_booking.png"
+    }
+  ]
+}

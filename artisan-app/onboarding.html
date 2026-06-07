@@ -230,6 +230,49 @@
         <span class="field-error" id="err-category">Select a category</span>
       </div>
 
+      <!-- "Other" expand panel — visible only when Other is selected -->
+      <div id="other-panel" style="display:none;background:var(--surface-2,#F9FAFB);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:14px 16px;margin-top:-8px;">
+        <p style="font-size:12px;font-weight:600;color:var(--text-mid,#6B7280);margin:0 0 12px;">
+          Tell us more — we'll review your trade within 48 hrs
+        </p>
+
+        <!-- What they actually do -->
+        <div class="field-group" style="margin-bottom:12px;">
+          <label class="field-label" for="other-desc">
+            Describe your specialty <span class="required">*</span>
+          </label>
+          <input class="field-input" type="text" id="other-desc"
+                 placeholder="e.g. Solar Inverter Installation" maxlength="120" />
+          <span class="field-error" id="err-other-desc">Please describe your specialty</span>
+        </div>
+
+        <!-- Best-fit bucket so dispatch still works while under review -->
+        <div class="field-group" style="margin-bottom:0;">
+          <label class="field-label" for="other-bucket">
+            Closest existing category <span class="required">*</span>
+          </label>
+          <p style="font-size:11px;color:var(--text-mid,#6B7280);margin:0 0 6px;">
+            You'll receive jobs in this category while your trade is being reviewed.
+          </p>
+          <select class="field-input" id="other-bucket">
+            <option value="" disabled selected>Select closest trade</option>
+            <option value="Plumbing">🔧 Plumbing</option>
+            <option value="Electrical">⚡ Electrical Work</option>
+            <option value="Carpentry">🪚 Carpentry</option>
+            <option value="Painting">🖌️ Painting</option>
+            <option value="Tiling">🏠 Tiling &amp; Flooring</option>
+            <option value="AC">❄️ AC &amp; Appliance Repair</option>
+            <option value="Roofing">🏗️ Roofing</option>
+            <option value="Welding">🔩 Welding &amp; Fabrication</option>
+            <option value="Cleaning">🧹 Cleaning Services</option>
+            <option value="Moving">🚚 Moving &amp; Delivery</option>
+            <option value="Landscaping">🌿 Landscaping &amp; Gardening</option>
+            <option value="Security">🔒 Security Systems</option>
+          </select>
+          <span class="field-error" id="err-other-bucket">Select a closest category</span>
+        </div>
+      </div>
+
       <div class="field-group">
         <label class="field-label">Additional Skills</label>
         <p style="font-size:12px;color:var(--text-mid);margin-bottom:8px;">Select all that apply</p>
@@ -565,6 +608,10 @@ function validateStep(step) {
   }
   if (step === 3) {
     if (!document.getElementById('category').value) { showErr('err-category','category'); valid=false; }
+    if (document.getElementById('category').value === 'Other') {
+      if (!document.getElementById('other-desc').value.trim())  { showErr('err-other-desc','other-desc');   valid=false; }
+      if (!document.getElementById('other-bucket').value)       { showErr('err-other-bucket','other-bucket'); valid=false; }
+    }
     const bio = document.getElementById('bio').value.trim();
     if (bio.length < 50) { showErr('err-bio','bio'); valid=false; }
     if (!document.getElementById('experience').value) { showErr('err-experience','experience'); valid=false; }
@@ -636,6 +683,12 @@ function buildSkillTags() {
     container.appendChild(tag);
   });
 }
+
+// ── "Other" trade panel toggle ─────────────────────────
+document.getElementById('category').addEventListener('change', function () {
+  document.getElementById('other-panel').style.display =
+    this.value === 'Other' ? 'block' : 'none';
+});
 
 // ── Availability ───────────────────────────────────────
 document.querySelectorAll('.avail-btn').forEach(btn => {
@@ -752,7 +805,15 @@ async function submitApplication() {
     const emergPhone = document.getElementById('emergency-phone').value.trim();
     const ghanaCard  = document.getElementById('ghana-card-no').value.trim().toUpperCase();
     const tin        = document.getElementById('tin').value.trim();
-    const category   = document.getElementById('category').value;
+    const selected   = document.getElementById('category').value;
+    const isOther    = selected === 'Other';
+    // "Other" artisans operate under their best-fit bucket for dispatch purposes
+    const category   = isOther
+      ? document.getElementById('other-bucket').value
+      : selected;
+    const requestedService = isOther
+      ? document.getElementById('other-desc').value.trim()
+      : null;
     const bio        = document.getElementById('bio').value.trim();
     const experience = document.getElementById('experience').value;
     const radius     = document.getElementById('work-radius').value;
@@ -788,6 +849,7 @@ async function submitApplication() {
       category,
       specialty:        category,
       skills:           [...selectedSkills],
+      ...(requestedService && { requestedService }),
       bio,
       yearsExperience:  Number(experience) || 0,
       workRadius:       Number(radius) || 10,
@@ -823,6 +885,18 @@ async function submitApplication() {
       adminNotes:   '',
       trustScore:   50,
     });
+
+    // 4. If "Other" trade: write to service_requests for admin review (non-critical)
+    if (requestedService) {
+      databaseService.setDocument('service_requests', uid, {
+        artisanId:           uid,
+        artisanName:         `${firstName} ${lastName}`,
+        requestedService,
+        operationalCategory: category,
+        status:              'pending',
+        createdAt:           n,
+      }).catch(e => console.warn('[onboarding] service_requests:', e.message));
+    }
 
     // Done!
     document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));

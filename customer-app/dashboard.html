@@ -5,7 +5,7 @@
   <script src="../shared/js/utils/themeManager.js"></script>
   <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HandyHub</title>
+  <title>Home | HandyHub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
@@ -20,22 +20,22 @@
   <!-- ════ APP HEADER ════ -->
   <header class="hh-hdr">
     <button class="hh-menu-btn" id="open-sidebar-btn" aria-label="Menu">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
         <path d="M4 6H20M4 12H14M4 18H18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
     <span class="hh-logo">Handy <span class="hh-logo-red">Hub</span></span>
     <div class="hh-hdr-right">
       <button class="hh-icon-btn" id="msg-btn" aria-label="Messages">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span class="hh-badge" id="msg-badge" style="display:none"></span>
       </button>
       <button class="hh-icon-btn" id="notif-btn" aria-label="Notifications">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
         <span class="hh-badge" id="notif-badge"></span>
       </button>
@@ -55,9 +55,9 @@
           <img id="sidebar-profile-img" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Profile">
         </div>
         <h3 class="sidebar-user-name" id="sidebar-name">Kwame Mensah</h3>
-        <p class="sidebar-user-location">
+        <p class="sidebar-user-location" id="sidebar-user-location">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>
-          Accra, Ghana
+          <span id="sidebar-loc-text">Accra, Ghana</span>
         </p>
       </div>
       <p class="sidebar-section-title">QUICK ACTIONS</p>
@@ -82,7 +82,7 @@
       <p class="sidebar-section-title">MAIN MENU</p>
       <ul class="sidebar-menu-list">
         <li><a href="dashboard.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="#730201"/></svg></span><span class="sidebar-menu-label">Home</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
-        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">My Requests</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="booking.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">My Requests</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
         <li><a href="booking.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Booking History</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
         <li><a href="saved.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Saved Professionals</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
         <li><a href="messages.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Messages</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
@@ -91,7 +91,7 @@
       <p class="sidebar-section-title">MORE</p>
       <ul class="sidebar-menu-list">
         <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="7" r="1" fill="#730201"/></svg></span><span class="sidebar-menu-label">Promo Codes</span><span class="sidebar-menu-badge promo-badge">2 Available</span></a></li>
-        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" stroke="#730201" stroke-width="2"/></svg></span><span class="sidebar-menu-label">Support Center</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+        <li><a href="settings-help.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" stroke="#730201" stroke-width="2"/></svg></span><span class="sidebar-menu-label">Support Center</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
         <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12v10H4V12" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 7H2v5h20V7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Invite Friends</span><span class="sidebar-menu-badge invite-badge">Earn GHC 20</span></a></li>
       </ul>
       <p class="sidebar-section-title">SETTINGS</p>
@@ -108,7 +108,8 @@
     <div class="user-card-info">
       <button class="uc-avatar-btn" onclick="window.location.href='profile.html'">
         <img class="uc-avatar skel skel-circle" id="uc-avatar"
-          src="" alt="Profile">
+          src="../shared/assets/icons/user-icon-white.png" alt="Profile"
+          onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23730201%22%3E%3Cpath d=%22M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z%22/%3E%3C/svg%3E'">
       </button>
       <div class="uc-text">
         <p class="uc-greeting" id="uc-greeting">Good morning,</p>
@@ -133,7 +134,7 @@
       </svg>
     </div>
     <input type="text" id="dynamic-search" class="hh-search-input" placeholder="What service do you need today?">
-    <button class="hh-search-ai" aria-label="AI search">
+    <button class="hh-search-ai" aria-label="AI search" id="ai-search-btn" title="AI Search — coming soon">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- Large centre spark -->
         <path d="M12 2L13.2 9.8L21 11L13.2 12.2L12 20L10.8 12.2L3 11L10.8 9.8L12 2Z" fill="#730201"/>
@@ -218,25 +219,21 @@
   <div class="section-row">
     <h2 class="section-title">Nearby Professionals</h2>
     <div class="nearby-actions">
-      <button class="dist-pill">Within 5km <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg></button>
-      <button class="filter-btn">
-        <svg  viewBox="0 0 24 24" fill="none"><path d="M22 3H2l8 9.46V19l4 2V12.46L22 3z" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <button class="dist-pill" id="np-dist-pill" aria-haspopup="dialog" aria-controls="np-filter-panel">
+        All
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="filter-btn" id="np-filter-btn" aria-haspopup="dialog">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <path d="M22 3H2l8 9.46V19l4 2V12.46L22 3z" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
         Filter
       </button>
     </div>
   </div>
 
-  <div class="pro-list">
-    <div style="padding:28px 14px;text-align:center;">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="margin-bottom:10px;opacity:0.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="#730201" stroke-width="1.8"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <p style="font-size:13px;font-weight:700;color:#333;margin:0 0 4px;">No professionals yet</p>
-      <p style="font-size:11.5px;color:#aaa;margin:0 0 14px;">Professionals will appear here once the platform goes live.</p>
-      <button class="view-more-btn" id="view-more-pros" style="width:auto;padding:9px 18px;margin:0 auto;">
-        Browse Services
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2.5" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-  </div>
+  <!-- Artisan cards rendered here by nearbyPros.js -->
+  <div class="pro-list" id="np-pro-list" aria-live="polite" aria-label="Nearby professionals"></div>
 
 
 </div><!-- /.app -->
@@ -504,9 +501,17 @@
 
 <!-- ════ SCRIPTS ════ -->
 <!-- Auth guard — redirects to login.html if no active session -->
+<script type="module" src="js/authInit.js"></script>
+
+<!-- Nearby Professionals: filter + render module -->
 <script type="module">
-  import { requireAuth } from '../shared/js/utils/authGuard.js';
-  await requireAuth();
+  import { initNearbyPros } from './js/nearbyPros.js';
+  // Wait for DOM + auth to be ready, then boot the nearby section
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initNearbyPros);
+  } else {
+    initNearbyPros();
+  }
 </script>
 <script src="../shared/js/components/serviceIcons.js"></script>
 <script src="../shared/js/components/pageTransition.js"></script>
@@ -573,7 +578,6 @@
   if (greetEl) greetEl.textContent = greet;
 
   /* quick action sidebar buttons */
-  const quickDests = [null, 'booking.html', 'live-tracking.html', 'book-step1.html'];
   document.querySelectorAll('.quick-action-btn').forEach((btn, i) => {
     if (i === 0) {
       // Emergency Request → open service-type modal first
@@ -584,8 +588,31 @@
           else window.location.href = 'book-emergency.html';
         }, 200);
       });
-    } else if (quickDests[i]) {
-      btn.addEventListener('click', () => { closeSidebar(); go(quickDests[i]); });
+    } else if (i === 1) {
+      // Rebook Last → prefill booking state from last history entry then go to step 3
+      btn.addEventListener('click', () => {
+        closeSidebar();
+        try {
+          const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
+          const last = hist[0];
+          if (last && last.services) {
+            const bkKey = window.HH_State ? window.HH_State.scopedKey('hh_booking') : 'hh_booking';
+            localStorage.setItem(bkKey, JSON.stringify({
+              services:     last.services,
+              professional: last.professional || null,
+              total:        last.total || 0,
+              payment:      last.payment || 'Wallet',
+            }));
+            go('book-step3.html');
+          } else {
+            go('booking.html');
+          }
+        } catch (_) { go('booking.html'); }
+      });
+    } else if (i === 2) {
+      btn.addEventListener('click', () => { closeSidebar(); go('live-tracking.html'); });
+    } else if (i === 3) {
+      btn.addEventListener('click', () => { closeSidebar(); go('book-step1.html'); });
     }
   });
 
@@ -623,6 +650,7 @@
 
   /* section buttons */
   document.getElementById('view-all-svc')?.addEventListener('click', () => go('book-step1.html'));
+  document.getElementById('ai-search-btn')?.addEventListener('click', () => toast('AI Search coming soon', 'info'));
   document.getElementById('view-more-pros')?.addEventListener('click', () => go('book-now.html'));
   document.getElementById('location-changer')?.addEventListener('click', () => {
     if (typeof window.openLocationPicker === 'function') {
@@ -632,18 +660,18 @@
     }
   });
 
-  /* ── Search bar → tracking.html ───────────────────────────────────────────
+  /* ── Search bar → search-page.html ────────────────────────────────────────
      The search input is a primary navigation entry point. Any interaction
      (focus, click, or Enter) should take the customer to the search page.
      If text is already present (browser autofill), carry it as ?q= so
-     tracking.html can execute the search immediately on arrival.
+     search-page.html can execute the search immediately on arrival.
   ───────────────────────────────────────────────────────────────────────── */
   (function wireSearchBar() {
     const dynSearch = document.getElementById('dynamic-search');
     if (!dynSearch) return;
     function goToSearch() {
       const q = dynSearch.value.trim();
-      window.location.href = q ? `tracking.html?q=${encodeURIComponent(q)}` : 'tracking.html';
+      window.location.href = q ? `search-page.html?q=${encodeURIComponent(q)}` : 'search-page.html';
     }
     dynSearch.addEventListener('focus', goToSearch);
     dynSearch.addEventListener('click', goToSearch);
@@ -688,8 +716,8 @@
     { id: 'ac_repair',  name: 'A/C Tech',      img: '../shared/assets/icons/cooling.png',     base: 82 },
     { id: 'welding',    name: 'Welder',        img: '../shared/assets/icons/welder.png',      base: 70 },
     { id: 'painting',   name: 'Painter',       img: '../shared/assets/icons/painter.png',     base: 75 },
-    { id: 'cleaning',   name: 'Cleaner',       img: '../shared/assets/icons/cleaner.png',     base: 85 },
-    { id: 'gardening',  name: 'Gardener',      img: '../shared/assets/icons/gardener.png',    base: 65 },
+    { id: 'cleaning',   name: 'Cleaner',       img: '../shared/assets/icons/cleaner.svg',     base: 85 },
+    { id: 'gardening',  name: 'Gardener',      img: '../shared/assets/icons/gardener.svg',    base: 65 },
   ];
   const clicks = JSON.parse(localStorage.getItem('service_scores') || '{}');
   const totalEng = Object.values(clicks).reduce((a, b) => a + b, 0);
@@ -729,9 +757,12 @@
     var sideImgEl  = document.getElementById('sidebar-profile-img');
     var locEl     = document.getElementById('uc-loc-text');
 
+    var sideLocEl = document.getElementById('sidebar-loc-text');
+
     if (nameEl    && p.name)     { nameEl.textContent     = p.name;     removeSkel(nameEl); }
     if (sideNameEl && p.name)      sideNameEl.textContent = p.name;
     if (locEl     && p.location) { locEl.textContent      = p.location; removeSkel(locEl); }
+    if (sideLocEl  && p.location)  sideLocEl.textContent  = p.location;
 
     var src = p.profileImage || (p.name
       ? 'https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=' +

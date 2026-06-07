@@ -1,0 +1,211 @@
+{
+  "verdict": "PRODUCTION READY",
+  "total": 29,
+  "passed": 29,
+  "failed": 0,
+  "results": [
+    {
+      "id": "T1-list",
+      "name": "Nearby: #np-pro-list container exists",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T1-dist-pill",
+      "name": "Nearby: #np-dist-pill button exists",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T1-filter-btn",
+      "name": "Nearby: #np-filter-btn button exists",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T1-title",
+      "name": "Nearby: section title \"Nearby Professionals\" present",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T2-skel-present",
+      "name": "Skeleton cards appear during loading",
+      "passed": true,
+      "detail": "found 3",
+      "sc": ""
+    },
+    {
+      "id": "T2-no-runtime-exc",
+      "name": "No runtime exceptions on dashboard load",
+      "passed": true,
+      "detail": "[]",
+      "sc": ""
+    },
+    {
+      "id": "T3-panel-opens",
+      "name": "Filter panel opens on dist-pill click",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T3-panel-closes",
+      "name": "Filter panel closes on close-button click",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T3-filter-btn-opens",
+      "name": "Filter button also opens the panel",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T4-chips-present",
+      "name": "Radius chips exist in panel (5 found)",
+      "passed": true,
+      "detail": "5 chips",
+      "sc": ""
+    },
+    {
+      "id": "T4-chip-active",
+      "name": "\"5 km\" chip becomes active on click",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T4-pill-updates",
+      "name": "Dist-pill label updates after apply",
+      "passed": true,
+      "detail": "pill text: '5km'",
+      "sc": ""
+    },
+    {
+      "id": "T5-cat-chips",
+      "name": "Category chips present (9 found)",
+      "passed": true,
+      "detail": "9 chips",
+      "sc": ""
+    },
+    {
+      "id": "T5-cat-active",
+      "name": "Category chip becomes active on click",
+      "passed": true,
+      "detail": "active=Electrical",
+      "sc": ""
+    },
+    {
+      "id": "T5-filter-applied",
+      "name": "Category filter applied without crash",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T6-reset-cat",
+      "name": "Reset: \"All\" category chip is active again",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T6-pill-revert",
+      "name": "Dist-pill label reverts to \"All\" or default after reset",
+      "passed": true,
+      "detail": "pill='All'",
+      "sc": ""
+    },
+    {
+      "id": "T7-no-blank",
+      "name": "After filter: either cards or empty state rendered (not blank)",
+      "passed": true,
+      "detail": "empty=1 cards=0",
+      "sc": ""
+    },
+    {
+      "id": "T7-empty-reset-btn",
+      "name": "Empty state: reset button present",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T8-book-fn",
+      "name": "Global _npBookArtisan function is defined",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T8-book-sim",
+      "name": "Simulated book navigates to book-now.html",
+      "passed": true,
+      "detail": "dest=http://localhost:8765/book-now.html",
+      "sc": ""
+    },
+    {
+      "id": "T9-stress-no-crash",
+      "name": "Rapid filter switching causes no JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "sc": ""
+    },
+    {
+      "id": "T10-no-gps-title",
+      "name": "No GPS: section title still renders",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T10-no-gps-list",
+      "name": "No GPS: #np-pro-list still in DOM",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T10-no-gps-nocrash",
+      "name": "No GPS: no GPS-related JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "sc": ""
+    },
+    {
+      "id": "T11-panel-opened",
+      "name": "Panel opens via filter-btn",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T11-overlay-dismiss",
+      "name": "Clicking overlay backdrop closes panel",
+      "passed": true,
+      "detail": "",
+      "sc": ""
+    },
+    {
+      "id": "T12-title",
+      "name": "Dashboard title is HandyHub",
+      "passed": true,
+      "detail": "title='HandyHub'",
+      "sc": ""
+    },
+    {
+      "id": "T12-no-exc",
+      "name": "No runtime exceptions on full page load",
+      "passed": true,
+      "detail": "[]",
+      "sc": ""
+    }
+  ]
+}

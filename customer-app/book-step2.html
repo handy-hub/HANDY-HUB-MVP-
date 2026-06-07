@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Handy Hub – Choose Professional</title>
+  <title>Choose Professional | HandyHub</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
-
+  <link rel="stylesheet" href="../shared/css/pageTransitions.css">
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 </head>
 <body>
@@ -138,7 +138,7 @@
     </div>
     <div class="bk-sel-row">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#730201"/></svg>
-      <span>Home, East Legon, Accra</span>
+      <span id="step2-loc-span">Your location</span>
     </div>
     <div class="bk-footer-price-row">
       <span class="bk-footer-price-lbl">
@@ -333,8 +333,12 @@
               <span style="font-size:11px;color:#aaa;">·</span>` : ''}
             <span style="font-size:11px;color:#aaa;">${jobs} jobs</span>
           </div>
-          <div style="margin-top:3px;">
+          <div style="margin-top:3px;display:flex;align-items:center;gap:10px;">
             <span style="font-size:11px;color:${isOnline ? '#2e7d32' : '#f57c00'};font-weight:700;">${avail}</span>
+            <button onclick="event.stopPropagation();window.viewProProfile('${id}')"
+              style="background:none;border:none;padding:0;font-size:11px;color:#730201;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:2px;">
+              View Profile
+            </button>
           </div>
           ${bio ? `<p style="font-size:11px;color:#999;margin-top:5px;line-height:1.5;">${bio}</p>` : ''}
         </div>
@@ -364,29 +368,10 @@
 
     currentFilter = filterName;
 
-    // Highlight active pill
-    document.querySelectorAll('.filter-pill').forEach(p => {
-      p.classList.remove('active');
-      // Reset SVG stroke colors to neutral
-      p.querySelectorAll('svg path, svg line').forEach(el => {
-        if (el.getAttribute('fill') === '#730201') el.setAttribute('fill', 'none');
-        if (el.getAttribute('stroke') === '#730201') el.setAttribute('stroke', '#555');
-      });
-    });
-    const pillMap = {
-      recommended: 'fp-recommended',
-      rating:      'fp-rating',
-      price:       'fp-price',
-    };
-    const activePill = document.getElementById(pillMap[filterName]);
-    if (activePill) {
-      activePill.classList.add('active');
-      activePill.querySelectorAll('svg path, svg line').forEach(el => {
-        if (el.getAttribute('fill') === 'none' || el.getAttribute('fill') === '#555') {
-          // leave as-is — active CSS class handles the color
-        }
-      });
-    }
+    // Highlight active pill via CSS class only — no SVG attribute manipulation
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    const pillMap = { recommended: 'fp-recommended', rating: 'fp-rating', price: 'fp-price' };
+    document.getElementById(pillMap[filterName])?.classList.add('active');
 
     let result = [...loadedArtisans];
 
@@ -500,6 +485,29 @@
     });
   };
 
+  /* ── View artisan profile page ──────────────────────────────────── */
+  window.viewProProfile = function(id) {
+    const artisan = loadedArtisans.find(a => a.id === id) || displayedArtisans.find(a => a.id === id);
+    if (artisan) {
+      const d = artisan.data || {};
+      sessionStorage.setItem('hh_artisan_view', JSON.stringify({
+        id: artisan.id, uid: artisan.id,
+        name: d.name || '',
+        specialty: d.specialty || '',
+        category: d.category || '',
+        rating: d.rating || 0,
+        reviewCount: d.reviewCount || 0,
+        jobsCompleted: d.jobsCompleted || 0,
+        yearsExperience: d.yearsExperience || null,
+        bio: d.bio || '',
+        profileImage: d.profileImage || null,
+        location: d.location || '',
+        isAvailable: d.isAvailable || false,
+      }));
+    }
+    window.location.href = 'artisan-profile.html';
+  };
+
   /* ── Continue to schedule step ──────────────────────────────────── */
   window.continueToStep3 = function() {
     if (!selectedProId) {
@@ -548,18 +556,19 @@
       if (priceEl) priceEl.textContent = `GHC ${state.totalMin || 50} – ${(state.totalMax || 50) + 20}`;
     }
 
-    // Restore address from booking state if available
-    if (state.address) {
-      const selRows = document.querySelectorAll('.bk-sel-row');
-      if (selRows[1]) {
-        const span = selRows[1].querySelector('span:not(:first-child)');
-        if (span) span.textContent = state.address;
-      }
+    // Populate location from booking state, then GPS cache, then fallback
+    const locSpan = document.getElementById('step2-loc-span');
+    if (locSpan) {
+      const addr = state.address
+        || (() => { try { return JSON.parse(localStorage.getItem('hh_detected_location') || 'null')?.loc; } catch { return null; } })()
+        || 'Your location';
+      locSpan.textContent = addr;
     }
 
     loadArtisans();
   });
 </script>
+<script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>
 

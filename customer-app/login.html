@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Login · HandyHub</title>
+    <title>Login | HandyHub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
@@ -807,7 +807,8 @@ body {
         <div class="ln-brand">
             <img class="ln-logo"
                  src="../shared/assets/images/handyhub-logo-text.png"
-                 alt="HandyHub — Trusted Professionals, Right Around You.">
+                 alt="HandyHub — Trusted Professionals, Right Around You."
+                 onerror="this.onerror=null;this.style.display='none';this.insertAdjacentHTML('afterend','<span class=&quot;ln-logo&quot; style=&quot;font-weight:800;font-size:22px;color:#730201;letter-spacing:-0.5px;&quot;>HandyHub</span>')">
         </div>
 
     </div><!-- /.ln-hero -->
@@ -988,26 +989,31 @@ body {
         });
     }
 
-    /* ── Language dropdown ───────────────────────────────── */
-    var trigger  = document.getElementById('lang-trigger');
-    var menu     = document.getElementById('lang-menu');
-    var langText = document.getElementById('current-lang');
-
+    /* ── Language dropdown — English only for now, other languages coming soon ── */
+    var trigger = document.getElementById('lang-trigger');
+    var menu    = document.getElementById('lang-menu');
     if (trigger && menu) {
         trigger.addEventListener('click', function (e) {
             e.stopPropagation();
             var open = menu.classList.toggle('open');
             trigger.setAttribute('aria-expanded', String(open));
         });
-
         document.addEventListener('click', function () {
             menu.classList.remove('open');
             trigger.setAttribute('aria-expanded', 'false');
         });
-
         menu.querySelectorAll('li').forEach(function (li) {
             li.addEventListener('click', function () {
-                if (langText) langText.textContent = this.textContent;
+                var lang = this.dataset.lang;
+                if (lang !== 'en') {
+                    // i18n not yet implemented — show friendly notice
+                    var langText = document.getElementById('current-lang');
+                    if (langText) langText.textContent = '🇬🇧 English';
+                    menu.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                    alert('Other languages coming soon. The app is currently available in English only.');
+                    return;
+                }
                 menu.classList.remove('open');
                 trigger.setAttribute('aria-expanded', 'false');
             });
@@ -1101,6 +1107,65 @@ document.getElementById('forgot-link').addEventListener('click', function (e) {
 });
 </script>
 
+<!-- Client-side form validation — runs before loginPage.js fires Firebase -->
+<script>
+(function () {
+    'use strict';
+    var form    = document.getElementById('login-form');
+    var userIn  = document.getElementById('user-id');
+    var passIn  = document.getElementById('password');
+
+    // Inline error helper
+    function showFieldError(input, msg) {
+        var wrap = input.closest('.ln-field') || input.parentElement;
+        var existing = wrap.querySelector('.ln-field-err');
+        if (existing) existing.remove();
+        input.style.borderColor = '#e53e3e';
+        var err = document.createElement('p');
+        err.className = 'ln-field-err';
+        err.style.cssText = 'margin:4px 0 0;font-size:12px;color:#e53e3e;font-weight:600;';
+        err.textContent = msg;
+        wrap.appendChild(err);
+    }
+    function clearFieldError(input) {
+        var wrap = input.closest('.ln-field') || input.parentElement;
+        var existing = wrap.querySelector('.ln-field-err');
+        if (existing) existing.remove();
+        input.style.borderColor = '';
+    }
+
+    if (form && userIn && passIn) {
+        // Clear errors on input
+        userIn.addEventListener('input', function () { clearFieldError(userIn); });
+        passIn.addEventListener('input', function () { clearFieldError(passIn); });
+
+        // Intercept submit — validate before loginPage.js handler fires
+        form.addEventListener('submit', function (e) {
+            var uid  = (userIn.value  || '').trim();
+            var pass = (passIn.value || '').trim();
+            var valid = true;
+
+            if (!uid) {
+                showFieldError(userIn, 'Please enter your email or phone number.');
+                valid = false;
+            } else if (uid.includes('@') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(uid)) {
+                showFieldError(userIn, 'Please enter a valid email address.');
+                valid = false;
+            }
+
+            if (!pass) {
+                showFieldError(passIn, 'Please enter your password.');
+                valid = false;
+            } else if (pass.length < 6) {
+                showFieldError(passIn, 'Password must be at least 6 characters.');
+                valid = false;
+            }
+
+            if (!valid) { e.stopImmediatePropagation(); e.preventDefault(); }
+        }, true); // capture phase — runs before loginPage.js submit handler
+    }
+})();
+</script>
 
 </body>
 </html>

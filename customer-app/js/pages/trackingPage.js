@@ -1,5 +1,5 @@
 /**
- * trackingPage.js  — Search UI controller for tracking.html
+ * trackingPage.js  — Search UI controller for search-page.html
  *
  * Responsibilities:
  *   • Manage search input, submit, results display
@@ -170,7 +170,7 @@ function hydrateFromUrl() {
         const results = executeSearch(q);
         // Clean up URL after processing
         if (!results.length) {
-            window.history.replaceState({}, document.title, 'tracking.html');
+            window.history.replaceState({}, document.title, 'search-page.html');
         }
     } catch { /* malformed URL — ignore */ }
 }

@@ -1,4 +1,4 @@
-import { clearUserSession } from '../utils/clearUserSession.js';
+import { clearUserSession } from '../../utils/clearUserSession.js';
 
 export function createSessionService({ authRepository }) {
   if (!authRepository) {

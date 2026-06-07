@@ -1,0 +1,225 @@
+{
+  "verdict": "NOT READY -- HIGH SEVERITY FAILURES REMAIN",
+  "total": 31,
+  "passed": 28,
+  "failed": 3,
+  "tests": [
+    {
+      "id": "H1-T1",
+      "name": "No 'Illegal return statement' exception on saved.html",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/high_verify/h1_saved_after_fix.png"
+    },
+    {
+      "id": "H1-T2",
+      "name": "No JS exceptions at all on saved.html",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/high_verify/h1_saved_after_fix.png"
+    },
+    {
+      "id": "H1-T3",
+      "name": "Saved page tab bar renders correctly",
+      "passed": true,
+      "detail": "Tabs found: 2",
+      "screenshot": "tests/screenshots/high_verify/h1_saved_after_fix.png"
+    },
+    {
+      "id": "H1-T4",
+      "name": "Saved page shows content area or proper empty state",
+      "passed": true,
+      "detail": "Content/empty elements: 4",
+      "screenshot": "tests/screenshots/high_verify/h1_saved_after_fix.png"
+    },
+    {
+      "id": "H2-T1",
+      "name": "sessionService.js uses correct import path (../../utils/)",
+      "passed": true,
+      "detail": "Correct path present: True",
+      "screenshot": ""
+    },
+    {
+      "id": "H2-T2",
+      "name": "sessionService.js no longer uses wrong path (../utils/)",
+      "passed": true,
+      "detail": "Wrong path still present: False",
+      "screenshot": ""
+    },
+    {
+      "id": "H2-T3",
+      "name": "clearUserSession.js exists at shared/js/utils/clearUserSession.js",
+      "passed": true,
+      "detail": "",
+      "screenshot": ""
+    },
+    {
+      "id": "H2-T4",
+      "name": "No 404 for clearUserSession.js on profile page",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": ""
+    },
+    {
+      "id": "H3-T1",
+      "name": "cleaner.svg exists on disk",
+      "passed": true,
+      "detail": "",
+      "screenshot": ""
+    },
+    {
+      "id": "H5-T1",
+      "name": "gardener.svg exists on disk",
+      "passed": true,
+      "detail": "",
+      "screenshot": ""
+    },
+    {
+      "id": "H3-T2",
+      "name": "cleaner.svg contains valid SVG markup",
+      "passed": true,
+      "detail": "Has <svg>: True",
+      "screenshot": ""
+    },
+    {
+      "id": "H5-T2",
+      "name": "gardener.svg contains valid SVG markup",
+      "passed": true,
+      "detail": "Has <svg>: True",
+      "screenshot": ""
+    },
+    {
+      "id": "H3-T3",
+      "name": "dashboard.html references cleaner.svg (not cleaner.png)",
+      "passed": true,
+      "detail": "ref_cleaner=True, no_old=True",
+      "screenshot": ""
+    },
+    {
+      "id": "H5-T3",
+      "name": "dashboard.html references gardener.svg (not gardener.png)",
+      "passed": true,
+      "detail": "ref_gardener=True, no_old=True",
+      "screenshot": ""
+    },
+    {
+      "id": "H3-T4",
+      "name": "cleaner icon renders without error on dashboard",
+      "passed": true,
+      "detail": "Broken cleaner refs: []",
+      "screenshot": "tests/screenshots/high_verify/h5_dashboard_icons.png"
+    },
+    {
+      "id": "H5-T4",
+      "name": "gardener icon renders without error on dashboard",
+      "passed": true,
+      "detail": "Broken gardener refs: []",
+      "screenshot": "tests/screenshots/high_verify/h5_dashboard_icons.png"
+    },
+    {
+      "id": "H5-T5",
+      "name": "No more than 1 broken local image on dashboard",
+      "passed": true,
+      "detail": "Still broken: ['http://localhost:8765/dashboard.html']",
+      "screenshot": "tests/screenshots/high_verify/h5_dashboard_icons.png"
+    },
+    {
+      "id": "H4-T1",
+      "name": "No SRI integrity errors on book-now.html",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": ""
+    },
+    {
+      "id": "H4-T2",
+      "name": "Leaflet (window.L) is defined on book-now.html",
+      "passed": true,
+      "detail": "window.L still undefined",
+      "screenshot": ""
+    },
+    {
+      "id": "H4-T4",
+      "name": "Map container has visible dimensions on book-now.html",
+      "passed": true,
+      "detail": "Map state: visible",
+      "screenshot": ""
+    },
+    {
+      "id": "H4-T3",
+      "name": "useFallbackLocation() callable (fallback path works)",
+      "passed": false,
+      "detail": "Result: not_defined",
+      "screenshot": "tests/screenshots/high_verify/h4_book_now_after_fix.png"
+    },
+    {
+      "id": "H4-T5",
+      "name": "Leaflet container initialized after fallback triggered",
+      "passed": false,
+      "detail": "No .leaflet-container after fallback call",
+      "screenshot": "tests/screenshots/high_verify/h4_book_now_after_fix.png"
+    },
+    {
+      "id": "H4-T6",
+      "name": "Location label updated from 'Detecting...' after fallback",
+      "passed": false,
+      "detail": "loc_text='Detecting…'",
+      "screenshot": "tests/screenshots/high_verify/h4_book_now_after_fix.png"
+    },
+    {
+      "id": "H4-T7",
+      "name": "Hard failsafe timer present in detectLocation()",
+      "passed": true,
+      "detail": "Failsafe guard not found in page source",
+      "screenshot": "tests/screenshots/high_verify/h4_book_now_after_fix.png"
+    },
+    {
+      "id": "H4-T8",
+      "name": "Action/Book button visible — user can always proceed",
+      "passed": true,
+      "detail": "Action button not found",
+      "screenshot": "tests/screenshots/high_verify/h4_book_now_after_fix.png"
+    },
+    {
+      "id": "H4-T9",
+      "name": "No 'L is not defined' exception on book-now.html",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/high_verify/h4_book_now_after_fix.png"
+    },
+    {
+      "id": "REG-Dashboard",
+      "name": "Dashboard — no new JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/high_verify/reg_dashboard.png"
+    },
+    {
+      "id": "REG-Login",
+      "name": "Login — no new JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/high_verify/reg_login.png"
+    },
+    {
+      "id": "REG-BookingHistory",
+      "name": "Booking History — no new JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/high_verify/reg_booking.png"
+    },
+    {
+      "id": "REG-BookStep1",
+      "name": "Book Step 1 — no new JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/high_verify/reg_book-step1.png"
+    },
+    {
+      "id": "REG-Notifications",
+      "name": "Notifications — no new JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/high_verify/reg_notification.png"
+    }
+  ]
+}

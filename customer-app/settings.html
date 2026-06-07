@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Handy Hub – Settings</title>
+  <title>Settings | HandyHub</title>
   <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="stylesheet" href="css/settings.css" />
   <link rel="stylesheet" href="../shared/css/pageTransitions.css" />
@@ -20,7 +20,7 @@
       <div class="page-header">
         <button class="back-btn" aria-label="Go back"
           onclick="sessionStorage.setItem('pageTransitionDirection','back'); window.location.href='profile.html'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
@@ -246,6 +246,16 @@
         </button>
 
       </div>
+
+      <!-- Sign Out -->
+      <button id="settings-logout-btn" class="logout-btn"
+        style="display:flex;align-items:center;gap:10px;width:calc(100% - 32px);margin:0 16px 12px;padding:14px 16px;border-radius:14px;border:1.5px solid #fde8e8;background:#fff5f5;cursor:pointer;font-size:15px;font-weight:700;color:#e53e3e;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/>
+          <path d="M16 17l5-5-5-5M21 12H9" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Sign Out
+      </button>
 
       <!-- Delete Account -->
       <button class="delete-btn" onclick="openDeleteModal()">
@@ -557,11 +567,23 @@
     })();
   </script>
 
-  <script type="module">
-    import { requireAuth } from '../shared/js/utils/authGuard.js';
-    await requireAuth();
-  </script>
+  <script type="module" src="js/authInit.js"></script>
   <script type="module" src="js/pages/settingsPage.js"></script>
+  <script type="module">
+    import { getAppContainer } from '../shared/js/app/container.js';
+    const logoutBtn = document.getElementById('settings-logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        logoutBtn.disabled = true;
+        logoutBtn.textContent = 'Signing out…';
+        try {
+          const { services: { authService } } = getAppContainer();
+          await authService.signOut();
+        } catch (_) {}
+        window.location.replace('login.html');
+      });
+    }
+  </script>
 <script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>

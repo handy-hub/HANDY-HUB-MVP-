@@ -4,10 +4,15 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Handy Hub – Book a Service</title>
+  <title>Book a Service | HandyHub</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <!-- Auth guard runs before any page content renders -->
+  <script type="module">
+    import { requireAuth } from '../shared/js/utils/authGuard.js';
+    await requireAuth();
+  </script>
 </head>
 <body>
 <div class="phone-shell">
@@ -182,7 +187,8 @@
 
 <script>
   function _bkKey() { return window.HH_State ? window.HH_State.scopedKey('hh_booking') : 'hh_booking'; }
-  function getState() { try { return JSON.parse(localStorage.getItem(_bkKey())) || {}; } catch { return {}; } }
+  const BK_KEY = _bkKey();
+  function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
 
   /* ── Service catalogue ── */
   const SVC_CATALOG = {
@@ -461,7 +467,7 @@
     if (label) label.textContent = `Promo: ${code}`;
     if (sub)   sub.textContent   = promo.label;
 
-    showToast(`Promo code ${code} applied! 🎉`);
+    showToast(`Promo code ${code} applied — discount active`, 'success');
 
     // Persist to booking state for checkout
     const st = getState();
@@ -490,10 +496,6 @@
     clearTimeout(showToast._timer);
     showToast._timer = setTimeout(() => { t.classList.add('toast-exit'); setTimeout(() => t.remove(), 320); }, 3000);
   }
-</script>
-<script type="module">
-  import { requireAuth } from '../shared/js/utils/authGuard.js';
-  await requireAuth();
 </script>
 </body>
 </html>

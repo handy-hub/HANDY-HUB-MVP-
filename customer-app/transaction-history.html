@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Handy Hub – Transaction History</title>
+  <title>Transaction History | HandyHub</title>
   <link rel="stylesheet" href="css/transaction-history.css" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
@@ -70,6 +70,32 @@
         <div class="txn-shimmer"></div>
         <div class="txn-shimmer"></div>
       </div>
+      <!-- Auth-required fallback: shown if JS modules fail to load within 6s -->
+      <div id="txn-auth-fallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;text-align:center;gap:12px;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="11" width="18" height="11" rx="2" stroke="#730201" stroke-width="1.7"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#730201" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <p style="margin:0;font-size:15px;font-weight:800;color:#111;">Sign in to view transactions</p>
+        <p style="margin:0;font-size:13px;color:#777;">Your transaction history is private and requires authentication.</p>
+        <a href="login.html" style="margin-top:4px;padding:10px 28px;border-radius:12px;background:#730201;color:#fff;font-size:14px;font-weight:700;text-decoration:none;">Go to Login</a>
+      </div>
+      <script>
+        // If the module script hasn't hidden the spinner within 6 seconds,
+        // JS likely failed to load (no auth, offline, CDN issue). Show fallback.
+        (function () {
+          var timer = setTimeout(function () {
+            var loading  = document.getElementById('txn-loading');
+            var fallback = document.getElementById('txn-auth-fallback');
+            if (loading && loading.style.display !== 'none') {
+              loading.style.display = 'none';
+              if (fallback) fallback.style.display = 'flex';
+            }
+          }, 6000);
+          // Module script sets window.__txnLoaded = true when it takes over
+          window.__txnTimerId = timer;
+        })();
+      </script>
 
       <!-- Live transaction list -->
       <div class="transactions-card" id="txn-list" style="display:none"></div>
@@ -456,6 +482,9 @@
     import '../shared/js/utils/global-app.js';
     import { requireAuth }                             from '../shared/js/utils/authGuard.js';
     import { getAppContainer }                         from '../shared/js/app/container.js';
+
+    // Cancel the auth-fallback timer — JS modules loaded successfully
+    if (window.__txnTimerId) { clearTimeout(window.__txnTimerId); window.__txnTimerId = null; }
     import { showToast }                               from '../shared/js/components/toast.js';
     import { createPaymentRepository, PROVIDER_META }  from '../shared/js/data/repositories/paymentRepository.js';
     import { initiateWithdrawal }                      from '../shared/js/services/paystackService.js';

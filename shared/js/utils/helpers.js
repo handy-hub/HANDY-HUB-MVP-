@@ -36,7 +36,7 @@ let counter = 0;
 
 function redirectToTracking(query = '') {
     const cleanQuery = query.trim();
-    const target = cleanQuery ? `tracking.html?q=${encodeURIComponent(cleanQuery)}` : 'tracking.html';
+    const target = cleanQuery ? `search-page.html?q=${encodeURIComponent(cleanQuery)}` : 'search-page.html';
     window.location.href = target;
 }
 
@@ -310,10 +310,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!searchTrigger || !searchContainer || !homeContent) return;
 
     // 1. Pre-fetch the search page code immediately
-    fetch('tracking.html')
+    fetch('search-page.html')
         .then(response => response.text())
         .then(html => {
-            // Put the tracking.html code inside the hidden container
+            // Put the search-page.html code inside the hidden container
             searchContainer.innerHTML = html;
         })
         .catch((error) => {

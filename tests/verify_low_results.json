@@ -1,0 +1,190 @@
+{
+  "verdict": "LOW ISSUES RESOLVED -- SYSTEM POLISHED",
+  "total": 26,
+  "passed": 26,
+  "failed": 0,
+  "tests": [
+    {
+      "id": "L1-T1",
+      "name": "handyhub-logo-text.png exists on disk",
+      "passed": true,
+      "detail": "",
+      "screenshot": ""
+    },
+    {
+      "id": "L1-T2",
+      "name": "handyhub-logo.png exists on disk",
+      "passed": true,
+      "detail": "",
+      "screenshot": ""
+    },
+    {
+      "id": "L1-T3",
+      "name": "login.html has onerror fallback on logo img",
+      "passed": true,
+      "detail": "onerror attribute missing",
+      "screenshot": ""
+    },
+    {
+      "id": "L1-T4",
+      "name": "signup.html has onerror fallback on logo img",
+      "passed": true,
+      "detail": "onerror attribute missing",
+      "screenshot": ""
+    },
+    {
+      "id": "L1-T5",
+      "name": "splash-screen.html has onerror fallback on logo img",
+      "passed": true,
+      "detail": "onerror attribute missing",
+      "screenshot": ""
+    },
+    {
+      "id": "L1-T6",
+      "name": "index.html has onerror fallback on logo img",
+      "passed": true,
+      "detail": "onerror attribute missing",
+      "screenshot": ""
+    },
+    {
+      "id": "L1-T7",
+      "name": "Logo img loads correctly from project-root server",
+      "passed": true,
+      "detail": "logo state: loaded",
+      "screenshot": "tests/screenshots/low_verify/l1_login_logo.png"
+    },
+    {
+      "id": "L1-T8",
+      "name": "Logo shows fallback text when image fails (customer-app server)",
+      "passed": true,
+      "detail": "State: fallback_shown",
+      "screenshot": "tests/screenshots/low_verify/l1_login_onerror_fallback.png"
+    },
+    {
+      "id": "L2-T1",
+      "name": "All sampled page titles use HandyHub branding with | separator",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": ""
+    },
+    {
+      "id": "L2-T2",
+      "name": "Login page title is 'Login | HandyHub'",
+      "passed": true,
+      "detail": "Got: 'Login | HandyHub'",
+      "screenshot": ""
+    },
+    {
+      "id": "L2-T3",
+      "name": "Settings page title is 'Settings | HandyHub'",
+      "passed": true,
+      "detail": "Got: 'Settings | HandyHub'",
+      "screenshot": ""
+    },
+    {
+      "id": "L2-T4",
+      "name": "Book Step 1 title uses pipe separator",
+      "passed": true,
+      "detail": "Got: 'Book a Service | HandyHub'",
+      "screenshot": ""
+    },
+    {
+      "id": "L3-T1",
+      "name": "history.js file deleted from disk",
+      "passed": true,
+      "detail": "",
+      "screenshot": ""
+    },
+    {
+      "id": "L3-T2",
+      "name": "No <script src> tags reference history.js",
+      "passed": true,
+      "detail": "Still referenced in: []",
+      "screenshot": ""
+    },
+    {
+      "id": "L3-T3",
+      "name": "Stale history.js comment removed from tracking.html",
+      "passed": true,
+      "detail": "Comment still present",
+      "screenshot": ""
+    },
+    {
+      "id": "L3-T4",
+      "name": "tracking.html loads without any history.js 404",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/low_verify/l3_tracking_no_history.png"
+    },
+    {
+      "id": "L4-T1",
+      "name": "package.json has a 'dev' script",
+      "passed": true,
+      "detail": "scripts: {'dev': 'npx serve . -p 8766 --no-clipboard', 'start': 'npx serve . -p 8766 --no-clipboard', 'serve:ca': 'npx serve customer-app -p 8765 --no-clipboard', 'test': 'python tests/verify_low_fixes.py'}",
+      "screenshot": ""
+    },
+    {
+      "id": "L4-T2",
+      "name": "package.json has a 'start' script",
+      "passed": true,
+      "detail": "",
+      "screenshot": ""
+    },
+    {
+      "id": "L4-T3",
+      "name": "dev script serves from project root (not subdirectory)",
+      "passed": true,
+      "detail": "dev cmd: 'npx serve . -p 8766 --no-clipboard'",
+      "screenshot": ""
+    },
+    {
+      "id": "L4-T4",
+      "name": "DEVELOPER.md documentation file exists",
+      "passed": true,
+      "detail": "",
+      "screenshot": ""
+    },
+    {
+      "id": "L4-T5",
+      "name": "login.html loads shared/ assets without 404 from project-root server",
+      "passed": true,
+      "detail": "404s: []",
+      "screenshot": "tests/screenshots/low_verify/l4_login_project_root.png"
+    },
+    {
+      "id": "REG-Login",
+      "name": "Login -- no new JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/low_verify/reg_login.png"
+    },
+    {
+      "id": "REG-SignUp",
+      "name": "Sign Up -- no new JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/low_verify/reg_signup.png"
+    },
+    {
+      "id": "REG-Dashboard",
+      "name": "Dashboard -- no new JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/low_verify/reg_dashboard.png"
+    },
+    {
+      "id": "REG-Search(tracking)",
+      "name": "Search (tracking) -- no new JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/low_verify/reg_tracking.png"
+    },
+    {
+      "id": "REG-Saved",
+      "name": "Saved -- no new JS exceptions",
+      "passed": true,
+      "detail": "[]",
+      "screenshot": "tests/screenshots/low_verify/reg_saved.png"
+    }
+  ]
+}

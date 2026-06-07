@@ -5,7 +5,7 @@
   <script src="../shared/js/utils/themeManager.js"></script>
   <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Handy Hub – Live Tracking</title>
+  <title>Live Tracking | HandyHub</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -501,21 +501,37 @@ function callArtisan() {
   }
 }
 
-// ── Booking status gate — redirect if artisan hasn't accepted yet ────────────
-// This check runs immediately so customers can't manually navigate here before
-// the artisan has responded. The definitive gate is the Firestore status check
-// in the module script below; this local check is a fast first pass.
+// ── Booking status gate — show empty state if no active booking ──────────────
+// No redirects: customers stay on this page and see a clear "no active booking"
+// message. The definitive server-side check runs in the module script below.
 (function enforceTrackingGate() {
   try {
     const b = window.HH_State ? window.HH_State.booking.get() : {};
     const gatedStatuses = ['accepted', 'en_route', 'in_progress', 'awaiting', 'completed'];
-    if (!gatedStatuses.includes((b.status || '').toLowerCase())) {
-      window.location.replace('book-step4.html');
-    }
-  } catch(_) {
-    window.location.replace('dashboard.html');
+    window._trkNoActiveBooking = !gatedStatuses.includes((b.status || '').toLowerCase());
+  } catch (_) {
+    window._trkNoActiveBooking = true;
   }
 })();
+
+// Empty-state presenter — called when there is no active trackable booking.
+// Mutates the existing DOM without adding new elements.
+function showNoBookingEmptyState() {
+  const pill  = document.getElementById('stage-label');
+  const dot   = document.getElementById('stage-dot');
+  const eta   = document.getElementById('eta-chip');
+  const name  = document.getElementById('trk-name');
+  const svc   = document.getElementById('trk-service');
+  if (pill) pill.textContent = 'No Active Booking';
+  if (dot)  dot.style.background = '#9CA3AF';
+  if (eta)  eta.style.display = 'none';
+  if (name) name.textContent = 'No artisan assigned';
+  if (svc)  svc.textContent  = 'Book a service to start tracking your professional';
+  // Hide slide actions — nothing to cancel or confirm
+  document.querySelectorAll('.slide-action').forEach(el => { el.style.display = 'none'; });
+  // Show a non-intrusive map popup via the existing helper (called after map init)
+  if (typeof showTrackingUnavailable === 'function') showTrackingUnavailable();
+}
 
 // ── Load booking data ────────────────────────────────────────
 const booking = window.HH_State ? window.HH_State.booking.get() : {};
@@ -594,6 +610,13 @@ window.showTrackingUnavailable = function showTrackingUnavailable() {
 }
 
 window.updateArtisanMarker = function updateArtisanMarker(aLat, aLng) {
+  // Guard: reject anything that is not a finite number within valid GPS bounds
+  if (typeof aLat !== 'number' || typeof aLng !== 'number' ||
+      !isFinite(aLat) || !isFinite(aLng) ||
+      aLat < -90 || aLat > 90 || aLng < -180 || aLng > 180) {
+    console.warn('[live-tracking] Invalid artisan coordinates — skipping marker update', aLat, aLng);
+    return;
+  }
   if (!artisanMarker) {
     artisanMarker = L.marker([aLat, aLng], { icon: artisanIcon }).addTo(map).bindPopup('Artisan');
     routeLine = L.polyline([[aLat, aLng], [userLat, userLng]], {
@@ -605,7 +628,7 @@ window.updateArtisanMarker = function updateArtisanMarker(aLat, aLng) {
     artisanMarker.setLatLng([aLat, aLng]);
     routeLine.setLatLngs([[aLat, aLng], [userLat, userLng]]);
   }
-}
+};  // semicolon required — prevents IIFE on next line being parsed as a call argument (ASI bug)
 
 (function subscribeArtisanLocation() {
   const artisanId = (_pro && _pro.id) || booking.proId || null;
@@ -620,11 +643,16 @@ renderStages();
 initSlide('slide-cancel',  'cancel-fill',  'cancel-label',  'cancel-thumb',  cancelBooking);
 initSlide('slide-confirm', 'confirm-fill', 'confirm-label', 'confirm-thumb', confirmCompletion);
 
-// Show initial unavailable state; real location updates arrive via Firestore below
-showTrackingUnavailable();
+// If no active booking from the local gate, show empty state immediately.
+// Otherwise show the standard "live tracking will appear when artisan is en route" popup.
+if (window._trkNoActiveBooking) {
+  showNoBookingEmptyState();
+} else {
+  showTrackingUnavailable();
+}
 </script>
 <script type="module">
-  import { requireAuth }    from '../shared/js/utils/authGuard.js';
+  import { requireAuth }     from '../shared/js/utils/authGuard.js';
   import { getAppContainer } from '../shared/js/app/container.js';
   import { getHaversineDistanceKm, estimateEtaMinutes } from '../shared/js/utils/geo.js';
 
@@ -632,98 +660,106 @@ showTrackingUnavailable();
   const { services: { databaseService } } = getAppContainer();
 
   // ── Firestore status gate — definitive server-side check ──
-  // Reject access if Firestore shows the booking isn't accepted.
   const _bk        = window.HH_State ? window.HH_State.booking.get() : {};
   const _bookingId = _bk.bookingId || _bk.id || null;
+
+  // C1 FIX: use a flag instead of a top-level return (illegal in ES modules)
+  let _setupAborted = false;
+
   if (_bookingId) {
     try {
       const _snap = await new Promise((resolve, reject) => {
-        const _unsub = databaseService.subscribeToDocument('bookings', _bookingId, s => {
-          _unsub();
+        // C2 FIX: declare _unsub with let so the callback can reference the bound value
+        let _unsub = null;
+        _unsub = databaseService.subscribeToDocument('bookings', _bookingId, s => {
+          if (typeof _unsub === 'function') _unsub();  // null-guard before calling
           resolve(s);
         }, reject);
       });
       const _allowed = ['accepted', 'en_route', 'in_progress', 'awaiting', 'completed'];
       if (_snap?.data && !_allowed.includes(_snap.data.status)) {
-        window.location.replace('book-step4.html');
-        throw new Error('booking not yet accepted');
+        if (typeof window.showNoBookingEmptyState === 'function') {
+          window.showNoBookingEmptyState();
+        }
+        _setupAborted = true;  // C1: flag instead of return
       }
     } catch (e) {
-      if (e.message === 'booking not yet accepted') throw e;
       // Firestore error — fall through and let the local gate stand
+      console.warn('[live-tracking] Booking gate check failed:', e.message);
     }
   }
 
-  // ── Real-time artisan location from Firestore ──────────────
-  const artisanId = window._trkSubscribeArtisan;
-  if (artisanId) {
-    try {
-      window._trkLocationUnsub = databaseService.subscribeToDocument(
-        'artisans', artisanId,
-        snap => {
-          if (!snap || !snap.data) { window.showTrackingUnavailable?.(); return; }
-          const d    = snap.data;
-          const aLat = d.currentLat ?? d.lat ?? null;
-          const aLng = d.currentLng ?? d.lng ?? null;
-          if (aLat && aLng) {
-            window.updateArtisanMarker(aLat, aLng);
-
-            // Calculate dynamic ETA and update chip
-            if (userLat !== null && userLng !== null) {
-              const distKm = getHaversineDistanceKm(userLat, userLng, aLat, aLng);
-              if (distKm !== null) {
-                const etaMin = estimateEtaMinutes(distKm);
-                const etaChip = document.getElementById('eta-chip');
-                if (etaChip) etaChip.textContent = `~${etaMin} min`;
+  // All further setup is skipped when the booking gate aborts
+  if (!_setupAborted) {
+    // ── Real-time artisan location from Firestore ──────────────
+    const artisanId = window._trkSubscribeArtisan;
+    if (artisanId) {
+      try {
+        window._trkLocationUnsub = databaseService.subscribeToDocument(
+          'artisans', artisanId,
+          snap => {
+            if (!snap || !snap.data) { window.showTrackingUnavailable?.(); return; }
+            const d    = snap.data;
+            const aLat = d.currentLat ?? d.lat ?? null;
+            const aLng = d.currentLng ?? d.lng ?? null;
+            if (aLat !== null && aLng !== null) {
+              window.updateArtisanMarker(aLat, aLng);
+              if (userLat !== null && userLng !== null) {
+                const distKm = getHaversineDistanceKm(userLat, userLng, aLat, aLng);
+                if (distKm !== null) {
+                  const etaMin = estimateEtaMinutes(distKm);
+                  const etaChip = document.getElementById('eta-chip');
+                  if (etaChip) etaChip.textContent = `~${etaMin} min`;
+                }
               }
+            } else {
+              window.showTrackingUnavailable?.();
             }
-          } else {
+          },
+          err => {
+            console.warn('[live-tracking] Firestore location subscribe error:', err);
             window.showTrackingUnavailable?.();
           }
-        },
-        err => {
-          console.warn('[live-tracking] Firestore location subscribe error:', err);
-          window.showTrackingUnavailable?.();
-        }
-      );
-    } catch (e) {
-      console.warn('[live-tracking] Could not subscribe to artisan location:', e);
-      window.showTrackingUnavailable?.();
+        );
+      } catch (e) {
+        console.warn('[live-tracking] Could not subscribe to artisan location:', e);
+        window.showTrackingUnavailable?.();
+      }
     }
-  }
 
-  // ── Real-time booking status → drives stage progression ──────────────
-  // When the artisan advances status (in_progress, awaiting, completed),
-  // the stage indicator updates without a page reload.
-  if (_bookingId) {
-    try {
-      const _statusUnsub = databaseService.subscribeToDocument(
-        'bookings', _bookingId,
-        snap => {
-          if (!snap || !snap.data) return;
-          const s = (snap.data.status || '').toLowerCase();
-          let newStage = 0;
-          if (s === 'in_progress') newStage = 3;
-          else if (s === 'awaiting')    newStage = 4;
-          else if (s === 'completed')   newStage = 5;
-          else if (s === 'accepted')    newStage = 0;
-          if (newStage !== currentStageIndex) {
-            currentStageIndex = newStage;
-            renderStages();
-          }
-        },
-        err => console.warn('[tracking] Booking status subscription error:', err)
-      );
-      window.addEventListener('pagehide', () => { if (typeof _statusUnsub === 'function') _statusUnsub(); });
-    } catch (e) {
-      console.warn('[tracking] Could not subscribe to booking status:', e);
+    // ── Real-time booking status → drives stage progression ──
+    if (_bookingId) {
+      try {
+        const _statusUnsub = databaseService.subscribeToDocument(
+          'bookings', _bookingId,
+          snap => {
+            if (!snap || !snap.data) return;
+            const s = (snap.data.status || '').toLowerCase();
+            let newStage = 0;
+            if      (s === 'in_progress') newStage = 3;
+            else if (s === 'awaiting')    newStage = 4;
+            else if (s === 'completed')   newStage = 5;
+            else if (s === 'accepted')    newStage = 0;
+            if (newStage !== currentStageIndex) {
+              currentStageIndex = newStage;
+              renderStages();
+            }
+          },
+          err => console.warn('[tracking] Booking status subscription error:', err)
+        );
+        window.addEventListener('pagehide', () => {
+          if (typeof _statusUnsub === 'function') _statusUnsub();
+        });
+      } catch (e) {
+        console.warn('[tracking] Could not subscribe to booking status:', e);
+      }
     }
-  }
 
-  // Clean up location listener when user navigates away
-  window.addEventListener('pagehide', () => {
-    if (window._trkLocationUnsub) { window._trkLocationUnsub(); }
-  });
+    // Clean up location listener on page unload
+    window.addEventListener('pagehide', () => {
+      if (typeof window._trkLocationUnsub === 'function') { window._trkLocationUnsub(); }
+    });
+  }
 </script>
 </body>
 </html>

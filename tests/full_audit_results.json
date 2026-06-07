@@ -1,0 +1,1142 @@
+{
+  "verdict": "NOT READY — CRITICAL ISSUES FOUND",
+  "summary": {
+    "pages_scanned": 34,
+    "pages_audited": 33,
+    "passed": 97,
+    "failed": 45,
+    "total_issues": 45,
+    "critical": 2,
+    "high": 16,
+    "medium": 12,
+    "low": 15
+  },
+  "per_page": {
+    "login.html": {
+      "title": "Login | HandyHub",
+      "url": "http://localhost:8765/login.html",
+      "screenshot": "tests/screenshots/full_audit/p2_login.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:handyhub-logo-text.png"
+      ]
+    },
+    "signup.html": {
+      "title": "Sign Up | HandyHub",
+      "url": "http://localhost:8765/signup.html",
+      "screenshot": "tests/screenshots/full_audit/p2_signup.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:handyhub-logo-text.png",
+        "DEAD_LINK:Terms of Service",
+        "DEAD_LINK:Privacy Policy"
+      ]
+    },
+    "index.html": {
+      "title": "Get Started | HandyHub",
+      "url": "http://localhost:8765/index.html",
+      "screenshot": "tests/screenshots/full_audit/p2_index.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:handyhub-logo.png",
+        "BROKEN_IMG:customer-img.png"
+      ]
+    },
+    "splash-screen.html": {
+      "title": "HandyHub",
+      "url": "http://localhost:8765/splash-screen.html",
+      "screenshot": "tests/screenshots/full_audit/p2_splash-screen.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:handyhub-logo-text.png"
+      ]
+    },
+    "dashboard.html": {
+      "title": "HandyHub",
+      "url": "http://localhost:8765/dashboard.html",
+      "screenshot": "tests/screenshots/full_audit/p2_dashboard.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:dashboard.html",
+        "BROKEN_IMG:plummer.png",
+        "BROKEN_IMG:electricals.png",
+        "BROKEN_IMG:cleaner.svg",
+        "BROKEN_IMG:cooling.png",
+        "BROKEN_IMG:carpenter.png",
+        "BROKEN_IMG:painter.png",
+        "BROKEN_IMG:welder.png",
+        "BROKEN_IMG:gardener.svg",
+        "DEAD_LINK:My Requests",
+        "DEAD_LINK:Promo Codes2 Available",
+        "DEAD_LINK:Support Center",
+        "DEAD_LINK:Invite FriendsEarn GHC 20"
+      ]
+    },
+    "book-now.html": {
+      "title": "Find a Professional | HandyHub",
+      "url": "http://localhost:8765/book-now.html",
+      "screenshot": "tests/screenshots/full_audit/p2_book-now.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "book-step1.html": {
+      "title": "Book a Service | HandyHub",
+      "url": "http://localhost:8765/book-step1.html",
+      "screenshot": "tests/screenshots/full_audit/p2_book-step1.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 2,
+      "net_sample": [
+        "http://localhost:8765/css/booking-flow.css",
+        "https://images.unsplash.com/photo-1609205807107-2f5ad87f5c4c?w=150&h=150&fit=crop"
+      ],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:photo-1609205807107-2f5ad87f5c4c?w=150&h=150&fit=crop"
+      ]
+    },
+    "book-step2.html": {
+      "title": "Choose Professional | HandyHub",
+      "url": "http://localhost:8765/book-step2.html",
+      "screenshot": "tests/screenshots/full_audit/p2_book-step2.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 1,
+      "net_sample": [
+        "http://localhost:8765/css/booking-flow.css"
+      ],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "book-step3.html": {
+      "title": "Schedule and Confirm | HandyHub",
+      "url": "http://localhost:8765/book-step3.html",
+      "screenshot": "tests/screenshots/full_audit/p2_book-step3.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 1,
+      "net_sample": [
+        "http://localhost:8765/css/booking-flow.css"
+      ],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "book-step4.html": {
+      "title": "Request Sent | HandyHub",
+      "url": "http://localhost:8765/book-step4.html",
+      "screenshot": "tests/screenshots/full_audit/p2_book-step4.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 1,
+      "net_sample": [
+        "http://localhost:8765/css/booking-flow.css"
+      ],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "book-emergency.html": {
+      "title": "Emergency Booking | HandyHub",
+      "url": "http://localhost:8765/book-emergency.html",
+      "screenshot": "tests/screenshots/full_audit/p2_book-emergency.png",
+      "console_errors": 2,
+      "console_sample": [
+        "WARNING: [emergency] Failed to load geo helper: TypeError: Failed to fetch dynamically imported module: http://localhost:8765/sha",
+        "WARNING: [emergency] Artisan query failed: TypeError: Failed to fetch dynamically imported module: http://localhost:8765/shared/j"
+      ],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "booking.html": {
+      "title": "My Bookings | HandyHub",
+      "url": "http://localhost:8765/booking.html",
+      "screenshot": "tests/screenshots/full_audit/p2_booking.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "live-tracking.html": {
+      "title": "Live Tracking | HandyHub",
+      "url": "http://localhost:8765/live-tracking.html",
+      "screenshot": "tests/screenshots/full_audit/p2_live-tracking.png",
+      "console_errors": 1,
+      "console_sample": [
+        "WARNING: [live-tracking] Invalid artisan coordinates — skipping marker update function subscribeArtisanLocation() {\n  const artis"
+      ],
+      "net_fails": 1,
+      "net_sample": [
+        "http://localhost:8765/css/booking-flow.css"
+      ],
+      "js_exceptions": 2,
+      "exc_sample": [
+        "(intermediate value)(...) is not a function",
+        "Illegal return statement"
+      ],
+      "ui_issues": []
+    },
+    "tracking.html": {
+      "title": "Search Services | HandyHub",
+      "url": "http://localhost:8765/tracking.html",
+      "screenshot": "tests/screenshots/full_audit/p2_tracking.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:icons8-search-96.png",
+        "BROKEN_IMG:plummer.png",
+        "BROKEN_IMG:electricals.png",
+        "BROKEN_IMG:electricals.png",
+        "BROKEN_IMG:cooling.png",
+        "BROKEN_IMG:painter.png",
+        "BROKEN_IMG:electricals.png",
+        "BROKEN_IMG:plummer.png",
+        "BROKEN_IMG:carpenter.png",
+        "BROKEN_IMG:cooling.png",
+        "BROKEN_IMG:welder.png",
+        "BROKEN_IMG:painter.png",
+        "BROKEN_IMG:more.png",
+        "BROKEN_IMG:chat.png"
+      ]
+    },
+    "notification.html": {
+      "title": "Notifications | HandyHub",
+      "url": "http://localhost:8765/notification.html",
+      "screenshot": "tests/screenshots/full_audit/p2_notification.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "messages.html": {
+      "title": "Messages | HandyHub",
+      "url": "http://localhost:8765/messages.html",
+      "screenshot": "tests/screenshots/full_audit/p2_messages.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:messages.html"
+      ]
+    },
+    "message.html": {
+      "title": "Messages | HandyHub",
+      "url": "http://localhost:8765/message.html",
+      "screenshot": "tests/screenshots/full_audit/p2_message.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:messages.html"
+      ]
+    },
+    "saved.html": {
+      "title": "Saved | HandyHub",
+      "url": "http://localhost:8765/saved.html",
+      "screenshot": "tests/screenshots/full_audit/p2_saved.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "profile.html": {
+      "title": "Profile | HandyHub",
+      "url": "http://localhost:8765/profile.html",
+      "screenshot": "tests/screenshots/full_audit/p2_profile.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:profile.html"
+      ]
+    },
+    "topup.html": {
+      "title": "Top Up Wallet | HandyHub",
+      "url": "http://localhost:8765/topup.html",
+      "screenshot": "tests/screenshots/full_audit/p2_topup.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "transaction-history.html": {
+      "title": "Transaction History | HandyHub",
+      "url": "http://localhost:8765/transaction-history.html",
+      "screenshot": "tests/screenshots/full_audit/p2_transaction-history.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "SPINNER_VISIBLE:txn-loading"
+      ]
+    },
+    "review.html": {
+      "title": "Rate Your Experience | HandyHub",
+      "url": "http://localhost:8765/review.html",
+      "screenshot": "tests/screenshots/full_audit/p2_review.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "search-not-found.html": {
+      "title": "No Results | HandyHub",
+      "url": "http://localhost:8765/search-not-found.html",
+      "screenshot": "tests/screenshots/full_audit/p2_search-not-found.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": [
+        "BROKEN_IMG:icons8-search-96.png"
+      ]
+    },
+    "settings.html": {
+      "title": "Settings | HandyHub",
+      "url": "http://localhost:8765/settings.html",
+      "screenshot": "tests/screenshots/full_audit/p2_settings.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "settings-personal-info.html": {
+      "title": "Personal Information | HandyHub",
+      "url": "http://localhost:8765/settings-personal-info.html",
+      "screenshot": "tests/screenshots/full_audit/p2_settings-personal-info.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "settings-security.html": {
+      "title": "Security | HandyHub",
+      "url": "http://localhost:8765/settings-security.html",
+      "screenshot": "tests/screenshots/full_audit/p2_settings-security.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "settings-notifications.html": {
+      "title": "Notification Preferences | HandyHub",
+      "url": "http://localhost:8765/settings-notifications.html",
+      "screenshot": "tests/screenshots/full_audit/p2_settings-notifications.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "settings-location.html": {
+      "title": "Location Settings | HandyHub",
+      "url": "http://localhost:8765/settings-location.html",
+      "screenshot": "tests/screenshots/full_audit/p2_settings-location.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "settings-privacy.html": {
+      "title": "Privacy | HandyHub",
+      "url": "http://localhost:8765/settings-privacy.html",
+      "screenshot": "tests/screenshots/full_audit/p2_settings-privacy.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "settings-privacy-policy.html": {
+      "title": "Privacy Policy | HandyHub",
+      "url": "http://localhost:8765/settings-privacy-policy.html",
+      "screenshot": "tests/screenshots/full_audit/p2_settings-privacy-policy.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "settings-terms.html": {
+      "title": "Terms and Conditions | HandyHub",
+      "url": "http://localhost:8765/settings-terms.html",
+      "screenshot": "tests/screenshots/full_audit/p2_settings-terms.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "settings-help.html": {
+      "title": "Help and Support | HandyHub",
+      "url": "http://localhost:8765/settings-help.html",
+      "screenshot": "tests/screenshots/full_audit/p2_settings-help.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    },
+    "settings-about.html": {
+      "title": "About | HandyHub",
+      "url": "http://localhost:8765/settings-about.html",
+      "screenshot": "tests/screenshots/full_audit/p2_settings-about.png",
+      "console_errors": 0,
+      "console_sample": [],
+      "net_fails": 0,
+      "net_sample": [],
+      "js_exceptions": 0,
+      "exc_sample": [],
+      "ui_issues": []
+    }
+  },
+  "issues": [
+    {
+      "severity": "LOW",
+      "page": "signup.html",
+      "check": "DEAD_LINK",
+      "detail": "DEAD_LINK:Terms of Service",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "LOW",
+      "page": "signup.html",
+      "check": "DEAD_LINK",
+      "detail": "DEAD_LINK:Privacy Policy",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "HIGH",
+      "page": "dashboard.html",
+      "check": "BROKEN_IMG",
+      "detail": "BROKEN_IMG:dashboard.html",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "LOW",
+      "page": "dashboard.html",
+      "check": "DEAD_LINK",
+      "detail": "DEAD_LINK:My Requests",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "LOW",
+      "page": "dashboard.html",
+      "check": "DEAD_LINK",
+      "detail": "DEAD_LINK:Promo Codes2 Available",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "LOW",
+      "page": "dashboard.html",
+      "check": "DEAD_LINK",
+      "detail": "DEAD_LINK:Support Center",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "LOW",
+      "page": "dashboard.html",
+      "check": "DEAD_LINK",
+      "detail": "DEAD_LINK:Invite FriendsEarn GHC 20",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "HIGH",
+      "page": "book-step1.html",
+      "check": "Network failure",
+      "detail": "http://localhost:8765/css/booking-flow.css",
+      "fix": "Check asset paths"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "book-step1.html",
+      "check": "Network failure",
+      "detail": "https://images.unsplash.com/photo-1609205807107-2f5ad87f5c4c?w=150&h=150&fit=crop",
+      "fix": "Check asset paths"
+    },
+    {
+      "severity": "HIGH",
+      "page": "book-step1.html",
+      "check": "BROKEN_IMG",
+      "detail": "BROKEN_IMG:photo-1609205807107-2f5ad87f5c4c?w=150&h=150&fit=crop",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "HIGH",
+      "page": "book-step2.html",
+      "check": "Network failure",
+      "detail": "http://localhost:8765/css/booking-flow.css",
+      "fix": "Check asset paths"
+    },
+    {
+      "severity": "HIGH",
+      "page": "book-step3.html",
+      "check": "Network failure",
+      "detail": "http://localhost:8765/css/booking-flow.css",
+      "fix": "Check asset paths"
+    },
+    {
+      "severity": "HIGH",
+      "page": "book-step4.html",
+      "check": "Network failure",
+      "detail": "http://localhost:8765/css/booking-flow.css",
+      "fix": "Check asset paths"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "book-emergency.html",
+      "check": "Console error",
+      "detail": "WARNING: [emergency] Failed to load geo helper: TypeError: Failed to fetch dynamically imported module: http://localhost:8765/sha",
+      "fix": "Fix JS error"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "book-emergency.html",
+      "check": "Console error",
+      "detail": "WARNING: [emergency] Artisan query failed: TypeError: Failed to fetch dynamically imported module: http://localhost:8765/shared/j",
+      "fix": "Fix JS error"
+    },
+    {
+      "severity": "CRITICAL",
+      "page": "live-tracking.html",
+      "check": "JS Exception",
+      "detail": "(intermediate value)(...) is not a function",
+      "fix": "Investigate console"
+    },
+    {
+      "severity": "CRITICAL",
+      "page": "live-tracking.html",
+      "check": "JS Exception",
+      "detail": "Illegal return statement",
+      "fix": "Investigate console"
+    },
+    {
+      "severity": "HIGH",
+      "page": "live-tracking.html",
+      "check": "Network failure",
+      "detail": "http://localhost:8765/css/booking-flow.css",
+      "fix": "Check asset paths"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "live-tracking.html",
+      "check": "Console error",
+      "detail": "WARNING: [live-tracking] Invalid artisan coordinates — skipping marker update function subscribeArtisanLocation() {\n  const artis",
+      "fix": "Fix JS error"
+    },
+    {
+      "severity": "HIGH",
+      "page": "messages.html",
+      "check": "BROKEN_IMG",
+      "detail": "BROKEN_IMG:messages.html",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "HIGH",
+      "page": "message.html",
+      "check": "BROKEN_IMG",
+      "detail": "BROKEN_IMG:messages.html",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "HIGH",
+      "page": "profile.html",
+      "check": "BROKEN_IMG",
+      "detail": "BROKEN_IMG:profile.html",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "transaction-history.html",
+      "check": "SPINNER_VISIBLE",
+      "detail": "SPINNER_VISIBLE:txn-loading",
+      "fix": "Fix UI element"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "login.html",
+      "check": "No validation on empty submit",
+      "detail": "Form submits without showing error",
+      "fix": "Add form validation"
+    },
+    {
+      "severity": "LOW",
+      "page": "login.html",
+      "check": "No Google sign-in button",
+      "detail": "OAuth option missing",
+      "fix": "Add Google auth button"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "signup.html",
+      "check": "Empty submit test failed",
+      "detail": "Locator.click: Timeout 2000ms exceeded.\nCall log:\n  - waiting for locator(\"butto",
+      "fix": ""
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "dashboard.html",
+      "check": "Sidebar toggle failed",
+      "detail": "Locator.click: Timeout 2000ms exceeded.\nCall log:\n  - waiting for locator(\"[clas",
+      "fix": "Check click handler"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "dashboard.html",
+      "check": "Search interaction failed",
+      "detail": "Locator.click: Timeout 2000ms exceeded.\nCall log:\n  - waiting for locator(\"input",
+      "fix": "Check input"
+    },
+    {
+      "severity": "HIGH",
+      "page": "dashboard.html",
+      "check": "No service category cards found",
+      "detail": "Core navigation missing",
+      "fix": "Check rendering"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "dashboard.html",
+      "check": "No bottom navigation bar",
+      "detail": "Navigation UX missing",
+      "fix": "Add bottom nav"
+    },
+    {
+      "severity": "LOW",
+      "page": "dashboard.html",
+      "check": "Notification button unresponsive",
+      "detail": "",
+      "fix": "Check handler"
+    },
+    {
+      "severity": "LOW",
+      "page": "book-now.html",
+      "check": "No professional cards shown",
+      "detail": "May be loading or empty state",
+      "fix": "Check Firestore"
+    },
+    {
+      "severity": "LOW",
+      "page": "book-step1.html",
+      "check": "No category tabs found",
+      "detail": "",
+      "fix": ""
+    },
+    {
+      "severity": "HIGH",
+      "page": "book-step1.html",
+      "check": "No service cards found",
+      "detail": "Cannot pick a service",
+      "fix": "Check rendering"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "settings.html",
+      "check": "No logout button found",
+      "detail": "User cannot sign out from settings",
+      "fix": "Add logout"
+    },
+    {
+      "severity": "HIGH",
+      "page": "book-step1.html",
+      "check": "No services to select on step1",
+      "detail": "Cannot start booking",
+      "fix": "Fix rendering"
+    },
+    {
+      "severity": "LOW",
+      "page": "book-emergency.html",
+      "check": "State element em-state-searching absent",
+      "detail": "",
+      "fix": "Add state container"
+    },
+    {
+      "severity": "LOW",
+      "page": "book-emergency.html",
+      "check": "State element em-state-match absent",
+      "detail": "",
+      "fix": "Add state container"
+    },
+    {
+      "severity": "LOW",
+      "page": "book-emergency.html",
+      "check": "State element em-state-waiting absent",
+      "detail": "",
+      "fix": "Add state container"
+    },
+    {
+      "severity": "LOW",
+      "page": "book-emergency.html",
+      "check": "State element em-state-confirmed absent",
+      "detail": "",
+      "fix": "Add state container"
+    },
+    {
+      "severity": "LOW",
+      "page": "book-emergency.html",
+      "check": "State element em-state-nomatch absent",
+      "detail": "",
+      "fix": "Add state container"
+    },
+    {
+      "severity": "HIGH",
+      "page": "book-emergency.html",
+      "check": "Emergency CTA broken",
+      "detail": "Locator.click: Timeout 2000ms exceeded.\nCall log:\n  - waiting for locator(\"[clas",
+      "fix": "Fix handler"
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "profile.html",
+      "check": "No edit button",
+      "detail": "Cannot edit profile",
+      "fix": "Add edit option"
+    },
+    {
+      "severity": "HIGH",
+      "page": "dashboard.html",
+      "check": "Page blank in offline mode",
+      "detail": "No graceful degradation",
+      "fix": "Add offline state"
+    },
+    {
+      "severity": "HIGH",
+      "page": "book-now.html",
+      "check": "Page blank in offline mode",
+      "detail": "",
+      "fix": "Add offline state"
+    }
+  ],
+  "inventory": {
+    "book-emergency.html": {
+      "title": "Emergency Booking | HandyHub",
+      "scripts": 4,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 13,
+      "links": 0,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "book-now.html": {
+      "title": "Find a Professional | HandyHub",
+      "scripts": 6,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 14,
+      "links": 1,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "book-step1.html": {
+      "title": "Book a Service | HandyHub",
+      "scripts": 3,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 13,
+      "links": 0,
+      "imgs": 2,
+      "logo_onerror": false
+    },
+    "book-step2.html": {
+      "title": "Choose Professional | HandyHub",
+      "scripts": 2,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 13,
+      "links": 0,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "book-step3.html": {
+      "title": "Schedule and Confirm | HandyHub",
+      "scripts": 4,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 11,
+      "links": 1,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "book-step4.html": {
+      "title": "Request Sent | HandyHub",
+      "scripts": 4,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 8,
+      "links": 0,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "booking.html": {
+      "title": "My Bookings | HandyHub",
+      "scripts": 5,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 12,
+      "links": 0,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "dashboard.html": {
+      "title": "HandyHub",
+      "scripts": 15,
+      "module_scripts": 3,
+      "forms": 0,
+      "buttons": 26,
+      "links": 11,
+      "imgs": 6,
+      "logo_onerror": false
+    },
+    "index.html": {
+      "title": "Get Started | HandyHub",
+      "scripts": 4,
+      "module_scripts": 0,
+      "forms": 0,
+      "buttons": 2,
+      "links": 0,
+      "imgs": 2,
+      "logo_onerror": true
+    },
+    "live-tracking.html": {
+      "title": "Live Tracking | HandyHub",
+      "scripts": 5,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 3,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "login.html": {
+      "title": "Login | HandyHub",
+      "scripts": 5,
+      "module_scripts": 2,
+      "forms": 1,
+      "buttons": 9,
+      "links": 2,
+      "imgs": 3,
+      "logo_onerror": true
+    },
+    "message.html": {
+      "title": "Message | HandyHub",
+      "scripts": 1,
+      "module_scripts": 0,
+      "forms": 0,
+      "buttons": 0,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "messages.html": {
+      "title": "Messages | HandyHub",
+      "scripts": 5,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 11,
+      "links": 0,
+      "imgs": 4,
+      "logo_onerror": false
+    },
+    "notification.html": {
+      "title": "Notifications | HandyHub",
+      "scripts": 7,
+      "module_scripts": 2,
+      "forms": 0,
+      "buttons": 5,
+      "links": 0,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "personal-Info.html": {
+      "title": "Personal Information | HandyHub",
+      "scripts": 4,
+      "module_scripts": 0,
+      "forms": 0,
+      "buttons": 11,
+      "links": 0,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "profile.html": {
+      "title": "Profile | HandyHub",
+      "scripts": 5,
+      "module_scripts": 2,
+      "forms": 0,
+      "buttons": 12,
+      "links": 5,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "review.html": {
+      "title": "Rate Your Experience | HandyHub",
+      "scripts": 3,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 14,
+      "links": 0,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "saved.html": {
+      "title": "Saved | HandyHub",
+      "scripts": 7,
+      "module_scripts": 2,
+      "forms": 0,
+      "buttons": 9,
+      "links": 0,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "search-not-found.html": {
+      "title": "No Results | HandyHub",
+      "scripts": 3,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 3,
+      "links": 0,
+      "imgs": 1,
+      "logo_onerror": false
+    },
+    "settings-about.html": {
+      "title": "About | HandyHub",
+      "scripts": 4,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 3,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "settings-help.html": {
+      "title": "Help and Support | HandyHub",
+      "scripts": 4,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 6,
+      "links": 2,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "settings-location.html": {
+      "title": "Location Settings | HandyHub",
+      "scripts": 4,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 2,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "settings-notifications.html": {
+      "title": "Notification Preferences | HandyHub",
+      "scripts": 5,
+      "module_scripts": 2,
+      "forms": 0,
+      "buttons": 1,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "settings-personal-info.html": {
+      "title": "Personal Information | HandyHub",
+      "scripts": 5,
+      "module_scripts": 2,
+      "forms": 0,
+      "buttons": 2,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "settings-privacy-policy.html": {
+      "title": "Privacy Policy | HandyHub",
+      "scripts": 3,
+      "module_scripts": 0,
+      "forms": 0,
+      "buttons": 1,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "settings-privacy.html": {
+      "title": "Privacy | HandyHub",
+      "scripts": 4,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 1,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "settings-security.html": {
+      "title": "Security | HandyHub",
+      "scripts": 5,
+      "module_scripts": 2,
+      "forms": 0,
+      "buttons": 2,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "settings-terms.html": {
+      "title": "Terms and Conditions | HandyHub",
+      "scripts": 3,
+      "module_scripts": 0,
+      "forms": 0,
+      "buttons": 1,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "settings.html": {
+      "title": "Settings | HandyHub",
+      "scripts": 5,
+      "module_scripts": 2,
+      "forms": 0,
+      "buttons": 28,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "signup.html": {
+      "title": "Sign Up | HandyHub",
+      "scripts": 4,
+      "module_scripts": 1,
+      "forms": 1,
+      "buttons": 9,
+      "links": 3,
+      "imgs": 3,
+      "logo_onerror": true
+    },
+    "splash-screen.html": {
+      "title": "HandyHub",
+      "scripts": 3,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 0,
+      "links": 0,
+      "imgs": 1,
+      "logo_onerror": true
+    },
+    "topup.html": {
+      "title": "Top Up Wallet | HandyHub",
+      "scripts": 4,
+      "module_scripts": 2,
+      "forms": 0,
+      "buttons": 14,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    },
+    "tracking.html": {
+      "title": "Search Services | HandyHub",
+      "scripts": 7,
+      "module_scripts": 2,
+      "forms": 0,
+      "buttons": 18,
+      "links": 0,
+      "imgs": 14,
+      "logo_onerror": false
+    },
+    "transaction-history.html": {
+      "title": "Transaction History | HandyHub",
+      "scripts": 4,
+      "module_scripts": 1,
+      "forms": 0,
+      "buttons": 16,
+      "links": 0,
+      "imgs": 0,
+      "logo_onerror": false
+    }
+  }
+}

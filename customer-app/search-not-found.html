@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>No Results · HandyHub</title>
+    <title>No Results | HandyHub</title>
     <link rel="stylesheet" href="css/tracking.css">
     <link rel="stylesheet" href="../shared/css/ui-polish.css">
 </head>
@@ -39,7 +39,7 @@
                 <div class="search-not-found-actions">
                     <p>Please try different keywords or choose a popular service.</p>
                     <button class="clear-btn" type="button"
-                            onclick="window.location.href='tracking.html'">
+                            onclick="window.location.href='search-page.html'">
                         Back to Search
                     </button>
                 </div>
@@ -91,7 +91,7 @@ function submitRetry() {
     if (!value) return;
     // Save to history before navigating
     historyService.add(value);
-    window.location.href = `tracking.html?q=${encodeURIComponent(value)}`;
+    window.location.href = `search-page.html?q=${encodeURIComponent(value)}`;
 }
 
 if (button) button.addEventListener('click', submitRetry);

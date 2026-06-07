@@ -1,0 +1,263 @@
+/* ============================================================
+   booking-flow.css — Shared styles for the booking flow
+   Used by: book-step1, book-step2, book-step3, book-step4,
+            live-tracking
+   ============================================================ */
+
+/* ── Reset & shell ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  --bf-red:        #730201;
+  --bf-red-light:  #fff5f5;
+  --bf-red-mid:    #fde8e8;
+  --bf-text:       #111827;
+  --bf-sub:        #6B7280;
+  --bf-border:     #F3F4F6;
+  --bf-surface:    #ffffff;
+  --bf-radius:     16px;
+  --bf-radius-sm:  10px;
+  --bf-shadow:     0 2px 12px rgba(0,0,0,.06);
+}
+[data-theme="dark"] {
+  --bf-text:    #f0f0f0;
+  --bf-sub:     #9ca3af;
+  --bf-border:  #2a2a2a;
+  --bf-surface: #1c1c1c;
+}
+
+.phone-shell {
+  width: 100%; max-width: 430px; min-height: 100dvh;
+  margin: 0 auto; background: var(--bf-surface);
+  display: flex; flex-direction: column;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.scroll-area { flex: 1; overflow-y: auto; padding-bottom: 100px; }
+
+/* ── Step progress bar (bf-* classes removed — booking steps use bk-* classes) ── */
+.bf-step-circle {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+  background: var(--bf-border); color: var(--bf-sub);
+  transition: background .2s, color .2s;
+}
+.bf-step.active   .bf-step-circle { background: var(--bf-red); color: #fff; }
+.bf-step.done     .bf-step-circle { background: #22c55e; color: #fff; }
+.bf-step-label {
+  font-size: 11px; font-weight: 600; color: var(--bf-sub);
+  white-space: nowrap;
+}
+.bf-step.active .bf-step-label { color: var(--bf-red); }
+.bf-step.done   .bf-step-label { color: #22c55e; }
+.bf-step-line {
+  flex: 1; height: 2px; background: var(--bf-border);
+  margin: 0 6px; border-radius: 1px;
+  transition: background .3s;
+}
+.bf-step-line.done { background: #22c55e; }
+
+/* ── Page header ─────────────────────────────────────────── */
+.bf-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--bf-border);
+}
+.bf-back-btn {
+  width: 38px; height: 38px; border-radius: 12px;
+  border: none; background: var(--bf-border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  color: var(--bf-text);
+}
+.bf-back-btn:active { opacity: .7; }
+.bf-header-title {
+  flex: 1; font-size: 17px; font-weight: 800; color: var(--bf-text);
+}
+.bf-header-sub { font-size: 12px; color: var(--bf-sub); margin-top: 1px; }
+
+/* ── Section label ───────────────────────────────────────── */
+.bf-section-label {
+  font-size: 11px; font-weight: 700; color: var(--bf-sub);
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 18px 20px 8px;
+}
+
+/* ── Card ────────────────────────────────────────────────── */
+.bf-card {
+  margin: 0 16px 12px;
+  background: var(--bf-surface);
+  border: 1px solid var(--bf-border);
+  border-radius: var(--bf-radius);
+  box-shadow: var(--bf-shadow);
+  overflow: hidden;
+}
+.bf-card-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; cursor: pointer;
+  transition: background .15s;
+}
+.bf-card-item:active { background: var(--bf-red-light); }
+.bf-card-divider { height: 1px; background: var(--bf-border); margin: 0 16px; }
+
+/* ── Service card (step 1 & 2) ───────────────────────────── */
+.bk-svc-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 10px; padding: 0 16px 12px;
+}
+.bk-svc-card {
+  border-radius: var(--bf-radius); overflow: hidden;
+  border: 2px solid var(--bf-border);
+  background: var(--bf-surface);
+  cursor: pointer; transition: border-color .2s, box-shadow .2s;
+  display: flex; flex-direction: column;
+}
+.bk-svc-card.selected {
+  border-color: var(--bf-red);
+  box-shadow: 0 0 0 3px var(--bf-red-light);
+}
+.bk-svc-card:active { opacity: .85; }
+.bk-svc-img {
+  width: 100%; aspect-ratio: 4/3; object-fit: cover;
+  background: var(--bf-border);
+}
+.bk-svc-img-placeholder {
+  width: 100%; aspect-ratio: 4/3;
+  background: var(--bf-red-light);
+  display: flex; align-items: center; justify-content: center;
+}
+.bk-svc-body { padding: 10px 12px 12px; }
+.bk-svc-name { font-size: 13px; font-weight: 700; color: var(--bf-text); margin: 0 0 3px; }
+.bk-svc-price { font-size: 12px; color: var(--bf-red); font-weight: 700; }
+.bk-svc-dur  { font-size: 11px; color: var(--bf-sub); margin-top: 2px; }
+
+/* ── Category filter tabs ────────────────────────────────── */
+.bk-cat-row {
+  display: flex; gap: 8px; padding: 0 16px 12px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.bk-cat-row::-webkit-scrollbar { display: none; }
+.bk-cat-tab {
+  padding: 7px 14px; border-radius: 20px; font-size: 13px;
+  font-weight: 600; white-space: nowrap; cursor: pointer;
+  border: 1.5px solid var(--bf-border);
+  background: var(--bf-surface); color: var(--bf-text);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.bk-cat-tab.active {
+  background: var(--bf-red); border-color: var(--bf-red); color: #fff;
+}
+
+/* ── Artisan card (step 2) ───────────────────────────────── */
+.bk-pro-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; margin: 0 16px 10px;
+  background: var(--bf-surface); border-radius: var(--bf-radius);
+  border: 1.5px solid var(--bf-border); cursor: pointer;
+  transition: border-color .2s, box-shadow .2s;
+}
+.bk-pro-card.selected {
+  border-color: var(--bf-red);
+  box-shadow: 0 0 0 3px var(--bf-red-light);
+}
+.bk-pro-avatar {
+  width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--bf-red), #a03030);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 18px; font-weight: 800;
+  overflow: hidden;
+}
+.bk-pro-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.bk-pro-info { flex: 1; min-width: 0; }
+.bk-pro-name { font-size: 14px; font-weight: 800; color: var(--bf-text); margin: 0 0 2px; }
+.bk-pro-spec { font-size: 12px; color: var(--bf-sub); margin: 0 0 4px; }
+.bk-pro-rating {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 12px; font-weight: 700; color: var(--bf-red);
+}
+.bk-pro-dist { font-size: 11px; color: var(--bf-sub); }
+
+/* ── Schedule row (step 3) ───────────────────────────────── */
+.bk-schedule-row {
+  display: flex; gap: 10px; padding: 0 16px 12px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.bk-schedule-row::-webkit-scrollbar { display: none; }
+.bk-date-chip, .bk-time-chip {
+  padding: 10px 18px; border-radius: var(--bf-radius-sm);
+  border: 1.5px solid var(--bf-border);
+  background: var(--bf-surface); font-size: 13px;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: border-color .15s, background .15s;
+}
+.bk-date-chip.active, .bk-time-chip.active {
+  border-color: var(--bf-red); background: var(--bf-red-light); color: var(--bf-red);
+}
+
+/* ── Summary card (step 3 & 4) ──────────────────────────── */
+.bk-summary-card {
+  margin: 0 16px 12px; border-radius: var(--bf-radius);
+  border: 1px solid var(--bf-border); overflow: hidden;
+}
+.bk-summary-row {
+  display: flex; justify-content: space-between;
+  align-items: center; padding: 12px 16px;
+}
+.bk-summary-label { font-size: 13px; color: var(--bf-sub); }
+.bk-summary-value { font-size: 13px; font-weight: 700; color: var(--bf-text); }
+.bk-summary-divider { height: 1px; background: var(--bf-border); }
+.bk-summary-total .bk-summary-value { color: var(--bf-red); font-size: 16px; }
+
+/* ── CTA button (all steps) ──────────────────────────────── */
+.bf-cta-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  padding: 12px 16px env(safe-area-inset-bottom, 16px);
+  background: var(--bf-surface);
+  border-top: 1px solid var(--bf-border);
+  z-index: 50;
+}
+.bf-cta-btn {
+  width: 100%; padding: 15px; border-radius: 14px;
+  background: var(--bf-red); color: #fff;
+  font-size: 16px; font-weight: 800; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity .2s, transform .1s;
+}
+.bf-cta-btn:active  { opacity: .85; transform: scale(.98); }
+.bf-cta-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* ── Skeleton loading ────────────────────────────────────── */
+.bk-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: bkShimmer 1.4s infinite;
+  border-radius: 8px;
+}
+@keyframes bkShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+[data-theme="dark"] .bk-shimmer {
+  background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+  background-size: 200% 100%;
+}
+
+/* ── Empty / error state ─────────────────────────────────── */
+.bk-empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px; padding: 48px 24px;
+  text-align: center;
+}
+.bk-empty-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--bf-red-light);
+  display: flex; align-items: center; justify-content: center;
+}
+.bk-empty-title { font-size: 16px; font-weight: 800; color: var(--bf-text); margin: 0; }
+.bk-empty-sub   { font-size: 13px; color: var(--bf-sub); margin: 0; }
+.bk-retry-btn {
+  padding: 10px 24px; border-radius: 10px;
+  background: var(--bf-red); color: #fff;
+  font-size: 14px; font-weight: 700; border: none; cursor: pointer;
+}

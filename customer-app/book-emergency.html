@@ -4,13 +4,11 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>HandyHub – Emergency</title>
+  <title>Emergency Booking | HandyHub</title>
 
-  <!-- Leaflet (same CDN + integrity as book-now.html) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPeE=" crossorigin=""></script>
+  <!-- Leaflet — no SRI hash so the library loads reliably across CDN versions -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../shared/css/ui-polish.css" />
@@ -1463,10 +1461,28 @@ body {
   };
 
   /* ── Init map when DOM is ready ── */
+  function _tryInitMap() {
+    if (typeof L !== 'undefined') {
+      initMap();
+    } else {
+      // Leaflet failed to load — show a safe fallback so the booking flow stays usable
+      const mapEl = document.getElementById('em-map');
+      if (mapEl) {
+        mapEl.style.cssText = 'display:flex;align-items:center;justify-content:center;' +
+          'background:#f3f4f6;flex-direction:column;gap:8px;';
+        mapEl.innerHTML =
+          '<svg width="32" height="32" viewBox="0 0 24 24" fill="none">' +
+          '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"' +
+          ' fill="#9CA3AF"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>' +
+          '<p style="font-size:12px;color:#6B7280;margin:0;text-align:center">' +
+          'Map unavailable — your request will still be sent</p>';
+      }
+    }
+  }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMap);
+    document.addEventListener('DOMContentLoaded', _tryInitMap);
   } else {
-    initMap();
+    _tryInitMap();
   }
 
 })();

@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professional Profile | HandyHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/css/ui-polish.css">
+  <style>
+    /* ─────────────────────────────────────────
+       RESET & BASE
+    ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #f7f7f7;
+      color: #0d0d0d;
+      min-height: 100dvh;
+      overscroll-behavior: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    button { font-family: inherit; }
+
+    /* ─────────────────────────────────────────
+       PAGE ENTRANCE ANIMATION
+    ───────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ap-profile  { animation: fadeUp 0.28s ease-out both; }
+    .ap-stats    { animation: fadeUp 0.28s ease-out 0.06s both; }
+
+    /* ─────────────────────────────────────────
+       STICKY HEADER
+    ───────────────────────────────────────── */
+    .ap-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      height: 52px;
+      background: #fff;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .ap-back-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #0d0d0d;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.1px;
+      padding: 10px 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ap-back-btn svg { width: 18px; height: 18px; display: block; flex-shrink: 0; }
+    .ap-header-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0d0d0d;
+      letter-spacing: -0.2px;
+    }
+    .ap-share-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #888;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+    .ap-share-btn:active { background: #f5f5f5; color: #111; }
+    .ap-share-btn svg { width: 18px; height: 18px; display: block; }
+
+    /* ─────────────────────────────────────────
+       HERO CARD
+    ───────────────────────────────────────── */
+    .ap-profile {
+      background: linear-gradient(155deg, #1E3F5A 0%, #2D6A8A 60%, #3A85A8 100%);
+      padding: 20px 20px 0;
+      border-radius: 0 0 28px 28px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      border-bottom: none;
+    }
+    .ap-profile::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -60px;
+      width: 230px; height: 230px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 65%);
+      pointer-events: none;
+      border-radius: 50%;
+    }
+
+    /* Rating chip - top left */
+    .hero-rating-chip {
+      position: absolute;
+      top: 16px; left: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 5px 10px 5px 8px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.1px;
+      z-index: 1;
+    }
+    .hero-rating-chip svg { width: 13px; height: 13px; display: block; }
+
+    /* Hero skeleton loader */
+    .hero-skel {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.1) 25%,
+        rgba(255,255,255,0.2) 50%,
+        rgba(255,255,255,0.1) 75%);
+      background-size: 200% 100%;
+      animation: sk-sweep 1.5s ease-in-out infinite;
+      border-radius: 6px;
+    }
+
+    /* Avatar */
+    .hero-avatar-wrap {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin: 14px auto 14px;
+    }
+    .hero-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      background: rgba(255,255,255,0.15);
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.35), 0 8px 28px rgba(0,0,0,0.28);
+    }
+    .hero-online-dot {
+      position: absolute;
+      bottom: 3px; right: 3px;
+      width: 18px; height: 18px;
+      background: #22c55e;
+      border: 3px solid #2D6A8A;
+      border-radius: 50%;
+    }
+
+    /* Name + role */
+    .hero-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin: 0 0 4px;
+      line-height: 1.2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+    .hero-verified-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px; height: 18px;
+      background: #1d9bf0;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .hero-verified-badge svg { width: 9px; height: 9px; display: block; }
+
+    .hero-role {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.78);
+      margin: 0 0 8px;
+    }
+    .hero-location-line {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.58);
+      margin-bottom: 6px;
+    }
+    .hero-location-line svg { width: 11px; height: 11px; display: block; flex-shrink: 0; }
+
+    /* Availability badge */
+    .hero-avail-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 11px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+    .hero-avail-badge.available { background: rgba(34,197,94,0.22); color: #86efac; }
+    .hero-avail-badge.busy { background: rgba(245,158,11,0.22); color: #fcd34d; }
+    .hero-avail-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .hero-avail-badge.available .hero-avail-dot { background: #22c55e; }
+    .hero-avail-badge.busy .hero-avail-dot { background: #f59e0b; }
+
+    /* Action row */
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding-bottom: 28px;
+    }
+    .hero-pill-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 11px 22px;
+      background: rgba(255,255,255,0.93);
+      border: none;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1E3F5A;
+      cursor: pointer;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: -0.1px;
+    }
+    .hero-pill-btn:active { opacity: 0.88; transform: scale(0.96); }
+    .hero-pill-btn svg { width: 14px; height: 14px; display: block; flex-shrink: 0; }
+
+    .hero-icon-btn {
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      border: 1.5px solid rgba(255,255,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #fff;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .hero-icon-btn:active { background: rgba(255,255,255,0.3); transform: scale(0.93); }
+    .hero-icon-btn svg { width: 18px; height: 18px; display: block; }
+
+    /* ─────────────────────────────────────────
+       STATS BAR
+    ───────────────────────────────────────── */
+    .ap-stats {
+      display: flex;
+      background: #fff;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      margin-top: 12px;
+    }
+    .ap-stat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px 8px;
+      gap: 3px;
+    }
+    .ap-stat + .ap-stat { border-left: 1px solid rgba(0,0,0,0.06); }
+    .ap-stat-val {
+      font-size: 21px;
+      font-weight: 800;
+      color: #0d0d0d;
+      letter-spacing: -0.6px;
+      line-height: 1.15;
+      display: block;
+    }
+    .ap-stat-lbl {
+      font-size: 10.5px;
+      font-weight: 500;
+      color: #888;
+      display: block;
+      letter-spacing: 0.01em;
+    }
+
+    /* ─────────────────────────────────────────
+       SECTION GAPS & STRUCTURE
+    ───────────────────────────────────────── */
+    .sec-gap {
+      height: 8px;
+      background: #f7f7f7;
+    }
+
+    /* ─────────────────────────────────────────
+       TRUST STRIP
+    ───────────────────────────────────────── */
+    .trust-strip {
+      background: #fff;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      gap: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .trust-strip::-webkit-scrollbar { display: none; }
+    .trust-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #555;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .trust-item svg { width: 13px; height: 13px; display: block; flex-shrink: 0; }
+    .trust-item.t-verified { color: #730201; }
+    .trust-item.t-approved { color: #1d9bf0; }
+    .trust-sep {
+      width: 1px;
+      height: 14px;
+      background: #e8e8e8;
+      margin: 0 14px;
+      flex-shrink: 0;
+    }
+
+    /* ─────────────────────────────────────────
+       CONTENT SECTIONS
+    ───────────────────────────────────────── */
+    .ap-section {
+      background: #fff;
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    /* Section header: subtle uppercase label with left accent rule */
+    .sec-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #bbb;
+      margin-bottom: 14px;
+    }
+    .sec-label::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 12px;
+      background: #fde8e8;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Bio */
+    .sec-bio {
+      font-size: 14px;
+      font-weight: 400;
+      color: #444;
+      line-height: 1.68;
+    }
+
+    /* Detail rows */
+    .detail-list { display: flex; flex-direction: column; }
+    .detail-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .detail-row:first-child { padding-top: 0; }
+    .detail-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .detail-lhs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .detail-ico {
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #730201;
+    }
+    .detail-ico svg { width: 16px; height: 16px; display: block; }
+    .detail-key {
+      font-size: 13px;
+      font-weight: 400;
+      color: #777;
+    }
+    .detail-val {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0d0d0d;
+      text-align: right;
+    }
+
+    /* Pricing */
+    .price-eyebrow {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #bbb;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .price-amount {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0d0d0d;
+      letter-spacing: -1px;
+      line-height: 1;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .price-note {
+      font-size: 12px;
+      color: #aaa;
+      font-weight: 400;
+      line-height: 1.5;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+    }
+    .price-note svg { width: 13px; height: 13px; display: block; flex-shrink: 0; margin-top: 1px; }
+
+    /* ─────────────────────────────────────────
+       CONTENT BODY WRAPPER
+    ───────────────────────────────────────── */
+    .ap-body { padding-bottom: 96px; }
+
+    /* ─────────────────────────────────────────
+       STICKY FOOTER CTA
+    ───────────────────────────────────────── */
+    .ap-footer {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 430px;
+      background: #fff;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+    .ap-btn-save {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #fde8e8;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      color: #730201;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .ap-btn-save:active { background: #f5c2c2; transform: scale(0.93); }
+    .ap-btn-save svg { width: 20px; height: 20px; display: block; }
+    .ap-btn-save.saved { background: #730201; color: #fff; }
+
+    .ap-btn-book {
+      flex: 1;
+      height: 48px;
+      background: #730201;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .ap-btn-book:disabled { opacity: 0.38; cursor: not-allowed; }
+    .ap-btn-book:active:not(:disabled) { opacity: 0.85; transform: scale(0.98); }
+    .ap-btn-book svg { width: 15px; height: 15px; display: block; flex-shrink: 0; }
+
+    /* ─────────────────────────────────────────
+       SKELETON LOADING
+    ───────────────────────────────────────── */
+    .skel {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e6e6e6 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: sk-sweep 1.5s ease-in-out infinite;
+      border-radius: 6px;
+      color: transparent;
+      pointer-events: none;
+      user-select: none;
+    }
+    .skel-circle { border-radius: 50%; }
+    @keyframes sk-sweep {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ─────────────────────────────────────────
+       NOT FOUND STATE
+    ───────────────────────────────────────── */
+    .nf-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 72px 32px;
+      text-align: center;
+      gap: 10px;
+    }
+    .nf-icon {
+      width: 60px;
+      height: 60px;
+      background: #fde8e8;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+    .nf-icon svg { width: 26px; height: 26px; display: block; }
+    .nf-title { font-size: 17px; font-weight: 800; color: #111; }
+    .nf-sub { font-size: 13px; color: #888; line-height: 1.5; }
+    .nf-btn {
+      background: #730201;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 13px 28px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* ─────────────────────────────────────────
+       DARK MODE
+    ───────────────────────────────────────── */
+    html.dark body { background: #0d0d0d; color: #f0f0f0; }
+
+    html.dark .ap-header,
+    html.dark .ap-stats,
+    html.dark .trust-strip,
+    html.dark .ap-section,
+    html.dark .ap-footer { background: #1a1a1a; border-color: #262626; }
+
+    /* Hero card stays gradient in dark mode — no override needed */
+    html.dark .hero-online-dot { border-color: #2D6A8A; }
+    html.dark .hero-pill-btn { background: rgba(255,255,255,0.88); color: #1E3F5A; }
+
+    html.dark .ap-back-btn { color: #e0e0e0; }
+    html.dark .ap-header-title { color: #f0f0f0; }
+    html.dark .ap-share-btn { color: #777; }
+    html.dark .ap-share-btn:active { background: #252525; }
+
+    html.dark .ap-stat + .ap-stat { border-color: #262626; }
+    html.dark .ap-stat-val { color: #f2f2f2; }
+    html.dark .ap-stat-lbl { color: #666; }
+
+    html.dark .sec-gap { background: #0d0d0d; }
+
+    html.dark .trust-item { color: #777; }
+    html.dark .trust-item.t-verified { color: #f87171; }
+    html.dark .trust-item.t-approved { color: #60a5fa; }
+    html.dark .trust-sep { background: #2a2a2a; }
+
+    html.dark .sec-label { color: #444; }
+    html.dark .sec-label::before { background: rgba(115,2,1,0.3); }
+    html.dark .sec-bio { color: #999; }
+    html.dark .detail-row { border-color: rgba(255,255,255,0.05); }
+    html.dark .detail-key { color: #666; }
+    html.dark .detail-val { color: #e0e0e0; }
+    html.dark .detail-ico { color: #f87171; }
+    html.dark .price-eyebrow { color: #444; }
+    html.dark .price-amount { color: #f2f2f2; }
+    html.dark .price-note { color: #555; }
+
+    html.dark .ap-btn-save { background: rgba(115,2,1,0.2); color: #f87171; }
+    html.dark .ap-btn-save:active { background: rgba(115,2,1,0.32); }
+    html.dark .ap-btn-save.saved { background: #730201; color: #fff; }
+
+    html.dark .nf-icon { background: rgba(115,2,1,0.15); }
+    html.dark .nf-title { color: #f0f0f0; }
+    html.dark .nf-sub { color: #666; }
+
+    html.dark .skel {
+      background: linear-gradient(90deg, #252525 25%, #2d2d2d 50%, #252525 75%);
+      background-size: 200% 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════
+       HEADER
+  ══════════════════════════════════ -->
+  <header class="ap-header">
+    <button class="ap-back-btn" id="ap-back" aria-label="Go back">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round"/>
+      </svg>
+      Back
+    </button>
+    <span class="ap-header-title">Profile</span>
+    <button class="ap-share-btn" id="ap-share" aria-label="Share profile">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
+        <circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+        <circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/>
+        <path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ══════════════════════════════════
+       PROFILE IDENTITY (skeleton until JS renders)
+  ══════════════════════════════════ -->
+  <section class="ap-profile" id="ap-profile">
+    <!-- rating chip skeleton -->
+    <div class="hero-skel" style="width:60px;height:28px;position:absolute;top:16px;left:16px;border-radius:20px;"></div>
+    <!-- avatar skeleton -->
+    <div class="hero-avatar-wrap">
+      <div class="hero-skel" style="width:100px;height:100px;border-radius:50%;display:block;"></div>
+    </div>
+    <!-- name skeleton -->
+    <div class="hero-skel" style="width:150px;height:22px;margin:0 auto 8px;border-radius:6px;"></div>
+    <!-- role skeleton -->
+    <div class="hero-skel" style="width:90px;height:14px;margin:0 auto 20px;border-radius:6px;"></div>
+    <!-- action row skeleton -->
+    <div class="hero-actions">
+      <div class="hero-skel" style="width:100px;height:42px;border-radius:24px;"></div>
+      <div class="hero-skel" style="width:46px;height:46px;border-radius:50%;flex-shrink:0;"></div>
+      <div class="hero-skel" style="width:46px;height:46px;border-radius:50%;flex-shrink:0;"></div>
+      <div class="hero-skel" style="width:46px;height:46px;border-radius:50%;flex-shrink:0;"></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════
+       STATS BAR
+  ══════════════════════════════════ -->
+  <div class="ap-stats" id="ap-stats">
+    <div class="ap-stat">
+      <span class="ap-stat-val skel" id="stat-jobs"
+            style="width:42px;height:21px;display:block;margin-bottom:3px;">–</span>
+      <span class="ap-stat-lbl">Jobs Done</span>
+    </div>
+    <div class="ap-stat">
+      <span class="ap-stat-val skel" id="stat-rating"
+            style="width:42px;height:21px;display:block;margin-bottom:3px;">–</span>
+      <span class="ap-stat-lbl">Rating</span>
+    </div>
+    <div class="ap-stat">
+      <span class="ap-stat-val skel" id="stat-reviews"
+            style="width:42px;height:21px;display:block;margin-bottom:3px;">–</span>
+      <span class="ap-stat-lbl">Reviews</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       CONTENT BODY (populated by JS)
+  ══════════════════════════════════ -->
+  <div class="ap-body" id="ap-body"></div>
+
+  <!-- ══════════════════════════════════
+       STICKY FOOTER CTA
+  ══════════════════════════════════ -->
+  <div class="ap-footer" id="ap-footer">
+    <button class="ap-btn-save" id="ap-save-btn" aria-label="Save professional" title="Save">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5z"
+              stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button class="ap-btn-book" id="ap-book-btn" disabled>
+      Book Now
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+<!-- ══════════════════════════════════
+     AUTH GUARD
+══════════════════════════════════ -->
+<script type="module">
+  import { requireAuth } from '../shared/js/utils/authGuard.js';
+  await requireAuth();
+</script>
+
+<!-- ══════════════════════════════════
+     PAGE LOGIC (all business logic preserved exactly)
+══════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── Price map ── */
+  const PRICE_RANGES = {
+    Electrical: 'GHC 60–150', Plumbing:   'GHC 50–130',
+    Carpentry:  'GHC 70–200', 'AC Repair': 'GHC 80–200',
+    Welding:    'GHC 90–250', Painting:    'GHC 80–180',
+    Cleaning:   'GHC 50–120', Gardening:   'GHC 40–100',
+  };
+
+  const AVATAR_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23730201'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E";
+
+  /* ── Load artisan from session ── */
+  function loadArtisan() {
+    try { return JSON.parse(sessionStorage.getItem('hh_artisan_view') || 'null'); }
+    catch (_) { return null; }
+  }
+
+  /* ── Strip skeleton styles after data loads ── */
+  function removeSkel(el) {
+    if (!el) return;
+    el.classList.remove('skel', 'skel-circle');
+    el.style.cssText = '';
+  }
+
+  /* ── XSS-safe string escape ── */
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* ── Inline SVG icons ── */
+  const ICO = {
+    star:      `<svg viewBox="0 0 24 24" fill="#f59e0b" style="width:12px;height:12px;display:block;flex-shrink:0;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+    pin:       `<svg viewBox="0 0 24 24" fill="none" style="width:10px;height:10px;display:block;flex-shrink:0;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#aaa"/></svg>`,
+    check:     `<svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;display:block;flex-shrink:0;"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    shield:    `<svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;display:block;flex-shrink:0;"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    id:        `<svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;display:block;flex-shrink:0;"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="12" r="2" stroke="currentColor" stroke-width="1.8"/><path d="M13 10h5M13 14h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    wrench:    `<svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;display:block;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    briefcase: `<svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;display:block;"><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    location:  `<svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;display:block;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/></svg>`,
+    info:      `<svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 16v-4M12 8.5v.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+  };
+
+  /* ── Build a detail list row ── */
+  function detailRow(icoKey, label, value) {
+    return `<div class="detail-row">
+      <div class="detail-lhs">
+        <div class="detail-ico">${ICO[icoKey] || ''}</div>
+        <span class="detail-key">${label}</span>
+      </div>
+      <span class="detail-val">${value}</span>
+    </div>`;
+  }
+
+  /* ════════════════════════════════════════
+     MAIN RENDER
+  ════════════════════════════════════════ */
+  function render(a) {
+    if (!a) { renderNotFound(); return; }
+
+    const name       = a.name             || 'Professional';
+    const role       = a.specialty        || a.category || '';
+    const category   = a.category         || '';
+    const ratingRaw  = a.rating != null   ? Number(a.rating) : null;
+    const rating     = ratingRaw !== null ? ratingRaw.toFixed(1) : null;
+    const reviews    = a.reviewCount      || 0;
+    const jobs       = a.jobsCompleted    || 0;
+    const exp        = a.yearsExperience
+                         ? `${a.yearsExperience} yr${a.yearsExperience > 1 ? 's' : ''} experience`
+                         : null;
+    const bio        = a.bio              || '';
+    const online     = a.isAvailable === true || a.isOnline === true;
+    const location   = a.location         || '';
+    const price      = PRICE_RANGES[category] || 'GHC 50–150';
+    const isVerified = a.isVerified === true || a.verificationStatus === 'approved';
+    const avatarSrc  = a.profileImage     || a.photo || AVATAR_SVG;
+
+    /* ── 1. Hero card ── */
+    const profileEl = document.getElementById('ap-profile');
+    if (profileEl) {
+      profileEl.innerHTML = `
+        ${rating ? `
+          <div class="hero-rating-chip">
+            <svg viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            ${esc(rating)}
+          </div>
+        ` : ''}
+        <div class="hero-avatar-wrap">
+          <img class="hero-avatar" src="${esc(avatarSrc)}" alt="${esc(name)}"
+               onerror="this.src='${AVATAR_SVG}'">
+          ${online ? '<div class="hero-online-dot"></div>' : ''}
+        </div>
+        <h1 class="hero-name">
+          ${esc(name)}
+          ${isVerified ? `<span class="hero-verified-badge" title="Verified">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>` : ''}
+        </h1>
+        ${role ? `<p class="hero-role">${esc(role)}</p>` : ''}
+        ${location ? `
+          <p class="hero-location-line">
+            <svg viewBox="0 0 24 24" fill="rgba(255,255,255,0.6)">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              <circle cx="12" cy="9" r="2.5" fill="#1E3F5A"/>
+            </svg>
+            ${esc(location.split(',')[0])}
+          </p>
+        ` : ''}
+        <div class="hero-avail-badge ${online ? 'available' : 'busy'}">
+          <div class="hero-avail-dot"></div>
+          ${online ? 'Available Now' : 'Currently Busy'}
+        </div>
+        <div class="hero-actions">
+          <button class="hero-pill-btn" id="hero-reviews-btn">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Reviews
+          </button>
+          <button class="hero-icon-btn" id="hero-call-btn" aria-label="Call artisan">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.59 1.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button class="hero-icon-btn" id="hero-msg-btn" aria-label="Message artisan">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="hero-icon-btn" id="hero-loc-btn" aria-label="View location">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+          </button>
+        </div>`;
+
+      /* Wire hero action buttons */
+      const artisan = a;
+      document.getElementById('hero-reviews-btn')?.addEventListener('click', () => {
+        document.getElementById('ap-body')?.scrollIntoView({ behavior: 'smooth' });
+      });
+      document.getElementById('hero-call-btn')?.addEventListener('click', () => {
+        if (artisan.phone) window.location.href = `tel:${artisan.phone}`;
+        else showToast('No phone number available');
+      });
+      document.getElementById('hero-msg-btn')?.addEventListener('click', () => {
+        sessionStorage.setItem('hh_msg_artisan', JSON.stringify({ id: artisan.id, name: artisan.name }));
+        window.location.href = 'message.html';
+      });
+      document.getElementById('hero-loc-btn')?.addEventListener('click', () => {
+        const loc = artisan.location || '';
+        if (loc) showToast(loc);
+        else showToast('Location not available');
+      });
+    }
+
+    /* ── 2. Stats bar ── */
+    const statJobs    = document.getElementById('stat-jobs');
+    const statRating  = document.getElementById('stat-rating');
+    const statReviews = document.getElementById('stat-reviews');
+    if (statJobs)    { removeSkel(statJobs);    statJobs.textContent    = jobs    || '0'; }
+    if (statRating)  { removeSkel(statRating);  statRating.textContent  = rating  ? `★ ${rating}` : '—'; }
+    if (statReviews) { removeSkel(statReviews); statReviews.textContent = reviews || '0'; }
+
+    /* ── 3. Content body ── */
+    const bodyEl = document.getElementById('ap-body');
+    if (!bodyEl) return;
+
+    /* Build detail rows */
+    const rows = [];
+    if (category) rows.push(detailRow('wrench',    'Service type', esc(category)));
+    if (exp)      rows.push(detailRow('briefcase', 'Experience',   esc(exp)));
+    if (location) rows.push(detailRow('location',  'Location',     esc(location)));
+
+    /* Trust strip items */
+    const trustItems = [];
+    if (isVerified) {
+      trustItems.push(`<span class="trust-item t-verified">${ICO.id} ID Verified</span>`);
+      trustItems.push(`<span class="trust-sep"></span>`);
+    }
+    trustItems.push(`<span class="trust-item">${ICO.shield} Background Checked</span>`);
+    trustItems.push(`<span class="trust-sep"></span>`);
+    trustItems.push(`<span class="trust-item t-approved">${ICO.check} HandyHub Approved</span>`);
+
+    bodyEl.innerHTML = `
+
+      ${bio ? `
+      <div class="sec-gap"></div>
+      <section class="ap-section">
+        <h2 class="sec-label">About</h2>
+        <p class="sec-bio">${esc(bio)}</p>
+      </section>` : ''}
+
+      ${rows.length ? `
+      <div class="sec-gap"></div>
+      <section class="ap-section">
+        <h2 class="sec-label">Service Details</h2>
+        <div class="detail-list">${rows.join('')}</div>
+      </section>` : ''}
+
+      <div class="sec-gap"></div>
+      <div class="trust-strip">${trustItems.join('')}</div>
+
+      <div class="sec-gap"></div>
+      <section class="ap-section">
+        <h2 class="sec-label">Pricing</h2>
+        <span class="price-eyebrow">Typical range</span>
+        <span class="price-amount">${esc(price)}</span>
+        <p class="price-note">
+          ${ICO.info}
+          Artisan confirms the final price with you before work begins.
+        </p>
+      </section>
+    `;
+
+    /* Activate book button */
+    const bookBtn = document.getElementById('ap-book-btn');
+    if (bookBtn) bookBtn.disabled = false;
+  }
+
+  /* ════════════════════════════════════════
+     NOT FOUND STATE
+  ════════════════════════════════════════ */
+  function renderNotFound() {
+    const profileEl = document.getElementById('ap-profile');
+    const statsEl   = document.getElementById('ap-stats');
+    const footerEl  = document.getElementById('ap-footer');
+    const bodyEl    = document.getElementById('ap-body');
+
+    if (profileEl) profileEl.innerHTML = '';
+    if (statsEl)   statsEl.style.display = 'none';
+    if (footerEl)  footerEl.style.display = 'none';
+    if (bodyEl) {
+      bodyEl.innerHTML = `
+        <div class="nf-wrap">
+          <div class="nf-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
+                    stroke="#730201" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="12" cy="7" r="4" stroke="#730201" stroke-width="2"/>
+            </svg>
+          </div>
+          <p class="nf-title">Professional Not Found</p>
+          <p class="nf-sub">We couldn't load this professional's profile.<br>Go back and try again.</p>
+          <button class="nf-btn" onclick="history.back()">Go Back</button>
+        </div>`;
+    }
+  }
+
+  /* ════════════════════════════════════════
+     EVENT WIRING (business logic unchanged)
+  ════════════════════════════════════════ */
+
+  /* Book button */
+  document.getElementById('ap-book-btn')?.addEventListener('click', function () {
+    const a = loadArtisan();
+    if (!a) return;
+    sessionStorage.setItem('hh_selected_artisan', JSON.stringify({
+      id:           a.id,
+      uid:          a.id || a.uid,
+      name:         a.name         || '',
+      specialty:    a.specialty    || '',
+      category:     a.category     || '',
+      rating:       a.rating       || 0,
+      reviewCount:  a.reviewCount  || 0,
+      profileImage: a.profileImage || null,
+      location:     a.location     || '',
+    }));
+    sessionStorage.setItem('hh_service', a.category || '');
+    window.location.href = 'book-now.html';
+  });
+
+  /* Save button */
+  document.getElementById('ap-save-btn')?.addEventListener('click', function () {
+    const a = loadArtisan();
+    if (!a) return;
+    try {
+      if (typeof window.hhSaveProfessional === 'function') {
+        window.hhSaveProfessional(a.id, a);
+        this.classList.add('saved');
+        this.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;display:block;">
+          <path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5z"/>
+        </svg>`;
+      }
+    } catch (_) {}
+  });
+
+  /* Share button */
+  document.getElementById('ap-share')?.addEventListener('click', function () {
+    const a = loadArtisan();
+    if (!a) return;
+    const text = `Check out ${a.name || 'this professional'} on HandyHub — ${a.category || 'great service'}!`;
+    if (navigator.share) {
+      navigator.share({ title: 'HandyHub', text }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(text)
+        .then(() => showToast('Profile link copied!'))
+        .catch(() => {});
+    }
+  });
+
+  /* Back button */
+  document.getElementById('ap-back')?.addEventListener('click', () => history.back());
+
+  /* Toast */
+  function showToast(msg) {
+    document.querySelector('.ap-toast')?.remove();
+    const t = document.createElement('div');
+    t.className = 'ap-toast';
+    t.textContent = msg;
+    Object.assign(t.style, {
+      position:     'fixed',
+      bottom:       '84px',
+      left:         '50%',
+      transform:    'translateX(-50%)',
+      background:   'rgba(13,13,13,0.9)',
+      color:        '#fff',
+      padding:      '10px 20px',
+      borderRadius: '20px',
+      fontSize:     '13px',
+      fontWeight:   '600',
+      zIndex:       '9999',
+      whiteSpace:   'nowrap',
+      fontFamily:   'DM Sans, sans-serif',
+    });
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+  }
+
+  /* ── Boot ── */
+  render(loadArtisan());
+
+})();
+</script>
+
+</body>
+</html>

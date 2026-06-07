@@ -4,12 +4,10 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Handy Hub – Find a Professional</title>
-  <!-- Leaflet real map -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPeE=" crossorigin=""></script>
+  <title>Find a Professional | HandyHub</title>
+  <!-- Leaflet real map — no SRI hash so the library loads reliably across CDN versions -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <link rel="stylesheet" href="css/book-now.css" />
   <link rel="stylesheet" href="../shared/css/ui-polish.css" />
 </head>
@@ -333,8 +331,19 @@ window.detectLocation = function detectLocation() {
   locAddrEl.textContent = 'Detecting…';
   hdrSubEl.textContent  = 'Detecting location…';
   if (!navigator.geolocation) { useFallbackLocation(); return; }
+
+  // Hard failsafe: some browsers (headless, iOS private) never fire either
+  // callback. This ensures the UI resolves within 9 s regardless.
+  var _resolved = false;
+  var _failsafeTimer = setTimeout(function() {
+    if (!_resolved) { _resolved = true; useFallbackLocation(); }
+  }, 9000);
+
   navigator.geolocation.getCurrentPosition(
     function(pos) {
+      if (_resolved) return;
+      _resolved = true;
+      clearTimeout(_failsafeTimer);
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
       userLat = lat; userLng = lng;
@@ -343,7 +352,12 @@ window.detectLocation = function detectLocation() {
       reverseGeocode(lat, lng);
       loadArtisans();
     },
-    function() { useFallbackLocation(); },
+    function() {
+      if (_resolved) return;
+      _resolved = true;
+      clearTimeout(_failsafeTimer);
+      useFallbackLocation();
+    },
     { timeout: 8000, maximumAge: 60000 }
   );
 };
@@ -664,7 +678,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btn) btn.classList.add('active');
   }
   _updateDetail();
-  detectLocation(); // triggers map init + artisan load
+
+  // Guard: if Leaflet failed to load for any reason, fall straight to the
+  // Accra fallback so the UI never stays frozen on "Detecting location…"
+  if (typeof L === 'undefined') {
+    useFallbackLocation();
+  } else {
+    detectLocation(); // triggers map init + artisan load
+  }
 });
 </script>
 </body>

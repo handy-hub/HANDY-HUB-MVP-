@@ -36,12 +36,15 @@ body {
 }
 
 img,
-svg,
 video,
 canvas {
   max-width: 100%;
   height: auto;
 }
+/* SVGs excluded from height:auto — inline icon SVGs with explicit CSS dimensions
+   must not be reset, as height:auto collapses them inside flex containers.
+   Individual component CSS controls SVG sizing explicitly. */
+svg { max-width: 100%; }
 
 button,
 input,
@@ -206,7 +209,9 @@ textarea {
 .modal-btn-cancel,
 .pmo-save-btn,
 .pmo-cancel-btn {
-  min-height: 44px;
+  min-height: fit-content;
+  padding: 10px 16px;
+  border-radius: 12px;
 }
 
 /* ── Global bottom-nav: enforce proper fixed centering on ALL pages ───── */
@@ -274,7 +279,8 @@ textarea {
 .sv-svc-card,
 .sv-pro-card,
 .sv-promo {
-  border-radius: var(--ui-radius-lg);
+  border-top-right-radius: var(--ui-radius-lg);
+  border-bottom-right-radius: var(--ui-radius-lg);
 }
 
 .loader-overlay,

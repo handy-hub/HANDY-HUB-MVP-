@@ -5,7 +5,7 @@
   <script src="../shared/js/utils/themeManager.js"></script>
   <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Handy Hub – Request Sent</title>
+  <title>Request Sent | HandyHub</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
@@ -256,7 +256,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#730201"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>
           </div>
           <span class="summary-cell-label">Location</span>
-          <span class="summary-cell-val">Home<br>East Legon, Accra</span>
+          <span class="summary-cell-val" id="sum-address">—</span>
         </div>
         <div class="summary-cell">
           <div class="summary-cell-icon">
@@ -367,10 +367,12 @@
           callBtn.setAttribute('aria-label', `Call ${pro.name}`);
           callBtn.onclick = () => { window.location.href = pro.phone; };
         } else {
-          callBtn.onclick = () => {
-            callBtn.style.background = '#fde8e8';
-            setTimeout(() => { callBtn.style.background = ''; }, 800);
-          };
+          callBtn.disabled = true;
+          callBtn.setAttribute('aria-label', 'Phone number not available');
+          callBtn.setAttribute('title', 'Phone number not available');
+          callBtn.style.opacity = '0.38';
+          callBtn.style.cursor  = 'not-allowed';
+          callBtn.onclick = null;
         }
       }
     }
@@ -384,6 +386,15 @@
     if (state.schedule) {
       document.getElementById('sum-date').innerHTML =
         `${state.schedule.dateShort || state.schedule.dateDisplay || 'Scheduled'}<br>${state.schedule.time || ''}`;
+    }
+
+    // Location summary — read from booking state, fall back to GPS cache
+    const addrEl = document.getElementById('sum-address');
+    if (addrEl) {
+      const addr = state.address
+        || (() => { try { return JSON.parse(localStorage.getItem('hh_detected_location') || 'null')?.loc; } catch { return null; } })()
+        || 'Your location';
+      addrEl.textContent = addr;
     }
 
     // Price summary

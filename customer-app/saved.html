@@ -5,7 +5,7 @@
   <script src="../shared/js/utils/themeManager.js"></script>
   <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HandyHub | Saved</title>
+  <title>Saved | HandyHub</title>
   <link rel="stylesheet" href="css/saved.css" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
@@ -419,141 +419,10 @@
 </script>
 
 <!-- ── Module script: auth + Firestore real-time subscription ── -->
-<script type="module">
-  import { requireAuth }     from '../shared/js/utils/authGuard.js';
-  import { getAppContainer } from '../shared/js/app/container.js';
-
-  // Ensure auth before any Firestore access
-  await requireAuth();
-
-  const { services: { authService, databaseService } } = getAppContainer();
-  const user = await authService.waitForUser();
-  if (!user) return; // requireAuth already redirected
-
-  window._svUid = user.uid;
-
-  // Subscribe to the customer document in real time.
-  // When savedProfessionals or savedServices change from any device, the UI updates.
-  const unsub = databaseService.subscribeToDocument(
-    'customers',
-    user.uid,
-    function (snap) {
-      if (!snap || !snap.data) {
-        // Document doesn't exist yet — show empty states
-        window._svPros = [];
-        window._svSvcs = [];
-      } else {
-        window._svPros = Array.isArray(snap.data.savedProfessionals) ? snap.data.savedProfessionals : [];
-        window._svSvcs = Array.isArray(snap.data.savedServices)      ? snap.data.savedServices      : [];
-      }
-      window.svRender(window._svFilter || '');
-    },
-    function (err) {
-      console.warn('[saved] Firestore subscription error:', err);
-      // Show empty states on error rather than leaving skeletons forever
-      window._svPros = [];
-      window._svSvcs = [];
-      window.svRender('');
-    }
-  );
-
-  // Clean up listener when user navigates away
-  window.addEventListener('pagehide', function () {
-    if (typeof unsub === 'function') unsub();
-  });
-</script>
+<script type="module" src="js/pages/savedPage.js"></script>
 
 <!-- ── Global helpers: called from book-step2.html and other pages ──
      These write directly to Firestore so saves persist across sessions. ── -->
-<script type="module">
-  import { getAppContainer } from '../shared/js/app/container.js';
-
-  /**
-   * Save a professional to the current user's saved list.
-   * Safe to call from any page — reads current list, deduplicates, writes back.
-   *
-   * @param {object} pro  Must include: id, name. Optional: specialty, category,
-   *                      rating, reviewCount, profileImage, isOnline, location.
-   */
-  window.hhSaveProfessional = async function (pro) {
-    if (!pro || !pro.id) return;
-    try {
-      const { services: { authService, databaseService } } = getAppContainer();
-      const user = await authService.waitForUser();
-      if (!user) return;
-
-      const snap     = await databaseService.getDocument('customers', user.uid);
-      const existing = (snap?.data?.savedProfessionals || []);
-      if (existing.find(function (p) { return p.id === pro.id; })) return; // already saved
-
-      const item = {
-        id:           pro.id,
-        name:         pro.name         || 'Professional',
-        specialty:    pro.specialty    || pro.category || '',
-        category:     pro.category     || pro.specialty || '',
-        rating:       pro.rating       ?? null,
-        reviewCount:  pro.reviewCount  ?? 0,
-        profileImage: pro.profileImage || pro.photo || null,
-        isOnline:     pro.isOnline     || false,
-        location:     pro.location     || '',
-        savedAt:      new Date().toISOString(),
-      };
-
-      await databaseService.updateDocument('customers', user.uid, {
-        savedProfessionals: [...existing, item],
-        updatedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.warn('[saved] hhSaveProfessional error:', err);
-    }
-  };
-
-  /**
-   * Save a service to the current user's saved list.
-   * @param {object} svc  Must include: id, name. Optional: desc, category.
-   */
-  window.hhSaveService = async function (svc) {
-    if (!svc || !svc.id) return;
-    try {
-      const { services: { authService, databaseService } } = getAppContainer();
-      const user = await authService.waitForUser();
-      if (!user) return;
-
-      const snap     = await databaseService.getDocument('customers', user.uid);
-      const existing = (snap?.data?.savedServices || []);
-      if (existing.find(function (s) { return s.id === svc.id; })) return; // already saved
-
-      const item = {
-        id:       svc.id,
-        name:     svc.name        || 'Service',
-        desc:     svc.desc        || svc.description || '',
-        category: svc.category    || '',
-        savedAt:  new Date().toISOString(),
-      };
-
-      await databaseService.updateDocument('customers', user.uid, {
-        savedServices: [...existing, item],
-        updatedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.warn('[saved] hhSaveService error:', err);
-    }
-  };
-
-  /**
-   * Check whether a professional is already saved by the current user.
-   * Returns a boolean. Useful for toggling bookmark icons on other pages.
-   */
-  window.hhIsProfessionalSaved = async function (artisanId) {
-    try {
-      const { services: { authService, databaseService } } = getAppContainer();
-      const user = await authService.waitForUser();
-      if (!user) return false;
-      const snap = await databaseService.getDocument('customers', user.uid);
-      const list = snap?.data?.savedProfessionals || [];
-      return list.some(function (p) { return p.id === artisanId; });
-    } catch (_) { return false; }
-  };
-</script>
+<script type="module" src="js/savedHelpers.js"></script>
 </body>
 </html>

@@ -5,6 +5,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "echo \"Static site – serve with a web server\""
+    "dev":      "npx serve . -p 8766 --no-clipboard",
+    "start":    "npx serve . -p 8766 --no-clipboard",
+    "serve:ca": "npx serve customer-app -p 8765 --no-clipboard",
+    "test":     "python tests/verify_low_fixes.py"
+  },
+  "devDependencies": {
+    "serve": "^14.0.0"
   }
 }
