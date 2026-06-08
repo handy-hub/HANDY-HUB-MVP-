@@ -199,10 +199,19 @@
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  function _svPhoto(p) {
+    if (p && p.profileImageId) {
+      const v = p.profileImageVersion ? `v${p.profileImageVersion}/` : '';
+      return `https://res.cloudinary.com/dnwwglbl9/image/upload/${v}w_80,h_80,c_fill,f_auto,q_auto,r_max/${p.profileImageId}`;
+    }
+    return (p && p.profileImage) || null;
+  }
+
   function proCardHtml(pro) {
-    const initials = (pro.name || '?').split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
-    const avatarHtml = pro.profileImage
-      ? `<img src="${escHtml(pro.profileImage)}" alt="${escHtml(pro.name)}" class="sv-pro-photo" style="object-fit:cover;">`
+    const initials    = (pro.name || '?').split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+    const _svPhotoSrc = _svPhoto(pro);
+    const avatarHtml  = _svPhotoSrc
+      ? `<img src="${escHtml(_svPhotoSrc)}" alt="${escHtml(pro.name)}" class="sv-pro-photo" style="object-fit:cover;">`
       : `<div class="sv-pro-photo" style="background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;border-radius:50%;">${initials}</div>`;
 
     const rating    = pro.rating != null ? Number(pro.rating).toFixed(1) : null;
@@ -363,7 +372,7 @@
           type:    pro.specialty || pro.category || '',
           rating:  pro.rating,
           reviews: pro.reviewCount,
-          photo:   pro.profileImage || null,
+          photo:   _svPhoto(pro),
         },
       });
     }

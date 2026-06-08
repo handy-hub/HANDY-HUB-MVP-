@@ -1,5 +1,6 @@
 import { getAppContainer }         from '../../shared/js/app/container.js';
 import { subscribeToUnreadCount } from '../../shared/js/services/notificationRepository.js';
+import { resolveAvatar, TRANSFORMS } from '../../shared/js/services/cloudinaryService.js';
 
 // Active cleanup handles — cancelled when auth state changes
 let unsubscribeCount   = null;
@@ -37,17 +38,13 @@ function applyProfileToDOM(data) {
     const sideImgEl  = document.getElementById('sidebar-profile-img');
     const locEl      = document.getElementById('uc-loc-text');
 
-    const src = data.profileImage ||
-        (data.name
-            ? 'https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=' +
-              encodeURIComponent((data.name || 'U').slice(0, 2).toUpperCase())
-            : null);
+    const src = resolveAvatar(data, TRANSFORMS.avatarSm);
 
     if (nameEl     && data.name)     { nameEl.textContent     = data.name;     removeSkel(nameEl); }
     if (sideNameEl && data.name)       sideNameEl.textContent = data.name;
     if (locEl      && data.location) { locEl.textContent      = data.location; removeSkel(locEl); }
-    if (imgEl      && src)           { imgEl.src = src;                        removeSkel(imgEl); }
-    if (sideImgEl  && src)             sideImgEl.src = src;
+    if (imgEl      && src)           { if (imgEl.src !== src) imgEl.src = src; removeSkel(imgEl); }
+    if (sideImgEl  && src)           { if (sideImgEl.src !== src) sideImgEl.src = src; }
 }
 
 // ── Cleanup helper ────────────────────────────────────────────────────────────

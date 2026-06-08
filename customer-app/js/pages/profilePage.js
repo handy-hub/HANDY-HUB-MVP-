@@ -3,6 +3,13 @@ import { getAppContainer }   from '../../../shared/js/app/container.js';
 import { showToast }         from '../../../shared/js/components/toast.js';
 import { initPaymentModal }  from './paymentMethodsModal.js';
 import { clearUserSession }  from '../../../shared/js/utils/clearUserSession.js';
+import {
+  uploadImage,
+  cdnUrl,
+  TRANSFORMS,
+  UPLOAD_PRESETS,
+  fallbackAvatar,
+} from '../../../shared/js/services/cloudinaryService.js';
 
 const LOGIN_URL = 'login.html';
 
@@ -25,7 +32,7 @@ const statWallet        = document.getElementById('stat-wallet');
 const completeBanner    = document.getElementById('complete-banner');
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-const DEFAULT_AVATAR   = 'https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=User';
+const DEFAULT_AVATAR   = fallbackAvatar('');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function buildGreeting(name) {
@@ -36,8 +43,7 @@ function buildGreeting(name) {
 }
 
 function buildDefaultAvatar(name) {
-    const enc = encodeURIComponent((name || 'User').slice(0, 2).toUpperCase());
-    return `https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=${enc}`;
+    return fallbackAvatar(name || '');
 }
 
 function formatGHC(n) {
@@ -68,7 +74,10 @@ function populateProfile(data) {
     const phone    = data.phone    || 'No phone set';
     const location = data.location || 'No location set';
     const bio      = data.bio      || '';
-    const photo    = data.profileImage || '';
+    // profileImageId is a Cloudinary public_id — construct the URL at render time
+    const photo    = data.profileImageId
+      ? cdnUrl(data.profileImageId, TRANSFORMS.avatarLg, data.profileImageVersion ?? null)
+      : fallbackAvatar(name);
     const wallet   = Number(data.walletBalance  || 0);
     const inEscrow = Number(data.escrowBalance  || 0);
     const bookings = Number(data.bookings       || 0);
@@ -87,8 +96,10 @@ function populateProfile(data) {
 
     if (avatarImg) {
         const target = photo || buildDefaultAvatar(name);
-        if (avatarImg.src !== target) avatarImg.src = target;
-        removeSkel(avatarImg);
+        if (avatarImg.src !== target) {
+            avatarImg.src = target;
+        }
+        removeSkel(avatarImg); // safe to call repeatedly — only removes classes, never hides
     }
 
     // Wallet balance displays
@@ -124,12 +135,12 @@ function populateProfile(data) {
 }
 
 // ── Paint from cache immediately (before Firestore responds) ─────────────────
-// uid is not yet known here, so we accept the raw cache. dashboardBadge.js
-// guarantees the cache was cleared on logout, so this is always the current user.
+// uid is not set yet (auth hasn't resolved). Use hh_last_session_uid to target
+// the correct uid-scoped cache key — the same pattern the dashboard uses.
 try {
-    const _cached = window.HH_State
-        ? window.HH_State.profile.get()
-        : JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || 'null');
+    const _lastUid   = localStorage.getItem('hh_last_session_uid');
+    const _cacheKey  = _lastUid ? PROFILE_CACHE_KEY + '_' + _lastUid : PROFILE_CACHE_KEY;
+    const _cached    = JSON.parse(localStorage.getItem(_cacheKey) || 'null');
     if (_cached && _cached.name) populateProfile(_cached);
 } catch (_) {}
 
@@ -159,11 +170,27 @@ async function handlePhotoUpload(file) {
     setCameraLoading(true);
 
     try {
-        const { services: { storageService, databaseService } } = getAppContainer();
-        const path = `customers/${currentUserId}/profileImage`;
-        await storageService.uploadFile(path, file, { contentType: file.type });
-        const url = await storageService.getDownloadUrl(path);
-        await databaseService.setDocument('customers', currentUserId, { profileImage: url }, { merge: true });
+        const { services: { databaseService } } = getAppContainer();
+
+        // Upload to Cloudinary — file goes directly, never through your server
+        const { publicId, version } = await uploadImage(
+          file,
+          UPLOAD_PRESETS.profile,
+          { publicId: `customers/${currentUserId}` }  // deterministic — overwrites on re-upload
+        );
+
+        // Store public_id + version in Firestore.
+        // version is embedded in the CDN URL so each upload produces a
+        // distinct browser/CDN cache entry — no stale images after re-upload.
+        await databaseService.setDocument(
+          'customers',
+          currentUserId,
+          { profileImageId: publicId, profileImageVersion: version },
+          { merge: true }
+        );
+
+        // Update the avatar immediately from CDN (versioned URL)
+        if (avatarImg) avatarImg.src = cdnUrl(publicId, TRANSFORMS.avatarLg, version);
         showToast('Photo updated!', 'success');
     } catch (err) {
         console.error('Upload error:', err);

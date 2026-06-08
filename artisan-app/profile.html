@@ -58,11 +58,52 @@
 <script type="module">
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+import {
+  uploadImage, cdnUrl, TRANSFORMS, UPLOAD_PRESETS, fallbackAvatar,
+} from '../shared/js/services/cloudinaryService.js';
 
 // Blocking guard — all artisans (including pending) can view/edit their profile
 const { user, artisan } = await requireArtisanAuth({ allowPending: true });
 
 const { services: { databaseService } } = getAppContainer();
+
+// ── Photo upload ───────────────────────────────────────
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+async function handlePhotoUpload(file) {
+  if (file.size > MAX_PHOTO_BYTES) { showToast('Image must be under 5 MB.'); return; }
+  if (!file.type.startsWith('image/')) { showToast('Please choose a valid image.'); return; }
+
+  const img = document.getElementById('profile-avatar-img');
+  const prevSrc = img ? img.src : '';
+  if (img) img.src = URL.createObjectURL(file);
+
+  const btn = document.getElementById('avatar-camera-btn');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+
+  try {
+    const { publicId, version } = await uploadImage(
+      file,
+      UPLOAD_PRESETS.profile,
+      { publicId: `artisans/${user.uid}` }
+    );
+    await databaseService.updateDocument('artisans', user.uid, {
+      profileImageId:      publicId,
+      profileImageVersion: version,
+      updatedAt: new Date().toISOString(),
+    });
+    if (img) img.src = cdnUrl(publicId, TRANSFORMS.avatarLg, version);
+    showToast('Photo updated ✓');
+  } catch (err) {
+    console.error('Photo upload error:', err);
+    showToast('Upload failed. Try again.');
+    if (img && prevSrc) img.src = prevSrc;
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    const input = document.getElementById('avatar-file-input');
+    if (input) input.value = '';
+  }
+}
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -83,12 +124,26 @@ function render(data) {
   const kycStatus  = data.verificationStatus || 'draft';
   const kycLabel   = { approved: '✅ Verified', pending_review: '⏳ Under Review', rejected: '❌ Rejected', draft: '📋 Not Submitted' };
   const kycColor   = { approved: '#16a34a', pending_review: '#f97316', rejected: '#dc2626', draft: '#9CA3AF' };
+  const avatarSrc  = data.profileImageId
+    ? cdnUrl(data.profileImageId, TRANSFORMS.avatarLg, data.profileImageVersion ?? null)
+    : fallbackAvatar(name);
 
   document.getElementById('profile-content').innerHTML = `
     <div style="background:#fff;border-radius:16px;padding:20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
-        <div style="width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,#F97316,#EA580C);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;flex-shrink:0;">
-          ${(name || 'A').slice(0,2).toUpperCase()}
+        <div style="position:relative;flex-shrink:0;">
+          <img id="profile-avatar-img" src="${avatarSrc}"
+            style="width:64px;height:64px;border-radius:18px;object-fit:cover;display:block;"
+            onerror="this.src='${fallbackAvatar(name)}'" />
+          <button id="avatar-camera-btn"
+            style="position:absolute;bottom:-4px;right:-4px;width:24px;height:24px;border-radius:50%;background:#F97316;border:2px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;"
+            aria-label="Change photo">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="12" cy="13" r="4" stroke="#fff" stroke-width="2"/>
+            </svg>
+          </button>
+          <input type="file" id="avatar-file-input" accept="image/*" style="display:none" />
         </div>
         <div>
           <p style="font-size:17px;font-weight:800;color:#111827;margin:0 0 2px;">${name || 'Artisan'}</p>
@@ -173,7 +228,19 @@ window.signOut = async function() {
 
 // Subscribe to live artisan document
 databaseService.subscribeToDocument('artisans', user.uid, snap => {
-  if (snap && snap.exists) render(snap.data);
+  if (snap && snap.exists) {
+    render(snap.data);
+    // Wire camera button each time render() rebuilds the DOM
+    const camBtn   = document.getElementById('avatar-camera-btn');
+    const fileInput = document.getElementById('avatar-file-input');
+    if (camBtn && fileInput) {
+      camBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', e => {
+        const f = e.target.files[0];
+        if (f) handlePhotoUpload(f);
+      });
+    }
+  }
 });
 </script>
 </body>

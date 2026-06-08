@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Back button
     const backBtn = document.querySelector('.back-btn');
-    if (backBtn) backBtn.addEventListener('click', () => history.back());
+    if (backBtn) backBtn.addEventListener('click', () => { window.location.href = 'profile.html'; });
 
     // Find the Theme menu item
     let themeBtn = null;

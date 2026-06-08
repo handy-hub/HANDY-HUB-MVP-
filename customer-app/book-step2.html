@@ -167,6 +167,7 @@
   ───────────────────────────────────────────────────────────────── */
   import { requireAuth }    from '../shared/js/utils/authGuard.js';
   import { getAppContainer } from '../shared/js/app/container.js';
+  import { cdnUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.js';
 
   await requireAuth();
 
@@ -299,7 +300,9 @@
     const avail      = d.isAvailable  ? 'Available now' : 'Busy';
     const isOnline   = Boolean(d.isAvailable);
     const isTopRated = rating && Number(rating) >= 4.8 && reviews >= 50;
-    const photo      = d.profileImage || null;
+    const photo      = d.profileImageId
+      ? cdnUrl(d.profileImageId, TRANSFORMS.avatarSm, d.profileImageVersion ?? null)
+      : (d.profileImage || null);
     const bio        = d.bio          || '';
     const isSelected = selectedProId === id;
 
@@ -480,7 +483,9 @@
         phone:      d.phone        ? `tel:${d.phone}` : null,
         isOnline:   Boolean(d.isAvailable),
         isTopRated: Boolean(d.rating && Number(d.rating) >= 4.8),
-        photo:      d.profileImage || null,
+        photo:               cdnUrl(d.profileImageId, TRANSFORMS.avatarSm, d.profileImageVersion ?? null) || d.profileImage || null,
+        profileImageId:      d.profileImageId      || null,
+        profileImageVersion: d.profileImageVersion || null,
       },
     });
   };
@@ -500,7 +505,9 @@
         jobsCompleted: d.jobsCompleted || 0,
         yearsExperience: d.yearsExperience || null,
         bio: d.bio || '',
-        profileImage: d.profileImage || null,
+        profileImageId:      d.profileImageId      || null,
+        profileImageVersion: d.profileImageVersion || null,
+        profileImage:        d.profileImage        || null,
         location: d.location || '',
         isAvailable: d.isAvailable || false,
       }));

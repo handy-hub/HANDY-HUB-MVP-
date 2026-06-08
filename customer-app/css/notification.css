@@ -19,7 +19,7 @@
 /* ── Reset (scoped to the notification page) ────────────────────────────── */
 body[data-page-type="notification"] {
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: #f7f7f7;
+    background: #fefefe;
     color: var(--text-dark);
     margin: 0;
     padding: 0;
@@ -44,7 +44,7 @@ body[data-page-type="notification"] {
     align-items: center;
     justify-content: space-between;
     padding: 14px 20px;
-    background: rgba(247, 247, 247, 0.96);
+    background: rgba(254, 254, 254, 0.96);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid rgba(0,0,0,0.06);

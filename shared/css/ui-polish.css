@@ -1,5 +1,5 @@
 :root {
-  --ui-bg: #f7f7f7;
+  --ui-bg: #fefefe;
   --ui-surface: #ffffff;
   --ui-text: #111111;
   --ui-muted: #666666;
@@ -184,17 +184,7 @@ textarea {
   resize: vertical;
 }
 
-.hh-menu-btn,
-.hh-icon-btn,
-.bk-back-btn,
-.bk-bell-btn,
-.back-btn,
-.icon-btn,
-.filter-btn,
-.sv-icon-btn,
-.ms-icon-btn,
-.bn-back-btn,
-.bn-icon-btn,
+/* ── Text/action buttons: consistent tap-target sizing ───────────────── */
 .uc-topup,
 .pc-book,
 .book-now-btn,
@@ -212,6 +202,45 @@ textarea {
   min-height: fit-content;
   padding: 10px 16px;
   border-radius: 12px;
+}
+
+/* ── Icon-only buttons: zero padding, locked SVG size ─────────────────── */
+/* INVARIANT: Never apply padding to icon-only buttons.                     */
+/* These have explicit fixed dimensions (34–44 px). padding + box-sizing:  */
+/* border-box collapses the content area; svg { max-width:100% } then       */
+/* shrinks the icon to match — making icons near-invisible.                  */
+.hh-menu-btn,
+.hh-icon-btn,
+.bk-back-btn,
+.bk-bell-btn,
+.back-btn,
+.icon-btn,
+.filter-btn,
+.sv-icon-btn,
+.ms-icon-btn,
+.bn-back-btn,
+.bn-icon-btn {
+  padding: 0;
+  border-radius: 12px;
+}
+
+/* Lock direct-child SVGs to 24 px so they can never be compressed */
+.hh-menu-btn > svg,
+.hh-icon-btn > svg,
+.bk-back-btn > svg,
+.bk-bell-btn > svg,
+.back-btn > svg,
+.icon-btn > svg,
+.sv-icon-btn > svg,
+.ms-icon-btn > svg,
+.bn-back-btn > svg,
+.bn-icon-btn > svg {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  display: block;
+  flex-shrink: 0;
 }
 
 /* ── Global bottom-nav: enforce proper fixed centering on ALL pages ───── */
@@ -368,14 +397,14 @@ textarea {
 .sv-shell {
   display: flex;
   flex-direction: column;
-  background: #f7f7f7;
+  background: #fefefe;
 }
 
 .sv-header {
   position: sticky;
   top: 0;
   z-index: 24;
-  background: rgba(247, 247, 247, 0.96);
+  background: rgba(254, 254, 254, 0.96);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid #ededed;
   display: flex;

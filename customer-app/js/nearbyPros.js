@@ -164,7 +164,16 @@ async function fetchArtisans() {
 /* ── Avatar ────────────────────────────────────────────────────────────── */
 const AVATAR_SVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23730201'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E`;
 
+// Handles both Cloudinary (profileImageId) and legacy Firebase Storage (profileImage) accounts.
+// Inlined here because nearbyPros uses only dynamic imports for resilience across serving contexts.
+const _CDN_BASE      = 'https://res.cloudinary.com/dnwwglbl9/image/upload';
+const _AVATAR_XFORM  = 'w_80,h_80,c_fill,f_auto,q_auto,r_max';
+
 function avatarSrc(a) {
+  if (a.profileImageId) {
+    const v = a.profileImageVersion ? `v${a.profileImageVersion}/` : '';
+    return `${_CDN_BASE}/${v}${_AVATAR_XFORM}/${a.profileImageId}`;
+  }
   return a.profileImage || a.photo || AVATAR_SVG;
 }
 
@@ -473,7 +482,9 @@ window._npViewArtisan = function (artisanId) {
       jobsCompleted: a.jobsCompleted || 0,
       yearsExperience: a.yearsExperience || null,
       bio: a.bio || '',
-      profileImage: a.profileImage || a.photo || null,
+      profileImageId:      a.profileImageId      || null,
+      profileImageVersion: a.profileImageVersion || null,
+      profileImage:        a.profileImage || a.photo || null,
       location: a.location || '',
       isAvailable: a.isAvailable || false,
       isOnline: a.isOnline || false,
@@ -489,7 +500,10 @@ window._npBookArtisan = function (artisanId, category) {
       id: a.id, uid: a.id, name: a.name || '',
       specialty: a.specialty || '', category: a.category || category || '',
       rating: a.rating || 0, reviewCount: a.reviewCount || 0,
-      profileImage: a.profileImage || null, location: a.location || '',
+      profileImageId:      a.profileImageId      || null,
+      profileImageVersion: a.profileImageVersion || null,
+      profileImage:        a.profileImage        || null,
+      location: a.location || '',
     }));
     sessionStorage.setItem('hh_service', a.category || category || '');
   }

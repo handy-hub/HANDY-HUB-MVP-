@@ -752,6 +752,16 @@
 
   const AVATAR_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23730201'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E";
 
+  // Handles Cloudinary (profileImageId+profileImageVersion) and legacy (profileImage) accounts.
+  function resolveArtisanAvatar(a) {
+    if (!a) return AVATAR_SVG;
+    if (a.profileImageId) {
+      var v = a.profileImageVersion ? 'v' + a.profileImageVersion + '/' : '';
+      return 'https://res.cloudinary.com/dnwwglbl9/image/upload/' + v + 'w_160,h_160,c_fill,f_auto,q_auto,r_max/' + a.profileImageId;
+    }
+    return a.profileImage || a.photo || AVATAR_SVG;
+  }
+
   /* ── Load artisan from session ── */
   function loadArtisan() {
     try { return JSON.parse(sessionStorage.getItem('hh_artisan_view') || 'null'); }
@@ -817,7 +827,7 @@
     const location   = a.location         || '';
     const price      = PRICE_RANGES[category] || 'GHC 50–150';
     const isVerified = a.isVerified === true || a.verificationStatus === 'approved';
-    const avatarSrc  = a.profileImage     || a.photo || AVATAR_SVG;
+    const avatarSrc  = resolveArtisanAvatar(a);
 
     /* ── 1. Hero card ── */
     const profileEl = document.getElementById('ap-profile');
@@ -994,7 +1004,7 @@
           </div>
           <p class="nf-title">Professional Not Found</p>
           <p class="nf-sub">We couldn't load this professional's profile.<br>Go back and try again.</p>
-          <button class="nf-btn" onclick="history.back()">Go Back</button>
+          <button class="nf-btn" onclick="window.location.href='dashboard.html'">Go Back</button>
         </div>`;
     }
   }
@@ -1015,8 +1025,10 @@
       category:     a.category     || '',
       rating:       a.rating       || 0,
       reviewCount:  a.reviewCount  || 0,
-      profileImage: a.profileImage || null,
-      location:     a.location     || '',
+      profileImageId:      a.profileImageId      || null,
+      profileImageVersion: a.profileImageVersion || null,
+      profileImage:        a.profileImage        || null,
+      location:            a.location            || '',
     }));
     sessionStorage.setItem('hh_service', a.category || '');
     window.location.href = 'book-now.html';
@@ -1052,7 +1064,7 @@
   });
 
   /* Back button */
-  document.getElementById('ap-back')?.addEventListener('click', () => history.back());
+  document.getElementById('ap-back')?.addEventListener('click', () => { window.location.href = 'dashboard.html'; });
 
   /* Toast */
   function showToast(msg) {
@@ -1083,6 +1095,51 @@
   render(loadArtisan());
 
 })();
+</script>
+
+<!-- Background Firestore refresh: silently re-fetches artisan and patches avatar if photo changed since the nearby-pros list was loaded -->
+<script type="module">
+  import { getAppContainer } from '../shared/js/app/container.js';
+  (async function () {
+    try {
+      var stored;
+      try { stored = JSON.parse(sessionStorage.getItem('hh_artisan_view') || 'null'); } catch (_) { return; }
+      if (!stored || !stored.id) return;
+
+      var container = await getAppContainer();
+      var db = container.databaseService;
+      var fresh = await db.getDocument('artisans', stored.id);
+      if (!fresh) return;
+
+      var samePic = (fresh.profileImageVersion || null) === (stored.profileImageVersion || null)
+                 && (fresh.profileImageId      || null) === (stored.profileImageId      || null)
+                 && (fresh.profileImage        || null) === (stored.profileImage        || null);
+      if (samePic) return;
+
+      // Merge fresh photo fields back so the book-button payload also uses the new photo
+      var merged = Object.assign({}, stored, {
+        profileImageId:      fresh.profileImageId      || null,
+        profileImageVersion: fresh.profileImageVersion || null,
+        profileImage:        fresh.profileImage        || null,
+      });
+      try { sessionStorage.setItem('hh_artisan_view', JSON.stringify(merged)); } catch (_) {}
+
+      // Patch the hero avatar in-place without re-rendering
+      var img = document.querySelector('#ap-profile .hero-avatar');
+      if (!img) return;
+      var AVATAR_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23730201'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E";
+      var newSrc;
+      if (fresh.profileImageId) {
+        var v = fresh.profileImageVersion ? 'v' + fresh.profileImageVersion + '/' : '';
+        newSrc = 'https://res.cloudinary.com/dnwwglbl9/image/upload/' + v + 'w_160,h_160,c_fill,f_auto,q_auto,r_max/' + fresh.profileImageId;
+      } else if (fresh.profileImage) {
+        newSrc = fresh.profileImage;
+      } else {
+        newSrc = AVATAR_SVG;
+      }
+      if (img.src !== newSrc) img.src = newSrc;
+    } catch (_) {}
+  })();
 </script>
 
 </body>

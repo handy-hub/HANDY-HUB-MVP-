@@ -9,7 +9,7 @@
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background: #f0f0f0;
+  background: #fefefe;
   min-height: 100dvh;
 }
 
@@ -29,7 +29,7 @@ button {
   min-height: 100dvh;
   max-width: 480px;
   margin: 0 auto;
-  background: #fff;
+  background: #fefefe;
   overflow-x: hidden;
   position: relative;
 }
@@ -74,6 +74,14 @@ button {
   justify-content: center;
   border-radius: 12px;
   transition: background 0.15s;
+  padding: 0;
+}
+
+.icon-btn svg {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
 .icon-btn:hover {
@@ -398,7 +406,7 @@ button {
 .activity-icon {
   width: 46px;
   height: 46px;
-  background: #fff5f5;
+  background: #faeded44;
   border-radius: 14px;
   display: flex;
   align-items: center;

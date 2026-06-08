@@ -9,7 +9,7 @@
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background: #f7f7f7;
+  background: #fefefe;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -31,7 +31,7 @@ button {
   width: 100%;
   max-width: 430px;
   min-height: 100dvh;
-  background: #f7f7f7;
+  background: #fefefe;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
@@ -65,7 +65,7 @@ button {
   padding: 22px 0 14px;
   position: sticky;
   top: 0;
-  background: #f7f7f7;
+  background: #fefefe;
   z-index: 10;
 }
 

@@ -4,7 +4,7 @@
 
 body {
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f7f7f7; display: flex; justify-content: center;
+  background: #fefefe; display: flex; justify-content: center;
   overflow: hidden; height: 100dvh; -webkit-font-smoothing: antialiased;
 }
 
@@ -12,7 +12,7 @@ body {
 .bn-shell {
   width: 100%; max-width: 430px; height: 100dvh;
   display: flex; flex-direction: column; overflow: hidden;
-  position: relative; background: #f7f7f7;
+  position: relative; background: #fefefe;
 }
 
 /* ── Header ── */
@@ -490,7 +490,7 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
 .bn2-shell {
   width: 100%; max-width: 430px; height: 100dvh;
   display: flex; flex-direction: column; overflow: hidden;
-  position: relative; background: #f7f7f7; margin: 0 auto;
+  position: relative; background: #fefefe; margin: 0 auto;
 }
 
 /* ── Header ── */

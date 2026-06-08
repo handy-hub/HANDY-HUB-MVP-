@@ -1014,11 +1014,22 @@ body {
   }
   window.addEventListener('pagehide', cleanupSubs);
 
+  /* ── Resolve artisan photo — handles Cloudinary (profileImageId) and legacy (profileImage) ── */
+  function _emPhoto(d) {
+    if (!d) return null;
+    if (d.profileImageId) {
+      const v = d.profileImageVersion ? `v${d.profileImageVersion}/` : '';
+      return `https://res.cloudinary.com/dnwwglbl9/image/upload/${v}w_80,h_80,c_fill,f_auto,q_auto,r_max/${d.profileImageId}`;
+    }
+    return d.profileImage || null;
+  }
+
   /* ── Avatar renderer ── */
   function renderAv(el, d) {
     if (!el) return;
-    if (d && d.profileImage) {
-      el.innerHTML = `<img src="${d.profileImage}" alt="${d.name||''}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    const photoSrc = _emPhoto(d);
+    if (photoSrc) {
+      el.innerHTML = `<img src="${photoSrc}" alt="${d.name||''}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
     } else {
       el.innerHTML = '';
       const name = (d && d.name) ? d.name : svcName;
@@ -1198,7 +1209,7 @@ body {
     const artisanId = artisan ? artisan.id : null;
     const record = {
       id: bookRef, service: svcName + ' (Emergency)', proName, proType,
-      proPhoto: d.profileImage || null, artisanId,
+      proPhoto: _emPhoto(d), artisanId,
       dateDisplay: _now.toDateString(),
       time: _now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
       total: 0, status: 'pending', type: 'emergency', isEmergency: true, ts: _now.toISOString(),
@@ -1208,8 +1219,8 @@ body {
         id: bookRef, bookingId: bookRef,
         service: svcName + ' (Emergency)', services: [{name: svcName + ' (Emergency)'}],
         status: 'pending', type: 'emergency', isEmergency: true, artisanId,
-        artisan:      {id:artisanId, name:proName, type:proType, phone:d.phone||null, photo:d.profileImage||null},
-        professional: {id:artisanId, uid:artisanId, name:proName, type:proType, phone:d.phone?`tel:${d.phone}`:null, photo:d.profileImage||null},
+        artisan:      {id:artisanId, name:proName, type:proType, phone:d.phone||null, photo:_emPhoto(d)},
+        professional: {id:artisanId, uid:artisanId, name:proName, type:proType, phone:d.phone?`tel:${d.phone}`:null, photo:_emPhoto(d)},
         total: 0, ts: _now.toISOString(),
       }));
       const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
@@ -1398,7 +1409,7 @@ body {
   window.cancelSearch = function () {
     if (confirm('Cancel this emergency request?')) {
       sessionStorage.removeItem('em_service'); sessionStorage.removeItem('hh_service');
-      history.back();
+      window.location.href = 'dashboard.html';
     }
   };
   window.safeBack = window.cancelSearch;

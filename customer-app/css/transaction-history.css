@@ -45,7 +45,7 @@ button {
   overflow-x: hidden;
   padding: 0 20px 90px;
   scrollbar-width: none;
-  background: #f7f7f7;
+  background: #fefefe;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
@@ -62,7 +62,7 @@ button {
   justify-content: space-between;
   align-items: center;
   padding: 22px 0 18px;
-  background: #f7f7f7;
+  background: #fefefe;
   position: sticky;
   top: 0;
   z-index: 10;

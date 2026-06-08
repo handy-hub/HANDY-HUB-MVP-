@@ -28,7 +28,7 @@
 
 .phone-shell {
   width: 100%; max-width: 430px; min-height: 100dvh;
-  margin: 0 auto; background: var(--bf-surface);
+  margin: 0 auto; background: #fefefe;
   display: flex; flex-direction: column;
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }

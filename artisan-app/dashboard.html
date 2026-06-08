@@ -330,6 +330,7 @@ import { getAppContainer }                             from '../shared/js/app/co
 import { startPresence, stopPresence, setOnlineState } from '../shared/js/services/presenceService.js';
 import { subscribeToUnreadCount }                      from '../shared/js/services/notificationRepository.js';
 import { requireArtisanAuth, canAcceptJobs }           from './js/utils/artisanAuthGuard.js';
+import { resolveAvatar, TRANSFORMS }                   from '../shared/js/services/cloudinaryService.js';
 
 // ── BLOCKING AUTH GUARD ───────────────────────────────────────────────────────
 // Verifies: authenticated + role=artisan + not suspended.
@@ -396,7 +397,7 @@ function applyProfile(data) {
   const name     = data.name     || 'Artisan';
   const role     = data.specialty || data.category || 'Service Provider';
   const location = data.location || 'Accra, Ghana';
-  const photo    = data.profileImage;
+  const photo    = resolveAvatar(data, TRANSFORMS.avatarLg);
   const jobs     = data.jobsCompleted  || 0;
   const rating   = data.rating         || 0;
   const response = data.responseRate   ? data.responseRate + '%' : '—';
@@ -405,8 +406,7 @@ function applyProfile(data) {
   profileName.textContent     = name;
   profileRole.textContent     = role;
   profileLocation.textContent = location;
-  if (photo) profileAvatar.src = photo;
-  else profileAvatar.src = `https://ui-avatars.com/api/?background=F97316&color=fff&size=128&name=${encodeURIComponent(name.slice(0,2))}`;
+  if (profileAvatar.src !== photo) profileAvatar.src = photo;
 
   // Verified
   if (data.verificationStatus === 'approved') {

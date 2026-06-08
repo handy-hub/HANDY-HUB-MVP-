@@ -204,7 +204,10 @@ service cloud.firestore {
     // walletBalance / escrowBalance / spent are EXCLUDED (Cloud Function owns them).
     function isSafeCustomerProfileUpdate() {
       return incoming().diff(existing()).affectedKeys().hasOnly([
-        'name', 'phone', 'location', 'bio', 'profileImage',
+        'name', 'phone', 'location', 'bio',
+        // Cloudinary fields — public_id + version stored together.
+        // version is embedded in the CDN URL to bust browser/CDN cache on re-upload.
+        'profileImageId', 'profileImageVersion',
         'recentSearches', 'recentSearchesUpdatedAt',
         'notificationPreferences', 'privacySettings', 'appPreferences',
         // Saved items — managed by the customer via saved.html
@@ -222,7 +225,7 @@ service cloud.firestore {
         // Core identity
         'id', 'name', 'email', 'phone',
         // Profile content
-        'bio', 'profileImage', 'location', 'address', 'gpsAddress',
+        'bio', 'profileImage', 'profileImageId', 'profileImageVersion', 'location', 'address', 'gpsAddress',
         'availability', 'isAvailable', 'isOnline',
         'baseRate', 'workRadius', 'skills', 'specialty',
         'yearsExperience', 'gender', 'category',

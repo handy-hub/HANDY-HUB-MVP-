@@ -84,6 +84,55 @@
 
       </div><!-- /user-card -->
 
+      <!-- ── Instant cache paint ──────────────────────────────────────────────
+           Runs synchronously, before any <script type="module"> resolves.
+           Reads the uid-scoped localStorage profile cache and paints the
+           avatar + name instantly so the skeleton never flashes on repeat visits.
+      ──────────────────────────────────────────────────────────────────────── -->
+      <script>
+        (function () {
+          var uid = localStorage.getItem('hh_last_session_uid');
+          if (!uid) return;
+          var cache;
+          try { cache = JSON.parse(localStorage.getItem('hh_profile_cache_' + uid) || 'null'); } catch (_) { return; }
+          if (!cache || !cache.name) return;
+
+          /* Avatar --------------------------------------------------------- */
+          var img = document.getElementById('profile-avatar');
+          if (img) {
+            var src = null;
+            if (cache.profileImageId) {
+              var v = cache.profileImageVersion ? 'v' + cache.profileImageVersion + '/' : '';
+              src = 'https://res.cloudinary.com/dnwwglbl9/image/upload/' + v + 'w_160,h_160,c_fill,f_auto,q_auto,r_max/' + cache.profileImageId;
+            } else {
+              src = cache.profileImage || null;
+            }
+            if (src) {
+              img.src = src;
+              img.classList.remove('skel', 'skel-circle');
+            }
+          }
+
+          /* Name ----------------------------------------------------------- */
+          var nameEl = document.getElementById('profile-name');
+          if (nameEl) {
+            nameEl.textContent = cache.name;
+            nameEl.classList.remove('skel');
+            nameEl.style.minWidth = '';
+          }
+
+          /* Greeting ------------------------------------------------------- */
+          var greetEl = document.getElementById('profile-greeting');
+          if (greetEl) {
+            var h = new Date().getHours();
+            var period = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+            greetEl.textContent = period + ', ' + (cache.name.split(' ')[0] || 'there');
+            greetEl.classList.remove('skel');
+            greetEl.style.minWidth = '';
+          }
+        })();
+      </script>
+
       <!-- Complete Profile Banner -->
       <div class="banner" id="complete-banner">
         <div class="banner-icon">

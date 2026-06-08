@@ -498,6 +498,7 @@
 import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+import { uploadImage, UPLOAD_PRESETS } from '../shared/js/services/cloudinaryService.js';
 
 // Onboarding is accessible to ALL artisans regardless of KYC status,
 // including pending and rejected — this IS the KYC submission page.
@@ -780,10 +781,25 @@ async function submitApplication() {
   btnNext.textContent = 'Uploading…';
 
   try {
-    // 1. Upload documents to Firebase Storage
+    // 1a. Profile photo → Cloudinary (public CDN, optimised delivery)
+    let selfiePublicId = null;
+    let selfieVersion  = null;
+    if (uploadedFiles.selfie?.file) {
+      const selfieResult = await uploadImage(
+        uploadedFiles.selfie.file,
+        UPLOAD_PRESETS.profile,
+        { publicId: `artisans/${uid}` }
+      );
+      selfiePublicId = selfieResult.publicId;
+      selfieVersion  = selfieResult.version;
+    }
+
+    // 1b. KYC documents → Firebase Storage (private, admin-only access)
     const docUrls = {};
-    for (const [key, val] of Object.entries(uploadedFiles)) {
-      if (!val.file) continue;
+    const KYC_KEYS = ['idFront', 'idBack', 'bizReg', 'certs'];
+    for (const key of KYC_KEYS) {
+      const val = uploadedFiles[key];
+      if (!val?.file) continue;
       const ext  = val.file.name.split('.').pop() || 'jpg';
       const path = `artisans/${uid}/documents/${key}.${ext}`;
       try {
@@ -845,7 +861,8 @@ async function submitApplication() {
       gpsAddress:       gps,
       emergencyContact: { name: emergName, phone: emergPhone },
       // Profile & skills
-      profileImage:     docUrls.selfie || null,
+      profileImageId:      selfiePublicId || null,
+      profileImageVersion: selfieVersion  || null,
       category,
       specialty:        category,
       skills:           [...selectedSkills],

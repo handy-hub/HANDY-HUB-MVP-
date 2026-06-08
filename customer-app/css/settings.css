@@ -10,7 +10,7 @@
 body {
   font-family: 'DM Sans', sans-serif;
   display: flex;
-  background: #f7f7f7;
+  background: #fefefe;
   justify-content: center;
   align-items: flex-start;
   min-height: 100dvh;
@@ -37,7 +37,7 @@ button {
   display: flex;
   flex-direction: column;
   margin: 0 auto;
-  background: #f7f7f7;
+  background: #fefefe;
   position: relative;
 }
 
@@ -68,7 +68,7 @@ button {
   padding: 16px 0 14px;
   position: sticky;
   top: 0;
-  background: #f7f7f7;
+  background: #fefefe;
   z-index: 10;
 }
 
@@ -86,11 +86,11 @@ button {
   flex-shrink: 0;
 }
 .back-btn svg {
-  width: 24px !important;
-  height: 24px !important;
+  width: 24px;
+  height: 24px;
   min-width: 24px;
   min-height: 24px;
-  display: block !important;
+  display: block;
   flex-shrink: 0;
 }
 

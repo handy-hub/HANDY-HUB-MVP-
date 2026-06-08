@@ -45,6 +45,15 @@ const ESCROW_AUTO_RELEASE_DAYS = 7;
 // ── Paystack ──────────────────────────────────────────────────────────────────
 const PAYSTACK_BASE = 'https://api.paystack.co';
 
+// ── Cloudinary ────────────────────────────────────────────────────────────────
+// Cloud name is public (it appears in every CDN URL). Key + secret are secrets.
+// Local dev: set these in functions/.env (gitignored).
+// Production: firebase functions:secrets:set CLOUDINARY_API_KEY
+//             firebase functions:secrets:set CLOUDINARY_API_SECRET
+const CLOUDINARY_CLOUD_NAME = 'dnwwglbl9';
+const CLOUDINARY_API_KEY    = process.env.CLOUDINARY_API_KEY    || '';
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
+
 module.exports = {
     FIRESTORE_DB_ID,
     ADMIN_EMAILS,
@@ -52,4 +61,7 @@ module.exports = {
     MIN_WITHDRAWAL,
     ESCROW_AUTO_RELEASE_DAYS,
     PAYSTACK_BASE,
+    CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET,
 };

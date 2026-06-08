@@ -16,7 +16,7 @@
 
   <!-- ── Header ── -->
   <div class="bn2-header">
-    <button class="bn2-back-btn" onclick="history.back()">
+    <button class="bn2-back-btn" onclick="window.location.href='dashboard.html'">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
     <div class="bn2-header-center">
@@ -191,6 +191,7 @@
 // ── Auth guard — redirect to login if no session ──────────────
 import { requireAuth } from '../shared/js/utils/authGuard.js';
 import { getHaversineDistanceKm, estimateEtaMinutes } from '../shared/js/utils/geo.js';
+import { cdnUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.js';
 await requireAuth();
 
 // ── Service catalogue ─────────────────────────────────────────
@@ -451,7 +452,9 @@ function buildProCard(artisan) {
   const reviews   = d.reviewCount   || 0;
   const jobs      = d.jobsCompleted || 0;
   const avail     = d.isAvailable   !== false && d.isOnline !== false;
-  const photo     = d.profileImage  || null;
+  const photo     = d.profileImageId
+    ? cdnUrl(d.profileImageId, TRANSFORMS.avatarSm, d.profileImageVersion ?? null)
+    : (d.profileImage || null);
   const location  = d.location      || '';
 
   const photoHtml = photo
@@ -531,8 +534,10 @@ window._bnSelectPro = function(id) {
       specialty:    d.specialty    || '',
       rating:       d.rating       || null,
       reviewCount:  d.reviewCount  || 0,
-      profileImage: d.profileImage || null,
-      phone:        d.phone        || '',
+      profileImageId:      d.profileImageId      || null,
+      profileImageVersion: d.profileImageVersion || null,
+      profileImage:        d.profileImage        || null,
+      phone:               d.phone               || '',
     };
     state.services = [{
       name:     SERVICES[currentSvc].name,

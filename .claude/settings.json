@@ -43,7 +43,8 @@
       "Bash(python tests/test_nearby_pros.py)",
       "Bash(Select-String -Path \"c:\\\\Users\\\\Herty\\\\OneDrive\\\\Desktop\\\\Lunch\\\\HANDY-HUB-MVP-\\\\customer-app\\\\css\\\\booking.css\" -Pattern \"dark\")",
       "Bash(Measure-Object)",
-      "Bash(Select-Object -ExpandProperty Count)"
+      "Bash(Select-Object -ExpandProperty Count)",
+      "Bash(grep -E \"\\\\.\\(js|jsx|ts|tsx\\)$\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Herty\\.claude\\projects\\c--Users-Herty-OneDrive-Desktop-Lunch-HANDY-HUB-MVP-\\memory",

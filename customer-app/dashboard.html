@@ -147,64 +147,13 @@
   </div>
   <div id="search-container" style="display:none;"></div>
 
-  <!-- ════ QUICK CHIPS ════ -->
-  <div class="chips-row">
-    <button class="chip" id="chip-fixpipe">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 22s-8-6-8-13a8 8 0 0 1 16 0c0 7-8 13-8 13z" stroke="#730201" stroke-width="2"/><path d="M8 10h8M12 6v8" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-      Fix leaking pipe
-    </button>
-    <button class="chip" id="chip-fan">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="#730201" stroke-width="2"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
-      Install fan
-    </button>
-    <button class="chip" id="chip-em-elec">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Emergency electrician
-    </button>
-    <button class="chip" id="chip-more">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/></svg>
-      More
-    </button>
-  </div>
 
-  <!-- ════ AD BANNER ════ -->
-  <section class="ads">
-    <div class="slider">
-      <div class="slide">
-        <img src="https://i.pinimg.com/736x/44/41/9d/44419dac4fcb78aae208565099c97221.jpg" alt="">
-        <div class="ad-content">
-          <span class="ad-tag">Limited Time Offer</span>
-          <h1>Get 20% OFF</h1>
-          <h3>your first booking</h3>
-          <p>Trusted professionals, quality service.</p>
-          <button class="book-now">Book Now <span class="arrow-icon"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="3" stroke-linecap="round"/></svg></span></button>
-        </div>
-      </div>
-      <div class="slide">
-        <img src="https://i.pinimg.com/736x/04/1a/09/041a0923ce2a5d512923d1cdffcd7e1f.jpg" alt="">
-        <div class="ad-content">
-          <span class="ad-tag">Home Cleaning</span>
-          <h1>Express Clean</h1>
-          <h3>Sparkling results</h3>
-          <p>Book a pro cleaner in under 2 minutes.</p>
-          <button class="book-now">Check Rates <span class="arrow-icon"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="3" stroke-linecap="round"/></svg></span></button>
-        </div>
-      </div>
-      <div class="slide">
-        <img src="https://i.pinimg.com/736x/84/fa/24/84fa2444f8cc33ef30c8813e95807bb6.jpg" alt="">
-        <div class="ad-content">
-          <span class="ad-tag">New Service</span>
-          <h1>AC Repair</h1>
-          <h3>Stay cool always</h3>
-          <p>Expert technicians at your doorstep.</p>
-          <button class="book-now">Fix Now <span class="arrow-icon"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="3" stroke-linecap="round"/></svg></span></button>
-        </div>
-      </div>
-    </div>
-    <div class="slider-dots">
-      <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
-    </div>
+
+  <!-- ════ AD BANNER — populated by adBanner.js ════ -->
+  <section class="ads" id="ad-banner">
+    <div class="slider" id="ad-slider"></div>
   </section>
+  <div class="slider-dots" id="ad-dots"></div>
 
   <!-- ════ POPULAR SERVICES ════ -->
   <div class="section-row">
@@ -519,6 +468,13 @@
 <script src="../shared/js/utils/helpers.js"></script>
 <script src="../shared/js/utils/global-app.js"></script>
 <script type="module" src="js/dashboardBadge.js"></script>
+<script type="module">
+  import { mountAdBanner } from './js/adBanner.js';
+  mountAdBanner(
+    document.getElementById('ad-banner'),
+    document.getElementById('ad-dots')
+  );
+</script>
 <script src="../shared/js/components/fastLoader.js"></script>
 <script src="../shared/js/components/floatingNav.js"></script>
 
@@ -644,10 +600,6 @@
   });
   document.getElementById('chip-more')?.addEventListener('click',     () => go('book-step1.html'));
 
-  /* ad banner buttons */
-  const adActions = [{ href: 'book-now.html' }, { href: 'book-now.html', store: { hh_service: 'Cleaning' } }, { href: 'book-now.html', store: { hh_service: 'AC Repair' } }];
-  document.querySelectorAll('.book-now').forEach((btn, i) => { if (adActions[i]) btn.addEventListener('click', () => go(adActions[i].href, adActions[i].store)); });
-
   /* section buttons */
   document.getElementById('view-all-svc')?.addEventListener('click', () => go('book-step1.html'));
   document.getElementById('ai-search-btn')?.addEventListener('click', () => toast('AI Search coming soon', 'info'));
@@ -764,10 +716,19 @@
     if (locEl     && p.location) { locEl.textContent      = p.location; removeSkel(locEl); }
     if (sideLocEl  && p.location)  sideLocEl.textContent  = p.location;
 
-    var src = p.profileImage || (p.name
-      ? 'https://ui-avatars.com/api/?background=730201&color=fff&size=128&name=' +
-        encodeURIComponent(p.name.slice(0, 2).toUpperCase())
-      : null);
+    var src = null;
+    if (p.profileImageId) {
+      var _iv = p.profileImageVersion ? 'v' + p.profileImageVersion + '/' : '';
+      src = 'https://res.cloudinary.com/dnwwglbl9/image/upload/' + _iv + 'w_80,h_80,c_fill,f_auto,q_auto,r_max/' + p.profileImageId;
+    } else if (p.profileImage) {
+      src = p.profileImage;
+    } else {
+      var _nm = (p.name || '').trim();
+      var _in = _nm.split(/\s+/).filter(Boolean).map(function(w){ return w[0] || ''; }).join('').slice(0, 2).toUpperCase() || '?';
+      var _fs = _in.length > 1 ? 14 : 16;
+      var _sv = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#730201"/><text x="20" y="20" font-family="Arial,sans-serif" font-size="' + _fs + '" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central">' + _in + '</text></svg>';
+      src = 'data:image/svg+xml,' + encodeURIComponent(_sv);
+    }
     if (imgEl     && src) { imgEl.src     = src; removeSkel(imgEl); }
     if (sideImgEl && src)   sideImgEl.src = src;
   } catch (_) {}
