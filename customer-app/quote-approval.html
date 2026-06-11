@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Review Quote | HandyHub</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/css/ui-polish.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--surface-2, #f5f5f5); color: var(--text-dark, #111); min-height: 100dvh; }
+
+    .qa-shell { max-width: 430px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    .qa-header { background: #730201; padding: 14px 16px 56px; position: relative; overflow: hidden; }
+    .qa-header::after { content:''; position:absolute; bottom:-28px; left:0; right:0; height:56px; background: var(--surface-2, #f5f5f5); border-radius: 28px 28px 0 0; }
+    .qa-back { width:36px; height:36px; border:none; background:rgba(255,255,255,.15); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-bottom:20px; }
+    .qa-artisan-wrap { display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .qa-av { width:68px; height:68px; border-radius:20px; background:linear-gradient(135deg,#a03030,#e05050); display:flex; align-items:center; justify-content:center; color:#fff; font-size:24px; font-weight:800; overflow:hidden; border:3px solid rgba(255,255,255,.3); }
+    .qa-av img { width:100%; height:100%; object-fit:cover; }
+    .qa-name { color:#fff; font-size:18px; font-weight:800; text-align:center; }
+    .qa-service { color:rgba(255,255,255,.75); font-size:13px; text-align:center; margin-top:2px; }
+
+    /* ── Body ── */
+    .qa-body { flex:1; padding: 12px 16px 24px; }
+
+    /* ── Quote card ── */
+    .qa-card { background: var(--surface); border-radius: var(--radius-md, 16px); padding: 18px; box-shadow: var(--shadow-sm); margin-bottom: 12px; }
+    .qa-card-title { font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px; }
+    .qa-row { display:flex; justify-content:space-between; align-items:flex-start; gap: 12px; padding: 5px 0; }
+    .qa-row-label { font-size: 14px; color: var(--text-mid); }
+    .qa-row-value { font-size: 14px; font-weight: 700; color: var(--text-dark); text-align:right; }
+    .qa-divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+    .qa-total-row { display:flex; justify-content:space-between; align-items:center; padding-top: 4px; }
+    .qa-total-label { font-size: 15px; font-weight: 800; color: var(--text-dark); }
+    .qa-total-value { font-size: 18px; font-weight: 800; color: #730201; }
+
+    /* ── Materials sub-list ── */
+    .qa-mat-list { margin: 4px 0 6px 12px; display:flex; flex-direction:column; gap:3px; }
+    .qa-mat-item { display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--text-light); }
+
+    /* ── Note card ── */
+    .qa-note-card { background:var(--surface); border-radius:var(--radius-md,16px); padding:14px 16px; box-shadow:var(--shadow-sm); margin-bottom:12px; }
+    .qa-note-icon { font-size:13px; font-weight:700; color:var(--text-mid); margin-bottom:4px; }
+    .qa-note-text { font-size:13px; color:var(--text-dark); line-height:1.5; font-style:italic; }
+
+    /* ── Info banner ── */
+    .qa-info { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:flex-start; margin-bottom:20px; }
+    .qa-info-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+    .qa-info-text { font-size:12px; color:#166534; line-height:1.5; }
+
+    /* ── Buttons ── */
+    .qa-actions { display:flex; flex-direction:column; gap:10px; }
+    .qa-btn-approve { width:100%; height:52px; border-radius:14px; border:none; background:#730201; color:#fff; font-family:inherit; font-size:15px; font-weight:800; cursor:pointer; transition:opacity .15s; }
+    .qa-btn-approve:disabled { opacity:.55; cursor:default; }
+    .qa-btn-reject { width:100%; height:44px; border-radius:14px; border:1.5px solid var(--border); background:none; color:var(--text-mid); font-family:inherit; font-size:14px; font-weight:700; cursor:pointer; }
+
+    /* ── Loading / error states ── */
+    .qa-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:64px 24px; }
+    .qa-spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:#730201; border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .qa-err { text-align:center; padding:64px 24px; }
+    .qa-err-title { font-size:16px; font-weight:800; color:var(--text-dark); margin-bottom:8px; }
+    .qa-err-sub { font-size:13px; color:var(--text-light); }
+
+    /* ── Reject dialog ── */
+    .rd-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:900; display:none; align-items:flex-end; justify-content:center; }
+    .rd-overlay.open { display:flex; }
+    .rd-sheet { width:100%; max-width:430px; background:var(--surface); border-radius:20px 20px 0 0; padding:20px 16px 36px; }
+    .rd-handle { width:36px; height:4px; border-radius:2px; background:var(--border); margin:0 auto 18px; }
+    .rd-title { font-size:16px; font-weight:800; color:var(--text-dark); margin-bottom:6px; }
+    .rd-sub { font-size:13px; color:var(--text-light); margin-bottom:16px; }
+    .rd-textarea { width:100%; min-height:80px; border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; font-family:inherit; font-size:13px; color:var(--text-dark); background:var(--surface); resize:none; outline:none; margin-bottom:14px; }
+    .rd-textarea:focus { border-color:#730201; }
+    .rd-confirm { width:100%; height:46px; border-radius:12px; border:none; background:#ef4444; color:#fff; font-family:inherit; font-size:14px; font-weight:800; cursor:pointer; margin-bottom:8px; }
+    .rd-cancel { width:100%; height:38px; border-radius:12px; border:1.5px solid var(--border); background:none; color:var(--text-mid); font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+
+    /* ── Toast ── */
+    .qa-toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#111; color:#fff; font-size:13px; font-weight:600; padding:10px 18px; border-radius:12px; display:none; z-index:9999; white-space:nowrap; }
+  </style>
+</head>
+<body>
+
+<div class="qa-shell">
+  <!-- Header -->
+  <div class="qa-header">
+    <button class="qa-back" id="qa-back-btn" aria-label="Back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="qa-artisan-wrap">
+      <div class="qa-av" id="qa-av">?</div>
+      <p class="qa-name" id="qa-name">Loading…</p>
+      <p class="qa-service" id="qa-service"></p>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="qa-body" id="qa-body">
+    <div class="qa-loading">
+      <div class="qa-spinner"></div>
+      <p style="font-size:13px;color:var(--text-light);">Loading quote…</p>
+    </div>
+  </div>
+</div>
+
+<!-- Reject dialog -->
+<div class="rd-overlay" id="rd-overlay" onclick="handleOverlayClick(event)">
+  <div class="rd-sheet">
+    <div class="rd-handle"></div>
+    <p class="rd-title">Reject Quote?</p>
+    <p class="rd-sub">Let the artisan know why — they can send a revised quote.</p>
+    <textarea id="rd-reason" class="rd-textarea" placeholder="Optional: reason for rejection…" maxlength="300"></textarea>
+    <button class="rd-confirm" id="rd-confirm" onclick="confirmReject()">Reject Quote</button>
+    <button class="rd-cancel" onclick="closeRejectDialog()">Cancel</button>
+  </div>
+</div>
+
+<div id="qa-toast" class="qa-toast"></div>
+
+<script src="../shared/js/utils/global-app.js"></script>
+<script type="module">
+import { getAppContainer }   from '../shared/js/app/container.js';
+import { requireAuth }        from '../shared/js/utils/authGuard.js';
+import { getFunctions, httpsCallable }
+    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+import { firebaseApp }
+    from '../shared/js/backend/providers/firebase/firebaseConfig.js';
+import { FUNCTIONS_REGION }
+    from '../shared/js/config/appConfig.js';
+
+// ── Auth guard ────────────────────────────────────────────────────────────────
+await requireAuth();
+
+// ── Back navigation ───────────────────────────────────────────────────────────
+// If opened directly (e.g. old bookmark or link), inject booking.html so the
+// browser back button lands there rather than leaving the app entirely.
+const _bkId = new URLSearchParams(location.search).get('bookingId');
+if (_bkId) {
+  const _fromOutside = !document.referrer || !document.referrer.includes(location.host);
+  if (_fromOutside) {
+    history.replaceState({ role: 'booking-list' }, '', 'booking.html');
+    history.pushState({ role: 'quote-approval' }, '', location.href);
+  }
+  document.getElementById('qa-back-btn').addEventListener('click', () => {
+    window.location.href = 'booking.html';
+  });
+} else {
+  document.getElementById('qa-back-btn').addEventListener('click', () => history.back());
+}
+
+const { services: { databaseService } } = getAppContainer();
+
+let _fnInst = null;
+function fn() {
+  if (!_fnInst) _fnInst = getFunctions(firebaseApp, FUNCTIONS_REGION);
+  return _fnInst;
+}
+
+// ── Read bookingId from URL ───────────────────────────────────────────────────
+const bookingId = _bkId; // already parsed above
+if (!bookingId) {
+  showBody('<div class="qa-err"><p class="qa-err-title">No booking specified</p><p class="qa-err-sub">This link is invalid.</p></div>');
+}
+
+// ── Load booking ──────────────────────────────────────────────────────────────
+let _booking = null;
+
+async function loadQuote() {
+  try {
+    const snap = await databaseService.getDocument('bookings', bookingId);
+    if (!snap?.exists) throw new Error('Booking not found.');
+
+    _booking = { id: bookingId, ...(snap.data || {}) };
+
+    if (_booking.status === 'accepted' && _booking.quoteApproved) {
+      showBody(`<div class="qa-err"><p class="qa-err-title">Quote Already Approved</p><p class="qa-err-sub">You have already approved this quote. The artisan is on their way.</p></div>`);
+      return;
+    }
+    if (_booking.status !== 'quoted') {
+      showBody(`<div class="qa-err"><p class="qa-err-title">No Pending Quote</p><p class="qa-err-sub">There is no quote waiting for your approval right now.</p></div>`);
+      return;
+    }
+
+    renderQuote(_booking);
+  } catch (err) {
+    showBody(`<div class="qa-err"><p class="qa-err-title">Could not load quote</p><p class="qa-err-sub">${esc(err.message)}</p></div>`);
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderQuote(b) {
+  const name    = b.artisanName || 'Artisan';
+  const initials= name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+
+  document.getElementById('qa-av').textContent      = initials;
+  document.getElementById('qa-name').textContent    = name;
+  document.getElementById('qa-service').textContent = b.serviceType || b.service || 'Service Job';
+
+  const labour    = Number(b.labourCost    || 0);
+  const matsCost  = Number(b.materialsCost || 0);
+  const total     = Number(b.jobQuote      || labour + matsCost);
+  const hasMats   = b.hasMaterials && Array.isArray(b.materials) && b.materials.length > 0;
+
+  let matsHtml = '';
+  if (hasMats) {
+    const rows = b.materials.map(m =>
+      `<div class="qa-mat-item">
+        <span>${esc(m.name)} × ${m.qty}</span>
+        <span>GHS ${Number(m.total || m.qty * m.unitPrice || 0).toFixed(2)}</span>
+      </div>`
+    ).join('');
+    matsHtml = `
+      <div class="qa-row">
+        <span class="qa-row-label">Materials</span>
+        <span class="qa-row-value">GHS ${matsCost.toFixed(2)}</span>
+      </div>
+      <div class="qa-mat-list">${rows}</div>`;
+  }
+
+  const noteHtml = b.quoteNote ? `
+    <div class="qa-note-card">
+      <p class="qa-note-icon">Note from artisan</p>
+      <p class="qa-note-text">"${esc(b.quoteNote)}"</p>
+    </div>` : '';
+
+  showBody(`
+    <div class="qa-card">
+      <p class="qa-card-title">Quote Breakdown</p>
+      <div class="qa-row">
+        <span class="qa-row-label">Labour</span>
+        <span class="qa-row-value">GHS ${labour.toFixed(2)}</span>
+      </div>
+      ${matsHtml}
+      <hr class="qa-divider" />
+      <div class="qa-total-row">
+        <span class="qa-total-label">Total</span>
+        <span class="qa-total-value">GHS ${total.toFixed(2)}</span>
+      </div>
+    </div>
+
+    ${noteHtml}
+
+    <div class="qa-info">
+      <span class="qa-info-icon">🔒</span>
+      <p class="qa-info-text">Payment is held securely in escrow. The artisan only receives funds after you confirm the job is complete.</p>
+    </div>
+
+    <div class="qa-actions">
+      <button class="qa-btn-approve" id="qa-approve-btn" onclick="approveQuote()">
+        Approve &amp; Pay GHS ${total.toFixed(2)}
+      </button>
+      <button class="qa-btn-reject" onclick="openRejectDialog()">Reject Quote</button>
+    </div>
+  `);
+}
+
+function showBody(html) {
+  document.getElementById('qa-body').innerHTML = html;
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Approve ───────────────────────────────────────────────────────────────────
+window.approveQuote = async function() {
+  const btn = document.getElementById('qa-approve-btn');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Processing…';
+
+  try {
+    const approveJobQuote = httpsCallable(fn(), 'approveJobQuote');
+    await approveJobQuote({ bookingId });
+    showBody(`
+      <div style="text-align:center;padding:56px 24px;">
+        <div style="font-size:48px;margin-bottom:16px;">✅</div>
+        <p style="font-size:18px;font-weight:800;color:var(--text-dark);margin-bottom:8px;">Quote Approved!</p>
+        <p style="font-size:13px;color:var(--text-light);line-height:1.5;">Payment secured in escrow. The artisan has been notified and will head to you shortly.</p>
+        <button onclick="window.location.href='booking.html'" style="margin-top:28px;width:100%;height:48px;border-radius:14px;border:none;background:#730201;color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;">View My Bookings</button>
+      </div>`);
+  } catch(err) {
+    showToast(err.message || 'Could not process. Please try again.');
+    if (btn) { btn.disabled = false; btn.textContent = `Approve & Pay GHS ${Number(_booking?.jobQuote || 0).toFixed(2)}`; }
+  }
+};
+
+// ── Reject ────────────────────────────────────────────────────────────────────
+window.openRejectDialog = function() {
+  document.getElementById('rd-reason').value = '';
+  document.getElementById('rd-overlay').classList.add('open');
+};
+
+window.closeRejectDialog = function() {
+  document.getElementById('rd-overlay').classList.remove('open');
+};
+
+window.handleOverlayClick = function(e) {
+  if (e.target === document.getElementById('rd-overlay')) closeRejectDialog();
+};
+
+window.confirmReject = async function() {
+  const reason = document.getElementById('rd-reason').value.trim();
+  const btn    = document.getElementById('rd-confirm');
+  btn.disabled = true;
+  btn.textContent = 'Rejecting…';
+
+  try {
+    const rejectJobQuote = httpsCallable(fn(), 'rejectJobQuote');
+    await rejectJobQuote({ bookingId, reason });
+    closeRejectDialog();
+    showBody(`
+      <div style="text-align:center;padding:56px 24px;">
+        <div style="font-size:48px;margin-bottom:16px;">↩️</div>
+        <p style="font-size:18px;font-weight:800;color:var(--text-dark);margin-bottom:8px;">Quote Rejected</p>
+        <p style="font-size:13px;color:var(--text-light);line-height:1.5;">The artisan has been notified and can send a revised quote. You'll get a notification when they do.</p>
+        <button onclick="window.location.href='booking.html'" style="margin-top:28px;width:100%;height:48px;border-radius:14px;border:none;background:var(--surface-3);color:var(--text-dark);font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;border:1.5px solid var(--border);">View My Bookings</button>
+      </div>`);
+  } catch(err) {
+    showToast(err.message || 'Could not reject. Try again.');
+    btn.disabled = false;
+    btn.textContent = 'Reject Quote';
+  }
+};
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg, dur = 3000) {
+  const el = document.getElementById('qa-toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, dur);
+}
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+if (bookingId) await loadQuote();
+
+</script>
+</body>
+</html>

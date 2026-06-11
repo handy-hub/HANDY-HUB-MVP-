@@ -28,7 +28,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { getAppContainer } from '../../../shared/js/app/container.js';
+import { getAppContainer }              from '../../../shared/js/app/container.js';
+import { initializePushNotifications } from '../../../shared/js/services/pushNotificationService.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const LOGIN_URL        = 'login.html';
@@ -333,6 +334,7 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
         // ── All checks passed ─────────────────────────────────────
         cacheSession(user.uid, artisan);
         hideOverlay();
+        initializePushNotifications(user.uid, 'artisan').catch(() => {});
         resolve({ user, artisan });
       })
       .catch(() => {

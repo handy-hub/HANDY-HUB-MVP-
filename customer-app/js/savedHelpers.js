@@ -7,6 +7,13 @@ window.hhSaveProfessional = async function (pro) {
     const user = await authService.waitForUser();
     if (!user) return;
 
+    // Force-refresh the customer doc before reading so we never append to a
+    // stale cached list (the in-memory TTL is 30 s — another tab may have
+    // removed or added items since the cache was last populated).
+    if (typeof databaseService.invalidate === 'function') {
+      databaseService.invalidate('customers', user.uid);
+    }
+
     const snap     = await databaseService.getDocument('customers', user.uid);
     const existing = (snap?.data?.savedProfessionals || []);
     if (existing.find(function (p) { return p.id === pro.id; })) return;
@@ -39,6 +46,10 @@ window.hhSaveService = async function (svc) {
     const { services: { authService, databaseService } } = getAppContainer();
     const user = await authService.waitForUser();
     if (!user) return;
+
+    if (typeof databaseService.invalidate === 'function') {
+      databaseService.invalidate('customers', user.uid);
+    }
 
     const snap     = await databaseService.getDocument('customers', user.uid);
     const existing = (snap?.data?.savedServices || []);

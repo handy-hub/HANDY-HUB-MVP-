@@ -1,0 +1,53 @@
+type User @table {
+  displayName: String!
+  email: String!
+  createdAt: Timestamp!
+  userType: String!
+  photoUrl: String
+  phoneNumber: String
+  bio: String
+  location: String
+}
+
+type ArtisanProfile @table {
+  user: User!
+  craftCategory: String!
+  portfolioLink: String!
+  servicesOffered: [String!]!
+  hourlyRate: Float!
+  availabilityStatus: String!
+  yearsOfExperience: Int
+  specialization: String
+  website: String
+}
+
+type ServiceRequest @table {
+  client: User!
+  artisan: ArtisanProfile!
+  description: String!
+  status: String!
+  createdAt: Timestamp!
+  requestedDate: Date
+  budget: Float
+  attachedFiles: [String!]
+}
+
+type Review @table {
+  client: User!
+  artisan: ArtisanProfile!
+  serviceRequest: ServiceRequest!
+  rating: Int!
+  comment: String!
+  createdAt: Timestamp!
+  isPublic: Boolean
+}
+
+type PortfolioItem @table {
+  artisan: ArtisanProfile!
+  title: String!
+  description: String!
+  imageUrl: String!
+  createdAt: Timestamp!
+  projectDate: Date
+  materialsUsed: [String!]
+}

@@ -69,20 +69,12 @@ async function handlePaystackWebhook(req, res) {
                     // ── Re-verify the charge against Paystack API ────────────────────────
                     // Never trust the webhook payload amount alone. Re-verify to get the
                     // authoritative amount from Paystack's servers.
-                    let verifiedAmount;
-                    try {
-                        const verifiedCharge = await verifyCharge(data.reference);
-                        if (verifiedCharge.status !== 'success') {
-                            console.warn(`[webhook] Charge ${data.reference} not successful on Paystack (status: ${verifiedCharge.status}) — skipping credit.`);
-                            break;
-                        }
-                        verifiedAmount = verifiedCharge.amount / 100; // pesewas → GHS
-                    } catch (verifyErr) {
-                        // If verification fails, fall back to webhook amount with a warning.
-                        // This prevents blocking legitimate payments due to transient API errors.
-                        console.warn(`[webhook] Could not verify charge ${data.reference} with Paystack API: ${verifyErr.message}. Using webhook amount as fallback.`);
-                        verifiedAmount = data.amount / 100;
+                    const verifiedCharge = await verifyCharge(data.reference);
+                    if (verifiedCharge.status !== 'success') {
+                        console.warn(`[webhook] Charge ${data.reference} not successful on Paystack (status: ${verifiedCharge.status}) — skipping credit.`);
+                        break;
                     }
+                    const verifiedAmount = verifiedCharge.amount / 100; // pesewas → GHS
 
                     await creditWalletFromCharge({
                         uid:         userId,

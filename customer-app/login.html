@@ -6,6 +6,8 @@
     <title>Login | HandyHub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://img.icons8.com">
+    <link rel="preload" as="image" href="../shared/assets/images/handyhub-logo-text.png">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
     <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 
@@ -100,7 +102,7 @@ body {
     overflow: hidden;
     /* Warm stone — works with any color logo */
     background: #fefefe;
-    padding: 0 0 56px;   /* extra bottom padding → card overlaps this */
+    padding: 0 0 84px;   /* extra bottom padding → card overlaps this */
 }
 
 /* Very subtle brand-tinted dot pattern */
@@ -203,12 +205,12 @@ body {
 /* ── Hero brand ─────────────────────────────────────────────── */
 .ln-brand {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 22px 24px 0;
+    padding: 22px 24px 16px;
 }
 
 .ln-logo {
@@ -808,6 +810,7 @@ body {
             <img class="ln-logo"
                  src="../shared/assets/images/handyhub-logo-text.png"
                  alt="HandyHub — Trusted Professionals, Right Around You."
+                 fetchpriority="high"
                  onerror="this.onerror=null;this.style.display='none';this.insertAdjacentHTML('afterend','<span class=&quot;ln-logo&quot; style=&quot;font-weight:800;font-size:22px;color:#730201;letter-spacing:-0.5px;&quot;>HandyHub</span>')">
         </div>
 
@@ -896,12 +899,12 @@ body {
         <div class="ln-social-row ln-a5">
             <button type="button" id="google-login-btn" class="ln-social-btn"
                     aria-label="Continue with Google">
-                <img src="https://img.icons8.com/color/48/google-logo.png" alt="Google">
+                <img src="https://img.icons8.com/color/48/google-logo.png" alt="Google" loading="lazy" width="24" height="24">
                 Google
             </button>
             <button type="button" id="facebook-login-btn" class="ln-social-btn"
                     aria-label="Continue with Facebook">
-                <img src="https://img.icons8.com/color/48/facebook-new.png" alt="Facebook">
+                <img src="https://img.icons8.com/color/48/facebook-new.png" alt="Facebook" loading="lazy" width="24" height="24">
                 Facebook
             </button>
             <button type="button" id="apple-login-btn" class="ln-social-btn"

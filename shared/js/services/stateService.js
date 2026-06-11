@@ -118,6 +118,12 @@
   };
 
   /* ── Saved items ─────────────────────────────────────────────────────── */
+  // DEPRECATED — no longer the write path. The authoritative saved-professionals/
+  // services store is Firestore: customers/{uid}.savedProfessionals / .savedServices.
+  // All writes go through savedHelpers.js (window.hhSaveProfessional / hhSaveService)
+  // and reads through savedPage.js (real-time subscription). This localStorage API
+  // is kept only so clearUserSession() can purge any legacy hh_saved_items_<uid>
+  // keys written by older app versions.
   var saved = {
     _default: function () { return { professionals: [], services: [] }; },
     get: function () { return _read(BASE_KEYS.SAVED) || saved._default(); },

@@ -64,7 +64,8 @@ export const PLATFORM_CONFIG = {
 };
 
 // ── Cloud Functions region ────────────────────────────────────────────────────
-export const FUNCTIONS_REGION = 'us-central1';
+// europe-west1 (Belgium) — ~90 ms from Ghana vs ~270 ms for us-central1.
+export const FUNCTIONS_REGION = 'europe-west1';
 
 // ── Super admin emails ────────────────────────────────────────────────────────
 // Used in auth-guard.js and ui utils. Matches firestore.rules and Cloud Functions.
@@ -96,6 +97,20 @@ export const MOMO_PROVIDERS = {
         color:    '#003F7F',
     },
 };
+
+// ── Firebase App Check ────────────────────────────────────────────────────────
+// Blocks bots, scrapers, and unauthenticated API abuse at the Firebase SDK level.
+// Get your site key:
+//   Firebase Console → Project Settings → App Check → Web → Register → reCAPTCHA v3
+//   (also register the reCAPTCHA v3 key at https://www.google.com/recaptcha/admin)
+export const APP_CHECK_SITE_KEY = '6LfivBctAAAAAMKNFt5TNiIi5j712EdpfaDJOWfb'; // FILL IN before deploying
+
+// ── FCM Web Push VAPID Key ─────────────────────────────────────────────────────
+// Required for browser push notifications via Firebase Cloud Messaging.
+// Get your key:
+//   Firebase Console → Project Settings → Cloud Messaging
+//   → Web Push certificates → Generate key pair → copy the Key pair value
+export const FCM_VAPID_KEY = 'BMVktgapROcLKvu50GzG5hvXWRF9-9K4U8bQtMWt4rYRfvGzlvFkHiwxQRN4t9fAPTPDS892pS31nNn2D2rdZQk'; // FILL IN before deploying
 
 // ── App metadata ───────────────────────────────────────────────────────────────
 export const APP_META = {

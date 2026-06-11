@@ -44,7 +44,14 @@
       "Bash(Select-String -Path \"c:\\\\Users\\\\Herty\\\\OneDrive\\\\Desktop\\\\Lunch\\\\HANDY-HUB-MVP-\\\\customer-app\\\\css\\\\booking.css\" -Pattern \"dark\")",
       "Bash(Measure-Object)",
       "Bash(Select-Object -ExpandProperty Count)",
-      "Bash(grep -E \"\\\\.\\(js|jsx|ts|tsx\\)$\")"
+      "Bash(grep -E \"\\\\.\\(js|jsx|ts|tsx\\)$\")",
+      "Bash(node -e \"const s = require\\('./functions/shared/searchKeywords'\\); console.log\\('Keywords for plumber:', s.buildSearchKeywords\\({name:'Kwame Asante', specialty:'plumber', category:'plumbing'}\\).join\\(', '\\)\\)\")",
+      "Bash(node -e \"require\\('./functions/artisanVerification'\\); console.log\\('artisanVerification.js loads OK'\\)\")",
+      "Bash(node -e \"const s = require\\('./shared/searchKeywords'\\); console.log\\('Module OK. Keywords:', s.buildSearchKeywords\\({name:'Kofi Mensah', specialty:'electrician', category:'electrical'}\\).slice\\(0,6\\).join\\(', '\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(node --check artisanVerification.js)",
+      "Bash(node --check index.js)",
+      "Bash(grep -n \"\\\\\\\\.sched-overlay\\\\|\\\\\\\\.sched-modal\\\\|\\\\\\\\.sched-label\\\\|\\\\\\\\.sched-time\" c:/Users/Herty/OneDrive/Desktop/Lunch/HANDY-HUB-MVP-/customer-app/book-step3.html)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Herty\\.claude\\projects\\c--Users-Herty-OneDrive-Desktop-Lunch-HANDY-HUB-MVP-\\memory",

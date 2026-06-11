@@ -6,16 +6,18 @@
  * Cloud Functions for admin-driven artisan KYC approval workflow.
  *
  * Functions exported to index.js:
- *   - approveArtisan     (onCall, admin only)
- *   - rejectArtisan      (onCall, admin only)
- *   - requestMoreInfo    (onCall, admin only)
- *   - suspendArtisan     (onCall, admin only)
- *   - reinstateArtisan   (onCall, admin only)
+ *   - approveArtisan          (onCall, admin only)
+ *   - rejectArtisan           (onCall, admin only)
+ *   - requestMoreInfo         (onCall, admin only)
+ *   - suspendArtisan          (onCall, admin only)
+ *   - reinstateArtisan        (onCall, admin only)
+ *   - backfillSearchKeywords  (onCall, admin only — one-time migration)
  *   - onVerificationSubmitted (onDocumentCreated Firestore trigger)
  */
 
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { sendArtisanNotification }  = require('./notifications');
+const { buildSearchKeywords }      = require('./shared/searchKeywords');
 
 const { ADMIN_EMAILS, FIRESTORE_DB_ID } = require('./config');
 
@@ -55,7 +57,17 @@ async function approveArtisan(auth, { artisanId, notes = '' }) {
     await requireAdmin(auth);
     if (!artisanId) throw new Error('"artisanId" is required.');
 
-    const db    = getDB();
+    const db = getDB();
+
+    // Read the artisan's current profile so we can regenerate searchKeywords
+    // from their name, specialty, category, and commonSearchPhrases.
+    // This ensures the artisan becomes immediately discoverable in search
+    // the moment approval is committed — no separate indexing step required.
+    const artisanSnap = await db.collection('artisans').doc(artisanId).get();
+    if (!artisanSnap.exists) throw new Error(`Artisan document not found: ${artisanId}`);
+    const artisanData    = artisanSnap.data();
+    const searchKeywords = buildSearchKeywords(artisanData);
+
     const batch = db.batch();
 
     batch.update(db.collection('verification_requests').doc(artisanId), {
@@ -67,10 +79,13 @@ async function approveArtisan(auth, { artisanId, notes = '' }) {
 
     batch.update(db.collection('artisans').doc(artisanId), {
         verificationStatus: 'approved',
+        status:             'active',   // artisan is now live on the marketplace
         isVerified:         true,
-        isAvailable:        false,     // artisan activates themselves
+        isAvailable:        false,      // artisan toggles availability themselves
+        searchKeywords,                 // generated from profile — makes artisan searchable
         approvedAt:         FieldValue.serverTimestamp(),
         approvedBy:         auth.token?.email || auth.uid,
+        updatedAt:          new Date().toISOString(),
     });
 
     await batch.commit();
@@ -216,7 +231,15 @@ async function reinstateArtisan(auth, { artisanId, notes = '' }) {
     await requireAdmin(auth);
     if (!artisanId) throw new Error('"artisanId" is required.');
 
-    const db    = getDB();
+    const db = getDB();
+
+    // Re-read the artisan profile to regenerate searchKeywords — their name or
+    // category may have changed since original approval.
+    const artisanSnap = await db.collection('artisans').doc(artisanId).get();
+    if (!artisanSnap.exists) throw new Error(`Artisan document not found: ${artisanId}`);
+    const artisanData    = artisanSnap.data();
+    const searchKeywords = buildSearchKeywords(artisanData);
+
     const batch = db.batch();
 
     batch.update(db.collection('verification_requests').doc(artisanId), {
@@ -228,8 +251,11 @@ async function reinstateArtisan(auth, { artisanId, notes = '' }) {
 
     batch.update(db.collection('artisans').doc(artisanId), {
         verificationStatus: 'approved',
+        status:             'active',
         isVerified:         true,
+        searchKeywords,
         reinstatedAt:       FieldValue.serverTimestamp(),
+        updatedAt:          new Date().toISOString(),
     });
 
     await batch.commit();
@@ -284,11 +310,90 @@ async function onVerificationSubmitted(event) {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// backfillSearchKeywords
+// payload: {} (no arguments)
+//
+// ONE-TIME migration: regenerate searchKeywords for every artisan document that
+// was created before artisanRepository.upsert() auto-generated keywords.
+// Those artisans have searchKeywords: [] and are invisible in search even after
+// verificationStatus is set to 'approved'.
+//
+// Safe to re-run — artisans whose keywords are already complete are skipped.
+// Processes in batches of 400 to stay well under the Firestore 500-write limit.
+//
+// Usage (from admin dashboard or Firebase console):
+//   const fn = httpsCallable(functions, 'backfillSearchKeywords');
+//   const { data } = await fn({});
+//   // data → { processed, skipped, errors, total }
+// ─────────────────────────────────────────────────────────────────────────────
+async function backfillSearchKeywords(auth) {
+    await requireAdmin(auth);
+
+    const db   = getDB();
+    const snap = await db.collection('artisans').get();
+
+    if (snap.empty) {
+        console.log('[backfill] No artisan documents found.');
+        return { processed: 0, skipped: 0, errors: 0, total: 0 };
+    }
+
+    const BATCH_SIZE = 400;
+    let processed = 0, skipped = 0, errors = 0;
+    let batch     = db.batch();
+    let batchCount = 0;
+
+    for (const doc of snap.docs) {
+        try {
+            const data        = doc.data();
+            const newKeywords = buildSearchKeywords(data);
+
+            // Skip if the stored keyword set already covers everything generated.
+            // Use length + every() for an O(n) set-equality check.
+            const existing = Array.isArray(data.searchKeywords) ? data.searchKeywords : [];
+            const existingSet = new Set(existing);
+            const alreadyComplete =
+                newKeywords.length > 0 &&
+                existing.length >= newKeywords.length &&
+                newKeywords.every(k => existingSet.has(k));
+
+            if (alreadyComplete) {
+                skipped++;
+                continue;
+            }
+
+            batch.update(doc.ref, {
+                searchKeywords: newKeywords,
+                updatedAt:      new Date().toISOString(),
+            });
+            batchCount++;
+            processed++;
+
+            if (batchCount >= BATCH_SIZE) {
+                await batch.commit();
+                batch      = db.batch();
+                batchCount = 0;
+                console.log(`[backfill] Committed batch — processed so far: ${processed}`);
+            }
+        } catch (err) {
+            console.error(`[backfill] Failed for artisan ${doc.id}:`, err.message);
+            errors++;
+        }
+    }
+
+    if (batchCount > 0) await batch.commit();
+
+    const total = snap.size;
+    console.log(`[backfill] Done — total: ${total}, processed: ${processed}, skipped: ${skipped}, errors: ${errors}`);
+    return { processed, skipped, errors, total };
+}
+
 module.exports = {
     approveArtisan,
     rejectArtisan,
     requestMoreInfo,
     suspendArtisan,
     reinstateArtisan,
+    backfillSearchKeywords,
     onVerificationSubmitted,
 };

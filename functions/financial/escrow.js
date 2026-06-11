@@ -110,10 +110,19 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
     // This is an identity check (who is the caller?), not a financial state check.
     // It is safe outside the transaction — even if two callers pass auth at the
     // same millisecond, the transaction lock prevents double deduction.
-    if (!callerAuth) throw new Error('Authentication required.');
-    const callerIsAdmin = await isAdminAuth(callerAuth);
-    if (!callerIsAdmin && callerAuth.uid !== customerId) {
-        throw new Error('Unauthorized: you may only hold funds for your own bookings.');
+    //
+    // callerAuth semantics:
+    //   object    → client call: enforce customer/admin identity check
+    //   null      → system call (Cloud Function with Admin SDK): auth bypassed — server-authoritative
+    //   undefined → programming error: throw
+    if (callerAuth === undefined) {
+        throw new Error('callerAuth is required. Pass the caller\'s Firebase auth context, or null for system (Cloud Function) calls.');
+    }
+    if (callerAuth !== null) {
+        const callerIsAdmin = await isAdminAuth(callerAuth);
+        if (!callerIsAdmin && callerAuth.uid !== customerId) {
+            throw new Error('Unauthorized: you may only hold funds for your own bookings.');
+        }
     }
 
     // ── Input validation and deterministic pre-computation ────────────────────

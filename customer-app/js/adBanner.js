@@ -26,6 +26,7 @@ export const BANNER_DATA = [
     subtitle: 'Your first booking',
     body: 'Trusted professionals, quality service.',
     cta: 'Book Now',
+    color: 'linear-gradient(135deg, #4a8cc9 0%, #1e5a9a 100%)',
     image: 'https://i.pinimg.com/736x/44/41/9d/44419dac4fcb78aae208565099c97221.jpg',
     clients: {
       count: '500+',
@@ -48,6 +49,7 @@ export const BANNER_DATA = [
     subtitle: 'Sparkling results',
     body: 'Book a pro cleaner in under 2 minutes.',
     cta: 'Check Rates',
+    color: 'linear-gradient(135deg, #3db87a 0%, #1a8a52 100%)',
     image: 'https://i.pinimg.com/736x/04/1a/09/041a0923ce2a5d512923d1cdffcd7e1f.jpg',
     clients: {
       count: '200+',
@@ -70,6 +72,7 @@ export const BANNER_DATA = [
     subtitle: 'Stay cool always',
     body: 'Expert technicians at your doorstep.',
     cta: 'Fix Now',
+    color: 'linear-gradient(135deg, #f0844a 0%, #c45520 100%)',
     image: 'https://i.pinimg.com/736x/84/fa/24/84fa2444f8cc33ef30c8813e95807bb6.jpg',
     clients: {
       count: '300+',
@@ -180,8 +183,10 @@ function renderSlide(banner, index) {
           ${clientsHTML}
         </div>
       </div>
-      <div class="slide-img-wrap">
-        <img src="${banner.image}" alt="${banner.tag}" loading="lazy" draggable="false">
+      <div class="slide-img-wrap" style="--img-fallback:${banner.color ?? '#e8e8e8'}">
+        <img src="${banner.image}" alt="${banner.tag}"
+             loading="eager" decoding="async"${index === 0 ? ' fetchpriority="high"' : ''}
+             draggable="false">
       </div>
     </div>`;
 }
@@ -204,10 +209,14 @@ export function mountAdBanner(containerEl, dotsEl, banners = BANNER_DATA) {
      Percentage widths break here because the slider itself is the flex parent
      and CSS can't resolve self-referential percentages. Use px instead.      */
   function applyWidths() {
-    const w = containerEl.offsetWidth;
-    sliderEl.style.width      = `${n * w}px`;
+    /* getBoundingClientRect is sub-pixel accurate and works when offsetWidth is
+       still 0 during certain paint phases (e.g. inside a CSS transition).      */
+    const w = Math.round(containerEl.getBoundingClientRect().width)
+           || containerEl.offsetWidth
+           || 320; // absolute fallback so the slider is never invisible
+    sliderEl.style.width = `${n * w}px`;
     sliderEl.querySelectorAll('.slide').forEach(s => {
-      s.style.width     = `${w}px`;
+      s.style.width      = `${w}px`;
       s.style.flexShrink = '0';
     });
     return w;
@@ -220,6 +229,20 @@ export function mountAdBanner(containerEl, dotsEl, banners = BANNER_DATA) {
       .map((_, i) => `<span class="dot${i === 0 ? ' active' : ''}"></span>`)
       .join('');
   }
+
+  /* ── Image fallback — handle CDN failures (403, CORS, stale URLs) gracefully ── */
+  sliderEl.querySelectorAll('.slide-img-wrap').forEach(wrap => {
+    const img = wrap.querySelector('img');
+    if (!img) return;
+    img.addEventListener('error', () => wrap.classList.add('img-failed'), { once: true });
+    // Catch images that already failed before this handler was attached (cached error)
+    if (img.complete && img.naturalWidth === 0) wrap.classList.add('img-failed');
+  });
+
+  /* ── Accessibility ── */
+  containerEl.setAttribute('aria-roledescription', 'carousel');
+  containerEl.setAttribute('aria-label', 'Promotional offers');
+  if (dotsEl) dotsEl.setAttribute('aria-label', 'Slide indicators');
 
   /* ── State ── */
   let current = 0;
@@ -297,6 +320,11 @@ export function mountAdBanner(containerEl, dotsEl, banners = BANNER_DATA) {
       if (idx >= 0) { stopTimer(); goTo(idx); startTimer(); }
     });
   }
+
+  /* ── Pause when the tab is hidden (saves CPU / battery, prevents timer drift) ── */
+  document.addEventListener('visibilitychange', () => {
+    document.hidden ? stopTimer() : startTimer();
+  });
 
   /* ── Re-sync on resize / orientation change ── */
   window.addEventListener('resize', () => {

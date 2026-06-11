@@ -151,13 +151,19 @@ export function createBookingRepository({
         // ── Real-time ─────────────────────────────────────────────────────────
 
         /**
-         * Subscribe to live updates for all of a customer's bookings.
+         * Subscribe to live updates for a customer's bookings from the last 90 days.
+         * Older completed bookings are fetched separately via getByCustomerId().
          * Returns an unsubscribe function.
          */
         subscribeByCustomerId(customerId, onChange, onError) {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - 90);
             return databaseService.subscribeToCollection(
                 collectionName,
-                [{ field: "customerId", op: "==", value: customerId }],
+                [
+                    { field: "customerId", op: "==", value: customerId },
+                    { field: "createdAt",  op: ">=", value: cutoff.toISOString() },
+                ],
                 { orderBy: { field: "createdAt", direction: "desc" } },
                 onChange,
                 onError
@@ -165,13 +171,19 @@ export function createBookingRepository({
         },
 
         /**
-         * Subscribe to live updates for all of an artisan's bookings.
+         * Subscribe to live updates for an artisan's bookings from the last 90 days.
+         * Older completed bookings are fetched separately via getByArtisanId().
          * Returns an unsubscribe function.
          */
         subscribeByArtisanId(artisanId, onChange, onError) {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - 90);
             return databaseService.subscribeToCollection(
                 collectionName,
-                [{ field: "artisanId", op: "==", value: artisanId }],
+                [
+                    { field: "artisanId", op: "==", value: artisanId },
+                    { field: "createdAt", op: ">=", value: cutoff.toISOString() },
+                ],
                 { orderBy: { field: "createdAt", direction: "desc" } },
                 onChange,
                 onError

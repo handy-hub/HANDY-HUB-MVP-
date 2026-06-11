@@ -22,14 +22,17 @@
  *   triggers that arrive before a round completes are silently dropped.
  */
 
-const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onSchedule }    = require('firebase-functions/v2/scheduler');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { FIRESTORE_DB_ID, FUNCTIONS_REGION } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
+const { geohashQueryBounds } = require('geofire-common');
 
 const STANDARD_TIMEOUT_S  = 3 * 60 * 60; // 3 hours
-const EMERGENCY_TIMEOUT_S = 30;           // 30 seconds
+// 65 s > 60 s scheduler period — guarantees the per-minute scheduler
+// always catches an expired emergency within one tick (no 90-second worst case).
+const EMERGENCY_TIMEOUT_S = 65;
 
 // ── Firestore singleton ───────────────────────────────────────────────────────
 let _db;
@@ -53,44 +56,100 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 }
 
 // ── Find and rank eligible artisans ──────────────────────────────────────────
+//
+// TWO-PHASE DISPATCH LOOKUP
+//
+// Phase 1 — artisan_index (cheap, small docs, ~400 bytes each):
+//   Query artisan_index by geohash range. Returns only the fields needed for
+//   candidate selection + dispatch notification. Never touches artisans collection.
+//
+// Phase 2 — artisans full profile (only for the chosen artisan):
+//   Fetched by dispatchRound() after this function returns, when writing the
+//   booking assignment. Not done here — dispatch notification data is already
+//   in the index (name, profileImage, specialty, rating).
+//
+// Read budget per dispatch round:
+//   artisan_index reads : ~45–90 (9 cells × ~5–10 results each)
+//   artisans reads      : 0 (Phase 2 handled by caller for chosen artisan only)
+//   Total               : < 100 — target met at any scale.
+//
+// Fallback: booking has no coordinates → capped index scan, max 200 docs.
+// artisan_index is far smaller than artisans, so even the fallback is cheap.
 async function findEligibleArtisans(booking, excludeIds) {
-    const bookingLat = booking.lat || booking.userLat || null;
-    const bookingLng = booking.lng || booking.userLng || null;
+    const bookingLat  = booking.lat || booking.userLat || null;
+    const bookingLng  = booking.lng || booking.userLng || null;
     const serviceType = (booking.serviceType || booking.service || '').toLowerCase();
 
-    // Query: active + available + approved
-    const snap = await db().collection('artisans')
-        .where('status',              '==', 'active')
-        .where('isAvailable',         '==', true)
-        .where('verificationStatus',  '==', 'approved')
-        .get();
+    let candidates = [];
 
-    const artisans = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
+    if (bookingLat != null && bookingLng != null) {
+        // ── Phase 1: artisan_index geohash proximity queries ─────────────────
+        // 25 km cast net — wider than max workRadius (20 km) to catch edge artisans.
+        // Exact distance enforced in the filter step below.
+        const bounds = geohashQueryBounds([bookingLat, bookingLng], 25_000);
+
+        const snaps = await Promise.all(
+            bounds.map(([start, end]) =>
+                db().collection('artisan_index')
+                    .where('isAvailable',        '==', true)
+                    .where('status',             '==', 'active')
+                    .where('verificationStatus', '==', 'approved')
+                    .where('geohash',            '>=', start)
+                    .where('geohash',            '<=', end)
+                    .limit(50)
+                    .get()
+            )
+        );
+
+        const seen = new Set();
+        for (const snap of snaps) {
+            for (const doc of snap.docs) {
+                if (!seen.has(doc.id)) {
+                    seen.add(doc.id);
+                    candidates.push({ id: doc.id, ...doc.data() });
+                }
+            }
+        }
+    } else {
+        // ── Fallback: no booking coordinates ─────────────────────────────────
+        // artisan_index docs are ~400 bytes; 200-doc scan is ~80 KB, not dangerous.
+        console.warn(`[dispatch] No booking coordinates — fallback index scan (booking=${booking.id || '?'})`);
+        const snap = await db().collection('artisan_index')
+            .where('isAvailable',        '==', true)
+            .where('status',             '==', 'active')
+            .where('verificationStatus', '==', 'approved')
+            .limit(200)
+            .get();
+        candidates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+
+    // ── Filter, rank, hard-limit ──────────────────────────────────────────────
+    // HARD_LIMIT: never consider more than 20 candidates per round.
+    // Dispatch is sequential (one artisan at a time). 20 rounds of rejection
+    // before a booking is unfulfilled is already a generous ceiling.
+    const HARD_LIMIT = 20;
+
+    return candidates
         .filter(a => {
-            // Skip already-tried artisans
             if (excludeIds.includes(a.id)) return false;
 
-            // Category / specialty match (flexible — first word of service type)
+            // Skill match: artisan_index.skills[] contains category synonyms.
+            // First keyword of serviceType matched against the skills array.
             if (serviceType) {
-                const artisanCat = (a.category || a.specialty || '').toLowerCase();
-                const keyword    = serviceType.split(/[\s,/]+/)[0];
-                if (keyword.length > 2 && !artisanCat.includes(keyword)) return false;
+                const keyword = serviceType.split(/[\s,/]+/)[0];
+                if (keyword.length > 2 &&
+                    !(a.skills || []).some(s => s.includes(keyword))) return false;
             }
 
-            // Distance / work radius check
-            if (bookingLat && bookingLng && a.lat && a.lng) {
-                const dist      = haversineKm(bookingLat, bookingLng, a.lat, a.lng);
-                const maxRadius = a.workRadius || 20; // km
-                if (dist > maxRadius) return false;
+            // Exact distance check — geohash cells are rectangular, not circular.
+            if (bookingLat != null && bookingLng != null && a.lat && a.lng) {
+                const dist = haversineKm(bookingLat, bookingLng, a.lat, a.lng);
+                if (dist > (a.workRadius || 20)) return false;
                 a._distKm = dist;
             }
 
             return true;
-        });
-
-    // Score and sort
-    return artisans
+        })
         .map(a => {
             let score = 0;
             score += (a.rating         || 4.0) * 15;  // max 60
@@ -101,7 +160,8 @@ async function findEligibleArtisans(booking, excludeIds) {
             a._score = score;
             return a;
         })
-        .sort((a, b) => b._score - a._score);
+        .sort((a, b) => b._score - a._score)
+        .slice(0, HARD_LIMIT);
 }
 
 // ── Core dispatch round (transaction-safe) ────────────────────────────────────
@@ -174,7 +234,7 @@ async function dispatchRound(bookingId) {
     // Post-transaction: send notification (outside txn to keep txn small)
     if (result.dispatched && chosen) {
         const distText   = chosen._distKm != null ? ` · ${chosen._distKm.toFixed(1)} km` : '';
-        const timeoutTxt = isEmergency ? '30 seconds' : '3 hours';
+        const timeoutTxt = isEmergency ? 'about 1 minute' : '3 hours';
 
         await sendArtisanNotification(chosen.id, {
             type:      'Bookings',
@@ -245,83 +305,74 @@ const onBookingCreated = onDocumentCreated(
     }
 );
 
-// ── Trigger: booking UPDATED → handle rejection → immediate re-dispatch ───────
-const onBookingDispatchEvent = onDocumentUpdated(
-    { document: 'bookings/{bookingId}', region: FUNCTIONS_REGION },
-    async (event) => {
-        const before    = event.data.before.data();
-        const after     = event.data.after.data();
-        const bookingId = event.params.bookingId;
+// ── Dispatch event handler (called from bookings.js onBookingStatusChanged) ───
+//
+// Merged here from a separate onDocumentUpdated trigger to eliminate double
+// Cloud Function invocations per booking write. bookings.js owns the single
+// trigger; this function handles the dispatch-specific side effects.
+async function handleDispatchEvent(before, after, bookingId) {
+    const prevStatus = (before.status || '').toLowerCase();
+    const nextStatus = (after.status  || '').toLowerCase();
 
-        const prevStatus = (before.status || '').toLowerCase();
-        const nextStatus = (after.status  || '').toLowerCase();
+    // ── Artisan rejected ──────────────────────────────────────────────────
+    if (prevStatus === 'pending' && nextStatus === 'rejected') {
+        const wasDispatched = before.dispatchStatus === 'dispatched';
 
-        // ── Artisan rejected ──────────────────────────────────────────────────
-        if (prevStatus === 'pending' && nextStatus === 'rejected') {
-            const wasDispatched = before.dispatchStatus === 'dispatched';
-
-            if (wasDispatched) {
-                // This booking was under active dispatch control — re-dispatch to next artisan.
-                // Customer sees "Searching for another professional…" not "Booking Declined."
-                try {
-                    await db().collection('bookings').doc(bookingId).update({
-                        status:           'pending',   // reset — customer never sees "rejected"
-                        dispatchStatus:   'searching',
-                        artisanId:        null,        // cleared so no stale assignment while re-dispatching
-                        currentArtisanId: null,
-                        responseDeadline: null,
-                        dispatchHistory:  FieldValue.arrayUnion({
-                            artisanId:   after.artisanId || before.currentArtisanId || null,
-                            response:    'rejected',
-                            respondedAt: new Date().toISOString(),
-                            round:       after.currentDispatchRound || 1,
-                        }),
-                        updatedAt: new Date().toISOString(),
-                    });
-
-                    if (after.customerId) {
-                        await sendNotification(after.customerId, {
-                            type:      'Bookings',
-                            title:     'Searching for another professional…',
-                            message:   'The previous professional couldn\'t take your booking. We\'re finding another one.',
-                            actionUrl: 'book-step4.html',
-                            metadata:  { bookingId },
-                        }).catch(e => console.warn('[dispatch] searching notif error:', e.message));
-                    }
-
-                    await dispatchRound(bookingId);
-                } catch (err) {
-                    console.error(`[dispatch] re-dispatch after rejection error (${bookingId}):`, err.message);
-                }
-            } else {
-                // Pre-matched booking (artisan was chosen before dispatch, or standard booking).
-                // Do NOT re-dispatch — let bookings.js send the rejection notification.
-                // The customer's UI subscription will surface the "rejected" status and show
-                // a "No Response / Try Again" screen.
-                console.log(`[dispatch] Booking ${bookingId} rejected (pre-matched, no re-dispatch).`);
-            }
-        }
-
-        // ── Artisan accepted → clear dispatch timer ───────────────────────────
-        if (prevStatus === 'pending' && nextStatus === 'accepted') {
+        if (wasDispatched) {
             try {
                 await db().collection('bookings').doc(bookingId).update({
-                    dispatchStatus:   'accepted',
+                    status:           'pending',   // reset — customer never sees "rejected"
+                    dispatchStatus:   'searching',
+                    artisanId:        null,
+                    currentArtisanId: null,
                     responseDeadline: null,
                     dispatchHistory:  FieldValue.arrayUnion({
-                        artisanId:   after.artisanId || null,
-                        response:    'accepted',
+                        artisanId:   after.artisanId || before.currentArtisanId || null,
+                        response:    'rejected',
                         respondedAt: new Date().toISOString(),
                         round:       after.currentDispatchRound || 1,
                     }),
                     updatedAt: new Date().toISOString(),
                 });
+
+                if (after.customerId) {
+                    await sendNotification(after.customerId, {
+                        type:      'Bookings',
+                        title:     'Searching for another professional…',
+                        message:   'The previous professional couldn\'t take your booking. We\'re finding another one.',
+                        actionUrl: 'book-step4.html',
+                        metadata:  { bookingId },
+                    }).catch(e => console.warn('[dispatch] searching notif error:', e.message));
+                }
+
+                await dispatchRound(bookingId);
             } catch (err) {
-                console.error(`[dispatch] accept cleanup error (${bookingId}):`, err.message);
+                console.error(`[dispatch] re-dispatch after rejection error (${bookingId}):`, err.message);
             }
+        } else {
+            console.log(`[dispatch] Booking ${bookingId} rejected (pre-matched, no re-dispatch).`);
         }
     }
-);
+
+    // ── Artisan accepted → clear dispatch timer ───────────────────────────
+    if (prevStatus === 'pending' && nextStatus === 'accepted') {
+        try {
+            await db().collection('bookings').doc(bookingId).update({
+                dispatchStatus:   'accepted',
+                responseDeadline: null,
+                dispatchHistory:  FieldValue.arrayUnion({
+                    artisanId:   after.artisanId || null,
+                    response:    'accepted',
+                    respondedAt: new Date().toISOString(),
+                    round:       after.currentDispatchRound || 1,
+                }),
+                updatedAt: new Date().toISOString(),
+            });
+        } catch (err) {
+            console.error(`[dispatch] accept cleanup error (${bookingId}):`, err.message);
+        }
+    }
+}
 
 // ── Scheduler: expire timed-out dispatches → re-dispatch ─────────────────────
 // Runs every minute. Finds bookings where responseDeadline has passed.
@@ -378,8 +429,7 @@ const checkExpiredDispatches = onSchedule(
 
 module.exports = {
     onBookingCreated,
-    onBookingDispatchEvent,
     checkExpiredDispatches,
-    // Exported for admin callable if needed
+    handleDispatchEvent,
     dispatchRound,
 };

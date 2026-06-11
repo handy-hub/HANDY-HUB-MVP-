@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'carpentry':   '../shared/assets/icons/carpenter.png',
     'welder':      '../shared/assets/icons/welder.png',
     'welding':     '../shared/assets/icons/welder.png',
-    'cleaning':    '../shared/assets/icons/cleaner.png',
-    'cleaner':     '../shared/assets/icons/cleaner.png',
+    'cleaning':    '../shared/assets/icons/cleaner.svg',
+    'cleaner':     '../shared/assets/icons/cleaner.svg',
     'tiling':      '../shared/assets/icons/carpenter.png',
     'gardening':   '../shared/assets/icons/more.png',
   };
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const logoSrc = logoMap[item.type?.toLowerCase()] || '../shared/assets/icons/more.png';
       html += `
         <button type="button" class="search-tag" data-search="${item.name}">
-          <img src="${logoSrc}" alt="">
+          <img src="${logoSrc}" alt="" loading="lazy" decoding="async" width="20" height="20">
           <p>${item.name}</p>
         </button>`;
     });

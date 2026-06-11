@@ -58,8 +58,9 @@ function _enforceLimit(action, ctx = 'payment') {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Hold customer funds in escrow when a booking is confirmed.
- * Call this immediately after the booking is accepted (not at payment time).
+ * @deprecated Server-driven. bookings.js automatically holds funds when a booking
+ * transitions pending → accepted. Client calls are idempotent (protected by
+ * _escrow_locks) but redundant — remove from call sites.
  *
  * @param {{ bookingId: string, artisanId: string, amount: number }} opts
  * @returns {Promise<{ escrowId: string, commission: number, artisanShare: number }>}
@@ -71,7 +72,9 @@ export async function holdBookingFunds({ bookingId, artisanId, amount }) {
 }
 
 /**
- * Release escrow to artisan after booking completion is confirmed.
+ * @deprecated Server-driven. bookings.js automatically releases funds when a
+ * booking transitions * → completed. Client calls are idempotent but redundant —
+ * remove from call sites.
  *
  * @param {string} escrowId
  */

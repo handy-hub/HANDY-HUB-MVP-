@@ -24,6 +24,70 @@ import { checkAndRecord, showRateLimitToast } from '../services/rateLimitService
 // or rapid page navigation. One pending write at a time per browser tab.
 let _writePending = false;
 
+// localStorage key for bookings that failed all Firestore write attempts.
+// Checked and retried by the next successful page load.
+const PENDING_WRITES_KEY = '_hhb_pending_writes';
+
+/**
+ * Attempt fn() up to maxAttempts times with exponential back-off (1s, 2s, 3s…).
+ * Re-throws on the final failure so callers can handle the exhaustion case.
+ */
+async function _retryWrite(fn, maxAttempts = 3) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            return await fn();
+        } catch (err) {
+            if (attempt === maxAttempts) throw err;
+            await new Promise(res => setTimeout(res, attempt * 1000));
+        }
+    }
+}
+
+/**
+ * Queue a failed booking write so it can be retried on the next page load.
+ * Keeps a sliding window of the 10 most-recent pending items.
+ */
+function _queuePendingWrite(bookingId, doc) {
+    try {
+        const pending = JSON.parse(localStorage.getItem(PENDING_WRITES_KEY) || '[]');
+        const already = pending.some(p => p.id === bookingId);
+        if (!already) {
+            pending.push({ id: bookingId, doc, queuedAt: Date.now() });
+            localStorage.setItem(PENDING_WRITES_KEY, JSON.stringify(pending.slice(-10)));
+        }
+    } catch {}
+}
+
+/**
+ * Flush any bookings queued by _queuePendingWrite.
+ * Called opportunistically — failures are silently ignored so this never blocks.
+ */
+export async function flushPendingBookingWrites(databaseService) {
+    if (!databaseService) return;
+    let pending;
+    try {
+        pending = JSON.parse(localStorage.getItem(PENDING_WRITES_KEY) || '[]');
+        if (!pending.length) return;
+    } catch { return; }
+
+    const remaining = [];
+    for (const item of pending) {
+        try {
+            await databaseService.setDocument('bookings', item.id, item.doc);
+        } catch {
+            remaining.push(item);
+        }
+    }
+
+    try {
+        if (remaining.length) {
+            localStorage.setItem(PENDING_WRITES_KEY, JSON.stringify(remaining));
+        } else {
+            localStorage.removeItem(PENDING_WRITES_KEY);
+        }
+    } catch {}
+}
+
 /**
  * @param {{
  *   id:          string,           // booking ID e.g. HHB-250524-1430
@@ -113,14 +177,16 @@ export async function onBookingConfirmed(booking) {
             updatedAt: n,
         };
 
-        // ── Write to Firestore ───────────────────────────────────────────────
+        // ── Write to Firestore (3 attempts, 1s/2s/3s back-off) ──────────────
+        // Use setDocument with the same ID as the localStorage record so that
+        // future reads can cross-reference without a lookup.
         try {
-            // Use setDocument with the same ID as the localStorage record so that
-            // future reads can cross-reference without a lookup.
-            await databaseService.setDocument('bookings', booking.id, doc);
+            await _retryWrite(() => databaseService.setDocument('bookings', booking.id, doc));
         } catch (dbErr) {
-            // Do NOT rethrow — a Firestore failure must not break the UI confirmation
-            console.warn('[bookingConfirmNotify] Firestore write failed:', dbErr.message);
+            // All retries exhausted — queue for the next page load.
+            // Do NOT rethrow: a Firestore failure must not break the confirmation UI.
+            console.warn('[bookingConfirmNotify] Firestore write failed after retries — queued for retry:', dbErr.message);
+            _queuePendingWrite(booking.id, doc);
         }
 
         // ── Notify customer ──────────────────────────────────────────────────

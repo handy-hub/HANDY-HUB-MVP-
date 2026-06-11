@@ -64,6 +64,39 @@
 
     /* ── Error toast ── */
     .jobs-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 12px; display: none; z-index: 9999; }
+
+    /* ── Status pill: quoted ── */
+    .pill-quoted { background: #f0f9ff; color: #0369a1; }
+
+    /* ── Quote sheet ── */
+    .qs-overlay { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;opacity:0;pointer-events:none;transition:opacity .25s; }
+    .qs-overlay.open { opacity:1;pointer-events:all; }
+    .qs-sheet { position:fixed;left:0;right:0;bottom:0;max-width:430px;margin:0 auto;background:var(--surface);border-radius:20px 20px 0 0;padding:0 16px 32px;z-index:901;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);max-height:92dvh;overflow-y:auto; }
+    .qs-sheet.open { transform:translateY(0); }
+    .qs-handle { width:36px;height:4px;border-radius:2px;background:var(--border);margin:10px auto 16px; }
+    .qs-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:16px; }
+    .qs-title { font-size:16px;font-weight:800;color:var(--text-dark);margin:0; }
+    .qs-close { width:32px;height:32px;border:none;background:var(--surface-3);border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-mid); }
+    .qs-field { margin-bottom:14px; }
+    .qs-label { display:block;font-size:11px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px; }
+    .qs-input { width:100%;height:44px;border:1.5px solid var(--border);border-radius:10px;padding:0 12px;font-family:inherit;font-size:14px;font-weight:600;color:var(--text-dark);background:var(--surface);box-sizing:border-box;outline:none;transition:border-color .15s; }
+    .qs-input:focus { border-color:var(--primary); }
+    .qs-toggle { display:flex;gap:8px; }
+    .qs-tog-btn { flex:1;height:38px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;border:1.5px solid var(--border);background:var(--surface);color:var(--text-mid);cursor:pointer;transition:all .15s; }
+    .qs-tog-btn.active { background:var(--primary);color:#fff;border-color:var(--primary); }
+    .qs-mat-header { display:grid;grid-template-columns:1fr 68px 80px 28px;gap:6px;margin-bottom:4px; }
+    .qs-mat-header span { font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px; }
+    .qs-mat-row { display:grid;grid-template-columns:1fr 68px 80px 28px;gap:6px;margin-bottom:8px;align-items:center; }
+    .qs-mat-row .qs-input { height:38px;font-size:13px; }
+    .qs-mat-del { width:28px;height:28px;border:none;background:#fef2f2;border-radius:8px;font-size:14px;cursor:pointer;color:#ef4444;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+    .qs-add-item { width:100%;height:38px;border:1.5px dashed var(--border);border-radius:10px;background:none;font-family:inherit;font-size:13px;font-weight:700;color:var(--primary);cursor:pointer;margin-bottom:14px; }
+    .qs-summary { background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-bottom:14px; }
+    .qs-sum-row { display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-mid);margin-bottom:5px; }
+    .qs-sum-row.total { margin-bottom:0;font-size:14px;font-weight:800;color:var(--text-dark);border-top:1px solid var(--border);padding-top:8px;margin-top:4px; }
+    .qs-note { width:100%;min-height:60px;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--text-dark);background:var(--surface);box-sizing:border-box;outline:none;resize:none;margin-bottom:16px; }
+    .qs-note:focus { border-color:var(--primary); }
+    .qs-submit { width:100%;height:48px;border-radius:14px;border:none;background:var(--primary);color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s; }
+    .qs-submit:disabled { opacity:.55;cursor:default; }
   </style>
 </head>
 <body>
@@ -72,7 +105,7 @@
   <!-- Header -->
   <div class="jobs-header">
     <div class="jobs-header-row">
-      <button class="jobs-back" onclick="history.back()" aria-label="Back">
+      <button class="jobs-back" onclick="window.location.href='dashboard.html'" aria-label="Back">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
       <span class="jobs-title">My Jobs</span>
@@ -106,12 +139,67 @@
 
 <div id="jobs-toast" class="jobs-toast"></div>
 
+<!-- ── Quote Sheet ────────────────────────────────────────────────────────── -->
+<div id="qs-overlay" class="qs-overlay" onclick="closeQuoteSheet()"></div>
+<div id="qs-sheet" class="qs-sheet" role="dialog" aria-modal="true" aria-label="Submit Job Quote">
+  <div class="qs-handle"></div>
+  <div class="qs-header">
+    <h3 class="qs-title">Submit Job Quote</h3>
+    <button class="qs-close" onclick="closeQuoteSheet()" aria-label="Close">✕</button>
+  </div>
+
+  <!-- Labour cost -->
+  <div class="qs-field">
+    <label class="qs-label" for="qs-labour">Your Labour Cost (GHS)</label>
+    <input type="number" id="qs-labour" class="qs-input" placeholder="e.g. 150" min="1" step="0.01" oninput="recalcQuote()" />
+  </div>
+
+  <!-- Materials toggle -->
+  <div class="qs-field">
+    <span class="qs-label">Will you need to buy materials?</span>
+    <div class="qs-toggle">
+      <button id="qs-tog-no"  class="qs-tog-btn active" onclick="setMaterials(false)">No</button>
+      <button id="qs-tog-yes" class="qs-tog-btn"        onclick="setMaterials(true)">Yes</button>
+    </div>
+  </div>
+
+  <!-- Materials rows -->
+  <div id="qs-mat-section" style="display:none;">
+    <div class="qs-mat-header">
+      <span>Item</span><span>Qty</span><span>Unit Price</span><span></span>
+    </div>
+    <div id="qs-mat-rows"></div>
+    <button class="qs-add-item" onclick="addMatRow()">+ Add Item</button>
+  </div>
+
+  <!-- Summary -->
+  <div class="qs-summary">
+    <div class="qs-sum-row"><span>Labour</span><span>GHS <span id="qs-s-labour">0.00</span></span></div>
+    <div class="qs-sum-row" id="qs-s-mat-row" style="display:none;"><span>Materials</span><span>GHS <span id="qs-s-mats">0.00</span></span></div>
+    <div class="qs-sum-row total"><span>Total Quote</span><span>GHS <span id="qs-s-total">0.00</span></span></div>
+  </div>
+
+  <!-- Optional note -->
+  <div class="qs-field">
+    <label class="qs-label" for="qs-note">Note to customer (optional)</label>
+    <textarea id="qs-note" class="qs-note" placeholder="e.g. Price may vary if additional parts are needed…" maxlength="300"></textarea>
+  </div>
+
+  <button id="qs-submit" class="qs-submit" onclick="submitQuote()">Send Quote to Customer</button>
+</div>
+
 <script src="../shared/js/utils/global-app.js"></script>
 <script type="module">
 import { getAppContainer }                   from '../shared/js/app/container.js';
 import { createBookingRepository }           from '../shared/js/data/repositories/bookingRepository.js';
 import { requireArtisanAuth, canAcceptJobs } from './js/utils/artisanAuthGuard.js';
 import { startPresence, stopPresence }       from '../shared/js/services/presenceService.js';
+import { getFunctions, httpsCallable }
+    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+import { firebaseApp }
+    from '../shared/js/backend/providers/firebase/firebaseConfig.js';
+import { FUNCTIONS_REGION }
+    from '../shared/js/config/appConfig.js';
 
 // Blocking guard: auth + role + not suspended
 // Pending artisans can VIEW jobs (they just can't accept them)
@@ -123,7 +211,7 @@ const LOGIN_URL = 'login.html';
 // ── STATUS MAPS ───────────────────────────────────────────────────────────────
 const TAB_MAP = {
   pending:   ['pending', 'dispatching', 'searching', 'dispatched', 'assigned'],
-  active:    ['accepted', 'en_route', 'in_progress', 'awaiting'],
+  active:    ['accepted', 'quoted', 'en_route', 'in_progress', 'awaiting'],
   completed: ['completed'],
   cancelled: ['cancelled', 'rejected', 'unfulfilled'],
 };
@@ -135,6 +223,7 @@ const PILL_META = {
   dispatched:  { label: 'Waiting',      cls: 'pill-pending'     },
   assigned:    { label: 'Assigned',     cls: 'pill-pending'     },
   accepted:    { label: 'Accepted',     cls: 'pill-accepted'    },
+  quoted:      { label: 'Quoted',       cls: 'pill-quoted'      },
   en_route:    { label: 'En Route',     cls: 'pill-en_route'    },
   in_progress: { label: 'In Progress',  cls: 'pill-in_progress' },
   awaiting:    { label: 'Awaiting',     cls: 'pill-awaiting'    },
@@ -146,17 +235,26 @@ const PILL_META = {
 
 // Status → next action label for progression
 const NEXT_ACTION = {
-  accepted:    { label: 'Mark En Route',    next: 'en_route',    field: 'enRouteAt'    },
-  en_route:    { label: 'Mark Arrived',     next: 'in_progress', field: 'arrivedAt'    },
+  accepted:    { label: 'Mark En Route',      next: 'en_route',    field: 'enRouteAt'    },
+  quoted:      { label: 'Awaiting Approval', next: null,          field: null           },
+  en_route:    { label: 'Mark Arrived',      next: 'in_progress', field: 'arrivedAt'    },
   in_progress: { label: 'Mark Job Done',    next: 'awaiting',    field: 'jobDoneAt'    },
   awaiting:    { label: 'Waiting…',         next: null,          field: null           },
 };
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let _allJobs    = [];
-let _unsub      = null;
-let _uid        = null;
-let _dbService  = null;
+let _allJobs         = [];
+let _unsub           = null;
+let _uid             = null;
+let _dbService       = null;
+let _quoteBookingId  = null;
+let _needsMaterials  = false;
+
+let _fnInstance = null;
+function _fn() {
+  if (!_fnInstance) _fnInstance = getFunctions(firebaseApp, FUNCTIONS_REGION);
+  return _fnInstance;
+}
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -201,7 +299,7 @@ function buildJobCard(b) {
   const name    = b.customerName || b.proName || 'Customer';
   const initials= name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
   const date    = b.dateDisplay || fmtDate(b.scheduledAt) || fmtDate(b.createdAt) || '—';
-  const amount  = b.total || b.price || 0;
+  const amount  = b.jobQuote || b.total || b.price || 0;
 
   let actionsHtml = '';
   if (isPending) {
@@ -211,10 +309,20 @@ function buildJobCard(b) {
       </button>
       <button class="job-btn job-btn-decline" onclick="declineJob('${esc(b.id)}', this)">Decline</button>`;
   } else if (isActive && action) {
-    const disabled = action.next === null ? 'disabled style="opacity:.5;cursor:default;"' : '';
-    actionsHtml = `
-      ${action.next ? `<button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','${action.next}','${action.field}',this)" ${disabled}>${esc(action.label)}</button>` : `<button class="job-btn job-btn-decline" disabled style="opacity:.5;">Awaiting Customer…</button>`}
-      <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
+    if (st === 'accepted' && !b.quoteApproved) {
+      // Quote not yet submitted — artisan must send quote before going en_route
+      actionsHtml = `
+        <button class="job-btn job-btn-track" onclick="openQuoteSheet('${esc(b.id)}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Submit Quote
+        </button>
+        <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
+    } else {
+      const disabled = action.next === null ? 'disabled style="opacity:.5;cursor:default;"' : '';
+      actionsHtml = `
+        ${action.next ? `<button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','${action.next}','${action.field}',this)" ${disabled}>${esc(action.label)}</button>` : `<button class="job-btn job-btn-decline" disabled style="opacity:.5;">Awaiting Customer…</button>`}
+        <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
+    }
   } else if (isActive) {
     actionsHtml = `<button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">View on Dashboard</button>`;
   } else if (st === 'completed') {
@@ -298,7 +406,12 @@ window.acceptJob = async function(bookingId, btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Accepting…'; }
   try {
     const n = new Date().toISOString();
-    await _dbService.updateDocument('bookings', bookingId, { status: 'accepted', acceptedAt: n, updatedAt: n });
+    await _dbService.updateDocument('bookings', bookingId, {
+      status:      'accepted',
+      acceptedAt:  n,
+      updatedAt:   n,
+      artisanName: _currentArtisan.name || null,
+    });
     showToast('✅ Job accepted! Customer notified.');
     const card = document.getElementById(`jcard-${bookingId}`);
     if (card) { card.style.opacity = '0'; card.style.transition = 'opacity .25s'; setTimeout(() => card.remove(), 260); }
@@ -334,6 +447,116 @@ window.advanceJob = async function(bookingId, nextStatus, timestampField, btn) {
   } catch(e) {
     showToast('Could not update status. Try again.');
     if (btn) { btn.disabled = false; }
+  }
+};
+
+// ── QUOTE SHEET ───────────────────────────────────────────────────────────────
+window.openQuoteSheet = function(bookingId) {
+  _quoteBookingId = bookingId;
+  _needsMaterials = false;
+
+  // Reset form
+  document.getElementById('qs-labour').value = '';
+  document.getElementById('qs-note').value   = '';
+  document.getElementById('qs-mat-rows').innerHTML = '';
+  document.getElementById('qs-tog-no').classList.add('active');
+  document.getElementById('qs-tog-yes').classList.remove('active');
+  document.getElementById('qs-mat-section').style.display = 'none';
+  document.getElementById('qs-s-mat-row').style.display   = 'none';
+  recalcQuote();
+
+  document.getElementById('qs-overlay').classList.add('open');
+  document.getElementById('qs-sheet').classList.add('open');
+  document.getElementById('qs-labour').focus();
+};
+
+window.closeQuoteSheet = function() {
+  document.getElementById('qs-overlay').classList.remove('open');
+  document.getElementById('qs-sheet').classList.remove('open');
+};
+
+window.setMaterials = function(yes) {
+  _needsMaterials = yes;
+  document.getElementById('qs-tog-no').classList.toggle('active',  !yes);
+  document.getElementById('qs-tog-yes').classList.toggle('active',  yes);
+  document.getElementById('qs-mat-section').style.display = yes ? '' : 'none';
+  document.getElementById('qs-s-mat-row').style.display   = yes ? '' : 'none';
+  if (yes && document.getElementById('qs-mat-rows').children.length === 0) addMatRow();
+  recalcQuote();
+};
+
+window.addMatRow = function() {
+  const row = document.createElement('div');
+  row.className = 'qs-mat-row';
+  row.innerHTML = `
+    <input type="text"   class="qs-input" placeholder="Item name"  oninput="recalcQuote()" />
+    <input type="number" class="qs-input" placeholder="Qty"  min="1" step="1"    oninput="recalcQuote()" />
+    <input type="number" class="qs-input" placeholder="Price" min="0" step="0.01" oninput="recalcQuote()" />
+    <button class="qs-mat-del" onclick="removeMatRow(this)" aria-label="Remove">✕</button>`;
+  document.getElementById('qs-mat-rows').appendChild(row);
+  row.querySelector('input').focus();
+};
+
+window.removeMatRow = function(btn) {
+  btn.closest('.qs-mat-row').remove();
+  recalcQuote();
+};
+
+function recalcQuote() {
+  const labour = parseFloat(document.getElementById('qs-labour').value) || 0;
+  let   mats   = 0;
+
+  if (_needsMaterials) {
+    document.querySelectorAll('#qs-mat-rows .qs-mat-row').forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      const qty   = parseFloat(inputs[1].value) || 0;
+      const price = parseFloat(inputs[2].value) || 0;
+      mats += qty * price;
+    });
+  }
+
+  const total = labour + mats;
+  document.getElementById('qs-s-labour').textContent = labour.toFixed(2);
+  document.getElementById('qs-s-mats').textContent   = mats.toFixed(2);
+  document.getElementById('qs-s-total').textContent  = total.toFixed(2);
+  document.getElementById('qs-submit').disabled      = total <= 0;
+}
+window.recalcQuote = recalcQuote;
+
+window.submitQuote = async function() {
+  if (!_quoteBookingId) return;
+
+  const labourCost = parseFloat(document.getElementById('qs-labour').value) || 0;
+  if (labourCost <= 0) { showToast('Enter a labour cost greater than 0.'); return; }
+
+  const materials = [];
+  if (_needsMaterials) {
+    let valid = true;
+    document.querySelectorAll('#qs-mat-rows .qs-mat-row').forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      const name  = inputs[0].value.trim();
+      const qty   = parseFloat(inputs[1].value) || 0;
+      const price = parseFloat(inputs[2].value) || 0;
+      if (!name || qty <= 0 || price <= 0) { valid = false; return; }
+      materials.push({ name, qty, unitPrice: price });
+    });
+    if (!valid) { showToast('Fill in all material fields (name, qty, price).'); return; }
+  }
+
+  const note = document.getElementById('qs-note').value.trim();
+  const btn  = document.getElementById('qs-submit');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  try {
+    const submitJobQuote = httpsCallable(_fn(), 'submitJobQuote');
+    await submitJobQuote({ bookingId: _quoteBookingId, labourCost, materials, note });
+    closeQuoteSheet();
+    showToast('Quote sent! Waiting for customer approval.');
+  } catch(err) {
+    showToast(err.message || 'Could not send quote. Try again.');
+    btn.disabled = false;
+    btn.textContent = 'Send Quote to Customer';
   }
 };
 

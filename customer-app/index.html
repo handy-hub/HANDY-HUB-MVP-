@@ -4,9 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Get Started | HandyHub</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#730201">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HandyHub">
+    <link rel="apple-touch-icon" href="/shared/assets/images/handyhub-logo.png">
 
     <link rel="preload" as="image" href="../shared/assets/images/customer-img.png">
     <link rel="preload" as="image" href="../shared/assets/images/handyhub-logo.png">
+    <link rel="preload" as="image" href="../shared/assets/images/artisan-img.png">
+    <link rel="preconnect" href="https://res.cloudinary.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
@@ -426,6 +435,11 @@ body {
 
                 <div class="gs-photo-section" aria-hidden="true">
                     <div class="gs-photo-circle"></div>
+                    <img class="gs-person-photo"
+                         src="../shared/assets/images/artisan-img.png"
+                         alt=""
+                         loading="eager"
+                         draggable="false">
                 </div>
 
                 <div class="gs-card-content">
@@ -481,6 +495,14 @@ body {
 <script src="../shared/js/utils/logicGate.js"></script>
 <script src="../shared/js/utils/global-app.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/customer-app/sw.js', { scope: '/customer-app/' })
+      .catch(function (err) { console.warn('[SW] Registration failed:', err); });
+  });
+}
+</script>
 
 <script>
 (function () {

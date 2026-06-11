@@ -26,7 +26,7 @@
         <div class="header-spacer"></div>
       </div>
 
-      <p style="font-size:11.5px;color:#aaa;margin-bottom:18px;">Last updated: May 2025</p>
+      <p id="last-updated" style="font-size:11.5px;color:#aaa;margin-bottom:18px;">Last updated: </p>
 
       <div class="menu-card" style="padding:18px;">
         <div class="static-text">
@@ -55,7 +55,7 @@
           We may update these terms at any time. Continued use of the app after changes are posted constitutes acceptance of the new terms.
 
           <h3>9. Contact</h3>
-          For questions about these terms, contact us at legal@handyhub.com.
+          For questions about these terms, contact us at <a style="color:#383737; text-decoration:underline;" href="mailto:info.handyhub101@gmail.com">info.handyhub101@gmail.com</a>.
         </div>
       </div>
 
@@ -73,6 +73,19 @@
           document.body.classList.remove('page-slide-in-right', 'page-slide-in-left');
         }, { once: true });
       } catch (e) {}
+    })();
+  </script>
+  <script>
+    (function(){
+      try{
+        var raw = document.lastModified || new Date().toString();
+        var d = new Date(raw);
+        if (isNaN(d.getTime())) d = new Date();
+        var opts = { year: 'numeric', month: 'long', day: 'numeric' };
+        var formatted = d.toLocaleDateString(undefined, opts);
+        var el = document.getElementById('last-updated');
+        if(el) el.textContent = 'Last updated: ' + formatted;
+      }catch(e){}
     })();
   </script>
 <script src="../shared/js/components/fastLoader.js"></script>

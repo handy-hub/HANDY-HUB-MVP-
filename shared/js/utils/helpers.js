@@ -42,7 +42,7 @@ function redirectToTracking(query = '') {
 
 if (searchInput) {
     setInterval(() => {
-        searchInput.style.opacity = "100000";
+        searchInput.style.opacity = "0";
         setTimeout(() => {
             counter = (counter + 1) % phrases.length;
             searchInput.placeholder = phrases[counter];
@@ -68,54 +68,6 @@ if (searchIcon) {
     });
 }
 
-// --- 3. SLIDER DOTS SYNC ---
-const dots = document.querySelectorAll('.dot');
-const slider = document.querySelector('.slider');
-const adsContainer = document.querySelector('.ads');
-
-function getTranslateXFromTransform(transformValue) {
-    if (!transformValue || transformValue === 'none') return 0;
-
-    try {
-        if (typeof DOMMatrixReadOnly !== 'undefined') {
-            return Math.abs(new DOMMatrixReadOnly(transformValue).m41);
-        }
-        if (typeof WebKitCSSMatrix !== 'undefined') {
-            return Math.abs(new WebKitCSSMatrix(transformValue).m41);
-        }
-    } catch (error) {
-        // Fall through to regex parser.
-    }
-
-    const match2d = transformValue.match(/matrix\(([^)]+)\)/);
-    if (match2d) {
-        const parts = match2d[1].split(',').map((part) => Number(part.trim()));
-        return Math.abs(parts[4] || 0);
-    }
-
-    const match3d = transformValue.match(/matrix3d\(([^)]+)\)/);
-    if (match3d) {
-        const parts = match3d[1].split(',').map((part) => Number(part.trim()));
-        return Math.abs(parts[12] || 0);
-    }
-
-    return 0;
-}
-
-if (slider && dots.length > 0 && adsContainer) {
-    setInterval(() => {
-        const style = window.getComputedStyle(slider);
-        const xPosition = getTranslateXFromTransform(style.transform || style.webkitTransform);
-        const containerWidth = adsContainer.offsetWidth;
-        if (!containerWidth) return;
-        const activeIndex = Math.round(xPosition / containerWidth) % dots.length;
-
-        dots.forEach((dot, index) => {
-            dot.classList.toggle('active', index === activeIndex);
-        });
-    }, 700);
-}
-
 // --- 4. NOTIFICATION & ACTIVITY SYSTEM ---
 const notifBtn = document.querySelector('.notification-wrapper');
 const notifDot = document.querySelector('.notification-dot, .notification-badge');
@@ -125,7 +77,7 @@ const activityOverlay = document.getElementById('activity-overlay');
 function checkNotifications() {
     if (!notifDot) return false;
     let count = parseInt(localStorage.getItem('unread_notifications'), 10);
-    if (isNaN(count)) count = 5; // default unread count before first visit to notification page
+    if (isNaN(count)) count = 0;
     if (count > 0) {
         notifDot.textContent = count;
         notifDot.style.display = 'flex';
@@ -136,6 +88,48 @@ function checkNotifications() {
         return false;
     }
 }
+
+/**
+ * Subscribe to real-time unread notification count from Firestore.
+ * Called from authInit.js after auth resolves. Updates the badge live.
+ * Falls back gracefully if databaseService or uid is unavailable.
+ *
+ * @param {object} databaseService  The app DI container's databaseService
+ * @param {string} uid              Authenticated customer UID
+ * @returns {function}              Unsubscribe function
+ */
+function initNotifications(databaseService, uid) {
+    if (!uid || !databaseService) return function () {};
+    try {
+        return databaseService.subscribeToCollection(
+            'customer_notifications',
+            [
+                { field: 'receiverId', op: '==',    value: uid   },
+                { field: 'isRead',     op: '==',    value: false },
+            ],
+            {},
+            function (records) {
+                const count = Array.isArray(records) ? records.length : 0;
+                try { localStorage.setItem('unread_notifications', String(count)); } catch {}
+                if (!notifDot) return;
+                if (count > 0) {
+                    notifDot.textContent   = count > 99 ? '99+' : count;
+                    notifDot.style.display = 'flex';
+                } else {
+                    notifDot.textContent   = '';
+                    notifDot.style.display = 'none';
+                }
+            },
+            function (err) {
+                console.warn('[helpers] notification subscription error:', err && err.message);
+            }
+        );
+    } catch (err) {
+        console.warn('[helpers] initNotifications setup failed:', err && err.message);
+        return function () {};
+    }
+}
+window.HH_initNotifications = initNotifications;
 
 if (notifBtn && activityPanel && activityOverlay) {
     notifBtn.addEventListener('click', () => {
@@ -197,14 +191,14 @@ if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeFunc);
 
 // Define serviceIcons if not already defined globally
 const serviceIcons = window.serviceIcons || {
-    electrician: 'icons/electrician.png',
-    plumber: 'icons/plumber.png',
-    carpenter: 'icons/carpenter.png',
-    acUnit: 'icons/ac.png',
-    welder: 'icons/welder.png',
-    gardener: 'icons/gardener.png',
-    painter: 'icons/painter.png',
-    cleaner: 'icons/cleaner.png',
+    electrician: '../shared/assets/icons/electricals.png',
+    plumber:     '../shared/assets/icons/plummer.png',
+    carpenter:   '../shared/assets/icons/carpenter.png',
+    acUnit:      '../shared/assets/icons/cooling.png',
+    welder:      '../shared/assets/icons/welder.png',
+    gardener:    '../shared/assets/icons/gardener.svg',
+    painter:     '../shared/assets/icons/painter.png',
+    cleaner:     '../shared/assets/icons/cleaner.svg',
     nav: {
         home: { filled: 'icons/nav-home-filled.png', outline: 'icons/nav-home-outline.png' },
         bookings: { filled: 'icons/nav-bookings-filled.png', outline: 'icons/nav-bookings-outline.png' },

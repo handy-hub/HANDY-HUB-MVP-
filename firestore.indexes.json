@@ -1,8 +1,5 @@
 {
   "indexes": [
-
-    // ── customer_notifications ──────────────────────────────────────
-    // subscribeToUserNotifications: receiverId + createdAt DESC
     {
       "collectionGroup": "customer_notifications",
       "queryScope": "COLLECTION",
@@ -11,7 +8,6 @@
         { "fieldPath": "createdAt",  "order": "DESCENDING" }
       ]
     },
-    // subscribeToUnreadCount: receiverId + isRead
     {
       "collectionGroup": "customer_notifications",
       "queryScope": "COLLECTION",
@@ -20,9 +16,6 @@
         { "fieldPath": "isRead",     "order": "ASCENDING" }
       ]
     },
-
-    // ── verification_requests ──────────────────────────────────────
-    // admin queue: verificationStatus + submittedAt DESC
     {
       "collectionGroup": "verification_requests",
       "queryScope": "COLLECTION",
@@ -31,7 +24,6 @@
         { "fieldPath": "submittedAt",         "order": "DESCENDING" }
       ]
     },
-    // admin queue (all): submittedAt DESC (full history)
     {
       "collectionGroup": "verification_requests",
       "queryScope": "COLLECTION",
@@ -39,9 +31,6 @@
         { "fieldPath": "submittedAt", "order": "DESCENDING" }
       ]
     },
-
-    // ── verification_logs ───────────────────────────────────────────
-    // getByArtisan: artisanId + timestamp DESC
     {
       "collectionGroup": "verification_logs",
       "queryScope": "COLLECTION",
@@ -50,9 +39,6 @@
         { "fieldPath": "timestamp",  "order": "DESCENDING" }
       ]
     },
-
-    // ── admin_notifications ─────────────────────────────────────────
-    // getUnread: isRead + createdAt DESC
     {
       "collectionGroup": "admin_notifications",
       "queryScope": "COLLECTION",
@@ -61,27 +47,24 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ── artisans ────────────────────────────────────────────────────
-    // getTopRated: isAvailable + rating DESC
     {
       "collectionGroup": "artisans",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isAvailable", "order": "ASCENDING" },
-        { "fieldPath": "rating",      "order": "DESCENDING" }
+        { "fieldPath": "isAvailable",        "order": "ASCENDING"  },
+        { "fieldPath": "verificationStatus", "order": "ASCENDING"  },
+        { "fieldPath": "rating",             "order": "DESCENDING" }
       ]
     },
-    // findByCategory: category + rating DESC
     {
       "collectionGroup": "artisans",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "category", "order": "ASCENDING" },
-        { "fieldPath": "rating",   "order": "DESCENDING" }
+        { "fieldPath": "category",           "order": "ASCENDING"  },
+        { "fieldPath": "verificationStatus", "order": "ASCENDING"  },
+        { "fieldPath": "rating",             "order": "DESCENDING" }
       ]
     },
-    // dispatch.findEligibleArtisans: status + isAvailable + verificationStatus
     {
       "collectionGroup": "artisans",
       "queryScope": "COLLECTION",
@@ -91,9 +74,43 @@
         { "fieldPath": "verificationStatus", "order": "ASCENDING" }
       ]
     },
-
-    // ── bookings ────────────────────────────────────────────────────
-    // subscribeByCustomerId (booking.html): customerId + createdAt DESC
+    {
+      "collectionGroup": "artisans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",             "order": "ASCENDING" },
+        { "fieldPath": "isAvailable",        "order": "ASCENDING" },
+        { "fieldPath": "verificationStatus", "order": "ASCENDING" },
+        { "fieldPath": "geohash",            "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "artisans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "searchKeywords",     "arrayConfig": "CONTAINS" },
+        { "fieldPath": "verificationStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "artisan_index",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isAvailable",        "order": "ASCENDING" },
+        { "fieldPath": "status",             "order": "ASCENDING" },
+        { "fieldPath": "verificationStatus", "order": "ASCENDING" },
+        { "fieldPath": "geohash",            "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "artisan_index",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isAvailable",        "order": "ASCENDING" },
+        { "fieldPath": "status",             "order": "ASCENDING" },
+        { "fieldPath": "verificationStatus", "order": "ASCENDING" }
+      ]
+    },
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -102,7 +119,6 @@
         { "fieldPath": "createdAt",  "order": "DESCENDING" }
       ]
     },
-    // subscribeByArtisanId (jobs.html): artisanId + createdAt DESC
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -111,7 +127,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-    // getByCustomerId filtered by status (one-shot)
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -121,7 +136,6 @@
         { "fieldPath": "createdAt",  "order": "DESCENDING" }
       ]
     },
-    // getByArtisanId filtered by status (one-shot)
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -131,7 +145,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-    // artisanId + status + updatedAt — artisan dashboard active jobs
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -141,7 +154,6 @@
         { "fieldPath": "updatedAt",  "order": "DESCENDING" }
       ]
     },
-    // customerId + type — emergency booking queries
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -151,7 +163,6 @@
         { "fieldPath": "createdAt",  "order": "DESCENDING" }
       ]
     },
-    // dispatch.checkExpiredDispatches: dispatchStatus + responseDeadline ASC
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -160,9 +171,6 @@
         { "fieldPath": "responseDeadline", "order": "ASCENDING" }
       ]
     },
-
-    // ── chats ────────────────────────────────────────────────────────
-    // getChatsByUser / subscribeByUser: participants array-contains + lastMessageAt DESC
     {
       "collectionGroup": "chats",
       "queryScope": "COLLECTION",
@@ -171,9 +179,14 @@
         { "fieldPath": "lastMessageAt", "order": "DESCENDING" }
       ]
     },
-
-    // ── escrow ────────────────────────────────────────────────────────────────
-    // holdFundsForBooking idempotency check: bookingId + customerId + status
+    {
+      "collectionGroup": "escrow",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bookingId", "order": "ASCENDING" },
+        { "fieldPath": "status",    "order": "ASCENDING" }
+      ]
+    },
     {
       "collectionGroup": "escrow",
       "queryScope": "COLLECTION",
@@ -183,9 +196,6 @@
         { "fieldPath": "status",     "order": "ASCENDING" }
       ]
     },
-    // autoReleaseEscrow scheduler: status + autoReleaseAt ASC
-    // Query: status == 'held' AND autoReleaseAt <= now, ordered by autoReleaseAt ASC
-    // Required for paginated auto-release with startAfter cursor.
     {
       "collectionGroup": "escrow",
       "queryScope": "COLLECTION",
@@ -194,7 +204,6 @@
         { "fieldPath": "autoReleaseAt", "order": "ASCENDING" }
       ]
     },
-    // getByCustomer: customerId + createdAt DESC
     {
       "collectionGroup": "escrow",
       "queryScope": "COLLECTION",
@@ -203,7 +212,6 @@
         { "fieldPath": "createdAt",  "order": "DESCENDING" }
       ]
     },
-    // getByArtisan: artisanId + createdAt DESC
     {
       "collectionGroup": "escrow",
       "queryScope": "COLLECTION",
@@ -212,7 +220,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-    // getByStatus: status + createdAt DESC (admin)
     {
       "collectionGroup": "escrow",
       "queryScope": "COLLECTION",
@@ -221,9 +228,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ── payouts ───────────────────────────────────────────────────────────────
-    // getByUser: userId + createdAt DESC
     {
       "collectionGroup": "payouts",
       "queryScope": "COLLECTION",
@@ -232,7 +236,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-    // getByStatus (admin): status + createdAt DESC
     {
       "collectionGroup": "payouts",
       "queryScope": "COLLECTION",
@@ -241,7 +244,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-    // getByUserType + status (admin): userType + status + createdAt DESC
     {
       "collectionGroup": "payouts",
       "queryScope": "COLLECTION",
@@ -251,9 +253,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ── commissions ──────────────────────────────────────────────────────────
-    // getByArtisan: artisanId + createdAt DESC
     {
       "collectionGroup": "commissions",
       "queryScope": "COLLECTION",
@@ -262,9 +261,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ── artisan transactions subcollection ──────────────────────────────────
-    // subscribeToArtisanTransactions: createdAt DESC
     {
       "collectionGroup": "transactions",
       "queryScope": "COLLECTION_GROUP",
@@ -272,9 +268,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ── financialAudit ───────────────────────────────────────────────────────
-    // getByUser: userId + createdAt DESC
     {
       "collectionGroup": "financialAudit",
       "queryScope": "COLLECTION",
@@ -283,7 +276,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
-
   ],
   "fieldOverrides": []
 }

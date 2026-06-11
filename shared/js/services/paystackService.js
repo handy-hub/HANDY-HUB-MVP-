@@ -70,9 +70,11 @@ export async function initiatePayment({ email, amount, metadata = {}, onSuccess,
     // For phone-auth or social-auth users without an email, use a stable placeholder
     // derived from the user's UID rather than a timestamp (prevents duplicate Paystack
     // customer records on every transaction for the same user).
+    // UID-scoped placeholder: each phone/social-auth user gets a unique Paystack
+    // customer record. A shared placeholder would merge all such users into one.
     const effectiveEmail = (email && email.includes('@'))
         ? email
-        : `noemail+handyhub@handyhub.app`;  // stable placeholder — no PII, no spam
+        : `noemail+${(userId || 'anon').slice(0, 12)}@handyhub.app`;
 
     await loadSdk();
 

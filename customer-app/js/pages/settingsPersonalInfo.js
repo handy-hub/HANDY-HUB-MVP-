@@ -53,6 +53,13 @@ window.savePersonalInfo = async function () {
             { name, phone, location, bio, updatedAt: new Date().toISOString() },
             { merge: true }
         );
+
+        // Invalidate the 24h profile cache so any page that reads
+        // HH_State.profile immediately after this save sees fresh data.
+        // dashboardBadge.js handles this automatically on the dashboard via its
+        // live subscription, but non-dashboard pages rely on the cached value.
+        if (window.HH_State) window.HH_State.profile.clear();
+
         showToast('Profile updated successfully!', 'success');
     } catch (err) {
         console.error('Save personal info error:', err);

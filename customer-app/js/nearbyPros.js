@@ -231,6 +231,7 @@ function buildCard(a) {
     <div class="pc-left">
       <div class="pc-avatar-wrap">
         <img class="pc-avatar" src="${esc(avatarSrc(a))}" alt="${esc(a.name || '')}"
+             loading="lazy" decoding="async"
              onerror="this.src='${AVATAR_SVG}'">
         ${online ? '<div class="pc-dot"></div>' : ''}
       </div>
@@ -419,6 +420,11 @@ function injectPanel() {
 
   document.body.appendChild($panelOverlay);
   document.body.appendChild($panel);
+
+  /* swipe-to-dismiss gesture */
+  import('../../shared/js/utils/sheetDismiss.js')
+    .then(({ attachSwipeDismiss }) => attachSwipeDismiss($panelOverlay, $panel, closePanel))
+    .catch(() => {});
 
   /* radius chip clicks */
   $panel.querySelector('#np-radius-chips').addEventListener('click', e => {

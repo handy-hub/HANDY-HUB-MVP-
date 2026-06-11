@@ -6,6 +6,8 @@
     <title>Sign Up | HandyHub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://img.icons8.com">
+    <link rel="preload" as="image" href="../shared/assets/images/handyhub-logo-text.png">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
     <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 
@@ -87,7 +89,7 @@ body {
     position: relative;
     overflow: hidden;
     background: #fefefe;
-    padding: 0 0 52px;
+    padding: 0 0 80px;
     flex-shrink: 0;
 }
 
@@ -188,10 +190,10 @@ body {
 /* ── Brand ────────────────────────────────────────────────── */
 .su-brand {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     display: flex;
     justify-content: center;
-    padding: 18px 24px 0;
+    padding: 18px 24px 16px;
 }
 
 .su-logo {
@@ -851,12 +853,12 @@ body {
         <div class="su-social-row su-a7">
             <button type="button" id="google-signup-btn" class="su-social-btn"
                     aria-label="Sign up with Google">
-                <img src="https://img.icons8.com/color/48/google-logo.png" alt="Google">
+                <img src="https://img.icons8.com/color/48/google-logo.png" alt="Google" loading="lazy" width="24" height="24">
                 Google
             </button>
             <button type="button" id="facebook-signup-btn" class="su-social-btn"
                     aria-label="Sign up with Facebook">
-                <img src="https://img.icons8.com/color/48/facebook-new.png" alt="Facebook">
+                <img src="https://img.icons8.com/color/48/facebook-new.png" alt="Facebook" loading="lazy" width="24" height="24">
                 Facebook
             </button>
             <button type="button" id="apple-signup-btn" class="su-social-btn"

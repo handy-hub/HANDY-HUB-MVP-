@@ -1,0 +1,27 @@
+{
+  "name": "HandyHub",
+  "short_name": "HandyHub",
+  "description": "Book trusted home service professionals in Ghana",
+  "start_url": "/customer-app/",
+  "scope": "/customer-app/",
+  "display": "standalone",
+  "background_color": "#FEFEFE",
+  "theme_color": "#730201",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/shared/assets/images/handyhub-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/shared/assets/images/handyhub-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["lifestyle", "utilities"],
+  "lang": "en-GH"
+}

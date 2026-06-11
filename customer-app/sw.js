@@ -5,15 +5,15 @@
 // Bump CACHE_VERSION when deploying new assets to force cache refresh.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION = 'handyhub-v2';
+const CACHE_VERSION = 'handyhub-v3';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
-    '/',
-    '/index.html',
-    '/login.html',
-    '/signup.html',
-    '/dashboard.html',
+    '/customer-app/',
+    '/customer-app/index.html',
+    '/customer-app/login.html',
+    '/customer-app/signup.html',
+    '/customer-app/dashboard.html',
 ];
 
 // Hostnames whose requests must bypass the cache entirely
@@ -33,6 +33,7 @@ const BYPASS_HOSTS = [
     'res.cloudinary.com',
     'nominatim.openstreetmap.org',
     'ui-avatars.com',
+    'bigdatacloud.net',
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,7 +104,14 @@ self.addEventListener('fetch', (event) => {
 async function cacheFirst(request) {
     const cached = await caches.match(request);
     if (cached) return cached;
-    return fetchAndCache(request);
+    try {
+        return await fetchAndCache(request);
+    } catch (_) {
+        // Network unavailable and no cache hit — return a typed network-error
+        // response so event.respondWith() resolves instead of rejecting (which
+        // would flood the console with unhandled-promise-rejection warnings).
+        return Response.error();
+    }
 }
 
 /**

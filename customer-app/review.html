@@ -487,7 +487,7 @@
         <path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
       </svg>
     </div>
-    <p class="rv-success-title">Thank You! 🎉</p>
+    <p class="rv-success-title">Thank You! </p>
     <p class="rv-success-sub">Your review helps other customers find great professionals.<br>We appreciate your feedback!</p>
     <button class="rv-success-btn" onclick="goToHistory()">View My Bookings</button>
   </div>
@@ -496,6 +496,28 @@
 <script type="module">
   import { requireAuth } from '../shared/js/utils/authGuard.js';
   await requireAuth();
+</script>
+<script type="module">
+  // Provides window._persistReviewToFirestore(bookingId, fields) for the non-module
+  // submitReview() handler. Writes rating/review to the booking document so the
+  // onBookingReviewed Cloud Function (functions/reviews.js) can atomically update
+  // the artisan's rating + reviewCount inside a Firestore transaction.
+  (async () => {
+    try {
+      const { getAppContainer } = await import('../shared/js/app/container.js');
+      const container = getAppContainer();
+      const { services: { databaseService } } = container;
+
+      window._persistReviewToFirestore = async function(bookingId, fields) {
+        if (!bookingId) return;
+        await databaseService.updateDocument('bookings', bookingId, fields);
+      };
+    } catch (err) {
+      // Non-fatal — review still saved to localStorage. CF won't fire but that
+      // is acceptable; the artisan rating will be stale until the next review.
+      console.warn('[review] Firestore init failed — review saved locally only:', err?.message);
+    }
+  })();
 </script>
 <script>
 (function () {
@@ -521,6 +543,10 @@
     if (targetId) sessionStorage.removeItem('hh_review_booking_id');
     const targetRecord = targetId ? (hist.find(h => String(h.id) === String(targetId)) || null) : null;
     const last         = targetRecord || hist[0] || {};
+
+    // Expose to submitReview() so it can persist the rating to Firestore.
+    // The onBookingReviewed Cloud Function reads this and atomically updates the artisan's rating.
+    window._rvBookingId = last.id || null;
 
     const id = last.id || ('HHB-' + String(now.getFullYear()).slice(2) + pad(now.getMonth()+1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()));
     document.getElementById('rv-booking-id').textContent = id;
@@ -638,12 +664,28 @@
       }
     } catch(_) {}
 
+    // Persist rating to Firestore so the onBookingReviewed Cloud Function can
+    // atomically update the artisan's rolling average rating + reviewCount.
+    // Fire-and-forget — success overlay is shown regardless.
+    if (window._rvBookingId) {
+      window._persistReviewToFirestore?.(window._rvBookingId, {
+        rating:     reviewData.rating,
+        review:     reviewData.text || null,
+        reviewedAt: reviewData.ts,
+        updatedAt:  reviewData.ts,
+      }).catch(err => console.warn('[review] Firestore write failed (local-only fallback):', err?.message));
+    }
+
     // Clear active booking
     try { localStorage.removeItem(BK_KEY); } catch(_) {}
 
-    // Show success after short delay
+    // Show success after short delay and hide it after 3 seconds
     setTimeout(() => {
-      document.getElementById('rv-success-overlay').classList.add('visible');
+      const overlay = document.getElementById('rv-success-overlay');
+      overlay.classList.add('visible');
+      setTimeout(() => {
+        overlay.classList.remove('visible');
+      }, 3000);
     }, 800);
   };
 

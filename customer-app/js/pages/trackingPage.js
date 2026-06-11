@@ -3,29 +3,47 @@
  *
  * Responsibilities:
  *   • Manage search input, submit, results display
- *   • Delegate all history operations to SearchHistoryService
+ *   • Delegate all history persistence to SearchHistoryService
  *   • Wire up category tiles and popular-search tags
  *   • Handle ?q= URL parameter for cross-page deep-links
  *
- * This file is intentionally thin. All persistence, sync, deduplication
- * and Firestore I/O lives in SearchHistoryService.
+ * ─── SEARCH ARCHITECTURE ────────────────────────────────────────────────────
+ * All search results come from artisanRepository.searchByKeyword() which
+ * queries the 'artisans' Firestore collection using array-contains on the
+ * artisan's searchKeywords field. Only artisans with verificationStatus ==
+ * 'approved' are surfaced. Results are sorted by rating descending.
  *
- * ARCHITECTURE NOTE — dynamic import for getAppContainer:
- * ────────────────────────────────────────────────────────
- * getAppContainer chains through Firebase SDK modules loaded from a CDN URL
- * (gstatic.com). A static top-level import would put that CDN fetch on the
- * critical path: if it's slow or blocked, the entire module fails at parse
- * time, boot() is never called, and zero event listeners are attached.
+ * Multi-word queries ("emergency plumber") use array-contains-any so artisans
+ * matching ANY token in the query are returned (full phrase match is attempted
+ * first as a token for higher precision).
  *
- * The fix: import getAppContainer dynamically *inside* initHistoryService()
- * (which is fire-and-forget). If the CDN import fails, only history sync is
- * affected — all event listeners are already wired, the page stays functional,
- * and SearchHistoryService falls back to localStorage automatically.
+ * The DI container is loaded via a module-level IIFE so Firebase is ready
+ * before the user types — both the search path and the history path share the
+ * same container promise.
+ *
+ * ─── PARTIAL MATCH LIMITATION ───────────────────────────────────────────────
+ * Firestore array-contains is exact-match only. "plumb" will NOT match
+ * "plumber". The CATEGORY_SYNONYMS table in artisanRepository pre-indexes the
+ * most common variants so this limitation is largely invisible in practice.
+ * For true fuzzy/prefix search, migrate to Algolia, Typesense, or Meilisearch.
  */
 
 import { SearchHistoryService } from '../../../shared/js/services/searchHistoryService.js';
 // ↑ Pure JS class — no CDN dependency — safe to import statically.
-// getAppContainer is imported dynamically inside initHistoryService() below.
+// The DI container (and Firebase SDK) is loaded dynamically below.
+
+// ── DI container — starts loading immediately at module parse time ────────────
+// Both search (artisan repo) and history (auth + customer repo) share this one
+// promise. By the time boot() runs and the user types, it is almost always ready.
+const _containerReady = (async () => {
+    try {
+        const { getAppContainer } = await import('../../../shared/js/app/container.js');
+        return getAppContainer();
+    } catch (err) {
+        console.warn('[search-page] DI container init failed:', err?.message);
+        return null;
+    }
+})();
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const searchInput      = document.querySelector('#tracking-search-input');
@@ -43,22 +61,6 @@ const aiActionBtn      = document.querySelector('.ai-action');
 // ── Service ───────────────────────────────────────────────────────────────────
 const historyService = new SearchHistoryService();
 
-// ── Static search index (replace with Firestore query when catalogue is built)
-const SEARCH_INDEX = [
-    { title: 'Fix leaking pipe',       subtitle: 'Plumbing' },
-    { title: 'Install ceiling fan',    subtitle: 'Electrical' },
-    { title: 'Emergency electrician',  subtitle: 'Electrical' },
-    { title: 'Clean air conditioner',  subtitle: 'Cooling' },
-    { title: 'Paint my room',          subtitle: 'Painting' },
-    { title: 'Carpentry',              subtitle: 'Carpentry' },
-    { title: 'Welding',                subtitle: 'Welding' },
-    { title: 'Plumbing',               subtitle: 'Plumbing' },
-    { title: 'Electrical',             subtitle: 'Electrical' },
-    { title: 'Cooling',                subtitle: 'Cooling' },
-    { title: 'Tiling',                 subtitle: 'Tiling' },
-    { title: 'Cleaning',               subtitle: 'Cleaning' },
-];
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function escHtml(str) {
@@ -73,6 +75,48 @@ function escHtml(str) {
 function norm(value) {
     if (typeof value !== 'string') return '';
     return value.replace(/\s+/g, ' ').trim();
+}
+
+// ── Firestore search ──────────────────────────────────────────────────────────
+
+/**
+ * Map a raw artisan Firestore record to a UI result item.
+ *
+ * title     → artisan display name — specialty (e.g. "Kwame Asante — Plumber")
+ * subtitle  → category displayed as secondary line (e.g. "Plumbing")
+ * artisanId → stored in sessionStorage on click; consumed by book-now.html
+ * rating    → shown as ⭐ badge; 0 means no reviews yet (not displayed)
+ */
+function toResultItem(record) {
+    const d        = record.data || {};
+    const name     = (d.name      || '').trim();
+    const specialty = (d.specialty || '').trim();
+    const category  = (d.category  || specialty || '').trim();
+    return {
+        title:     name && specialty ? `${name} — ${specialty}` : (name || specialty || 'Artisan'),
+        subtitle:  category,
+        artisanId: record.id  || '',
+        rating:    typeof d.rating === 'number' ? d.rating : 0,
+    };
+}
+
+/**
+ * Query Firestore via the artisan repository.
+ * Returns { results: ResultItem[], error: string|null }.
+ * Never throws — all exceptions are caught and surface as { error }.
+ */
+async function queryFirestore(term) {
+    try {
+        const container = await _containerReady;
+        if (!container) {
+            return { results: [], error: 'Search unavailable. Please check your connection and try again.' };
+        }
+        const artisans = await container.repositories.artisanRepository.searchByKeyword(term);
+        return { results: artisans.map(toResultItem), error: null };
+    } catch (err) {
+        console.error('[search-page] Firestore search error:', err?.message);
+        return { results: [], error: 'Search temporarily unavailable. Please try again.' };
+    }
 }
 
 // ── Rendering ─────────────────────────────────────────────────────────────────
@@ -99,6 +143,10 @@ function renderHistory(items) {
     if (clearAllBtn) clearAllBtn.hidden = false;
 }
 
+/**
+ * Render search results from Firestore into the results panel.
+ * Each item includes artisanId + rating from real artisan data.
+ */
 function renderResults(matches, term) {
     if (!resultsGroup || !resultsMessage || !resultsList) return;
     resultsGroup.hidden = false;
@@ -112,13 +160,38 @@ function renderResults(matches, term) {
 
     resultsGroup.classList.remove('search-results-empty');
     resultsMessage.textContent = `${matches.length} result${matches.length === 1 ? '' : 's'} for "${term}"`;
-    // data-title / data-subtitle are read by the delegated listener in wireResultItems()
-    resultsList.innerHTML = matches.map(({ title, subtitle }) =>
-        `<li class="result-item" data-title="${escHtml(title)}" data-subtitle="${escHtml(subtitle || '')}">
-            <strong>${escHtml(title)}</strong>
-            ${subtitle ? `<span class="result-subtitle">${escHtml(subtitle)}</span>` : ''}
-        </li>`
-    ).join('');
+    resultsList.innerHTML = matches.map(m => {
+        const hasRating = m.rating && m.rating > 0;
+        return `<li class="result-item"
+                    data-title="${escHtml(m.title)}"
+                    data-subtitle="${escHtml(m.subtitle || '')}"
+                    data-artisanid="${escHtml(m.artisanId || '')}"
+                    tabindex="0" role="button">
+                    <div class="result-item-body">
+                        <strong>${escHtml(m.title)}</strong>
+                        ${m.subtitle ? `<span class="result-subtitle">${escHtml(m.subtitle)}</span>` : ''}
+                    </div>
+                    ${hasRating ? `<span class="result-rating">&#11088; ${Number(m.rating).toFixed(1)}</span>` : ''}
+                </li>`;
+    }).join('');
+}
+
+/** Show "Searching…" feedback while the Firestore query is in flight. */
+function renderSearchingState(term) {
+    if (!resultsGroup || !resultsMessage || !resultsList) return;
+    resultsGroup.hidden = false;
+    resultsGroup.classList.remove('search-results-empty');
+    resultsMessage.textContent = `Searching for "${term}"…`;
+    resultsList.innerHTML = '';
+}
+
+/** Show a non-fatal inline error (offline, Firestore unavailable). */
+function renderErrorState(message) {
+    if (!resultsGroup || !resultsMessage || !resultsList) return;
+    resultsGroup.hidden = false;
+    resultsGroup.classList.add('search-results-empty');
+    resultsMessage.textContent = message;
+    resultsList.innerHTML = '';
 }
 
 function hideResults() {
@@ -130,45 +203,69 @@ function hideResults() {
 
 // ── Search logic ──────────────────────────────────────────────────────────────
 
-function queryIndex(query) {
-    const lower = norm(query).toLowerCase();
-    if (!lower) return [];
-    return SEARCH_INDEX.filter(item =>
-        item.title.toLowerCase().includes(lower) ||
-        item.subtitle.toLowerCase().includes(lower)
-    );
-}
-
 function fillInput(value) {
     if (!searchInput) return;
     searchInput.value = norm(value);
     const len = searchInput.value.length;
     searchInput.focus();
-    try { searchInput.setSelectionRange(len, len); } catch { /* non-text */ }
+    try { searchInput.setSelectionRange(len, len); } catch { /* non-text input */ }
 }
 
 /**
- * Full search: fill input + save to history + render results.
- * Returns matches array.
+ * Full search: fill input + save to history + query Firestore + render.
+ * Used by: Enter key, Submit button, category tiles, popular tags, history re-runs.
+ * Returns { term, results, error } so callers can decide whether to redirect.
  */
-function executeSearch(query) {
+async function executeSearch(query) {
     const q = norm(query);
-    if (!q) return [];
+    if (!q) return { term: q, results: [], error: null };
+
     fillInput(q);
-    historyService.add(q);               // optimistic update, async Firestore write
-    const results = queryIndex(q);
+    historyService.add(q);        // optimistic; async Firestore write in the background
+    renderSearchingState(q);
+
+    const { results, error } = await queryFirestore(q);
+
+    if (error) {
+        renderErrorState(error);
+        return { term: q, results: [], error };
+    }
+
     renderResults(results, q);
-    return results;
+    return { term: q, results, error: null };
+}
+
+// ── Live-input debounced search (input event — no history save, no redirect) ──
+
+let _debounceTimer = null;
+let _activeTerm    = '';   // newest in-flight term; older results are discarded
+
+function scheduleSearch(term) {
+    clearTimeout(_debounceTimer);
+    _debounceTimer = setTimeout(() => void runSearch(term), 300);
+}
+
+async function runSearch(term) {
+    _activeTerm = term;
+    renderSearchingState(term);
+
+    const { results, error } = await queryFirestore(term);
+
+    // Stale-result guard: if the user typed a new term while this query was
+    // in-flight, discard this result — the newer query will render its own.
+    if (_activeTerm !== term) return;
+
+    if (error) { renderErrorState(error); return; }
+    renderResults(results, term);
 }
 
 // ── URL param hydration ───────────────────────────────────────────────────────
 
-function hydrateFromUrl() {
+async function hydrateFromUrl() {
     try {
         const q = norm(new URLSearchParams(window.location.search).get('q') || '');
         if (!q) return;
-        const results = executeSearch(q);
-        // Clean up URL after processing
+        const { results } = await executeSearch(q);
         if (!results.length) {
             window.history.replaceState({}, document.title, 'search-page.html');
         }
@@ -179,13 +276,10 @@ function hydrateFromUrl() {
 
 async function initHistoryService() {
     try {
-        // Dynamic import keeps Firebase CDN off the critical boot path.
-        // If this import fails (CDN blocked, offline, CSP) only history sync
-        // is affected — all event listeners are already attached at this point.
-        const { getAppContainer } = await import('../../../shared/js/app/container.js');
+        const container = await _containerReady;
+        if (!container) return;
 
-        const { services: { authService }, repositories: { customerRepository } } =
-            getAppContainer();
+        const { services: { authService }, repositories: { customerRepository } } = container;
 
         // authService.waitForUser() is non-polling — resolves on auth state change
         const user = await authService.waitForUser();
@@ -193,8 +287,8 @@ async function initHistoryService() {
 
         await historyService.init(user.uid, customerRepository);
     } catch (err) {
-        console.warn('[TrackingPage] History service init failed:', err.message);
-        // Service falls back to localStorage silently — no user disruption
+        console.warn('[search-page] History service init failed:', err?.message);
+        // SearchHistoryService falls back to localStorage silently — no disruption
     }
 }
 
@@ -203,20 +297,21 @@ async function initHistoryService() {
 function wireSearchInput() {
     if (!searchInput) return;
 
-    // Live filter as user types (no history save — just results preview)
+    // Live search: debounced, stale-result protected, no history save
     searchInput.addEventListener('input', () => {
         const q = norm(searchInput.value);
         if (!q) { hideResults(); return; }
-        renderResults(queryIndex(q), q);
+        scheduleSearch(q);
     });
 
-    // Save + navigate on Enter
-    searchInput.addEventListener('keydown', e => {
+    // Enter: full search + redirect to search-not-found if no results
+    searchInput.addEventListener('keydown', async e => {
         if (e.key !== 'Enter') return;
         e.preventDefault();
         const q = norm(searchInput.value);
         if (!q) return;
-        const results = executeSearch(q);
+        clearTimeout(_debounceTimer);   // cancel any pending live search
+        const { results } = await executeSearch(q);
         if (!results.length) {
             window.location.href = `search-not-found.html?q=${encodeURIComponent(q)}`;
         }
@@ -224,10 +319,11 @@ function wireSearchInput() {
 }
 
 function wireSubmitButton() {
-    const handle = () => {
+    const handle = async () => {
         const q = norm(searchInput?.value || '');
         if (!q) return;
-        const results = executeSearch(q);
+        clearTimeout(_debounceTimer);
+        const { results } = await executeSearch(q);
         if (!results.length) {
             window.location.href = `search-not-found.html?q=${encodeURIComponent(q)}`;
         } else if (searchInput) {
@@ -241,33 +337,33 @@ function wireSubmitButton() {
 /**
  * Delegated click handler for search result items.
  * Survives every innerHTML replacement inside renderResults().
- * Clicking a result navigates to book-now.html with the service
- * category pre-selected in sessionStorage for the discovery flow.
+ * Navigates to book-now.html with the artisan's service category pre-selected
+ * and stores the artisan ID in sessionStorage for the booking flow.
  */
 function wireResultItems() {
     if (!resultsList) return;
 
+    function navigate(item) {
+        const subtitle  = item.dataset.subtitle  || '';
+        const title     = item.dataset.title     || '';
+        const artisanId = item.dataset.artisanid || '';
+        if (subtitle)  sessionStorage.setItem('hh_service', subtitle);
+        if (title)     sessionStorage.setItem('hh_task', title);
+        if (artisanId) sessionStorage.setItem('hh_search_artisan_id', artisanId);
+        window.location.href = 'book-now.html';
+    }
+
     resultsList.addEventListener('click', e => {
         const item = e.target.closest('.result-item[data-title]');
-        if (!item) return;
-        const subtitle = item.dataset.subtitle || '';
-        const title    = item.dataset.title    || '';
-        if (subtitle) sessionStorage.setItem('hh_service', subtitle);
-        if (title)    sessionStorage.setItem('hh_task', title);
-        window.location.href = 'book-now.html';
+        if (item) navigate(item);
     });
 
-    // Keyboard accessibility
     resultsList.addEventListener('keydown', e => {
         if (e.key !== 'Enter' && e.key !== ' ') return;
         const item = e.target.closest('.result-item[data-title]');
         if (!item) return;
         e.preventDefault();
-        const subtitle = item.dataset.subtitle || '';
-        const title    = item.dataset.title    || '';
-        if (subtitle) sessionStorage.setItem('hh_service', subtitle);
-        if (title)    sessionStorage.setItem('hh_task', title);
-        window.location.href = 'book-now.html';
+        navigate(item);
     });
 }
 
@@ -290,10 +386,13 @@ function wireRecentList() {
         const li = e.target.closest('li[data-query]');
         if (!li || li.classList.contains('history-empty')) return;
         const query = li.dataset.query;
-        if (query) executeSearch(query);
+        if (query) {
+            executeSearch(query).catch(err =>
+                console.error('[search-page] History re-run failed:', err?.message)
+            );
+        }
     });
 
-    // Keyboard accessibility for remove buttons
     recentList.addEventListener('keydown', e => {
         if (e.key !== 'Enter' && e.key !== ' ') return;
         const removeBtn = e.target.closest('.remove');
@@ -326,7 +425,9 @@ function wireCategories() {
                 window.location.href = 'book-step1.html';
                 return;
             }
-            executeSearch(label);
+            executeSearch(label).catch(err =>
+                console.error('[search-page] Category search failed:', err?.message)
+            );
         });
     });
 }
@@ -338,7 +439,11 @@ function wirePopularTags() {
         const tag = e.target.closest('.search-tag');
         if (!tag || tag.classList.contains('toggle-expand')) return;
         const query = norm(tag.getAttribute('data-search') || tag.textContent || '');
-        if (query) executeSearch(query);
+        if (query) {
+            executeSearch(query).catch(err =>
+                console.error('[search-page] Tag search failed:', err?.message)
+            );
+        }
     });
 }
 
@@ -360,8 +465,7 @@ function wireChatButton() {
 function wireAiButton() {
     if (!aiActionBtn) return;
     // window.prompt() is blocked in iOS Safari PWA mode, many Android WebViews,
-    // and all Capacitor builds. Focus the search input instead — same intent,
-    // works everywhere.
+    // and all Capacitor builds. Focus the search input instead.
     aiActionBtn.addEventListener('click', () => {
         if (searchInput) searchInput.focus();
     });
@@ -370,12 +474,12 @@ function wireAiButton() {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 function boot() {
-    // Subscribe to service — single render path for all history changes
+    // Subscribe to history service — single render path for all history changes
     historyService.subscribe(renderHistory);
 
     wireSearchInput();
     wireSubmitButton();
-    wireResultItems();    // delegated listener on resultsList — must come before any render
+    wireResultItems();    // delegated listener must come before any innerHTML render
     wireRecentList();
     wireClearAll();
     wireCategories();
@@ -385,10 +489,9 @@ function boot() {
     wireAiButton();
 
     // Process ?q= before kicking off async Firestore hydration
-    hydrateFromUrl();
+    void hydrateFromUrl();
 
-    // Auth + Firestore hydration runs async and fire-and-forget.
-    // All event listeners above are already attached — this cannot block them.
+    // Auth + history Firestore sync — fire-and-forget; cannot block event listeners
     void initHistoryService();
 }
 

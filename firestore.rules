@@ -147,14 +147,11 @@ service cloud.firestore {
              data.status   in ['active', 'pending', 'suspended', 'banned'];
     }
 
-    // Artisan cannot self-promote status from pending → active/suspended/banned.
-    // They CAN keep it the same OR set verificationStatus to draft/submitted/pending_review.
+    // Clients may NEVER change the status field — Cloud Functions + admin are the sole authority.
+    // The previous rule only blocked pending → X transitions, leaving suspended → active open.
+    // This version blocks ALL client-side status mutations regardless of current value.
     function isSafeArtisanStatusUpdate() {
-      // Status must not change to 'active', 'suspended', 'banned' without admin
-      return !(incoming().diff(existing()).affectedKeys().hasAny(['status']) &&
-               incoming().status != existing().status &&
-               existing().status == 'pending') ||
-             incoming().status == existing().status;
+      return !incoming().diff(existing()).affectedKeys().hasAny(['status']);
     }
 
     // Artisan transactions subcollection  (earnings, withdrawals — CF writes only)
@@ -212,6 +209,9 @@ service cloud.firestore {
         'notificationPreferences', 'privacySettings', 'appPreferences',
         // Saved items — managed by the customer via saved.html
         'savedProfessionals', 'savedServices',
+        // FCM push token — written by pushNotificationService.js after permission granted.
+        // Not sensitive (receive-only); Cloud Functions clear it on delivery failure.
+        'fcmToken',
         'updatedAt'
       ]);
     }
@@ -236,10 +236,12 @@ service cloud.firestore {
         'dob', 'emergencyContact', 'ghanaCardNumber', 'tin',
         // Payout account setup
         'momoProvider', 'momoPhone', 'momoAccountName', 'payoutAccount',
-        // Workflow state artisan may set
-        'verificationStatus', 'status', 'onboarded',
+        // Onboarding workflow state artisan may set (status excluded — admin/CF only)
+        'verificationStatus', 'onboarded',
         // Presence / heartbeat fields (written by presenceService.js)
         'lastActive', 'lastHeartbeat', 'presenceUpdatedAt',
+        // FCM push token — written by pushNotificationService.js after permission granted.
+        'fcmToken',
         // Timestamps
         'updatedAt', 'createdAt'
       ]);
@@ -304,7 +306,11 @@ service cloud.firestore {
                           (incoming().type == 'emergency' || incoming().bookingType == 'emergency'))
                        ) &&
                        incoming().serviceType is string &&
-                       incoming().createdAt   is string;
+                       incoming().createdAt   is string &&
+                       // Minimum booking price — prevents zero-value or negative bookings.
+                       // Quote-based jobs set price to the callout fee; pure-quote flows
+                       // must still pass a non-trivial callout fee at create time.
+                       incoming().price is number && incoming().price >= 10;
 
       // Status transitions:
       //   Customer:  pending → cancelled
@@ -341,7 +347,7 @@ service cloud.firestore {
       // jobs even if they bypass the frontend KYC check.
       let artisanProfile = isArtisan
         ? get(/databases/$(database)/documents/artisans/$(request.auth.uid)).data
-        : null;
+        : {};
       let artisanEligible = isArtisan &&
         artisanProfile.verificationStatus == 'approved' &&
         artisanProfile.status             == 'active';
@@ -355,10 +361,10 @@ service cloud.firestore {
 
         // ── Customer actions ────────────────────────────────────────
         (isCustomer && (
-          // Cancel a pending or accepted booking
+          // Cancel a pending, accepted, or quoted booking
           (keys.hasAny(['status']) &&
            keys.hasOnly(['status', 'updatedAt', 'cancellationReason']) &&
-           prev in ['pending', 'Pending', 'accepted'] && next == 'cancelled') ||
+           prev in ['pending', 'Pending', 'accepted', 'quoted'] && next == 'cancelled') ||
           // Leave a review — only after job is completed, no status change
           (!keys.hasAny(['status']) &&
            keys.hasOnly(['rating', 'review', 'reviewedAt', 'updatedAt']) &&
@@ -374,7 +380,7 @@ service cloud.firestore {
           // Raise a dispute while booking is active
           (keys.hasAny(['status']) &&
            keys.hasOnly(['status', 'updatedAt']) &&
-           prev in ['accepted', 'en_route', 'in_progress', 'awaiting'] &&
+           prev in ['accepted', 'quoted', 'en_route', 'in_progress', 'awaiting'] &&
            next == 'disputed')
         )) ||
 
@@ -390,7 +396,7 @@ service cloud.firestore {
           // Cancel an accepted booking — also always allowed (cannot trap accepted bookings)
           (keys.hasAny(['status']) &&
            keys.hasOnly(['status', 'updatedAt', 'cancellationReason']) &&
-           prev == 'accepted' && next == 'cancelled') ||
+           prev in ['accepted', 'quoted'] && next == 'cancelled') ||
           // Add artisan notes without status change — always allowed
           (!keys.hasAny(['status']) &&
            keys.hasOnly(['artisanNotes', 'updatedAt'])) ||
@@ -398,13 +404,26 @@ service cloud.firestore {
           // ── Below: only approved + active artisans ────────────────
           (artisanEligible && (
             // Accept: pending → accepted
+            // artisanName is written here so bookings.js notification bodies can use it.
             (keys.hasAny(['status']) &&
-             keys.hasOnly(['status', 'acceptedAt', 'updatedAt']) &&
+             keys.hasOnly(['status', 'acceptedAt', 'updatedAt', 'artisanName']) &&
              prev in ['pending', 'Pending'] && next == 'accepted') ||
-            // En route: accepted → en_route
+            // Submit quote: accepted → quoted
+            // Cloud Function (quotes.js) writes these fields — this rule is the
+            // fallback guard if the CF ever becomes client-callable in future.
+            (keys.hasAny(['status']) &&
+             keys.hasOnly(['status', 'jobQuote', 'labourCost', 'materials',
+                           'materialsCost', 'hasMaterials', 'quoteNote',
+                           'commissionRate', 'artisanEarns', 'platformFee',
+                           'quoteSubmittedAt', 'updatedAt']) &&
+             prev == 'accepted' && next == 'quoted' &&
+             incoming().jobQuote is number && incoming().jobQuote > 0 &&
+             incoming().labourCost is number && incoming().labourCost > 0) ||
+            // En route: accepted → en_route (only after quote approved)
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'enRouteAt', 'updatedAt']) &&
-             prev == 'accepted' && next == 'en_route') ||
+             prev == 'accepted' && next == 'en_route' &&
+             existing().quoteApproved == true) ||
             // Arrived / in progress: en_route → in_progress
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'arrivedAt', 'updatedAt']) &&
@@ -416,7 +435,7 @@ service cloud.firestore {
             // Raise a dispute while booking is active
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'updatedAt']) &&
-             prev in ['accepted', 'en_route', 'in_progress', 'awaiting'] &&
+             prev in ['accepted', 'quoted', 'en_route', 'in_progress', 'awaiting'] &&
              next == 'disputed')
           ))
         ))
@@ -599,6 +618,17 @@ service cloud.firestore {
       allow read:          if isAdmin();
       allow create:        if isAdmin();
       allow update, delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ARTISAN INDEX  (dispatch search layer — Cloud Functions only)
+    // Written exclusively by syncArtisanIndex CF trigger (Admin SDK).
+    // Read exclusively by dispatch.js CF (Admin SDK).
+    // Clients have zero access — this is an internal search cache,
+    // not a client-queryable collection.
+    // ═══════════════════════════════════════════════════════════════
+    match /artisan_index/{artisanId} {
+      allow read, write: if false;
     }
 
     // ═══════════════════════════════════════════════════════════════

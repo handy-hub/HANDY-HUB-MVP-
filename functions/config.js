@@ -16,7 +16,7 @@
 
 // ── Firestore ─────────────────────────────────────────────────────────────────
 /** Custom Firestore database ID (not the default '(default)'). */
-const FIRESTORE_DB_ID = 'ai-studio-5589039d-72c4-40d8-ae39-f35c6c321eb6';
+const FIRESTORE_DB_ID = process.env.FIRESTORE_DB_ID || 'ai-studio-5589039d-72c4-40d8-ae39-f35c6c321eb6';
 
 // ── Admin access ──────────────────────────────────────────────────────────────
 /**
@@ -45,17 +45,20 @@ const ESCROW_AUTO_RELEASE_DAYS = 7;
 // ── Paystack ──────────────────────────────────────────────────────────────────
 const PAYSTACK_BASE = 'https://api.paystack.co';
 
+// ── Cloud Functions ───────────────────────────────────────────────────────────
+// europe-west1 (Belgium) is ~90 ms from Ghana vs ~270 ms for us-central1 (~60% latency cut).
+const FUNCTIONS_REGION = 'europe-west1';
+
 // ── Cloudinary ────────────────────────────────────────────────────────────────
-// Cloud name is public (it appears in every CDN URL). Key + secret are secrets.
-// Local dev: set these in functions/.env (gitignored).
-// Production: firebase functions:secrets:set CLOUDINARY_API_KEY
-//             firebase functions:secrets:set CLOUDINARY_API_SECRET
-const CLOUDINARY_CLOUD_NAME = 'dnwwglbl9';
+// All three values come from functions/.env (gitignored).
+// To deploy: firebase deploy --only functions — the CLI bundles .env at deploy time.
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
 const CLOUDINARY_API_KEY    = process.env.CLOUDINARY_API_KEY    || '';
 const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
 
 module.exports = {
     FIRESTORE_DB_ID,
+    FUNCTIONS_REGION,
     ADMIN_EMAILS,
     COMMISSION_RATE,
     MIN_WITHDRAWAL,

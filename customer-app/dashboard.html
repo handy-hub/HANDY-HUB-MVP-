@@ -8,6 +8,8 @@
   <title>Home | HandyHub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://res.cloudinary.com">
+  <link rel="preload" as="image" href="../shared/assets/icons/user-icon-white.png">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="../shared/css/pageTransitions.css">
@@ -51,14 +53,7 @@
     </button>
     <div class="sidebar-scroll">
       <div class="sidebar-profile">
-        <div class="sidebar-avatar">
-          <img id="sidebar-profile-img" src="https://res.cloudinary.com/dmuddhfdr/image/upload/v1772302011/vjx_records/vuynbwasdmpmzgiii6ln.jpg" alt="Profile">
-        </div>
         <h3 class="sidebar-user-name" id="sidebar-name">Kwame Mensah</h3>
-        <p class="sidebar-user-location" id="sidebar-user-location">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg>
-          <span id="sidebar-loc-text">Accra, Ghana</span>
-        </p>
       </div>
       <p class="sidebar-section-title">QUICK ACTIONS</p>
       <div class="sidebar-quick-actions">
@@ -70,29 +65,17 @@
           <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 14.03 20 12.57 20 11c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="#730201"/></svg></div>
           <span>Rebook Last</span>
         </button>
-        <button class="quick-action-btn">
-          <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#730201"/></svg></div>
-          <span>Track Booking</span>
-        </button>
-        <button class="quick-action-btn">
-          <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></div>
-          <span>Schedule</span>
-        </button>
       </div>
       <p class="sidebar-section-title">MAIN MENU</p>
       <ul class="sidebar-menu-list">
-        <li><a href="dashboard.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="#730201"/></svg></span><span class="sidebar-menu-label">Home</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
         <li><a href="booking.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">My Requests</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
-        <li><a href="booking.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Booking History</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
         <li><a href="saved.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Saved Professionals</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
         <li><a href="messages.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Messages</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
         <li><a href="transaction-history.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#730201" stroke-width="2"/><path d="M2 10h20" stroke="#730201" stroke-width="2"/></svg></span><span class="sidebar-menu-label">Payments</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
       </ul>
       <p class="sidebar-section-title">MORE</p>
       <ul class="sidebar-menu-list">
-        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="7" r="1" fill="#730201"/></svg></span><span class="sidebar-menu-label">Promo Codes</span><span class="sidebar-menu-badge promo-badge">2 Available</span></a></li>
         <li><a href="settings-help.html" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" stroke="#730201" stroke-width="2"/></svg></span><span class="sidebar-menu-label">Support Center</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="sidebar-menu-chevron"><path d="M9 18l6-6-6-6" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></a></li>
-        <li><a href="#" class="sidebar-menu-item"><span class="sidebar-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12v10H4V12" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 7H2v5h20V7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></span><span class="sidebar-menu-label">Invite Friends</span><span class="sidebar-menu-badge invite-badge">Earn GHC 20</span></a></li>
       </ul>
       <p class="sidebar-section-title">SETTINGS</p>
       <ul class="sidebar-menu-list sidebar-menu-list-last">
@@ -109,6 +92,7 @@
       <button class="uc-avatar-btn" onclick="window.location.href='profile.html'">
         <img class="uc-avatar skel skel-circle" id="uc-avatar"
           src="../shared/assets/icons/user-icon-white.png" alt="Profile"
+          fetchpriority="high" loading="eager"
           onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23730201%22%3E%3Cpath d=%22M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z%22/%3E%3C/svg%3E'">
       </button>
       <div class="uc-text">
@@ -470,52 +454,37 @@
 <script type="module" src="js/dashboardBadge.js"></script>
 <script type="module">
   import { mountAdBanner } from './js/adBanner.js';
-  mountAdBanner(
+  requestAnimationFrame(() => mountAdBanner(
     document.getElementById('ad-banner'),
     document.getElementById('ad-dots')
-  );
+  ));
 </script>
 <script src="../shared/js/components/fastLoader.js"></script>
 <script src="../shared/js/components/floatingNav.js"></script>
 
+<!-- Swipe-to-dismiss for the location sheet -->
+<script type="module">
+  import { attachSwipeDismiss } from '../shared/js/utils/sheetDismiss.js';
+  const overlay = document.getElementById('loc-overlay');
+  const sheet   = document.getElementById('loc-sheet');
+  if (overlay && sheet) {
+    attachSwipeDismiss(overlay, sheet, () => {
+      overlay.classList.remove('loc-open');
+      document.body.style.overflow = '';
+    });
+  }
+</script>
+
 <script>
 (function () {
-  const TOAST_ICONS = {
-    success: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    error: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8V13" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M12 16.5V16.55" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21H20.47A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    info: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
-  };
-
   function go(href, store) {
     if (store) Object.entries(store).forEach(([k, v]) => sessionStorage.setItem(k, v));
     window.location.href = href;
   }
   function toast(msg, type = 'info') {
-    document.querySelector('.toast.app-toast')?.remove();
-
-    const t = document.createElement('div');
-    t.className = `toast app-toast ${type}`;
-    t.setAttribute('role', 'status');
-    t.setAttribute('aria-live', 'polite');
-    t.setAttribute('aria-atomic', 'true');
-
-    const icon = document.createElement('span');
-    icon.className = 'toast-icon';
-    icon.setAttribute('aria-hidden', 'true');
-    icon.innerHTML = TOAST_ICONS[type] || TOAST_ICONS.info;
-
-    const text = document.createElement('span');
-    text.className = 'toast-message';
-    text.textContent = msg;
-
-    t.append(icon, text);
-    document.body.appendChild(t);
-
-    clearTimeout(toast._tid);
-    toast._tid = setTimeout(() => {
-      t.classList.add('toast-exit');
-      setTimeout(() => t.remove(), 320);
-    }, 3000);
+    if (window.showToast) { window.showToast(msg, type); return; }
+    // Fallback if module hasn't loaded yet (should never happen in practice)
+    console.info('[toast]', type, msg);
   }
 
   function openSidebar()  { document.getElementById('sidebar')?.classList.add('active'); document.getElementById('sidebar-overlay')?.classList.add('active'); }
@@ -565,10 +534,6 @@
           }
         } catch (_) { go('booking.html'); }
       });
-    } else if (i === 2) {
-      btn.addEventListener('click', () => { closeSidebar(); go('live-tracking.html'); });
-    } else if (i === 3) {
-      btn.addEventListener('click', () => { closeSidebar(); go('book-step1.html'); });
     }
   });
 
@@ -581,12 +546,7 @@
         case 'My Requests':    go('booking.html'); break;
         case 'Reviews & Ratings': toast('Reviews & Ratings — coming soon'); break;
         case 'My Addresses':   go('settings-location.html'); break;
-        case 'Promo Codes':    toast('You have 2 promo codes available!'); break;
         case 'Support Center': go('settings-help.html'); break;
-        case 'Invite Friends':
-          if (navigator.share) navigator.share({ title: 'HandyHub', text: 'Book reliable home services!', url: 'https://handyhub.app' }).catch(() => {});
-          else { navigator.clipboard?.writeText('https://handyhub.app/invite').catch(() => {}); toast('Invite link copied!'); }
-          break;
       }
     });
   });
@@ -706,15 +666,11 @@
     var nameEl    = document.getElementById('uc-name');
     var imgEl     = document.getElementById('uc-avatar');
     var sideNameEl = document.getElementById('sidebar-name');
-    var sideImgEl  = document.getElementById('sidebar-profile-img');
     var locEl     = document.getElementById('uc-loc-text');
-
-    var sideLocEl = document.getElementById('sidebar-loc-text');
 
     if (nameEl    && p.name)     { nameEl.textContent     = p.name;     removeSkel(nameEl); }
     if (sideNameEl && p.name)      sideNameEl.textContent = p.name;
     if (locEl     && p.location) { locEl.textContent      = p.location; removeSkel(locEl); }
-    if (sideLocEl  && p.location)  sideLocEl.textContent  = p.location;
 
     var src = null;
     if (p.profileImageId) {
@@ -729,8 +685,7 @@
       var _sv = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#730201"/><text x="20" y="20" font-family="Arial,sans-serif" font-size="' + _fs + '" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central">' + _in + '</text></svg>';
       src = 'data:image/svg+xml,' + encodeURIComponent(_sv);
     }
-    if (imgEl     && src) { imgEl.src     = src; removeSkel(imgEl); }
-    if (sideImgEl && src)   sideImgEl.src = src;
+    if (imgEl && src) { imgEl.src = src; removeSkel(imgEl); }
   } catch (_) {}
 })();
 </script>

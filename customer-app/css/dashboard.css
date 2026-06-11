@@ -175,8 +175,8 @@ body {
 .hh-search {
   display: flex; align-items: center; gap: 8px;
   margin: 10px 14px 0;
-  background: #fff; border: 1px solid #ebebeb; border-radius: 10px;
-  padding: 0px 10px;
+  background: #fff; border: 1px solid #ebebeb; border-radius: 12px;
+  padding: 0 12px; height: 48px;
 }
 .hh-search-icon-wrap {
   width: 28px; height: 28px; border-radius: 8px;
@@ -185,7 +185,7 @@ body {
 }
 .hh-search-input {
   flex: 1; border: none; outline: none; background: transparent;
-  font-size: 13px; color: #111; font-family: inherit; padding: 0;
+  font-size: 14px; color: #111; font-family: inherit; padding: 0;
 }
 .hh-search-input::placeholder { color: #bbb; }
 .hh-search-ai {
@@ -194,7 +194,7 @@ body {
 }
 
 /* ══════════════════════════════════════
-   QUICK CHIPS
+   QUICK CHIPSxc
 ══════════════════════════════════════ */
 .chips-row {
   display: flex; gap: 8px; padding: 10px 14px 0;
@@ -228,10 +228,15 @@ body {
   height: 220px; position: relative;
 }
 
-/* JS controls transform; CSS provides the smooth transition */
+/* JS controls transform; CSS provides the smooth transition.
+   width: 100% is the pre-mount default — JS overwrites it with n * containerWidth
+   so slides fill the container correctly before applyWidths() runs.
+   top/left are explicit: without them the absolutely-positioned slider's static
+   position is browser-defined and can land off-origin on some engines.        */
 .slider {
   display: flex; height: 100%;
-  position: absolute; z-index: 1;
+  position: absolute; top: 0; left: 0; z-index: 1;
+  width: 100%;
   transition: transform 0.48s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   will-change: transform;
 }
@@ -240,7 +245,8 @@ body {
 .slide {
   height: 100%; display: flex; position: relative;
   background: #f4f2f0; overflow: hidden;
-  cursor: pointer;
+  cursor: pointer; flex-shrink: 0;
+  width: 100%; /* pre-mount default; applyWidths() overrides via inline style */
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: opacity 0.15s;
@@ -253,21 +259,23 @@ body {
 }
 
 .slide-content {
-  width: 57%; padding: 16px 0 16px 18px;
+  width: 55%; padding: 16px 14px 16px 18px;
   display: flex; flex-direction: column;
   justify-content: space-between; z-index: 2; position: relative;
 }
 .slide-img-wrap {
-  position: absolute; right: 0; top: 0; bottom: 0; width: 52%;
+  position: absolute; right: 0; top: 0; bottom: 0; width: 48%;
 }
 .slide-img-wrap img {
   width: 100%; height: 100%;
   object-fit: cover; object-position: center top;
   display: block; pointer-events: none;
 }
+/* Gradient blends the photo into the slide background.
+   55% width covers the entire potential text-overlap zone with room to spare. */
 .slide-img-wrap::before {
   content: ''; position: absolute;
-  left: 0; top: 0; bottom: 0; width: 40%;
+  left: 0; top: 0; bottom: 0; width: 55%;
   background: linear-gradient(to right, #f4f2f0, transparent);
   z-index: 1; pointer-events: none;
 }
@@ -289,7 +297,7 @@ body {
   letter-spacing: -0.5px; margin-bottom: 2px;
 }
 .slide-sub  { font-size: 12.5px; font-weight: 500; color: #666; margin-bottom: 4px; }
-.slide-body { font-size: 10.5px; line-height: 1.4; color: #999; }
+.slide-body { font-size: 11px; line-height: 1.4; color: #999; }
 
 .slide-bottom { display: flex; flex-direction: column; gap: 8px; }
 
@@ -332,6 +340,11 @@ body {
 }
 .dot.active { background: #730201; width: 14px; border-radius: 5px; }
 
+/* ── Image fallback: shown when the CDN src returns 403 / CORS error / stale URL ── */
+.slide-img-wrap.img-failed img       { visibility: hidden; }
+.slide-img-wrap.img-failed::before   { display: none; }
+.slide-img-wrap.img-failed           { background: var(--img-fallback, #e8e8e8); }
+
 /* ══════════════════════════════════════
    SECTION HEADER
 ══════════════════════════════════════ */
@@ -361,13 +374,13 @@ body {
 }
 .svc-btn:active .svc-circle { transform: scale(0.91); }
 .svc-circle {
-  width: 54px; height: 54px; border-radius: 50%;
+  width: 60px; height: 60px; border-radius: 50%;
   background: #fff; border: 1px solid #ebebeb;
   display: flex; align-items: center; justify-content: center;
   transition: transform 0.1s;
 }
-.svc-circle img { width: 26px; height: 26px; }
-.svc-lbl { font-size: 10px; font-weight: 600; color: #444; text-align: center; white-space: nowrap; }
+.svc-circle img { width: 30px; height: 30px; }
+.svc-lbl { font-size: 11px; font-weight: 600; color: #444; text-align: center; white-space: nowrap; }
 .svc-hot {
   position: absolute; top: -3px; right: -3px;
   background: #187301; color: #fff; font-size: 7px; font-weight: 800;
@@ -379,24 +392,23 @@ body {
 ══════════════════════════════════════ */
 .nearby-actions { display: flex; align-items: center; gap: 5px; }
 .dist-pill {
-  display: flex; align-items: center; gap: 3px;
+  display: flex; align-items: center; gap: 4px;
   background: #fde8e8; color: #730201; border: none;
-  border-radius: 20px;
-   font-size: 10.5px; font-weight: 700;
+  border-radius: 12px; padding: 9px 16px;
+  font-size: 11px; font-weight: 700;
   cursor: pointer; font-family: inherit;
-    min-height: fit-content;
-  padding: 10px 16px;
-  border-radius: 12px;
+  white-space: nowrap; flex-shrink: 0;
 }
 .filter-btn {
-  display: flex;
-   align-items: center; gap: 3px;
-  background: none; border: 1px solid #e0e0e0;
-  border-radius: 8px; padding: 1px 4px;
-  font-size: 10.5px; font-weight: 600; color: #555;
+  display: flex; align-items: center; gap: 5px;
+  background: #fff; border: 1px solid #e0e0e0;
+  border-radius: 12px; padding: 9px 14px;
+  font-size: 11px; font-weight: 600; color: #444;
   cursor: pointer; font-family: inherit;
-  width: fit-content;
+  white-space: nowrap; flex-shrink: 0;
+  transition: background .15s;
 }
+.filter-btn:active { background: #f5f5f5; }
 
 /* ══════════════════════════════════════
    ARTISAN CARDS
@@ -432,11 +444,11 @@ body {
 /* ── Left col: avatar + badge ── */
 .pc-left {
   display: flex; flex-direction: column; align-items: center;
-  gap: 6px; flex-shrink: 0; width: 68px;
+  gap: 6px; flex-shrink: 0; width: 72px;
 }
 .pc-avatar-wrap { position: relative; flex-shrink: 0; }
 .pc-avatar {
-  width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+  width: 52px; height: 52px; border-radius: 50%; object-fit: cover;
   display: block; background: #f2f2f2;
   box-shadow: 0 0 0 2.5px #fff, 0 0 0 4px rgba(115,2,1,0.12);
 }
@@ -495,22 +507,22 @@ body {
 /* ── Right CTA ── */
 .pc-right {
   display: flex; flex-direction: column; align-items: center;
-  flex-shrink: 0; width: 78px;
+  flex-shrink: 0; width: 80px;
 }
 .pc-book {
   width: 100%;
-  height: 56px;
+  height: 48px;
   background: linear-gradient(160deg, #8a0202 0%, #730201 100%);
   color: #fff; border: none;
-  padding: 11px 0; border-radius: 13px;
-  font-size: 8px; font-weight: 800;
+  padding: 0 6px; border-radius: 13px;
+  font-size: 12px; font-weight: 800;
   cursor: pointer; font-family: inherit;
   letter-spacing: 0.01em; line-height: 1.3;
   text-align: center;
   transition: box-shadow 0.14s, transform 0.1s;
 }
 .pc-book:active {
-  box-shadow: 0 2px 6px rgba(115,2,1,0.3);
+  box-shadow: 0 2px 8px rgba(115,2,1,0.35);
   transform: scale(0.96);
 }
 
@@ -796,7 +808,8 @@ html.dark .filter-btn { border-color: #2e2e2e; color: #888; }
 
 /* ── Ad banner ── */
 html.dark .slide { background: #1a1a1a; }
-html.dark .slide-img-wrap::before { background: linear-gradient(to right, #1a1a1a, transparent); }
+html.dark .slide-img-wrap::before        { background: linear-gradient(to right, #1a1a1a, transparent); }
+html.dark .slide-img-wrap.img-failed     { filter: brightness(0.7); }
 html.dark .slide-title { color: #f0f0f0; }
 html.dark .slide-sub   { color: #888; }
 html.dark .slide-body  { color: #666; }
@@ -864,7 +877,7 @@ html.dark .skel {
 /* ══════════════════════════════════════
    NEARBY PROS — SKELETON CARDS
 ══════════════════════════════════════ */
-.np-skel-avatar { width:68px; height:68px; border-radius:50%; display:block; }
+.np-skel-avatar { width:52px; height:52px; border-radius:50%; display:block; }
 .np-skel-badge  { height:20px; width:54px; border-radius:20px; display:block; }
 .np-skel-name   { height:13px; width:75%; border-radius:6px; margin-bottom:5px; display:block; }
 .np-skel-role   { height:11px; width:42%; border-radius:6px; margin-bottom:6px; display:block; }
@@ -929,7 +942,7 @@ html.dark .skel {
 
 .np-panel {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
-  width: 100%; max-width: 430px;
+  width: 100%; max-width: 430px; max-height: 85dvh;
   background: #fff; border-radius: 22px 22px 0 0;
   box-shadow: 0 -6px 32px rgba(0,0,0,.18);
   z-index: 1101; display: flex; flex-direction: column;
@@ -955,27 +968,31 @@ html.dark .skel {
 }
 .np-panel-close:active { background: #ebebeb; }
 
-.np-panel-body { padding: 4px 16px 0; overflow-y: auto; }
+/* flex: 1 + min-height: 0 are both required — without them overflow-y: auto
+   is silently ignored inside a flex column, letting the body exceed max-height */
+.np-panel-body { padding: 4px 16px 8px; overflow-y: auto; flex: 1; min-height: 0; }
 .np-panel-label {
-  font-size: 10.5px; font-weight: 700; color: #888;
-  text-transform: uppercase; letter-spacing: .08em;
-  margin: 0 0 8px;
+  font-size: 10px; font-weight: 700; color: #888;
+  text-transform: uppercase; letter-spacing: .09em;
+  margin: 16px 0 10px;
 }
+.np-panel-body > .np-panel-label:first-child { margin-top: 6px; }
 .np-chip-row {
-  display: flex; gap: 7px; overflow-x: auto;
-  scrollbar-width: none; padding-bottom: 2px;
+  display: flex; gap: 8px; overflow-x: auto;
+  scrollbar-width: none; padding-bottom: 4px;
 }
 .np-chip-row::-webkit-scrollbar { display: none; }
-.np-chip-row--wrap { flex-wrap: wrap; overflow-x: visible; }
+.np-chip-row--wrap { flex-wrap: wrap; overflow-x: visible; row-gap: 8px; }
 
 .np-radius-chip,
 .np-cat-chip {
-  padding: 6px 13px; border-radius: 20px;
-  background: #f5f5f5; color: #444;
-  font-size: 12px; font-weight: 600;
-  border: 1.5px solid #ebebeb; cursor: pointer;
+  padding: 8px 16px; border-radius: 20px;
+  background: #f5f5f5; color: #333;
+  font-size: 12.5px; font-weight: 600;
+  border: 1.5px solid #e8e8e8; cursor: pointer;
   font-family: inherit; white-space: nowrap; flex-shrink: 0;
   transition: background .15s, color .15s, border-color .15s;
+  min-height: 36px; display: flex; align-items: center;
 }
 .np-radius-chip:active, .np-cat-chip:active { opacity:.8; }
 .np-chip--active {
@@ -984,23 +1001,26 @@ html.dark .skel {
 }
 
 .np-panel-footer {
-  display: flex; gap: 8px; padding: 14px 16px env(safe-area-inset-bottom,16px);
-  flex-shrink: 0; border-top: 1px solid #f3f3f3;
+  display: flex; gap: 10px; padding: 14px 16px env(safe-area-inset-bottom,18px);
+  flex-shrink: 0; border-top: 1px solid #f0f0f0; background: #fff;
 }
 .np-panel-reset {
-  flex: 1; padding: 12px; border-radius: 12px;
-  background: #f5f5f5; color: #555;
-  font-size: 13px; font-weight: 700;
+  flex: 1; padding: 14px; border-radius: 14px;
+  background: #f5f5f5; color: #444;
+  font-size: 13.5px; font-weight: 700;
   border: none; cursor: pointer; font-family: inherit;
+  transition: background .15s;
 }
+.np-panel-reset:active { background: #ebebeb; }
 .np-panel-apply {
-  flex: 2; padding: 12px; border-radius: 12px;
+  flex: 2; padding: 14px; border-radius: 14px;
   background: #730201; color: #fff;
-  font-size: 13px; font-weight: 700;
+  font-size: 13.5px; font-weight: 700;
   border: none; cursor: pointer; font-family: inherit;
-  transition: opacity .15s;
+  transition: opacity .15s, transform .1s;
+  box-shadow: 0 3px 12px rgba(115,2,1,.22);
 }
-.np-panel-apply:active { opacity:.85; }
+.np-panel-apply:active { opacity:.88; transform: scale(0.98); }
 
 /* ══════════════════════════════════════
    DARK MODE OVERRIDES
@@ -1018,3 +1038,183 @@ html.dark .np-empty-icon { background: #1e0505; }
 html.dark .np-empty-title { color: #f0f0f0; }
 html.dark .np-expand-btn { background: #2a1010; color: #f87171; }
 html.dark .np-reset-btn { background: #222; color: #888; }
+
+/* ══════════════════════════════════════
+   FORENSIC AUDIT — LAYOUT & VISUAL FIXES
+   Addresses: ui-polish conflicts, card
+   overflow, filter-btn collapse, slide
+   pre-mount width, responsive gaps.
+══════════════════════════════════════ */
+
+/* Lock app shell to 430 px — ui-polish inflates to 480 px */
+.app { max-width: 430px !important; }
+
+/* Slide pre-mount: width:100% on the base .slide rule handles this now.
+   The old min-width:100% broke slides after JS set the slider to n×containerWidth
+   (min-width resolved to 100% of 3w = 3w per slide, overriding the JS-set w).
+   flex-shrink:0 prevents compression; inline width from applyWidths() is the truth. */
+
+/* Restore uniform border-radius removed by ui-polish asymmetric-radius rule */
+.pro-card { border-radius: 20px !important; }
+
+/* Filter-btn: ui-polish zeroed its padding (treated it as icon-only button) */
+.filter-btn {
+  padding: 8px 14px !important;
+  font-size: 11.5px !important;
+  gap: 5px !important;
+}
+
+/* ── Section headers — consistent vertical rhythm ── */
+.section-row { padding: 16px 14px 8px; }
+
+/* ── Popular Services — bigger circles for better tap targets ── */
+.svc-circle {
+  width: 66px; height: 66px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.svc-circle img { width: 32px; height: 32px; }
+.svc-lbl {
+  font-size: 11.5px; font-weight: 600;
+  max-width: 72px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── Pro-cards — guard body min-width so text never overlaps CTA ── */
+.pc-body { min-width: 0; overflow: hidden; }
+.pc-name { max-width: 100%; }
+.pc-meta-row { flex-wrap: wrap; row-gap: 3px; }
+
+/* ── Nearby actions row ── */
+.nearby-actions { gap: 6px; }
+.dist-pill { padding: 9px 16px; font-size: 11px; }
+
+/* ── Filter panel — reduce max-height on short phones, improve hierarchy ── */
+.np-panel { max-height: 78dvh; }
+.np-panel-body { padding: 2px 16px 12px; }
+.np-panel-label {
+  font-size: 10.5px; font-weight: 800; color: #555;
+  text-transform: uppercase; letter-spacing: .09em;
+  margin: 16px 0 9px;
+}
+.np-panel-body > .np-panel-label:first-child { margin-top: 8px; }
+.np-radius-chip,
+.np-cat-chip {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 22px;
+  min-height: 38px;
+  line-height: 1.2;
+}
+.np-panel-footer { gap: 10px; }
+.np-panel-reset,
+.np-panel-apply { padding: 14px; font-size: 13.5px; border-radius: 14px; }
+
+/* ── View more button — full bleed inside pro-list ── */
+.view-more-wrap { padding: 4px 14px 8px; }
+
+/* ── Bottom nav — consistent sizing across all breakpoints ── */
+.bottom-nav {
+  min-height: 60px;
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 10px);
+}
+.nav-item {
+  min-height: 50px;
+  padding: 4px 8px;
+}
+.nav-item svg {
+  width: 22px; height: 22px;
+  display: block; flex-shrink: 0;
+}
+.nav-item span { font-size: 10px; font-weight: 600; }
+
+/* ── Ad banner skeleton while JS mounts ── */
+@keyframes hh-ad-shimmer {
+  0%   { background-position: -300px 0; }
+  100% { background-position:  300px 0; }
+}
+.ads:empty::after { display: none; }
+#ad-dots:empty { display: none; }
+#ad-banner { background: #f4f4f4; }
+/* Shimmer plays until adBanner.js inserts a .slide element.
+   :has() is supported in Chrome 105+, Firefox 121+, Safari 15.4+;
+   older browsers fall back to the flat #f4f4f4 colour above.      */
+#ad-banner:not(:has(.slide)) {
+  background: linear-gradient(90deg, #efefef 25%, #e4e4e4 50%, #efefef 75%);
+  background-size: 600px 100%;
+  animation: hh-ad-shimmer 1.5s infinite linear;
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — small phones (≤ 374 px)
+══════════════════════════════════════ */
+@media (max-width: 374px) {
+  .hh-hdr { padding: 0 10px; height: 48px; }
+  .hh-logo { font-size: 18px; }
+
+  .user-card { padding: 9px 10px; }
+  .uc-avatar-btn { width: 42px; height: 42px; }
+  .uc-name { font-size: 14px; }
+
+  .hh-search { margin: 8px 10px 0; height: 44px; padding: 0 10px; }
+  .hh-search-input { font-size: 13px; }
+
+  .ads { margin: 8px 10px 0; height: 185px; }
+  .slide-title { font-size: 18px; }
+
+  .section-row { padding: 12px 10px 5px; }
+  .section-title { font-size: 13.5px; }
+
+  .svc-row { padding: 2px 10px 8px; gap: 8px; }
+  .svc-circle { width: 54px; height: 54px; }
+  .svc-circle img { width: 26px; height: 26px; }
+  .svc-lbl { font-size: 10.5px; max-width: 60px; }
+
+  .pro-list { padding: 0 10px; gap: 10px; }
+  .pro-card { padding: 12px; gap: 10px; }
+  .pc-left { width: 60px; }
+  .pc-avatar { width: 44px; height: 44px; }
+  .pc-top-badge { font-size: 8.5px; padding: 2px 7px; }
+  .pc-name { font-size: 13.5px; }
+  .pc-right { width: 72px; }
+  .pc-book { height: 42px; font-size: 11px; padding: 0 4px; }
+
+  .dist-pill { padding: 7px 12px; font-size: 10.5px; }
+  .filter-btn { padding: 7px 12px !important; font-size: 10.5px !important; }
+
+  .np-panel { max-height: 80dvh; }
+  .np-panel-body { padding: 2px 12px 10px; }
+  .np-radius-chip, .np-cat-chip {
+    padding: 8px 13px; font-size: 12px; min-height: 36px;
+  }
+  .np-panel-footer { padding: 12px 12px env(safe-area-inset-bottom, 14px); gap: 8px; }
+  .np-panel-apply, .np-panel-reset { padding: 13px; font-size: 13px; }
+
+  .bottom-nav { min-height: 56px; }
+  .nav-item span { font-size: 9.5px; }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — standard phones (375–390px)
+══════════════════════════════════════ */
+@media (min-width: 375px) and (max-width: 390px) {
+  .svc-circle { width: 60px; height: 60px; }
+  .pc-left { width: 66px; }
+  .pc-right { width: 76px; }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — desktop preview (≥ 768 px)
+══════════════════════════════════════ */
+@media (min-width: 768px) {
+  .app {
+    border-radius: 32px !important;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
+    min-height: calc(100dvh - 32px);
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+  .np-panel { max-width: 430px; }
+  .bottom-nav { max-width: 430px !important; }
+}
