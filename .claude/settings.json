@@ -117,7 +117,17 @@
       "Bash(node --check functions/seedPromotions.js)",
       "Bash(ls \"C:\\\\Users\\\\Herty\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\" 2>&1 | grep -i firebase)",
       "Read(//c/Users/Herty/AppData/Roaming/npm/node_modules/**)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(node scripts/stage-hosting.cjs customer-app)",
+      "Bash(node scripts/stage-hosting.cjs artisan-app)",
+      "Bash(curl -s -o /dev/null -w \"customer: %{http_code}\\\\n\" https://lamax-4fd82.web.app/customer-app/dashboard.html)",
+      "Bash(curl -s -o /dev/null -w \"artisan: %{http_code}\\\\n\" https://lamax-artisan.web.app/artisan-app/dashboard.html)",
+      "Bash(curl -s -o /dev/null -w \"fallback image HTTP: %{http_code}, time: %{time_total}s\\\\n\" \"https://res.cloudinary.com/dnwwglbl9/image/upload/promotions/fallback/default_promo\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8766/admin-dashboard/seed-promotions.html)",
+      "Bash(npx serve *)",
+      "Bash(curl -s \"http://localhost:8766/admin-dashboard/seed-promotions.html\" -o /dev/null -w \"seed page still reachable: %{http_code}\\\\n\")",
+      "Bash(xargs -I{} sh -c 'echo {}; grep -l \"detail-bk-card\" \"{}\"')"
     ],
     "additionalDirectories": [
       "c:\\Users\\Herty\\.claude\\projects\\c--Users-Herty-OneDrive-Desktop-Lunch-HANDY-HUB-MVP-\\memory",

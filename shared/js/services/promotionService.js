@@ -39,7 +39,17 @@ import { firebaseDb }
 const PROMOTIONS_COLLECTION = 'promotions';
 const ANALYTICS_COLLECTION  = 'promotionAnalytics';
 const MAX_RESULTS           = 3;
-const FALLBACK_IMAGE_KEY    = 'promotions/fallback/default_promo';
+
+// NOTE: there is currently NO real fallback image uploaded to Cloudinary.
+// A prior version of this file pointed resolveImage() at a nonexistent
+// "promotions/fallback/default_promo" key, which cost every banner render a
+// real ~1.5s failed network round-trip to Cloudinary before the slide's
+// solid-color background showed. resolveImage() now returns null instead —
+// adBanner.js skips rendering an <img> entirely when there's no real key, so
+// the slide's --img-fallback color shows immediately with zero wasted
+// requests. If/when a real fallback image is uploaded to Cloudinary, set
+// FALLBACK_IMAGE_KEY below to its public_id to re-enable this path.
+const FALLBACK_IMAGE_KEY    = null;
 
 /* ── Load ──────────────────────────────────────────────────────────────── */
 
@@ -79,21 +89,26 @@ export async function loadActivePromotions() {
 /* ── Image resolution ─────────────────────────────────────────────────── */
 
 /**
- * Resolve a promotion's Cloudinary imageKey to a CDN URL. Never returns
- * empty/undefined — falls back to the default promo placeholder so the UI
- * never shows a broken image, even for a malformed/missing imageKey.
+ * Resolve a promotion's Cloudinary imageKey to a CDN URL, or null if there's
+ * no real key to resolve. Deliberately does NOT synthesize a URL for a
+ * nonexistent fallback image — see FALLBACK_IMAGE_KEY above. Callers (see
+ * adaptPromotion() in adBanner.js) must treat a null return as "render this
+ * slide with its solid-color background, no <img> element at all" rather
+ * than attempting to load a URL that's known not to resolve.
  *
  * NOTE: on-the-fly Cloudinary transforms are currently 404-ing for every
  * derived request on this account/plan (same issue documented in
- * cloudinaryService.js's avatarUrl()). Until that's resolved, this returns
- * the untransformed original — CSS (.slide-img-wrap img { object-fit:cover })
- * already handles the crop client-side. Swap the empty transform below for
- * TRANSFORMS.banner once Cloudinary transform delivery is confirmed working.
+ * cloudinaryService.js's avatarUrl()). Once a real fallback/promo image
+ * pipeline exists, use an empty transform (untransformed original) until
+ * that's resolved — CSS (.slide-img-wrap img { object-fit:cover }) already
+ * handles the crop client-side.
  * @param {string} imageKey  e.g. "promotions/cleaning/accra_cleaning_v1"
+ * @returns {string|null}
  */
 export function resolveImage(imageKey) {
-    const key = (typeof imageKey === 'string' && imageKey.trim()) ? imageKey.trim() : FALLBACK_IMAGE_KEY;
-    return cdnUrl(key, '') || cdnUrl(FALLBACK_IMAGE_KEY, '');
+    const key = (typeof imageKey === 'string' && imageKey.trim()) ? imageKey.trim() : null;
+    if (key) return cdnUrl(key, '');
+    return FALLBACK_IMAGE_KEY ? cdnUrl(FALLBACK_IMAGE_KEY, '') : null;
 }
 
 /* ── Resolver (lightweight targeting) ─────────────────────────────────── */

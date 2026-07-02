@@ -286,10 +286,10 @@ function renderSlide(banner, index) {
           ${clientsHTML}
         </div>
       </div>
-      <div class="slide-img-wrap" style="--img-fallback:${banner.color ?? '#e8e8e8'}">
-        <img src="${banner.image}" alt="${banner.tag}"
+      <div class="slide-img-wrap${banner.image ? '' : ' img-failed'}" style="--img-fallback:${banner.color ?? '#e8e8e8'}">
+        ${banner.image ? `<img src="${banner.image}" alt="${banner.tag}"
              loading="eager" decoding="async"${index === 0 ? ' fetchpriority="high"' : ''}
-             draggable="false">
+             draggable="false">` : ''}
       </div>
     </div>`;
 }
