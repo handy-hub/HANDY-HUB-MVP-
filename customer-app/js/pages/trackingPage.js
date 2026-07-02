@@ -77,6 +77,22 @@ function norm(value) {
     return value.replace(/\s+/g, ' ').trim();
 }
 
+// Returns true for queries that look like natural language (4+ words).
+// Single words and short phrases ("AC repair") go straight to Firestore.
+function looksLikeNaturalLanguage(q) {
+    return q.split(' ').filter(Boolean).length >= 4;
+}
+
+// Call the aiSearch Cloud Function. Returns structured result or null on failure.
+async function _aiInterpretSearch(q) {
+    try {
+        const { interpretSearch } = await import('../../../shared/js/services/aiSearchService.js');
+        return await interpretSearch(q);
+    } catch {
+        return null;
+    }
+}
+
 // ── Firestore search ──────────────────────────────────────────────────────────
 
 /**
@@ -84,7 +100,7 @@ function norm(value) {
  *
  * title     → artisan display name — specialty (e.g. "Kwame Asante — Plumber")
  * subtitle  → category displayed as secondary line (e.g. "Plumbing")
- * artisanId → stored in sessionStorage on click; consumed by book-now.html
+ * artisanId → on click, routes to that artisan's profile to evaluate/book
  * rating    → shown as ⭐ badge; 0 means no reviews yet (not displayed)
  */
 function toResultItem(record) {
@@ -147,7 +163,7 @@ function renderHistory(items) {
  * Render search results from Firestore into the results panel.
  * Each item includes artisanId + rating from real artisan data.
  */
-function renderResults(matches, term) {
+function renderResults(matches, term, aiInterpretation = null) {
     if (!resultsGroup || !resultsMessage || !resultsList) return;
     resultsGroup.hidden = false;
 
@@ -159,7 +175,8 @@ function renderResults(matches, term) {
     }
 
     resultsGroup.classList.remove('search-results-empty');
-    resultsMessage.textContent = `${matches.length} result${matches.length === 1 ? '' : 's'} for "${term}"`;
+    const aiSuffix = aiInterpretation ? ` · AI: ${aiInterpretation}` : '';
+    resultsMessage.textContent = `${matches.length} result${matches.length === 1 ? '' : 's'} for "${term}"${aiSuffix}`;
     resultsList.innerHTML = matches.map(m => {
         const hasRating = m.rating && m.rating > 0;
         return `<li class="result-item"
@@ -224,15 +241,27 @@ async function executeSearch(query) {
     historyService.add(q);        // optimistic; async Firestore write in the background
     renderSearchingState(q);
 
-    const { results, error } = await queryFirestore(q);
+    // For natural-language queries (4+ words), ask Claude to extract the right keyword.
+    // Falls back to raw query silently if the Cloud Function is unavailable.
+    let searchTerm = q;
+    let aiInterpretation = null;
+    if (looksLikeNaturalLanguage(q)) {
+        const ai = await _aiInterpretSearch(q);
+        if (ai?.searchTerms?.[0]) {
+            searchTerm = ai.searchTerms[0];
+            aiInterpretation = ai.interpretation || null;
+        }
+    }
+
+    const { results, error } = await queryFirestore(searchTerm);
 
     if (error) {
         renderErrorState(error);
-        return { term: q, results: [], error };
+        return { term: searchTerm, results: [], error };
     }
 
-    renderResults(results, q);
-    return { term: q, results, error: null };
+    renderResults(results, searchTerm, aiInterpretation);
+    return { term: searchTerm, results, error: null };
 }
 
 // ── Live-input debounced search (input event — no history save, no redirect) ──
@@ -337,8 +366,9 @@ function wireSubmitButton() {
 /**
  * Delegated click handler for search result items.
  * Survives every innerHTML replacement inside renderResults().
- * Navigates to book-now.html with the artisan's service category pre-selected
- * and stores the artisan ID in sessionStorage for the booking flow.
+ * Search is a discovery action (intent I9): a service-category result routes to
+ * the professional browse surface for that category; a specific-artisan result
+ * routes straight to that artisan's profile to evaluate/book.
  */
 function wireResultItems() {
     if (!resultsList) return;
@@ -349,8 +379,14 @@ function wireResultItems() {
         const artisanId = item.dataset.artisanid || '';
         if (subtitle)  sessionStorage.setItem('hh_service', subtitle);
         if (title)     sessionStorage.setItem('hh_task', title);
-        if (artisanId) sessionStorage.setItem('hh_search_artisan_id', artisanId);
-        window.location.href = 'book-now.html';
+        if (artisanId) {
+            // Specific professional → go evaluate them on their profile.
+            sessionStorage.setItem('hh_artisan_view', JSON.stringify({ id: artisanId, uid: artisanId, name: title, specialty: subtitle }));
+            window.location.href = 'artisan-profile.html';
+        } else {
+            // Service-category result → browse the pros for it.
+            window.location.href = 'professionals.html';
+        }
     }
 
     resultsList.addEventListener('click', e => {

@@ -8,7 +8,9 @@ const user = await requireAuth();
 if (user && user.uid) {
     // Request push notification permission and register FCM token.
     // Fire-and-forget — never blocks page load or other init steps.
-    initializePushNotifications(user.uid, 'customer').catch(() => {});
+    initializePushNotifications(user.uid, 'customer').catch((err) => {
+        console.warn('[authInit] push notification init failed:', err);
+    });
 
     try {
         const { getAppContainer } = await import('../../shared/js/app/container.js');
@@ -20,12 +22,15 @@ if (user && user.uid) {
         // manages the badge on its own pages. Both are safe to call here — the
         // subscription is idempotent and the DOM guard inside helpers.js is a no-op
         // when the element doesn't exist.
+        let _unsubNotifBadge;
         if (typeof window.HH_initNotifications === 'function') {
-            window.HH_initNotifications(databaseService, user.uid);
+            _unsubNotifBadge = window.HH_initNotifications(databaseService, user.uid);
         }
 
         // ── Flush bookings that failed to reach Firestore last session ────────
-        flushPendingBookingWrites(databaseService).catch(() => {});
+        flushPendingBookingWrites(databaseService).catch((err) => {
+            console.warn('[authInit] pending booking flush failed:', err);
+        });
 
         // ── Seed booking history from Firestore ───────────────────────────────
         // localStorage history is the source for bookingService.classify() and
@@ -69,12 +74,19 @@ if (user && user.uid) {
                     var histKey = window.HH_State.scopedKey('hh_booking_history');
                     try { localStorage.setItem(histKey, JSON.stringify(mapped)); } catch (_) {}
                 })
-                .catch(function () {});
+                .catch(function (err) {
+                    console.warn('[authInit] booking history seed failed:', err);
+                });
         }
 
-    } catch (_) {}
+    } catch (err) {
+        console.warn('[authInit] init block failed:', err);
+    }
 
     // Quote approval modal — active on every page that imports authInit
     initQuoteModal(user.uid);
-    window.addEventListener('pagehide', () => destroyQuoteModal(), { once: true });
+    window.addEventListener('pagehide', () => {
+        if (typeof _unsubNotifBadge === 'function') _unsubNotifBadge();
+        destroyQuoteModal();
+    }, { once: true });
 }

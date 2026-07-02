@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEMP — Seed Promotions | HandyHub Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family:'Inter',sans-serif; max-width:640px; margin:40px auto; padding:0 20px; color:#111; }
+    h1 { font-size:20px; }
+    p { color:#555; font-size:14px; line-height:1.5; }
+    button { background:#111; color:#fff; border:none; padding:12px 20px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    #status { margin-top:20px; font-size:13px; white-space:pre-wrap; font-family:monospace; background:#f5f5f5; padding:14px; border-radius:8px; display:none; }
+    .warn { background:#fff3cd; border:1px solid #ffe69c; padding:12px 16px; border-radius:8px; font-size:13px; margin:16px 0; }
+  </style>
+</head>
+<body>
+  <h1>TEMP: Seed Example Promotions</h1>
+  <div class="warn">This is a one-time, temporary admin utility. Delete this file after use — it is not linked from the sidebar and not meant to be permanent.</div>
+  <p>Writes 4 example documents into the <code>promotions</code> collection (Accra-targeted, new-users-only, Cleaning-repeat, and one untargeted) using your current signed-in admin session — no Cloud Function, no billing plan required.</p>
+  <button id="seed-btn" disabled>Checking admin session…</button>
+  <pre id="status"></pre>
+
+  <script type="module">
+    import { db, auth } from './js/firebase-admin.js';
+    import { initAdminPage } from './js/auth-guard.js';
+    import { doc, writeBatch, serverTimestamp, collection, getDocs }
+      from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+    const btn    = document.getElementById('seed-btn');
+    const status = document.getElementById('status');
+
+    const SEED_PROMOTIONS = [
+      {
+        id: 'promo-accra-only',
+        content: { title: 'Accra Special', subtitle: '15% off this week', cta: 'Book Now' },
+        media: { imageKey: 'promotions/fallback/default_promo' },
+        action: { type: 'route', value: 'book-step1.html' },
+        targeting: { cities: ['Accra'], serviceTypes: [], newUsersOnly: false },
+        schedule: { start: null, end: null, priority: 100 },
+        analytics: { impressions: 0, clicks: 0 },
+        status: 'active',
+      },
+      {
+        id: 'promo-new-users',
+        content: { title: 'Welcome to HandyHub', subtitle: '20% off your first booking', cta: 'Get Started' },
+        media: { imageKey: 'promotions/fallback/default_promo' },
+        action: { type: 'promo', value: 'WELCOME20' },
+        targeting: { cities: [], serviceTypes: [], newUsersOnly: true },
+        schedule: { start: null, end: null, priority: 90 },
+        analytics: { impressions: 0, clicks: 0 },
+        status: 'active',
+      },
+      {
+        id: 'promo-cleaning-repeat',
+        content: { title: 'Book Cleaning Again', subtitle: 'Same great team, one tap away', cta: 'Rebook' },
+        media: { imageKey: 'promotions/fallback/default_promo' },
+        action: { type: 'service', value: 'Cleaning' },
+        targeting: { cities: [], serviceTypes: ['Cleaning'], newUsersOnly: false },
+        schedule: { start: null, end: null, priority: 80 },
+        analytics: { impressions: 0, clicks: 0 },
+        status: 'active',
+      },
+      {
+        id: 'promo-everyone',
+        content: { title: 'Trusted Pros, Every Time', subtitle: 'Verified. Rated. Ready.', cta: 'Explore Services' },
+        media: { imageKey: 'promotions/fallback/default_promo' },
+        action: { type: 'route', value: 'book-step1.html' },
+        targeting: { cities: [], serviceTypes: [], newUsersOnly: false },
+        schedule: { start: null, end: null, priority: 10 },
+        analytics: { impressions: 0, clicks: 0 },
+        status: 'active',
+      },
+    ];
+
+    function log(msg) {
+      status.style.display = 'block';
+      status.textContent += msg + '\n';
+    }
+
+    initAdminPage((user) => {
+      btn.disabled = false;
+      btn.textContent = `Seed 4 Promotions (as ${user.email})`;
+    });
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Seeding…';
+      status.textContent = '';
+      try {
+        const batch = writeBatch(db);
+        SEED_PROMOTIONS.forEach(({ id, ...data }) => {
+          batch.set(doc(db, 'promotions', id), { ...data, seededAt: serverTimestamp() });
+        });
+        await batch.commit();
+        log('✔ Wrote 4 documents to promotions/.');
+
+        const snap = await getDocs(collection(db, 'promotions'));
+        log(`✔ Verified: promotions collection now has ${snap.size} document(s):`);
+        snap.forEach(d => log(`  - ${d.id} (status: ${d.data().status})`));
+
+        btn.textContent = 'Done — check Firestore console to confirm';
+      } catch (err) {
+        log('✖ FAILED: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Retry';
+      }
+    });
+  </script>
+</body>
+</html>

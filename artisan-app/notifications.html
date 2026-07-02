@@ -1,0 +1,291 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications | HandyHub Artisan</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <link rel="stylesheet" href="../shared/css/components/tabs.css" />
+  <style>
+    .notif-shell { max-width: 430px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; background: var(--surface-2); }
+    .notif-header { background: var(--surface); padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; flex-shrink: 0; }
+    .notif-back { width: 36px; height: 36px; border: none; background: var(--surface-3); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .notif-title { font-size: 17px; font-weight: 800; color: var(--text-dark); flex: 1; }
+    .notif-mark-all { font-size: 12px; font-weight: 700; color: var(--primary); background: none; border: none; cursor: pointer; padding: 6px 0; white-space: nowrap; }
+    .notif-mark-all:disabled { color: var(--text-light); }
+
+    .notif-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+    /* Day group header */
+    .notif-day { font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: .6px; padding: 14px 16px 6px; }
+
+    /* Notification item */
+    .notif-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px; background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .12s; position: relative;
+    }
+    .notif-item:active { background: var(--surface-2); }
+    .notif-item.unread { background: #FFFBF7; }
+    .notif-item.unread::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--primary); border-radius: 0 2px 2px 0; }
+
+    .notif-icon-wrap {
+      width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ni-bookings  { background: #FFF7ED; }
+    .ni-payments  { background: #F0FDF4; }
+    .ni-messages  { background: #EFF6FF; }
+    .ni-reviews   { background: #FEF9C3; }
+    .ni-system    { background: var(--surface-3); }
+    .ni-general   { background: var(--surface-3); }
+    .ni-offers    { background: #FDF4FF; }
+
+    .notif-content { flex: 1; min-width: 0; }
+    .notif-item-title { font-size: 13.5px; font-weight: 700; color: var(--text-dark); margin: 0 0 3px; line-height: 1.3; }
+    .notif-item-msg   { font-size: 12.5px; color: var(--text-mid); margin: 0 0 4px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .notif-item-time  { font-size: 11px; color: var(--text-light); font-weight: 500; }
+    .notif-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; margin-top: 4px; }
+
+    /* Skeleton */
+    .notif-skel { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: var(--surface); border-bottom: 1px solid var(--border); animation: nPulse 1.4s ease-in-out infinite; }
+    .nsk { background: #EBEBEB; border-radius: 6px; }
+    @keyframes nPulse { 0%,100%{opacity:1}50%{opacity:.45} }
+
+    /* Empty state */
+    .notif-empty { text-align: center; padding: 64px 24px; }
+    .notif-empty-icon { width:56px; height:56px; margin:0 auto 14px; border-radius:14px; background:var(--surface-3); color:var(--text-light); display:inline-flex; align-items:center; justify-content:center; }
+    .notif-empty-icon svg { width:26px; height:26px; }
+    .notif-empty-title { font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0 0 6px; }
+    .notif-empty-sub { font-size: 13px; color: var(--text-light); margin: 0; }
+
+    /* Swipe-to-delete hint (visual only) */
+    .notif-delete-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: var(--danger-bg); border: none; cursor: pointer; display: none; align-items: center; justify-content: center; }
+    .notif-item:hover .notif-delete-btn { display: flex; }
+  </style>
+</head>
+<body>
+<div class="notif-shell">
+
+  <header class="notif-header">
+    <button class="notif-back" aria-label="Go back" onclick="history.back()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <span class="notif-title">Notifications</span>
+    <button class="notif-mark-all" id="mark-all-btn" onclick="markAllRead()">Mark all read</button>
+  </header>
+
+  <div class="ui-tabs ui-tabs--artisan" id="notif-tabs" role="tablist">
+    <button class="ui-tab active" role="tab" aria-selected="true"  data-filter="all" onclick="setFilter('all', this)">All</button>
+    <button class="ui-tab" role="tab" aria-selected="false" data-filter="Bookings" onclick="setFilter('Bookings', this)">Jobs</button>
+    <button class="ui-tab" role="tab" aria-selected="false" data-filter="Payments" onclick="setFilter('Payments', this)">Payments</button>
+    <button class="ui-tab" role="tab" aria-selected="false" data-filter="Messages" onclick="setFilter('Messages', this)">Messages</button>
+    <button class="ui-tab" role="tab" aria-selected="false" data-filter="System"   onclick="setFilter('System', this)">System</button>
+  </div>
+
+  <div class="notif-body" id="notif-body">
+    <!-- Skeleton while loading -->
+    <div id="notif-loading">
+      ${[1,2,3,4].map(() => `
+      <div class="notif-skel">
+        <div class="nsk" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div class="nsk" style="height:13px;width:60%;margin-bottom:7px;"></div>
+          <div class="nsk" style="height:11px;width:90%;margin-bottom:5px;"></div>
+          <div class="nsk" style="height:11px;width:70%;margin-bottom:5px;"></div>
+          <div class="nsk" style="height:10px;width:30%;"></div>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div id="notif-list" style="display:none;"></div>
+    <div class="notif-empty" id="notif-empty" style="display:none;">
+      <div class="notif-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+      <p class="notif-empty-title">No notifications yet</p>
+      <p class="notif-empty-sub">You'll see job requests, payments, and updates here</p>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import '../shared/js/utils/global-app.js';
+import { requireArtisanAuth }                                          from './js/utils/artisanAuthGuard.js';
+import { subscribeToUserNotifications, markNotificationRead,
+         markAllNotificationsRead, deleteNotification }                from '../shared/js/services/notificationRepository.js';
+
+const { user } = await requireArtisanAuth({ allowPending: true });
+
+// ── State ──────────────────────────────────────────────
+let _all       = [];
+let _filter    = 'all';
+let _unsub     = null;
+
+// ── DOM ────────────────────────────────────────────────
+const listEl    = document.getElementById('notif-list');
+const loadingEl = document.getElementById('notif-loading');
+const emptyEl   = document.getElementById('notif-empty');
+const markAllBtn = document.getElementById('mark-all-btn');
+
+// ── Icon map ───────────────────────────────────────────
+const ICONS = {
+  Bookings: { bg: 'ni-bookings', svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>` },
+  Payments: { bg: 'ni-payments', svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round"/></svg>` },
+  Messages: { bg: 'ni-messages', svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#1d4ed8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+  Reviews:  { bg: 'ni-reviews',  svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="#ca8a04" stroke-width="1.8"/></svg>` },
+  Offers:   { bg: 'ni-offers',   svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="7" r="1.5" fill="#7c3aed"/></svg>` },
+  System:   { bg: 'ni-system',   svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#6B7280" stroke-width="1.8"/><path d="M12 8v4M12 16h.01" stroke="#6B7280" stroke-width="2" stroke-linecap="round"/></svg>` },
+  General:  { bg: 'ni-general',  svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#6B7280" stroke-width="1.8" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#6B7280" stroke-width="1.8" stroke-linecap="round"/></svg>` },
+};
+
+function iconFor(type) {
+  return ICONS[type] || ICONS.General;
+}
+
+// ── Time formatter ─────────────────────────────────────
+function timeAgo(date) {
+  const diff = Date.now() - date.getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'Just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7)  return `${d}d ago`;
+  return date.toLocaleDateString('en-GH', { day: 'numeric', month: 'short' });
+}
+
+function dayLabel(date) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const d     = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diff  = (today - d) / 86400000;
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return date.toLocaleDateString('en-GH', { weekday: 'long', day: 'numeric', month: 'short' });
+}
+
+// ── Render ─────────────────────────────────────────────
+function render(notifications) {
+  loadingEl.style.display = 'none';
+  listEl.style.display    = 'block';
+
+  const filtered = _filter === 'all'
+    ? notifications
+    : notifications.filter(n => n.type === _filter);
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  const hasUnread = filtered.some(n => !n.isRead);
+  markAllBtn.disabled = !hasUnread;
+
+  // Group by day
+  const groups = {};
+  for (const n of filtered) {
+    const label = dayLabel(n.createdAt);
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(n);
+  }
+
+  let html = '';
+  for (const [day, items] of Object.entries(groups)) {
+    html += `<div class="notif-day">${day}</div>`;
+    for (const n of items) {
+      const icon = iconFor(n.type);
+      html += `
+      <div class="notif-item${n.isRead ? '' : ' unread'}" id="ni-${n.id}"
+           onclick="openNotif('${n.id}','${n.actionUrl || ''}')">
+        <div class="notif-icon-wrap ${icon.bg}">${icon.svg}</div>
+        <div class="notif-content">
+          <p class="notif-item-title">${escHtml(n.title)}</p>
+          <p class="notif-item-msg">${escHtml(n.message)}</p>
+          <span class="notif-item-time">${timeAgo(n.createdAt)}</span>
+        </div>
+        ${n.isRead ? '' : '<div class="notif-unread-dot"></div>'}
+        <button class="notif-delete-btn" onclick="event.stopPropagation();deleteNotif('${n.id}')" aria-label="Delete">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <polyline points="3 6 5 6 21 6" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/>
+            <path d="M19 6l-1 14H6L5 6" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>`;
+    }
+  }
+  listEl.innerHTML = html;
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Interactions ───────────────────────────────────────
+window.openNotif = async function(id, actionUrl) {
+  const notif = _all.find(n => n.id === id);
+  if (notif && !notif.isRead) {
+    notif.isRead = true;
+    const el = document.getElementById(`ni-${id}`);
+    if (el) { el.classList.remove('unread'); el.querySelector('.notif-unread-dot')?.remove(); el.querySelector('::before'); }
+    await markNotificationRead(id).catch(() => {});
+  }
+  if (actionUrl && actionUrl !== 'undefined' && actionUrl !== '') {
+    // Resolve relative URLs within artisan-app
+    window.location.href = actionUrl;
+  }
+};
+
+window.deleteNotif = async function(id) {
+  const el = document.getElementById(`ni-${id}`);
+  if (el) { el.style.opacity = '0'; el.style.transition = 'opacity .2s'; setTimeout(() => el.remove(), 200); }
+  _all = _all.filter(n => n.id !== id);
+  await deleteNotification(id).catch(() => {});
+};
+
+window.markAllRead = async function() {
+  markAllBtn.disabled = true;
+  _all.forEach(n => { n.isRead = true; });
+  render(_all);
+  await markAllNotificationsRead(user.uid).catch(() => {});
+};
+
+window.setFilter = function(filter, btn) {
+  _filter = filter;
+  document.querySelectorAll('#notif-tabs .ui-tab').forEach(t => {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
+  render(_all);
+};
+
+// ── Subscribe ──────────────────────────────────────────
+_unsub = subscribeToUserNotifications(
+  user.uid,
+  (notifications) => {
+    _all = notifications;
+    render(_all);
+  },
+  () => {
+    loadingEl.style.display = 'none';
+    emptyEl.style.display   = 'block';
+  }
+);
+
+window.addEventListener('pagehide', () => _unsub?.());
+</script>
+<script src="js/artisanFloatingNav.js"></script>
+</body>
+</html>

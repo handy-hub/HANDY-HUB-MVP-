@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service Details | HandyHub</title>
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <link rel="stylesheet" href="css/service-detail.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="sd-shell">
+
+  <!-- ── Header ── -->
+  <header class="sd-header">
+    <button class="sd-back-btn" onclick="goBack()" aria-label="Go back">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
+    </button>
+    <h1 class="sd-header-title" id="sd-title">Service</h1>
+    <span class="sd-header-spacer"></span>
+  </header>
+
+  <div class="sd-scroll">
+
+    <!-- Hero -->
+    <section class="sd-hero">
+      <div class="sd-hero-icon" id="sd-hero-icon"></div>
+      <h2 class="sd-hero-name" id="sd-hero-name">Service</h2>
+      <p class="sd-hero-blurb" id="sd-hero-blurb"></p>
+      <div class="sd-hero-stats">
+        <div class="sd-stat">
+          <span class="sd-stat-label">Typical price</span>
+          <span class="sd-stat-value" id="sd-price">GHC —</span>
+        </div>
+        <div class="sd-stat-divider"></div>
+        <div class="sd-stat">
+          <span class="sd-stat-label">Duration</span>
+          <span class="sd-stat-value" id="sd-duration">—</span>
+        </div>
+        <div class="sd-stat-divider"></div>
+        <div class="sd-stat">
+          <span class="sd-stat-label">Arrives in</span>
+          <span class="sd-stat-value" id="sd-arrival">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- What's included -->
+    <section class="sd-section">
+      <h3 class="sd-section-title">What's included</h3>
+      <div id="sd-services" class="sd-svc-list"></div>
+    </section>
+
+    <!-- How it works -->
+    <section class="sd-section">
+      <h3 class="sd-section-title">How it works</h3>
+      <ol class="sd-steps">
+        <li class="sd-step"><span class="sd-step-num">1</span><div><p class="sd-step-title">Pick your service</p><p class="sd-step-sub">Choose the exact job you need done.</p></div></li>
+        <li class="sd-step"><span class="sd-step-num">2</span><div><p class="sd-step-title">Choose a professional</p><p class="sd-step-sub">Compare verified pros, or let us match you.</p></div></li>
+        <li class="sd-step"><span class="sd-step-num">3</span><div><p class="sd-step-title">Confirm & pay securely</p><p class="sd-step-sub">Funds are held in escrow until the job is done.</p></div></li>
+      </ol>
+    </section>
+
+    <!-- Trust note -->
+    <section class="sd-trust">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <p>Every professional is verified. Your payment is protected by escrow and only released when you confirm the job is complete.</p>
+    </section>
+
+    <div style="height:96px"></div>
+  </div>
+
+  <!-- ── Sticky CTAs ── -->
+  <div class="sd-cta-bar">
+    <button class="sd-cta sd-cta--ghost" onclick="seePros()">See pros</button>
+    <button class="sd-cta sd-cta--primary" onclick="bookService()">Book this service</button>
+  </div>
+
+</div>
+
+<script src="../shared/js/utils/global-app.js"></script>
+<script src="../shared/js/components/floatingNav.js"></script>
+
+<script type="module">
+// ════════════════════════════════════════════════════════════════
+//  service-detail.html — Layer 2: service research
+//  Reads the shared catalog. Two exits: browse pros (evaluate) or
+//  book the service (commit). No artisan pre-selected here.
+// ════════════════════════════════════════════════════════════════
+import { requireAuth } from '../shared/js/utils/authGuard.js';
+import { getCategoryById, resolveCategory, priceRangeLabel } from '../shared/js/data/serviceCatalog.js';
+await requireAuth();
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+const params = new URLSearchParams(location.search);
+const catToken = params.get('cat') || sessionStorage.getItem('hh_service') || 'electrical';
+const cat = resolveCategory(catToken) || getCategoryById('electrical');
+
+function render() {
+  document.getElementById('sd-title').textContent     = cat.name;
+  document.getElementById('sd-hero-icon').innerHTML   = cat.icon;
+  document.getElementById('sd-hero-name').textContent = cat.name;
+  document.getElementById('sd-hero-blurb').textContent= cat.blurb;
+  document.getElementById('sd-price').textContent     = priceRangeLabel(cat);
+  document.getElementById('sd-duration').textContent  = cat.duration || '—';
+  document.getElementById('sd-arrival').textContent   = cat.arrival || '—';
+
+  const list = document.getElementById('sd-services');
+  list.innerHTML = (cat.services || []).map(s => `
+    <div class="sd-svc-item" onclick="bookSpecific('${esc(s.name)}')">
+      <img class="sd-svc-thumb" src="${esc(s.img)}" alt="${esc(s.name)}" loading="lazy"
+           onerror="this.style.cssText='width:56px;height:56px;border-radius:10px;background:var(--ui-primary-soft);flex-shrink:0;'">
+      <div class="sd-svc-info">
+        <p class="sd-svc-name">${esc(s.name)}</p>
+        <p class="sd-svc-desc">${esc(s.desc)}</p>
+        <p class="sd-svc-meta"><i class="fa-regular fa-clock"></i> ${esc(s.dur)}</p>
+      </div>
+      <div class="sd-svc-price">
+        <span class="sd-svc-from">From</span>
+        <span class="sd-svc-amt">GHC ${esc(s.price)}</span>
+      </div>
+    </div>`).join('');
+}
+
+/* ── Exits ───────────────────────────────────────────────────── */
+window.seePros = function() {
+  window.location.href = `professionals.html?cat=${encodeURIComponent(cat.id)}`;
+};
+
+window.bookService = function() {
+  // Service-first booking: set the category, no artisan pre-selected.
+  sessionStorage.setItem('hh_service', cat.categoryLabel);
+  sessionStorage.removeItem('hh_booking_intent');
+  sessionStorage.removeItem('hh_selected_artisan');
+  window.location.href = 'book-step1.html';
+};
+
+window.bookSpecific = function(serviceName) {
+  // Same as bookService, but remember which specific job was tapped so
+  // book-step1 can pre-check it (best-effort hint).
+  sessionStorage.setItem('hh_service', cat.categoryLabel);
+  if (serviceName) sessionStorage.setItem('hh_service_preselect', serviceName);
+  sessionStorage.removeItem('hh_booking_intent');
+  sessionStorage.removeItem('hh_selected_artisan');
+  window.location.href = 'book-step1.html';
+};
+
+window.goBack = function() {
+  if (document.referrer && document.referrer.indexOf(location.host) !== -1) history.back();
+  else window.location.href = 'dashboard.html';
+};
+
+render();
+</script>
+</body>
+</html>

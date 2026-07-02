@@ -58,6 +58,8 @@ function teardown() {
 
 const { services: { authService } } = getAppContainer();
 
+window.addEventListener('pagehide', teardown, { once: true });
+
 authService.subscribeToAuthState(user => {
     teardown(); // always cancel previous subscriptions first
 

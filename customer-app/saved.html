@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -7,8 +7,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Saved | HandyHub</title>
   <link rel="stylesheet" href="css/saved.css" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <link rel='stylesheet' href='../shared/css/components/tabs.css' />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     .sv-search-bar {
       display: none;
@@ -34,7 +39,7 @@
       align-items: center;
       justify-content: center;
       background: #fde8e8;
-      color: #730201;
+      color: var(--ui-primary);
       font-size: 9px;
       font-weight: 800;
       border-radius: 8px;
@@ -89,6 +94,9 @@
 
   <!-- Header -->
   <div class="sv-header">
+    <button class="sv-icon-btn" onclick="window.location.href='dashboard.html'" aria-label="Go back">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     <h1 class="sv-title">Saved</h1>
     <div class="sv-header-btns">
       <button class="sv-icon-btn" id="sv-search-toggle" aria-label="Search">
@@ -108,23 +116,23 @@
   <!-- Body -->
   <div class="sv-body">
 
-    <!-- Tabs -->
-    <div class="sv-tabs" role="tablist">
-      <button class="sv-tab active" id="tab-professionals" onclick="switchTab('professionals', this)" role="tab">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Tabs — canonical ui-tabs (pill variant) -->
+    <div class="ui-tabs sv-tabs" role="tablist">
+      <button class="ui-tab active" id="tab-professionals" aria-selected="true" onclick="switchTab('professionals', this)" role="tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/>
         </svg>
         Professionals<span class="sv-tab-count" id="count-professionals">0</span>
       </button>
-      <button class="sv-tab" id="tab-services" onclick="switchTab('services', this)" role="tab">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="ui-tab" id="tab-services" aria-selected="false" onclick="switchTab('services', this)" role="tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
           <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
         Services<span class="sv-tab-count" id="count-services">0</span>
       </button>
-      <button class="sv-tab" id="tab-offers" onclick="switchTab('offers', this)" role="tab">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="ui-tab" id="tab-offers" aria-selected="false" onclick="switchTab('offers', this)" role="tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/>
           <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/>
         </svg>
@@ -164,8 +172,8 @@
       <div class="sv-empty">
         <div class="sv-empty-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="7" cy="7" r="1.5" fill="#730201"/>
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
           </svg>
         </div>
         <p class="sv-empty-title">No Saved Offers</p>
@@ -189,9 +197,9 @@
   window._svFilter = '';   // current search filter
 
   const TOAST_ICONS = {
-    success: '<svg viewBox="0 0 24 24" fill="none"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    success: '<svg viewBox="0 0 24 24" fill="none"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     error:   '<svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    info:    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+    info:    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>',
   };
 
   /* ── Renderers ── */
@@ -199,10 +207,16 @@
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // TEMPORARY: on-the-fly transform delivery is currently 404-ing on this
+  // Cloudinary account/plan for every derived request. Falling back to the
+  // untransformed original — .sv-pro-photo's CSS (object-fit:cover;
+  // border-radius:50%) already does the crop/circle client-side. Restore
+  // the w_80,h_80,c_fill,f_auto,q_auto,r_max transform segment once
+  // Cloudinary on-the-fly delivery is confirmed working again.
   function _svPhoto(p) {
     if (p && p.profileImageId) {
       const v = p.profileImageVersion ? `v${p.profileImageVersion}/` : '';
-      return `https://res.cloudinary.com/dnwwglbl9/image/upload/${v}w_80,h_80,c_fill,f_auto,q_auto,r_max/${p.profileImageId}`;
+      return `https://res.cloudinary.com/dnwwglbl9/image/upload/${v}${p.profileImageId}`;
     }
     return (p && p.profileImage) || null;
   }
@@ -244,7 +258,7 @@
       </div>
       <div class="sv-pro-actions">
         <button class="sv-bookmark-btn" aria-label="Remove from saved" onclick="unsavePro('${escHtml(pro.id)}', this)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#730201"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#730201"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
         <button class="sv-book-btn" onclick="bookPro('${escHtml(pro.id)}')">Book Now</button>
       </div>
@@ -252,11 +266,11 @@
   }
 
   const SVC_ICONS = {
-    Plumbing:   '<path d="M12 2C9.24 2 7 4.24 7 7c0 2.85 2.92 6.21 4.53 8.02.26.3.68.3.94 0C14.08 13.21 17 9.85 17 7c0-2.76-2.24-5-5-5z" stroke="#730201" stroke-width="1.8" fill="#730201" fill-opacity=".15"/><circle cx="12" cy="7" r="2" fill="#730201"/>',
-    Electrical: '<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#730201" fill-opacity=".15"/>',
-    Carpentry:  '<path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="#730201" stroke-width="2" stroke-linecap="round"/>',
-    Cleaning:   '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#730201" stroke-width="2"/><path d="M9 22V12h6v10" stroke="#730201" stroke-width="2" stroke-linecap="round"/>',
-    default:    '<rect x="3" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/>',
+    Plumbing:   '<path d="M12 2C9.24 2 7 4.24 7 7c0 2.85 2.92 6.21 4.53 8.02.26.3.68.3.94 0C14.08 13.21 17 9.85 17 7c0-2.76-2.24-5-5-5z" stroke="currentColor" stroke-width="1.8" fill="#730201" fill-opacity=".15"/><circle cx="12" cy="7" r="2" fill="#730201"/>',
+    Electrical: '<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#730201" fill-opacity=".15"/>',
+    Carpentry:  '<path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    Cleaning:   '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="currentColor" stroke-width="2"/><path d="M9 22V12h6v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    default:    '<rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>',
   };
 
   function svcCardHtml(svc) {
@@ -271,23 +285,23 @@
         <p class="sv-svc-desc">${escHtml(svc.desc || svc.description || '')}</p>
       </div>
       <button class="sv-bookmark-btn" aria-label="Remove service" onclick="unsaveSvc('${escHtml(svc.id)}', this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="#730201"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#730201"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>`;
   }
 
   function emptyPros() {
     return `<div class="sv-empty">
-      <div class="sv-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="#730201" stroke-width="2"/></svg></div>
+      <div class="sv-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" stroke="currentColor" stroke-width="2"/></svg></div>
       <p class="sv-empty-title">No Saved Professionals</p>
       <p class="sv-empty-sub">Browse professionals and tap the bookmark icon to save them here.</p>
-      <button class="sv-empty-btn" onclick="window.location.href='book-now.html'">Find Professionals</button>
+      <button class="sv-empty-btn" onclick="window.location.href='professionals.html'">Find Professionals</button>
     </div>`;
   }
 
   function emptySvcs() {
     return `<div class="sv-empty">
-      <div class="sv-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#730201" stroke-width="2"/></svg></div>
+      <div class="sv-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/></svg></div>
       <p class="sv-empty-title">No Saved Services</p>
       <p class="sv-empty-sub">Save services you use often for quick access next time.</p>
       <button class="sv-empty-btn" onclick="window.location.href='book-step1.html'">Browse Services</button>
@@ -362,27 +376,36 @@
     }, 300);
   };
 
+  /* Book a saved professional (I8): carry them straight into the booking flow
+     with the pro pre-selected — same contract used from an artisan profile.
+     Routes to book-step1, NOT the generic book-now picker. */
   window.bookPro = function (id) {
     const pro = (window._svPros || []).find(function (p) { return p.id === id; });
-    if (pro && window.HH_State) {
-      window.HH_State.booking.patch({
-        professional: {
-          id:      pro.id,
-          name:    pro.name,
-          type:    pro.specialty || pro.category || '',
-          rating:  pro.rating,
-          reviews: pro.reviewCount,
-          photo:   _svPhoto(pro),
-        },
-      });
-    }
-    window.location.href = 'book-now.html';
+    if (!pro) { window.location.href = 'book-step1.html'; return; }
+    try {
+      sessionStorage.setItem('hh_selected_artisan', JSON.stringify({
+        id:           pro.id,
+        uid:          pro.id,
+        name:         pro.name        || 'Professional',
+        specialty:    pro.specialty   || pro.category || '',
+        category:     pro.category    || pro.specialty || '',
+        rating:       pro.rating      != null ? pro.rating : null,
+        reviewCount:  pro.reviewCount || 0,
+        isAvailable:  Boolean(pro.isAvailable),
+        profileImage: _svPhoto(pro)   || null,
+        location:     pro.location    || '',
+      }));
+      sessionStorage.setItem('hh_service', pro.category || pro.specialty || '');
+      sessionStorage.setItem('hh_booking_intent', 'artisan');
+    } catch (_) {}
+    window.location.href = 'book-step1.html';
   };
 
   /* ── Tab switch ── */
   window.switchTab = function (panel, btn) {
-    document.querySelectorAll('.sv-tab').forEach(function (t) { t.classList.remove('active'); });
+    document.querySelectorAll('.sv-tabs .ui-tab').forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
     btn.classList.add('active');
+    btn.setAttribute('aria-selected','true');
     document.querySelectorAll('.sv-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('panel-' + panel).classList.add('active');
   };

@@ -1,0 +1,282 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support | HandyHub Artisan</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <style>
+    .sp-shell  { max-width:430px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column; background:var(--surface-2); }
+    .sp-header { background:var(--surface); padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+    .sp-back  { width:36px; height:36px; border:none; background:var(--surface-3); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+    .sp-title { font-size:17px; font-weight:800; color:var(--text-dark); flex:1; }
+    .sp-body  { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px; }
+
+    /* Hero */
+    .sp-hero { background:linear-gradient(135deg, #F97316, #EA6C08); border-radius:var(--radius-lg); padding:24px 20px; margin-bottom:16px; color:#fff; text-align:center; }
+    .sp-hero-icon { width:56px; height:56px; margin:0 auto 12px; border-radius:16px; background:var(--primary-light,#FFF7ED); color:var(--primary,#F97316); display:inline-flex; align-items:center; justify-content:center; }
+    .sp-hero-icon svg { width:28px; height:28px; }
+    .sp-hero-title { font-size:18px; font-weight:800; margin:0 0 6px; }
+    .sp-hero-sub   { font-size:13px; opacity:.85; margin:0; line-height:1.5; }
+
+    /* Contact cards */
+    .sp-section-label { font-size:11px; font-weight:700; color:var(--text-light); text-transform:uppercase; letter-spacing:.7px; margin:0 0 10px; }
+    .sp-contact-list { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+    .sp-contact-card { background:var(--surface); border-radius:var(--radius-md); padding:16px; display:flex; align-items:center; gap:14px; cursor:pointer; box-shadow:var(--shadow-sm); transition:transform .1s; text-decoration:none; }
+    .sp-contact-card:active { transform:scale(0.98); }
+    .sp-c-icon { width:44px; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .sp-c-info { flex:1; min-width:0; }
+    .sp-c-title { font-size:14px; font-weight:700; color:var(--text-dark); margin:0 0 2px; }
+    .sp-c-sub   { font-size:12px; color:var(--text-mid); margin:0; }
+    .sp-c-arrow { color:var(--text-light); flex-shrink:0; }
+
+    /* FAQ */
+    .sp-faq-list { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+    .sp-faq { background:var(--surface); border-radius:var(--radius-md); overflow:hidden; box-shadow:var(--shadow-sm); }
+    .sp-faq-q { width:100%; display:flex; align-items:center; justify-content:space-between; padding:14px 16px; font-family:inherit; font-size:13.5px; font-weight:700; color:var(--text-dark); background:none; border:none; cursor:pointer; text-align:left; gap:10px; }
+    .sp-faq-q svg { flex-shrink:0; transition:transform .2s; }
+    .sp-faq-q.open svg { transform:rotate(180deg); }
+    .sp-faq-a { font-size:13px; color:var(--text-mid); line-height:1.6; padding:0 16px; max-height:0; overflow:hidden; transition:max-height .3s ease, padding .3s; }
+    .sp-faq-a.open { max-height:300px; padding:0 16px 14px; }
+
+    /* Ticket form */
+    .sp-form { background:var(--surface); border-radius:var(--radius-md); padding:18px; box-shadow:var(--shadow-sm); margin-bottom:20px; }
+    .sp-form-title { font-size:14px; font-weight:800; color:var(--text-dark); margin:0 0 14px; }
+    .sp-field { margin-bottom:12px; }
+    .sp-label { font-size:11.5px; font-weight:600; color:var(--text-mid); margin-bottom:5px; display:block; }
+    .sp-select, .sp-input, .sp-textarea {
+      width:100%; border:1.5px solid var(--border); border-radius:10px; padding:11px 13px;
+      font-family:inherit; font-size:14px; color:var(--text-dark); background:var(--surface);
+      outline:none; transition:border-color .15s;
+    }
+    .sp-select:focus, .sp-input:focus, .sp-textarea:focus { border-color:var(--primary); }
+    .sp-textarea { min-height:100px; resize:vertical; }
+    .sp-submit { width:100%; height:50px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; transition:opacity .15s; }
+    .sp-submit:disabled { opacity:.6; cursor:not-allowed; }
+
+    /* Version note */
+    .sp-version { text-align:center; font-size:11px; color:var(--text-light); padding:10px 0 24px; }
+  </style>
+</head>
+<body>
+<div class="sp-shell">
+
+  <header class="sp-header">
+    <button class="sp-back" aria-label="Go back" onclick="history.back()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <span class="sp-title">Help & Support</span>
+  </header>
+
+  <div class="sp-body">
+
+    <div class="sp-hero">
+      <div class="sp-hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <p class="sp-hero-title">How can we help?</p>
+      <p class="sp-hero-sub">Our team is available Mon–Fri, 8am–6pm GMT.<br>Typical response time: under 2 hours.</p>
+    </div>
+
+    <!-- Contact channels -->
+    <p class="sp-section-label">Contact Us</p>
+    <div class="sp-contact-list">
+      <a class="sp-contact-card" href="mailto:support@handyhub.app">
+        <div class="sp-c-icon" style="background:#FFF7ED;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="sp-c-info">
+          <p class="sp-c-title">Email Support</p>
+          <p class="sp-c-sub">support@handyhub.app</p>
+        </div>
+        <svg class="sp-c-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </a>
+
+      <a class="sp-contact-card" href="https://wa.me/233000000000" target="_blank" rel="noopener">
+        <div class="sp-c-icon" style="background:#F0FDF4;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="sp-c-info">
+          <p class="sp-c-title">WhatsApp</p>
+          <p class="sp-c-sub">Chat with us directly</p>
+        </div>
+        <svg class="sp-c-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </a>
+
+      <a class="sp-contact-card" href="tel:+233000000000">
+        <div class="sp-c-icon" style="background:#EFF6FF;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" stroke="#1d4ed8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="sp-c-info">
+          <p class="sp-c-title">Call Us</p>
+          <p class="sp-c-sub">+233 000 000 000</p>
+        </div>
+        <svg class="sp-c-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </a>
+    </div>
+
+    <!-- FAQ -->
+    <p class="sp-section-label">Frequently Asked Questions</p>
+    <div class="sp-faq-list" id="faq-list">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- Support ticket -->
+    <div class="sp-form">
+      <p class="sp-form-title">Send a Message</p>
+
+      <div class="sp-field">
+        <label class="sp-label" for="sp-subject">Subject</label>
+        <select class="sp-select" id="sp-subject">
+          <option value="">Select a topic…</option>
+          <option value="payment">Payment / Earnings issue</option>
+          <option value="booking">Booking problem</option>
+          <option value="kyc">KYC / Verification</option>
+          <option value="account">Account issue</option>
+          <option value="technical">App not working</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="sp-field">
+        <label class="sp-label" for="sp-message">Your message</label>
+        <textarea class="sp-textarea" id="sp-message" placeholder="Describe your issue in detail…"></textarea>
+      </div>
+
+      <button class="sp-submit" id="sp-submit-btn" onclick="submitTicket()">Send Message</button>
+    </div>
+
+    <p class="sp-version" id="sp-version">HandyHub Artisan · v1.0</p>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import '../shared/js/utils/global-app.js';
+import { getAppContainer }    from '../shared/js/app/container.js';
+import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+import { createNotification } from '../shared/js/services/notificationRepository.js';
+
+const { user, artisan } = await requireArtisanAuth({ allowPending: true });
+
+// ── FAQ data ───────────────────────────────────────────
+const FAQS = [
+  {
+    q: 'How do I get paid for completed jobs?',
+    a: 'Earnings are held in escrow during the job. Once the customer confirms completion (or after 48 hours if no dispute), funds are released to your HandyHub wallet. You can withdraw anytime to MoMo, Telecel Cash, or AirtelTigo Money.'
+  },
+  {
+    q: 'Why can\'t I go online?',
+    a: 'You need to complete KYC verification before going online. Go to your dashboard and tap "Complete KYC" or visit the Onboarding page to submit your documents. Verification takes 1–2 business days.'
+  },
+  {
+    q: 'What happens if I miss a job request?',
+    a: 'If you don\'t respond to a job within the countdown timer, it will be reassigned to another artisan. Frequent missed requests may lower your response rate score, which affects how often you\'re dispatched jobs.'
+  },
+  {
+    q: 'How is the platform fee calculated?',
+    a: 'HandyHub charges a 15% commission on completed job earnings. This covers payment processing, insurance, customer support, and platform maintenance. The commission is automatically deducted before funds reach your wallet.'
+  },
+  {
+    q: 'Can I cancel a booking I already accepted?',
+    a: 'Yes, but repeated cancellations affect your reliability score. Tap the booking in your Bookings tab and use the Cancel option. Please only cancel when absolutely necessary and contact the customer first.'
+  },
+  {
+    q: 'How do I withdraw my earnings?',
+    a: 'Go to the Wallet tab, tap "Withdraw Earnings", and enter your Mobile Money number. Payouts are processed within minutes. Minimum withdrawal is GHC 5.'
+  },
+];
+
+const faqList = document.getElementById('faq-list');
+faqList.innerHTML = FAQS.map((f, i) => `
+  <div class="sp-faq">
+    <button class="sp-faq-q" id="faq-q-${i}" onclick="toggleFaq(${i})">
+      ${f.q}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="sp-faq-a" id="faq-a-${i}">${f.a}</div>
+  </div>`).join('');
+
+window.toggleFaq = function(i) {
+  const q = document.getElementById(`faq-q-${i}`);
+  const a = document.getElementById(`faq-a-${i}`);
+  const isOpen = a.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.sp-faq-q').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.sp-faq-a').forEach(el => el.classList.remove('open'));
+  if (!isOpen) { q.classList.add('open'); a.classList.add('open'); }
+};
+
+// ── Submit ticket via notification to admin ────────────
+window.submitTicket = async function() {
+  const subject = document.getElementById('sp-subject').value;
+  const message = document.getElementById('sp-message').value.trim();
+
+  if (!subject)  { showToast('Please select a topic.'); return; }
+  if (!message)  { showToast('Please describe your issue.'); return; }
+  if (message.length < 20) { showToast('Please provide more detail (at least 20 characters).'); return; }
+
+  const btn = document.getElementById('sp-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  try {
+    // Create a support notification for the artisan (acknowledgement)
+    await createNotification({
+      receiverId: user.uid,
+      senderId:   user.uid,
+      type:       'System',
+      title:      'Support request received',
+      message:    `Your message about "${subject}" has been received. Our team will respond within 2 hours.`,
+    });
+
+    // Also send to admin collection
+    const { services: { databaseService } } = getAppContainer();
+    await databaseService.addDocument('support_tickets', {
+      userId:    user.uid,
+      userName:  artisan.name || '',
+      userEmail: artisan.email || '',
+      role:      'artisan',
+      subject,
+      message,
+      status:    'open',
+      createdAt: new Date().toISOString(),
+    });
+
+    showToast('Message sent! We\'ll reply shortly.');
+    document.getElementById('sp-subject').value = '';
+    document.getElementById('sp-message').value = '';
+  } catch (e) {
+    showToast('Could not send. Try emailing support@handyhub.app');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  }
+};
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2400);
+}
+</script>
+<script src="js/artisanFloatingNav.js"></script>
+</body>
+</html>

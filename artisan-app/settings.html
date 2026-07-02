@@ -1,0 +1,243 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Settings | HandyHub Artisan</title>
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <style>
+    body { margin: 0; background: var(--ds-bg); font-family: var(--ds-font);
+           -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    .st-header { display:flex; align-items:center; gap:var(--ds-3);
+      padding:var(--ds-3) var(--ds-gutter); background:var(--ds-surface);
+      border-bottom:1px solid var(--ds-line); position:sticky; top:0; z-index:10; }
+    .st-header h1 { font:800 18px/1 var(--ds-font); letter-spacing:-0.3px; color:var(--ds-ink); flex:1; }
+
+    .st-group-label { font:700 11px/1 var(--ds-font); letter-spacing:0.6px; text-transform:uppercase;
+      color:var(--ds-ink-3); padding:0 var(--ds-1); margin-bottom:var(--ds-2); }
+
+    /* Row — shared between link rows and toggle rows */
+    .st-row { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-4); width:100%;
+      background:none; border:none; cursor:pointer; text-decoration:none; text-align:left; font-family:inherit; }
+    .st-row + .st-row { border-top:1px solid var(--ds-line); }
+    .st-row:active:not(.st-row--static) { background:var(--ds-surface-2); }
+    .st-row--static { cursor:default; }
+    .st-ic { width:36px; height:36px; border-radius:var(--ds-r-control); background:var(--ds-brand-50);
+      color:var(--ds-brand-600); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .st-ic svg { width:18px; height:18px; }
+    .st-ic.danger { background:var(--ds-danger-bg); color:var(--ds-danger); }
+    .st-body { flex:1; min-width:0; }
+    .st-title { display:block; font:600 14px/1.3 var(--ds-font); color:var(--ds-ink); }
+    .st-sub { display:block; font:500 12px/1.3 var(--ds-font); color:var(--ds-ink-3); margin-top:2px; }
+    .st-chev { color:var(--ds-ink-4); flex-shrink:0; }
+    .st-chev svg { width:16px; height:16px; }
+    .st-value { font:600 13px/1 var(--ds-font); color:var(--ds-ink-3); flex-shrink:0; }
+
+    .st-version { text-align:center; font:500 12px/1.4 var(--ds-font); color:var(--ds-ink-4);
+      padding:var(--ds-6) var(--ds-gutter) calc(var(--ds-nav-h) + var(--ds-6)); }
+
+    /* Confirm bottom sheet */
+    .st-sheet-ov { position:fixed; inset:0; background:rgba(15,18,22,0.5); z-index:1900;
+      display:none; align-items:flex-end; justify-content:center; opacity:0; transition:opacity var(--ds-t-base); }
+    .st-sheet-ov.open { display:flex; opacity:1; }
+    .st-sheet { width:100%; max-width:var(--ds-shell); background:var(--ds-surface);
+      border-radius:var(--ds-r-card) var(--ds-r-card) 0 0; padding:var(--ds-5) var(--ds-5) max(var(--ds-5), env(safe-area-inset-bottom));
+      box-shadow:var(--ds-shadow-sheet); transform:translateY(100%); transition:transform var(--ds-t-slow) var(--ds-ease); }
+    .st-sheet-ov.open .st-sheet { transform:translateY(0); }
+    .st-sheet-handle { width:38px; height:4px; background:var(--ds-line-strong); border-radius:var(--ds-r-pill); margin:0 auto var(--ds-4); }
+    .st-sheet-title { font:800 18px/1.25 var(--ds-font); color:var(--ds-ink); margin-bottom:var(--ds-2); }
+    .st-sheet-sub { font:500 14px/1.5 var(--ds-font); color:var(--ds-ink-2); margin-bottom:var(--ds-5); }
+    .st-sheet-actions { display:flex; flex-direction:column; gap:var(--ds-2); }
+  </style>
+</head>
+<body>
+<div class="ds-shell">
+  <div class="ds-scroll">
+
+    <div class="st-header">
+      <button class="ds-iconbtn" onclick="window.location.href='profile.html'" aria-label="Back">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h1>Settings</h1>
+    </div>
+
+    <!-- Preferences -->
+    <div class="ds-section">
+      <p class="st-group-label">Preferences</p>
+      <div class="ds-card ds-card--flush">
+
+        <div class="st-row st-row--static">
+          <span class="st-ic">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="st-body"><span class="st-title">Dark mode</span><span class="st-sub">Easier on the eyes at night</span></span>
+          <label class="ds-switch">
+            <input type="checkbox" id="toggle-theme" />
+            <span class="ds-switch-track"></span><span class="ds-switch-thumb"></span>
+          </label>
+        </div>
+
+        <div class="st-row st-row--static">
+          <span class="st-ic">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </span>
+          <span class="st-body"><span class="st-title">Push notifications</span><span class="st-sub">New jobs, payments &amp; messages</span></span>
+          <label class="ds-switch">
+            <input type="checkbox" id="toggle-notif" />
+            <span class="ds-switch-track"></span><span class="ds-switch-thumb"></span>
+          </label>
+        </div>
+
+        <div class="st-row st-row--static">
+          <span class="st-ic">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+          </span>
+          <span class="st-body"><span class="st-title">Job radius</span><span class="st-sub">How far you'll travel for work</span></span>
+          <span class="st-value" id="radius-value">10 km</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Account -->
+    <div class="ds-section ds-section--tight">
+      <p class="st-group-label">Account</p>
+      <div class="ds-card ds-card--flush">
+
+        <a href="profile.html" class="st-row">
+          <span class="st-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg></span>
+          <span class="st-body"><span class="st-title">Edit profile</span><span class="st-sub">Name, contact &amp; specialty</span></span>
+          <span class="st-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+
+        <a href="onboarding.html" class="st-row">
+          <span class="st-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="st-body"><span class="st-title">Verification</span><span class="st-sub" id="kyc-sub">Manage your KYC documents</span></span>
+          <span class="st-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+
+        <a href="wallet.html" class="st-row">
+          <span class="st-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M16 12h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span class="st-body"><span class="st-title">Payout method</span><span class="st-sub">Mobile money &amp; withdrawals</span></span>
+          <span class="st-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- Support & Legal -->
+    <div class="ds-section ds-section--tight">
+      <p class="st-group-label">Support &amp; Legal</p>
+      <div class="ds-card ds-card--flush">
+
+        <a href="support.html" class="st-row">
+          <span class="st-ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .8-1 1.7M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span class="st-body"><span class="st-title">Help &amp; support</span><span class="st-sub">FAQs and contact us</span></span>
+          <span class="st-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+
+        <a href="../customer-app/settings-terms.html" class="st-row">
+          <span class="st-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v6h6M9 13h6M9 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span class="st-body"><span class="st-title">Terms of service</span></span>
+          <span class="st-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+
+        <a href="../customer-app/settings-privacy-policy.html" class="st-row">
+          <span class="st-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+          <span class="st-body"><span class="st-title">Privacy policy</span></span>
+          <span class="st-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- Sign out -->
+    <div class="ds-section ds-section--tight">
+      <div class="ds-card ds-card--flush">
+        <button class="st-row" id="signout-row">
+          <span class="st-ic danger"><svg viewBox="0 0 24 24" fill="none"><path d="M16 17l5-5-5-5M21 12H9M12 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="st-body"><span class="st-title" style="color:var(--ds-danger);">Sign out</span></span>
+        </button>
+      </div>
+    </div>
+
+    <p class="st-version">HandyHub Artisan · v1.0</p>
+
+  </div>
+</div>
+
+<!-- Sign-out confirm sheet -->
+<div class="st-sheet-ov" id="signout-sheet" role="dialog" aria-modal="true" aria-label="Confirm sign out">
+  <div class="st-sheet">
+    <div class="st-sheet-handle"></div>
+    <p class="st-sheet-title">Sign out?</p>
+    <p class="st-sheet-sub">You'll need to sign in again to receive jobs and access your wallet.</p>
+    <div class="st-sheet-actions">
+      <button class="ds-btn ds-btn--danger ds-btn--block" id="signout-confirm">Sign out</button>
+      <button class="ds-btn ds-btn--secondary ds-btn--block" id="signout-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import '../shared/js/utils/global-app.js';
+import { getAppContainer }    from '../shared/js/app/container.js';
+import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+
+const { artisan } = await requireArtisanAuth({ allowPending: true });
+
+/* ── Theme toggle (functional — drives themeManager's pref_theme) ──────── */
+const themeToggle = document.getElementById('toggle-theme');
+themeToggle.checked = (localStorage.getItem('pref_theme') || 'Light').toLowerCase() === 'dark';
+themeToggle.addEventListener('change', () => {
+  const value = themeToggle.checked ? 'Dark' : 'Light';
+  localStorage.setItem('pref_theme', value);
+  document.documentElement.toggleAttribute('data-theme', themeToggle.checked);
+  if (themeToggle.checked) document.documentElement.setAttribute('data-theme', 'dark');
+  else document.documentElement.removeAttribute('data-theme');
+});
+
+/* ── Notification preference (UX-layer; persisted locally) ─────────────── */
+const notifToggle = document.getElementById('toggle-notif');
+notifToggle.checked = (localStorage.getItem('artisan_pref_notifications') ?? 'true') === 'true';
+notifToggle.addEventListener('change', () => {
+  localStorage.setItem('artisan_pref_notifications', String(notifToggle.checked));
+});
+
+/* ── Reflect verification status in the row subtitle ───────────────────── */
+const kycMap = { approved: 'Verified — documents approved', pending_review: 'Under review', rejected: 'Action needed — resubmit', draft: 'Not submitted yet' };
+const kyc = (artisan.verificationStatus || 'draft');
+document.getElementById('kyc-sub').textContent = kycMap[kyc] || 'Manage your KYC documents';
+
+/* ── Job radius display (read-only here; managed in onboarding) ─────────── */
+if (artisan.jobRadius) document.getElementById('radius-value').textContent = artisan.jobRadius + ' km';
+
+/* ── Sign-out confirm sheet ────────────────────────────────────────────── */
+const sheet = document.getElementById('signout-sheet');
+const openSheet  = () => { sheet.classList.add('open'); document.body.style.overflow = 'hidden'; };
+const closeSheet = () => { sheet.classList.remove('open'); document.body.style.overflow = ''; };
+
+document.getElementById('signout-row').addEventListener('click', openSheet);
+document.getElementById('signout-cancel').addEventListener('click', closeSheet);
+sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+
+document.getElementById('signout-confirm').addEventListener('click', async () => {
+  const btn = document.getElementById('signout-confirm');
+  btn.disabled = true; btn.textContent = 'Signing out…';
+  try {
+    const { services: { sessionService } } = getAppContainer();
+    await sessionService.logout();
+  } catch (_) {}
+  window.location.replace('login.html');
+});
+</script>
+<script src="js/artisanFloatingNav.js"></script>
+</body>
+</html>

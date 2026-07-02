@@ -6,6 +6,7 @@
   <title>HandyHub Admin – Artisans</title>
   <link rel="stylesheet" href="css/admin.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     .artisan-avatar {
       width: 38px; height: 38px;
@@ -339,7 +340,7 @@
         <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
           <span id="d-status-badge" class="badge badge-warning">—</span>
           <span id="d-online-badge" class="badge badge-default">Offline</span>
-          <span id="d-featured-badge" class="badge badge-orange" style="display:none;">⭐ Featured</span>
+          <span id="d-featured-badge" class="badge badge-orange" style="display:none;"><i class="fa-solid fa-star"></i> Featured</span>
         </div>
       </div>
     </div>
@@ -396,20 +397,20 @@
     </div>
   </div>
   <div class="drawer-actions" id="drawer-actions">
-    <button class="btn-feature-artisan" id="d-btn-feature" onclick="toggleFeatured()">⭐ Feature</button>
-    <button class="btn-suspend-artisan" id="d-btn-suspend" onclick="toggleSuspend()">⏸ Suspend</button>
-    <button class="btn-ban-artisan"     id="d-btn-ban"     onclick="banArtisan()">🚫 Ban</button>
+    <button class="btn-feature-artisan" id="d-btn-feature" onclick="toggleFeatured()"><i class="fa-solid fa-star"></i> Feature</button>
+    <button class="btn-suspend-artisan" id="d-btn-suspend" onclick="toggleSuspend()"><i class="fa-solid fa-pause"></i> Suspend</button>
+    <button class="btn-ban-artisan"     id="d-btn-ban"     onclick="toggleBan()"><i class="fa-solid fa-ban"></i> Ban</button>
   </div>
 </div>
 
 <div class="admin-toast" id="admin-toast"></div>
 
 <script type="module">
-import { db, auth }                    from './js/firebase-admin.js';
+import { db, auth, callAdminFunction }  from './js/firebase-admin.js';
 import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
 import { showToast, subscribeVerifBadge, setDateHeader } from './js/ui-utils.js';
 import { collection, doc, getDoc, getDocs, onSnapshot,
-         updateDoc, addDoc, query, where, orderBy, limit, serverTimestamp }
+         updateDoc, query, where, orderBy, limit }
                             from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 let currentAdmin = null;
@@ -510,7 +511,7 @@ function renderTable() {
     const cls     = statusMap[status]||'badge-default';
     const ts      = a.createdAt?.toDate?.()||null;
     const dateStr = ts ? ts.toLocaleDateString('en-GH',{day:'2-digit',month:'short',year:'2-digit'}) : '—';
-    const rating  = a.rating ? `<span class="rating-stars">★</span> ${Number(a.rating).toFixed(1)}` : '—';
+    const rating  = a.rating ? `<i class="fa-solid fa-star rating-stars"></i> ${Number(a.rating).toFixed(1)}` : '—';
     const wallet  = a.walletBalance != null ? `GHS ${Number(a.walletBalance).toFixed(2)}` : '—';
     const initials= (a.fullName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
 
@@ -519,7 +520,7 @@ function renderTable() {
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="artisan-avatar">${initials}</div>
           <div>
-            <p style="font-size:13px;font-weight:600;color:var(--text-dark);">${esc(a.fullName||'—')}${a.isFeatured?'<span style="color:#F59E0B;margin-left:4px;font-size:10px;">⭐</span>':''}</p>
+            <p style="font-size:13px;font-weight:600;color:var(--text-dark);">${esc(a.fullName||'—')}${a.isFeatured?'<i class="fa-solid fa-star" style="color:#F59E0B;margin-left:4px;font-size:10px;"></i>':''}</p>
             <p style="font-size:11px;color:var(--text-light);">${esc(a.email||'—')}</p>
           </div>
         </div>
@@ -582,13 +583,13 @@ window.openDrawer = async function(uid) {
 
   const ob = document.getElementById('d-online-badge');
   ob.className = `badge ${a.isAvailable?'badge-success':'badge-default'}`;
-  ob.textContent = a.isAvailable ? '🟢 Online' : 'Offline';
+  ob.innerHTML = a.isAvailable ? '<i class="fa-solid fa-circle" style="font-size:8px;color:#22c55e;"></i> Online' : 'Offline';
 
   const fb = document.getElementById('d-featured-badge');
   fb.style.display = a.isFeatured ? 'inline-flex' : 'none';
 
   document.getElementById('d-jobs').textContent   = a.jobsCompleted||0;
-  document.getElementById('d-rating').textContent = a.rating ? Number(a.rating).toFixed(1)+'★' : '—';
+  document.getElementById('d-rating').innerHTML = a.rating ? Number(a.rating).toFixed(1)+' <i class="fa-solid fa-star"></i>' : '—';
   document.getElementById('d-wallet').textContent = a.walletBalance!=null ? `GHS ${Number(a.walletBalance).toFixed(2)}` : '—';
 
   document.getElementById('d-email').textContent   = a.email||'—';
@@ -609,8 +610,16 @@ window.openDrawer = async function(uid) {
   document.getElementById('d-momo-name').textContent     = a.momoAccountName||'—';
 
   // Feature/Suspend buttons
-  document.getElementById('d-btn-feature').textContent = a.isFeatured ? '★ Unfeature' : '⭐ Feature';
-  document.getElementById('d-btn-suspend').textContent = (status==='suspended') ? '▶ Reinstate' : '⏸ Suspend';
+  document.getElementById('d-btn-feature').innerHTML = a.isFeatured
+    ? '<i class="fa-regular fa-star"></i> Unfeature'
+    : '<i class="fa-solid fa-star"></i> Feature';
+  document.getElementById('d-btn-suspend').innerHTML = (status==='suspended')
+    ? '<i class="fa-solid fa-play"></i> Reinstate'
+    : '<i class="fa-solid fa-pause"></i> Suspend';
+  document.getElementById('d-btn-suspend').style.display = (status==='banned') ? 'none' : '';
+  document.getElementById('d-btn-ban').innerHTML = (status==='banned')
+    ? '<i class="fa-solid fa-rotate-left"></i> Unban'
+    : '<i class="fa-solid fa-ban"></i> Ban';
 
   // Load bookings
   loadArtisanBookings(uid);
@@ -649,58 +658,51 @@ window.toggleFeatured = async function() {
   const newVal = !activeArtisan.isFeatured;
   try {
     await updateDoc(doc(db,'artisans',activeArtisan.id), { isFeatured: newVal });
-    showToast(newVal ? '⭐ Artisan featured!' : 'Artisan unfeatured.','success');
+    showToast(newVal ? 'Artisan featured!' : 'Artisan unfeatured.','success');
     closeDrawer();
   } catch(e) { showToast('Error: '+e.message,'error'); }
 };
 
+/* suspendArtisan/reinstateArtisan/banArtisan/unbanArtisan are Cloud Functions
+ * (functions/artisanVerification.js) — they re-validate admin permission,
+ * write verification_requests + artisans atomically, and audit-log to
+ * verification_logs. This page no longer writes those fields directly. */
 window.toggleSuspend = async function() {
   if(!activeArtisan) return;
   const isSuspended = activeArtisan.verificationStatus === 'suspended';
-  const newStatus   = isSuspended ? 'approved' : 'suspended';
-  const msg         = isSuspended
+  const msg = isSuspended
     ? `Reinstate ${activeArtisan.fullName}?`
     : `Suspend ${activeArtisan.fullName}? They cannot accept bookings while suspended.`;
   if(!confirm(msg)) return;
+  const reason = isSuspended ? '' : (prompt('Reason for suspension (optional):') || '');
   try {
-    await updateDoc(doc(db,'artisans',activeArtisan.id), {
-      verificationStatus: newStatus,
-      isAvailable: isSuspended ? false : false,
-      suspendedAt: isSuspended ? null : serverTimestamp(),
-      suspendedBy: isSuspended ? null : currentAdmin.email
-    });
-    await addDoc(collection(db,'verification_logs'), {
-      artisanId: activeArtisan.id,
-      action: isSuspended ? 'reinstate' : 'suspended',
-      adminEmail: currentAdmin.email,
-      adminUid: currentAdmin.uid,
-      notes: '',
-      timestamp: serverTimestamp()
-    });
-    showToast(isSuspended ? '▶ Artisan reinstated.' : '⏸ Artisan suspended.','success');
+    if (isSuspended) {
+      await callAdminFunction('reinstateArtisan', { artisanId: activeArtisan.id, notes: reason });
+    } else {
+      await callAdminFunction('suspendArtisan', { artisanId: activeArtisan.id, reason });
+    }
+    showToast(isSuspended ? 'Artisan reinstated.' : 'Artisan suspended.','success');
     closeDrawer();
-  } catch(e) { showToast('Error: '+e.message,'error'); }
+  } catch(e) { showToast('Error: '+(e.message||e),'error'); }
 };
 
-window.banArtisan = async function() {
+window.toggleBan = async function() {
   if(!activeArtisan) return;
-  const reason = prompt(`Ban ${activeArtisan.fullName}?\nThis is permanent. Enter reason:`);
-  if(reason===null) return;
-  if(!reason.trim()){ showToast('Ban reason is required.','error'); return; }
+  const isBanned = activeArtisan.verificationStatus === 'banned';
   try {
-    await updateDoc(doc(db,'artisans',activeArtisan.id), {
-      verificationStatus:'banned', isAvailable:false,
-      bannedAt: serverTimestamp(), bannedBy: currentAdmin.email, banReason: reason
-    });
-    await addDoc(collection(db,'customer_notifications'),{
-      receiverId: activeArtisan.id, type:'System',
-      title:'🚫 Account Banned',
-      message:`Your HandyHub account has been permanently banned. Reason: ${reason}. Contact support if you believe this is in error.`,
-      isRead:false, createdAt:serverTimestamp()
-    }).catch(()=>{});
-    showToast('🚫 Artisan banned permanently.','success');
+    if (isBanned) {
+      if(!confirm(`Lift the ban on ${activeArtisan.fullName}?`)) return;
+      await callAdminFunction('unbanArtisan', { artisanId: activeArtisan.id });
+      showToast('Ban lifted.','success');
+    } else {
+      const reason = prompt(`Ban ${activeArtisan.fullName}?\nThis is permanent. Enter reason:`);
+      if(reason===null) return;
+      if(!reason.trim()){ showToast('Ban reason is required.','error'); return; }
+      await callAdminFunction('banArtisan', { artisanId: activeArtisan.id, reason });
+      showToast('Artisan banned permanently.','success');
+    }
     closeDrawer();
-  } catch(e) { showToast('Error: '+e.message,'error'); }
+  } catch(e) { showToast('Error: '+(e.message||e),'error'); }
 };
 
 window.exportCSV = function() {

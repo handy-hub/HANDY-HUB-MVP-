@@ -312,10 +312,46 @@ async function logFailure(err, currentRunId) {
  *   durationMs: number,
  * }>}
  */
+// ── Hung-run detection ─────────────────────────────────────────────────────────
+// A run stuck in 'running' state for > 20 minutes is considered hung (Cloud
+// Scheduler timeout is 10 min for onSchedule; Cloud Functions Gen2 max is 60 min).
+// We alert via console.error which routes to Cloud Logging for monitoring.
+const HUNG_RUN_THRESHOLD_MS = 20 * 60 * 1000;
+
+async function detectAndAlertHungRuns() {
+    try {
+        const cutoff = new Date(Date.now() - HUNG_RUN_THRESHOLD_MS).toISOString();
+        const snap = await db()
+            .collection(COL_RUNS)
+            .where('status', '==', 'running')
+            .where('startedAt', '<', cutoff)
+            .limit(10)
+            .get();
+
+        if (!snap.empty) {
+            const ids = snap.docs.map(d => d.id).join(', ');
+            console.error(
+                `[auto-release] ALERT: ${snap.size} hung run(s) detected (stuck >20 min): ${ids}. ` +
+                'These may indicate a Cloud Function crash mid-run. Investigate and manually resolve any held escrow.'
+            );
+            // Mark them as 'hung' so they are not re-alerted on every execution
+            const batch = db().batch();
+            snap.docs.forEach(d => batch.update(d.ref, { status: 'hung', detectedAt: now() }));
+            await batch.commit();
+        }
+    } catch (err) {
+        // Non-fatal — never let monitoring block financial processing
+        console.warn('[auto-release] Hung-run detection failed:', err.message);
+    }
+}
+
 async function runAutoRelease() {
     const id       = runId();
     const startMs  = Date.now();
     const startedAt = now();
+
+    // Check for hung runs from prior executions before starting new work
+    await detectAndAlertHungRuns();
 
     // Capture the expiry cutoff once. All paginated queries use this fixed value
     // so documents that expire mid-run are deferred to the next execution, keeping

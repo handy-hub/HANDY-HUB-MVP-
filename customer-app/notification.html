@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="css/notification.css">
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <link rel='stylesheet' href='../shared/css/components/tabs.css' />
+  <link rel='stylesheet' href='../shared/css/components/swipeAction.css' />
 </head>
 <body data-page-type="notification">
 
@@ -33,8 +35,8 @@
             </div>
         </header>
 
-        <!-- ── Filter tabs (rendered by JS) ──────────────────────────── -->
-        <div class="tabs-scroll" id="tabContainer" role="tablist"></div>
+        <!-- ── Filter tabs (rendered by JS) — canonical ui-tabs (pill variant) ── -->
+        <div class="ui-tabs" id="tabContainer" role="tablist"></div>
 
         <!-- ── Notification list (rendered by JS) ────────────────────── -->
         <main class="notif-main">
@@ -66,13 +68,7 @@
     <script src="../shared/js/components/pageTransition.js"></script>
     <script src="../shared/js/utils/global-app.js"></script>
 
-    <!-- Auth guard — must run before page init -->
-    <script type="module">
-      import { requireAuth } from '../shared/js/utils/authGuard.js';
-      await requireAuth();
-    </script>
-
-    <!-- Notification logic as an ES module (needs Firebase imports) -->
+    <!-- Notification logic: auth guard is handled internally by waitForCurrentUser() -->
     <script type="module" src="js/pages/notificationPage.js"></script>
 
 <script src="../shared/js/components/fastLoader.js"></script>
@@ -80,4 +76,3 @@
 <script type="module" src="js/authInit.js"></script>
 </body>
 </html>
-

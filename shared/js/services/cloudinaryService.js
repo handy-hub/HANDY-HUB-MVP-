@@ -76,6 +76,22 @@ export function cdnUrl(publicId, transform = '', version = null) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
+   TEMPORARY: on-the-fly transformation delivery is currently 404-ing for
+   every derived request on this Cloudinary account/plan (confirmed: even a
+   bare w_160,h_160 resize with no other options fails; the untransformed
+   original always resolves). Signed uploads would fix this properly, but
+   this app only does unsigned client-side uploads with no backend signer.
+   Until that's resolved, avatarUrl() returns the untransformed original —
+   larger than ideal, but CSS (.avatar { object-fit:cover; border-radius:50% })
+   already does the crop/circle work client-side, so images still display
+   correctly. Swap this back to cdnUrl(publicId, transform, version) once
+   Cloudinary transform delivery is confirmed working again.
+───────────────────────────────────────────────────────────────── */
+export function avatarUrl(publicId, _transform = '', version = null) {
+  return cdnUrl(publicId, '', version);
+}
+
+/* ─────────────────────────────────────────────────────────────────
    uploadImage(file, preset, options?)
    Uploads a File directly to Cloudinary using an unsigned preset.
    Returns the public_id — this is what you store in Firestore.
@@ -185,7 +201,10 @@ export function uploadWithProgress(file, preset, { publicId = '', onProgress } =
 export function fallbackAvatar(name = '') {
   const initials = name.trim().split(/\s+/).filter(Boolean).map(w => w[0] || '').join('').slice(0, 2).toUpperCase() || '?';
   const fs  = initials.length > 1 ? 14 : 16;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#730201"/><text x="20" y="20" font-family="Arial,sans-serif" font-size="${fs}" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central">${initials}</text></svg>`;
+  const brandColor = (typeof document !== 'undefined'
+    ? getComputedStyle(document.documentElement).getPropertyValue('--ui-primary').trim()
+    : '') || '#730201';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="${brandColor}"/><text x="20" y="20" font-family="Arial,sans-serif" font-size="${fs}" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central">${initials}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
@@ -204,7 +223,11 @@ export function fallbackAvatar(name = '') {
 export function resolveAvatar(data, transform = TRANSFORMS.avatarSm) {
   if (!data) return fallbackAvatar('');
   if (data.profileImageId)
-    return cdnUrl(data.profileImageId, transform, data.profileImageVersion ?? null);
+    // TEMPORARY: avatarUrl() (not cdnUrl()) — on-the-fly transform delivery
+    // is currently 404-ing on this Cloudinary account/plan for every derived
+    // request. See avatarUrl()'s own comment above for the full explanation
+    // and how to revert once Cloudinary transform delivery works again.
+    return avatarUrl(data.profileImageId, transform, data.profileImageVersion ?? null);
   if (data.profileImage) return data.profileImage;
   return fallbackAvatar(data.name || '');
 }

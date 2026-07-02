@@ -1,0 +1,398 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Bookings | HandyHub Artisan</title>
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <link rel="stylesheet" href="../shared/css/components/tabs.css" />
+  <style>
+    .bk-shell  { max-width:430px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column; background:var(--surface-2); }
+    .bk-header { background:var(--surface); padding:14px 16px 0; border-bottom:1px solid var(--border); flex-shrink:0; position:sticky; top:0; z-index:10; }
+    .bk-header-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .bk-back  { width:36px; height:36px; border:none; background:var(--surface-3); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+    .bk-title { font-size:17px; font-weight:800; color:var(--text-dark); flex:1; }
+    .bk-count { font-size:12px; font-weight:700; color:var(--text-light); background:var(--surface-3); padding:3px 10px; border-radius:20px; }
+
+    /* Body */
+    .bk-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:12px 14px; }
+
+    /* Booking card */
+    .bk-card { background:var(--surface); border-radius:var(--radius-md); margin-bottom:10px; overflow:hidden; box-shadow:var(--shadow-sm); }
+    .bk-card-top { display:flex; align-items:flex-start; gap:12px; padding:14px 14px 10px; }
+    .bk-av { width:46px; height:46px; border-radius:13px; background:var(--ds-brand-50,#FFF7ED); color:var(--ds-brand-600,#EA580C); display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800; flex-shrink:0; overflow:hidden; }
+    .bk-av img { width:100%; height:100%; object-fit:cover; }
+    .bk-info { flex:1; min-width:0; }
+    .bk-service { font-size:14.5px; font-weight:800; color:var(--text-dark); margin:0 0 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .bk-customer { font-size:12px; color:var(--text-mid); margin:0 0 5px; }
+    .bk-meta-row { display:flex; flex-wrap:wrap; gap:8px; }
+    .bk-meta { display:flex; align-items:center; gap:3px; font-size:11.5px; color:var(--text-light); }
+    .bk-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
+    .bk-amount { font-size:15px; font-weight:800; color:var(--text-dark); }
+
+    /* Status pills */
+    .bk-pill { display:inline-block; padding:3px 10px; border-radius:20px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; white-space:nowrap; }
+    .pill-pending     { background:#fff8f0; color:#c2410c; }
+    .pill-dispatched  { background:#fff8f0; color:#c2410c; }
+    .pill-accepted    { background:#f0fdf4; color:#15803d; }
+    .pill-en_route    { background:#eff6ff; color:#1d4ed8; }
+    .pill-in_progress { background:#eff6ff; color:#1d4ed8; }
+    .pill-awaiting    { background:#fefce8; color:#854d0e; }
+    .pill-completed   { background:#f0fdf4; color:#166534; }
+    .pill-cancelled   { background:#fef2f2; color:#991b1b; }
+    .pill-rejected    { background:#fef2f2; color:#991b1b; }
+    .pill-unfulfilled { background:#fef2f2; color:#991b1b; }
+    .pill-dispatching { background:#faf5ff; color:#6d28d9; }
+    .pill-searching   { background:#faf5ff; color:#6d28d9; }
+    .pill-assigned    { background:#f0fdf4; color:#15803d; }
+
+    /* Card divider + actions */
+    .bk-card-actions { display:flex; gap:8px; flex-wrap:wrap; padding:0 14px 14px; }
+    .bk-btn { height:36px; padding:0 14px; border-radius:10px; font-family:inherit; font-size:12px; font-weight:700; border:none; cursor:pointer; display:flex; align-items:center; gap:5px; transition:opacity .15s, transform .1s; }
+    .bk-btn:active { transform:scale(0.97); }
+    .bk-btn-primary  { background:var(--primary); color:#fff; }
+    .bk-btn-outline  { background:none; border:1.5px solid var(--border); color:var(--text-mid); }
+    .bk-btn-success  { background:#22c55e; color:#fff; }
+    .bk-btn-danger   { background:var(--surface-3); color:var(--text-mid); }
+
+    /* Notes preview */
+    .bk-notes { margin:0 14px 10px; padding:10px 12px; background:var(--surface-2); border-radius:10px; font-size:12px; color:var(--text-mid); line-height:1.5; border-left:3px solid var(--border); }
+
+    /* Skeleton */
+    .bk-skel { background:var(--surface); border-radius:var(--radius-md); margin-bottom:10px; padding:14px; animation:bkPulse 1.4s ease-in-out infinite; }
+    .bsk { height:12px; border-radius:6px; background:#ebebeb; margin-bottom:8px; }
+    @keyframes bkPulse { 0%,100%{opacity:1}50%{opacity:.5} }
+
+    /* Empty */
+    .bk-empty { text-align:center; padding:60px 24px; }
+    .bk-empty-icon { width:56px; height:56px; margin:0 auto 14px; border-radius:14px; background:var(--surface-3,#F3F4F6); color:var(--text-light,#9CA3AF); display:inline-flex; align-items:center; justify-content:center; }
+    .bk-empty-icon svg { width:26px; height:26px; }
+    .bk-empty-title { font-size:15px; font-weight:800; color:var(--text-dark); margin:0 0 6px; }
+    .bk-empty-sub   { font-size:13px; color:var(--text-light); margin:0; }
+
+    /* Bottom nav */
+  </style>
+</head>
+<body>
+<div class="bk-shell">
+
+  <div class="bk-header">
+    <div class="bk-header-row">
+      <button class="bk-back" aria-label="Go back" onclick="history.back()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <span class="bk-title">My Bookings</span>
+      <span class="bk-count" id="bk-count">—</span>
+    </div>
+    <div class="ui-tabs ui-tabs--artisan" id="bk-tabs" role="tablist">
+      <button class="ui-tab active" role="tab" aria-selected="true"  data-filter="active"    onclick="setFilter('active',this)">Active</button>
+      <button class="ui-tab" role="tab" aria-selected="false" data-filter="pending"   onclick="setFilter('pending',this)">Pending</button>
+      <button class="ui-tab" role="tab" aria-selected="false" data-filter="completed" onclick="setFilter('completed',this)">Completed</button>
+      <button class="ui-tab" role="tab" aria-selected="false" data-filter="cancelled" onclick="setFilter('cancelled',this)">Cancelled</button>
+      <button class="ui-tab" role="tab" aria-selected="false" data-filter="all"       onclick="setFilter('all',this)">All</button>
+    </div>
+  </div>
+
+  <div class="bk-body" id="bk-body">
+    <!-- Skeletons -->
+    <div id="bk-loading">
+      ${[1,2,3].map(() => `
+      <div class="bk-skel">
+        <div style="display:flex;gap:12px;margin-bottom:10px;">
+          <div class="bsk" style="width:46px;height:46px;border-radius:13px;flex-shrink:0;margin:0;"></div>
+          <div style="flex:1;">
+            <div class="bsk" style="width:55%;height:14px;"></div>
+            <div class="bsk" style="width:40%;height:11px;"></div>
+            <div class="bsk" style="width:70%;height:11px;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+            <div class="bsk" style="width:60px;height:14px;margin:0;"></div>
+            <div class="bsk" style="width:70px;height:20px;border-radius:20px;margin:0;"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div class="bsk" style="flex:1;height:36px;border-radius:10px;margin:0;"></div>
+          <div class="bsk" style="width:90px;height:36px;border-radius:10px;margin:0;"></div>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div id="bk-list" style="display:none;"></div>
+    <div class="bk-empty" id="bk-empty" style="display:none;">
+      <div class="bk-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 3v4M8 3v4M4 10h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+      <p class="bk-empty-title">No bookings here</p>
+      <p class="bk-empty-sub">Bookings you accept will appear here</p>
+    </div>
+  </div>
+
+  <!-- Bottom navigation is injected by js/artisanFloatingNav.js -->
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import '../shared/js/utils/global-app.js';
+import { getAppContainer }    from '../shared/js/app/container.js';
+import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+
+const { user } = await requireArtisanAuth({ allowPending: false });
+const { services: { databaseService } } = getAppContainer();
+
+// ── State ──────────────────────────────────────────────
+let _all    = [];
+let _filter = 'active';
+let _unsub  = null;
+
+const ACTIVE_STATUSES = new Set(['pending','dispatching','searching','dispatched','assigned','accepted','en_route','in_progress','awaiting']);
+
+// ── DOM ────────────────────────────────────────────────
+const listEl    = document.getElementById('bk-list');
+const loadingEl = document.getElementById('bk-loading');
+const emptyEl   = document.getElementById('bk-empty');
+const countEl   = document.getElementById('bk-count');
+
+// ── Helpers ────────────────────────────────────────────
+function fmt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GH', { day:'numeric', month:'short', year:'numeric' }) +
+    ' · ' + d.toLocaleTimeString('en-GH', { hour:'2-digit', minute:'2-digit' });
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'Just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h/24)}d ago`;
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function initials(name) {
+  return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+
+function pillClass(status) {
+  return `pill-${(status||'').replace(/\s/g,'_').toLowerCase()}`;
+}
+
+function pillLabel(status) {
+  const MAP = {
+    pending:'Pending', dispatching:'Finding...', searching:'Searching',
+    dispatched:'Assigned', assigned:'Assigned', accepted:'Accepted',
+    en_route:'En Route', in_progress:'In Progress', awaiting:'Awaiting',
+    completed:'Completed', cancelled:'Cancelled', rejected:'Declined',
+    unfulfilled:'Unfulfilled',
+  };
+  return MAP[status] || status;
+}
+
+// ── Filter ─────────────────────────────────────────────
+function filtered(bookings) {
+  switch (_filter) {
+    case 'active':    return bookings.filter(b => ACTIVE_STATUSES.has(b.data.status));
+    case 'pending':   return bookings.filter(b => ['pending','dispatching','searching','dispatched'].includes(b.data.status));
+    case 'completed': return bookings.filter(b => b.data.status === 'completed');
+    case 'cancelled': return bookings.filter(b => ['cancelled','rejected','unfulfilled'].includes(b.data.status));
+    default:          return bookings;
+  }
+}
+
+// ── Action buttons by status ───────────────────────────
+function actionButtons(booking) {
+  const id = booking.id;
+  const status = booking.data.status;
+
+  if (status === 'accepted' || status === 'assigned') {
+    // The booking rules only permit accepted → en_route once the quote has been
+    // approved (quoteApproved == true). Before that, send the artisan to the
+    // full job page where the quote can be submitted — attempting the status
+    // write here would be rejected by isValidBookingUpdate().
+    if (!booking.data.quoteApproved) {
+      return `
+      <button class="bk-btn bk-btn-primary" onclick="window.location.href='jobs.html?id=${id}'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2.0" stroke-linecap="round"/></svg>
+        Submit Quote
+      </button>
+      <button class="bk-btn bk-btn-outline" onclick="updateStatus('${id}','cancelled')">Cancel</button>`;
+    }
+    return `
+      <button class="bk-btn bk-btn-primary" onclick="updateStatus('${id}','en_route')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="#fff" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        I'm En Route
+      </button>
+      <button class="bk-btn bk-btn-outline" onclick="updateStatus('${id}','cancelled')">Cancel</button>`;
+  }
+  if (status === 'en_route') {
+    return `
+      <button class="bk-btn bk-btn-primary" onclick="updateStatus('${id}','in_progress')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><path d="M10 8l6 4-6 4V8z" fill="#fff"/></svg>
+        Start Job
+      </button>`;
+  }
+  if (status === 'in_progress') {
+    return `
+      <button class="bk-btn bk-btn-success" onclick="updateStatus('${id}','awaiting')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Mark Complete
+      </button>`;
+  }
+  if (status === 'awaiting') {
+    return `<span style="font-size:12px;color:var(--text-light);padding:0 4px;">Awaiting customer confirmation…</span>`;
+  }
+  if (status === 'completed') {
+    return `
+      <button class="bk-btn bk-btn-outline" onclick="window.location.href='jobs.html?id=${id}'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#6B7280" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="#6B7280" stroke-width="1.8"/></svg>
+        View Details
+      </button>`;
+  }
+  return '';
+}
+
+// ── Render ─────────────────────────────────────────────
+function render(bookings) {
+  loadingEl.style.display = 'none';
+  listEl.style.display = 'block';
+
+  const visible = filtered(bookings);
+  countEl.textContent = visible.length;
+
+  if (visible.length === 0) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  listEl.innerHTML = visible.map(b => {
+    const d       = b.data;
+    const id      = b.id;
+    const amount  = d.finalPrice ?? d.price ?? d.calloutFee ?? 0;
+    const name    = d.customerName || 'Customer';
+    const notes   = (d.notes||'').trim();
+    const sched   = d.scheduledAt ? fmt(d.scheduledAt) : null;
+    const created = timeAgo(d.createdAt);
+
+    return `
+    <div class="bk-card" id="bkc-${id}">
+      <div class="bk-card-top">
+        <div class="bk-av">${initials(name)}</div>
+        <div class="bk-info">
+          <p class="bk-service">${esc(d.serviceType || d.service || 'Service')}</p>
+          <p class="bk-customer">${esc(name)}</p>
+          <div class="bk-meta-row">
+            <span class="bk-meta">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#9CA3AF"/></svg>
+              ${esc(d.address || d.location || 'Location TBD')}
+            </span>
+            <span class="bk-meta">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              ${sched || created}
+            </span>
+          </div>
+        </div>
+        <div class="bk-right">
+          <span class="bk-amount">GHS ${Number(amount).toFixed(2)}</span>
+          <span class="bk-pill ${pillClass(d.status)}">${pillLabel(d.status)}</span>
+        </div>
+      </div>
+      ${notes ? `<div class="bk-notes">"${esc(notes)}"</div>` : ''}
+      <div class="bk-card-actions">${actionButtons(b)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Status update ──────────────────────────────────────
+window.updateStatus = async function(bookingId, newStatus) {
+  const card = document.getElementById(`bkc-${bookingId}`);
+  const btns = card?.querySelectorAll('.bk-btn');
+  btns?.forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
+
+  // The Firestore booking state machine (isValidBookingUpdate in firestore.rules)
+  // requires each transition to write exactly its own timestamp field alongside
+  // status + updatedAt — nothing more, nothing less. Build the precise payload.
+  const now = new Date().toISOString();
+  let payload;
+  switch (newStatus) {
+    case 'en_route':    payload = { status: newStatus, enRouteAt: now, updatedAt: now }; break;
+    case 'in_progress': payload = { status: newStatus, arrivedAt: now, updatedAt: now }; break;
+    case 'awaiting':    payload = { status: newStatus, jobDoneAt: now, updatedAt: now }; break;
+    case 'cancelled':   payload = { status: newStatus, cancellationReason: 'Cancelled by artisan', updatedAt: now }; break;
+    default:            payload = { status: newStatus, updatedAt: now };
+  }
+
+  try {
+    await databaseService.updateDocument('bookings', bookingId, payload);
+    showToast(
+      newStatus === 'en_route'    ? 'On your way! Customer notified.' :
+      newStatus === 'in_progress' ? 'Job started!' :
+      newStatus === 'awaiting'    ? 'Marked complete. Awaiting customer.' :
+      newStatus === 'cancelled'   ? 'Booking cancelled.' : 'Updated.'
+    );
+  } catch (e) {
+    showToast('Update failed. Try again.');
+    btns?.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+  }
+};
+
+window.setFilter = function(filter, btn) {
+  _filter = filter;
+  document.querySelectorAll('#bk-tabs .ui-tab').forEach(t => {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
+  render(_all);
+};
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ── Subscribe — live updates ───────────────────────────
+const cutoff = new Date();
+cutoff.setDate(cutoff.getDate() - 90);
+
+_unsub = databaseService.subscribeToCollection(
+  'bookings',
+  [
+    { field: 'artisanId', op: '==', value: user.uid },
+    { field: 'createdAt', op: '>=', value: cutoff.toISOString() },
+  ],
+  { orderBy: { field: 'createdAt', direction: 'desc' } },
+  (records) => {
+    _all = records;
+    render(_all);
+  },
+  () => {
+    loadingEl.style.display = 'none';
+    emptyEl.style.display   = 'block';
+  }
+);
+
+window.addEventListener('pagehide', () => _unsub?.());
+</script>
+<script src="js/artisanFloatingNav.js"></script>
+</body>
+</html>

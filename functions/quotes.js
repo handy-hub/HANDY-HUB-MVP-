@@ -20,7 +20,7 @@
  */
 
 const { FieldValue } = require('firebase-admin/firestore');
-const { FIRESTORE_DB_ID, COMMISSION_RATE } = require('./config');
+const { FIRESTORE_DB_ID, COMMISSION_RATE, MAX_QUOTE_GHS } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const escrow = require('./financial/escrow');
 
@@ -48,6 +48,7 @@ const fmt = (n) => parseFloat(Number(n).toFixed(2));
 async function submitJobQuote(auth, { bookingId, labourCost, materials = [], note = '' }) {
     if (!bookingId)            throw new Error('bookingId is required.');
     if (!labourCost || Number(labourCost) <= 0) throw new Error('Labour cost must be greater than 0.');
+    if (Number(labourCost) > MAX_QUOTE_GHS) throw new Error(`Labour cost cannot exceed GHS ${MAX_QUOTE_GHS}.`);
 
     const bookingRef  = db().collection('bookings').doc(bookingId);
     const bookingSnap = await bookingRef.get();
@@ -110,7 +111,7 @@ async function submitJobQuote(auth, { bookingId, labourCost, materials = [], not
 
     await sendNotification(booking.customerId, {
         type:      'Bookings',
-        title:     '💰 Quote Ready for Approval',
+        title:     'Quote Ready for Approval',
         message:   `${artisanName} has sent a quote of GHS ${jobQuote.toFixed(2)} for your ${serviceType} job. Tap to review and approve.`,
         actionUrl: `dashboard.html?openQuote=${bookingId}`,
         bookingId,
@@ -146,6 +147,15 @@ async function approveJobQuote(auth, { bookingId }) {
     const jobQuote = Number(booking.jobQuote || 0);
     if (jobQuote <= 0) throw new Error('No valid quote to approve.');
 
+    // ── Re-verify artisan is still active before locking funds ───────────────
+    if (booking.artisanId) {
+        const artisanSnap = await db().collection('artisans').doc(booking.artisanId).get();
+        if (!artisanSnap.exists || artisanSnap.data().status !== 'active' ||
+            artisanSnap.data().verificationStatus !== 'approved') {
+            throw new Error('The artisan is no longer available. Please contact support.');
+        }
+    }
+
     // ── Hold escrow for full quote amount ────────────────────────────────────
     await escrow.holdFundsForBooking({
         bookingId,
@@ -166,7 +176,7 @@ async function approveJobQuote(auth, { bookingId }) {
     // ── Notify artisan ───────────────────────────────────────────────────────
     await sendArtisanNotification(booking.artisanId, {
         type:      'Bookings',
-        title:     '✅ Quote Approved!',
+        title:     'Quote Approved!',
         message:   `Your quote of GHS ${jobQuote.toFixed(2)} was approved. Payment is secured. You can now head to the job.`,
         actionUrl: `jobs.html`,
         bookingId,
@@ -219,7 +229,7 @@ async function rejectJobQuote(auth, { bookingId, reason = '' }) {
     // ── Notify artisan ───────────────────────────────────────────────────────
     await sendArtisanNotification(booking.artisanId, {
         type:      'Bookings',
-        title:     '❌ Quote Rejected',
+        title:     'Quote Rejected',
         message:   reason
             ? `Customer rejected your GHS ${prevQuote} quote: "${reason}". You can submit a new quote.`
             : `Customer rejected your GHS ${prevQuote} quote. You can submit a revised quote.`,

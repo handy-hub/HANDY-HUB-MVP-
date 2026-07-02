@@ -1,0 +1,147 @@
+/* ============================================================================
+   HandyHub — Canonical Back Button Component
+   ----------------------------------------------------------------------------
+   ONE implementation for every back button in the system.
+   Replaces: .back-btn definitions in settings.css, personal-Info.css,
+             style.css, transaction-history.css, wallet.css (artisan),
+             onboarding.css (artisan), global.css,
+             .bn-back-btn in book-now.css.
+
+   Canonical spec:
+     Container: 40×40px, border-radius: var(--ui-radius-sm)
+     Icon:      20×20px SVG child, stroke currentColor, stroke-width: 2
+     All page-specific sizes (34/36/38/52px) are retired.
+
+   Usage:
+     <button class="ui-back-btn" aria-label="Go back">
+       <svg …><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" …/></svg>
+     </button>
+   ============================================================================ */
+
+.ui-back-btn,
+.back-btn,
+.bn-back-btn,
+.bk-back-btn,
+.bn2-back-btn,
+.em-map-back-btn {
+  /* Geometry */
+  width:  40px;
+  height: 40px;
+  flex-shrink: 0;
+
+  /* Layout */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Appearance */
+  border: none;
+  border-radius: var(--ui-radius-sm, 10px);
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  /* Motion */
+  transition: background 0.15s ease;
+}
+
+/* Icon — canonical 20×20 locked size */
+.ui-back-btn > svg,
+.back-btn > svg,
+.bn-back-btn > svg,
+.bk-back-btn > svg,
+.bn2-back-btn > svg,
+.em-map-back-btn > svg {
+  width:  20px;
+  height: 20px;
+  min-width:  20px;
+  min-height: 20px;
+  display: block;
+  flex-shrink: 0;
+  /* Stroke inherits from currentColor — never set stroke inline */
+}
+
+/* Interaction states */
+.ui-back-btn:hover,
+.back-btn:hover,
+.bn-back-btn:hover,
+.bk-back-btn:hover,
+.bn2-back-btn:hover,
+.em-map-back-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.ui-back-btn:active,
+.back-btn:active,
+.bn-back-btn:active,
+.bk-back-btn:active,
+.bn2-back-btn:active,
+.em-map-back-btn:active {
+  background: rgba(0, 0, 0, 0.09);
+  transform: scale(0.94);
+}
+
+.ui-back-btn:focus-visible,
+.back-btn:focus-visible,
+.bn-back-btn:focus-visible,
+.bk-back-btn:focus-visible {
+  outline: 3px solid var(--ui-primary, #730201);
+  outline-offset: 2px;
+}
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+[data-theme="dark"] .ui-back-btn,
+[data-theme="dark"] .back-btn,
+[data-theme="dark"] .bn-back-btn,
+[data-theme="dark"] .bk-back-btn,
+[data-theme="dark"] .bn2-back-btn,
+[data-theme="dark"] .em-map-back-btn {
+  color: var(--ds-ink, #f0f0f0);
+}
+
+[data-theme="dark"] .ui-back-btn:hover,
+[data-theme="dark"] .back-btn:hover,
+[data-theme="dark"] .bn-back-btn:hover,
+[data-theme="dark"] .bk-back-btn:hover,
+[data-theme="dark"] .bn2-back-btn:hover,
+[data-theme="dark"] .em-map-back-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .ui-back-btn:active,
+[data-theme="dark"] .back-btn:active,
+[data-theme="dark"] .bn-back-btn:active,
+[data-theme="dark"] .bk-back-btn:active {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* ── Artisan variant — slightly smaller icon (18×18) per spec ────────────── */
+.ds-back-btn {
+  width:  40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--ds-r-control, 10px);
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ds-t-base, 200ms) var(--ds-ease-io);
+}
+
+.ds-back-btn > svg {
+  width:  18px;
+  height: 18px;
+  min-width:  18px;
+  min-height: 18px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.ds-back-btn:hover  { background: var(--ds-surface-2, #F2F4F7); }
+.ds-back-btn:active { background: var(--ds-line, #ECEEF2); transform: scale(0.93); }
+
+[data-theme="dark"] .ds-back-btn:hover  { background: var(--ds-surface-2, #1F242D); }
+[data-theme="dark"] .ds-back-btn:active { background: var(--ds-line, #242a33); }

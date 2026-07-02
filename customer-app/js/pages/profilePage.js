@@ -5,7 +5,7 @@ import { initPaymentModal }  from './paymentMethodsModal.js';
 import { clearUserSession }  from '../../../shared/js/utils/clearUserSession.js';
 import {
   uploadImage,
-  cdnUrl,
+  avatarUrl,
   TRANSFORMS,
   UPLOAD_PRESETS,
   fallbackAvatar,
@@ -76,7 +76,7 @@ function populateProfile(data) {
     const bio      = data.bio      || '';
     // profileImageId is a Cloudinary public_id — construct the URL at render time
     const photo    = data.profileImageId
-      ? cdnUrl(data.profileImageId, TRANSFORMS.avatarLg, data.profileImageVersion ?? null)
+      ? avatarUrl(data.profileImageId, TRANSFORMS.avatarLg, data.profileImageVersion ?? null)
       : fallbackAvatar(name);
     const wallet   = Number(data.walletBalance  || 0);
     const inEscrow = Number(data.escrowBalance  || 0);
@@ -173,10 +173,16 @@ async function handlePhotoUpload(file) {
         const { services: { databaseService } } = getAppContainer();
 
         // Upload to Cloudinary — file goes directly, never through your server
+        // Unique id per upload — Cloudinary's unsigned upload presets cannot set
+        // `overwrite`, so re-using the same public_id silently no-ops on a
+        // re-upload (the old image is kept, the new one is discarded). A
+        // fresh id per upload guarantees the new photo actually replaces the
+        // old one from the user's point of view (Firestore always points at
+        // the newest asset); the old Cloudinary asset is simply left unused.
         const { publicId, version } = await uploadImage(
           file,
           UPLOAD_PRESETS.profile,
-          { publicId: `customers/${currentUserId}` }  // deterministic — overwrites on re-upload
+          { publicId: `customers/${currentUserId}/${Date.now()}` }
         );
 
         // Store public_id + version in Firestore.
@@ -190,7 +196,7 @@ async function handlePhotoUpload(file) {
         );
 
         // Update the avatar immediately from CDN (versioned URL)
-        if (avatarImg) avatarImg.src = cdnUrl(publicId, TRANSFORMS.avatarLg, version);
+        if (avatarImg) avatarImg.src = avatarUrl(publicId, TRANSFORMS.avatarLg, version);
         showToast('Photo updated!', 'success');
     } catch (err) {
         console.error('Upload error:', err);
@@ -242,8 +248,10 @@ function initBottomNav() {
             item.classList.add('active');
             const span = item.querySelector('span');
             if (span) span.classList.add('active-label');
+            const brandColor = getComputedStyle(document.documentElement)
+                .getPropertyValue('--ui-primary').trim() || '#730201';
             item.querySelectorAll('path,circle,polyline,line,rect,polygon')
-                .forEach(p => p.setAttribute('stroke', '#730201'));
+                .forEach(p => p.setAttribute('stroke', brandColor));
         });
     });
 }

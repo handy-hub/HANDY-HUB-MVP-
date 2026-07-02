@@ -1,13 +1,7 @@
-:root {
-  --primary-red: #730201;
-  --light-red: #fde8e8;
-  --bg-white: #ffffff;
-  --text-dark: #111111;
-  --text-grey: #666666;
-  --secondary-bg: #730201;
-  --maroon: #730201;
-  --text-main: #111111;
-  --text-sub: #666666;
-  --bg-page: #fefefe;
-  --unread-bg: #fffafa;
-}
+/* ============================================================================
+   DEPRECATED — do not use.
+   ----------------------------------------------------------------------------
+   This file is loaded by ZERO pages. The canonical design tokens for the
+   customer app live in `shared/css/ui-polish.css` (the single source of truth).
+   Kept only to avoid breaking any stray reference; add nothing here.
+   ========================================================================== */

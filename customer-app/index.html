@@ -108,7 +108,7 @@ body {
 }
 
 .gs-subtext {
-    font-size: 10.5px;
+    font-size: 11px;
     color: var(--mid);
     line-height: 1.55;
     font-weight: 400;
@@ -138,7 +138,7 @@ body {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     text-align: left;
-    border-radius: 22px;
+    border-radius: var(--ui-radius-lg);
     display: block;
     animation: cardUp 0.6s var(--spring) both;
 }
@@ -157,7 +157,7 @@ body {
 .gs-card-inner {
     display: flex;
     align-items: center;
-    border-radius: 22px;
+    border-radius: var(--ui-radius-lg);
     overflow: hidden;
     height: 162px;
     box-shadow:
@@ -311,7 +311,7 @@ body {
     align-items: center;
     margin-top: 45px;
     gap: 13px;
-    border-radius: 18px;
+    border-radius: var(--ui-radius-lg);
     padding: 15px 12px;
     border: 1px solid rgba(0,0,0,0.08);
     box-shadow: 0 1px 6px rgba(0,0,0,0.055);
@@ -332,7 +332,7 @@ body {
 
 .gs-trust-text strong {
     display: block;
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--dark);
     letter-spacing: -0.1px;
@@ -341,7 +341,7 @@ body {
 }
 
 .gs-trust-text span {
-    font-size: 9.5px;
+    font-size: 11px;
     color: var(--muted);
     font-weight: 400;
 }
@@ -359,7 +359,7 @@ body {
     }
     .gs-page {
         min-height: auto;
-        border-radius: 36px;
+        border-radius: var(--ui-radius-pill);
         background: var(--page-bg);
         overflow: hidden;
         box-shadow: 0 32px 100px rgba(0,0,0,0.22);
@@ -373,20 +373,21 @@ body {
 <body>
 <div class="gs-page">
 
-    <!-- ══ HEADER ══════════════════════════════════════════════ -->
+    <!-- â•â• HEADER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <header class="gs-header">
         <div class="gs-logo-wrap">
             <img class="gs-logo"
                  src="../shared/assets/images/handyhub-logo.png"
                  alt="HandyHub — Trusted Professionals, Right Around You."
-                 onerror="this.onerror=null;this.style.display='none';this.insertAdjacentHTML('afterend','<span style=&quot;font-weight:800;font-size:26px;color:#730201;letter-spacing:-0.5px;&quot;>HandyHub</span>')">
+                 onerror="this.onerror=null;this.style.display='none';var fb=document.getElementById('gs-logo-fb');if(fb)fb.removeAttribute('hidden');">
+            <span id="gs-logo-fb" hidden style="font-weight:800;font-size:26px;color:var(--ui-primary,#730201);letter-spacing:-0.5px;">HandyHub</span>
         </div>
         <h1 class="gs-headline">How would you like to continue?</h1>
         <p class="gs-subtext">Choose the option that best describes you<br>to get started</p>
     </header>
 
 
-    <!-- ══ ROLE CARDS ══════════════════════════════════════════ -->
+    <!-- â•â• ROLE CARDS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <main class="gs-cards">
 
         <!-- Customer ──────────────────────────────────────────── -->
@@ -407,7 +408,7 @@ body {
                     <div class="gs-title-row">
                         <div class="gs-icon-circle" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                 stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                                 <circle cx="12" cy="7" r="4"/>
                             </svg>
@@ -419,7 +420,7 @@ body {
 
                 <div class="gs-arrow-btn" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9 18l6-6-6-6"/>
                     </svg>
                 </div>
@@ -446,7 +447,7 @@ body {
                     <div class="gs-title-row">
                         <div class="gs-icon-circle" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                 stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round">
                                 <rect x="2" y="7" width="20" height="14" rx="2"/>
                                 <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
                             </svg>
@@ -458,7 +459,7 @@ body {
 
                 <div class="gs-arrow-btn" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9 18l6-6-6-6"/>
                     </svg>
                 </div>
@@ -469,17 +470,17 @@ body {
     </main>
 
 
-    <!-- ══ TRUST BADGE ═════════════════════════════════════════ -->
+    <!-- â•â• TRUST BADGE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="gs-trust" role="complementary" aria-label="Security assurance">
         <div class="gs-trust-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1z"
                       opacity="0.14"/>
                 <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1z"
-                      fill="none" stroke="currentColor" stroke-width="1.6"
+                      fill="none" stroke="currentColor" stroke-width="2.0"
                       stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M9 12l2 2 4-4" fill="none" stroke="currentColor"
-                      stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                      stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </div>
         <div class="gs-trust-text">
@@ -491,7 +492,7 @@ body {
 </div><!-- /.gs-page -->
 
 
-<!-- ══ SCRIPTS ═══════════════════════════════════════════════ -->
+<!-- â•â• SCRIPTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <script src="../shared/js/utils/logicGate.js"></script>
 <script src="../shared/js/utils/global-app.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
@@ -513,12 +514,26 @@ if ('serviceWorker' in navigator) {
         window.location.href = url;
     }
 
+    // Resolve artisan signup URL based on environment.
+    // In development: both apps are siblings under the repo root, so a relative
+    // path traverses up one directory (customer-app/../artisan-app).
+    // In production: apps are separate Firebase Hosting sites — relative paths
+    // would escape the build dir and 404. Detect production by hostname.
+    function getArtisanSignupUrl() {
+        var hostname = window.location.hostname;
+        var isProduction = hostname.includes('web.app') || hostname.includes('firebaseapp.com') || hostname.includes('handyhub');
+        if (isProduction) {
+            return 'https://lamax-artisan.web.app/artisan-app/signup.html';
+        }
+        return '../artisan-app/signup.html';
+    }
+
     document.getElementById('btn-customer').addEventListener('click', function () {
         navigate('signup.html');
     });
 
     document.getElementById('btn-artisan').addEventListener('click', function () {
-        navigate('../artisan-app/signup.html');
+        navigate(getArtisanSignupUrl());
     });
 
     // Passive haptic on touch start

@@ -26,6 +26,8 @@ authService.subscribeToAuthState((user) => {
     if (unsubscribe) unsubscribe();
     unsubscribe = databaseService.subscribeToDocument('customers', user.uid, (snap) => {
         applyPrefs(snap.exists ? snap.data : {});
+    }, (err) => {
+        console.warn('[settingsNotifications] listener error:', err);
     });
 });
 

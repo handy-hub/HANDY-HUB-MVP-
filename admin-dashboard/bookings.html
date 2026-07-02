@@ -195,11 +195,11 @@
 <div class="admin-toast" id="admin-toast"></div>
 
 <script type="module">
-import { db, auth }                    from './js/firebase-admin.js';
+import { db, auth, callAdminFunction } from './js/firebase-admin.js';
 import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
 import { showToast, subscribeVerifBadge, setDateHeader } from './js/ui-utils.js';
 import { collection, doc, getDoc, getDocs, onSnapshot,
-         updateDoc, addDoc, query, where, orderBy, serverTimestamp }
+         query, where, orderBy }
                           from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 let currentAdmin=null;
@@ -351,13 +351,19 @@ window.openBookingModal=function(id){
 window.closeBM=()=>document.getElementById('bm-overlay').classList.remove('open');
 window.handleBMOverlayClick=e=>{if(e.target===document.getElementById('bm-overlay'))closeBM();};
 
+/* cancelBookingAsAdmin (functions/bookings.js) validates the current booking
+ * state server-side and writes status:'cancelled'; the existing
+ * onBookingStatusChanged trigger then runs the real, audited escrow refund —
+ * this page no longer claims a refund happened without actually calling it. */
 window.cancelBooking=async function(id){
-  if(!confirm('Cancel this booking and issue a refund?')) return;
+  const reason = prompt('Cancel this booking and issue a refund?\nEnter a reason:');
+  if(reason===null) return;
+  if(!reason.trim()){ showToast('A cancellation reason is required.','error'); return; }
   try{
-    await updateDoc(doc(db,'bookings',id),{status:'Cancelled',cancelledAt:serverTimestamp(),cancelledBy:'admin:'+currentAdmin.email,escrowStatus:'refunded'});
+    await callAdminFunction('cancelBookingAsAdmin', { bookingId: id, reason });
     showToast('Booking cancelled. Refund will be processed.','success');
     closeBM();
-  }catch(e){showToast('Error: '+e.message,'error');}
+  }catch(e){showToast('Error: '+(e.message||e),'error');}
 };
 
 window.exportCSV=function(){

@@ -4,16 +4,17 @@
    Design reference: uploaded screenshot (iOS-style, brand red #b10c0c)
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* Page-local tokens mapped onto the canonical design system
+   (shared/css/ui-polish.css). All brand values derive from --ui-primary.
+   --brand-mid has been removed; all references now use --ui-primary directly. */
 :root {
-    --brand:          #730201;
-    --brand-mid:      #b10c0c;
-    --bg:             #ffffff;
-    --text-dark:      #1a1a1a;
-    --text-muted:     #888888;
-    --border:         #f0f0f0;
-    --icon-new-bg:    #fdf2f2;
-    --icon-read-bg:   #f5f5f5;
-    --card-new-bg:    #fffafa;
+    --bg:             var(--ui-surface);
+    --text-dark:      var(--ui-text);
+    --text-muted:     var(--ui-muted);
+    --border:         #f0f0f0;            /* local hairline */
+    --icon-new-bg:    var(--ui-primary-soft);
+    --icon-read-bg:   #f5f5f5;            /* local surface tint */
+    --card-new-bg:    #fffafa;            /* local unread tint */
 }
 
 /* ── Reset (scoped to the notification page) ────────────────────────────── */
@@ -51,6 +52,8 @@ body[data-page-type="notification"] {
 }
 
 .notif-header__title {
+    flex: 1;
+    text-align: center;
     font-size: 17px;
     font-weight: 700;
     color: var(--text-dark);
@@ -75,64 +78,10 @@ body[data-page-type="notification"] {
     background: #f0f0f0;
 }
 
-/* ── Tab strip ──────────────────────────────────────────────────────────── */
-.tabs-scroll {
-    display: flex;
-    gap: 10px;
-    padding: 14px 20px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-.tabs-scroll::-webkit-scrollbar { display: none; }
-
-.tab-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 18px;
-    border-radius: 999px;
-    border: none;
-    cursor: pointer;
-    white-space: nowrap;
-    font-size: 13px;
-    font-weight: 600;
-    background: #f0f0f0;
-    color: #555;
-    transition: background 0.15s ease, color 0.15s ease, transform 0.1s;
-    -webkit-tap-highlight-color: transparent;
-}
-.tab-btn:active {
-    transform: scale(0.96);
-}
-.tab-btn--active {
-    background: var(--brand-mid);
-    color: #ffffff;
-}
-/* Tab whose notification type is turned off in Settings */
-.tab-btn--muted {
-    opacity: 0.45;
-}
-
-/* Badge inside a tab */
-.tab-badge {
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: 999px;
-    font-size: 10px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--brand-mid);
-    color: #ffffff;
-    line-height: 1;
-}
-.tab-badge--active {
-    background: #ffffff;
-    color: var(--brand-mid);
-}
+/* ── Filter tabs ────────────────────────────────────────────────────────────
+   Migrated to the canonical shared component: shared/css/components/tabs.css
+   (pill variant — .ui-tabs / .ui-tab / .ui-tab-badge). No page-specific tab
+   styles remain here. */
 
 /* ── Main scrollable area ───────────────────────────────────────────────── */
 .notif-main {
@@ -185,7 +134,7 @@ body[data-page-type="notification"] {
 }
 .notif-icon-wrap--unread {
     background: var(--icon-new-bg);
-    color: var(--brand-mid);
+    color: var(--ui-primary);
 }
 
 /* Text block */
@@ -223,7 +172,7 @@ body[data-page-type="notification"] {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: var(--brand-mid);
+    background: var(--ui-primary);
     flex-shrink: 0;
     margin-top: 19px;
 }
@@ -257,23 +206,54 @@ body[data-page-type="notification"] {
     margin: 0;
 }
 
-/* ── Loading spinner ────────────────────────────────────────────────────── */
-.notif-loading {
+/* ── Loading skeleton ───────────────────────────────────────────────────────
+   Mirrors .notif-card's exact geometry (48px icon circle, 13px 20px padding,
+   same text-line rhythm) so the real list doesn't visually jump into place
+   once data arrives. */
+.notif-skel-card {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 72px 0;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 13px 20px;
 }
-.notif-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid #eee;
-    border-top-color: var(--brand-mid);
+.notif-skel-icon {
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    animation: notif-spin 0.65s linear infinite;
+    flex-shrink: 0;
 }
-@keyframes notif-spin {
-    to { transform: rotate(360deg); }
+.notif-skel-body {
+    flex: 1;
+    min-width: 0;
+    padding-top: 2px;
+}
+.notif-skel-line {
+    height: 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+.notif-skel-line:last-child { margin-bottom: 0; }
+.notif-skel-line.title  { width: 55%; height: 13px; }
+.notif-skel-line.msg    { width: 85%; }
+.notif-skel-line.msg-short { width: 60%; }
+
+.notif-skel-icon,
+.notif-skel-line {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: notif-skel-shimmer 1.4s infinite;
+}
+
+@keyframes notif-skel-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+html.dark .notif-skel-icon,
+html.dark .notif-skel-line {
+    background: linear-gradient(90deg, #252525 25%, #1e1e1e 50%, #252525 75%);
+    background-size: 200% 100%;
+    animation: notif-skel-shimmer 1.4s infinite;
 }
 
 /* ── Push-notification banner ────────────────────────────────────────────── */
@@ -281,7 +261,7 @@ body[data-page-type="notification"] {
     margin: 20px 16px 0;
     background: #fff;
     border: 1px solid var(--border);
-    border-radius: 20px;
+    border-radius: var(--ui-radius-lg);
     padding: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
     position: relative;
@@ -325,11 +305,11 @@ body[data-page-type="notification"] {
     margin: 0;
 }
 .push-alert__btn {
-    background: var(--brand-mid);
+    background: var(--ui-primary);
     color: #fff;
     border: none;
     padding: 10px 18px;
-    border-radius: 10px;
+    border-radius: var(--ui-radius-sm);
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
@@ -345,11 +325,7 @@ html.dark .notif-page  { background: #0d0d0d; }
 html.dark .notif-header { background: #111; border-color: #2a2a2a; }
 html.dark .notif-header__title { color: #f0f0f0; }
 html.dark .header-icon-btn { color: #e0e0e0; }
-html.dark .tabs-scroll { background: #111; border-color: #2a2a2a; }
-html.dark .tab-btn { color: #888; }
-html.dark .tab-btn--active { color: #730201; border-color: #730201; }
-html.dark .tab-badge { background: #2a2a2a; color: #888; }
-html.dark .tab-badge--active { background: #730201; color: #fff; }
+/* Tab dark-mode styles live in shared/css/components/tabs.css */
 html.dark .group-header { color: #555; background: #0d0d0d; }
 html.dark .notif-card { background: #1a1a1a; border-color: #2a2a2a; }
 html.dark .notif-card--unread { background: #1e0505; border-color: #3a1010; }
@@ -372,238 +348,22 @@ html.dark .push-alert__sub { color: #888; }
     gap: 2px;
 }
 #markAllReadBtn {
-    color: var(--brand-mid);
+    color: var(--ui-primary);
 }
 #markAllReadBtn:disabled {
     opacity: 0.4;
     pointer-events: none;
 }
 
-/* ── Swipe-to-delete ─────────────────────────────────────────────────────── */
-
-/* The outer row clips the card as it slides left, revealing the red panel */
-.notif-swipe-row {
-    position: relative;
-    overflow: hidden;
-}
-
-/*
- * THE KEY FIX: give the card position:relative + z-index:2 + an opaque background
- * so it sits visually ON TOP of the delete panel at all times.
- * Without this the delete panel (position:absolute) paints above the card
- * in CSS stacking order and is visible before any swipe happens.
- */
-.notif-swipe-row .notif-card {
-    position: relative;
-    z-index: 2;
-    background: #ffffff;   /* opaque — hides the delete panel until card slides */
-}
-.notif-swipe-row .notif-card.notif-card--unread {
+/* ── Swipe-to-delete + undo-toast ─────────────────────────────────────────
+   Fully migrated to the canonical shared component:
+   shared/css/components/swipeAction.css (+ shared/js/components/swipeAction.js).
+   `.notif-swipe-row/.notif-delete-action` markup renamed to the shared
+   `.swipe-row/.swipe-action` contract — see buildCard() in notificationPage.js.
+   Only the unread-card background tint is page-specific. */
+.swipe-row .notif-card.notif-card--unread {
     background: var(--card-new-bg);   /* #fffafa — preserve unread tint */
 }
 
-/* Red delete panel — always present, revealed as the card slides left */
-.notif-delete-action {
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 90px;
-    z-index: 1;                     /* behind the card */
-    background: #d32f2f;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    color: #fff;
-    pointer-events: none;
-    user-select: none;
-    transform-origin: right center; /* scale grows from the right edge */
-    will-change: transform, background;
-}
-.notif-delete-action i {
-    font-size: 22px;
-}
-.notif-delete-action span {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-/* ── Undo-delete toast ──────────────────────────────────────────────────── */
-
-/*
- * Host element: fixed, centred above the bottom nav.
- * pointer-events: none lets taps pass through to content beneath the host,
- * while the inner .undo-toast re-enables pointer-events on itself.
- */
-.undo-toast-host {
-    position: fixed;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(calc(100% - 32px), 398px);
-    z-index: 500;
-    pointer-events: none;
-}
-
-.undo-toast {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 7px 4px 8px 8px;
-    background: #1c1c1e;
-    border-radius: 18px;
-    pointer-events: all;
-    overflow: hidden;
-    position: relative;
-
-    /* Start below, invisible */
-    transform: translateY(110%) scale(0.92);
-    opacity: 0;
-    will-change: transform, opacity;
-    transition:
-        transform 0.44s cubic-bezier(0.34, 1.56, 0.64, 1),
-        opacity   0.26s ease;
-}
-
-.undo-toast.is-visible {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-}
-
-.undo-toast.is-hiding {
-    transform: translateY(110%) scale(0.94);
-    opacity: 0;
-    transition:
-        transform 0.30s cubic-bezier(0.4, 0, 1, 1),
-        opacity   0.22s ease;
-}
-
-.undo-toast__icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.07);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 15px;
-    color: rgba(255, 255, 255, 0.55);
-}
-
-.undo-toast__msg {
-    flex: 1;
-    font-size: 10px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.90);
-    line-height: 1.3;
-    letter-spacing: -0.1px;
-    min-width: 0;
-}
-
-.undo-toast__undo {
-    padding: 9px 16px;
-    background: rgba(177, 12, 12, 0.15);
-    border: 1.5px solid rgba(200, 30, 30, 0.40);
-    border-radius: 11px;
-    color: #ff7070;
-    font-size: 10px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    letter-spacing: 0.1px;
-    -webkit-tap-highlight-color: transparent;
-    transition: background 0.14s, transform 0.1s;
-    margin-right: 8px;
-}
-
-.undo-toast__undo:active {
-    background: rgba(177, 12, 12, 0.28);
-    transform: scale(0.94);
-}
-
-/* Timer bar — drains left-to-right showing remaining undo window */
-.undo-toast__progress {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.05);
-    overflow: hidden;
-}
-
-.undo-toast__progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #730201 0%, #b10c0c 60%, #e53935 100%);
-    transform-origin: left center;
-    /* Duration matches JS TOAST_DURATION_MS — overridden inline when needed */
-    animation: undo-drain var(--toast-duration, 6s) linear forwards;
-}
-
-@keyframes undo-drain {
-    from { transform: scaleX(1); }
-    to   { transform: scaleX(0); }
-}
-
-/* ── Bottom nav (injected by navLoader) ─────────────────────────────────── */
-.bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: min(100%, 430px);
-    min-height: 70px;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border);
-    padding-bottom: max(env(safe-area-inset-bottom), 8px);
-    z-index: 200;
-}
-.nav-item {
-    text-decoration: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    color: #888;
-    flex: 1;
-}
-.nav-item img {
-    width: 24px;
-    height: 24px;
-}
-.nav-item span {
-    font-size: 10px;
-    font-weight: 500;
-}
-.nav-item.active {
-    color: var(--brand);
-}
-.nav-item.active img {
-    filter: invert(10%) sepia(87%) saturate(5415%) hue-rotate(352deg) brightness(88%) contrast(110%);
-}
-.nav-item.active svg path,
-.nav-item.active svg circle,
-.nav-item.active svg polyline,
-.nav-item.active svg line,
-.nav-item.active svg rect,
-.nav-item.active svg polygon {
-    stroke: var(--brand);
-}
-.nav-item .active-label,
-.nav-item.active .active-label {
-    color: var(--brand);
-    font-weight: 700;
-}
+/* Bottom-nav styles removed — page uses the shared floatingNav component.
+   Old local .bottom-nav / .nav-item rules were orphaned (no matching markup). */

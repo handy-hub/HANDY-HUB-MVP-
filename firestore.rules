@@ -92,6 +92,17 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // EMAIL VERIFICATION SESSIONS — _email_verifications
+    // Entirely server-side. Clients MUST NOT read or write these.
+    // OTPs are stored as SHA-256 hashes with random salts. Cloud
+    // Functions own all reads and writes via the Admin SDK (bypasses
+    // these rules). Client-side access is explicitly denied.
+    // ═══════════════════════════════════════════════════════════════
+    match /_email_verifications/{sessionId} {
+      allow read, write: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // ADMIN SESSIONS  (login audit trail — written by admin login.html)
     // ═══════════════════════════════════════════════════════════════
     match /admin_sessions/{uid} {
@@ -122,13 +133,19 @@ service cloud.firestore {
                       isZeroOrAbsent(incoming(), 'withdrawnTotal');
 
       // ── Artisan self-update (profile, onboarding, availability toggle) ──
-      // Admin may do any update (approve, reject, feature, ban).
+      // Admin: may ONLY touch the scoped, non-financial, non-status fields in
+      // isSafeAdminArtisanUpdate() (e.g. isFeatured). verificationStatus,
+      // status, suspendedAt/bannedAt/etc, and all financial balances are
+      // Cloud-Function-only (see functions/artisanVerification.js:
+      // approveArtisan/rejectArtisan/suspendArtisan/reinstateArtisan/
+      // banArtisan/unbanArtisan — all use the Admin SDK, which bypasses these
+      // rules entirely, so this restriction only affects direct client writes).
       // Owner may update their own profile fields freely, BUT:
       //   • cannot escalate their own status to 'active'/'suspended'/'banned'
       //     (status promotion is admin-only once the doc exists with 'pending')
       //   • can set verificationStatus to draft/submitted/pending_review only
       //   • cannot write financial fields (availableBalance, rating, etc.)
-      allow update: if hasAdminPermission('operations_admin') || (
+      allow update: if (isAdmin() && isSafeAdminArtisanUpdate()) || (
                       isOwner(artisanId) &&
                       isValidArtisanBase(incoming()) &&
                       isSafeArtisanStatusUpdate() &&
@@ -136,6 +153,13 @@ service cloud.firestore {
                     );
 
       allow delete: if isSuperAdmin();
+    }
+
+    // Admin direct-write allowlist — deliberately narrow. Anything touching
+    // verificationStatus, status, ban/suspend fields, or financial balances
+    // must go through a Cloud Function (see comment above).
+    function isSafeAdminArtisanUpdate() {
+      return incoming().diff(existing()).affectedKeys().hasOnly(['isFeatured', 'featuredAt', 'updatedAt']);
     }
 
     // Base validity: id, name, email, userType, status must always be correct
@@ -172,15 +196,30 @@ service cloud.firestore {
                       incoming().status   == 'active' &&
                       isValidCustomerDoc(incoming());
 
-      // Admin: full updates (flag, ban, unlock accounts).
+      // Admin: flag/ban/unlock account fields only — walletBalance/escrowBalance/
+      // spent remain Cloud-Function-only regardless of admin role (see
+      // functions/financial/escrow.js — refundEscrow/releaseEscrow use the
+      // Admin SDK and bypass these rules entirely for the actual money movement).
       // Owner: only safe profile fields — financial balances are Cloud-Function-only.
-      allow update: if hasAdminPermission('support_admin') ||
-                       hasAdminPermission('operations_admin') || (
+      allow update: if ((hasAdminPermission('support_admin') ||
+                       hasAdminPermission('operations_admin')) &&
+                       isSafeAdminCustomerUpdate()) || (
                       isOwner(customerId) &&
                       isSafeCustomerProfileUpdate()
                     );
 
       allow delete: if isSuperAdmin();
+    }
+
+    // Admin direct-write allowlist for customer accounts — flag/ban fields
+    // only. walletBalance/escrowBalance/spent are excluded even for admins;
+    // those are Cloud-Function-only (refundEscrow/releaseEscrow/resolveDispute).
+    function isSafeAdminCustomerUpdate() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        'isFlagged', 'flaggedBy', 'flaggedAt',
+        'isBanned', 'bannedAt', 'bannedBy', 'banReason',
+        'status', 'updatedAt'
+      ]);
     }
 
     function isValidCustomerDoc(data) {
@@ -229,9 +268,9 @@ service cloud.firestore {
         'availability', 'isAvailable', 'isOnline',
         'baseRate', 'workRadius', 'skills', 'specialty',
         'yearsExperience', 'gender', 'category',
-        // Location coordinates (newly added for GPS tracking)
+        // Location coordinates (written by presenceService → updatePresenceAndLocation)
         'latitude', 'longitude', 'lat', 'lng', 'currentLat', 'currentLng',
-        'locationAccuracy', 'locationSource', 'lastLocationUpdate',
+        'geohash', 'locationAccuracy', 'locationSource', 'lastLocationUpdate',
         // Onboarding KYC fields (written by onboarding.html during application submission)
         'dob', 'emergencyContact', 'ghanaCardNumber', 'tin',
         // Payout account setup
@@ -316,14 +355,15 @@ service cloud.firestore {
       //   Customer:  pending → cancelled
       //   Artisan:   pending → accepted | rejected
       //   Either:    accepted → completed | En Route | In Progress | Awaiting Confirmation
-      //   Admin:     anything
-      allow update: if isAdmin() || (
-                      isSignedIn() && (
+      //   Admin:     cancelBookingAsAdmin() / resolveDispute() Cloud Functions
+      //              (functions/bookings.js, functions/disputes.js) use the
+      //              Admin SDK and bypass these rules entirely — admin has no
+      //              remaining legitimate reason to write bookings directly.
+      allow update: if isSignedIn() && (
                         request.auth.uid == resource.data.customerId ||
                         request.auth.uid == resource.data.artisanId
                       ) &&
-                      isValidBookingUpdate()
-                    );
+                      isValidBookingUpdate();
 
       allow delete: if isSuperAdmin();
     }
@@ -365,10 +405,14 @@ service cloud.firestore {
           (keys.hasAny(['status']) &&
            keys.hasOnly(['status', 'updatedAt', 'cancellationReason']) &&
            prev in ['pending', 'Pending', 'accepted', 'quoted'] && next == 'cancelled') ||
-          // Leave a review — only after job is completed, no status change
+          // Leave a review — only after job is completed, no status change.
+          // Rating must be a valid integer 1–5.
           (!keys.hasAny(['status']) &&
            keys.hasOnly(['rating', 'review', 'reviewedAt', 'updatedAt']) &&
-           prev in ['completed']) ||
+           prev in ['completed'] &&
+           incoming().rating is int &&
+           incoming().rating >= 1 &&
+           incoming().rating <= 5) ||
           // Update notes/address before artisan accepts — no status change
           (!keys.hasAny(['status']) &&
            keys.hasOnly(['notes', 'address', 'scheduledAt', 'updatedAt']) &&
@@ -487,8 +531,11 @@ service cloud.firestore {
                         incoming().status in ['pending_review', 'draft', 'submitted', 'pending']);
 
       // Artisan may update their own draft/re-verification fields.
-      // Admin may update any field (approve, reject, request re-verification).
-      allow update: if isAdmin() || (
+      // Admin approve/reject/request-info/suspend/reinstate/ban/unban all go
+      // through Cloud Functions (functions/artisanVerification.js), which use
+      // the Admin SDK and bypass these rules entirely — admin has no
+      // remaining legitimate reason to write this collection directly.
+      allow update: if (
                       isOwner(artisanId) &&
                       incoming().diff(existing()).affectedKeys().hasOnly([
                         'fullName', 'name', 'phone', 'email', 'dateOfBirth', 'dob',
@@ -568,8 +615,11 @@ service cloud.firestore {
                       request.auth.uid == resource.data.artisanId
                     )
                   );
-      // All writes from Cloud Functions (admin service account bypasses rules)
-      allow create, update, delete: if isAdmin();
+      // All writes come from Cloud Functions via the Admin SDK, which bypasses
+      // these rules entirely (holdFundsForBooking/releaseEscrow/refundEscrow/
+      // freezeEscrowForDispute/resolveDispute). No client — including an
+      // authenticated admin — may write to escrow directly.
+      allow create, update, delete: if false;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -720,6 +770,8 @@ service cloud.firestore {
       // Any signed-in user (artisan or customer) may send a notification to another
       // user, but senderId must match the caller — prevents notification spoofing
       // where user A sends a notification appearing to come from user B.
+      // M4 TODO: tighten to require a booking relationship between sender and receiver.
+      // For now, cap field lengths to mitigate content-spam attacks.
       allow create: if isSignedIn() &&
                        incoming().receiverId is string &&
                        incoming().receiverId.size() > 0 &&
@@ -728,8 +780,8 @@ service cloud.firestore {
                          'Bookings', 'Payments', 'Messages',
                          'Offers', 'Reviews', 'System', 'General'
                        ] &&
-                       incoming().title   is string && incoming().title.size()   > 0 &&
-                       incoming().message is string && incoming().message.size() > 0 &&
+                       incoming().title   is string && incoming().title.size()   > 0  && incoming().title.size()   <= 120 &&
+                       incoming().message is string && incoming().message.size() > 0  && incoming().message.size() <= 500 &&
                        incoming().isRead  == false;
 
       // Only the receiver may mark it read; no other fields may be changed.
@@ -761,19 +813,27 @@ service cloud.firestore {
                      resource.data.participants.hasAny([request.auth.uid]);
 
       // Any signed-in user can start a new chat, provided they include themselves
-      // and at least one other participant.
+      // and at least one other participant. bookingId is optional (null for a
+      // freeform chat, set for a booking-linked thread).
       allow create: if isSignedIn() &&
                        incoming().participants is list &&
                        incoming().participants.hasAll([request.auth.uid]) &&
                        incoming().participants.size() >= 2;
 
-      // Either participant may update only the inbox-preview fields.
-      // (The sendMessage() helper updates these after writing the message.)
+      // Either participant may update the inbox-preview fields, the unreadCount
+      // map (sendMessage() increments the recipient's key; markChatRead() zeros
+      // the reader's own key — the map as a whole is writable by either
+      // participant since Firestore rules cannot cheaply enforce per-key
+      // ownership inside a map value; worst case is a wrong badge count, not a
+      // security/financial issue), or attach a bookingId to a thread that
+      // didn't have one yet (never overwrite an existing bookingId).
       allow update: if isSignedIn() &&
                        resource.data.participants.hasAny([request.auth.uid]) &&
                        incoming().diff(existing()).affectedKeys().hasOnly([
-                         'lastMessage', 'lastSenderId', 'lastMessageAt'
-                       ]);
+                         'lastMessage', 'lastSenderId', 'lastMessageAt', 'unreadCount', 'bookingId'
+                       ]) &&
+                       (!incoming().diff(existing()).affectedKeys().hasAny(['bookingId']) ||
+                        !('bookingId' in existing()) || existing().bookingId == null);
 
       allow delete: if isSuperAdmin();
 
@@ -836,7 +896,7 @@ service cloud.firestore {
     // SETTINGS COLLECTION
     // ═══════════════════════════════════════════════════════════════
     match /settings/{docId} {
-      allow read:          if isAdmin() || isSignedIn();  // apps read platform config
+      allow read:          if isAdmin();  // admin-only: platform config is not public
       allow create, update: if isSuperAdmin();
       allow delete:         if false;
     }
@@ -898,6 +958,75 @@ service cloud.firestore {
                          'adminNotes', 'promotedCategory'
                        ]);
 
+      allow delete: if isSuperAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SUPPORT TICKETS  — raised by customers and artisans, handled by admin
+    // ═══════════════════════════════════════════════════════════════
+    match /support_tickets/{ticketId} {
+      // Any signed-in user may open a ticket for themselves. The ticket must be
+      // stamped with their own uid and start in the 'open' state — clients may
+      // not pre-set a resolved/closed status or forge another user's ticket.
+      allow create: if isSignedIn() &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().role in ['customer', 'artisan'] &&
+                       incoming().subject is string &&
+                       incoming().message is string &&
+                       incoming().status == 'open' &&
+                       incoming().createdAt is string;
+
+      // Users can read their own tickets; admins (with support permission) read all.
+      allow read: if hasAdminPermission('support_admin') ||
+                     (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      // Only support admins triage/close tickets.
+      allow update: if hasAdminPermission('support_admin');
+      allow delete: if isSuperAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PROMOTIONS  (admin-authored dashboard ad-banner content)
+    // Read: any signed-in user (client-side resolvePromotions() filters
+    // targeting/schedule/status — rules only gate existence + admin writes).
+    // Write: admin only. Analytics counters live in a separate collection
+    // (promotionAnalytics) so a compromised/rogue client can never edit a
+    // promotion's own content while claiming to "just update impressions".
+    // ═══════════════════════════════════════════════════════════════
+    match /promotions/{promoId} {
+      allow read:            if isSignedIn();
+      allow create, update:  if isAdmin();
+      allow delete:          if isSuperAdmin();
+    }
+
+    // Impression/click counters — one doc per promotion, keyed the same as
+    // promotions/{promoId}. Clients may ONLY increment impressions/clicks by
+    // exactly 1 via FieldValue.increment(1); they can never set an arbitrary
+    // value, decrement, or touch any other field. This mirrors the pattern
+    // used for customer/artisan transaction subcollections elsewhere in this
+    // file — a narrow, abuse-resistant allowlist rather than admin-only,
+    // since impressions/clicks must be recordable by any viewer in real time.
+    match /promotionAnalytics/{promoId} {
+      allow read:   if isAdmin();
+      // First-ever write for a promoId: trackPromotionImpression()/
+      // trackPromotionClick() each write ONLY the one field they're
+      // incrementing (setDoc with merge:true) — so create only ever sees a
+      // single counter present, and FieldValue.increment(1) against a
+      // nonexistent field resolves to exactly 1.
+      allow create: if isSignedIn() &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['impressions', 'clicks', 'updatedAt']) &&
+                       (!('impressions' in incoming()) || incoming().impressions == 1) &&
+                       (!('clicks'      in incoming()) || incoming().clicks      == 1);
+      allow update: if isSignedIn() &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['impressions', 'clicks', 'updatedAt']) &&
+                       (
+                         (!incoming().diff(existing()).affectedKeys().hasAny(['impressions'])) ||
+                         incoming().impressions == existing().impressions + 1
+                       ) &&
+                       (
+                         (!incoming().diff(existing()).affectedKeys().hasAny(['clicks'])) ||
+                         incoming().clicks == existing().clicks + 1
+                       );
       allow delete: if isSuperAdmin();
     }
 

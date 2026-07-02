@@ -3,7 +3,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #fefefe;
   display: flex; justify-content: center; padding: 0;
   -webkit-font-smoothing: antialiased;
@@ -24,12 +24,12 @@ body {
   border-bottom: 1px solid rgba(0,0,0,0.06);
   flex-shrink: 0;
 }
-.bk-main-title { font-size: 26px; font-weight: 900; color: #0a0a0a; letter-spacing: -0.5px; }
+.bk-main-title { flex: 1; text-align: center; font-size: 17px; font-weight: 700; color: var(--ui-text, #111); letter-spacing: -0.2px; }
 .bk-header-actions { display: flex; align-items: center; gap: 4px; }
 .bk-icon-btn {
   width: 40px; height: 40px; background: none; border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 12px; position: relative;
+  border-radius: var(--ui-radius-sm); position: relative;
   transition: background 0.15s;
 }
 .bk-icon-btn:active { background: #f5f5f5; }
@@ -37,27 +37,23 @@ body {
 .bk-icon-btn > svg { width: 22px; height: 22px; min-width: 22px; min-height: 22px; display: block; flex-shrink: 0; }
 .bk-icon-badge {
   position: absolute; top: 3px; right: 3px;
-  background: #730201; color: #fff; font-size: 9px; font-weight: 800;
+  background: var(--ui-primary); color: #fff; font-size: 11px; font-weight: 800;
   min-width: 16px; height: 16px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   padding: 0 3px; border: 2px solid #fff;
 }
 
-/* ── Tabs ── */
-.bk-tabs {
+/* ── Tabs ──
+   Canonical shared component: shared/css/components/tabs.css (pill variant —
+   .ui-tabs / .ui-tab, no page-specific modifier). Only a sticky white
+   background is page-specific; the component provides everything else. */
+.ui-tabs {
   background: #fff;
-  padding: 0 20px;
-  display: flex; border-bottom: 1px solid rgba(0,0,0,0.06);
-  flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.bk-tabs::-webkit-scrollbar { display: none; }
-.bk-tab {
-  padding: 13px 14px; background: none; border: none; cursor: pointer;
-  font-size: 13.5px; font-weight: 700; color: #999; white-space: nowrap;
-  border-bottom: 2.5px solid transparent; flex-shrink: 0;
-  transition: color 0.15s, border-color 0.15s;
-}
-.bk-tab.active { color: #730201; border-bottom-color: #730201; }
+.ui-tabs::-webkit-scrollbar { display: none; }
 
 /* ── Body ── */
 .bk-body {
@@ -68,14 +64,13 @@ body {
 
 /* ── Banner ── */
 .bk-banner {
-  background: linear-gradient(135deg, #730201 0%, #9e0303 100%);
-  border-radius: 20px;
+  background: linear-gradient(135deg, var(--ui-primary) 0%, #9e0303 100%);
+  border-radius: var(--ui-radius-lg);
   padding: 16px; display: flex; align-items: center; gap: 14px;
   margin-bottom: 22px;
-  box-shadow: 0 4px 20px rgba(115,2,1,0.28);
 }
 .bk-banner-icon {
-  width: 48px; height: 48px; background: rgba(255,255,255,0.18); border-radius: 14px;
+  width: 48px; height: 48px; background: rgba(255,255,255,0.18); border-radius: var(--ui-radius-md);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .bk-banner-body { flex: 1; }
@@ -83,70 +78,90 @@ body {
 .bk-banner-sub { font-size: 12px; color: rgba(255,255,255,0.75); line-height: 1.45; }
 .bk-banner-btn {
   background: rgba(255,255,255,0.2); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
-  padding: 10px 16px; border-radius: 12px;
+  padding: 10px 16px; border-radius: var(--ui-radius-sm);
   font-size: 13px; font-weight: 800; cursor: pointer; flex-shrink: 0;
   white-space: nowrap; backdrop-filter: blur(4px);
   transition: background 0.15s;
 }
 .bk-banner-btn:active { background: rgba(255,255,255,0.3); }
 
-/* ── Section title ── */
+/* ── Section title ──
+   Matches Notification's .group-header exactly (shared/css/notification.css):
+   13px/700, same padding rhythm, same color token. */
 .bk-section-title {
-  font-size: 15px; font-weight: 800; color: #0a0a0a;
-  margin-bottom: 12px; letter-spacing: -0.2px;
+  font-size: 13px; font-weight: 700; color: var(--ui-text, #111);
+  padding: 18px 0 8px; margin: 0; letter-spacing: 0;
 }
 
-/* ── Booking card ── */
+/* ── Booking card ──
+   Canonical card architecture: Notification's flat divided-row model
+   (shared/css/notification.css .notif-card), NOT a bordered/shadowed card.
+   Same padding (13px 20px→13px 0, gutter already applied by .bk-body),
+   same 48px circular icon-wrap, same title/message type scale, no
+   radius/border/shadow per row — visual rhythm comes from hairline dividers. */
 .bk-card {
-  background: #fff; border-radius: 18px;
-  border: 1px solid rgba(0,0,0,0.05);
-  padding: 14px; margin-bottom: 10px;
-  display: flex; gap: 12px; cursor: pointer;
-  transition: transform 0.12s, box-shadow 0.12s;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  background: transparent; border-radius: 0; border: none; box-shadow: none;
+  padding: 13px 0; margin-bottom: 0;
+  display: flex; align-items: flex-start; gap: 14px; cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid var(--border, #f0f0f0);
+  -webkit-tap-highlight-color: transparent;
 }
-.bk-card:active { transform: scale(0.985); box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+.bk-card:active { background: #f5f5f5; }
+.bk-card:last-child { border-bottom: none; }
+
+/* Cancellable cards are wrapped in the shared .swipe-row (shared/css/components/
+   swipeAction.css), which clips overflow. The row itself carries the divider;
+   the card inside needs no border of its own to avoid a doubled line. */
+.swipe-row .bk-card { border-bottom: none; }
+.swipe-row { border-bottom: 1px solid var(--border, #f0f0f0); }
+.swipe-row:last-child { border-bottom: none; }
 
 .bk-card-photo-wrap { position: relative; flex-shrink: 0; }
 .bk-card-photo {
-  width: 62px; height: 62px; border-radius: 50%; object-fit: cover;
+  width: 48px; height: 48px; border-radius: 50%; object-fit: cover;
   background: #f0f0f0; display: block;
 }
 .bk-card-photo-grad {
-  width: 62px; height: 62px; border-radius: 50%;
+  width: 48px; height: 48px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px; font-weight: 900; color: #fff; flex-shrink: 0;
+  font-size: 16px; font-weight: 900; color: #fff; flex-shrink: 0;
 }
 .bk-card-svc-badge {
   position: absolute; bottom: -2px; right: -2px;
-  width: 24px; height: 24px; border-radius: 50%; background: #fde8e8;
+  width: 20px; height: 20px; border-radius: 50%; background: #fde8e8;
   display: flex; align-items: center; justify-content: center;
-  border: 2.5px solid #fff; flex-shrink: 0;
+  border: 2px solid #fff; flex-shrink: 0;
 }
 
 .bk-card-body { flex: 1; min-width: 0; }
-.bk-card-service { font-size: 15px; font-weight: 800; color: #0a0a0a; margin-bottom: 4px; letter-spacing: -0.2px; }
+/* Title matches Notification's .notif-title: 14px/700, same color token. */
+.bk-card-service { font-size: 14px; font-weight: 700; color: var(--ui-text, #111); margin-bottom: 4px; letter-spacing: 0; line-height: 1.25; }
 .bk-card-pro-row { display: flex; align-items: center; gap: 5px; margin-bottom: 8px; }
-.bk-card-pro-name { font-size: 12.5px; color: #555; font-weight: 600; }
+/* Matches Notification's .notif-msg: 12px, muted-text token. */
+.bk-card-pro-name { font-size: 12px; color: var(--text-muted, #666); font-weight: 500; }
 .bk-verified {
   width: 16px; height: 16px; background: #1da1f2; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .bk-card-meta { display: flex; flex-direction: column; gap: 4px; }
-.bk-card-meta-row { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #999; }
+/* Matches Notification's .notif-msg color/size for secondary metadata. */
+.bk-card-meta-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted, #666); }
 
 .bk-card-right {
   display: flex; flex-direction: column; align-items: flex-end;
   justify-content: space-between; flex-shrink: 0; min-width: 76px;
 }
+/* Status pill uses the same shape family as Notification's .ui-tab-badge
+   (pill radius, bold micro-label) rather than a page-local badge design. */
 .bk-status-tag {
-  font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 20px;
+  font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: var(--ui-radius-pill, 999px);
   letter-spacing: 0.2px;
 }
 .bk-status-upcoming  { background: #fff3e0; color: #e65100; }
 .bk-status-ongoing   { background: #e3f2fd; color: #1565c0; }
 .bk-status-completed { background: #e8f5e9; color: #2e7d32; }
-.bk-status-cancelled { background: #fde8e8; color: #730201; }
+.bk-status-cancelled { background: #fde8e8; color: var(--ui-primary); }
 
 .bk-card-chevron-wrap { display: flex; align-items: center; gap: 6px; }
 .bk-card-chevron {
@@ -157,14 +172,15 @@ body {
 .bk-countdown-label { font-size: 10px; color: #bbb; margin-bottom: 1px; }
 .bk-countdown-val { font-size: 17px; font-weight: 900; color: #0a0a0a; letter-spacing: -0.5px; }
 
+/* Matches Notification's .notif-time: 11px, muted-text token, right-aligned metadata. */
 .bk-total { text-align: right; margin-top: 4px; }
-.bk-total-label { font-size: 10px; color: #aaa; margin-bottom: 2px; }
-.bk-total-val { font-size: 14px; font-weight: 800; color: #730201; }
+.bk-total-label { font-size: 11px; color: var(--text-muted, #666); margin-bottom: 2px; }
+.bk-total-val { font-size: 14px; font-weight: 800; color: var(--ui-primary); }
 
 /* ── View all button ── */
 .bk-view-all {
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  font-size: 13px; color: #730201; font-weight: 700;
+  font-size: 13px; color: var(--ui-primary); font-weight: 700;
   background: none; border: none; cursor: pointer;
   padding: 10px 0; width: 100%; margin-bottom: 22px;
 }
@@ -174,73 +190,63 @@ body {
 .bk-panel.active { display: block; }
 @keyframes bkFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
-/* ── Empty state ── */
+/* ── Empty state ──
+   Matches Notification's .empty-state/.empty-icon/.empty-title/.empty-sub
+   exactly: bare icon glyph (no circle backdrop), same padding/type scale. */
 .bk-empty {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 56px 20px 24px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 64px 40px; text-align: center;
 }
 .bk-empty-icon {
-  width: 72px; height: 72px; background: #fde8e8; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+  font-size: 52px; color: #ddd; margin-bottom: 18px; line-height: 1;
+  width: auto; height: auto; background: none; border-radius: 0;
 }
-.bk-empty-title { font-size: 17px; font-weight: 800; color: #0a0a0a; margin-bottom: 8px; letter-spacing: -0.3px; }
-.bk-empty-sub { font-size: 13px; color: #999; line-height: 1.6; margin-bottom: 24px; max-width: 240px; }
+.bk-empty-icon svg { width: 52px; height: 52px; }
+.bk-empty-title { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 8px; letter-spacing: 0; }
+.bk-empty-sub { font-size: 12px; color: #999; line-height: 1.55; margin-bottom: 24px; max-width: 240px; }
 .bk-empty-btn {
-  background: #730201; color: #fff; border: none;
-  padding: 14px 32px; border-radius: 14px; font-size: 14px; font-weight: 800; cursor: pointer;
-  box-shadow: 0 4px 16px rgba(115,2,1,0.28);
+  background: var(--ui-primary); color: #fff; border: none;
+  padding: 14px 32px; border-radius: var(--ui-radius-md); font-size: 14px; font-weight: 800; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(var(--ui-primary-rgb),0.28);
 }
 
-/* ── Bottom Nav ── */
-.bottom-nav {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 430px; z-index: 200;
-  background: rgba(255,255,255,0.96); backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  display: flex; align-items: center; justify-content: space-around;
-  padding: 8px 0 env(safe-area-inset-bottom, 10px);
-  border-top: 1px solid rgba(0,0,0,0.06);
-}
-.nav-item {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: none; border: none; cursor: pointer; text-decoration: none;
-  font-size: 10px; font-weight: 600; color: #aaa; padding: 4px 10px;
-  transition: color 0.15s;
-}
-.nav-item span { font-size: 10px; font-weight: 600; color: #aaa; }
-.nav-item.active span { color: #730201; }
-.nav-item.active svg path,
-.nav-item.active svg circle,
-.nav-item.active svg polyline,
-.nav-item.active svg rect { stroke: #730201; }
+/* Bottom-nav styles removed — page uses the shared floatingNav component.
+   Old local .bottom-nav / .nav-item rules were orphaned (no matching markup). */
 
 /* ── Status: in-progress ── */
 .bk-status-inprogress { background: #fff8e1; color: #b45309; }
 
-/* ── Active / completed card ── */
+/* ── Active card ──
+   Kept as a bounded unit (not a flat divided row like the simple booking
+   cards) because it contains a genuinely different interaction model: a
+   progress bar plus a multi-button action row separated by an internal
+   divider. Flattened to match Notification's lower visual weight — no
+   shadow, no border — a hairline row divider (shared with the simple
+   cards) instead. */
 .bk-active-card {
-  background: #fff; border-radius: 18px;
-  border: 1px solid rgba(0,0,0,0.05);
-  margin-bottom: 12px; overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  background: transparent; border-radius: 0;
+  border: none; box-shadow: none;
+  margin-bottom: 0; overflow: hidden;
+  border-bottom: 1px solid var(--border, #f0f0f0);
 }
+.bk-active-card:last-child { border-bottom: none; }
 .bk-active-top {
-  display: flex; align-items: flex-start; gap: 12px; padding: 14px 14px 10px;
+  display: flex; align-items: flex-start; gap: 14px; padding: 13px 0 10px;
 }
 .bk-completed-right { text-align: right; flex-shrink: 0; }
-.bk-completed-amount { font-size: 13px; font-weight: 800; color: #730201; margin-top: 5px; }
+.bk-completed-amount { font-size: 13px; font-weight: 800; color: var(--ui-primary); margin-top: 5px; }
 
 /* Progress bar */
 .bk-progress-wrap { padding: 0 14px 12px; }
 .bk-progress-bar {
   height: 4px; background: #f0f0f0; border-radius: 2px; overflow: hidden; margin-bottom: 5px;
 }
-.bk-progress-fill { height: 100%; background: #730201; border-radius: 2px; }
+.bk-progress-fill { height: 100%; background: var(--ui-primary); border-radius: 2px; }
 .bk-progress-labels {
   display: flex; justify-content: space-between;
   font-size: 10px; font-weight: 700;
 }
-.bk-progress-labels span:first-child { color: #730201; }
+.bk-progress-labels span:first-child { color: var(--ui-primary); }
 .bk-progress-labels span:last-child  { color: #aaa; }
 
 /* Action row */
@@ -252,9 +258,9 @@ body {
   transition: background 0.12s;
 }
 .bk-active-btn + .bk-active-btn { border-left: 1px solid #f4f4f4; }
-.bk-active-btn--track   { color: #730201; }
+.bk-active-btn--track   { color: var(--ui-primary); }
 .bk-active-btn--track:active   { background: #fde8e8; }
-.bk-active-btn--confirm { background: #730201; color: #fff; }
+.bk-active-btn--confirm { background: var(--ui-primary); color: #fff; }
 .bk-active-btn--confirm:active { background: #5a0101; }
 .bk-active-btn--outline { color: #555; }
 .bk-active-btn--outline:active { background: #f5f5f5; }
@@ -262,12 +268,11 @@ body {
 /* ── Dark mode ── */
 html.dark body { background: #0a0a0a; }
 html.dark .bk-shell { background: #0a0a0a; }
-html.dark .bk-main-header, html.dark .bk-tabs { background: #1a1a1a; border-color: rgba(255,255,255,0.06); }
+html.dark .bk-main-header, html.dark .ui-tabs { background: #1a1a1a; border-color: rgba(255,255,255,0.06); }
 html.dark .bk-main-title { color: #f5f5f5; }
-html.dark .bk-tab { color: #555; }
-html.dark .bk-tab.active { color: #f87171; border-bottom-color: #f87171; }
+/* Tab dark-mode styles live in shared/css/components/tabs.css */
 html.dark .bk-card { background: #1a1a1a; border-color: rgba(255,255,255,0.06); box-shadow: none; }
-html.dark .bk-banner { box-shadow: 0 4px 20px rgba(115,2,1,0.4); }
+html.dark .bk-banner { box-shadow: 0 4px 20px rgba(var(--ui-primary-rgb),0.4); }
 html.dark .bk-card-service, html.dark .bk-section-title { color: #f5f5f5; }
 html.dark .bk-banner-icon { background: rgba(255,255,255,0.12); }
 html.dark .bk-card-svc-badge { background: #3a0101; }
@@ -276,13 +281,6 @@ html.dark .bk-countdown-val { color: #f5f5f5; }
 html.dark .bk-body { background: #0a0a0a; }
 html.dark .bk-empty-icon { background: #2a0101; }
 html.dark .bk-empty-title { color: #f5f5f5; }
-html.dark .bottom-nav { background: rgba(20,20,20,0.96); border-top-color: rgba(255,255,255,0.06); }
-html.dark .nav-item span { color: #555; }
-html.dark .nav-item.active span { color: #f87171; }
-html.dark .nav-item.active svg path,
-html.dark .nav-item.active svg circle,
-html.dark .nav-item.active svg polyline,
-html.dark .nav-item.active svg rect { stroke: #f87171; }
 html.dark .bk-active-card { background: #1a1a1a; border-color: rgba(255,255,255,0.06); box-shadow: none; }
 html.dark .bk-active-actions { border-color: #252525; }
 html.dark .bk-active-btn + .bk-active-btn { border-color: #252525; }

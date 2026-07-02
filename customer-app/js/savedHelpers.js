@@ -1,4 +1,4 @@
-import { getAppContainer } from '../shared/js/app/container.js';
+import { getAppContainer } from '../../shared/js/app/container.js';
 
 window.hhSaveProfessional = async function (pro) {
   if (!pro || !pro.id) return;

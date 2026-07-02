@@ -31,6 +31,8 @@ authService.subscribeToAuthState((user) => {
             bioEl.value = d.bio || '';
             if (bioCount) bioCount.textContent = bioEl.value.length;
         }
+    }, (err) => {
+        console.warn('[settingsPersonalInfo] listener error:', err);
     });
 });
 
@@ -43,6 +45,17 @@ window.savePersonalInfo = async function () {
     const bio      = (bioEl?.value      || '').trim();
 
     if (!name) { showToast('Full name is required.', 'error'); nameEl?.focus(); return; }
+
+    // Phone is optional, but if provided it must have at least 10 digits —
+    // consistent with the signup form's validation rule.
+    if (phone) {
+        const phoneDigits = phone.replace(/\D/g, '');
+        if (phoneDigits.length < 10) {
+            showToast('Phone number must be at least 10 digits, or left blank.', 'error');
+            phoneEl?.focus();
+            return;
+        }
+    }
 
     saveBtn.disabled = true;
     saveBtn.classList.add('loading');

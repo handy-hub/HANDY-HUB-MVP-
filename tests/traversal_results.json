@@ -1,0 +1,2334 @@
+{
+  "meta": {
+    "generated": "2026-06-28T21:47:35.027731",
+    "base": "http://localhost:8766/customer-app",
+    "authenticated": true,
+    "duration_s": 507.07
+  },
+  "coverage": {
+    "routes_discovered": 38,
+    "routes_visited": 38,
+    "routes_visited_pct": 100.0,
+    "orphans_discovered": 5,
+    "orphans_visited": 5,
+    "protected_routes": 29,
+    "protected_blocked_while_authed": [],
+    "elements_tested": 215,
+    "edges_discovered": 178
+  },
+  "summary": {
+    "actions": 139,
+    "passed": 126,
+    "failed": 0,
+    "warnings": 4,
+    "findings": 36,
+    "by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 1,
+      "MEDIUM": 35,
+      "LOW": 0
+    }
+  },
+  "route_coverage": {
+    "index.html": {
+      "route": "index.html",
+      "orphan": false,
+      "needs_auth": false,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 2,
+      "js_exceptions": [],
+      "console_errors": [],
+      "http_4xx": []
+    },
+    "splash-screen.html": {
+      "route": "splash-screen.html",
+      "orphan": false,
+      "needs_auth": false,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 3,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "http_4xx": []
+    },
+    "login.html": {
+      "route": "login.html",
+      "orphan": false,
+      "needs_auth": false,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 0,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "signup.html": {
+      "route": "signup.html",
+      "orphan": false,
+      "needs_auth": false,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 0,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "verify-email.html": {
+      "route": "verify-email.html",
+      "orphan": true,
+      "needs_auth": false,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 11,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "settings-privacy-policy.html": {
+      "route": "settings-privacy-policy.html",
+      "orphan": false,
+      "needs_auth": false,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 1,
+      "js_exceptions": [],
+      "console_errors": [],
+      "http_4xx": []
+    },
+    "settings-terms.html": {
+      "route": "settings-terms.html",
+      "orphan": false,
+      "needs_auth": false,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 1,
+      "js_exceptions": [],
+      "console_errors": [],
+      "http_4xx": []
+    },
+    "settings-help.html": {
+      "route": "settings-help.html",
+      "orphan": false,
+      "needs_auth": false,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 5,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "settings-about.html": {
+      "route": "settings-about.html",
+      "orphan": false,
+      "needs_auth": false,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 3,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "dashboard.html": {
+      "route": "dashboard.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 7,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 ()",
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "A bad HTTP response code (404) was received when fetching the script."
+      ],
+      "http_4xx": []
+    },
+    "search-page.html": {
+      "route": "search-page.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 18,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "search-not-found.html": {
+      "route": "search-not-found.html",
+      "orphan": true,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 4,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "professionals.html": {
+      "route": "professionals.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 2,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "artisan-profile.html": {
+      "route": "artisan-profile.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 3,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "A bad HTTP response code (404) was received when fetching the script."
+      ],
+      "http_4xx": []
+    },
+    "service-detail.html": {
+      "route": "service-detail.html",
+      "orphan": true,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 1,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "book-now.html": {
+      "route": "book-now.html",
+      "orphan": true,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 0,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "book-step1.html": {
+      "route": "book-step1.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 15,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 ()",
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "book-step2.html": {
+      "route": "book-step2.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 9,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "book-step3.html": {
+      "route": "book-step3.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 3,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "book-step4.html": {
+      "route": "book-step4.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 7,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "book-emergency.html": {
+      "route": "book-emergency.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 2,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "booking.html": {
+      "route": "booking.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 6,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "A bad HTTP response code (404) was received when fetching the script."
+      ],
+      "http_4xx": []
+    },
+    "live-tracking.html": {
+      "route": "live-tracking.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 3,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "quote-approval.html": {
+      "route": "quote-approval.html",
+      "orphan": true,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 1,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "review.html": {
+      "route": "review.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 14,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "topup.html": {
+      "route": "topup.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 10,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "transaction-history.html": {
+      "route": "transaction-history.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 4,
+      "js_exceptions": [],
+      "console_errors": [
+        "Error: <svg> attribute viewBox: Unexpected end of attribute. Expected number, \" 0 24 24\".",
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "notification.html": {
+      "route": "notification.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 7,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "http_4xx": []
+    },
+    "messages.html": {
+      "route": "messages.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 12,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "A bad HTTP response code (404) was received when fetching the script."
+      ],
+      "http_4xx": []
+    },
+    "message.html": {
+      "route": "message.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 12,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "A bad HTTP response code (404) was received when fetching the script."
+      ],
+      "http_4xx": []
+    },
+    "saved.html": {
+      "route": "saved.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 5,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "A bad HTTP response code (404) was received when fetching the script."
+      ],
+      "http_4xx": [
+        "404 http://localhost:8766/customer-app/shared/js/utils/authGuard.js",
+        "404 http://localhost:8766/customer-app/shared/js/app/container.js"
+      ]
+    },
+    "profile.html": {
+      "route": "profile.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 10,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 ()",
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Failed to load resource: the server responded with a status of 404 ()"
+      ],
+      "http_4xx": []
+    },
+    "settings.html": {
+      "route": "settings.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 8,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "settings-personal-info.html": {
+      "route": "settings-personal-info.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 6,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "settings-notifications.html": {
+      "route": "settings-notifications.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 7,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "settings-security.html": {
+      "route": "settings-security.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 2,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "settings-location.html": {
+      "route": "settings-location.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 7,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    },
+    "settings-privacy.html": {
+      "route": "settings-privacy.html",
+      "orphan": false,
+      "needs_auth": true,
+      "visited": true,
+      "loaded": true,
+      "redirected_login": false,
+      "elements_fuzzed": 4,
+      "js_exceptions": [],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 401 ()",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "http_4xx": []
+    }
+  },
+  "findings": [
+    {
+      "severity": "MEDIUM",
+      "route": "splash-screen.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 23.13
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "login.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 38.95
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "signup.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 41.69
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "verify-email.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 44.46
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "settings-help.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 71.34
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "settings-about.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 77.65
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "dashboard.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 404 (); Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 87.66
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "search-page.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 143.79
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "search-not-found.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 158.19
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "professionals.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 165.43
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "artisan-profile.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 178.32
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "service-detail.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 186.79
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "book-now.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 195.14
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "book-step1.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 404 (); Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 197.87
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "book-step2.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 211.08
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "book-step3.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 223.73
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "book-step4.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 250.07
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "book-emergency.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 263.64
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "booking.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 267.26
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "live-tracking.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 277.31
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "quote-approval.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 285.53
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "review.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 290.84
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "topup.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 305.17
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "transaction-history.html",
+      "title": "Console error",
+      "detail": "Error: <svg> attribute viewBox: Unexpected end of attribute. Expected number, \" 0 24 24\".; Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 328.35
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "notification.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 338.26
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "messages.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 348.02
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "message.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 359.39
+    },
+    {
+      "severity": "HIGH",
+      "route": "saved.html",
+      "title": "App asset 4xx (broken script/style path)",
+      "detail": "404 http://localhost:8766/customer-app/shared/js/utils/authGuard.js; 404 http://localhost:8766/customer-app/shared/js/app/container.js",
+      "repro": "open saved.html, watch network",
+      "t": 371.77
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "saved.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found); Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "repro": "",
+      "t": 371.77
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "profile.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 404 (); Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 376.32
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "settings.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 394.55
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "settings-personal-info.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 450.96
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "settings-notifications.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 456.65
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "settings-security.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 462.88
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "settings-location.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 467.96
+    },
+    {
+      "severity": "MEDIUM",
+      "route": "settings-privacy.html",
+      "title": "Console error",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 474.01
+    }
+  ],
+  "edges": [
+    "artisan-profile.html -> dashboard",
+    "artisan-profile.html -> dashboard.html",
+    "book-emergency.html -> live-tracking.html",
+    "book-emergency.html -> messages.html",
+    "book-emergency.html -> settings-location.html",
+    "book-step1.html -> dashboard",
+    "book-step1.html -> dashboard.html",
+    "book-step1.html -> notification",
+    "book-step1.html -> notification.html",
+    "book-step1.html -> settings-location",
+    "book-step1.html -> settings-location.html",
+    "book-step2.html -> book-step1",
+    "book-step2.html -> book-step1.html",
+    "book-step2.html -> notification",
+    "book-step2.html -> notification.html",
+    "book-step3.html -> book-step1.html",
+    "book-step3.html -> book-step2.html",
+    "book-step3.html -> notification.html",
+    "book-step3.html -> settings-location.html",
+    "book-step3.html -> topup.html",
+    "book-step4.html -> booking",
+    "book-step4.html -> booking.html",
+    "book-step4.html -> notification",
+    "book-step4.html -> notification.html",
+    "book-step4.html -> settings-help",
+    "book-step4.html -> settings-help.html",
+    "booking.html -> book-step1",
+    "booking.html -> book-step1.html",
+    "booking.html -> booking.html",
+    "booking.html -> dashboard.html",
+    "booking.html -> notification",
+    "booking.html -> notification.html",
+    "booking.html -> profile.html",
+    "booking.html -> saved.html",
+    "dashboard.html -> booking.html",
+    "dashboard.html -> dashboard.html",
+    "dashboard.html -> messages.html",
+    "dashboard.html -> notification.html",
+    "dashboard.html -> profile",
+    "dashboard.html -> profile.html",
+    "dashboard.html -> saved.html",
+    "dashboard.html -> settings-help.html",
+    "dashboard.html -> settings.html",
+    "dashboard.html -> transaction-history.html",
+    "index.html -> signup",
+    "live-tracking.html -> booking",
+    "live-tracking.html -> booking.html",
+    "live-tracking.html -> messages",
+    "live-tracking.html -> messages.html",
+    "login.html -> signup.html",
+    "message.html -> booking.html",
+    "message.html -> dashboard.html",
+    "message.html -> notification.html",
+    "message.html -> profile.html",
+    "message.html -> saved.html",
+    "messages.html -> booking.html",
+    "messages.html -> dashboard.html",
+    "messages.html -> notification.html",
+    "messages.html -> profile.html",
+    "messages.html -> saved.html",
+    "notification.html -> booking.html",
+    "notification.html -> dashboard",
+    "notification.html -> dashboard.html",
+    "notification.html -> notification.html",
+    "notification.html -> profile.html",
+    "notification.html -> saved.html",
+    "notification.html -> settings-notifications",
+    "professionals.html -> booking.html",
+    "professionals.html -> dashboard",
+    "professionals.html -> dashboard.html",
+    "professionals.html -> notification.html",
+    "professionals.html -> profile.html",
+    "professionals.html -> saved.html",
+    "profile.html -> booking.html",
+    "profile.html -> dashboard.html",
+    "profile.html -> messages.html",
+    "profile.html -> settings",
+    "profile.html -> settings-about",
+    "profile.html -> settings-about.html",
+    "profile.html -> settings-help",
+    "profile.html -> settings-help.html",
+    "profile.html -> settings-location",
+    "profile.html -> settings-location.html",
+    "profile.html -> settings-notifications",
+    "profile.html -> settings-notifications.html",
+    "profile.html -> settings-personal-info.html",
+    "profile.html -> settings.html",
+    "profile.html -> topup",
+    "profile.html -> topup.html",
+    "profile.html -> transaction-history.html",
+    "quote-approval.html -> live-tracking",
+    "review.html -> booking",
+    "review.html -> booking.html",
+    "saved.html -> booking.html",
+    "saved.html -> dashboard.html",
+    "saved.html -> notification.html",
+    "saved.html -> profile.html",
+    "saved.html -> saved.html",
+    "search-not-found.html -> dashboard",
+    "search-not-found.html -> dashboard.html",
+    "search-not-found.html -> search-page",
+    "search-not-found.html -> search-page.html",
+    "search-page.html -> book-step1",
+    "search-page.html -> dashboard",
+    "search-page.html -> dashboard.html",
+    "service-detail.html -> booking.html",
+    "service-detail.html -> dashboard.html",
+    "service-detail.html -> notification.html",
+    "service-detail.html -> profile.html",
+    "service-detail.html -> saved.html",
+    "settings-about.html -> settings",
+    "settings-about.html -> settings-privacy-policy",
+    "settings-about.html -> settings-privacy-policy.html",
+    "settings-about.html -> settings-terms",
+    "settings-about.html -> settings-terms.html",
+    "settings-about.html -> settings.html",
+    "settings-help.html -> settings",
+    "settings-help.html -> settings.html",
+    "settings-location.html -> settings",
+    "settings-location.html -> settings.html",
+    "settings-notifications.html -> notification",
+    "settings-notifications.html -> settings.html",
+    "settings-personal-info.html -> settings",
+    "settings-personal-info.html -> settings.html",
+    "settings-privacy-policy.html -> settings",
+    "settings-privacy-policy.html -> settings.html",
+    "settings-privacy.html -> settings",
+    "settings-privacy.html -> settings.html",
+    "settings-security.html -> settings",
+    "settings-security.html -> settings.html",
+    "settings-terms.html -> settings",
+    "settings-terms.html -> settings.html",
+    "settings.html -> profile",
+    "settings.html -> profile.html",
+    "settings.html -> settings-about.html",
+    "settings.html -> settings-help.html",
+    "settings.html -> settings-location",
+    "settings.html -> settings-location.html",
+    "settings.html -> settings-notifications",
+    "settings.html -> settings-notifications.html",
+    "settings.html -> settings-personal-info",
+    "settings.html -> settings-personal-info.html",
+    "settings.html -> settings-privacy",
+    "settings.html -> settings-privacy-policy.html",
+    "settings.html -> settings-privacy.html",
+    "settings.html -> settings-security",
+    "settings.html -> settings-security.html",
+    "settings.html -> settings-terms.html",
+    "signup.html -> index.html",
+    "signup.html -> login.html",
+    "signup.html -> settings-privacy-policy.html",
+    "signup.html -> settings-terms.html",
+    "splash-screen.html -> booking.html",
+    "splash-screen.html -> dashboard.html",
+    "splash-screen.html -> messages.html",
+    "splash-screen.html -> notification.html",
+    "splash-screen.html -> profile",
+    "splash-screen.html -> profile.html",
+    "splash-screen.html -> saved.html",
+    "splash-screen.html -> settings-help.html",
+    "splash-screen.html -> settings.html",
+    "splash-screen.html -> transaction-history.html",
+    "topup.html -> profile",
+    "topup.html -> profile.html",
+    "transaction-history.html -> booking.html",
+    "transaction-history.html -> dashboard.html",
+    "transaction-history.html -> login.html",
+    "transaction-history.html -> notification.html",
+    "transaction-history.html -> profile",
+    "transaction-history.html -> profile.html",
+    "transaction-history.html -> saved.html",
+    "transaction-history.html -> topup",
+    "transaction-history.html -> topup.html",
+    "verify-email.html -> customer-app",
+    "verify-email.html -> index.html",
+    "verify-email.html -> login.html",
+    "verify-email.html -> settings-privacy-policy.html",
+    "verify-email.html -> settings-terms.html"
+  ],
+  "actions": [
+    {
+      "t": 12.36,
+      "route": "login.html",
+      "element": "authentication",
+      "expected": "real login succeeds",
+      "actual": "authenticated",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 15.13,
+      "route": "index.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Get Started | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 15.73,
+      "route": "index.html",
+      "element": "btn:I'm a Customer\n\nFind and book ",
+      "expected": "responds",
+      "actual": "navigated->signup",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 17.68,
+      "route": "index.html",
+      "element": "btn:I'm an Artisan\n\nOffer your ser",
+      "expected": "responds",
+      "actual": "navigated->signup",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 23.13,
+      "route": "splash-screen.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Home | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 23.28,
+      "route": "splash-screen.html",
+      "element": "dead-href-scan",
+      "expected": "no placeholder #/void links",
+      "actual": "1 href='#'/void link(s)",
+      "status": "WARN",
+      "note": "decorative or unwired links"
+    },
+    {
+      "t": 34.6,
+      "route": "splash-screen.html",
+      "element": "btn:6",
+      "expected": "responds",
+      "actual": "navigated->profile",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 38.95,
+      "route": "login.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Login | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 39.0,
+      "route": "login.html",
+      "element": "dead-href-scan",
+      "expected": "no placeholder #/void links",
+      "actual": "1 href='#'/void link(s)",
+      "status": "WARN",
+      "note": "decorative or unwired links"
+    },
+    {
+      "t": 41.69,
+      "route": "signup.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Sign Up | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 44.46,
+      "route": "verify-email.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Sign Up | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 44.91,
+      "route": "verify-email.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->customer-app",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 56.63,
+      "route": "verify-email.html",
+      "element": "toggles",
+      "expected": "toggle state flips",
+      "actual": "1 toggles flipped",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 57.6,
+      "route": "verify-email.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "5 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 61.61,
+      "route": "settings-privacy-policy.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Privacy Policy | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 62.09,
+      "route": "settings-privacy-policy.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->settings",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 66.46,
+      "route": "settings-terms.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Terms and Conditions | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 66.95,
+      "route": "settings-terms.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->settings",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 71.34,
+      "route": "settings-help.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Help and Support | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 71.79,
+      "route": "settings-help.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->settings",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 73.76,
+      "route": "settings-help.html",
+      "element": "btn:How do I pay for a service?",
+      "expected": "destructive — inventoried not clicked",
+      "actual": "SKIPPED (safety)",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 77.65,
+      "route": "settings-about.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='About | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 78.1,
+      "route": "settings-about.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->settings",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 80.11,
+      "route": "settings-about.html",
+      "element": "btn:Terms & Conditions",
+      "expected": "responds",
+      "actual": "navigated->settings-terms",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 82.33,
+      "route": "settings-about.html",
+      "element": "btn:Privacy Policy",
+      "expected": "responds",
+      "actual": "navigated->settings-privacy-policy",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 87.66,
+      "route": "dashboard.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Home | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 87.78,
+      "route": "dashboard.html",
+      "element": "dead-href-scan",
+      "expected": "no placeholder #/void links",
+      "actual": "1 href='#'/void link(s)",
+      "status": "WARN",
+      "note": "decorative or unwired links"
+    },
+    {
+      "t": 99.23,
+      "route": "dashboard.html",
+      "element": "btn:6",
+      "expected": "responds",
+      "actual": "navigated->profile",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 140.17,
+      "route": "dashboard.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "1 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 143.79,
+      "route": "search-page.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Search Services | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 144.27,
+      "route": "search-page.html",
+      "element": "btn:0",
+      "expected": "responds",
+      "actual": "navigated->dashboard",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 150.97,
+      "route": "search-page.html",
+      "element": "btn:More",
+      "expected": "responds",
+      "actual": "navigated->book-step1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 152.95,
+      "route": "search-page.html",
+      "element": "btn:More",
+      "expected": "responds",
+      "actual": "navigated->book-step1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 155.51,
+      "route": "search-page.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "1 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 158.19,
+      "route": "search-not-found.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='No Results | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 158.63,
+      "route": "search-not-found.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->dashboard",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 160.99,
+      "route": "search-not-found.html",
+      "element": "btn:Back to Search",
+      "expected": "responds",
+      "actual": "navigated->search-page",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 162.73,
+      "route": "search-not-found.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "1 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 165.43,
+      "route": "professionals.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Browse Professionals | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 165.91,
+      "route": "professionals.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->dashboard",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 178.32,
+      "route": "artisan-profile.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Professional Profile | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 178.86,
+      "route": "artisan-profile.html",
+      "element": "btn:Back",
+      "expected": "responds",
+      "actual": "navigated->dashboard",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 181.96,
+      "route": "artisan-profile.html",
+      "element": "btn:Go Back",
+      "expected": "responds",
+      "actual": "navigated->dashboard",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 186.79,
+      "route": "service-detail.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Service Details | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 195.14,
+      "route": "book-now.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 197.87,
+      "route": "book-step1.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Book a Service | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 198.34,
+      "route": "book-step1.html",
+      "element": "btn:0",
+      "expected": "responds",
+      "actual": "navigated->dashboard",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 200.31,
+      "route": "book-step1.html",
+      "element": "btn:Notifications",
+      "expected": "responds",
+      "actual": "navigated->notification",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 206.28,
+      "route": "book-step1.html",
+      "element": "btn:+ Add New",
+      "expected": "responds",
+      "actual": "navigated->settings-location",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 208.42,
+      "route": "book-step1.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "1 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 211.08,
+      "route": "book-step2.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Choose Professional | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 211.53,
+      "route": "book-step2.html",
+      "element": "btn:0",
+      "expected": "responds",
+      "actual": "navigated->book-step1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 213.49,
+      "route": "book-step2.html",
+      "element": "btn:Notifications",
+      "expected": "responds",
+      "actual": "navigated->notification",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 215.47,
+      "route": "book-step2.html",
+      "element": "btn:Edit",
+      "expected": "responds",
+      "actual": "navigated->book-step1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 219.02,
+      "route": "book-step2.html",
+      "element": "btn:Change",
+      "expected": "responds",
+      "actual": "navigated->book-step1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 223.73,
+      "route": "book-step3.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Schedule and Confirm | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 247.37,
+      "route": "book-step3.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "1 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 250.07,
+      "route": "book-step4.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Request Sent | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 250.54,
+      "route": "book-step4.html",
+      "element": "btn:My Bookings",
+      "expected": "responds",
+      "actual": "navigated->booking",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 252.55,
+      "route": "book-step4.html",
+      "element": "btn:Notifications",
+      "expected": "responds",
+      "actual": "navigated->notification",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 255.38,
+      "route": "book-step4.html",
+      "element": "btn:View Details",
+      "expected": "responds",
+      "actual": "navigated->booking",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 257.36,
+      "route": "book-step4.html",
+      "element": "btn:Contact Support",
+      "expected": "responds",
+      "actual": "navigated->settings-help",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 259.34,
+      "route": "book-step4.html",
+      "element": "btn:Go to My Bookings",
+      "expected": "responds",
+      "actual": "navigated->booking",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 263.64,
+      "route": "book-emergency.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Emergency Booking | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 267.26,
+      "route": "booking.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='My Bookings | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 267.72,
+      "route": "booking.html",
+      "element": "btn:Notifications",
+      "expected": "responds",
+      "actual": "navigated->notification",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 271.33,
+      "route": "booking.html",
+      "element": "btn:Rebook",
+      "expected": "responds",
+      "actual": "navigated->book-step1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 277.31,
+      "route": "live-tracking.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Live Tracking | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 277.92,
+      "route": "live-tracking.html",
+      "element": "btn:0",
+      "expected": "responds",
+      "actual": "navigated->booking",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 281.01,
+      "route": "live-tracking.html",
+      "element": "btn:Message artisan",
+      "expected": "responds",
+      "actual": "navigated->messages",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 285.53,
+      "route": "quote-approval.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Review Quote | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 286.03,
+      "route": "quote-approval.html",
+      "element": "btn:Back",
+      "expected": "responds",
+      "actual": "navigated->live-tracking",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 290.84,
+      "route": "review.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Rate Your Experience | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 291.34,
+      "route": "review.html",
+      "element": "btn:Back",
+      "expected": "responds",
+      "actual": "navigated->booking",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 298.16,
+      "route": "review.html",
+      "element": "btn:Skip for now",
+      "expected": "responds",
+      "actual": "navigated->booking",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 302.42,
+      "route": "review.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "1 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 305.17,
+      "route": "topup.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Top Up Wallet | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 305.64,
+      "route": "topup.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->profile",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 325.64,
+      "route": "topup.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "2 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 328.35,
+      "route": "transaction-history.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Transaction History | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 328.81,
+      "route": "transaction-history.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->profile",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 332.28,
+      "route": "transaction-history.html",
+      "element": "btn:Top Up",
+      "expected": "responds",
+      "actual": "navigated->topup",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 334.91,
+      "route": "transaction-history.html",
+      "element": "btn:Withdraw",
+      "expected": "destructive — inventoried not clicked",
+      "actual": "SKIPPED (safety)",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 338.26,
+      "route": "notification.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Notifications | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 338.89,
+      "route": "notification.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->dashboard",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 341.2,
+      "route": "notification.html",
+      "element": "btn:Notification Settings",
+      "expected": "responds",
+      "actual": "navigated->settings-notifications",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 348.02,
+      "route": "messages.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Messages | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 356.75,
+      "route": "messages.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "2 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 359.39,
+      "route": "message.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Messages | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 368.23,
+      "route": "message.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "2 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 371.77,
+      "route": "saved.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Saved | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 373.63,
+      "route": "saved.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "1 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 376.32,
+      "route": "profile.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Profile | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 376.78,
+      "route": "profile.html",
+      "element": "btn:Settings",
+      "expected": "responds",
+      "actual": "navigated->settings",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 379.23,
+      "route": "profile.html",
+      "element": "btn:Top Up",
+      "expected": "responds",
+      "actual": "navigated->topup",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 382.03,
+      "route": "profile.html",
+      "element": "btn:Address Book\n\nManage your save",
+      "expected": "responds",
+      "actual": "navigated->settings-location",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 384.02,
+      "route": "profile.html",
+      "element": "btn:Notification Settings\n\nManage ",
+      "expected": "responds",
+      "actual": "navigated->settings-notifications",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 386.25,
+      "route": "profile.html",
+      "element": "btn:Help & Support\n\nGet help, cont",
+      "expected": "responds",
+      "actual": "navigated->settings-help",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 389.57,
+      "route": "profile.html",
+      "element": "btn:About Handy Hub\n\nLearn more ab",
+      "expected": "responds",
+      "actual": "navigated->settings-about",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 391.62,
+      "route": "profile.html",
+      "element": "btn:Log Out",
+      "expected": "destructive — inventoried not clicked",
+      "actual": "SKIPPED (safety)",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 394.55,
+      "route": "settings.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Settings | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 395.1,
+      "route": "settings.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->profile",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 397.43,
+      "route": "settings.html",
+      "element": "btn:Personal Information\n\nUpdate y",
+      "expected": "responds",
+      "actual": "navigated->settings-personal-info",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 399.54,
+      "route": "settings.html",
+      "element": "btn:Security\n\nChange password and ",
+      "expected": "responds",
+      "actual": "navigated->settings-security",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 401.63,
+      "route": "settings.html",
+      "element": "btn:Privacy\n\nManage your privacy p",
+      "expected": "responds",
+      "actual": "navigated->settings-privacy",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 403.71,
+      "route": "settings.html",
+      "element": "btn:Notification Preferences\n\nChoo",
+      "expected": "responds",
+      "actual": "navigated->settings-notifications",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 405.82,
+      "route": "settings.html",
+      "element": "btn:Location Settings\n\nManage your",
+      "expected": "responds",
+      "actual": "navigated->settings-location",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 422.98,
+      "route": "settings.html",
+      "element": "btn:Delete Account",
+      "expected": "destructive — inventoried not clicked",
+      "actual": "SKIPPED (safety)",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 445.6,
+      "route": "settings.html",
+      "element": "btn:Yes, Delete My Account",
+      "expected": "destructive — inventoried not clicked",
+      "actual": "SKIPPED (safety)",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 448.28,
+      "route": "settings.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "1 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 450.96,
+      "route": "settings-personal-info.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Personal Information | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 451.41,
+      "route": "settings-personal-info.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->settings",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 453.98,
+      "route": "settings-personal-info.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "4 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 456.65,
+      "route": "settings-notifications.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Notification Preferences | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 457.1,
+      "route": "settings-notifications.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->notification",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 460.19,
+      "route": "settings-notifications.html",
+      "element": "toggles",
+      "expected": "toggle state flips",
+      "actual": "6 toggles flipped",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 462.88,
+      "route": "settings-security.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Security | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 463.31,
+      "route": "settings-security.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->settings",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 467.96,
+      "route": "settings-location.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Location Settings | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 468.4,
+      "route": "settings-location.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->settings",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 470.89,
+      "route": "settings-location.html",
+      "element": "toggles",
+      "expected": "toggle state flips",
+      "actual": "2 toggles flipped",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 471.35,
+      "route": "settings-location.html",
+      "element": "text-inputs",
+      "expected": "accept input",
+      "actual": "3 inputs accepted text",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 474.01,
+      "route": "settings-privacy.html",
+      "element": "navigate",
+      "expected": "loads",
+      "actual": "OK title='Privacy | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 474.45,
+      "route": "settings-privacy.html",
+      "element": "btn:Go back",
+      "expected": "responds",
+      "actual": "navigated->settings",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 476.78,
+      "route": "settings-privacy.html",
+      "element": "toggles",
+      "expected": "toggle state flips",
+      "actual": "3 toggles flipped",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 479.34,
+      "route": "login.html",
+      "element": "empty-submit",
+      "expected": "blocked w/ validation",
+      "actual": "validation shown=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 480.44,
+      "route": "login.html",
+      "element": "invalid-email",
+      "expected": "client rejects bad email",
+      "actual": "err shown=True",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 482.33,
+      "route": "signup.html",
+      "element": "submit-gating",
+      "expected": "submit disabled until valid",
+      "actual": "initially disabled=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 482.82,
+      "route": "signup.html",
+      "element": "pw-mismatch",
+      "expected": "mismatch flagged visually",
+      "actual": "confirm border='2px solid red'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 485.79,
+      "route": "topup.html",
+      "element": "invalid-amount[0]",
+      "expected": "invalid amount rejected/blocked",
+      "actual": "proceed disabled/blocked=True",
+      "status": "PASS",
+      "note": "negative/zero/non-numeric should not proceed"
+    },
+    {
+      "t": 486.12,
+      "route": "topup.html",
+      "element": "invalid-amount[-50]",
+      "expected": "invalid amount rejected/blocked",
+      "actual": "proceed disabled/blocked=True",
+      "status": "PASS",
+      "note": "negative/zero/non-numeric should not proceed"
+    },
+    {
+      "t": 486.13,
+      "route": "topup.html",
+      "element": "invalid-amount[abc]",
+      "expected": "input handles bad value",
+      "actual": "err Locator.fill: Error: Cannot type text in",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 486.46,
+      "route": "topup.html",
+      "element": "invalid-amount[0.001]",
+      "expected": "invalid amount rejected/blocked",
+      "actual": "proceed disabled/blocked=False",
+      "status": "WARN",
+      "note": "negative/zero/non-numeric should not proceed"
+    },
+    {
+      "t": 486.52,
+      "route": "topup.html",
+      "element": "paystack-guard",
+      "expected": "stop before real charge",
+      "actual": "did NOT submit a real Paystack charge",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 490.39,
+      "route": "settings-personal-info.html",
+      "element": "bad-profile-save",
+      "expected": "invalid profile rejected",
+      "actual": "feedback shown=False",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 494.69,
+      "route": "book-step1.html",
+      "element": "rapid-click-CTA",
+      "expected": "no crash/duplicate from rapid clicks",
+      "actual": "landed book-step1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 497.69,
+      "route": "book-emergency.html",
+      "element": "back-during-async",
+      "expected": "back-nav mid-search is safe",
+      "actual": "landed book-step1, no crash",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 503.84,
+      "route": "dashboard.html",
+      "element": "throttled-load",
+      "expected": "degrades gracefully under slow net",
+      "actual": "0 loaders visible after 6s",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 507.02,
+      "route": "booking.html",
+      "element": "offline-mode",
+      "expected": "page shell renders offline (cached/SW)",
+      "actual": "body length=250",
+      "status": "PASS",
+      "note": ""
+    }
+  ]
+}

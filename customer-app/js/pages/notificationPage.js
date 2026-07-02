@@ -1,4 +1,4 @@
-import {
+﻿import {
     waitForCurrentUser,
     subscribeToUserNotifications,
     markNotificationRead,
@@ -6,6 +6,7 @@ import {
     deleteNotification,
 } from "../../../shared/js/services/notificationRepository.js";
 import { getAppContainer } from "../../../shared/js/app/container.js";
+import { wireSwipeAction, createUndoToast } from "../../../shared/js/components/swipeAction.js";
 
 // ─── Icon map ───────────────────────────────────────────────────────────────
 const TYPE_ICON = {
@@ -47,7 +48,8 @@ let notificationPrefs = {
 // is not clobbered by a Firestore snapshot that still contains the item.
 const _pendingDeletionIds = new Set();
 
-let _lastSwipeTime = 0;
+const undoToast = createUndoToast({ message: 'Notification deleted', icon: 'fa-solid fa-trash-can' });
+let getLastSwipeTime = () => 0;
 
 // ─── Preference filter ───────────────────────────────────────────────────────
 function applyPrefsFilter(notifications) {
@@ -150,16 +152,17 @@ function renderTabs(notifications) {
         const prefKey    = TYPE_TO_PREF[name];
         const isDisabled = prefKey && notificationPrefs[prefKey] === false;
         return `
-            <button type="button" data-filter="${name}"
-                class="tab-btn${isActive ? " tab-btn--active" : ""}${isDisabled ? " tab-btn--muted" : ""}">
+            <button type="button" role="tab" data-filter="${name}"
+                aria-selected="${isActive}"
+                class="ui-tab${isActive ? " ui-tab--active" : ""}${isDisabled ? " ui-tab--muted" : ""}">
                 <span class="tab-label">${name}</span>
                 ${count > 0
-                    ? `<span class="tab-badge${isActive ? " tab-badge--active" : ""}">${count}</span>`
+                    ? `<span class="ui-tab-badge">${count}</span>`
                     : ""}
             </button>`;
     }).join("");
 
-    container.querySelectorAll(".tab-btn").forEach(btn => {
+    container.querySelectorAll(".ui-tab").forEach(btn => {
         btn.addEventListener("click", () => {
             currentFilter = btn.dataset.filter;
             renderTabs(allNotifications);
@@ -173,13 +176,13 @@ function buildCard(n) {
     const icon     = TYPE_ICON[n.type] ?? "fa-bell";
     const isUnread = !n.isRead;
     return `
-        <div class="notif-swipe-row">
-            <div class="notif-delete-action" aria-hidden="true">
+        <div class="swipe-row">
+            <div class="swipe-action" aria-hidden="true">
                 <i class="fa-solid fa-trash"></i>
                 <span>Delete</span>
             </div>
-            <div data-id="${n.id}"
-                 class="notif-card${isUnread ? " notif-card--unread" : ""}">
+            <div data-id="${esc(n.id)}"
+                 class="swipe-card notif-card${isUnread ? " notif-card--unread" : ""}">
                 <div class="notif-icon-wrap${isUnread ? " notif-icon-wrap--unread" : ""}">
                     <i class="fa-solid ${icon}"></i>
                 </div>
@@ -227,12 +230,12 @@ function renderList(notifications) {
 
     list.querySelectorAll(".notif-card").forEach(card => {
         card.addEventListener("click", () => {
-            if (Date.now() - _lastSwipeTime < 300) return;
+            if (Date.now() - getLastSwipeTime() < 300) return;
             handleCardClick(card.dataset.id);
         });
     });
 
-    wireSwipeToDelete(list);
+    getLastSwipeTime = wireSwipeAction(list, { onCommit: initiateDelete });
     updateMarkAllReadBtn();
 }
 
@@ -272,255 +275,6 @@ function buildEmptyState(allNotifs, visibleNotifs) {
         </div>`;
 }
 
-// ─── Undo-delete toast ────────────────────────────────────────────────────────
-/**
- * Manages a single bottom toast for the undo-delete pattern.
- *
- * Only one pending deletion is held at a time. If a second delete arrives
- * while a toast is showing, the first is immediately committed before the
- * new toast is shown.
- *
- * Lifecycle:
- *   show(id, notification, originalIndex, onUndo)
- *     → stores pending state, shows toast, starts 6s timer
- *
- *   timer expires   → _commit()  → calls deleteNotification(id)
- *   user taps Undo  → onUndo(restoreData) is called, toast hides
- *   new delete arrives while pending → _commit() first pending, then show
- *   pagehide        → commitAll() → commits any pending deletion synchronously
- */
-const UndoToast = (function () {
-    const DURATION_MS = 6000;
-
-    let _pending  = null;  // { id, notification, originalIndex }
-    let _timer    = null;
-    let _hostEl   = null;
-    let _toastEl  = null;
-
-    function _ensureHost() {
-        if (_hostEl && _hostEl.isConnected) return;
-        _hostEl = document.createElement('div');
-        _hostEl.className = 'undo-toast-host';
-        _hostEl.setAttribute('aria-live', 'polite');
-        _hostEl.setAttribute('aria-atomic', 'true');
-        document.body.appendChild(_hostEl);
-    }
-
-    function _clearTimer() {
-        if (_timer !== null) { clearTimeout(_timer); _timer = null; }
-    }
-
-    function _commitPending() {
-        if (!_pending) return;
-        const { id } = _pending;
-        _pending = null;
-        _pendingDeletionIds.delete(id);
-        // Persist cache now that deletion is final
-        saveNotifCache(allNotifications);
-        syncBadge(allNotifications);
-        updateMarkAllReadBtn();
-        deleteNotification(id).catch(err => {
-            console.warn('[notifPage] Undo-toast commit failed:', err);
-        });
-    }
-
-    function _hide(onDone) {
-        if (!_toastEl) { onDone?.(); return; }
-        _toastEl.classList.remove('is-visible');
-        _toastEl.classList.add('is-hiding');
-        const el = _toastEl;
-        setTimeout(() => {
-            if (el.parentNode) el.parentNode.innerHTML = '';
-            _toastEl = null;
-            onDone?.();
-        }, 340);
-    }
-
-    /**
-     * Show the undo toast for a just-deleted notification.
-     *
-     * @param {string}   id             Notification Firestore ID
-     * @param {object}   notification   The full notification object (for restoration)
-     * @param {number}   originalIndex  Position in allNotifications before removal
-     * @param {function} onUndo         Callback invoked with restoreData when user taps Undo
-     */
-    function show(id, notification, originalIndex, onUndo) {
-        _ensureHost();
-
-        // If another deletion is already pending, commit it immediately
-        if (_pending) {
-            _clearTimer();
-            _commitPending();
-        }
-
-        _pending = { id, notification, originalIndex };
-        _pendingDeletionIds.add(id);
-
-        _hostEl.innerHTML = `
-            <div class="undo-toast"
-                 role="status"
-                 aria-label="Notification deleted. Tap Undo to restore.">
-                <div class="undo-toast__icon" aria-hidden="true">
-                    <i class="fa-solid fa-trash-can"></i>
-                </div>
-                <span class="undo-toast__msg">Notification deleted</span>
-                <button class="undo-toast__undo"
-                        type="button"
-                        aria-label="Undo: restore deleted notification">
-                    Undo
-                </button>
-                <div class="undo-toast__progress" aria-hidden="true">
-                    <div class="undo-toast__progress-fill"
-                         style="--toast-duration: ${DURATION_MS}ms"></div>
-                </div>
-            </div>`;
-
-        _toastEl = _hostEl.querySelector('.undo-toast');
-
-        // Wire the Undo button
-        _hostEl.querySelector('.undo-toast__undo').addEventListener('click', () => {
-            _clearTimer();
-            const restoreData = _pending;
-            _pending = null;
-            if (restoreData) _pendingDeletionIds.delete(restoreData.id);
-            _hide(() => { onUndo?.(restoreData); });
-        });
-
-        // Enter animation — double rAF ensures transition fires after paint
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                if (_toastEl) _toastEl.classList.add('is-visible');
-            });
-        });
-
-        // Auto-dismiss after DURATION_MS
-        _timer = setTimeout(() => {
-            _timer = null;
-            const toCommit = _pending;
-            _pending = null;
-            if (toCommit) _pendingDeletionIds.delete(toCommit.id);
-            _hide(() => {
-                if (!toCommit) return;
-                saveNotifCache(allNotifications);
-                syncBadge(allNotifications);
-                updateMarkAllReadBtn();
-                deleteNotification(toCommit.id).catch(err => {
-                    console.warn('[notifPage] Auto-commit failed:', err);
-                });
-            });
-        }, DURATION_MS);
-    }
-
-    /**
-     * Called on pagehide to commit any pending deletion so it is not lost
-     * when the page unloads. Uses fire-and-forget since the page is closing.
-     */
-    function commitAll() {
-        _clearTimer();
-        if (!_pending) return;
-        const { id } = _pending;
-        _pending = null;
-        _pendingDeletionIds.delete(id);
-        saveNotifCache(allNotifications);
-        deleteNotification(id).catch(() => {});
-    }
-
-    return { show, commitAll };
-})();
-
-// ─── Swipe-to-delete ─────────────────────────────────────────────────────────
-function wireSwipeToDelete(listEl) {
-    const DELETE_THRESHOLD = 72;
-    const MAX_DRAG         = 90;
-
-    listEl.querySelectorAll('.notif-swipe-row').forEach(row => {
-        const card     = row.querySelector('.notif-card');
-        const deleteEl = row.querySelector('.notif-delete-action');
-        if (!card) return;
-
-        const id = card.dataset.id;
-        let startX = 0, startY = 0, currentDx = 0;
-        let tracking = false, didRealSwipe = false, direction = null;
-
-        function cancelGesture() { tracking = false; direction = null; }
-
-        function onTouchStart(e) {
-            if (e.touches.length !== 1) return;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            currentDx = 0; tracking = true; didRealSwipe = false; direction = null;
-            card.style.transition = 'none';
-        }
-
-        function onTouchMove(e) {
-            if (!tracking || e.touches.length !== 1) return;
-            const dx = e.touches[0].clientX - startX;
-            const dy = e.touches[0].clientY - startY;
-
-            if (direction === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
-                direction = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
-            }
-            if (direction === 'v') { cancelGesture(); return; }
-
-            if (direction === 'h' && dx < 0) {
-                e.preventDefault();
-                didRealSwipe = true;
-                currentDx = Math.max(dx, -(MAX_DRAG + 22));
-                card.style.transform = `translateX(${currentDx}px)`;
-                if (deleteEl) {
-                    const ratio = Math.min(Math.abs(currentDx) / DELETE_THRESHOLD, 1.3);
-                    deleteEl.style.transform  = `scale(${(0.85 + ratio * 0.25).toFixed(3)})`;
-                    deleteEl.style.background = currentDx < -DELETE_THRESHOLD ? '#b71c1c' : '#d32f2f';
-                }
-            }
-        }
-
-        function onTouchEnd() {
-            if (!tracking) return;
-            tracking = false;
-            if (didRealSwipe) _lastSwipeTime = Date.now();
-
-            if (currentDx < -DELETE_THRESHOLD) {
-                if (navigator.vibrate) navigator.vibrate(12);
-                card.style.transition = 'transform 0.22s ease-in';
-                card.style.transform  = 'translateX(-110%)';
-                setTimeout(() => {
-                    const h = row.offsetHeight;
-                    row.style.height = h + 'px';
-                    void row.offsetHeight;
-                    row.style.transition = 'height 0.26s ease, opacity 0.18s ease';
-                    row.style.overflow   = 'hidden';
-                    row.style.opacity    = '0';
-                    row.style.height     = '0';
-                    setTimeout(() => {
-                        if (row.parentNode) row.remove();
-                        // ── Undo-delete: defer Firestore write by DURATION_MS ──
-                        initiateDelete(id);
-                    }, 270);
-                }, 210);
-            } else {
-                card.style.transition = 'transform 0.42s cubic-bezier(0.34,1.56,0.64,1)';
-                card.style.transform  = 'translateX(0)';
-                if (deleteEl) {
-                    deleteEl.style.transition = 'transform 0.42s cubic-bezier(0.34,1.56,0.64,1), background 0.2s';
-                    deleteEl.style.transform  = '';
-                    deleteEl.style.background = '';
-                }
-                setTimeout(() => {
-                    card.style.transition = '';
-                    card.style.transform  = '';
-                    if (deleteEl) deleteEl.style.transition = '';
-                }, 450);
-            }
-        }
-
-        card.addEventListener('touchstart',  onTouchStart,  { passive: true  });
-        card.addEventListener('touchmove',   onTouchMove,   { passive: false });
-        card.addEventListener('touchend',    onTouchEnd);
-        card.addEventListener('touchcancel', onTouchEnd);
-    });
-}
-
 // ─── Delete with undo ─────────────────────────────────────────────────────────
 /**
  * Optimistically removes a notification from the UI and shows the undo toast.
@@ -542,6 +296,7 @@ function initiateDelete(id) {
 
     // Optimistic removal from live state (not from cache yet)
     allNotifications = allNotifications.filter(n => n.id !== id);
+    _pendingDeletionIds.add(id);
 
     // Update badges + tabs without the deleted item
     syncBadge(allNotifications);
@@ -550,19 +305,33 @@ function initiateDelete(id) {
     // NOTE: renderList is NOT called here — the DOM row was already removed
     // by the swipe animation. This avoids a jarring re-render.
 
-    UndoToast.show(id, notification, index, (restoreData) => {
-        if (!restoreData) return;
+    undoToast.show(
+        id,
+        { notification, originalIndex: index },
+        (committedId) => {
+            _pendingDeletionIds.delete(committedId);
+            saveNotifCache(allNotifications);
+            syncBadge(allNotifications);
+            updateMarkAllReadBtn();
+            deleteNotification(committedId).catch(err => {
+                console.warn('[notifPage] Undo-toast commit failed:', err);
+            });
+        },
+        (restoreData) => {
+            if (!restoreData) return;
+            _pendingDeletionIds.delete(id);
 
-        // Re-insert at original position (clamped to current array length)
-        const insertAt = Math.min(restoreData.originalIndex, allNotifications.length);
-        allNotifications.splice(insertAt, 0, restoreData.notification);
+            // Re-insert at original position (clamped to current array length)
+            const insertAt = Math.min(restoreData.originalIndex, allNotifications.length);
+            allNotifications.splice(insertAt, 0, restoreData.notification);
 
-        // Full re-render with restored item + update cache
-        syncBadge(allNotifications);
-        renderTabs(allNotifications);
-        renderList(allNotifications);
-        saveNotifCache(allNotifications);
-    });
+            // Full re-render with restored item + update cache
+            syncBadge(allNotifications);
+            renderTabs(allNotifications);
+            renderList(allNotifications);
+            saveNotifCache(allNotifications);
+        }
+    );
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -587,9 +356,21 @@ async function handleCardClick(id) {
 }
 
 // ─── Loading / error states ───────────────────────────────────────────────────
+function skeletonCard() {
+    return `
+        <div class="notif-skel-card">
+            <div class="notif-skel-icon"></div>
+            <div class="notif-skel-body">
+                <div class="notif-skel-line title"></div>
+                <div class="notif-skel-line msg"></div>
+                <div class="notif-skel-line msg-short"></div>
+            </div>
+        </div>`;
+}
+
 function showLoading() {
     const list = dom.notifList();
-    if (list) list.innerHTML = `<div class="notif-loading"><div class="notif-spinner"></div></div>`;
+    if (list) list.innerHTML = Array(5).fill(skeletonCard()).join('');
 }
 
 function showError(msg) {
@@ -640,6 +421,8 @@ async function init() {
         renderTabs(allNotifications);
         renderList(allNotifications);
         syncBadge(allNotifications);
+    }, (err) => {
+        console.warn('[notificationPage] prefs listener error:', err);
     });
 
     // ── 2. Mark-All-Read button ───────────────────────────────────────────────
@@ -696,5 +479,5 @@ window.addEventListener("pagehide", () => {
     if (unsubscribeFn)  { unsubscribeFn();  unsubscribeFn  = null; }
     if (prefsUnsubFn)   { prefsUnsubFn();   prefsUnsubFn   = null; }
     // Commit any pending deletion so it is not silently lost on page unload
-    UndoToast.commitAll();
+    undoToast.commitAll();
 });

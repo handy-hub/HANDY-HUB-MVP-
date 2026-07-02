@@ -40,55 +40,15 @@ const ROOT_ID = 'hh-qm-root';
 function _ensureDOM() {
     if (document.getElementById(ROOT_ID)) return;
 
-    const style = document.createElement('style');
-    style.id = 'hh-qm-css';
-    style.textContent = `
-        #hh-qm-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;font-family:'DM Sans',system-ui,sans-serif}
-        #hh-qm-overlay.open{display:flex}
-        #hh-qm-sheet{width:100%;max-width:430px;background:var(--surface,#fff);border-radius:20px 20px 0 0;max-height:92dvh;overflow-y:auto;transform:translateY(102%);transition:transform .32s cubic-bezier(.32,.72,0,1)}
-        #hh-qm-overlay.open #hh-qm-sheet{transform:translateY(0)}
-        .hh-qm-drag{display:block;width:36px;height:4px;border-radius:2px;background:rgba(0,0,0,.12);margin:10px auto 0}
-        .hh-qm-wrap{padding:16px 16px 44px}
-        .hh-qm-hdr{display:flex;align-items:center;gap:12px;margin-bottom:6px}
-        .hh-qm-av{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#730201,#c04040);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800;flex-shrink:0;overflow:hidden}
-        .hh-qm-av img{width:100%;height:100%;object-fit:cover}
-        .hh-qm-name{font-size:15px;font-weight:800;color:var(--text-dark,#111);margin:0 0 2px}
-        .hh-qm-svc{font-size:12px;color:var(--text-mid,#666);margin:0}
-        .hh-qm-x{width:30px;height:30px;border:none;background:var(--surface-3,#f3f3f3);border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-mid,#666);flex-shrink:0;margin-left:auto}
-        .hh-qm-badge{background:#fff8f0;border:1px solid #fed7aa;border-radius:10px;padding:7px 12px;font-size:12px;color:#c2410c;font-weight:600;margin:10px 0 14px;display:flex;align-items:center;gap:6px}
-        .hh-qm-card{background:var(--surface-2,#f7f7f7);border-radius:14px;padding:14px;margin-bottom:12px}
-        .hh-qm-clbl{font-size:10px;font-weight:700;color:var(--text-light,#999);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
-        .hh-qm-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:4px 0;font-size:13px}
-        .hh-qm-rl{color:var(--text-mid,#666)}
-        .hh-qm-rv{font-weight:700;color:var(--text-dark,#111);text-align:right}
-        .hh-qm-div{border:none;border-top:1px solid var(--border,#e8e8e8);margin:8px 0}
-        .hh-qm-tot{display:flex;justify-content:space-between;align-items:center;padding-top:2px}
-        .hh-qm-tl{font-size:14px;font-weight:800;color:var(--text-dark,#111)}
-        .hh-qm-tv{font-size:20px;font-weight:800;color:#730201}
-        .hh-qm-mats{margin:3px 0 4px 10px}
-        .hh-qm-mrow{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--text-light,#999);padding:2px 0}
-        .hh-qm-note{background:#fffbf0;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#78350f;line-height:1.5}
-        .hh-qm-escrow{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start;margin-bottom:18px;font-size:12px;color:#166534;line-height:1.5}
-        .hh-qm-approve{width:100%;height:50px;border-radius:14px;border:none;background:#730201;color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:8px;transition:opacity .15s}
-        .hh-qm-approve:disabled{opacity:.55;cursor:default}
-        .hh-qm-reject{width:100%;height:42px;border-radius:12px;border:1.5px solid var(--border,#e8e8e8);background:none;font-family:inherit;font-size:13px;font-weight:700;color:var(--text-mid,#666);cursor:pointer}
-        .hh-qm-loading{display:flex;justify-content:center;align-items:center;gap:10px;padding:52px 16px;color:var(--text-light,#999);font-size:13px}
-        .hh-qm-spin{width:26px;height:26px;border:3px solid var(--border,#e8e8e8);border-top-color:#730201;border-radius:50%;animation:hh-spin .8s linear infinite;flex-shrink:0}
-        .hh-qm-inline-err{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;font-size:12px;color:#b91c1c;margin-bottom:12px;line-height:1.4}
-        @keyframes hh-spin{to{transform:rotate(360deg)}}
-        #hh-qm-rj-overlay{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;font-family:'DM Sans',system-ui,sans-serif}
-        #hh-qm-rj-overlay.open{display:flex}
-        #hh-qm-rj-sheet{width:100%;max-width:430px;background:var(--surface,#fff);border-radius:20px 20px 0 0;padding:16px 16px 44px}
-        .hh-qm-rj-drag{display:block;width:36px;height:4px;border-radius:2px;background:rgba(0,0,0,.12);margin:0 auto 16px}
-        .hh-qm-rj-title{font-size:15px;font-weight:800;color:var(--text-dark,#111);margin-bottom:4px}
-        .hh-qm-rj-sub{font-size:12px;color:var(--text-light,#999);margin-bottom:14px;line-height:1.5}
-        .hh-qm-rj-ta{width:100%;min-height:72px;border:1.5px solid var(--border,#e8e8e8);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:16px;color:var(--text-dark,#111);background:var(--surface,#fff);resize:none;outline:none;box-sizing:border-box;margin-bottom:12px}
-        .hh-qm-rj-ta:focus{border-color:#730201}
-        .hh-qm-rj-confirm{width:100%;height:44px;border-radius:12px;border:none;background:#ef4444;color:#fff;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;transition:opacity .15s}
-        .hh-qm-rj-confirm:disabled{opacity:.55;cursor:default}
-        .hh-qm-rj-cancel{width:100%;height:38px;border-radius:12px;border:1.5px solid var(--border,#e8e8e8);background:none;font-family:inherit;font-size:13px;font-weight:700;color:var(--text-mid,#666);cursor:pointer}
-    `;
-    document.head.appendChild(style);
+    // Inject CSS only if the external stylesheet wasn't linked in <head>.
+    // Pages that load css/quote-modal.css will skip this block.
+    if (!document.getElementById('hh-qm-css')) {
+        const link = document.createElement('link');
+        link.id   = 'hh-qm-css';
+        link.rel  = 'stylesheet';
+        link.href = 'css/quote-modal.css';
+        document.head.appendChild(link);
+    }
 
     const root = document.createElement('div');
     root.id = ROOT_ID;
@@ -193,7 +153,7 @@ function _renderQuote(b) {
     const matRows = hasMats
         ? b.materials.map(m =>
             `<div class="hh-qm-mrow">
-                <span>${_esc(m.name)} × ${m.qty}</span>
+                <span>${_esc(m.name)} × ${_esc(m.qty)}</span>
                 <span>GHS ${_fmt(m.total != null ? m.total : m.qty * m.unitPrice)}</span>
             </div>`
         ).join('') : '';
@@ -220,7 +180,7 @@ function _renderQuote(b) {
             </div>
             <button class="hh-qm-x" id="hh-qm-x-btn" aria-label="Dismiss">✕</button>
         </div>
-        <div class="hh-qm-badge">💰 New quote — review before your artisan heads over</div>
+        <div class="hh-qm-badge"><i class="fa-solid fa-sack-dollar"></i> New quote — review before your artisan heads over</div>
         <div class="hh-qm-card">
             <div class="hh-qm-clbl">Quote Breakdown</div>
             <div class="hh-qm-row"><span class="hh-qm-rl">Labour</span><span class="hh-qm-rv">GHS ${_fmt(labour)}</span></div>
@@ -230,7 +190,7 @@ function _renderQuote(b) {
         </div>
         ${noteHTML}
         <div class="hh-qm-escrow">
-            <span style="font-size:16px;flex-shrink:0">🔒</span>
+            <span style="font-size:16px;flex-shrink:0"><i class="fa-solid fa-lock"></i></span>
             <span>Payment is held in escrow and only released after you confirm the job is complete.</span>
         </div>
         <button class="hh-qm-approve" id="hh-qm-approve-btn">Approve &amp; Pay GHS ${_fmt(total)}</button>

@@ -52,6 +52,13 @@ const onBookingReviewed = onDocumentUpdated(
             (before.rating == null) && (typeof after.rating === 'number');
         if (!ratingJustAdded) return;
 
+        // Only process ratings on completed bookings — guard against admin writes,
+        // Cloud Function bugs, or any other path that sets `rating` prematurely.
+        if (after.status !== 'completed') {
+            console.warn(`[reviews] Rating on non-completed booking=${bookingId} status=${after.status} — skipping.`);
+            return;
+        }
+
         // Idempotency guard: already processed (shouldn't happen given the above,
         // but cheap insurance against unexpected re-fires).
         if (after.ratingProcessed === true) return;

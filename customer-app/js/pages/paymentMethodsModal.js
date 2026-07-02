@@ -10,6 +10,12 @@ import {
 } from '../../../shared/js/data/repositories/paymentRepository.js';
 import { attachSwipeDismiss } from '../../../shared/js/utils/sheetDismiss.js';
 
+function esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // ── Inject required CSS into <head> once ─────────────────────────────────────
 (function injectStyles() {
     if (document.getElementById('pmo-styles')) return;
@@ -117,7 +123,7 @@ import { attachSwipeDismiss } from '../../../shared/js/utils/sheetDismiss.js';
 }
 
 .pmo-default-badge {
-  font-size: 10px; font-weight: 700; color: #730201;
+  font-size: 10px; font-weight: 700; color: var(--ui-primary);
   background: #ffe0e0; padding: 3px 9px; border-radius: 999px;
   flex-shrink: 0;
 }
@@ -171,11 +177,11 @@ import { attachSwipeDismiss } from '../../../shared/js/utils/sheetDismiss.js';
   border: 2px dashed #ddd;
   border-radius: 14px; background: none;
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  font-size: 14px; font-weight: 700; color: #730201;
+  font-size: 14px; font-weight: 700; color: var(--ui-primary);
   cursor: pointer; transition: border-color .15s, background .15s;
   margin-top: 4px; font-family: inherit;
 }
-.pmo-add-btn:hover { border-color: #730201; background: #fff5f5; }
+.pmo-add-btn:hover { border-color: var(--ui-primary); background: #fff5f5; }
 
 /* ── Add Account Form ── */
 .pmo-form { margin-top: 6px; }
@@ -192,11 +198,11 @@ import { attachSwipeDismiss } from '../../../shared/js/utils/sheetDismiss.js';
   font-family: inherit;
 }
 .pmo-prov-btn:hover    { border-color: #f5c0c0; background: #fff8f8; }
-.pmo-prov-btn.selected { border-color: #730201; background: #fff5f5; }
+.pmo-prov-btn.selected { border-color: var(--ui-primary); background: #fff5f5; }
 .pmo-prov-logo { width: 38px; height: 38px; }
 .pmo-prov-logo svg { width: 38px; height: 38px; }
 .pmo-prov-name { font-size: 10px; font-weight: 700; color: #444; text-align: center; line-height: 1.3; }
-.pmo-prov-btn.selected .pmo-prov-name { color: #730201; }
+.pmo-prov-btn.selected .pmo-prov-name { color: var(--ui-primary); }
 
 .pmo-field {
   margin-bottom: 12px;
@@ -210,12 +216,12 @@ import { attachSwipeDismiss } from '../../../shared/js/utils/sheetDismiss.js';
   font-size: 15px; font-family: inherit; outline: none;
   transition: border-color .15s; color: #111; background: #fff;
 }
-.pmo-field input:focus { border-color: #730201; }
+.pmo-field input:focus { border-color: var(--ui-primary); }
 
 .pmo-check-row {
   display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
 }
-.pmo-check-row input[type=checkbox] { width: 16px; height: 16px; accent-color: #730201; }
+.pmo-check-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--ui-primary); }
 .pmo-check-row label { font-size: 13px; color: #555; cursor: pointer; }
 
 .pmo-form-actions {
@@ -231,7 +237,7 @@ import { attachSwipeDismiss } from '../../../shared/js/utils/sheetDismiss.js';
 .pmo-cancel-btn:hover { background: #f5f5f5; }
 .pmo-save-btn {
   flex: 2; padding: 13px;
-  background: #730201; color: #fff; border: none;
+  background: var(--ui-primary); color: #fff; border: none;
   border-radius: 12px; font-size: 14px; font-weight: 700;
   cursor: pointer; font-family: inherit;
   transition: background .15s, opacity .15s;
@@ -255,7 +261,7 @@ import { attachSwipeDismiss } from '../../../shared/js/utils/sheetDismiss.js';
 [data-theme="dark"] .pmo-close svg path { stroke: #ccc; }
 [data-theme="dark"] .pmo-label  { color: #555; }
 [data-theme="dark"] .pmo-account { background: #222; border-color: #2a2a2a; }
-[data-theme="dark"] .pmo-account:hover { border-color: #730201; }
+[data-theme="dark"] .pmo-account:hover { border-color: var(--ui-primary); }
 [data-theme="dark"] .pmo-acc-phone { color: #f0f0f0; }
 [data-theme="dark"] .pmo-acc-provider { color: #888; }
 [data-theme="dark"] .pmo-dropdown { background: #222; border-color: #333; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
@@ -264,14 +270,14 @@ import { attachSwipeDismiss } from '../../../shared/js/utils/sheetDismiss.js';
 [data-theme="dark"] .pmo-drop-item.danger { color: #ff6b6b; }
 [data-theme="dark"] .pmo-drop-item.danger:hover { background: #1e1010; }
 [data-theme="dark"] .pmo-add-btn { border-color: #333; color: #ff6b6b; }
-[data-theme="dark"] .pmo-add-btn:hover { border-color: #730201; background: #1e1010; }
+[data-theme="dark"] .pmo-add-btn:hover { border-color: var(--ui-primary); background: #1e1010; }
 [data-theme="dark"] .pmo-prov-btn { background: #222; border-color: #2a2a2a; }
 [data-theme="dark"] .pmo-prov-btn:hover    { background: #2a1a1a; border-color: #a00303; }
-[data-theme="dark"] .pmo-prov-btn.selected { background: #1e1010; border-color: #730201; }
+[data-theme="dark"] .pmo-prov-btn.selected { background: #1e1010; border-color: var(--ui-primary); }
 [data-theme="dark"] .pmo-prov-name { color: #bbb; }
 [data-theme="dark"] .pmo-field label { color: #888; }
 [data-theme="dark"] .pmo-field input { background: #222; border-color: #333; color: #f0f0f0; }
-[data-theme="dark"] .pmo-field input:focus { border-color: #730201; }
+[data-theme="dark"] .pmo-field input:focus { border-color: var(--ui-primary); }
 [data-theme="dark"] .pmo-check-row label { color: #888; }
 [data-theme="dark"] .pmo-security { color: #555; border-top-color: #222; }
 [data-theme="dark"] .pmo-empty-icon { background: #252525; }
@@ -306,7 +312,7 @@ function buildModalHTML() {
           <!-- Add button -->
           <button class="pmo-add-btn" id="pmo-add-btn">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M12 5v14M5 12h14" stroke="var(--ui-primary)" stroke-width="2.2" stroke-linecap="round"/>
             </svg>
             Add New Account
           </button>
@@ -435,29 +441,29 @@ export function initPaymentModal(uid, databaseService) {
             row.innerHTML = `
               <div class="pmo-acc-logo">${meta.logo || ''}</div>
               <div class="pmo-acc-info">
-                <p class="pmo-acc-phone">${acc.data.phone}</p>
-                <p class="pmo-acc-provider">${PROVIDER_NAMES[acc.data.provider] || acc.data.provider}</p>
-                ${acc.data.nickname ? `<p class="pmo-acc-nickname">${acc.data.nickname}</p>` : ''}
+                <p class="pmo-acc-phone">${esc(acc.data.phone)}</p>
+                <p class="pmo-acc-provider">${esc(PROVIDER_NAMES[acc.data.provider] || acc.data.provider)}</p>
+                ${acc.data.nickname ? `<p class="pmo-acc-nickname">${esc(acc.data.nickname)}</p>` : ''}
               </div>
               ${acc.data.isDefault ? '<span class="pmo-default-badge">Default</span>' : ''}
               <div class="pmo-acc-menu">
-                <button class="pmo-kebab" data-id="${acc.id}" aria-label="Options" type="button">
+                <button class="pmo-kebab" data-id="${esc(acc.id)}" aria-label="Options" type="button">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="5"  r="1.2" fill="#aaa"/>
                     <circle cx="12" cy="12" r="1.2" fill="#aaa"/>
                     <circle cx="12" cy="19" r="1.2" fill="#aaa"/>
                   </svg>
                 </button>
-                <div class="pmo-dropdown" id="drop-${acc.id}">
+                <div class="pmo-dropdown" id="drop-${esc(acc.id)}">
                   ${!acc.data.isDefault ? `
-                    <button class="pmo-drop-item" data-action="default" data-id="${acc.id}">
+                    <button class="pmo-drop-item" data-action="default" data-id="${esc(acc.id)}">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z"
                               stroke="#555" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
                       Set as Default
                     </button>` : ''}
-                  <button class="pmo-drop-item danger" data-action="delete" data-id="${acc.id}">
+                  <button class="pmo-drop-item danger" data-action="delete" data-id="${esc(acc.id)}">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                       <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="#c00" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>

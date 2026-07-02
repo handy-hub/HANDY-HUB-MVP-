@@ -67,6 +67,11 @@ export const PLATFORM_CONFIG = {
 // europe-west1 (Belgium) — ~90 ms from Ghana vs ~270 ms for us-central1.
 export const FUNCTIONS_REGION = 'europe-west1';
 
+// ── Auth guard timeout ────────────────────────────────────────────────────────
+// 6 s covers Ghana mobile cold-starts on 2G/3G networks.
+// Shared by authGuard.js (customer) and artisanAuthGuard.js (artisan).
+export const AUTH_GUARD_TIMEOUT_MS = 6000;
+
 // ── Super admin emails ────────────────────────────────────────────────────────
 // Used in auth-guard.js and ui utils. Matches firestore.rules and Cloud Functions.
 // To change admins: update here, redeploy Firestore rules, redeploy Cloud Functions.
@@ -118,4 +123,13 @@ export const APP_META = {
     version: '1.0.0-mvp',
     country: 'GH',
     locale:  'en-GH',
+};
+
+// ── Cross-app URLs ─────────────────────────────────────────────────────────────
+// Used when navigating from one app to the other (e.g. index.html role picker).
+// In development both apps run from the same repo root, so relative paths work.
+// In production they are separate Firebase Hosting sites — use absolute URLs.
+export const APP_URLS = {
+    customer: 'https://lamax-4fd82.web.app',
+    artisan:  'https://lamax-artisan.web.app',
 };

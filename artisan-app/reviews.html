@@ -1,0 +1,284 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Reviews | HandyHub Artisan</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .rv-shell  { max-width:430px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column; background:var(--surface-2); }
+    .rv-header { background:var(--surface); padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+    .rv-back  { width:36px; height:36px; border:none; background:var(--surface-3); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+    .rv-title { font-size:17px; font-weight:800; color:var(--text-dark); flex:1; }
+    .rv-body  { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px; }
+
+    /* Summary card */
+    .rv-summary { background:var(--surface); border-radius:var(--radius-md); padding:20px; margin-bottom:14px; box-shadow:var(--shadow-sm); text-align:center; }
+    .rv-big-score { font-size:52px; font-weight:800; color:var(--text-dark); line-height:1; margin-bottom:6px; }
+    .rv-stars-row { display:flex; justify-content:center; gap:4px; margin-bottom:8px; }
+    .rv-star { font-size:22px; }
+    .rv-count { font-size:13px; color:var(--text-light); }
+    .rv-bar-list { margin-top:16px; display:flex; flex-direction:column; gap:6px; }
+    .rv-bar-row { display:flex; align-items:center; gap:8px; }
+    .rv-bar-label { font-size:12px; color:var(--text-mid); width:12px; text-align:right; flex-shrink:0; }
+    .rv-bar-track { flex:1; height:6px; background:var(--surface-3); border-radius:3px; overflow:hidden; }
+    .rv-bar-fill  { height:100%; background:#F97316; border-radius:3px; transition:width .6s ease; }
+    .rv-bar-ct { font-size:11px; color:var(--text-light); width:20px; text-align:right; flex-shrink:0; }
+
+    /* Filter tabs */
+    .rv-tabs { display:flex; overflow-x:auto; scrollbar-width:none; background:var(--surface); border-radius:var(--radius-md); margin-bottom:12px; padding:4px; gap:4px; box-shadow:var(--shadow-sm); }
+    .rv-tabs::-webkit-scrollbar { display:none; }
+    .rv-tab  { flex:1; min-width:44px; padding:8px 10px; font-size:12px; font-weight:700; color:var(--text-light); border:none; background:none; cursor:pointer; border-radius:10px; white-space:nowrap; transition:all .15s; }
+    .rv-tab.active { background:var(--primary); color:#fff; }
+
+    /* Review card */
+    .rv-card { background:var(--surface); border-radius:var(--radius-md); padding:14px; margin-bottom:10px; box-shadow:var(--shadow-sm); }
+    .rv-card-top { display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
+    .rv-av { width:40px; height:40px; border-radius:12px; background:var(--ds-brand-50,#FFF7ED); color:var(--ds-brand-600,#EA580C); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0; }
+    .rv-card-info { flex:1; min-width:0; }
+    .rv-reviewer { font-size:13.5px; font-weight:700; color:var(--text-dark); margin:0 0 2px; }
+    .rv-service  { font-size:11.5px; color:var(--text-mid); margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rv-card-right { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; }
+    .rv-card-stars { display:flex; gap:1px; }
+    .rv-cs { font-size:13px; }
+    .rv-card-time { font-size:10.5px; color:var(--text-light); }
+    .rv-comment { font-size:13px; color:var(--text-mid); line-height:1.55; margin:0; padding:10px 12px; background:var(--surface-2); border-radius:10px; font-style:italic; }
+
+    /* Skeleton */
+    .rv-skel { background:var(--surface); border-radius:var(--radius-md); padding:14px; margin-bottom:10px; animation:rvPulse 1.4s ease-in-out infinite; }
+    .rsk { height:12px; border-radius:6px; background:#ebebeb; margin-bottom:8px; }
+    @keyframes rvPulse { 0%,100%{opacity:1}50%{opacity:.5} }
+
+    /* Empty */
+    .rv-empty { text-align:center; padding:60px 24px; }
+    .rv-empty-icon  { width:56px; height:56px; margin:0 auto 14px; border-radius:14px; background:var(--surface-3); color:var(--text-light); display:inline-flex; align-items:center; justify-content:center; }
+    .rv-empty-icon svg { width:26px; height:26px; }
+    .rv-empty-title { font-size:15px; font-weight:800; color:var(--text-dark); margin:0 0 6px; }
+    .rv-empty-sub   { font-size:13px; color:var(--text-light); margin:0; }
+  </style>
+</head>
+<body>
+<div class="rv-shell">
+
+  <header class="rv-header">
+    <button class="rv-back" aria-label="Go back" onclick="history.back()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <span class="rv-title">My Reviews</span>
+  </header>
+
+  <div class="rv-body">
+
+    <!-- Summary -->
+    <div class="rv-summary" id="rv-summary" style="display:none;">
+      <div class="rv-big-score" id="rv-avg">0.0</div>
+      <div class="rv-stars-row" id="rv-stars-display"></div>
+      <p class="rv-count" id="rv-total-label">0 reviews</p>
+      <div class="rv-bar-list" id="rv-bars"></div>
+    </div>
+
+    <!-- Skeleton summary -->
+    <div class="rv-skel" id="rv-sum-skel" style="text-align:center;padding:20px;">
+      <div class="rsk" style="width:60px;height:52px;border-radius:12px;margin:0 auto 10px;"></div>
+      <div class="rsk" style="width:120px;height:14px;margin:0 auto 6px;"></div>
+      <div class="rsk" style="width:80px;height:11px;margin:0 auto;"></div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="rv-tabs">
+      <button class="rv-tab active" onclick="setFilter('all',this)">All</button>
+      <button class="rv-tab" onclick="setFilter(5,this)"><i class="fa-solid fa-star"></i> 5</button>
+      <button class="rv-tab" onclick="setFilter(4,this)"><i class="fa-solid fa-star"></i> 4</button>
+      <button class="rv-tab" onclick="setFilter(3,this)"><i class="fa-solid fa-star"></i> 3</button>
+      <button class="rv-tab" onclick="setFilter(2,this)">≤ 2</button>
+    </div>
+
+    <!-- Loading -->
+    <div id="rv-loading">
+      <div class="rv-skel">
+        <div style="display:flex;gap:10px;margin-bottom:8px;">
+          <div class="rsk" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;margin:0;"></div>
+          <div style="flex:1;"><div class="rsk" style="width:55%;"></div><div class="rsk" style="width:40%;"></div></div>
+          <div><div class="rsk" style="width:60px;height:13px;margin-bottom:4px;"></div><div class="rsk" style="width:40px;height:10px;"></div></div>
+        </div>
+        <div class="rsk" style="height:48px;border-radius:10px;"></div>
+      </div>
+      <div class="rv-skel">
+        <div style="display:flex;gap:10px;margin-bottom:8px;">
+          <div class="rsk" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;margin:0;"></div>
+          <div style="flex:1;"><div class="rsk" style="width:55%;"></div><div class="rsk" style="width:40%;"></div></div>
+          <div><div class="rsk" style="width:60px;height:13px;margin-bottom:4px;"></div><div class="rsk" style="width:40px;height:10px;"></div></div>
+        </div>
+        <div class="rsk" style="height:48px;border-radius:10px;"></div>
+      </div>
+      <div class="rv-skel">
+        <div style="display:flex;gap:10px;margin-bottom:8px;">
+          <div class="rsk" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;margin:0;"></div>
+          <div style="flex:1;"><div class="rsk" style="width:55%;"></div><div class="rsk" style="width:40%;"></div></div>
+          <div><div class="rsk" style="width:60px;height:13px;margin-bottom:4px;"></div><div class="rsk" style="width:40px;height:10px;"></div></div>
+        </div>
+        <div class="rsk" style="height:48px;border-radius:10px;"></div>
+      </div>
+    </div>
+
+    <div id="rv-list" style="display:none;"></div>
+    <div class="rv-empty" id="rv-empty" style="display:none;">
+      <div class="rv-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 16.78l-5.2 2.74.99-5.8-4.21-4.1 5.82-.85L12 3.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+      <p class="rv-empty-title">No reviews yet</p>
+      <p class="rv-empty-sub">Complete jobs to start receiving reviews from customers</p>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import '../shared/js/utils/global-app.js';
+import { getAppContainer }    from '../shared/js/app/container.js';
+import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+
+const { user } = await requireArtisanAuth({ allowPending: true });
+const { services: { databaseService } } = getAppContainer();
+
+let _all    = [];
+let _filter = 'all';
+
+const listEl   = document.getElementById('rv-list');
+const loadEl   = document.getElementById('rv-loading');
+const emptyEl  = document.getElementById('rv-empty');
+const sumEl    = document.getElementById('rv-summary');
+const sumSkelEl = document.getElementById('rv-sum-skel');
+
+function stars(rating, size = 14) {
+  return [1,2,3,4,5].map(i =>
+    `<i class="fa-solid fa-star rv-cs" style="font-size:${size}px;color:${i <= Math.round(rating) ? '#F97316' : '#D1D5DB'};"></i>`
+  ).join('');
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const d = Math.floor(diff / 86400000);
+  if (d === 0) return 'Today';
+  if (d === 1) return 'Yesterday';
+  if (d < 30)  return `${d}d ago`;
+  return new Date(iso).toLocaleDateString('en-GH', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function initials(name) {
+  return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+
+function renderSummary(reviews) {
+  sumSkelEl.style.display = 'none';
+  if (!reviews.length) { sumEl.style.display = 'none'; return; }
+  sumEl.style.display = 'block';
+
+  const avg = reviews.reduce((s,r) => s + (r.data.rating||0), 0) / reviews.length;
+  document.getElementById('rv-avg').textContent = avg.toFixed(1);
+  document.getElementById('rv-stars-display').innerHTML = stars(avg, 22);
+  document.getElementById('rv-total-label').textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''}`;
+
+  const counts = [5,4,3,2,1].map(n => ({ n, ct: reviews.filter(r => Math.round(r.data.rating||0) === n).length }));
+  document.getElementById('rv-bars').innerHTML = counts.map(({n, ct}) => `
+    <div class="rv-bar-row">
+      <span class="rv-bar-label">${n}</span>
+      <div class="rv-bar-track"><div class="rv-bar-fill" style="width:${reviews.length ? (ct/reviews.length*100).toFixed(1) : 0}%"></div></div>
+      <span class="rv-bar-ct">${ct}</span>
+    </div>`).join('');
+}
+
+function renderList(reviews) {
+  loadEl.style.display = 'none';
+  listEl.style.display = 'block';
+
+  const show = _filter === 'all'
+    ? reviews
+    : reviews.filter(r => {
+        const rt = Math.round(r.data.rating||0);
+        return _filter <= 2 ? rt <= 2 : rt === _filter;
+      });
+
+  if (!show.length) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  listEl.innerHTML = show.map(r => {
+    const d = r.data;
+    const name = d.customerName || 'Customer';
+    return `
+    <div class="rv-card">
+      <div class="rv-card-top">
+        <div class="rv-av">${initials(name)}</div>
+        <div class="rv-card-info">
+          <p class="rv-reviewer">${esc(name)}</p>
+          <p class="rv-service">${esc(d.serviceType || d.service || 'Service')}</p>
+        </div>
+        <div class="rv-card-right">
+          <div class="rv-card-stars">${stars(d.rating||0, 13)}</div>
+          <span class="rv-card-time">${timeAgo(d.createdAt)}</span>
+        </div>
+      </div>
+      ${d.comment ? `<p class="rv-comment">${esc(d.comment)}</p>` : ''}
+    </div>`;
+  }).join('');
+}
+
+window.setFilter = function(f, btn) {
+  _filter = f;
+  document.querySelectorAll('.rv-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderList(_all);
+};
+
+// Reviews are stored on the booking document (rating/review/reviewedAt) by the
+// customer app — there is no separate `reviews` collection. We read the
+// artisan's completed bookings and keep only those that carry a rating, then
+// normalise the shape the renderers expect ({ rating, comment, customerName,
+// serviceType, createdAt }).
+try {
+  const bookings = await databaseService.queryWithOptions(
+    'bookings',
+    [{ field: 'artisanId', op: '==', value: user.uid }],
+    { orderBy: { field: 'createdAt', direction: 'desc' }, limit: 200 }
+  );
+
+  _all = (bookings || [])
+    .filter(b => typeof b.data.rating === 'number' && b.data.rating > 0)
+    .map(b => ({
+      id:   b.id,
+      data: {
+        rating:       b.data.rating,
+        comment:      b.data.review || '',
+        customerName: b.data.customerName || 'Customer',
+        serviceType:  b.data.serviceType || b.data.service || 'Service',
+        createdAt:    b.data.reviewedAt || b.data.updatedAt || b.data.createdAt,
+      },
+    }));
+
+  renderSummary(_all);
+  renderList(_all);
+} catch (e) {
+  loadEl.style.display = 'none';
+  sumSkelEl.style.display = 'none';
+  emptyEl.style.display = 'block';
+}
+</script>
+<script src="js/artisanFloatingNav.js"></script>
+</body>
+</html>

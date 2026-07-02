@@ -1,0 +1,287 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Performance | HandyHub Artisan</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <style>
+    .pf-shell  { max-width:430px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column; background:var(--surface-2); }
+    .pf-header { background:var(--surface); padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+    .pf-back  { width:36px; height:36px; border:none; background:var(--surface-3); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+    .pf-title { font-size:17px; font-weight:800; color:var(--text-dark); flex:1; }
+    .pf-body  { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px; }
+
+    /* Period selector */
+    .pf-period-row { display:flex; background:var(--surface); border-radius:14px; padding:4px; gap:4px; margin-bottom:16px; box-shadow:var(--shadow-sm); }
+    .pf-period-btn { flex:1; height:36px; border:none; background:none; border-radius:10px; font-family:inherit; font-size:12.5px; font-weight:700; color:var(--text-light); cursor:pointer; transition:all .15s; white-space:nowrap; }
+    .pf-period-btn.active { background:var(--primary); color:#fff; }
+
+    /* Score cards */
+    .pf-score-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+    .pf-score-card { background:var(--surface); border-radius:var(--radius-md); padding:16px; box-shadow:var(--shadow-sm); }
+    .pf-sc-label { font-size:11.5px; font-weight:600; color:var(--text-light); margin:0 0 6px; }
+    .pf-sc-value { font-size:26px; font-weight:800; color:var(--text-dark); margin:0 0 4px; line-height:1; }
+    .pf-sc-delta { font-size:11px; font-weight:700; margin:0; }
+    .pf-sc-delta.up   { color:#16a34a; }
+    .pf-sc-delta.down { color:#dc2626; }
+    .pf-sc-delta.flat { color:var(--text-light); }
+    .pf-sc-icon { width:36px; height:36px; border-radius:10px; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
+    .pf-sc-icon svg { width:18px; height:18px; }
+
+    /* Progress meters */
+    .pf-meter-card { background:var(--surface); border-radius:var(--radius-md); padding:16px; margin-bottom:10px; box-shadow:var(--shadow-sm); }
+    .pf-meter-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
+    .pf-meter-label { font-size:13px; font-weight:700; color:var(--text-dark); }
+    .pf-meter-value { font-size:13px; font-weight:800; color:var(--primary); }
+    .pf-meter-track { width:100%; height:8px; background:var(--surface-3); border-radius:4px; overflow:hidden; margin-bottom:4px; }
+    .pf-meter-fill  { height:100%; border-radius:4px; transition:width .7s cubic-bezier(.22,1,.36,1); }
+    .pf-meter-sub   { font-size:11px; color:var(--text-light); margin:0; }
+
+    /* Level card */
+    .pf-level-card { background:linear-gradient(135deg, #F97316 0%, #EA580C 100%); border-radius:var(--radius-md); padding:20px; margin-bottom:10px; color:#fff; display:flex; align-items:center; gap:16px; }
+    .pf-level-badge { width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,.15); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .pf-level-badge svg { width:26px; height:26px; }
+    .pf-level-info  { flex:1; }
+    .pf-level-name  { font-size:20px; font-weight:800; margin:0 0 3px; }
+    .pf-level-sub   { font-size:12px; opacity:.8; margin:0 0 8px; }
+    .pf-level-bar-track { height:6px; background:rgba(255,255,255,.25); border-radius:3px; overflow:hidden; }
+    .pf-level-bar-fill  { height:100%; background:#fff; border-radius:3px; transition:width .7s cubic-bezier(.22,1,.36,1); }
+
+    /* Tips */
+    .pf-tips-card { background:var(--surface); border-radius:var(--radius-md); padding:16px; margin-bottom:10px; box-shadow:var(--shadow-sm); }
+    .pf-tips-title { font-size:13.5px; font-weight:800; color:var(--text-dark); margin:0 0 12px; display:flex; align-items:center; gap:6px; }
+    .pf-tips-ic { display:inline-flex; color:var(--primary); }
+    .pf-tips-ic svg { width:16px; height:16px; }
+    .pf-tip { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }
+    .pf-tip:last-child { margin-bottom:0; }
+    .pf-tip-dot { width:8px; height:8px; border-radius:50%; background:var(--primary); flex-shrink:0; margin-top:5px; }
+    .pf-tip-text { font-size:13px; color:var(--text-mid); line-height:1.5; }
+
+    /* Skeleton */
+    .pf-skel { background:var(--surface); border-radius:var(--radius-md); padding:16px; animation:pfPulse 1.4s ease-in-out infinite; margin-bottom:10px; }
+    .psk { height:12px; border-radius:6px; background:#ebebeb; margin-bottom:8px; }
+    @keyframes pfPulse { 0%,100%{opacity:1}50%{opacity:.5} }
+  </style>
+</head>
+<body>
+<div class="pf-shell">
+
+  <header class="pf-header">
+    <button class="pf-back" aria-label="Go back" onclick="history.back()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <span class="pf-title">My Performance</span>
+  </header>
+
+  <div class="pf-body">
+
+    <!-- Period selector -->
+    <div class="pf-period-row">
+      <button class="pf-period-btn active" onclick="setPeriod('week',this)">This Week</button>
+      <button class="pf-period-btn" onclick="setPeriod('month',this)">This Month</button>
+      <button class="pf-period-btn" onclick="setPeriod('year',this)">This Year</button>
+      <button class="pf-period-btn" onclick="setPeriod('all',this)">All Time</button>
+    </div>
+
+    <!-- Loading skeleton -->
+    <div id="pf-loading">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        ${[1,2,3,4].map(()=>`<div class="pf-skel"><div class="psk" style="width:36px;height:36px;border-radius:10px;"></div><div class="psk" style="width:50%;height:24px;"></div><div class="psk" style="width:70%;"></div></div>`).join('')}
+      </div>
+      <div class="pf-skel"><div class="psk" style="height:100px;"></div></div>
+      <div class="pf-skel"><div class="psk" style="height:80px;"></div></div>
+    </div>
+
+    <!-- Content (hidden until loaded) -->
+    <div id="pf-content" style="display:none;">
+
+      <!-- Stat cards -->
+      <div class="pf-score-grid" id="pf-score-grid"></div>
+
+      <!-- Level card -->
+      <div class="pf-level-card" id="pf-level-card"></div>
+
+      <!-- Meters -->
+      <div id="pf-meters"></div>
+
+      <!-- Tips -->
+      <div class="pf-tips-card" id="pf-tips"></div>
+
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import '../shared/js/utils/global-app.js';
+import { getAppContainer }    from '../shared/js/app/container.js';
+import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+
+const { user } = await requireArtisanAuth({ allowPending: true });
+const { services: { databaseService } } = getAppContainer();
+
+let _bookings = [];
+let _reviews  = [];
+let _artisan  = {};
+let _period   = 'week';
+
+// ── Period filter ──────────────────────────────────────
+function periodStart(period) {
+  const d = new Date();
+  if (period === 'week')  { d.setDate(d.getDate() - 7); return d; }
+  if (period === 'month') { d.setMonth(d.getMonth() - 1); return d; }
+  if (period === 'year')  { d.setFullYear(d.getFullYear() - 1); return d; }
+  return new Date(0); // all time
+}
+
+function inPeriod(isoStr) {
+  return new Date(isoStr) >= periodStart(_period);
+}
+
+// ── Inline icon set (stroke, 24px grid — matches the app's icon language) ──
+const ICON = {
+  trophy:  '<svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M9 20h6M12 13v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  star:    '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 16.78l-5.2 2.74.99-5.8-4.21-4.1 5.82-.85L12 3.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  trend:   '<svg viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 8-8M21 7v5M21 7h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  spark:   '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  clipboard:'<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="14" height="17" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M9 4h6v3H9z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  wallet:  '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M16 12h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  medal:   '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="14" r="6" stroke="currentColor" stroke-width="1.8"/><path d="M9 3l3 5 3-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  bulb:    '<svg viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 3.5 10.9c-.4.3-.5.6-.5 1V16H9v-1c0-.5-.1-.8-.5-1.1A6 6 0 0 1 12 3z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+
+// ── Level ──────────────────────────────────────────────
+function getLevel(jobs) {
+  if (jobs >= 100) return { name:'Top Pro', icon:ICON.trophy, next:null, progress:1 };
+  if (jobs >= 50)  return { name:'Pro',     icon:ICON.star,   next:100, progress: (jobs-50)/50 };
+  if (jobs >= 20)  return { name:'Rising',  icon:ICON.trend,  next:50,  progress: (jobs-20)/30 };
+  return              { name:'New',      icon:ICON.spark,  next:20,  progress: jobs/20 };
+}
+
+// ── Render ─────────────────────────────────────────────
+function render() {
+  const filtered = _bookings.filter(b => b.data.status === 'completed' && inPeriod(b.data.createdAt));
+  const allCompleted = _bookings.filter(b => b.data.status === 'completed');
+  const filteredRevs = _reviews.filter(r => inPeriod(r.data.createdAt));
+
+  const jobs     = filtered.length;
+  const earnings = filtered.reduce((s,b) => s + Number(b.data.finalPrice ?? b.data.price ?? 0), 0);
+  const allJobs  = allCompleted.length;
+  const rating   = _reviews.length ? (_reviews.reduce((s,r) => s + (r.data.rating||0), 0) / _reviews.length) : 0;
+  const periodRating = filteredRevs.length ? (filteredRevs.reduce((s,r) => s + (r.data.rating||0), 0) / filteredRevs.length) : 0;
+
+  // Response rate from artisan doc
+  const responseRate = Number(_artisan.responseRate || 0);
+  const completionRate = allJobs + _bookings.filter(b => b.data.status === 'cancelled').length > 0
+    ? Math.round(allJobs / (allJobs + _bookings.filter(b => b.data.status === 'cancelled').length) * 100)
+    : 100;
+
+  // Score cards
+  document.getElementById('pf-score-grid').innerHTML = [
+    { label:'Jobs Done',  value:jobs,                icon:ICON.clipboard, unit:'',     delta: jobs > 0 ? '+' + jobs : '0 this period' },
+    { label:'Earnings',   value:'GHS '+earnings.toFixed(0), icon:ICON.wallet, unit:'', delta: jobs > 0 ? 'from '+jobs+' jobs' : 'No jobs yet' },
+    { label:'Avg Rating', value:periodRating > 0 ? periodRating.toFixed(1) : '—', icon:ICON.star, unit:'', delta: filteredRevs.length + ' review' + (filteredRevs.length !== 1 ? 's' : '') },
+    { label:'Total Jobs', value:allJobs,             icon:ICON.medal, unit:'all-time', delta: 'lifetime completed' },
+  ].map(s => `
+    <div class="pf-score-card">
+      <div class="pf-sc-icon">${s.icon}</div>
+      <p class="pf-sc-label">${s.label}</p>
+      <p class="pf-sc-value">${s.value}</p>
+      <p class="pf-sc-delta flat">${s.delta}</p>
+    </div>`).join('');
+
+  // Level card
+  const level = getLevel(allJobs);
+  const pct   = Math.round(level.progress * 100);
+  document.getElementById('pf-level-card').innerHTML = `
+    <div class="pf-level-badge">${level.icon}</div>
+    <div class="pf-level-info">
+      <p class="pf-level-name">${level.name}</p>
+      <p class="pf-level-sub">${level.next ? `${allJobs} / ${level.next} jobs to next level` : 'Maximum level achieved!'}</p>
+      ${level.next ? `
+      <div class="pf-level-bar-track">
+        <div class="pf-level-bar-fill" style="width:${pct}%"></div>
+      </div>` : ''}
+    </div>`;
+
+  // Meters
+  document.getElementById('pf-meters').innerHTML = [
+    { label:'Response Rate', value:responseRate,   unit:'%', sub:'How often you respond to job requests', color:'#F97316' },
+    { label:'Completion Rate', value:completionRate, unit:'%', sub:'Jobs completed vs accepted', color:'#22c55e' },
+    { label:'Overall Rating', value:rating > 0 ? rating/5*100 : 0, displayValue: rating > 0 ? rating.toFixed(1)+' / 5.0' : '—', sub:'Based on '+_reviews.length+' customer review'+(_reviews.length!==1?'s':''), color:'#f59e0b' },
+  ].map(m => `
+    <div class="pf-meter-card">
+      <div class="pf-meter-row">
+        <span class="pf-meter-label">${m.label}</span>
+        <span class="pf-meter-value">${m.displayValue ?? m.value + m.unit}</span>
+      </div>
+      <div class="pf-meter-track">
+        <div class="pf-meter-fill" style="width:${Math.min(m.value,100)}%;background:${m.color};"></div>
+      </div>
+      <p class="pf-meter-sub">${m.sub}</p>
+    </div>`).join('');
+
+  // Tips
+  const tips = [];
+  if (responseRate < 70)  tips.push('Respond to job requests faster to improve your response rate and get dispatched more often.');
+  if (completionRate < 80) tips.push('Avoid cancelling accepted bookings — it lowers your completion rate and reduces job dispatches.');
+  if (rating < 4.5 && _reviews.length > 0) tips.push('Ask satisfied customers to leave a review — higher ratings unlock more job requests.');
+  if (allJobs < 20)       tips.push('Complete 20 jobs to reach "Rising" level and unlock priority job dispatch.');
+  if (tips.length === 0)  tips.push('Great work! Keep your response rate high and continue delivering quality service.');
+
+  document.getElementById('pf-tips').innerHTML = `
+    <p class="pf-tips-title"><span class="pf-tips-ic" aria-hidden="true">${ICON.bulb}</span>Tips to Improve</p>
+    ${tips.map(t => `<div class="pf-tip"><div class="pf-tip-dot"></div><p class="pf-tip-text">${t}</p></div>`).join('')}`;
+
+  document.getElementById('pf-loading').style.display  = 'none';
+  document.getElementById('pf-content').style.display  = 'block';
+}
+
+window.setPeriod = function(period, btn) {
+  _period = period;
+  document.querySelectorAll('.pf-period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+};
+
+// ── Load data ──────────────────────────────────────────
+try {
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 2);
+
+  const [bookings, artisanSnap] = await Promise.all([
+    databaseService.queryWithOptions('bookings',
+      [{ field:'artisanId', op:'==', value:user.uid }],
+      { orderBy:{ field:'createdAt', direction:'desc' }, limit:500 }),
+    databaseService.getDocument('artisans', user.uid),
+  ]);
+
+  _bookings = bookings || [];
+  // Reviews live on the booking document (rating/review/reviewedAt) — derive
+  // them from rated bookings rather than a separate `reviews` collection.
+  _reviews  = _bookings
+    .filter(b => typeof b.data.rating === 'number' && b.data.rating > 0)
+    .map(b => ({ id: b.id, data: {
+      rating:    b.data.rating,
+      createdAt: b.data.reviewedAt || b.data.updatedAt || b.data.createdAt,
+    } }));
+  _artisan  = artisanSnap?.data || {};
+  render();
+} catch (e) {
+  document.getElementById('pf-loading').style.display = 'none';
+  document.getElementById('pf-content').style.display = 'block';
+  document.getElementById('pf-score-grid').innerHTML = '<p style="color:var(--text-light);font-size:13px;grid-column:span 2;">Could not load performance data. Try again later.</p>';
+}
+</script>
+<script src="js/artisanFloatingNav.js"></script>
+</body>
+</html>

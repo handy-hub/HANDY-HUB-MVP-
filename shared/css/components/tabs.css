@@ -1,0 +1,250 @@
+/* ============================================================================
+   HandyHub — Canonical Filter Tab Component System
+   ----------------------------------------------------------------------------
+   THREE variants supported. All state and color from tokens only.
+   Replaces: .tab-btn in notification.css, .sv-tab in ui-polish.css,
+             any future page-specific tab implementations.
+
+   Variants:
+     ui-tabs                     — pill strip (default, used in notifications)
+     ui-tabs--underline          — modifier: underline indicator style
+     ui-tabs--segmented          — modifier: segmented control style
+
+   Usage:
+     <div class="ui-tabs" role="tablist">
+       <button class="ui-tab ui-tab--active" role="tab" aria-selected="true">All</button>
+       <button class="ui-tab" role="tab" aria-selected="false">Bookings</button>
+     </div>
+
+     Segmented variant:
+     <div class="ui-tabs ui-tabs--segmented" role="tablist">…</div>
+
+     Underline variant:
+     <div class="ui-tabs ui-tabs--underline" role="tablist">…</div>
+
+   Badge inside a tab:
+     <button class="ui-tab">Notifications <span class="ui-tab-badge">3</span></button>
+   ============================================================================ */
+
+/* ── Base tab strip ──────────────────────────────────────────────────────── */
+.ui-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 14px 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ui-tabs::-webkit-scrollbar { display: none; }
+
+/* ── Base tab button ─────────────────────────────────────────────────────── */
+.ui-tab {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  /* Geometry */
+  padding: 8px 18px;
+  min-height: 36px;
+  border-radius: var(--ui-radius-pill, 999px);
+
+  /* Appearance — inactive */
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--ui-muted, #555);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  /* Motion */
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s;
+}
+
+.ui-tab:active { transform: scale(0.96); }
+
+/* Active state.
+   `.active` is accepted alongside `.ui-tab--active` / aria-selected so existing
+   page scripts that toggle a bare `.active` class keep working unchanged. */
+.ui-tab.ui-tab--active,
+.ui-tab.active,
+.ui-tab[aria-selected="true"] {
+  background: var(--ui-primary, #730201);
+  color: #ffffff;
+}
+
+/* Muted — tab whose category is disabled in settings */
+.ui-tab.ui-tab--muted { opacity: 0.45; }
+
+/* ── Badge ───────────────────────────────────────────────────────────────── */
+.ui-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--ui-radius-pill, 999px);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--ui-primary, #730201);
+  color: #ffffff;
+}
+
+.ui-tab.ui-tab--active .ui-tab-badge,
+.ui-tab.active .ui-tab-badge,
+.ui-tab[aria-selected="true"] .ui-tab-badge {
+  background: #ffffff;
+  color: var(--ui-primary, #730201);
+}
+
+/* ── Variant: underline ──────────────────────────────────────────────────── */
+.ui-tabs--underline {
+  gap: 0;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.ui-tabs--underline .ui-tab {
+  border-radius: 0;
+  background: transparent;
+  color: var(--ui-muted, #666);
+  padding: 12px 16px 10px;
+  border-bottom: 2px solid transparent;
+  position: relative;
+}
+
+.ui-tabs--underline .ui-tab.ui-tab--active,
+.ui-tabs--underline .ui-tab.active,
+.ui-tabs--underline .ui-tab[aria-selected="true"] {
+  background: transparent;
+  color: var(--ui-primary, #730201);
+  border-bottom-color: var(--ui-primary, #730201);
+}
+
+/* ── Variant: segmented control ──────────────────────────────────────────── */
+.ui-tabs--segmented {
+  gap: 4px;
+  padding: 5px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: var(--ui-radius-md, 14px);
+  overflow: visible;
+}
+
+.ui-tabs--segmented .ui-tab {
+  flex: 1;
+  border-radius: var(--ui-radius-sm, 10px);
+  background: transparent;
+  color: var(--ui-muted, #666);
+  font-size: 12px;
+  padding: 10px 8px;
+}
+
+.ui-tabs--segmented .ui-tab.ui-tab--active,
+.ui-tabs--segmented .ui-tab.active,
+.ui-tabs--segmented .ui-tab[aria-selected="true"] {
+  background: var(--ui-surface, #ffffff);
+  color: var(--ui-primary, #730201);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Artisan variant overrides (reads ds-* tokens) ───────────────────────── */
+.ui-tabs--artisan .ui-tab.ui-tab--active,
+.ui-tabs--artisan .ui-tab[aria-selected="true"] {
+  background: var(--ds-brand-500, #F97316);
+  color: #ffffff;
+}
+
+.ui-tabs--artisan .ui-tab-badge {
+  background: var(--ds-brand-500, #F97316);
+}
+
+.ui-tabs--artisan.ui-tabs--underline .ui-tab.ui-tab--active,
+.ui-tabs--artisan.ui-tabs--underline .ui-tab[aria-selected="true"] {
+  background: transparent;
+  color: var(--ds-brand-500, #F97316);
+  border-bottom-color: var(--ds-brand-500, #F97316);
+}
+
+.ui-tabs--artisan.ui-tabs--segmented .ui-tab.ui-tab--active,
+.ui-tabs--artisan.ui-tabs--segmented .ui-tab[aria-selected="true"] {
+  background: var(--ds-surface, #ffffff);
+  color: var(--ds-brand-500, #F97316);
+}
+
+/* ── Dark mode ───────────────────────────────────────────────────────────────
+   Customer app toggles `html.dark`; artisan app toggles `[data-theme="dark"]`.
+   Both are supported so this one component is correct in either context. */
+[data-theme="dark"] .ui-tab,
+html.dark .ui-tab {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ds-ink-3, #888);
+}
+
+[data-theme="dark"] .ui-tab.ui-tab--active,
+[data-theme="dark"] .ui-tab.active,
+[data-theme="dark"] .ui-tab[aria-selected="true"],
+html.dark .ui-tab.ui-tab--active,
+html.dark .ui-tab.active,
+html.dark .ui-tab[aria-selected="true"] {
+  background: var(--ui-primary, #730201);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .ui-tabs--underline,
+html.dark .ui-tabs--underline {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .ui-tabs--underline .ui-tab,
+html.dark .ui-tabs--underline .ui-tab {
+  background: transparent;
+}
+
+[data-theme="dark"] .ui-tabs--underline .ui-tab.ui-tab--active,
+[data-theme="dark"] .ui-tabs--underline .ui-tab.active,
+[data-theme="dark"] .ui-tabs--underline .ui-tab[aria-selected="true"],
+html.dark .ui-tabs--underline .ui-tab.ui-tab--active,
+html.dark .ui-tabs--underline .ui-tab.active,
+html.dark .ui-tabs--underline .ui-tab[aria-selected="true"] {
+  background: transparent;
+  color: var(--nav-brand-dark, #e05050);
+  border-bottom-color: var(--nav-brand-dark, #e05050);
+}
+
+[data-theme="dark"] .ui-tabs--segmented,
+html.dark .ui-tabs--segmented {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .ui-tabs--segmented .ui-tab.ui-tab--active,
+[data-theme="dark"] .ui-tabs--segmented .ui-tab.active,
+[data-theme="dark"] .ui-tabs--segmented .ui-tab[aria-selected="true"],
+html.dark .ui-tabs--segmented .ui-tab.ui-tab--active,
+html.dark .ui-tabs--segmented .ui-tab.active,
+html.dark .ui-tabs--segmented .ui-tab[aria-selected="true"] {
+  background: var(--ds-surface, #1e1e1e);
+  color: var(--nav-brand-dark, #e05050);
+}
+
+/* Dark-mode badge: keep contrast on the dark pill background */
+[data-theme="dark"] .ui-tab-badge,
+html.dark .ui-tab-badge {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--ds-ink, #f0f0f0);
+}
+[data-theme="dark"] .ui-tab.ui-tab--active .ui-tab-badge,
+[data-theme="dark"] .ui-tab.active .ui-tab-badge,
+html.dark .ui-tab.ui-tab--active .ui-tab-badge,
+html.dark .ui-tab.active .ui-tab-badge {
+  background: #ffffff;
+  color: var(--ui-primary, #730201);
+}

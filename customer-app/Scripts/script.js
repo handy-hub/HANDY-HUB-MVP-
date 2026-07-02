@@ -3,6 +3,11 @@
 // "See more / See less" expand toggle.
 // All search history and search execution logic lives in trackingPage.js.
 
+function _escTag(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('tracking-search-input');
   const tagCloud    = document.querySelector('.tag-cloud');
@@ -41,9 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
     itemsToRender.forEach(item => {
       const logoSrc = logoMap[item.type?.toLowerCase()] || '../shared/assets/icons/more.png';
       html += `
-        <button type="button" class="search-tag" data-search="${item.name}">
-          <img src="${logoSrc}" alt="" loading="lazy" decoding="async" width="20" height="20">
-          <p>${item.name}</p>
+        <button type="button" class="search-tag" data-search="${_escTag(item.name)}">
+          <img src="${_escTag(logoSrc)}" alt="" loading="lazy" decoding="async" width="20" height="20">
+          <p>${_escTag(item.name)}</p>
         </button>`;
     });
 

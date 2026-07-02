@@ -1,13 +1,16 @@
 (function () {
-    var COLOR = '#730201';
     var bar = null;
+
+    function getColor() {
+        return getComputedStyle(document.documentElement).getPropertyValue('--ui-primary').trim() || '#730201';
+    }
 
     function ensureBar() {
         if (bar) return;
         bar = document.createElement('div');
         bar.setAttribute('style',
             'position:fixed;top:0;left:0;height:3px;z-index:99999;pointer-events:none;' +
-            'background:' + COLOR + ';width:0%;opacity:0;transition:none;'
+            'background:' + getColor() + ';width:0%;opacity:0;transition:none;'
         );
         document.body.appendChild(bar);
     }

@@ -10,6 +10,7 @@ const crypto    = require('crypto');
 const { creditWalletFromCharge }                  = require('./wallets');
 const { onTransferSuccess, onTransferFailed }     = require('./transfers');
 const { verifyCharge }                            = require('./paystack');
+const { MIN_TOPUP_GHS }                           = require('../config');
 
 /**
  * Verify the x-paystack-signature header against the raw request body.
@@ -75,6 +76,11 @@ async function handlePaystackWebhook(req, res) {
                         break;
                     }
                     const verifiedAmount = verifiedCharge.amount / 100; // pesewas → GHS
+
+                    if (verifiedAmount < MIN_TOPUP_GHS) {
+                        console.warn(`[webhook] Topup amount GHS ${verifiedAmount} is below minimum GHS ${MIN_TOPUP_GHS} — ref=${data.reference}. Skipping credit.`);
+                        break;
+                    }
 
                     await creditWalletFromCharge({
                         uid:         userId,

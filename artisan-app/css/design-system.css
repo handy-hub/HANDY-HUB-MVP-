@@ -1,0 +1,355 @@
+/* ============================================================================
+   HandyHub Artisan — Design System
+   ----------------------------------------------------------------------------
+   The single source of design truth for the Artisan App. Every screen inherits
+   these tokens and component primitives so the product reads as one coherent,
+   handcrafted whole rather than a set of independently-styled pages.
+
+   Design principles (the "why" behind every token):
+     • SPACING over elevation. Surfaces are separated by a 4px-grid rhythm and a
+       single hairline border — not by stacking shadows. Shadow is reserved for
+       things that genuinely float (sticky nav, bottom sheets, the primary FAB).
+     • DISCIPLINED RADII. Three tiers only. No random 20/24px "toy" corners.
+     • A REAL TYPE SCALE. Seven steps with intentional weight + tracking. Type is
+       the primary tool for hierarchy.
+     • RESTRAINT. Orange is a functional accent for primary actions and live
+       state — never decoration. Neutrals carry the interface.
+
+   Brand: HandyHub orange #F97316 — same product family as the Customer App,
+   distinct role for the artisan operator.
+   ========================================================================== */
+
+:root {
+  /* ── Brand ─────────────────────────────────────────────────────────────
+     A 50→700 ramp so we never eyeball one-off tints. */
+  --ds-brand-50:   #FFF7ED;
+  --ds-brand-100:  #FFEDD5;
+  --ds-brand-200:  #FED7AA;
+  --ds-brand-500:  #F97316;   /* primary */
+  --ds-brand-600:  #EA580C;   /* primary pressed */
+  --ds-brand-700:  #C2410C;
+
+  /* ── Neutrals — the workhorses. Cool-grey, calm, high legibility. ─────── */
+  --ds-bg:         #F7F8FA;   /* app canvas */
+  --ds-surface:    #FFFFFF;   /* raised surface (cards, bars) */
+  --ds-surface-2:  #F2F4F7;   /* inset / pressed / track */
+  --ds-line:       #ECEEF2;   /* hairline divider — softer than a "border" */
+  --ds-line-strong:#E2E5EA;   /* where a touch more definition is needed */
+
+  --ds-ink:        #0F1216;   /* primary text — near-black, not pure */
+  --ds-ink-2:      #475067;   /* secondary text */
+  --ds-ink-3:      #8A93A6;   /* tertiary / metadata */
+  --ds-ink-4:      #B6BDC9;   /* placeholder / disabled */
+
+  /* ── Functional state ──────────────────────────────────────────────────
+     Each has an ink (text/icon) and a quiet tint (background). */
+  --ds-success:    #15904B;  --ds-success-bg: #E9F7EF;
+  --ds-warning:    #B45309;  --ds-warning-bg: #FEF3E2;
+  --ds-danger:     #C2362F;  --ds-danger-bg:  #FBEAE9;
+  --ds-info:       #1D6FD6;  --ds-info-bg:    #E8F1FC;
+
+  /* ── Radii — three tiers, full stop. ──────────────────────────────────── */
+  --ds-r-control:  10px;   /* buttons, inputs, chips, small tiles */
+  --ds-r-card:     16px;   /* cards, sheets, modals, larger containers */
+  --ds-r-pill:     999px;  /* pills, avatars, toggles */
+
+  /* ── Elevation — used sparingly; most surfaces use --ds-line instead. ─── */
+  --ds-shadow-sm:  0 1px 2px rgba(16, 22, 38, 0.06);                       /* resting card, if any */
+  --ds-shadow-pop: 0 6px 16px -4px rgba(16, 22, 38, 0.12),
+                   0 2px 6px -2px rgba(16, 22, 38, 0.08);                   /* menus, hover */
+  --ds-shadow-nav: 0 -1px 0 var(--ds-line), 0 -8px 24px -12px rgba(16, 22, 38, 0.10);
+  --ds-shadow-sheet: 0 -12px 32px -8px rgba(16, 22, 38, 0.18);             /* bottom sheets */
+  --ds-shadow-fab: 0 6px 16px -2px rgba(249, 115, 22, 0.42);               /* the ONE orange float */
+
+  /* ── Spacing — 4px grid. Reference these, never hardcode. ─────────────── */
+  --ds-1: 4px;   --ds-2: 8px;   --ds-3: 12px;  --ds-4: 16px;
+  --ds-5: 20px;  --ds-6: 24px;  --ds-8: 32px;  --ds-10: 40px;
+
+  /* Standard horizontal page gutter — one value, everywhere. */
+  --ds-gutter: 16px;
+
+  /* ── Type scale ─────────────────────────────────────────────────────────
+     size / line-height / weight / letter-spacing baked into utility classes
+     below. Raw vars exposed for ad-hoc use. */
+  --ds-font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* ── Motion — one curve, one ramp. ────────────────────────────────────── */
+  --ds-ease:    cubic-bezier(0.22, 1, 0.36, 1);   /* gentle spring-out */
+  --ds-ease-io: cubic-bezier(0.4, 0, 0.2, 1);
+  --ds-t-fast:  120ms;
+  --ds-t-base:  200ms;
+  --ds-t-slow:  320ms;
+
+  /* ── Layout ───────────────────────────────────────────────────────────── */
+  --ds-shell:   430px;
+  --ds-nav-h:   62px;
+  --ds-header-h: 56px;
+
+  /* ── Navigation bridge tokens (Artisan App context) ───────────────────────
+     These override the Customer App's --nav-brand* values so the shared
+     floating nav component renders in artisan orange without any code fork.
+     Declared here so they take effect on every artisan page that loads
+     design-system.css, with no per-page or per-component configuration.
+  */
+  --nav-brand:        var(--ds-brand-500);     /* active item colour: orange */
+  --nav-brand-rgb:    249, 115, 22;            /* for rgba() glow effects */
+  --nav-brand-dark:   #fb923c;                 /* dark-mode active (orange-300) */
+
+  /* ── Sheet component bridge token ─────────────────────────────────────────
+     Overrides the customer default (18px) so artisan bottom sheets
+     resolve to 16px without any per-component config.                     */
+  --ui-sheet-radius:  var(--ds-r-card);        /* 16px — artisan sheet corner */
+  --ui-overlay:       rgba(0, 0, 0, 0.5);      /* shared backdrop token */
+}
+
+/* ── Dark theme — overrides tokens, components stay identical ───────────── */
+[data-theme="dark"] {
+  --ds-bg:         #0C0E12;
+  --ds-surface:    #161A21;
+  --ds-surface-2:  #1F242D;
+  --ds-line:       #242a33;
+  --ds-line-strong:#2E353F;
+
+  --ds-ink:        #F3F5F8;
+  --ds-ink-2:      #AEB6C4;
+  --ds-ink-3:      #7B8494;
+  --ds-ink-4:      #555E6E;
+
+  --ds-brand-50:   rgba(249,115,22,0.12);
+  --ds-brand-100:  rgba(249,115,22,0.16);
+
+  --ds-success-bg: rgba(21,144,75,0.16);
+  --ds-warning-bg: rgba(180,83,9,0.18);
+  --ds-danger-bg:  rgba(194,54,47,0.18);
+  --ds-info-bg:    rgba(29,111,214,0.16);
+
+  --ds-shadow-sm:  none;
+  --ds-shadow-pop: 0 6px 18px -4px rgba(0,0,0,0.5);
+}
+
+/* ============================================================================
+   TYPOGRAPHY UTILITIES
+   Seven steps. Apply by class; weights and tracking are part of the step so
+   sizing stays consistent across screens.
+   ========================================================================== */
+.ds-display { font: 800 28px/1.15 var(--ds-font); letter-spacing: -0.6px; color: var(--ds-ink); }
+.ds-title   { font: 800 20px/1.25 var(--ds-font); letter-spacing: -0.4px; color: var(--ds-ink); }
+.ds-heading { font: 700 17px/1.3  var(--ds-font); letter-spacing: -0.2px; color: var(--ds-ink); }
+.ds-body    { font: 500 15px/1.5  var(--ds-font); color: var(--ds-ink); }
+.ds-label   { font: 600 13px/1.4  var(--ds-font); color: var(--ds-ink-2); }
+.ds-caption { font: 500 12px/1.45 var(--ds-font); color: var(--ds-ink-3); }
+.ds-micro   { font: 600 11px/1.3  var(--ds-font); letter-spacing: 0.2px; color: var(--ds-ink-3); }
+
+.ds-num     { font-variant-numeric: tabular-nums; }   /* aligned figures for money/stats */
+
+/* ============================================================================
+   APP SHELL & SECTION RHYTHM
+   ========================================================================== */
+.ds-shell {
+  width: 100%;
+  max-width: var(--ds-shell);
+  margin-inline: auto;
+  min-height: 100dvh;
+  background: var(--ds-bg);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.ds-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding-bottom: calc(var(--ds-nav-h) + var(--ds-6));
+}
+
+/* Section block — vertical rhythm comes from here, not from card margins. */
+.ds-section { padding-inline: var(--ds-gutter); margin-top: var(--ds-6); }
+.ds-section--tight { margin-top: var(--ds-4); }
+
+.ds-section-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--ds-3); margin-bottom: var(--ds-3);
+}
+.ds-section-title { font: 700 16px/1.3 var(--ds-font); letter-spacing: -0.2px; color: var(--ds-ink); }
+.ds-link {
+  font: 600 13px/1 var(--ds-font); color: var(--ds-brand-600);
+  text-decoration: none; display: inline-flex; align-items: center; gap: 2px;
+}
+.ds-link:active { opacity: 0.6; }
+
+/* ============================================================================
+   SURFACE / CARD
+   Default card = surface + hairline border + radius. NO shadow. Elevation is
+   opt-in via .ds-card--raised for the rare element that must lift off canvas.
+   ========================================================================== */
+.ds-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-card);
+  padding: var(--ds-4);
+}
+.ds-card--raised { box-shadow: var(--ds-shadow-sm); }
+.ds-card--flush  { padding: 0; overflow: hidden; }   /* for list rows inside */
+
+/* A plain horizontal divider for in-card lists — cheaper than wrapping each row. */
+.ds-divide > * + * { border-top: 1px solid var(--ds-line); }
+
+/* ============================================================================
+   BUTTONS
+   One height system. Primary = solid orange. Secondary = tinted neutral.
+   Ghost = text only. Sizes: default 48, small 40, fab 56.
+   ========================================================================== */
+.ds-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--ds-2);
+  height: 48px; padding-inline: var(--ds-5);
+  border: 1px solid transparent; border-radius: var(--ds-r-control);
+  font: 700 15px/1 var(--ds-font); letter-spacing: 0.1px;
+  cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+  transition: background var(--ds-t-fast) var(--ds-ease-io),
+              border-color var(--ds-t-fast), color var(--ds-t-fast),
+              transform var(--ds-t-fast) var(--ds-ease), opacity var(--ds-t-fast);
+}
+.ds-btn:active:not(:disabled) { transform: scale(0.98); }
+.ds-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ds-btn svg { width: 18px; height: 18px; }
+
+.ds-btn--primary   { background: var(--ds-brand-500); color: #fff; }
+.ds-btn--primary:active:not(:disabled) { background: var(--ds-brand-600); }
+
+.ds-btn--secondary { background: var(--ds-surface-2); color: var(--ds-ink); }
+.ds-btn--secondary:active:not(:disabled) { background: var(--ds-line-strong); }
+
+.ds-btn--ghost     { background: transparent; color: var(--ds-brand-600); padding-inline: var(--ds-3); }
+.ds-btn--ghost:active:not(:disabled) { opacity: 0.6; }
+
+.ds-btn--success   { background: var(--ds-success); color: #fff; }
+.ds-btn--danger    { background: var(--ds-danger); color: #fff; }
+
+.ds-btn--sm    { height: 40px; padding-inline: var(--ds-4); font-size: 14px; }
+.ds-btn--block { width: 100%; }
+
+/* Icon-only button — square, hairline, locked icon size (never collapses). */
+.ds-iconbtn {
+  flex-shrink: 0;
+  width: 40px; height: 40px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--ds-surface); border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-control); cursor: pointer; position: relative;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ds-t-fast);
+}
+.ds-iconbtn:active { background: var(--ds-surface-2); }
+.ds-iconbtn > svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
+
+/* ============================================================================
+   PILLS / BADGES / CHIPS
+   Status communication. Tint background + functional ink. Never loud.
+   ========================================================================== */
+.ds-pill {
+  display: inline-flex; align-items: center; gap: var(--ds-1);
+  height: 22px; padding-inline: var(--ds-2);
+  border-radius: var(--ds-r-pill);
+  font: 700 11px/1 var(--ds-font); letter-spacing: 0.2px; white-space: nowrap;
+}
+.ds-pill svg { width: 11px; height: 11px; }
+.ds-pill--brand   { background: var(--ds-brand-50);   color: var(--ds-brand-700); }
+.ds-pill--success { background: var(--ds-success-bg); color: var(--ds-success); }
+.ds-pill--warning { background: var(--ds-warning-bg); color: var(--ds-warning); }
+.ds-pill--danger  { background: var(--ds-danger-bg);  color: var(--ds-danger); }
+.ds-pill--info    { background: var(--ds-info-bg);    color: var(--ds-info); }
+.ds-pill--neutral { background: var(--ds-surface-2);  color: var(--ds-ink-2); }
+
+/* Solid "live" pill (e.g. NEW JOB) — the one place a filled brand badge earns it. */
+.ds-pill--live { background: var(--ds-brand-500); color: #fff; }
+
+/* ============================================================================
+   AVATAR
+   ========================================================================== */
+.ds-avatar {
+  width: 44px; height: 44px; border-radius: var(--ds-r-pill);
+  object-fit: cover; background: var(--ds-surface-2);
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 700 15px/1 var(--ds-font); color: var(--ds-ink-2); flex-shrink: 0;
+}
+.ds-avatar--lg { width: 56px; height: 56px; font-size: 18px; }
+
+/* ============================================================================
+   FORM CONTROLS
+   Filled inputs, brand focus ring. Matches the approved login style.
+   ========================================================================== */
+.ds-input {
+  width: 100%; height: 50px; padding-inline: var(--ds-4);
+  background: var(--ds-surface-2); color: var(--ds-ink);
+  border: 1.5px solid transparent; border-radius: var(--ds-r-control);
+  font: 500 15px/1 var(--ds-font); outline: none;
+  transition: background var(--ds-t-base), border-color var(--ds-t-base), box-shadow var(--ds-t-base);
+}
+.ds-input::placeholder { color: var(--ds-ink-4); }
+.ds-input:focus {
+  background: var(--ds-surface);
+  border-color: var(--ds-brand-500);
+  box-shadow: 0 0 0 3.5px rgba(249,115,22,0.12);
+}
+
+/* Field label */
+.ds-field-label { display: block; font: 600 13px/1 var(--ds-font); color: var(--ds-ink-2); margin-bottom: var(--ds-2); }
+
+/* ── Toggle switch ─────────────────────────────────────────────────────── */
+.ds-switch { position: relative; width: 46px; height: 28px; flex-shrink: 0; }
+.ds-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.ds-switch-track {
+  position: absolute; inset: 0; border-radius: var(--ds-r-pill);
+  background: var(--ds-line-strong); transition: background var(--ds-t-base) var(--ds-ease-io);
+}
+.ds-switch-thumb {
+  position: absolute; top: 3px; left: 3px; width: 22px; height: 22px;
+  background: #fff; border-radius: var(--ds-r-pill);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform var(--ds-t-base) var(--ds-ease);
+}
+.ds-switch input:checked ~ .ds-switch-track { background: var(--ds-success); }
+.ds-switch input:checked ~ .ds-switch-thumb { transform: translateX(18px); }
+
+/* ============================================================================
+   SKELETON LOADING  — contextual, not spinners.
+   ========================================================================== */
+.ds-skel {
+  position: relative; overflow: hidden;
+  background: var(--ds-surface-2); border-radius: var(--ds-r-control);
+  color: transparent !important;
+}
+.ds-skel::after {
+  content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  animation: ds-shimmer 1.4s infinite;
+}
+[data-theme="dark"] .ds-skel::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent); }
+@keyframes ds-shimmer { to { transform: translateX(100%); } }
+
+/* ============================================================================
+   EMPTY STATE  — guiding, professional, no clip-art.
+   ========================================================================== */
+.ds-empty { text-align: center; padding: var(--ds-10) var(--ds-6); }
+.ds-empty-icon {
+  width: 56px; height: 56px; margin: 0 auto var(--ds-4);
+  border-radius: var(--ds-r-card); background: var(--ds-surface-2);
+  color: var(--ds-ink-3); display: inline-flex; align-items: center; justify-content: center;
+}
+.ds-empty-icon svg { width: 26px; height: 26px; }
+.ds-empty-title { font: 700 16px/1.3 var(--ds-font); color: var(--ds-ink); margin-bottom: var(--ds-1); }
+.ds-empty-sub   { font: 500 13px/1.55 var(--ds-font); color: var(--ds-ink-3); max-width: 260px; margin: 0 auto var(--ds-4); }
+
+/* ============================================================================
+   ENTRANCE MOTION  — subtle, staggered. Respects reduced-motion globally.
+   ========================================================================== */
+@keyframes ds-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.ds-rise { animation: ds-rise var(--ds-t-slow) var(--ds-ease) both; }
+.ds-rise-1 { animation-delay: 40ms; }
+.ds-rise-2 { animation-delay: 90ms; }
+.ds-rise-3 { animation-delay: 140ms; }
+.ds-rise-4 { animation-delay: 190ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-rise, .ds-skel::after { animation: none !important; }
+  .ds-rise { opacity: 1 !important; transform: none !important; }
+}

@@ -7,8 +7,8 @@
 
    Nav layout
    ───────────────────────────────────────────────────────────────
-   dashboard.html  →  Home | Bookings | [⚡ Emergency] | Saved | Profile
-   every other page →  Home | Bookings | [🔔 Alerts]   | Saved | Profile
+   dashboard.html  →  Home | Bookings | [ Emergency] | Saved | Profile
+   every other page →  Home | Bookings | [ Alerts]   | Saved | Profile
 
    The emergency centre item is a flat, same-height nav button — no
    elevation, no floating, no absolute positioning. It just has a
@@ -245,14 +245,28 @@
 
     var grid = document.getElementById('em-type-grid');
     if (grid && grid.children.length === 0) {
-      grid.innerHTML = EM_TYPES.map(function (t) {
-        return (
-          '<button class="em-type-btn" onclick="selectEmergencyType(\'' + t.id + '\',\'' + t.service + '\')">' +
-            '<div class="em-type-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none">' + t.icon + '</svg></div>' +
-            '<span class="em-type-name">' + t.name + '</span>' +
-          '</button>'
-        );
-      }).join('');
+      EM_TYPES.forEach(function (t) {
+        var btn = document.createElement('button');
+        btn.className = 'em-type-btn';
+        btn.dataset.emId = t.id;
+        btn.dataset.emService = t.service;
+        var iconWrap = document.createElement('div');
+        iconWrap.className = 'em-type-icon';
+        iconWrap.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none">' + t.icon + '</svg>';
+        var label = document.createElement('span');
+        label.className = 'em-type-name';
+        label.textContent = t.name;
+        btn.appendChild(iconWrap);
+        btn.appendChild(label);
+        grid.appendChild(btn);
+      });
+      grid.addEventListener('click', function (e) {
+        var btn = e.target.closest('.em-type-btn');
+        if (!btn) return;
+        if (typeof selectEmergencyType === 'function') {
+          selectEmergencyType(btn.dataset.emId, btn.dataset.emService);
+        }
+      });
     }
 
     /* Wire emergency button (dashboard only — safe no-op on other pages) */
@@ -273,6 +287,12 @@
 
     /* Then upgrade to a realtime Firestore subscription */
     startRealtimeBadge();
+
+    /* Cleanup subscription on page unload — registered inside init() so it only
+       fires once even if the IIFE runs multiple times (e.g., hot reload). */
+    window.addEventListener('pagehide', function () {
+      if (_unreadUnsub) { _unreadUnsub(); _unreadUnsub = null; }
+    }, { once: true });
   }
 
   /* ── 12. Notification badge ──────────────────────────────── */
@@ -324,10 +344,6 @@
         console.warn('[floatingNav] Realtime badge unavailable, using localStorage:', err.message);
       });
   }
-
-  window.addEventListener('pagehide', function () {
-    if (_unreadUnsub) { _unreadUnsub(); _unreadUnsub = null; }
-  });
 
   /* ── Run ─────────────────────────────────────────────────── */
   injectCSS();

@@ -9,42 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../shared/css/ui-polish.css">
 
+<link rel="stylesheet" href="css/design-system.css">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-    --amb:       #D4880E;
-    --amb-dark:  #B8720A;
-    --amb-light: #FEF6EC;
-
-    --white:     #ffffff;
-    --grey-50:   #f7f7f7;
-    --grey-100:  #f0f0f0;
-    --grey-200:  #e4e4e4;
-    --grey-400:  #aaaaaa;
-    --grey-600:  #666666;
-    --grey-900:  #111111;
-
-    --text-primary:   var(--grey-900);
-    --text-secondary: var(--grey-600);
-    --text-hint:      #b8b8b8;
-    --input-bg-rest:  var(--grey-50);
-    --input-bg-focus: var(--white);
-
-    --spring:   cubic-bezier(0.22, 1, 0.36, 1);
-    --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
-
-    --r-sm:  10px;
-    --r-md:  14px;
-    --r-lg:  16px;
-    --r-2xl: 28px;
-    --r-3xl: 32px;
-
-    --shadow-input-focus: 0 0 0 3.5px rgba(212,136,14,0.14);
-    --shadow-btn:         0 8px 24px rgba(212,136,14,0.40);
-    --shadow-btn-press:   0 2px  8px rgba(212,136,14,0.24);
-    --shadow-card:        0 -3px 40px rgba(0,0,0,0.09);
-}
 
 html { min-height: 100%; }
 body {
@@ -52,9 +19,9 @@ body {
     padding: 0 !important;
     margin: 0 !important;
     min-height: 100dvh;
-    background: #fefefe;
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: var(--text-primary);
+    background: var(--ds-bg);
+    font-family: var(--ds-font);
+    color: var(--ds-ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
@@ -74,7 +41,7 @@ body {
 .as-hero {
     position: relative;
     overflow: hidden;
-    background: #fefefe;
+    background: var(--ds-bg);
     padding: 0 0 52px;
     flex-shrink: 0;
 }
@@ -83,7 +50,7 @@ body {
     content: '';
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(circle, rgba(212,136,14,0.07) 1px, transparent 1px);
+    background-image: radial-gradient(circle, rgba(249,115,22,0.07) 1px, transparent 1px);
     background-size: 20px 20px;
     pointer-events: none;
 }
@@ -95,7 +62,7 @@ body {
     right: -40px;
     width: 200px;
     height: 200px;
-    background: radial-gradient(circle, rgba(212,136,14,0.07) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 70%);
     pointer-events: none;
 }
 
@@ -117,10 +84,10 @@ body {
     justify-content: center;
     background: rgba(0,0,0,0.06);
     border: 1px solid rgba(0,0,0,0.09);
-    border-radius: 50%;
+    border-radius: var(--ds-r-pill);
     cursor: pointer;
-    color: var(--grey-900);
-    transition: background 0.18s;
+    color: var(--ds-ink);
+    transition: background var(--ds-t-fast);
     -webkit-tap-highlight-color: transparent;
 }
 .as-back-btn:active { background: rgba(0,0,0,0.12); }
@@ -130,12 +97,12 @@ body {
     align-items: center;
     gap: 6px;
     padding: 7px 13px;
-    background: var(--amb-light);
-    border: 1px solid rgba(212,136,14,0.20);
-    border-radius: 999px;
+    background: var(--ds-brand-50);
+    border: 1px solid rgba(249,115,22,0.20);
+    border-radius: var(--ds-r-pill);
     font-size: 12px;
     font-weight: 700;
-    color: var(--amb-dark);
+    color: var(--ds-brand-600);
     letter-spacing: 0.02em;
 }
 
@@ -159,10 +126,10 @@ body {
 /* ── Form card ──────────────────────────────────────────── */
 .as-card {
     flex: 1;
-    background: var(--white);
-    border-radius: var(--r-3xl) var(--r-3xl) 0 0;
+    background: var(--ds-surface);
+    border-radius: var(--ds-r-card) var(--ds-r-card) 0 0;
     margin-top: -50px;
-    box-shadow: var(--shadow-card);
+    box-shadow: 0 -3px 40px rgba(0,0,0,0.09);
     padding: 10px 24px 0;
     display: flex;
     flex-direction: column;
@@ -174,8 +141,8 @@ body {
 .as-handle {
     width: 38px;
     height: 4px;
-    background: #e0e0e0;
-    border-radius: 2px;
+    background: var(--ds-line-strong);
+    border-radius: var(--ds-r-pill);
     margin: 0 auto 22px;
     flex-shrink: 0;
 }
@@ -183,7 +150,7 @@ body {
 .as-heading {
     font-size: 22px;
     font-weight: 800;
-    color: var(--text-primary);
+    color: var(--ds-ink);
     letter-spacing: -0.5px;
     line-height: 1.15;
     margin-bottom: 4px;
@@ -193,7 +160,7 @@ body {
 
 .as-subheading {
     font-size: 13px;
-    color: var(--text-secondary);
+    color: var(--ds-ink-2);
     font-weight: 400;
     margin-bottom: 24px;
     flex-shrink: 0;
@@ -206,7 +173,7 @@ body {
     display: block;
     font-size: 13px;
     font-weight: 600;
-    color: var(--grey-600);
+    color: var(--ds-ink-2);
     margin-bottom: 6px;
     letter-spacing: 0.1px;
 }
@@ -222,45 +189,45 @@ body {
     left: 14px;
     width: 17px;
     height: 17px;
-    color: var(--amb);
+    color: var(--ds-brand-500);
     pointer-events: none;
     flex-shrink: 0;
-    transition: color 0.2s var(--ease-out);
+    transition: color var(--ds-t-base) var(--ds-ease-io);
 }
 
 .as-input {
     width: 100%;
-    height: 52px;
+    height: 50px;
     padding: 0 44px 0 42px;
     border: 1.5px solid transparent;
-    border-radius: var(--r-md);
-    background: var(--input-bg-rest);
+    border-radius: var(--ds-r-control);
+    background: var(--ds-surface-2);
     font-family: inherit;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 400;
-    color: var(--text-primary);
+    color: var(--ds-ink);
     outline: none;
     -webkit-appearance: none;
     appearance: none;
     transition:
-        background   0.2s var(--ease-out),
-        border-color 0.2s var(--ease-out),
-        box-shadow   0.2s var(--ease-out);
+        background   var(--ds-t-base) var(--ds-ease-io),
+        border-color var(--ds-t-base) var(--ds-ease-io),
+        box-shadow   var(--ds-t-base) var(--ds-ease-io);
 }
 
 .as-input::placeholder {
-    color: var(--text-hint);
+    color: var(--ds-ink-4);
     font-weight: 400;
     font-size: 14px;
 }
 
 .as-input-wrap:focus-within .as-input {
-    background: var(--input-bg-focus);
-    border-color: var(--amb);
-    box-shadow: var(--shadow-input-focus);
+    background: var(--ds-surface);
+    border-color: var(--ds-brand-500);
+    box-shadow: 0 0 0 3.5px rgba(249,115,22,0.12);
 }
 
-.as-input-wrap:focus-within .as-input-icon { color: var(--amb); }
+.as-input-wrap:focus-within .as-input-icon { color: var(--ds-brand-500); }
 
 .as-trail-btn {
     position: absolute;
@@ -273,31 +240,31 @@ body {
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--grey-400);
-    border-radius: 8px;
-    transition: color 0.15s, background 0.15s;
+    color: var(--ds-ink-3);
+    border-radius: var(--ds-r-control);
+    transition: color var(--ds-t-fast), background var(--ds-t-fast);
     -webkit-tap-highlight-color: transparent;
     flex-shrink: 0;
 }
 .as-trail-btn:hover, .as-trail-btn:focus-visible {
-    color: var(--grey-600);
-    background: var(--grey-100);
+    color: var(--ds-ink-2);
+    background: var(--ds-surface-2);
 }
 
 /* Password strength */
 .as-pw-strength { display: flex; gap: 4px; margin-top: 7px; }
 .as-pw-bar {
     flex: 1; height: 3px; border-radius: 2px;
-    background: var(--grey-200); transition: background 0.3s;
+    background: var(--ds-line-strong); transition: background 0.3s;
 }
-.as-pw-bar.weak   { background: #f59e0b; }
-.as-pw-bar.fair   { background: #f59e0b; }
-.as-pw-bar.good   { background: #22c55e; }
-.as-pw-bar.strong { background: #16a34a; }
+.as-pw-bar.weak   { background: var(--ds-warning); }
+.as-pw-bar.fair   { background: var(--ds-warning); }
+.as-pw-bar.good   { background: var(--ds-success); }
+.as-pw-bar.strong { background: var(--ds-success); }
 
 .as-pw-hint {
     display: flex; align-items: center; gap: 5px;
-    margin-top: 6px; font-size: 11.5px; color: var(--grey-400);
+    margin-top: 6px; font-size: 11.5px; color: var(--ds-ink-3);
     font-weight: 500; padding-left: 2px;
 }
 .as-pw-hint svg { flex-shrink: 0; }
@@ -305,33 +272,33 @@ body {
 /* Service category select */
 .as-select {
     width: 100%;
-    height: 52px;
+    height: 50px;
     padding: 0 16px 0 42px;
     border: 1.5px solid transparent;
-    border-radius: var(--r-md);
-    background: var(--input-bg-rest);
+    border-radius: var(--ds-r-control);
+    background: var(--ds-surface-2);
     font-family: inherit;
     font-size: 14px;
-    color: var(--text-primary);
+    color: var(--ds-ink);
     outline: none;
     -webkit-appearance: none;
     appearance: none;
     cursor: pointer;
     transition:
-        background   0.2s var(--ease-out),
-        border-color 0.2s var(--ease-out),
-        box-shadow   0.2s var(--ease-out);
+        background   var(--ds-t-base) var(--ds-ease-io),
+        border-color var(--ds-t-base) var(--ds-ease-io),
+        box-shadow   var(--ds-t-base) var(--ds-ease-io);
 }
 .as-select:focus {
-    background: var(--input-bg-focus);
-    border-color: var(--amb);
-    box-shadow: var(--shadow-input-focus);
+    background: var(--ds-surface);
+    border-color: var(--ds-brand-500);
+    box-shadow: 0 0 0 3.5px rgba(249,115,22,0.12);
 }
 .as-select-chevron {
     position: absolute;
     right: 14px;
     pointer-events: none;
-    color: var(--grey-400);
+    color: var(--ds-ink-3);
 }
 
 /* Terms */
@@ -343,30 +310,30 @@ body {
 }
 .as-checkbox {
     width: 18px; height: 18px;
-    border: 1.5px solid var(--grey-200);
+    border: 1.5px solid var(--ds-line-strong);
     border-radius: 5px;
     cursor: pointer;
     flex-shrink: 0;
     margin-top: 1px;
-    accent-color: var(--amb);
+    accent-color: var(--ds-brand-500);
 }
 .as-terms-label {
-    font-size: 13px; color: var(--text-secondary);
+    font-size: 13px; color: var(--ds-ink-2);
     line-height: 1.5; font-weight: 400;
 }
 .as-terms-label a {
-    color: var(--amb); font-weight: 600; text-decoration: none;
+    color: var(--ds-brand-500); font-weight: 600; text-decoration: none;
 }
 .as-terms-label a:hover { text-decoration: underline; }
 
 /* Submit button */
 .as-btn {
     width: 100%;
-    height: 56px;
-    background: var(--amb);
+    height: 48px;
+    background: var(--ds-brand-500);
     color: #fff;
     border: none;
-    border-radius: var(--r-lg);
+    border-radius: var(--ds-r-card);
     font-family: inherit;
     font-size: 16px;
     font-weight: 700;
@@ -376,12 +343,12 @@ body {
     justify-content: center;
     gap: 9px;
     cursor: pointer;
-    box-shadow: var(--shadow-btn);
+    box-shadow: var(--ds-shadow-fab);
     transition:
-        background  0.2s var(--ease-out),
-        box-shadow  0.2s var(--ease-out),
-        transform   0.12s var(--spring),
-        opacity     0.2s;
+        background  var(--ds-t-base) var(--ds-ease-io),
+        box-shadow  var(--ds-t-base) var(--ds-ease-io),
+        transform   120ms var(--ds-ease),
+        opacity     var(--ds-t-base);
     -webkit-tap-highlight-color: transparent;
     position: relative;
     overflow: hidden;
@@ -392,19 +359,19 @@ body {
     background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.09) 50%, transparent 60%);
     background-size: 200% 100%;
     background-position: -100% 0;
-    transition: background-position 0.5s var(--ease-out);
+    transition: background-position 0.5s var(--ds-ease-io);
 }
 .as-btn:hover:not(:disabled)::before { background-position: 200% 0; }
 .as-btn:hover:not(:disabled) {
-    background: var(--amb-dark);
-    box-shadow: 0 10px 28px rgba(212,136,14,0.48);
+    background: var(--ds-brand-600);
+    box-shadow: 0 10px 28px rgba(249,115,22,0.40);
 }
-.as-btn:active:not(:disabled) { transform: scale(0.975); box-shadow: var(--shadow-btn-press); }
+.as-btn:active:not(:disabled) { transform: scale(0.975); box-shadow: 0 2px 8px rgba(249,115,22,0.24); }
 .as-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
 .as-btn-arrow {
     font-size: 18px; line-height: 1; display: inline-block;
-    transition: transform 0.22s var(--spring);
+    transition: transform 0.22s var(--ds-ease);
 }
 .as-btn:hover:not(:disabled) .as-btn-arrow { transform: translateX(4px); }
 
@@ -421,46 +388,46 @@ body {
     display: flex; align-items: center; gap: 12px; margin: 24px 0 18px;
 }
 .as-divider::before, .as-divider::after {
-    content: ''; flex: 1; height: 1px; background: #ebebeb;
+    content: ''; flex: 1; height: 1px; background: var(--ds-line);
 }
 .as-divider span {
-    font-size: 12.5px; color: var(--grey-400); font-weight: 500; white-space: nowrap;
+    font-size: 12.5px; color: var(--ds-ink-3); font-weight: 500; white-space: nowrap;
 }
 
 .as-social-row { display: flex; gap: 10px; }
 
 .as-social-btn {
     flex: 1; height: 48px;
-    border: 1.5px solid var(--grey-200);
-    border-radius: var(--r-md);
-    background: var(--white);
+    border: 1.5px solid var(--ds-line-strong);
+    border-radius: var(--ds-r-control);
+    background: var(--ds-surface);
     display: flex; align-items: center; justify-content: center; gap: 7px;
     font-family: inherit; font-size: 13px; font-weight: 600;
-    color: var(--text-primary);
+    color: var(--ds-ink);
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.1s var(--spring);
+    transition: border-color var(--ds-t-fast), background var(--ds-t-fast), box-shadow var(--ds-t-fast), transform 100ms var(--ds-ease);
     -webkit-tap-highlight-color: transparent;
 }
 .as-social-btn:hover:not(:disabled) {
-    border-color: #c8c8c8; background: var(--grey-50);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    border-color: var(--ds-ink-4); background: var(--ds-surface-2);
+    box-shadow: var(--ds-shadow-sm);
 }
-.as-social-btn:active:not(:disabled) { transform: scale(0.96); background: var(--grey-100); }
+.as-social-btn:active:not(:disabled) { transform: scale(0.96); background: var(--ds-surface-2); }
 .as-social-btn:disabled { opacity: 0.52; cursor: not-allowed; }
 .as-social-btn img { width: 19px; height: 19px; object-fit: contain; flex-shrink: 0; }
 
 /* Footer */
 .as-footer { margin-top: auto; padding-top: 24px; }
 .as-footer-inner {
-    border-radius: 20px 20px 0 0;
+    border-radius: var(--ds-r-card) var(--ds-r-card) 0 0;
     padding: 18px 0;
     padding-bottom: max(18px, env(safe-area-inset-bottom));
     text-align: center;
     margin: 0 -24px;
 }
-.as-footer-text { font-size: 14px; color: var(--text-secondary); }
+.as-footer-text { font-size: 14px; color: var(--ds-ink-2); }
 .as-footer-link {
-    font-size: 14px; font-weight: 700; color: var(--amb); text-decoration: none;
+    font-size: 14px; font-weight: 700; color: var(--ds-brand-500); text-decoration: none;
     -webkit-tap-highlight-color: transparent;
 }
 .as-footer-link:active { opacity: 0.65; }
@@ -476,17 +443,17 @@ body {
     to   { opacity:1; transform:translateY(0) }
 }
 
-.as-hero { animation: as-hero-in 0.4s var(--ease-out) both; }
-.as-card { animation: as-card-in 0.52s var(--spring) 0.08s both; }
+.as-hero { animation: as-hero-in 0.4s var(--ds-ease-io) both; }
+.as-card { animation: as-card-in 0.52s var(--ds-ease) 0.08s both; }
 
-.as-a1 { animation: as-fade-up 0.42s var(--spring) 0.20s both; }
-.as-a2 { animation: as-fade-up 0.42s var(--spring) 0.26s both; }
-.as-a3 { animation: as-fade-up 0.42s var(--spring) 0.31s both; }
-.as-a4 { animation: as-fade-up 0.42s var(--spring) 0.36s both; }
-.as-a5 { animation: as-fade-up 0.42s var(--spring) 0.41s both; }
-.as-a6 { animation: as-fade-up 0.42s var(--spring) 0.46s both; }
-.as-a7 { animation: as-fade-up 0.42s var(--spring) 0.51s both; }
-.as-a8 { animation: as-fade-up 0.42s var(--spring) 0.56s both; }
+.as-a1 { animation: as-fade-up 0.42s var(--ds-ease) 0.20s both; }
+.as-a2 { animation: as-fade-up 0.42s var(--ds-ease) 0.26s both; }
+.as-a3 { animation: as-fade-up 0.42s var(--ds-ease) 0.31s both; }
+.as-a4 { animation: as-fade-up 0.42s var(--ds-ease) 0.36s both; }
+.as-a5 { animation: as-fade-up 0.42s var(--ds-ease) 0.41s both; }
+.as-a6 { animation: as-fade-up 0.42s var(--ds-ease) 0.46s both; }
+.as-a7 { animation: as-fade-up 0.42s var(--ds-ease) 0.51s both; }
+.as-a8 { animation: as-fade-up 0.42s var(--ds-ease) 0.56s both; }
 
 @media (prefers-reduced-motion: reduce) {
     .as-hero, .as-card,
@@ -500,10 +467,10 @@ body {
     body { background: #d8d0c8 !important; }
     .as-page {
         margin-top: 32px; margin-bottom: 32px;
-        min-height: auto; border-radius: var(--r-2xl);
+        min-height: auto; border-radius: var(--ds-r-card);
         overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.36);
     }
-    .as-card { border-radius: var(--r-3xl); margin-top: -28px; }
+    .as-card { border-radius: var(--ds-r-card); margin-top: -28px; }
 }
 </style>
 </head>
@@ -522,20 +489,15 @@ body {
                           stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
-            <div class="as-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                    <rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
-                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                Artisan Portal
-            </div>
+          
         </nav>
 
         <div class="as-brand">
             <img class="as-logo"
                  src="../shared/assets/images/handyhub-logo-text.png"
                  alt="HandyHub — Trusted Professionals, Right Around You."
-                 onerror="this.onerror=null;this.style.display='none';this.insertAdjacentHTML('afterend','<span style=&quot;font-weight:800;font-size:22px;color:#730201;letter-spacing:-0.5px;&quot;>HandyHub</span>')">
+                 onerror="this.onerror=null;this.style.display='none';var fb=document.getElementById('as-logo-fb');if(fb)fb.removeAttribute('hidden');">
+            <span id="as-logo-fb" class="as-logo" hidden style="font-weight:800;font-size:22px;color:var(--ui-primary,#730201);letter-spacing:-0.5px;">HandyHub</span>
         </div>
 
     </div><!-- /.as-hero -->
@@ -769,6 +731,12 @@ body {
 
 <script type="module">
 import { getAppContainer } from '../shared/js/app/container.js';
+import { getFunctions, httpsCallable }
+    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+import { getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+
+const FUNCTIONS_REGION = 'europe-west1';
+const SESSION_KEY      = 'hh_otp_session';
 
 const ICON_OPEN   = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>';
 const ICON_CLOSED = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
@@ -849,68 +817,60 @@ document.getElementById('as-other-desc').addEventListener('input', checkReady);
 document.getElementById('as-other-bucket').addEventListener('change', checkReady);
 
 /* ── Form submit ──────────────────────────────────────────── */
+let submitting = false;   // guard against double-submit (Enter + click, etc.)
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    submitting = true;
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="as-spin"></span>';
 
     try {
-        const { services: { authService, databaseService } } = getAppContainer();
         const email    = emailInp.value.trim();
         const password = pwInput.value;
         const name     = nameInp.value.trim();
         const phone    = document.getElementById('as-phone').value.trim();
         const selected = catInp.value;
 
-        // "Other" artisans get dispatched under their best-fit bucket
-        // while their custom specialty waits for admin review.
         const isOther          = selected === 'other';
-        const category         = isOther
-            ? document.getElementById('as-other-bucket').value
-            : selected;
-        const requestedService = isOther
-            ? document.getElementById('as-other-desc').value.trim()
-            : null;
+        const otherBucket      = isOther ? document.getElementById('as-other-bucket').value : null;
+        const otherDesc        = isOther ? document.getElementById('as-other-desc').value.trim() : null;
 
-        const cred = await authService.createUserWithEmailAndPassword(email, password);
-        const uid  = cred.user.uid;
-        const now  = new Date().toISOString();
+        const fn = httpsCallable(getFunctions(getApp(), FUNCTIONS_REGION), 'requestSignupOtp');
+        const result = await fn({
+            appType: 'artisan',
+            payload: {
+                name,
+                email,
+                password,
+                phone,
+                category:  selected,
+                otherBucket,
+                otherDesc,
+            },
+        });
 
-        const artisanDoc = {
-            uid,
-            fullName:           name,
-            email,
-            phone,
-            category,
-            isOnline:           false,
-            isAvailable:        false,
-            verificationStatus: 'draft',
-            rating:             0,
-            reviewCount:        0,
-            jobsCompleted:      0,
-            createdAt:          now,
-        };
-        if (requestedService) artisanDoc.requestedService = requestedService;
+        // Store session in sessionStorage only — never localStorage
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+            sessionId: result.data.sessionId,
+            email:     result.data.email,
+        }));
 
-        await databaseService.setDocument('artisans', uid, artisanDoc);
-
-        // Write to admin review queue — non-critical, never blocks signup
-        if (requestedService) {
-            databaseService.setDocument('service_requests', uid, {
-                artisanId:           uid,
-                artisanName:         name,
-                requestedService,
-                operationalCategory: category,
-                status:              'pending',
-                createdAt:           now,
-            }).catch(e => console.warn('[signup] service_requests:', e.message));
-        }
-
-        window.location.replace('dashboard.html');
+        // Navigate to OTP verification page (reset flag first — if navigation is
+        // blocked by a browser extension the form must remain usable)
+        submitting = false;
+        window.location.replace('verify-email.html');
     } catch (err) {
+        submitting = false;
         submitBtn.disabled   = false;
         submitBtn.innerHTML  = 'Create Account <span class="as-btn-arrow">→</span>';
-        alert(err.message || 'Sign-up failed. Please try again.');
+        const msg =
+            (err.message || '').includes('already exists') ? 'That email is already registered. Try signing in instead.' :
+            (err.message || '').includes('Invalid email')  ? 'Please enter a valid email address.' :
+            (err.message || '').includes('8 characters')   ? 'Password must be at least 8 characters.' :
+            (err.message || '').includes('network')        ? 'Network error. Check your connection and try again.' :
+            (err.message || 'Sign-up failed. Please try again.');
+        alert(msg);
     }
 });
 
@@ -920,12 +880,58 @@ if (googleBtn) {
     googleBtn.addEventListener('click', async () => {
         googleBtn.disabled = true;
         try {
-            const { services: { authService } } = getAppContainer();
-            await authService.signInWithGoogle();
+            const { services: { authService, databaseService } } = getAppContainer();
+
+            // signInWithGoogle() does not exist on the shared service — the
+            // contract is signInWithSocial(providerName). Popup is the default.
+            const result = await authService.signInWithSocial('Google');
+            const user   = result?.user;
+            if (!user) throw new Error('Google sign-in returned no user.');
+
+            // A first-time Google artisan has no artisans/{uid} doc yet. Without
+            // it the auth guard treats them as "unauthorized" and bounces them.
+            // Create the same rule-valid base doc the email flow writes, but only
+            // if one does not already exist (returning users keep their data).
+            const existing = await databaseService.getDocument('artisans', user.uid).catch(() => null);
+
+            if (!existing || !existing.exists) {
+                const now = new Date().toISOString();
+                await databaseService.setDocument('artisans', user.uid, {
+                    id:                 user.uid,
+                    name:               user.displayName || (user.email || '').split('@')[0] || 'Artisan',
+                    email:              user.email || '',
+                    userType:           'artisan',
+                    status:             'pending',
+                    uid:                user.uid,
+                    fullName:           user.displayName || '',
+                    phone:              user.phoneNumber || '',
+                    isOnline:           false,
+                    isAvailable:        false,
+                    verificationStatus: 'draft',
+                    rating:             0,
+                    reviewCount:        0,
+                    jobsCompleted:      0,
+                    availableBalance:   0,
+                    pendingBalance:     0,
+                    totalEarned:        0,
+                    withdrawnTotal:     0,
+                    walletBalance:      0,
+                    responseRate:       0,
+                    createdAt:          now,
+                });
+                // Brand-new artisan → finish KYC onboarding before the dashboard.
+                window.location.replace('onboarding.html');
+                return;
+            }
+
+            // Returning Google artisan → straight to the dashboard.
             window.location.replace('dashboard.html');
         } catch (err) {
             googleBtn.disabled = false;
-            alert(err.message || 'Google sign-in failed.');
+            if (err.code !== 'auth/popup-closed-by-user' &&
+                err.code !== 'auth/cancelled-popup-request') {
+                alert(err.message || 'Google sign-in failed.');
+            }
         }
     });
 }

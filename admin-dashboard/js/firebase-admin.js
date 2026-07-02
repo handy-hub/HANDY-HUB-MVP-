@@ -16,6 +16,11 @@ import { getFirestore }
   from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { getStorage }
   from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
+import { getFunctions, httpsCallable }
+  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+
+/* ── Cloud Functions region — must match functions/config.js FUNCTIONS_REGION ── */
+const FUNCTIONS_REGION = 'europe-west1';
 
 /* ── Firebase project config ─────────────────────────────────────────────
  * Same Firebase PROJECT as the artisan/customer apps (lamax-4fd82).
@@ -47,6 +52,18 @@ const adminApp =
 export const auth    = getAuth(adminApp);
 export const db      = getFirestore(adminApp, ADMIN_DB_ID);
 export const storage = getStorage(adminApp);
+export const fns     = getFunctions(adminApp, FUNCTIONS_REGION);
 
 /* ── Persist admin sessions across browser refreshes ────────────────────── */
 setPersistence(auth, browserLocalPersistence).catch(() => {});
+
+/**
+ * callAdminFunction — thin wrapper so every admin page invokes Cloud
+ * Functions the same way: `await callAdminFunction('resolveDispute', {...})`.
+ * All admin-privileged business logic (approve/reject/suspend/ban artisans,
+ * resolve disputes, cancel bookings) must go through this — never write
+ * directly to Firestore for these actions from admin pages.
+ */
+export function callAdminFunction(name, payload = {}) {
+  return httpsCallable(fns, name)(payload);
+}

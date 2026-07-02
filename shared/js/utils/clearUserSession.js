@@ -13,6 +13,8 @@
  *   3. The hh_last_session_uid marker key
  *   4. sessionStorage (booking flow context, auth redirects, etc.)
  *   5. HH_State in-memory uid (window.HH_State.clearUser())
+ *   6. Active Firestore subscriptions (presence, quote modal, badge)
+ *   7. FCM push token (revoked so this device stops receiving notifications)
  */
 
 /** Base key names — must stay in sync with stateService.js BASE_KEYS */
@@ -93,4 +95,25 @@ export function clearUserSession(uid) {
     if (window.HH_State && typeof window.HH_State.clearUser === 'function') {
         window.HH_State.clearUser();
     }
+
+    // ── 6. Cancel active Firestore subscriptions ──────────────────────────────
+    // presenceService — tracks artisan online status; must stop writing to DB.
+    if (window.HH_Presence && typeof window.HH_Presence.stopPresence === 'function') {
+        try { window.HH_Presence.stopPresence(); } catch (_) {}
+    }
+    // quoteModalService — live quote listener; destroyQuoteModal cleans up.
+    if (typeof window.destroyQuoteModal === 'function') {
+        try { window.destroyQuoteModal(); } catch (_) {}
+    }
+
+    // ── 7. Revoke FCM push token ──────────────────────────────────────────────
+    // Prevents this device receiving push notifications after sign-out.
+    // Fire-and-forget: failure is non-fatal (token will expire on its own).
+    try {
+        if (window._hhFcmMessaging && typeof window._hhFcmGetToken === 'function') {
+            import('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js')
+                .then(({ deleteToken }) => deleteToken(window._hhFcmMessaging))
+                .catch(() => {});
+        }
+    } catch (_) {}
 }

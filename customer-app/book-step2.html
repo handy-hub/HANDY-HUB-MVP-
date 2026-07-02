@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/booking-flow.css" />
   <link rel="stylesheet" href="../shared/css/pageTransitions.css">
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
 <div class="phone-shell">
@@ -15,7 +16,7 @@
   <!-- Header -->
   <div class="bk-header">
     <button class="bk-back-btn" onclick="window.location.href='book-step1.html'">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
     </button>
     <div class="bk-header-center">
       <p class="bk-header-title">Book a Service</p>
@@ -27,7 +28,7 @@
     </div>
     <div class="bk-bell-wrap">
       <button class="bk-bell-btn" onclick="window.location.href='notification.html'" aria-label="Notifications">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#111" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#111" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
   </div>
@@ -74,14 +75,14 @@
     <!-- Selected service context -->
     <div class="svc-ctx-card">
       <div class="svc-ctx-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div>
         <p class="svc-ctx-name">Electrical – Fix Switch / Socket</p>
         <p class="svc-ctx-desc">Repair or replace faulty switches or power outlets.</p>
       </div>
       <button class="edit-link" onclick="window.location.href='book-step1.html'">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         Edit
       </button>
     </div>
@@ -91,7 +92,7 @@
       <button id="fp-recommended" class="filter-pill active" onclick="window.applyFilter('recommended')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#730201"/></svg>
         Recommended
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <button id="fp-rating" class="filter-pill" onclick="window.applyFilter('rating')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#555" stroke-width="2"/></svg>
@@ -132,7 +133,7 @@
       <button class="bk-change-link" onclick="window.location.href='book-step1.html'">Change</button>
     </div>
     <div class="bk-sel-row">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <span><strong>Fix Switch / Socket</strong></span>
       <span style="color:#999;">· Electrical</span>
     </div>
@@ -149,7 +150,7 @@
     </div>
     <button class="btn-continue-full" onclick="continueToStep3()">
       Continue to Schedule
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2.0" stroke-linecap="round"/></svg>
     </button>
     <p class="bk-pick-time">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#888" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
@@ -167,7 +168,7 @@
   ───────────────────────────────────────────────────────────────── */
   import { requireAuth }    from '../shared/js/utils/authGuard.js';
   import { getAppContainer } from '../shared/js/app/container.js';
-  import { cdnUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.js';
+  import { avatarUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.js';
 
   await requireAuth();
 
@@ -180,35 +181,8 @@
   let displayedArtisans = []; // after filter/sort applied
   let currentFilter    = 'recommended';
 
-  /* ── Inject styles ──────────────────────────────────────────────── */
-  const _s = document.createElement('style');
-  _s.textContent = `
-    @keyframes skeleton-pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
-    .pro-card {
-      background:#fff;border-radius:16px;padding:14px;margin-bottom:10px;
-      display:flex;align-items:flex-start;gap:12px;cursor:pointer;
-      border:2px solid transparent;transition:border-color 0.15s,box-shadow 0.15s;
-      box-shadow:0 2px 10px rgba(0,0,0,0.06);
-    }
-    .pro-card:active { transform:scale(0.99); }
-    .pro-card-selected { border-color:#730201 !important; box-shadow:0 4px 16px rgba(115,2,1,0.18) !important; }
-    .pro-card-left { display:flex;gap:12px;flex:1;min-width:0; }
-    .pro-info-body { flex:1;min-width:0; }
-    .pro-name { font-size:14px;font-weight:800;color:#111; }
-    .pro-type { font-size:12px;color:#888;margin-top:2px;font-weight:500; }
-    .pro-meta-row { display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap; }
-    .pro-card-right { flex-shrink:0; }
-    .pro-select-circle {
-      width:26px;height:26px;border-radius:50%;border:2px solid #ddd;
-      display:flex;align-items:center;justify-content:center;
-      transition:all 0.15s;background:#fff;
-    }
-    .pro-select-circle.selected { background:#730201;border-color:#730201; }
-    [data-theme="dark"] .pro-card { background:#1e1e1e;box-shadow:none; }
-    [data-theme="dark"] .pro-name { color:#f0f0f0; }
-    [data-theme="dark"] .pro-type { color:#aaa; }
-  `;
-  document.head.appendChild(_s);
+  /* .pro-card / .pro-select-circle / skeleton-pulse styles now live in
+     booking-flow.css (tokenized + dark-mode aware) — no JS injection. */
 
   /* ── Skeleton loader ─────────────────────────────────────────────── */
   function showSkeleton() {
@@ -239,8 +213,8 @@
         <div style="width:72px;height:72px;background:#fde8e8;border-radius:24px;
                     display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="12" cy="7" r="4" stroke="#730201" stroke-width="2"/>
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
           </svg>
         </div>
         <p style="font-size:16px;font-weight:800;color:#111;margin-bottom:6px;">No Professionals Available</p>
@@ -249,15 +223,15 @@
           Try a different category or use Emergency Booking.
         </p>
         <button onclick="window.location.href='book-step1.html'"
-          style="background:#730201;color:#fff;border:none;padding:12px 24px;border-radius:12px;
+          style="background: var(--ui-primary);color:#fff;border:none;padding:12px 24px;border-radius:12px;
                  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:block;
                  margin:0 auto 10px;">
           Change Service
         </button>
         <button onclick="window.location.href='book-emergency.html'"
-          style="background:#fde8e8;color:#730201;border:none;padding:12px 24px;border-radius:12px;
+          style="background:#fde8e8;color: var(--ui-primary);border:none;padding:12px 24px;border-radius:12px;
                  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:block;margin:0 auto;">
-          🚨 Emergency Booking
+          <i class="fa-solid fa-triangle-exclamation"></i> Emergency Booking
         </button>
       </div>`;
   }
@@ -280,7 +254,7 @@
           We couldn't load professionals. Check your connection and try again.
         </p>
         <button onclick="window.loadArtisans()"
-          style="background:#730201;color:#fff;border:none;padding:12px 24px;border-radius:12px;
+          style="background: var(--ui-primary);color:#fff;border:none;padding:12px 24px;border-radius:12px;
                  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
           Try Again
         </button>
@@ -301,7 +275,7 @@
     const isOnline   = Boolean(d.isAvailable);
     const isTopRated = rating && Number(rating) >= 4.8 && reviews >= 50;
     const photo      = d.profileImageId
-      ? cdnUrl(d.profileImageId, TRANSFORMS.avatarSm, d.profileImageVersion ?? null)
+      ? avatarUrl(d.profileImageId, TRANSFORMS.avatarSm, d.profileImageVersion ?? null)
       : (d.profileImage || null);
     const bio        = d.bio          || '';
     const isSelected = selectedProId === id;
@@ -330,7 +304,7 @@
           </div>
           <p class="pro-type">${type}${exp ? ' · ' + exp + ' exp.' : ''}</p>
           <div class="pro-meta-row">
-            ${rating ? `<span style="color:#f5a623;">★</span>
+            ${rating ? `<i class="fa-solid fa-star" style="color:#f5a623;"></i>
               <span style="font-size:12px;font-weight:700;color:#333;">${rating}</span>
               <span style="font-size:11px;color:#aaa;">(${reviews} reviews)</span>
               <span style="font-size:11px;color:#aaa;">·</span>` : ''}
@@ -339,7 +313,7 @@
           <div style="margin-top:3px;display:flex;align-items:center;gap:10px;">
             <span style="font-size:11px;color:${isOnline ? '#2e7d32' : '#f57c00'};font-weight:700;">${avail}</span>
             <button onclick="event.stopPropagation();window.viewProProfile('${id}')"
-              style="background:none;border:none;padding:0;font-size:11px;color:#730201;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:2px;">
+              style="background:none;border:none;padding:0;font-size:11px;color: var(--ui-primary);font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:2px;">
               View Profile
             </button>
           </div>
@@ -365,7 +339,7 @@
   window.applyFilter = function(filterName) {
     // 'more' opens a bottom sheet — no re-render needed
     if (filterName === 'more') {
-      window.showToast('More Filters coming soon — stay tuned! 🔧');
+      window.showToast('More Filters coming soon — stay tuned!');
       return;
     }
 
@@ -405,7 +379,7 @@
               <p style="font-size:15px;font-weight:700;color:#111;margin-bottom:6px;">No 4.0+ rated professionals right now</p>
               <p style="font-size:13px;color:#888;margin-bottom:20px;">Try a broader filter to see all available professionals.</p>
               <button onclick="window.applyFilter('recommended')"
-                style="background:#730201;color:#fff;border:none;padding:11px 22px;
+                style="background: var(--ui-primary);color:#fff;border:none;padding:11px 22px;
                        border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
                 Show All Professionals
               </button>
@@ -445,14 +419,60 @@
 
       loadedArtisans = Array.isArray(results) ? results : [];
 
+      // ── Professional-first booking (I4): the user picked this artisan on a
+      //    profile page. Make sure they appear, pinned at the top and pre-
+      //    selected, even if the category query didn't return them.
+      const pre = state.preselectedArtisan;
+      if (pre && (pre.id || pre.uid)) {
+        const preId = pre.id || pre.uid;
+        const existing = loadedArtisans.find(a => a.id === preId);
+        if (existing) {
+          // Move the chosen artisan to the front so it renders first.
+          loadedArtisans = [existing, ...loadedArtisans.filter(a => a.id !== preId)];
+        } else {
+          // Not in the category results — synthesize a card record from the
+          // payload carried over from the profile page.
+          loadedArtisans = [{
+            id: preId,
+            data: {
+              name:            pre.name,
+              specialty:       pre.specialty,
+              category:        pre.category,
+              rating:          pre.rating,
+              reviewCount:     pre.reviewCount,
+              jobsCompleted:   pre.jobsCompleted,
+              yearsExperience: pre.yearsExperience,
+              isAvailable:     pre.isAvailable,
+              phone:           pre.phone,
+              profileImageId:      pre.profileImageId,
+              profileImageVersion: pre.profileImageVersion,
+              profileImage:        pre.profileImage,
+            },
+          }, ...loadedArtisans];
+        }
+        selectedProId = preId;
+      }
+
       if (!loadedArtisans.length) {
         showEmptyState(category);
         return;
       }
 
-      // Restore previously selected professional if any
-      const s2 = getState();
-      if (s2.professional) selectedProId = s2.professional.id || s2.professional.uid || null;
+      // Restore previously selected professional if any (only if not already
+      // set by the pre-selection above)
+      if (!selectedProId) {
+        const s2 = getState();
+        if (s2.professional) selectedProId = s2.professional.id || s2.professional.uid || null;
+      }
+
+      // Persist the pre-selected professional into booking state so step 3 has
+      // it even if the user continues without re-tapping the (already-selected)
+      // card. selectedProId is already set, so applyFilter → buildProCard will
+      // render it selected; we only need to write the professional object.
+      if (selectedProId && state.preselectedArtisan && !getState().professional) {
+        const chosen = loadedArtisans.find(a => a.id === selectedProId);
+        if (chosen) persistProfessional(selectedProId, chosen.data || {});
+      }
 
       // Initial render via applyFilter so sort logic runs from the start
       window.applyFilter(currentFilter);
@@ -462,13 +482,8 @@
     }
   }
 
-  /* ── Select a professional ──────────────────────────────────────── */
-  window.selectPro = function(id) {
-    const artisan = loadedArtisans.find(a => a.id === id) || displayedArtisans.find(a => a.id === id);
-    if (!artisan) return;
-    const d = artisan.data || {};
-    selectedProId = id;
-    renderArtisans();
+  /* ── Write the chosen professional into booking state (no re-render) ── */
+  function persistProfessional(id, d) {
     setState({
       professional: {
         id:         id,
@@ -483,11 +498,20 @@
         phone:      d.phone        ? `tel:${d.phone}` : null,
         isOnline:   Boolean(d.isAvailable),
         isTopRated: Boolean(d.rating && Number(d.rating) >= 4.8),
-        photo:               cdnUrl(d.profileImageId, TRANSFORMS.avatarSm, d.profileImageVersion ?? null) || d.profileImage || null,
+        photo:               avatarUrl(d.profileImageId, TRANSFORMS.avatarSm, d.profileImageVersion ?? null) || d.profileImage || null,
         profileImageId:      d.profileImageId      || null,
         profileImageVersion: d.profileImageVersion || null,
       },
     });
+  }
+
+  /* ── Select a professional ──────────────────────────────────────── */
+  window.selectPro = function(id) {
+    const artisan = loadedArtisans.find(a => a.id === id) || displayedArtisans.find(a => a.id === id);
+    if (!artisan) return;
+    selectedProId = id;
+    renderArtisans();
+    persistProfessional(id, artisan.data || {});
   };
 
   /* ── View artisan profile page ──────────────────────────────────── */
@@ -533,7 +557,7 @@
     t.setAttribute('aria-live', 'polite');
     const icon = document.createElement('span');
     icon.className = 'toast-icon';
-    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>';
     const text = document.createElement('span');
     text.className = 'toast-message';
     text.textContent = msg;
@@ -578,5 +602,3 @@
 <script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>
-
-

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -6,14 +6,23 @@
   <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Bookings | HandyHub</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/booking.css">
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <link rel='stylesheet' href='../shared/css/components/tabs.css' />
+  <link rel='stylesheet' href='../shared/css/components/swipeAction.css' />
 </head>
 <body>
 <div class="bk-shell">
 
   <div class="bk-main-header">
+    <button class="bk-icon-btn" onclick="window.location.href='dashboard.html'" aria-label="Go back">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     <h1 class="bk-main-title">Bookings</h1>
     <div class="bk-header-actions">
       <button class="bk-icon-btn" onclick="window.location.href='notification.html'" aria-label="Notifications">
@@ -23,11 +32,11 @@
     </div>
   </div>
 
-  <div class="bk-tabs" role="tablist">
-    <button class="bk-tab active" role="tab" onclick="switchTab('upcoming',this)">Upcoming</button>
-    <button class="bk-tab" role="tab" onclick="switchTab('ongoing',this)">Active</button>
-    <button class="bk-tab" role="tab" onclick="switchTab('completed',this)">Completed</button>
-    <button class="bk-tab" role="tab" onclick="switchTab('cancelled',this)">Cancelled</button>
+  <div class="ui-tabs" role="tablist">
+    <button class="ui-tab active" role="tab" aria-selected="true"  onclick="switchTab('upcoming',this)">Upcoming</button>
+    <button class="ui-tab"        role="tab" aria-selected="false" onclick="switchTab('ongoing',this)">Active</button>
+    <button class="ui-tab"        role="tab" aria-selected="false" onclick="switchTab('completed',this)">Completed</button>
+    <button class="ui-tab"        role="tab" aria-selected="false" onclick="switchTab('cancelled',this)">Cancelled</button>
   </div>
 
   <div class="bk-body">
@@ -45,7 +54,7 @@
           <p class="bk-banner-title">Need a service?</p>
           <p class="bk-banner-sub">Book trusted professionals<br>near you in minutes.</p>
         </div>
-        <button class="bk-banner-btn" onclick="window.location.href='book-now.html'">Book Now</button>
+        <button class="bk-banner-btn" onclick="window.location.href='book-step1.html'">Book Now</button>
       </div>
 
       <h2 class="bk-section-title">Upcoming Bookings</h2>
@@ -82,40 +91,12 @@ import { requireAuth }              from '../shared/js/utils/authGuard.js';
 import { getAppContainer }          from '../shared/js/app/container.js';
 import { createBookingRepository }  from '../shared/js/data/repositories/bookingRepository.js';
 import { releaseEscrow }            from '../shared/js/services/walletService.js';
+import {
+  TAB_STATUSES, getStatusMeta, getActiveProgress, isCancellable,
+}                                    from '../shared/js/domain/bookingStatusMeta.js';
+import { wireSwipeAction, createUndoToast } from '../shared/js/components/swipeAction.js';
 
 await requireAuth();
-
-// ── STATUS CONSTANTS  (must match Firestore exactly — all snake_case) ─────────
-const TAB_STATUSES = {
-  upcoming:  ['pending', 'dispatching', 'searching', 'dispatched', 'assigned'],
-  ongoing:   ['accepted', 'en_route', 'in_progress', 'awaiting'],
-  completed: ['completed'],
-  cancelled: ['cancelled', 'rejected', 'unfulfilled'],
-};
-
-const STATUS_META = {
-  pending:      { label: 'Pending',      cls: 'bk-status-upcoming'  },
-  dispatching:  { label: 'Dispatching',  cls: 'bk-status-upcoming'  },
-  searching:    { label: 'Searching',    cls: 'bk-status-upcoming'  },
-  dispatched:   { label: 'Dispatching',  cls: 'bk-status-upcoming'  },
-  assigned:     { label: 'Assigned',     cls: 'bk-status-upcoming'  },
-  accepted:     { label: 'Accepted',     cls: 'bk-status-ongoing'   },
-  en_route:     { label: 'En Route',     cls: 'bk-status-ongoing'   },
-  in_progress:  { label: 'In Progress',  cls: 'bk-status-ongoing'   },
-  awaiting:     { label: 'Awaiting',     cls: 'bk-status-ongoing'   },
-  completed:    { label: 'Completed',    cls: 'bk-status-completed' },
-  cancelled:    { label: 'Cancelled',    cls: 'bk-status-cancelled' },
-  rejected:     { label: 'Declined',     cls: 'bk-status-cancelled' },
-  unfulfilled:  { label: 'Unmatched',    cls: 'bk-status-cancelled' },
-};
-
-// Progress bar % and label per active status
-const ACTIVE_PROGRESS = {
-  accepted:    { pct: 15, label: 'Booking Accepted'      },
-  en_route:    { pct: 40, label: 'Artisan En Route'      },
-  in_progress: { pct: 70, label: 'Job In Progress'       },
-  awaiting:    { pct: 90, label: 'Awaiting Confirmation' },
-};
 
 // ── MODULE STATE ──────────────────────────────────────────────────────────────
 let _allBookings = [];
@@ -136,8 +117,12 @@ function fmtDate(d) {
   } catch { return String(d); }
 }
 
+// Adapter over the shared bookingStatusMeta source of truth: `group` (upcoming|
+// ongoing|completed|cancelled) becomes the `bk-status-${group}` CSS class this
+// page's card builders already render against.
 function getMeta(status) {
-  return STATUS_META[(status || '').toLowerCase()] || { label: status || 'Pending', cls: 'bk-status-upcoming' };
+  const { label, group } = getStatusMeta(status);
+  return { label, cls: `bk-status-${group}` };
 }
 
 function avatarHtml(name, photo) {
@@ -176,45 +161,77 @@ function emptyState(icon, title, sub, btnText, href) {
   </div>`;
 }
 
-const CAL_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`;
-const CLK_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`;
-const CHK_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`;
-const CAN_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M15 9l-6 6M9 9l6 6" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`;
+const CAL_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+const CLK_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+const CHK_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+const CAN_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 
 // ── CARD BUILDERS ─────────────────────────────────────────────────────────────
-function buildUpcomingCard(b) {
+// buildUpcomingCard / buildCompletedCard / buildCancelledCard share the same
+// interaction model (a static info row you tap to view, with a status pill +
+// amount on the right) — they render through this one shell, varying only in
+// the meta-row content and whether the row can be swiped to cancel. This
+// mirrors the Notification page's single-card-shell approach rather than each
+// tab hand-rolling its own row markup.
+function buildSimpleCard(b, { metaRows, amountLabel, amountValue, amountStyle = '', cancellable = false }) {
   const meta  = getMeta(b.status);
   const name  = b.proName || b.artisanName || 'Professional';
   const photo = b.proPhoto || null;
-  const date  = b.dateDisplay || fmtDate(b.scheduledAt) || fmtDate(b.createdAt) || 'Scheduled';
+  const clickHandler = cancellable ? `window._viewBookingGuarded('${escHtml(b.id)}')` : `window._viewBooking('${escHtml(b.id)}')`;
+  const card = `
+    <div class="bk-card${cancellable ? ' swipe-card' : ''}"${cancellable ? ` data-id="${escHtml(b.id)}"` : ''} onclick="${clickHandler}">
+      <div class="bk-card-photo-wrap">
+        ${avatarHtml(name, photo)}
+        <div class="bk-card-svc-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      </div>
+      <div class="bk-card-body">
+        <p class="bk-card-service">${escHtml(b.serviceType || b.service || 'Service')}</p>
+        <div class="bk-card-pro-row">
+          <span class="bk-card-pro-name">${escHtml(name)}</span>
+          <div class="bk-verified"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+        </div>
+        <div class="bk-card-meta">${metaRows}</div>
+      </div>
+      <div class="bk-card-right">
+        <span class="bk-status-tag ${meta.cls}">${meta.label}</span>
+        <div class="bk-total" style="margin-top:auto;"><p class="bk-total-label">${amountLabel}</p><p class="bk-total-val" style="${amountStyle}">GHC ${amountValue}</p></div>
+      </div>
+    </div>`;
+
+  if (!cancellable) return card;
+
+  // Cancellable rows adopt the canonical swipe-to-action shell (shared/js/
+  // components/swipeAction.js) — same gesture, thresholds, and reveal
+  // animation as the Notification page's swipe-to-delete, wired to a
+  // "Cancel" action instead since deleting a booking record is not a
+  // supported (or safe) operation for a financial/escrow-backed entity.
   return `
-  <div class="bk-card" onclick="window._viewBooking('${escHtml(b.id)}')">
-    <div class="bk-card-photo-wrap">
-      ${avatarHtml(name, photo)}
-      <div class="bk-card-svc-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></div>
-    </div>
-    <div class="bk-card-body">
-      <p class="bk-card-service">${escHtml(b.serviceType || b.service || 'Service')}</p>
-      <div class="bk-card-pro-row">
-        <span class="bk-card-pro-name">${escHtml(name)}</span>
-        <div class="bk-verified"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+    <div class="swipe-row">
+      <div class="swipe-action" aria-hidden="true">
+        <i class="fa-solid fa-ban"></i>
+        <span>Cancel</span>
       </div>
-      <div class="bk-card-meta">
-        <div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>${escHtml(date)}</div>
-        ${b.time ? `<div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#aaa" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#aaa" stroke-width="2" stroke-linecap="round"/></svg>${escHtml(b.time)}</div>` : ''}
-      </div>
-    </div>
-    <div class="bk-card-right">
-      <span class="bk-status-tag ${meta.cls}">${meta.label}</span>
-      <div class="bk-total" style="margin-top:auto;"><p class="bk-total-label">Total</p><p class="bk-total-val">GHC ${b.total || b.price || '—'}</p></div>
-    </div>
-  </div>`;
+      ${card}
+    </div>`;
+}
+
+function buildUpcomingCard(b) {
+  const date = b.dateDisplay || fmtDate(b.scheduledAt) || fmtDate(b.createdAt) || 'Scheduled';
+  const metaRows = `
+    <div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>${escHtml(date)}</div>
+    ${b.time ? `<div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#aaa" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#aaa" stroke-width="2" stroke-linecap="round"/></svg>${escHtml(b.time)}</div>` : ''}`;
+  return buildSimpleCard(b, {
+    metaRows,
+    amountLabel: 'Total',
+    amountValue: b.total || b.price || '—',
+    cancellable: isCancellable(b.status),
+  });
 }
 
 function buildActiveCard(b) {
   const name  = b.proName || b.artisanName || 'Professional';
   const photo = b.proPhoto || null;
-  const prog  = ACTIVE_PROGRESS[(b.status || '').toLowerCase()] || { pct: 10, label: 'Processing' };
+  const prog  = getActiveProgress(b.status);
   const meta  = getMeta(b.status);
   const isAwaiting = (b.status || '').toLowerCase() === 'awaiting';
   return `
@@ -245,7 +262,7 @@ function buildActiveCard(b) {
     </div>
     <div class="bk-active-actions">
       <button class="bk-active-btn bk-active-btn--track" onclick="window._trackBooking('${escHtml(b.id)}')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="#730201" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>Track
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Track
       </button>
       <button class="bk-active-btn bk-active-btn--outline" onclick="window.location.href='messages.html'">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#555" stroke-width="2" stroke-linecap="round"/></svg>Message
@@ -256,60 +273,72 @@ function buildActiveCard(b) {
 }
 
 function buildCompletedCard(b) {
-  const name     = b.proName || b.artisanName || 'Professional';
-  const photo    = b.proPhoto || null;
-  const hasReview= !!(b.reviewLeft || b.review);
-  const date     = b.dateDisplay || fmtDate(b.completedAt) || fmtDate(b.createdAt) || 'Completed';
-  return `
-  <div class="bk-card" onclick="window._viewBooking('${escHtml(b.id)}')">
-    <div class="bk-card-photo-wrap">
-      ${avatarHtml(name, photo)}
-      <div class="bk-card-svc-badge" style="background:#e8f5e9;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/></svg></div>
-    </div>
-    <div class="bk-card-body">
-      <p class="bk-card-service">${escHtml(b.serviceType || b.service || 'Service')}</p>
-      <div class="bk-card-pro-row">
-        <span class="bk-card-pro-name">${escHtml(name)}</span>
-        <div class="bk-verified"><svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div>
-      </div>
-      <div class="bk-card-meta">
-        <div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>${escHtml(date)}</div>
-        ${hasReview
-          ? `<div class="bk-card-meta-row" style="color:#f5a623;">★★★★★ Reviewed</div>`
-          : `<div class="bk-card-meta-row"><button style="background:none;border:none;color:#730201;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();window._openReview('${escHtml(b.id)}')">Leave a review</button></div>`}
-      </div>
-    </div>
-    <div class="bk-card-right">
-      <span class="bk-status-tag bk-status-completed">Done</span>
-      <div class="bk-total" style="margin-top:auto;"><p class="bk-total-label">Paid</p><p class="bk-total-val">GHC ${b.total || b.price || '—'}</p></div>
-    </div>
-  </div>`;
+  const hasReview = !!(b.reviewLeft || b.review);
+  const date      = b.dateDisplay || fmtDate(b.completedAt) || fmtDate(b.createdAt) || 'Completed';
+  const metaRows = `
+    <div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>${escHtml(date)}</div>
+    ${hasReview
+      ? `<div class="bk-card-meta-row" style="color:#f5a623;"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i> Reviewed</div>`
+      : `<div class="bk-card-meta-row"><button style="background:none;border:none;color: var(--ui-primary);font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();window._openReview('${escHtml(b.id)}')">Leave a review</button></div>`}
+    <div class="bk-card-meta-row"><button style="background:none;border:none;color: var(--ui-primary);font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();window._rebook('${escHtml(b.id)}')">Book again</button></div>`;
+  return buildSimpleCard(b, {
+    metaRows,
+    amountLabel: 'Paid',
+    amountValue: b.total || b.price || '—',
+  });
 }
 
 function buildCancelledCard(b) {
-  const name  = b.proName || b.artisanName || 'Professional';
-  const photo = b.proPhoto || null;
-  const meta  = getMeta(b.status);
-  const date  = b.dateDisplay || fmtDate(b.createdAt) || 'Cancelled';
-  return `
-  <div class="bk-card">
-    <div class="bk-card-photo-wrap">
-      ${avatarHtml(name, photo)}
-      <div class="bk-card-svc-badge" style="background:#fde8e8;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg></div>
-    </div>
-    <div class="bk-card-body">
-      <p class="bk-card-service">${escHtml(b.serviceType || b.service || 'Service')}</p>
-      <div class="bk-card-pro-row"><span class="bk-card-pro-name">${escHtml(name)}</span></div>
-      <div class="bk-card-meta">
-        <div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>${escHtml(date)}</div>
-        <div class="bk-card-meta-row"><button style="background:none;border:none;color:#730201;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();window.location.href='book-now.html'">Rebook</button></div>
-      </div>
-    </div>
-    <div class="bk-card-right">
-      <span class="bk-status-tag ${meta.cls}">${meta.label}</span>
-      <div class="bk-total" style="margin-top:auto;"><p class="bk-total-label">Amount</p><p class="bk-total-val" style="color:#aaa;">GHC ${b.total || b.price || '—'}</p></div>
-    </div>
-  </div>`;
+  const date = b.dateDisplay || fmtDate(b.createdAt) || 'Cancelled';
+  const metaRows = `
+    <div class="bk-card-meta-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#aaa" stroke-width="2"/><path d="M3 10h18" stroke="#aaa" stroke-width="2"/></svg>${escHtml(date)}</div>
+    <div class="bk-card-meta-row"><button style="background:none;border:none;color: var(--ui-primary);font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();window._rebook('${escHtml(b.id)}')">Rebook</button></div>`;
+  return buildSimpleCard(b, {
+    metaRows,
+    amountLabel: 'Amount',
+    amountValue: b.total || b.price || '—',
+    amountStyle: 'color:#aaa;',
+  });
+}
+
+// ── Swipe-to-cancel (upcoming bookings only) ──────────────────────────────────
+// Reuses the exact gesture mechanics extracted from the Notification page's
+// swipe-to-delete (shared/js/components/swipeAction.js): same thresholds,
+// same spring-back animation, same undo-toast pattern — wired to a "Cancel"
+// action instead, since a booking's actual delete equivalent is a status
+// transition (cancelled), not row removal.
+const cancelUndoToast = createUndoToast({ message: 'Booking cancelled', icon: 'fa-solid fa-ban' });
+let getLastSwipeTime = () => 0;
+
+async function commitCancel(bookingId) {
+  try {
+    const { services: { databaseService } } = getAppContainer();
+    const n = new Date().toISOString();
+    await databaseService.updateDocument('bookings', bookingId, {
+      status: 'cancelled', cancellationReason: 'Cancelled by customer', updatedAt: n,
+    });
+    // The onBookingStatusChanged Cloud Function trigger (functions/bookings.js)
+    // handles escrow refund + both-party notification automatically — this
+    // page only needs to write the status transition.
+  } catch (e) {
+    console.error('[booking] Cancel failed:', e);
+  }
+}
+
+function initiateCancel(bookingId) {
+  const booking = _allBookings.find(b => b.id === bookingId);
+  if (!booking) return;
+
+  cancelUndoToast.show(
+    bookingId,
+    { booking },
+    (committedId) => { commitCancel(committedId); },
+    () => {
+      // Undo: nothing to restore server-side (no write happened yet) — just
+      // re-render so the row reappears from the still-live _allBookings state.
+      render(_allBookings);
+    }
+  );
 }
 
 // ── RENDER ─────────────────────────────────────────────────────────────────────
@@ -321,24 +350,29 @@ function render(bookings) {
 
   document.getElementById('list-upcoming').innerHTML = upcoming.length
     ? upcoming.map(buildUpcomingCard).join('')
-    : emptyState(CAL_ICO, 'No Upcoming Bookings', 'Book a trusted professional near you.', 'Book a Service', 'book-now.html');
+    : emptyState(CAL_ICO, 'No Upcoming Bookings', 'Book a trusted professional near you.', 'Book a Service', 'book-step1.html');
+
+  const upcomingListEl = document.getElementById('list-upcoming');
+  if (upcoming.length) {
+    getLastSwipeTime = wireSwipeAction(upcomingListEl, { onCommit: initiateCancel });
+  }
 
   document.getElementById('list-ongoing').innerHTML = ongoing.length
     ? ongoing.map(buildActiveCard).join('')
-    : emptyState(CLK_ICO, 'No Active Jobs', 'You have no ongoing jobs right now.', 'Book a Service', 'book-now.html');
+    : emptyState(CLK_ICO, 'No Active Jobs', 'You have no ongoing jobs right now.', 'Book a Service', 'book-step1.html');
 
   document.getElementById('list-completed').innerHTML = completed.length
     ? completed.map(buildCompletedCard).join('')
-    : emptyState(CHK_ICO, 'No Completed Bookings', 'Completed bookings will appear here.', 'Book a Service', 'book-now.html');
+    : emptyState(CHK_ICO, 'No Completed Bookings', 'Completed bookings will appear here.', 'Book a Service', 'book-step1.html');
 
   document.getElementById('list-cancelled').innerHTML = cancelled.length
     ? cancelled.map(buildCancelledCard).join('')
-    : emptyState(CAN_ICO, 'No Cancelled Bookings', "Great! You haven't cancelled any bookings.", 'Book a Service', 'book-now.html');
+    : emptyState(CAN_ICO, 'No Cancelled Bookings', "Great! You haven't cancelled any bookings.", 'Book a Service', 'book-step1.html');
 
   // Tab counts
   const labels = ['Upcoming','Active','Completed','Cancelled'];
   const counts = [upcoming.length, ongoing.length, completed.length, cancelled.length];
-  document.querySelectorAll('.bk-tab').forEach((tab, i) => {
+  document.querySelectorAll('.ui-tab').forEach((tab, i) => {
     tab.textContent = counts[i] > 0 ? `${labels[i]} (${counts[i]})` : labels[i];
   });
 
@@ -349,10 +383,19 @@ function render(bookings) {
 
 // ── GLOBAL ACTIONS ────────────────────────────────────────────────────────────
 window.switchTab = function(tab, btn) {
-  document.querySelectorAll('.bk-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ui-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
   btn.classList.add('active');
+  btn.setAttribute('aria-selected','true');
   document.querySelectorAll('.bk-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab)?.classList.add('active');
+};
+
+// Swipeable (cancellable) cards route through this guard so a swipe gesture's
+// trailing touchend doesn't also open the booking — same 300ms debounce the
+// Notification page uses between wireSwipeAction() and its card click handler.
+window._viewBookingGuarded = function(id) {
+  if (Date.now() - getLastSwipeTime() < 300) return;
+  window._viewBooking(id);
 };
 
 window._viewBooking = function(id) {
@@ -388,6 +431,37 @@ window._openReview = function(bookingId) {
   window.location.href = 'review.html';
 };
 window.openReview = window._openReview;
+
+/* ── Rebook (I7): carry the previous booking's service + professional into the
+   booking flow so the returning customer doesn't re-enter everything. Converges
+   on the same professional-first path used from an artisan profile. ── */
+window._rebook = function(id) {
+  const b = _allBookings.find(bk => bk.id === id);
+  if (!b) { window.location.href = 'book-step1.html'; return; }
+
+  const category = b.category || b.serviceType || b.service || '';
+
+  // Seed the chosen professional (if the prior booking had one) using the same
+  // contract book-step1/book-step2 already understand.
+  if (b.artisanId) {
+    sessionStorage.setItem('hh_selected_artisan', JSON.stringify({
+      id:           b.artisanId,
+      uid:          b.artisanId,
+      name:         b.proName   || 'Professional',
+      specialty:    b.proType   || '',
+      category:     category,
+      rating:       b.proRating || null,
+      phone:        b.proPhone  || null,
+      profileImage: b.proPhoto  || null,
+    }));
+    sessionStorage.setItem('hh_booking_intent', 'artisan');
+  }
+  sessionStorage.setItem('hh_service', category);
+  // Flag so the booking flow / analytics know this is a rebook of a prior job.
+  sessionStorage.setItem('hh_rebook_of', String(id));
+  window.location.href = 'book-step1.html';
+};
+window.rebook = window._rebook;
 
 window._confirmJobDone = async function(bookingId, escrowId, btn) {
   if (!confirm('Confirm the job is complete? This releases payment to the artisan.')) return;
@@ -463,7 +537,10 @@ authService.subscribeToAuthState(user => {
   );
 });
 
-window.addEventListener('pagehide', () => { if (_unsub) _unsub(); });
+window.addEventListener('pagehide', () => {
+  if (_unsub) _unsub();
+  cancelUndoToast.commitAll();
+});
 </script>
 
 <style>

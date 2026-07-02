@@ -40,6 +40,7 @@ const { FUNCTIONS_REGION, FIRESTORE_DB_ID } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const escrow    = require('./financial/escrow');
 const dispatch  = require('./dispatch');
+const { ADMIN_EMAILS } = require('./config');
 
 // Lazy Firestore singleton (Admin SDK)
 let _db;
@@ -59,7 +60,7 @@ const TRANSITIONS = [
         from: 'pending',
         to:   'accepted',
         notify: 'customer',
-        title:  '✅ Booking Accepted!',
+        title:  'Booking Accepted!',
         body:   (b) => `${b.artisanName || 'Your artisan'} has accepted your ${b.serviceType || 'service'} request. Your payment has been secured.`,
         type:   'booking_accepted',
         deferUntilEscrowHeld: true,
@@ -79,7 +80,7 @@ const TRANSITIONS = [
         from: 'accepted',
         to:   'en_route',
         notify: 'customer',
-        title:  '🚗 Professional En Route',
+        title:  'Professional En Route',
         body:   (b) => `${b.artisanName || 'Your artisan'} is on the way to your location for your ${b.serviceType || 'service'} request.`,
         type:   'booking_en_route',
     },
@@ -87,7 +88,7 @@ const TRANSITIONS = [
         from: 'en_route',
         to:   'in_progress',
         notify: 'customer',
-        title:  '🔧 Job Started',
+        title:  'Job Started',
         body:   (b) => `${b.artisanName || 'Your artisan'} has arrived and started working on your ${b.serviceType || 'service'} request.`,
         type:   'booking_started',
     },
@@ -95,7 +96,7 @@ const TRANSITIONS = [
         from: 'in_progress',
         to:   'awaiting',
         notify: 'customer',
-        title:  '✅ Job Complete — Confirm?',
+        title:  'Job Complete — Confirm?',
         body:   (b) => `${b.artisanName || 'Your artisan'} has marked the ${b.serviceType || 'service'} job as done. Please confirm to release payment.`,
         type:   'booking_awaiting',
     },
@@ -103,9 +104,9 @@ const TRANSITIONS = [
         from: null,
         to:   'completed',
         notify: 'both',
-        title:        '🎉 Job Completed!',
+        title:        'Job Completed!',
         body:         (b) => `Your ${b.serviceType || 'service'} booking has been marked complete. Payment has been released to the professional.`,
-        artisanTitle: '💰 Job Completed',
+        artisanTitle: 'Job Completed',
         artisanBody:  (b) => `You completed a ${b.serviceType || 'service'} job. Your earnings have been credited to your wallet.`,
         type: 'booking_completed',
     },
@@ -126,9 +127,9 @@ const TRANSITIONS = [
         from: null,
         to:   'disputed',
         notify: 'both',
-        title:        '⚠️ Dispute Raised',
+        title:        'Dispute Raised',
         body:         (b) => `A dispute has been raised on your ${b.serviceType || 'service'} booking. Our team will review and contact you shortly.`,
-        artisanTitle: '⚠️ Dispute Raised',
+        artisanTitle: 'Dispute Raised',
         artisanBody:  (b) => `A dispute has been raised on your ${b.serviceType || 'service'} booking. Funds are frozen pending admin review.`,
         type: 'booking_disputed',
     },
@@ -163,7 +164,12 @@ async function _holdEscrowForAcceptance(bookingId, bookingData) {
         return { success: true }; // no financial party; allow proceed
     }
 
-    if (amount <= 0) {
+    if (amount < 0) {
+        console.error(`[bookings] Negative amount rejected: booking=${bookingId} amount=${amount}`);
+        return { success: false, reason: 'negative_amount' };
+    }
+
+    if (amount === 0) {
         console.log(`[bookings] Zero-amount booking=${bookingId} — escrow skipped (cash/external payment).`);
         return { success: true };
     }
@@ -242,7 +248,7 @@ async function _handleEscrowHoldFailure(bookingId, bookingData, reason) {
     if (customerId) {
         await sendNotification(customerId, {
             type:      'Payments',
-            title:     '⚠️ Payment Failed — Booking Cancelled',
+            title:     'Payment Failed — Booking Cancelled',
             message:   `Your ${serviceType} booking was accepted but payment could not be secured: ${reason}. Please top up your wallet and rebook.`,
             actionUrl: 'topup.html',
             metadata:  { bookingId },
@@ -419,4 +425,79 @@ const onBookingStatusChanged = onDocumentUpdated(
     }
 );
 
-module.exports = { onBookingStatusChanged };
+// ─────────────────────────────────────────────────────────────────────────────
+// cancelBookingAsAdmin — admin-driven cancellation.
+//
+// This intentionally does NOT touch escrow/wallet balances directly. It only
+// validates the request and writes `status: 'cancelled'` on the booking doc.
+// The existing onBookingStatusChanged trigger above (see "3. REFUND" branch)
+// already runs _refundEscrowForBooking() for ANY write that transitions a
+// booking to 'cancelled', regardless of who made it — so the real money
+// movement stays inside that one, already-audited code path instead of being
+// duplicated here.
+// ─────────────────────────────────────────────────────────────────────────────
+const NON_CANCELLABLE_STATUSES = new Set(['completed', 'cancelled', 'rejected']);
+
+async function isAdminAuth(auth) {
+    if (!auth) return false;
+    if (ADMIN_EMAILS.includes(auth.token?.email)) return true;
+    const snap = await db().collection('admins').doc(auth.uid).get().catch(() => null);
+    return snap?.exists && snap.data().userType === 'admin';
+}
+
+/**
+ * @param {object} auth  Firebase auth context (must be an admin)
+ * @param {object} data
+ *   @param {string} data.bookingId
+ *   @param {string} data.reason    Required — becomes cancellationReason
+ */
+async function cancelBookingAsAdmin(auth, { bookingId, reason } = {}) {
+    if (!(await isAdminAuth(auth))) throw new Error('Unauthorized: admin access only.');
+    if (!bookingId) throw new Error('"bookingId" is required.');
+    if (!reason)    throw new Error('"reason" is required to cancel a booking.');
+
+    const firestore   = db();
+    const bookingRef  = firestore.collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new Error(`Booking not found: ${bookingId}`);
+
+    const currentStatus = _str(bookingSnap.data().status);
+    if (NON_CANCELLABLE_STATUSES.has(currentStatus)) {
+        throw new Error(`Cannot cancel a booking with status "${bookingSnap.data().status}".`);
+    }
+
+    const adminEmail = auth.token?.email || auth.uid;
+
+    // Re-check status inside a transaction to prevent a race against a
+    // concurrent customer/artisan status change (e.g. artisan marks
+    // "completed" at the same moment an admin cancels).
+    await firestore.runTransaction(async (txn) => {
+        const live = await txn.get(bookingRef);
+        if (!live.exists) throw new Error(`Booking not found: ${bookingId}`);
+        const liveStatus = _str(live.data().status);
+        if (NON_CANCELLABLE_STATUSES.has(liveStatus)) {
+            throw new Error(
+                `Cannot cancel: booking status is now "${live.data().status}". Concurrent update prevented.`
+            );
+        }
+        txn.update(bookingRef, {
+            status:             'cancelled',
+            cancellationReason: reason,
+            cancelledBy:        `admin:${adminEmail}`,
+            updatedAt:          new Date().toISOString(),
+        });
+    });
+
+    await firestore.collection('admin_action_logs').add({
+        action:     'cancel_booking',
+        bookingId,
+        reason,
+        adminEmail,
+        adminUid:   auth.uid,
+        timestamp:  FieldValue.serverTimestamp(),
+    }).catch(err => console.error('[admin-cancel-log] write error:', err.message));
+
+    return { cancelled: true, bookingId };
+}
+
+module.exports = { onBookingStatusChanged, cancelBookingAsAdmin };

@@ -1,0 +1,203 @@
+/* ============================================================================
+   HandyHub — Canonical Modal Component
+   ----------------------------------------------------------------------------
+   ONE implementation for every dialog / confirmation modal.
+   Consumed by: modal.js, settings, personal-info, quote-modal, wallet.
+   Replaces: modal-overlay/modal-card in settings.css, personal-Info.css,
+             quote-modal independent dialog, modal.js injected styles.
+
+   Usage:
+     <div class="ui-modal-overlay" role="presentation">
+       <div class="ui-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+         <div class="ui-modal-icon">…svg…</div>
+         <h2 class="ui-modal-title" id="modal-title">Title</h2>
+         <p  class="ui-modal-body">Body copy.</p>
+         <div class="ui-modal-actions">
+           <button class="ui-modal-btn ui-modal-btn--primary">Confirm</button>
+           <button class="ui-modal-btn ui-modal-btn--ghost">Cancel</button>
+         </div>
+       </div>
+     </div>
+     JS: overlay.classList.toggle('open')
+   ============================================================================ */
+
+/* ── Overlay backdrop ────────────────────────────────────────────────────── */
+.ui-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--ui-overlay, rgba(0, 0, 0, 0.5));
+  z-index: var(--ui-z-modal, 1000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.ui-modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Modal panel ─────────────────────────────────────────────────────────── */
+.ui-modal {
+  width: min(100%, 420px);
+  max-height: min(86dvh, 760px);
+  overflow-y: auto;
+  background: var(--ui-surface, #ffffff);
+  border-radius: var(--ui-radius-lg, 18px);
+  padding: 28px 24px 24px;
+  box-shadow: var(--ui-elev-3, 0 24px 64px rgba(0,0,0,0.14));
+  transform: scale(0.96) translateY(8px);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ui-modal-overlay.open .ui-modal {
+  transform: scale(1) translateY(0);
+}
+
+/* ── Optional bottom-sheet layout variant (used by settings confirm) ──────── */
+.ui-modal-overlay--sheet {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.ui-modal-overlay--sheet .ui-modal {
+  width: min(100%, 430px);
+  border-radius: var(--ui-radius-lg, 18px) var(--ui-radius-lg, 18px) 0 0;
+  padding-bottom: max(32px, env(safe-area-inset-bottom));
+  transform: translateY(24px);
+}
+
+.ui-modal-overlay--sheet.open .ui-modal {
+  transform: translateY(0);
+}
+
+/* ── Content areas ───────────────────────────────────────────────────────── */
+.ui-modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--ui-radius-pill, 999px);
+  background: rgba(var(--ui-primary-rgb, 115, 2, 1), 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  flex-shrink: 0;
+}
+
+.ui-modal-icon--danger {
+  background: rgba(var(--ui-danger-rgb, 178, 34, 34), 0.08);
+}
+
+.ui-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ui-text, #111);
+  text-align: center;
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+
+.ui-modal-body {
+  font-size: 13.5px;
+  color: var(--ui-muted, #666);
+  text-align: center;
+  line-height: 1.55;
+  margin-bottom: 24px;
+}
+
+.ui-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Button variants ─────────────────────────────────────────────────────── */
+.ui-modal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--ui-btn-h, 48px);
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--ui-radius-sm, 10px);
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-modal-btn:active { opacity: 0.85; transform: scale(0.98); }
+.ui-modal-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.ui-modal-btn--primary {
+  background: var(--ui-primary, #730201);
+  color: #fff;
+}
+
+.ui-modal-btn--primary:hover:not(:disabled) { opacity: 0.88; }
+
+.ui-modal-btn--danger {
+  background: var(--ui-danger, #b22222);
+  color: #fff;
+}
+
+.ui-modal-btn--danger:hover:not(:disabled) { opacity: 0.88; }
+
+.ui-modal-btn--ghost {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--ui-text, #111);
+}
+
+.ui-modal-btn--ghost:hover:not(:disabled) { background: rgba(0, 0, 0, 0.08); }
+
+/* ── Input inside modal (password confirm pattern) ───────────────────────── */
+.ui-modal-input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--ui-radius-sm, 10px);
+  font-family: inherit;
+  font-size: 14.5px;
+  color: var(--ui-text, #111);
+  background: var(--ui-surface, #fff);
+  outline: none;
+  margin-bottom: 14px;
+  transition: border-color 0.15s;
+}
+
+.ui-modal-input:focus { border-color: var(--ui-primary, #730201); }
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+[data-theme="dark"] .ui-modal {
+  background: var(--ds-surface, #1e1e1e);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .ui-modal-title { color: var(--ds-ink, #f0f0f0); }
+[data-theme="dark"] .ui-modal-body  { color: var(--ds-ink-3, #888); }
+
+[data-theme="dark"] .ui-modal-icon {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .ui-modal-btn--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ds-ink, #f0f0f0);
+}
+
+[data-theme="dark"] .ui-modal-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+[data-theme="dark"] .ui-modal-input {
+  background: var(--ds-surface-2, #242424);
+  border-color: var(--ds-line-strong, #333);
+  color: var(--ds-ink, #f0f0f0);
+}

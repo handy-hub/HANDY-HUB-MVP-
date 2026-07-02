@@ -7,6 +7,15 @@ import {
 } from '../../../shared/js/data/repositories/paymentRepository.js';
 import { initiatePayment } from '../../../shared/js/services/paystackService.js';
 import { createNotification } from '../../../shared/js/services/notificationRepository.js';
+import { PLATFORM_CONFIG } from '../../../shared/js/config/appConfig.js';
+
+// Minimum top-up the UI will allow (mirrors the server-side MIN_TOPUP enforcement).
+const MIN_TOPUP_GHS = PLATFORM_CONFIG?.minTopupGHS ?? 1;
+
+function esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 const LOGIN_URL = 'login.html';
 
@@ -118,8 +127,8 @@ function renderAccounts() {
         card.innerHTML = `
           <div class="account-logo-wrap">${meta.logo || ''}</div>
           <div class="account-info">
-            <p class="account-phone">${maskPhone(acc.data.phone)}</p>
-            <p class="account-provider-label">${meta.label || acc.data.provider}</p>
+            <p class="account-phone">${esc(maskPhone(acc.data.phone))}</p>
+            <p class="account-provider-label">${esc(meta.label || acc.data.provider)}</p>
           </div>
           ${acc.data.isDefault ? '<span class="account-default-badge">Default</span>' : ''}
           <div class="account-radio"></div>`;
@@ -147,12 +156,18 @@ function renderAccounts() {
 // ── Confirm button state ──────────────────────────────────────────────────────
 function updateConfirmBtn() {
     const amount = parseFloat(amountInput.value);
-    // A saved account is optional — users can pay by card/bank without one
-    const ready  = amount > 0;
-    confirmBtn.disabled    = !ready;
-    confirmBtn.textContent = ready
-        ? `Top Up ${formatGHC(amount)}`
-        : 'Confirm Top Up';
+    // A saved account is optional — users can pay by card/bank without one.
+    // Enforce the platform minimum top-up client-side so users can't submit
+    // zero/sub-minimum amounts (e.g. 0.001 rounding to GHC 0.00).
+    const ready = Number.isFinite(amount) && amount >= MIN_TOPUP_GHS;
+    confirmBtn.disabled = !ready;
+    if (ready) {
+        confirmBtn.textContent = `Top Up ${formatGHC(amount)}`;
+    } else if (Number.isFinite(amount) && amount > 0 && amount < MIN_TOPUP_GHS) {
+        confirmBtn.textContent = `Minimum ${formatGHC(MIN_TOPUP_GHS)}`;
+    } else {
+        confirmBtn.textContent = 'Confirm Top Up';
+    }
 }
 
 // ── Quick amount buttons ──────────────────────────────────────────────────────
@@ -254,7 +269,10 @@ addSaveBtn.addEventListener('click', async () => {
 // ── Confirm top up (Paystack flow) ────────────────────────────────────────────
 confirmBtn.addEventListener('click', async () => {
     const amount = parseFloat(amountInput.value);
-    if (!amount || amount <= 0) return;
+    if (!Number.isFinite(amount) || amount < MIN_TOPUP_GHS) {
+        showToast(`Minimum top-up is ${formatGHC(MIN_TOPUP_GHS)}.`, 'error');
+        return;
+    }
 
     // Snapshot balance before opening payment so we can detect the webhook credit later.
     preTopupBalance = currentBalance;
@@ -465,6 +483,8 @@ authService.subscribeToAuthState(user => {
 
             showToast(`GHC ${expectedCredit.toFixed(2)} has been added to your wallet!`, 'success');
         }
+    }, (err) => {
+        console.warn('[topupPage] wallet listener error:', err);
     });
 
     // Live accounts

@@ -20,8 +20,9 @@
  * 2. If no user → saves the intended URL to sessionStorage('hh_auth_redirect')
  *    then sends the browser to login.html.
  * 3. If user exists → resolves immediately, page init continues.
- * 4. A 3-second timeout ensures the guard never hangs a page load forever —
- *    on timeout it redirects to login as a safe fallback.
+ * 4. A 6-second timeout ensures the guard never hangs a page load forever —
+ *    on timeout it redirects to login as a safe fallback. 6 s covers Ghana
+ *    mobile cold-starts on 2G/3G; 3 s caused false logout redirects.
  *
  * The login page reads 'hh_auth_redirect' after a successful sign-in and
  * forwards the user to their originally intended destination.
@@ -29,8 +30,11 @@
 
 import { getAppContainer } from '../app/container.js';
 
-const AUTH_REDIRECT_KEY = 'hh_auth_redirect';
-const LOGIN_PAGE        = 'login.html';
+const AUTH_REDIRECT_KEY    = 'hh_auth_redirect';
+const LOGIN_PAGE           = 'login.html';
+// 6 s allows Firebase to initialise on Ghana mobile networks (2G/3G cold-start).
+// 3 s was too aggressive and caused false logout redirects on slow connections.
+const AUTH_GUARD_TIMEOUT_MS = 6000;
 
 /**
  * Resolve the login page URL relative to the current page.
@@ -79,11 +83,11 @@ function redirectToLogin() {
  */
 export async function requireAuth() {
   return new Promise((resolve) => {
-    // Hard timeout — if Firebase takes > 3s (e.g., cold-start, no network)
+    // Hard timeout — if Firebase takes too long (e.g., cold-start, no network)
     // we redirect to login rather than leaving the page stuck.
     const timeout = setTimeout(() => {
       redirectToLogin();
-    }, 3000);
+    }, AUTH_GUARD_TIMEOUT_MS);
 
     getAppContainer()
       .services.authService.waitForUser()

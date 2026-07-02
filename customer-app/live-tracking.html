@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -8,6 +8,7 @@
   <title>Live Tracking | HandyHub</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     html, body { height: 100%; }
     .phone-shell { display: flex; flex-direction: column; position: relative; }
@@ -29,16 +30,16 @@
       padding: 8px 14px; display: flex; align-items: center; gap: 8px;
     }
     .trk-stage-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: #730201;
+      width: 8px; height: 8px; border-radius: 50%; background: var(--ui-primary);
       animation: pulse-dot 1.2s ease-in-out infinite; flex-shrink: 0;
     }
     @keyframes pulse-dot {
       0%, 100% { opacity: 1; transform: scale(1); }
       50%       { opacity: 0.4; transform: scale(0.7); }
     }
-    .trk-stage-label { font-size: 13px; font-weight: 700; color: #730201; }
+    .trk-stage-label { font-size: 13px; font-weight: 700; color: var(--ui-primary); }
     .trk-eta-chip {
-      background: #730201; color: #fff; border-radius: 20px;
+      background: var(--ui-primary); color: #fff; border-radius: 20px;
       padding: 6px 12px; font-size: 12px; font-weight: 800; white-space: nowrap;
     }
 
@@ -87,18 +88,18 @@
       content: ''; position: absolute; left: 13px; top: 30px;
       width: 2px; height: calc(100% - 4px); background: #f0f0f0;
     }
-    .trk-stage-row.done::after { background: #730201; }
+    .trk-stage-row.done::after { background: var(--ui-primary); }
     .trk-stage-icon {
       width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center; z-index: 1;
       background: #f0f0f0;
     }
-    .trk-stage-row.done    .trk-stage-icon { background: #730201; }
+    .trk-stage-row.done    .trk-stage-icon { background: var(--ui-primary); }
     .trk-stage-row.current .trk-stage-icon { background: #fff5f5; border: 2px solid #730201; }
     .trk-stage-text { padding-top: 2px; }
     .trk-stage-name { font-size: 12px; font-weight: 700; color: #333; margin: 0 0 1px; }
-    .trk-stage-row.done    .trk-stage-name { color: #730201; }
-    .trk-stage-row.current .trk-stage-name { color: #730201; font-weight: 800; }
+    .trk-stage-row.done    .trk-stage-name { color: var(--ui-primary); }
+    .trk-stage-row.current .trk-stage-name { color: var(--ui-primary); font-weight: 800; }
     .trk-stage-time { font-size: 10px; color: #aaa; margin: 0; }
 
     /* ── Slide-to-action ── */
@@ -147,7 +148,7 @@
       will-change: transform;
     }
     .slide-thumb:active { cursor: grabbing; }
-    .slide-action--cancel  .slide-thumb { background: #730201; }
+    .slide-action--cancel  .slide-thumb { background: var(--ui-primary); }
     .slide-action--confirm .slide-thumb { background: #16a34a; }
 
     /* Dark mode */
@@ -162,7 +163,7 @@
     [data-theme="dark"] .trk-action-btn  { background: #1e1e1e; border-color: #2e2e2e; }
     [data-theme="dark"] .trk-stage-name  { color: #ccc; }
     [data-theme="dark"] .trk-stage-icon  { background: #2a2a2a; }
-    [data-theme="dark"] .trk-stage-row.done    .trk-stage-icon { background: #730201; }
+    [data-theme="dark"] .trk-stage-row.done    .trk-stage-icon { background: var(--ui-primary); }
     [data-theme="dark"] .trk-stage-row.current .trk-stage-icon { background: #2a1515; }
     [data-theme="dark"] .trk-stage-row::after  { background: #2a2a2a; }
     [data-theme="dark"] .slide-action--cancel  { background: rgba(115,2,1,0.15); }
@@ -178,7 +179,7 @@
   <!-- Header -->
   <div class="trk-header">
     <button class="trk-back-btn" onclick="window.location.href='booking.html'">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
     </button>
     <div class="trk-stage-pill">
       <div class="trk-stage-dot" id="stage-dot"></div>
@@ -206,10 +207,10 @@
       </div>
       <div class="trk-action-btns">
         <button class="trk-action-btn" onclick="callArtisan()" title="Call">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#730201" stroke-width="2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" stroke-width="2"/></svg>
         </button>
         <button class="trk-action-btn" onclick="window.location.href='messages.html'" title="Message" aria-label="Message artisan">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
     </div>
@@ -223,9 +224,9 @@
         <div class="slide-fill" id="cancel-fill"></div>
         <span class="slide-label" id="cancel-label">Slide to Cancel</span>
         <div class="slide-chevrons">
-          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         </div>
         <div class="slide-thumb" id="cancel-thumb">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
@@ -261,11 +262,11 @@ const STAGE_CHECK = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"
 const stages = [
   {
     key: 'accepted', label: 'Booking Accepted',
-    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`,
   },
   {
     key: 'en_route', label: 'Artisan En Route',
-    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   },
   {
     key: 'arrived', label: 'Artisan Arrived',
@@ -273,15 +274,15 @@ const stages = [
   },
   {
     key: 'started', label: 'Job In Progress',
-    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
   },
   {
     key: 'awaiting', label: 'Awaiting Your Confirmation',
-    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
   },
   {
     key: 'completed', label: 'Job Completed',
-    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>`,
+    iconCurrent: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
   },
 ];
 
@@ -452,7 +453,7 @@ async function confirmCompletion() {
 
   // Show processing state on the slider label immediately
   const confirmLabel = document.getElementById('confirm-label');
-  if (confirmLabel) confirmLabel.textContent = '⏳ Releasing payment…';
+  if (confirmLabel) confirmLabel.textContent = 'Releasing payment…';
 
   if (window.HH_State) window.HH_State.booking.patch({ status: 'completed' });
 
@@ -549,17 +550,22 @@ if (_pro) {
 }
 
 // ── Leaflet map ──────────────────────────────────────────────
-// Start with Accra as the fallback centre; replaced by real GPS below.
-let userLat = 5.6037, userLng = -0.1870;
+// userLat/userLng stay null until we have a REAL position (GPS or a live
+// booking location). We never substitute fake coordinates for the user's pin.
+// The map opens on a neutral city-region view for context only; no "Your
+// location" marker is shown until a real position exists.
+let userLat = null, userLng = null;
+const CITY_VIEW = [5.6037, -0.1870];   // Accra region — map framing only, NOT a user position
+const CITY_ZOOM = 12;                  // wider than a precise pin to signal "region, not you"
 
 const map = L.map('tracking-map', { zoomControl: false, attributionControl: false })
-  .setView([userLat, userLng], 15);
+  .setView(CITY_VIEW, CITY_ZOOM);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 const userIcon = L.divIcon({
   className: '',
-  html: `<div style="width:36px;height:36px;border-radius:50%;background:#730201;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;">
+  html: `<div style="width:36px;height:36px;border-radius:50%;background: var(--ui-primary);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#fff"/></svg>
   </div>`,
   iconSize: [36, 36], iconAnchor: [18, 18],
@@ -573,21 +579,34 @@ const artisanIcon = L.divIcon({
   iconSize: [42, 42], iconAnchor: [21, 21],
 });
 
-const userMarker = L.marker([userLat, userLng], { icon: userIcon }).addTo(map).bindPopup('Your location');
+// The user marker is created lazily, only once a real position is known.
+let userMarker = null;
 let artisanMarker = null;
 let routeLine = null;
 let locationUnsub = null;
 
+// Place (or move) the "Your location" pin — only ever called with REAL coords.
+function setUserLocation(lat, lng, recenter = true) {
+  userLat = lat; userLng = lng;
+  if (!userMarker) {
+    userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup('Your location');
+  } else {
+    userMarker.setLatLng([lat, lng]);
+  }
+  if (recenter) map.setView([lat, lng], 15);
+}
+
 // ── Real user GPS ────────────────────────────────────────────
 if (navigator.geolocation) {
   navigator.geolocation.getCurrentPosition(
-    pos => {
-      userLat = pos.coords.latitude;
-      userLng = pos.coords.longitude;
-      userMarker.setLatLng([userLat, userLng]);
-      map.setView([userLat, userLng], 15);
+    pos => setUserLocation(pos.coords.latitude, pos.coords.longitude),
+    () => {
+      // GPS denied/unavailable: do NOT drop a fake pin. Tell the user honestly.
+      if (window.showToast) {
+        window.showToast('Live location unavailable — enable location to see your position on the map.', 'info');
+      }
     },
-    () => {} // keep Accra fallback silently
+    { enableHighAccuracy: true, timeout: 8000 }
   );
 }
 
@@ -599,10 +618,12 @@ window.showTrackingUnavailable = function showTrackingUnavailable() {
   if (chip) chip.textContent = 'Awaiting';
   const label = document.getElementById('stage-label');
   if (label && label.textContent === stages[0].label) {
-    // Show a non-intrusive note on the map only when no artisan marker yet
+    // Show a non-intrusive note on the map only when no artisan marker yet.
+    // Anchor it to the real user position if known, else the city-region view.
     if (!artisanMarker) {
+      const anchor = (userLat != null && userLng != null) ? [userLat, userLng] : CITY_VIEW;
       L.popup({ closeButton: false, autoClose: false, closeOnClick: false })
-        .setLatLng([userLat, userLng])
+        .setLatLng(anchor)
         .setContent('<div style="font-size:12px;font-weight:600;color:#555;text-align:center;padding:2px 4px;">Live tracking will appear<br>when artisan is en route</div>')
         .openOn(map);
     }
@@ -617,16 +638,24 @@ window.updateArtisanMarker = function updateArtisanMarker(aLat, aLng) {
     console.warn('[live-tracking] Invalid artisan coordinates — skipping marker update', aLat, aLng);
     return;
   }
+  const haveUser = (userLat != null && userLng != null);
   if (!artisanMarker) {
     artisanMarker = L.marker([aLat, aLng], { icon: artisanIcon }).addTo(map).bindPopup('Artisan');
-    routeLine = L.polyline([[aLat, aLng], [userLat, userLng]], {
-      color: '#730201', weight: 3, dashArray: '6 6', opacity: 0.7,
-    }).addTo(map);
     map.closePopup();
-    map.fitBounds([[aLat, aLng], [userLat, userLng]], { padding: [40, 40] });
+    if (haveUser) {
+      // Draw the artisan→you route only when the user's real position is known.
+      routeLine = L.polyline([[aLat, aLng], [userLat, userLng]], {
+        color: '#730201', weight: 3, dashArray: '6 6', opacity: 0.7,
+      }).addTo(map);
+      map.fitBounds([[aLat, aLng], [userLat, userLng]], { padding: [40, 40] });
+    } else {
+      map.setView([aLat, aLng], 15);
+    }
   } else {
     artisanMarker.setLatLng([aLat, aLng]);
-    routeLine.setLatLngs([[aLat, aLng], [userLat, userLng]]);
+    if (haveUser && routeLine) {
+      routeLine.setLatLngs([[aLat, aLng], [userLat, userLng]]);
+    }
   }
 };  // semicolon required — prevents IIFE on next line being parsed as a call argument (ASI bug)
 
@@ -764,5 +793,3 @@ if (window._trkNoActiveBooking) {
 <script type="module" src="js/authInit.js"></script>
 </body>
 </html>
-
-

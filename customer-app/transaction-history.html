@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,9 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Transaction History | HandyHub</title>
   <link rel="stylesheet" href="css/transaction-history.css" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <link rel='stylesheet' href='../shared/css/components/tabs.css' />
 </head>
 <body>
 
@@ -39,26 +42,25 @@
         <div class="wallet-btns">
           <button class="topup-btn" onclick="window.location.href='topup.html'">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M12 19V5M5 12l7-7 7 7" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             Top Up
           </button>
           <button class="withdraw-btn" id="withdraw-btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12l7 7 7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 5v14M5 12l7 7 7-7" stroke="#fff" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             Withdraw
           </button>
         </div>
       </div>
 
-      <!-- Filter chips -->
-      <div class="filter-chips" id="filter-chips" style="display:none">
-        <button class="chip active" data-filter="all">All</button>
-        <button class="chip" data-filter="topup">Top Ups</button>
-        <button class="chip" data-filter="withdrawal">Withdrawals</button>
-        <button class="chip" data-filter="payment">Payments</button>
-        <button class="chip" data-filter="referral">Bonuses</button>
+      <!-- Filter tabs — canonical ui-tabs (pill variant) -->
+      <div class="ui-tabs" id="filter-chips" role="tablist" style="display:none;padding:0 0 12px;">
+        <button class="ui-tab active" role="tab" aria-selected="true"  data-filter="all">All</button>
+        <button class="ui-tab" role="tab" aria-selected="false" data-filter="topup">Top Ups</button>
+        <button class="ui-tab" role="tab" aria-selected="false" data-filter="withdrawal">Withdrawals</button>
+        <button class="ui-tab" role="tab" aria-selected="false" data-filter="payment">Payments</button>
       </div>
 
       <!-- All Transactions -->
@@ -73,12 +75,12 @@
       <!-- Auth-required fallback: shown if JS modules fail to load within 6s -->
       <div id="txn-auth-fallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;text-align:center;gap:12px;">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="11" width="18" height="11" rx="2" stroke="#730201" stroke-width="1.7"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#730201" stroke-width="1.7" stroke-linecap="round"/>
+          <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2.0"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/>
         </svg>
         <p style="margin:0;font-size:15px;font-weight:800;color:#111;">Sign in to view transactions</p>
         <p style="margin:0;font-size:13px;color:#777;">Your transaction history is private and requires authentication.</p>
-        <a href="login.html" style="margin-top:4px;padding:10px 28px;border-radius:12px;background:#730201;color:#fff;font-size:14px;font-weight:700;text-decoration:none;">Go to Login</a>
+        <a href="login.html" style="margin-top:4px;padding:10px 28px;border-radius:12px;background: var(--ui-primary);color:#fff;font-size:14px;font-weight:700;text-decoration:none;">Go to Login</a>
       </div>
       <script>
         // If the module script hasn't hidden the spinner within 6 seconds,
@@ -102,7 +104,7 @@
 
       <!-- Empty state -->
       <div id="txn-empty" class="txn-empty" style="display:none">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style="margin-bottom:12px">
+        <svg width="38" height="48" viewBox="0 0 24 24" fill="none" style="margin-bottom:8px">
           <rect x="2" y="5" width="20" height="14" rx="2" stroke="#ddd" stroke-width="1.5"/>
           <path d="M2 10h20" stroke="#ddd" stroke-width="1.5"/>
         </svg>
@@ -115,19 +117,19 @@
         <div class="statement-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"
-                  stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                  stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"
-                  stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                  stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div class="statement-text">
           <p class="statement-title">Need a detailed statement?</p>
-          <p class="statement-sub">Download your transaction history for any time period.</p>
+          <p class="statement-sub">Download your transaction history.</p>
         </div>
         <button class="download-btn" id="download-stmt-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"
-                  stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Download
         </button>
@@ -136,8 +138,8 @@
       <!-- Security Note -->
       <div class="security-note">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="11" width="18" height="11" rx="2" stroke="#999" stroke-width="1.7"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#999" stroke-width="1.7" stroke-linecap="round"/>
+          <rect x="3" y="11" width="18" height="11" rx="2" stroke="#999" stroke-width="2.0"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#999" stroke-width="2.0" stroke-linecap="round"/>
         </svg>
         <span>All transactions are secure and encrypted.</span>
       </div>
@@ -160,7 +162,7 @@
             </div>
             <div class="wd-header-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12l7 7 7-7" stroke="rgba(255,255,255,0.9)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 5v14M5 12l7 7 7-7" stroke="rgba(255,255,255,0.9)" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
           </div>
@@ -176,9 +178,9 @@
           <div id="wd-no-accts" class="wd-no-accts" style="display:none">
             <div class="wd-no-accts-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
             <p>No saved accounts</p>
@@ -239,26 +241,6 @@
   </div><!-- /phone-shell -->
 
   <style>
-    /* Filter chips */
-    .filter-chips {
-      display: flex; gap: 8px; flex-wrap: wrap;
-      padding: 0 0 14px;
-    }
-    .chip {
-      padding: 6px 16px;
-      border-radius: 999px;
-      border: 1.5px solid #eee;
-      background: #fff;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: #666;
-      cursor: pointer;
-      font-family: 'DM Sans', sans-serif;
-      transition: border-color .15s, background .15s, color .15s;
-    }
-    .chip:hover  { border-color: #f5c0c0; color: #730201; }
-    .chip.active { border-color: #730201; background: #fff5f5; color: #730201; }
-
     /* Loading shimmer */
     .txn-loading { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
     .txn-shimmer {
@@ -287,8 +269,6 @@
     .txn-provider-badge.airteltigo { background: #f0f4ff; color: #003370; }
 
     [data-theme="dark"] .txn-shimmer { background: linear-gradient(90deg,#252525 25%,#1e1e1e 50%,#252525 75%); background-size:200% 100%; }
-    [data-theme="dark"] .chip { background:#1a1a1a; border-color:#2a2a2a; color:#888; }
-    [data-theme="dark"] .chip.active { background:#1e1010; border-color:#730201; color:#ff6b6b; }
 
     /* ── Withdrawal modal ── */
     .wd-overlay {
@@ -359,7 +339,7 @@
       box-shadow: 0 1px 4px rgba(0,0,0,.06); width: 100%;
     }
     .wd-acc-card:hover  { border-color: #f5c0c0; transform: translateY(-1px); }
-    .wd-acc-card.active { border-color: #730201; }
+    .wd-acc-card.active { border-color: var(--ui-primary); }
     .wd-acc-logo {
       width: 42px; height: 42px; border-radius: 50%; overflow: hidden;
       flex-shrink: 0; background: #f5f5f5;
@@ -369,7 +349,7 @@
     .wd-acc-phone { font-size: 14px; font-weight: 700; color: #111; margin: 0 0 2px; }
     .wd-acc-prov  { font-size: 12px; color: #888; margin: 0; }
     .wd-acc-default {
-      font-size: 10px; font-weight: 700; color: #730201;
+      font-size: 10px; font-weight: 700; color: var(--ui-primary);
       background: #fff5f5; border: 1px solid #f5c0c0;
       padding: 2px 8px; border-radius: 999px; flex-shrink: 0;
     }
@@ -378,7 +358,7 @@
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; transition: border-color .15s, background .15s;
     }
-    .wd-acc-card.active .wd-acc-radio { border-color: #730201; background: #730201; }
+    .wd-acc-card.active .wd-acc-radio { border-color: var(--ui-primary); background: var(--ui-primary); }
     .wd-acc-card.active .wd-acc-radio::after {
       content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%;
     }
@@ -401,7 +381,7 @@
     .wd-amount-wrap { position: relative; margin-bottom: 14px; }
     .wd-currency {
       position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-      font-size: 15px; font-weight: 700; color: #730201; pointer-events: none;
+      font-size: 15px; font-weight: 700; color: var(--ui-primary); pointer-events: none;
     }
     .wd-amount-input {
       width: 100%; box-sizing: border-box;
@@ -411,7 +391,7 @@
       font-family: inherit; letter-spacing: -.5px; outline: none;
       background: #fff; transition: border-color .15s;
     }
-    .wd-amount-input:focus { border-color: #730201; }
+    .wd-amount-input:focus { border-color: var(--ui-primary); }
     .wd-amount-input::placeholder { color: #ddd; font-weight: 400; font-size: 20px; }
 
     .wd-quick-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -422,7 +402,7 @@
       font-family: inherit; cursor: pointer; transition: all .15s;
       box-shadow: 0 1px 3px rgba(0,0,0,.05);
     }
-    .wd-quick:hover, .wd-quick.active { border-color: #730201; background: #fff5f5; color: #730201; }
+    .wd-quick:hover, .wd-quick.active { border-color: var(--ui-primary); background: #fff5f5; color: var(--ui-primary); }
 
     /* Info card */
     .wd-info-card {
@@ -443,7 +423,7 @@
 
     /* Actions */
     .wd-confirm-btn {
-      width: 100%; padding: 16px; background: #730201; color: #fff; border: none;
+      width: 100%; padding: 16px; background: var(--ui-primary); color: #fff; border: none;
       border-radius: 16px; font-size: 16px; font-weight: 700; font-family: inherit;
       cursor: pointer; margin-bottom: 10px;
       box-shadow: 0 4px 16px rgba(115,2,1,.3);
@@ -468,9 +448,9 @@
     [data-theme="dark"] .wd-no-accts      { background: #1e1e1e; box-shadow: none; }
     [data-theme="dark"] .wd-no-accts p    { color: #aaa; }
     [data-theme="dark"] .wd-amount-input  { background: #1e1e1e; border-color: #333; color: #f0f0f0; }
-    [data-theme="dark"] .wd-amount-input:focus { border-color: #730201; }
+    [data-theme="dark"] .wd-amount-input:focus { border-color: var(--ui-primary); }
     [data-theme="dark"] .wd-quick  { background: #1e1e1e; border-color: #333; color: #aaa; box-shadow: none; }
-    [data-theme="dark"] .wd-quick:hover, [data-theme="dark"] .wd-quick.active { background: #221a1a; color: #ff8080; border-color: #730201; }
+    [data-theme="dark"] .wd-quick:hover, [data-theme="dark"] .wd-quick.active { background: #221a1a; color: #ff8080; border-color: var(--ui-primary); }
     [data-theme="dark"] .wd-info-card     { background: #1e1e1e; box-shadow: none; }
     [data-theme="dark"] .wd-info-title    { color: #f0f0f0; }
     [data-theme="dark"] .wd-info-sub      { color: #666; }
@@ -524,14 +504,25 @@
         filterChips.style.display = filterChips.style.display === 'none' ? '' : 'none';
     });
     filterChips.addEventListener('click', e => {
-        const chip = e.target.closest('.chip[data-filter]');
+        const chip = e.target.closest('.ui-tab[data-filter]');
         if (!chip) return;
         activeFilter = chip.dataset.filter;
-        filterChips.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === chip));
+        filterChips.querySelectorAll('.ui-tab').forEach(c => {
+            const isMatch = c === chip;
+            c.classList.toggle('active', isMatch);
+            c.setAttribute('aria-selected', String(isMatch));
+        });
         renderTxns();
     });
 
     // ── Format helpers ────────────────────────────────────────────────────────
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function escClass(s) {
+        return String(s == null ? '' : s).replace(/[^a-z0-9_-]/gi, '');
+    }
     function fmtDate(iso) {
         const d = new Date(iso);
         return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
@@ -545,11 +536,11 @@
             const meta = PROVIDER_META[provider];
             return meta
                 ? `<div style="width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0">${meta.logo}</div>`
-                : `<div class="txn-icon credit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+                : `<div class="txn-icon credit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
         },
-        withdrawal: () => `<div class="txn-icon debit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="#e53e3e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`,
+        withdrawal: () => `<div class="txn-icon debit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="#e53e3e" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`,
         payment:    () => `<div class="txn-icon debit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#e53e3e" stroke-width="1.8"/><path d="M2 10h20" stroke="#e53e3e" stroke-width="1.8"/></svg></div>`,
-        referral:   () => `<div class="txn-icon referral"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
+        referral:   () => `<div class="txn-icon referral"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
     };
 
     function statusClass(s) {
@@ -563,21 +554,22 @@
         const isCredit = d.type === 'topup' || d.type === 'referral';
         const sign     = isCredit ? '+ ' : '- ';
         const amtClass = isCredit ? 'positive' : 'negative';
+        const providerLabel = esc(PROVIDER_META[d.provider]?.label || d.provider || '');
         const provBadge = d.provider
-            ? `<span class="txn-provider-badge ${d.provider}">${PROVIDER_META[d.provider]?.label || d.provider}${d.phone ? ' · ' + d.phone : ''}</span>`
+            ? `<span class="txn-provider-badge ${escClass(d.provider)}">${providerLabel}${d.phone ? ' · ' + esc(d.phone) : ''}</span>`
             : '';
         return `
-          <div class="txn-item" data-id="${t.id}">
+          <div class="txn-item" data-id="${esc(t.id)}">
             ${icon}
             <div class="txn-details">
-              <p class="txn-title">${d.description || 'Transaction'}</p>
+              <p class="txn-title">${esc(d.description || 'Transaction')}</p>
               <p class="txn-meta">${fmtDate(d.createdAt)}</p>
-              <p class="txn-ref">${d.ref ? 'Ref: ' + d.ref : ''}${d.bookingId ? ' · ' + d.bookingId : ''}</p>
+              <p class="txn-ref">${d.ref ? 'Ref: ' + esc(d.ref) : ''}${d.bookingId ? ' · ' + esc(d.bookingId) : ''}</p>
               ${provBadge}
             </div>
             <div class="txn-amount-wrap">
               <p class="txn-amount ${amtClass}">${sign}GHC ${fmtGHC(d.amount)}</p>
-              <p class="txn-status ${statusClass(d.status)}">${d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : 'Done'}</p>
+              <p class="txn-status ${statusClass(d.status)}">${d.status ? esc(d.status.charAt(0).toUpperCase() + d.status.slice(1)) : 'Done'}</p>
             </div>
             <svg class="txn-chevron" width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>`;
@@ -660,8 +652,8 @@
             card.innerHTML = `
               <div class="wd-acc-logo">${meta.logo || ''}</div>
               <div class="wd-acc-info">
-                <p class="wd-acc-phone">${acc.data.phone}</p>
-                <p class="wd-acc-prov">${meta.label || acc.data.provider}</p>
+                <p class="wd-acc-phone">${esc(acc.data.phone)}</p>
+                <p class="wd-acc-prov">${esc(meta.label || acc.data.provider)}</p>
               </div>
               ${acc.data.isDefault ? '<span class="wd-acc-default">Default</span>' : ''}
               <div class="wd-acc-radio"></div>`;
@@ -750,22 +742,22 @@
         paymentRepo = paymentRepoInit;
 
         // Live wallet balance
-        databaseService.subscribeToDocument('customers', user.uid, snap => {
+        const _unsubWallet = databaseService.subscribeToDocument('customers', user.uid, snap => {
             if (snap.exists) {
                 currentBalance = Number(snap.data.walletBalance || 0);
                 if (walletEl) walletEl.textContent = 'GHC ' + currentBalance.toFixed(2);
             }
-        });
+        }, err => console.warn('[transaction-history] wallet listener error:', err));
 
         // Live saved accounts (for withdrawal modal)
-        paymentRepo.subscribeToAccounts(
+        const _unsubAccounts = paymentRepo.subscribeToAccounts(
             user.uid,
             records => { savedAccounts = records; },
             err => console.error('Accounts error:', err)
         );
 
         // Live transactions
-        paymentRepo.subscribeToTransactions(
+        const _unsubTxns = paymentRepo.subscribeToTransactions(
             user.uid,
             records => {
                 loadingEl.style.display = 'none';
@@ -783,6 +775,12 @@
                 emptyEl.style.display   = '';
             }
         );
+
+        window.addEventListener('pagehide', () => {
+            if (typeof _unsubWallet   === 'function') _unsubWallet();
+            if (typeof _unsubAccounts === 'function') _unsubAccounts();
+            if (typeof _unsubTxns     === 'function') _unsubTxns();
+        }, { once: true });
     });
   </script>
 
@@ -790,4 +788,3 @@
   <script src="../shared/js/components/floatingNav.js"></script>
 </body>
 </html>
-

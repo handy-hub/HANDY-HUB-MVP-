@@ -2,11 +2,18 @@ import "../../utils/global-app.js";
 import { getAppContainer } from "../../app/container.js";
 import { showToast } from "../../components/toast.js";
 import { checkAndRecord, showRateLimitToast } from "../../services/rateLimitService.js";
+import { getFunctions, httpsCallable }
+    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+import { getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+
+const FUNCTIONS_REGION = 'europe-west1';
+const SESSION_KEY      = 'hh_otp_session';
 
 const SIGNUP_BUTTON_TEXT = "Sign Up ->";
-const SIGNUP_BUTTON_LOADING_TEXT = "Creating Account...";
+const SIGNUP_BUTTON_LOADING_TEXT = "Sending Code...";
 const LOGIN_REDIRECT_URL = "login.html";
 const SOCIAL_REDIRECT_URL = "index.html";
+const OTP_VERIFY_URL     = "verify-email.html";
 
 const {
   services: { customerAuthService }
@@ -318,18 +325,31 @@ function setupEmailSignupForm() {
     setSubmitLoading(true);
 
     try {
-      await customerAuthService.signUpWithEmail({
-        ...profileInput,
-        password
+      const fn = httpsCallable(getFunctions(getApp(), FUNCTIONS_REGION), 'requestSignupOtp');
+      const result = await fn({
+        appType: 'customer',
+        payload: {
+          fullName: profileInput.fullName,
+          email:    profileInput.email,
+          phone:    profileInput.phone,
+          location: profileInput.location,
+          password,
+        },
       });
 
-      showToast("Account created successfully! Redirecting...", "success");
+      // Store session in sessionStorage only — never localStorage
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        sessionId: result.data.sessionId,
+        email:     result.data.email,
+      }));
+
+      showToast("Verification code sent! Check your email.", "success");
       signupForm.reset();
       updateSubmitButtonState(false);
-      await redirectAfterSuccess(LOGIN_REDIRECT_URL, 2000);
+      setTimeout(() => { window.location.href = OTP_VERIFY_URL; }, 1000);
     } catch (error) {
-      console.error("Signup failed:", error);
-      showToast(signupErrorMessage(error), "error");
+      console.error("Signup OTP request failed:", error);
+      showToast(error?.message || signupErrorMessage(error), "error");
       setSubmitLoading(false);
       validateForm();
     }

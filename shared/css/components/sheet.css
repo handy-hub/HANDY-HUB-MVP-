@@ -1,0 +1,153 @@
+/* ============================================================================
+   HandyHub — Canonical Bottom Sheet Component
+   ----------------------------------------------------------------------------
+   ONE implementation for every bottom sheet in the system.
+   Customer context:  --ui-radius-lg  = 18px  (resolved via ui-polish.css)
+   Artisan context:   --ds-r-card     = 16px  (resolved via design-system.css)
+   The sheet itself reads --ui-sheet-radius which each app defines.
+
+   Usage:
+     <div class="ui-sheet-overlay" id="my-overlay">
+       <div class="ui-sheet" role="dialog" aria-modal="true">
+         <div class="ui-sheet-handle" aria-hidden="true"></div>
+         <div class="ui-sheet-body"> … </div>
+       </div>
+     </div>
+     JS: overlay.classList.toggle('open')
+   ============================================================================ */
+
+/* ── App-level sheet-radius bridge ──────────────────────────────────────────
+   Customer app (ui-polish.css):    --ui-sheet-radius: var(--ui-radius-lg); /* 18px */
+   Artisan app  (design-system.css): --ui-sheet-radius: var(--ds-r-card);   /* 16px */
+   Fallback baked in here so the component never renders with 0-radius.      */
+:root {
+  --ui-sheet-radius: 18px;      /* customer default; artisan overrides to 16px */
+  --ui-sheet-z:      var(--ui-z-drawer, 800);
+  --ui-sheet-overlay-z: calc(var(--ui-z-drawer, 800) - 1);
+  --ui-sheet-bg:     var(--ui-surface, #ffffff);
+  --ui-sheet-handle-color: rgba(0, 0, 0, 0.12);
+  --ui-sheet-ease:   cubic-bezier(0.22, 1, 0.36, 1);
+  --ui-sheet-duration: 0.32s;
+}
+
+/* ── Overlay backdrop ────────────────────────────────────────────────────── */
+.ui-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--ui-overlay, rgba(0, 0, 0, 0.5));
+  z-index: var(--ui-sheet-overlay-z);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ui-sheet-duration) var(--ui-sheet-ease);
+}
+
+.ui-sheet-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Sheet panel ─────────────────────────────────────────────────────────── */
+.ui-sheet {
+  width: min(100%, 430px);
+  background: var(--ui-sheet-bg);
+  border-radius: var(--ui-sheet-radius) var(--ui-sheet-radius) 0 0;
+  max-height: min(92dvh, 820px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 -12px 32px -8px rgba(16, 22, 38, 0.18);
+  z-index: var(--ui-sheet-z);
+  transform: translateY(100%);
+  transition: transform var(--ui-sheet-duration) var(--ui-sheet-ease);
+  will-change: transform;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.ui-sheet-overlay.open .ui-sheet {
+  transform: translateY(0);
+}
+
+/* ── Drag handle ─────────────────────────────────────────────────────────── */
+.ui-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--ui-sheet-handle-color);
+  border-radius: var(--ui-radius-pill, 999px);
+  margin: 12px auto 4px;
+  flex-shrink: 0;
+}
+
+/* ── Sheet sections ──────────────────────────────────────────────────────── */
+.ui-sheet-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ui-text, #111);
+  text-align: center;
+  padding: 10px 20px 12px;
+  border-bottom: 1px solid var(--ui-border, rgba(0, 0, 0, 0.08));
+}
+
+.ui-sheet-body {
+  padding: 4px 0 0;
+}
+
+/* ── Selection option rows (used in settings/language sheets) ────────────── */
+.ui-sheet-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 20px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ui-text, #111);
+  cursor: pointer;
+  transition: background 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-sheet-option:hover  { background: rgba(0, 0, 0, 0.03); }
+.ui-sheet-option:active { background: rgba(0, 0, 0, 0.06); }
+
+.ui-sheet-option .ui-sheet-check {
+  color: var(--ui-primary, #730201);
+  display: none;
+  flex-shrink: 0;
+}
+
+.ui-sheet-option.selected              { color: var(--ui-primary, #730201); }
+.ui-sheet-option.selected .ui-sheet-check { display: block; }
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+[data-theme="dark"] .ui-sheet {
+  background: var(--ds-surface, #1e1e1e);
+}
+
+[data-theme="dark"] .ui-sheet-handle {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .ui-sheet-title {
+  color: var(--ds-ink, #f0f0f0);
+  border-bottom-color: var(--ds-line, #2a2a2a);
+}
+
+[data-theme="dark"] .ui-sheet-option {
+  color: var(--ds-ink, #e0e0e0);
+}
+
+[data-theme="dark"] .ui-sheet-option:hover  { background: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .ui-sheet-option:active { background: rgba(255, 255, 255, 0.08); }
+
+[data-theme="dark"] .ui-sheet-option.selected { color: var(--nav-brand, #e05050); }
+[data-theme="dark"] .ui-sheet-option.selected .ui-sheet-check { color: var(--nav-brand, #e05050); }
+
+/* ── Artisan context: radius override ───────────────────────────────────── */
+/* When design-system.css is loaded it sets --ui-sheet-radius: var(--ds-r-card)
+   which resolves to 16px. No extra rule needed here — the token does it. */

@@ -7,17 +7,21 @@
 /* ── Reset & shell ───────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Booking-flow page-scoped tokens. Brand + surface derive from the canonical
+   design system (shared/css/ui-polish.css). A few values are intentionally
+   page-specific (slightly cooler greys / 16px radius for the booking cards) and
+   kept local to preserve the existing booking-flow appearance exactly. */
 :root {
-  --bf-red:        #730201;
-  --bf-red-light:  #fff5f5;
-  --bf-red-mid:    #fde8e8;
-  --bf-text:       #111827;
-  --bf-sub:        #6B7280;
-  --bf-border:     #F3F4F6;
-  --bf-surface:    #ffffff;
-  --bf-radius:     16px;
-  --bf-radius-sm:  10px;
-  --bf-shadow:     0 2px 12px rgba(0,0,0,.06);
+  --bf-red:        var(--ui-primary);
+  --bf-red-light:  #fff5f5;            /* local tint */
+  --bf-red-mid:    var(--ui-primary-soft);
+  --bf-text:       #111827;            /* local ink (cooler than canonical) */
+  --bf-sub:        #6B7280;            /* local secondary ink */
+  --bf-border:     #F3F4F6;            /* local hairline */
+  --bf-surface:    var(--ui-surface);
+  --bf-radius:     var(--ui-radius-md); /* booking card radius */
+  --bf-radius-sm:  var(--ui-radius-sm);
+  --bf-shadow:     0 2px 12px rgba(0,0,0,.06);   /* local: booking elevation */
 }
 [data-theme="dark"] {
   --bf-text:    #f0f0f0;
@@ -64,13 +68,16 @@
   border-bottom: 1px solid var(--bf-border);
 }
 .bf-back-btn {
-  width: 38px; height: 38px; border-radius: 12px;
-  border: none; background: var(--bf-border);
+  width: 40px; height: 40px; border-radius: var(--ui-radius-sm);
+  border: none; background: transparent;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0;
   color: var(--bf-text);
+  transition: background .15s;
 }
-.bf-back-btn:active { opacity: .7; }
+.bf-back-btn > svg { width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: block; }
+.bf-back-btn:hover  { background: rgba(0,0,0,.05); }
+.bf-back-btn:active { background: rgba(0,0,0,.09); transform: scale(.94); }
 .bf-header-title {
   flex: 1; font-size: 17px; font-weight: 800; color: var(--bf-text);
 }
@@ -138,7 +145,7 @@
 }
 .bk-cat-row::-webkit-scrollbar { display: none; }
 .bk-cat-tab {
-  padding: 7px 14px; border-radius: 20px; font-size: 13px;
+  padding: 7px 14px; border-radius: var(--ui-radius-lg); font-size: 13px;
   font-weight: 600; white-space: nowrap; cursor: pointer;
   border: 1.5px solid var(--bf-border);
   background: var(--bf-surface); color: var(--bf-text);
@@ -161,7 +168,7 @@
   box-shadow: 0 0 0 3px var(--bf-red-light);
 }
 .bk-pro-avatar {
-  width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+  width: 52px; height: 52px; border-radius: var(--ui-radius-md); flex-shrink: 0;
   background: linear-gradient(135deg, var(--bf-red), #a03030);
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 18px; font-weight: 800;
@@ -208,24 +215,322 @@
 .bk-summary-divider { height: 1px; background: var(--bf-border); }
 .bk-summary-total .bk-summary-value { color: var(--bf-red); font-size: 16px; }
 
-/* ── CTA button (all steps) ──────────────────────────────── */
+/* ── CTA button — CANONICAL for all booking steps ────────── */
+/* Use .bk-cta-btn inside .bf-cta-bar on every step. */
 .bf-cta-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 430px;
-  padding: 12px 16px env(safe-area-inset-bottom, 16px);
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
   background: var(--bf-surface);
   border-top: 1px solid var(--bf-border);
-  z-index: 50;
+  z-index: var(--ui-z-sticky, 100);
 }
-.bf-cta-btn {
-  width: 100%; padding: 15px; border-radius: 14px;
-  background: var(--bf-red); color: #fff;
-  font-size: 16px; font-weight: 800; border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
+
+/* Canonical booking CTA — all steps reference this class.
+   .btn-continue (step 1) and .btn-continue-full (step 2) are aliases:
+   they were previously orphaned (only sizing from ui-polish.css, no
+   background) and rendered as default grey buttons. They now inherit
+   the system maroon (var(--bf-red) → var(--ui-primary) at root). */
+.bk-cta-btn,
+.bf-cta-btn,
+.btn-continue,
+.btn-continue-full {
+  width: 100%;
+  height: var(--ui-btn-h, 48px);
+  padding: 0 16px;
+  border-radius: var(--ui-radius-md);
+  background: var(--bf-red);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
   transition: opacity .2s, transform .1s;
 }
-.bf-cta-btn:active  { opacity: .85; transform: scale(.98); }
-.bf-cta-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.bk-cta-btn:active,
+.bf-cta-btn:active,
+.btn-continue:active,
+.btn-continue-full:active   { opacity: .85; transform: scale(.98); }
+.bk-cta-btn:disabled,
+.bf-cta-btn:disabled,
+.btn-continue:disabled,
+.btn-continue-full:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* ── Bell badge — shared by steps 1/2/3/4 ───────────────── */
+.bk-bell-btn {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: transparent;
+  border-radius: var(--ui-radius-sm);
+  cursor: pointer; position: relative;
+  color: var(--bf-text);
+  transition: background .15s;
+}
+.bk-bell-btn:hover  { background: rgba(0,0,0,.05); }
+.bk-bell-btn > svg  { width: 20px; height: 20px; display: block; }
+.bk-bell-badge {
+  position: absolute; top: 6px; right: 6px;
+  min-width: 16px; height: 16px;
+  background: var(--bf-red);
+  color: #fff;
+  border-radius: var(--ui-radius-pill);
+  font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 3px;
+  border: 1.5px solid var(--bf-surface);
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 1 — SERVICE PICKER COMPONENTS
+   ────────────────────────────────────────────────────────────────
+   These classes (.bk-search, .cat-row, .cat-icon-btn, .service-item)
+   were referenced by book-step1.html but had NO style rule in any
+   stylesheet — the page rendered flat/unstyled. Restored here, fully
+   tokenized (root --ui-* via --bf-*), no hardcoded colors.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Search field */
+.bk-search {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 16px 14px;
+  padding: 0 14px; height: 46px;
+  background: var(--bf-surface);
+  border: 1.5px solid var(--bf-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: var(--bf-shadow);
+}
+.bk-search:focus-within { border-color: var(--bf-red); }
+.bk-search svg { flex-shrink: 0; }
+.bk-search input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-family: inherit; font-size: 14px; color: var(--bf-text);
+}
+.bk-search input::placeholder { color: var(--bf-sub); }
+
+/* Category tab row */
+.cat-row {
+  display: flex; gap: 10px; padding: 0 16px 16px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.cat-row::-webkit-scrollbar { display: none; }
+.cat-icon-btn {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 76px; padding: 12px 6px;
+  background: var(--bf-surface);
+  border: 1.5px solid var(--bf-border);
+  border-radius: var(--ui-radius-md);
+  cursor: pointer; font-family: inherit;
+  color: var(--bf-sub);
+  transition: border-color .15s, background .15s, color .15s;
+}
+.cat-icon-btn svg { width: 24px; height: 24px; }
+.cat-icon-btn span {
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.cat-icon-btn.active {
+  background: var(--bf-red-light);
+  border-color: var(--bf-red);
+  color: var(--bf-red);
+}
+.cat-icon-btn.active svg { stroke: var(--bf-red); }
+[data-theme="dark"] .cat-icon-btn.active { background: #2a1414; }
+
+/* Service item row (rendered by step-1 JS) */
+.service-item {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 16px 10px; padding: 12px;
+  background: var(--bf-surface);
+  border: 1.5px solid var(--bf-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: var(--bf-shadow);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .1s;
+}
+.service-item:active { transform: scale(.99); }
+.service-item.selected {
+  border-color: var(--bf-red);
+  box-shadow: 0 0 0 3px var(--bf-red-light);
+}
+.service-thumb {
+  width: 68px; height: 68px; border-radius: var(--ui-radius-sm);
+  object-fit: cover; flex-shrink: 0; background: var(--bf-border);
+}
+.service-info { flex: 1; min-width: 0; }
+.service-name { font-size: 14px; font-weight: 700; color: var(--bf-text); margin: 0 0 2px; }
+.service-desc {
+  font-size: 12px; color: var(--bf-sub); margin: 0 0 6px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.service-meta { display: flex; gap: 10px; font-size: 11px; color: var(--bf-sub); }
+.service-right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  flex-shrink: 0; text-align: right;
+}
+.service-from { font-size: 10px; color: var(--bf-sub); margin: 0; }
+.service-price { font-size: 14px; font-weight: 800; color: var(--bf-red); margin: 0; }
+.service-checkbox {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid var(--bf-border); background: var(--bf-surface);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, border-color .15s;
+}
+.service-checkbox.checked { background: var(--bf-red); border-color: var(--bf-red); }
+
+/* ══════════════════════════════════════════════════════════════
+   UNIFIED BOOKING ANCHOR  (.bk-anchor)
+   ────────────────────────────────────────────────────────────────
+   The single "what am I buying & from whom" identity strip. ONE
+   component, identical markup + styling, dropped into every step so
+   the booking reads as one continuous transaction (the Uber-map /
+   Airbnb-property equivalent). Replaces step 1's banner, step 2's
+   .pro-card header context, and step 3's .pro-mini-card.
+
+   Markup contract (same on every step):
+     <div class="bk-anchor" id="bk-anchor">
+       <div class="bk-anchor-service">          ← service line (always)
+         <span class="bk-anchor-svc-icon">…</span>
+         <div class="bk-anchor-svc-text">
+           <p class="bk-anchor-svc-name">Fix Switch / Socket</p>
+           <p class="bk-anchor-svc-meta">Electrical · From GHC 50</p>
+         </div>
+       </div>
+       <div class="bk-anchor-pro" hidden>       ← pro line (once chosen)
+         <div class="bk-anchor-avatar">…</div>
+         <div class="bk-anchor-pro-text">
+           <p class="bk-anchor-pro-name">Kwame A.</p>
+           <p class="bk-anchor-pro-meta"><i class="fa-solid fa-star"></i> 4.9 · Electrician</p>
+         </div>
+         <button class="bk-anchor-action">Change</button>
+       </div>
+     </div>
+   JS only toggles [hidden] and fills text — never restyles.
+   ══════════════════════════════════════════════════════════════ */
+.bk-anchor {
+  margin: 0 16px 14px;
+  background: var(--bf-surface);
+  border: 1px solid var(--bf-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: var(--bf-shadow);
+  overflow: hidden;
+}
+.bk-anchor-service,
+.bk-anchor-pro {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+}
+.bk-anchor-pro { border-top: 1px solid var(--bf-border); }
+.bk-anchor-pro[hidden] { display: none; }
+
+/* Service line */
+.bk-anchor-svc-icon {
+  width: 40px; height: 40px; border-radius: var(--ui-radius-sm); flex-shrink: 0;
+  background: var(--bf-red-light); color: var(--bf-red);
+  display: flex; align-items: center; justify-content: center;
+}
+.bk-anchor-svc-text { flex: 1; min-width: 0; }
+.bk-anchor-svc-name {
+  font-size: 14px; font-weight: 800; color: var(--bf-text); margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bk-anchor-svc-meta { font-size: 12px; color: var(--bf-sub); margin: 2px 0 0; }
+.bk-anchor-svc-price { color: var(--bf-red); font-weight: 700; }
+
+/* Pro line */
+.bk-anchor-avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--bf-red), #a03030);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 15px; font-weight: 800;
+  overflow: hidden; background-size: cover; background-position: center;
+}
+.bk-anchor-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.bk-anchor-pro-text { flex: 1; min-width: 0; }
+.bk-anchor-pro-name {
+  font-size: 14px; font-weight: 800; color: var(--bf-text); margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bk-anchor-pro-meta { font-size: 12px; color: var(--bf-sub); margin: 2px 0 0; }
+.bk-anchor-pro-meta .star { color: #f5a623; }
+.bk-anchor-action {
+  flex-shrink: 0; border: 1px solid var(--bf-red);
+  background: transparent; color: var(--bf-red);
+  font-size: 12px; font-weight: 700; font-family: inherit;
+  padding: 6px 12px; border-radius: var(--ui-radius-sm); cursor: pointer;
+  transition: background .15s;
+}
+.bk-anchor-action:active { background: var(--bf-red-mid); }
+[data-theme="dark"] .bk-anchor-svc-icon { background: #2a1414; }
+
+/* ── Pre-selected professional banner (artisan-first booking) ─────── */
+.bk-chosen-pro {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 16px 14px;
+  padding: 12px 14px;
+  background: var(--bf-red-light);
+  border: 1px solid var(--bf-red-mid);
+  border-radius: var(--ui-radius-md);
+}
+.bk-chosen-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--bf-red), #a03030);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px; font-weight: 800;
+  overflow: hidden; background-size: cover; background-position: center;
+}
+.bk-chosen-info { flex: 1; min-width: 0; }
+.bk-chosen-label { font-size: 11px; font-weight: 600; color: var(--bf-sub); margin: 0; }
+.bk-chosen-name  { font-size: 15px; font-weight: 800; color: var(--bf-text); margin: 1px 0 0;
+                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-chosen-change {
+  flex-shrink: 0; border: 1px solid var(--bf-red);
+  background: transparent; color: var(--bf-red);
+  font-size: 12px; font-weight: 700; font-family: inherit;
+  padding: 7px 12px; border-radius: var(--ui-radius-sm); cursor: pointer;
+  transition: background .15s;
+}
+.bk-chosen-change:active { background: var(--bf-red-mid); }
+[data-theme="dark"] .bk-chosen-pro { background: #2a1414; border-color: #3a1c1c; }
+
+/* ══════════════════════════════════════════════════════════════
+   PRO CARD (step 2 list)  — was a JS-injected <style> block with
+   hardcoded #fff/#111/#888 + raw shadows. Now tokenized & shared so
+   it matches the rest of the booking flow.
+   ══════════════════════════════════════════════════════════════ */
+.pro-card {
+  background: var(--bf-surface);
+  border-radius: var(--ui-radius-md);
+  padding: 14px; margin-bottom: 10px;
+  display: flex; align-items: flex-start; gap: 12px; cursor: pointer;
+  border: 2px solid transparent;
+  box-shadow: var(--bf-shadow);
+  transition: border-color .15s, box-shadow .15s, transform .1s;
+}
+.pro-card:active { transform: scale(.99); }
+.pro-card-selected {
+  border-color: var(--bf-red) !important;
+  box-shadow: 0 4px 16px rgba(var(--ui-primary-rgb), .18) !important;
+}
+.pro-card-left { display: flex; gap: 12px; flex: 1; min-width: 0; }
+.pro-info-body { flex: 1; min-width: 0; }
+.pro-name { font-size: 14px; font-weight: 800; color: var(--bf-text); }
+.pro-type { font-size: 12px; color: var(--bf-sub); margin-top: 2px; font-weight: 500; }
+.pro-meta-row { display: flex; align-items: center; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.pro-card-right { flex-shrink: 0; }
+.pro-select-circle {
+  width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--bf-border);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bf-surface); transition: all .15s;
+}
+.pro-select-circle.selected { background: var(--bf-red); border-color: var(--bf-red); }
+[data-theme="dark"] .pro-card { box-shadow: none; }
+@keyframes skeleton-pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
 
 /* ── Skeleton loading ────────────────────────────────────── */
 .bk-shimmer {
@@ -257,7 +562,249 @@
 .bk-empty-title { font-size: 16px; font-weight: 800; color: var(--bf-text); margin: 0; }
 .bk-empty-sub   { font-size: 13px; color: var(--bf-sub); margin: 0; }
 .bk-retry-btn {
-  padding: 10px 24px; border-radius: 10px;
+  padding: 10px 24px; border-radius: var(--ui-radius-sm);
   background: var(--bf-red); color: #fff;
   font-size: 14px; font-weight: 700; border: none; cursor: pointer;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 4 — Confirmation / Status page
+   (book-step4.html)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Header ── */
+.bk-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px;
+  background: #fff;
+  border-bottom: 1px solid var(--bf-border);
+  position: sticky; top: 0; z-index: var(--ui-z-sticky, 100);
+}
+.bk-header-center { flex: 1; text-align: center; }
+.bk-header-title  { font-size: 14px; font-weight: 800; color: var(--bf-text); margin: 0; }
+.bk-header-location {
+  display: flex; align-items: center; justify-content: center; gap: 3px;
+  font-size: 11px; color: var(--bf-sub); margin: 2px 0 0;
+}
+.bk-bell-wrap { display: flex; }
+
+/* ── Stepper ── */
+.bk-stepper {
+  display: flex; justify-content: space-between;
+  padding: 12px 16px; background: #fff;
+  border-bottom: 1px solid var(--bf-border);
+  gap: 4px;
+}
+.bk-step {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  flex: 1;
+}
+.bk-step-node  { display: flex; flex-direction: column; align-items: center; }
+.bk-step-circle {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--bf-border); color: var(--bf-sub);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  transition: background .2s, color .2s;
+}
+.bk-step.done   .bk-step-circle { background: #22c55e; color: #fff; }
+.bk-step.active .bk-step-circle { background: var(--bf-red); color: #fff; }
+.bk-step-connector {
+  width: 2px; height: 10px;
+  background: var(--bf-border);
+  margin-top: 3px;
+}
+.bk-step-label { font-size: 9.5px; font-weight: 600; color: var(--bf-sub); }
+.bk-step.active .bk-step-label { color: var(--bf-red); }
+.bk-step.done   .bk-step-label { color: #22c55e; }
+
+/* ── Scroll container ── */
+.bk-scroll {
+  flex: 1; overflow-y: auto;
+  /* Bottom padding accounts for sticky CTA bar (≈76px) + safe area */
+  padding: 16px 0 calc(76px + max(16px, env(safe-area-inset-bottom)));
+  display: flex; flex-direction: column; gap: 0;
+}
+
+/* ── Confirmation hero ── */
+.confirmed-hero {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 28px 24px 20px; text-align: center;
+}
+.confirmed-ring-wrap { position: relative; margin-bottom: 16px; }
+.confirmed-outer {
+  width: 96px; height: 96px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.confirmed-circle {
+  width: 72px; height: 72px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.confirmed-title {
+  font-size: 20px; font-weight: 900; color: var(--bf-text);
+  margin: 0 0 6px; letter-spacing: -0.3px;
+}
+.confirmed-sub {
+  font-size: 13px; color: var(--bf-sub); line-height: 1.55;
+  margin: 0; max-width: 280px;
+}
+/* Confetti dots */
+.confetti {
+  position: absolute; width: 8px; height: 8px; border-radius: 50%; opacity: 0;
+  animation: confettiBurst .6s ease-out .15s forwards;
+}
+.confetti-1 { background: #f97316; top: 0;    left: 50%; transform: translate(-50%,-200%); }
+.confetti-2 { background: #22c55e; top: 50%;  right: 0;  transform: translate(200%,-50%); }
+.confetti-3 { background: #3b82f6; bottom: 0; left: 50%; transform: translate(-50%, 200%); }
+.confetti-4 { background: #a855f7; top: 50%;  left: 0;   transform: translate(-200%,-50%); }
+@keyframes confettiBurst {
+  from { opacity: 0; }
+  40%  { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ── Booking ID row ── */
+.booking-id-row {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 16px 12px;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--ui-radius-sm);
+}
+.booking-id-text {
+  flex: 1; font-size: 12px; color: var(--bf-text);
+}
+.share-btn-bk {
+  display: flex; align-items: center; gap: 5px;
+  background: none; border: 1px solid #86efac;
+  border-radius: var(--ui-radius-sm);
+  padding: 5px 10px; font-size: 11px; font-weight: 700;
+  color: #2e7d32; cursor: pointer; font-family: inherit;
+}
+
+/* ── What's Next card ── */
+.whats-next-card {
+  margin: 0 16px 12px;
+  background: var(--bf-surface);
+  border: 1px solid var(--bf-border);
+  border-radius: var(--ui-radius-md);
+  padding: 16px;
+}
+.whats-next-title {
+  font-size: 13px; font-weight: 800; color: var(--bf-text); margin: 0 0 14px;
+}
+.next-steps-row {
+  display: flex; gap: 0; align-items: flex-start;
+}
+.next-step-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 6px;
+}
+.next-step-icon {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bf-red-light);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--bf-red);
+}
+.next-step-label { font-size: 11px; font-weight: 700; color: var(--bf-text); margin: 0; }
+.next-step-sub   { font-size: 10px; color: var(--bf-sub); margin: 0; line-height: 1.4; }
+.next-connector  {
+  flex-shrink: 0; width: 20px; height: 2px;
+  background: var(--bf-border); margin-top: 20px;
+}
+
+/* ── Pro call card ── */
+.pro-call-card {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 16px 12px;
+  background: var(--bf-surface);
+  border: 1px solid var(--bf-border);
+  border-radius: var(--ui-radius-md);
+  padding: 14px;
+}
+.pro-call-avatar { position: relative; flex-shrink: 0; }
+.online-dot {
+  position: absolute; bottom: 2px; right: 2px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #22c55e; border: 1.5px solid #fff;
+}
+.pro-mini-info    { flex: 1; min-width: 0; }
+.pro-mini-name-row { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.pro-mini-name    { font-size: 14px; font-weight: 800; color: var(--bf-text); }
+.top-rated-chip   {
+  font-size: 9px; font-weight: 700; padding: 2px 6px;
+  background: var(--bf-red-mid); color: var(--bf-red);
+  border-radius: var(--ui-radius-sm);
+}
+.pro-mini-type  { font-size: 11.5px; color: var(--bf-red); font-weight: 600; margin: 0 0 2px; }
+.pro-mini-stats { font-size: 11px; color: var(--bf-sub); margin: 0; }
+.avail-chip {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: var(--ui-radius-sm);
+  background: #f0fdf4; color: #166534;
+}
+.call-btn-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+.call-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--bf-red); color: #fff;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .15s, transform .1s;
+}
+.call-btn:active { opacity: .85; transform: scale(.95); }
+.call-btn-label { font-size: 10px; font-weight: 600; color: var(--bf-sub); }
+
+/* ── Help card ── */
+.help-card {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 16px 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--ui-radius-md);
+  padding: 14px;
+}
+.help-icon-wrap {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #dcfce7;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.help-text { flex: 1; min-width: 0; }
+.help-title { font-size: 13px; font-weight: 800; color: #166534; margin: 0 0 3px; }
+.help-sub   { font-size: 11px; color: #4b7a5a; margin: 0; line-height: 1.4; }
+.contact-support-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: none; border: 1px solid #86efac;
+  border-radius: var(--ui-radius-sm);
+  padding: 8px 12px; font-size: 11px; font-weight: 700;
+  color: #2e7d32; cursor: pointer; font-family: inherit;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* ── Step 4 sticky CTA bar — identical to steps 1–3 ── */
+/* The CTA moves out of .bk-scroll into a .bf-cta-bar below the phone shell.
+   .btn-go-bookings is an alias of .bk-cta-btn for HTML back-compat. */
+.btn-go-bookings {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  height: var(--ui-btn-h, 48px);
+  background: var(--bf-red); color: #fff;
+  border: none; border-radius: var(--ui-radius-md);
+  font-size: 15px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+  transition: opacity .15s, transform .1s;
+}
+.btn-go-bookings:active { opacity: .88; transform: scale(.98); }
+
+[data-theme="dark"] .bk-header     { background: #1a1a1a; border-color: #2a2a2a; }
+[data-theme="dark"] .bk-stepper    { background: #1a1a1a; border-color: #2a2a2a; }
+[data-theme="dark"] .whats-next-card,
+[data-theme="dark"] .pro-call-card { background: #1e1e1e; border-color: #2a2a2a; }
+[data-theme="dark"] .confirmed-title { color: #f0f0f0; }
+[data-theme="dark"] .booking-id-row { background: #0a1f0f; border-color: #14532d; }
+[data-theme="dark"] .help-card       { background: #0a1f0f; border-color: #14532d; }
+[data-theme="dark"] .bf-back-btn     { color: #f0f0f0; }
+[data-theme="dark"] .bf-back-btn:hover { background: rgba(255,255,255,.06); }
+[data-theme="dark"] .bk-bell-btn    { color: #f0f0f0; }
+[data-theme="dark"] .bk-bell-btn:hover { background: rgba(255,255,255,.06); }

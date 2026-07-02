@@ -72,7 +72,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: var(--ui-radius-sm);
   transition: background 0.15s;
   padding: 0;
 }
@@ -94,7 +94,7 @@ button {
 .user-card {
   background: #fff;
   border: 1.5px solid #eee;
-  border-radius: 20px;
+  border-radius: var(--ui-radius-lg);
   padding: 18px 18px 14px;
   margin-bottom: 16px;
 }
@@ -210,7 +210,7 @@ button {
 =========================== */
 .banner {
   background: #fff5f5;
-  border-radius: 16px;
+  border-radius: var(--ui-radius-md);
   padding: 14px 16px;
   display: flex;
   min-height: 60px;
@@ -244,18 +244,18 @@ button {
 }
 
 .banner-sub {
-  font-size: 8px;
+  font-size: 11px;
   color: #777;
   line-height: 1.45;
 }
 
 .update-btn {
-  border: 1.8px solid #730201;
-  color: #730201;
+  border: 1.8px solid var(--ui-primary);
+  color: var(--ui-primary);
   font-size: 10px;
   font-weight: 700;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--ui-radius-sm);
   white-space: nowrap;
   font-family: inherit;
   transition: background 0.15s, color 0.15s;
@@ -263,7 +263,7 @@ button {
 }
 
 .update-btn:hover {
-  background: #730201;
+  background: var(--ui-primary);
   color: #fff;
 }
 
@@ -284,7 +284,7 @@ button {
 .wallet-card {
   background: #fff;
   border: 1.5px solid #eee;
-  border-radius: 18px;
+  border-radius: var(--ui-radius-lg);
   display: flex;
   overflow: hidden;
   margin-bottom: 24px;
@@ -313,11 +313,11 @@ button {
 
 .topup-btn {
   background: #ffe0e0;
-  color: #730201;
+  color: var(--ui-primary);
   font-size: 13px;
   font-weight: 700;
   padding: 8px 18px;
-  border-radius: 10px;
+  border-radius: var(--ui-radius-sm);
   font-family: inherit;
   transition: background 0.15s;
 }
@@ -352,7 +352,7 @@ button {
   width: 34px;
   height: 34px;
   background: #fff5f5;
-  border-radius: 9px;
+  border-radius: var(--ui-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -378,7 +378,7 @@ button {
 .activity-card {
   background: #fff;
   border: 1.5px solid #eee;
-  border-radius: 18px;
+  border-radius: var(--ui-radius-lg);
   display: flex;
   margin-bottom: 14px;
 }
@@ -407,7 +407,7 @@ button {
   width: 46px;
   height: 46px;
   background: #faeded44;
-  border-radius: 14px;
+  border-radius: var(--ui-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -419,7 +419,7 @@ button {
 .menu-list {
   background: #fff;
   border: 1.5px solid #eee;
-  border-radius: 18px;
+  border-radius: var(--ui-radius-lg);
   overflow: hidden;
   margin-bottom: 16px;
 }
@@ -480,8 +480,8 @@ button {
   gap: 10px;
   padding: 16px;
   background: #fff5f5;
-  border-radius: 18px;
-  color: #730201;
+  border-radius: var(--ui-radius-lg);
+  color: var(--ui-primary);
   font-size: 15px;
   font-weight: 700;
   font-family: inherit;
@@ -493,63 +493,9 @@ button {
   background: #ffe0e0;
 }
 
-/* ===========================
-   BOTTOM NAV
-=========================== */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 480px;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 6px 0 env(safe-area-inset-bottom, 8px);
-  background: rgba(255, 255, 255, 0.97);
-  border-top: 1px solid rgba(0,0,0,0.07);
-  flex-shrink: 0;
-  z-index: 200;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  font-size: 10.5px;
-  font-weight: 500;
-  color: #aaa;
-  font-family: inherit;
-  text-decoration: none;
-  transition: opacity 0.15s;
-}
-
-.nav-item:hover {
-  opacity: 0.7;
-}
-
-.nav-item span {
-  color: #aaa;
-}
-
-.nav-item.active span,
-.nav-item .active-label {
-  color: #730201;
-}
-
-.nav-item.active svg path,
-.nav-item.active svg circle,
-.nav-item.active svg polyline,
-.nav-item.active svg line,
-.nav-item.active svg rect,
-.nav-item.active svg polygon {
-  stroke: #730201;
-}
+/* Bottom-nav styles removed. Profile is intentionally nav-less (it has a
+   top-left home button instead), so these orphaned .bottom-nav / .nav-item
+   rules served no markup. */
 
 /* ===========================
    TOAST NOTIFICATIONS
@@ -562,14 +508,14 @@ button {
   align-items: center;
   gap: 10px;
   padding: 10px 16px 10px 10px;
-  border-radius: 999px;
+  border-radius: var(--ui-radius-pill);
   border: 1px solid rgba(255,255,255,0.42);
   background: linear-gradient(135deg, rgba(255,255,255,0.34), rgba(255,255,255,0.12));
   color: #112236;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
-  z-index: 9999;
+  z-index: var(--ui-z-toast);
   animation: toastIn 0.36s cubic-bezier(0.2,0.7,0.2,1);
   box-shadow: 0 12px 35px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.72);
   backdrop-filter: blur(14px) saturate(170%);
@@ -585,7 +531,7 @@ button {
 .toast-icon {
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: var(--ui-radius-pill);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -635,7 +581,7 @@ button {
 [data-theme="dark"] .uc-stat-label  { color: #666; }
 [data-theme="dark"] .uc-stat-sep    { background: #272727; }
 [data-theme="dark"] .uc-edit-btn    { background: #1e1010; border-color: #3a1a1a; color: #ff6b6b; }
-[data-theme="dark"] .uc-edit-btn:hover { background: #2d1414; border-color: #730201; }
+[data-theme="dark"] .uc-edit-btn:hover { background: #2d1414; border-color: var(--ui-primary); }
 
 [data-theme="dark"] .banner { background: #1e1010; }
 [data-theme="dark"] .banner-icon { background: #2d1414; }
@@ -681,16 +627,6 @@ button {
 [data-theme="dark"] .logout-btn svg polyline,
 [data-theme="dark"] .logout-btn svg line { stroke: #e05555; }
 
-[data-theme="dark"] .bottom-nav {
-  background: rgba(18, 18, 18, 0.96);
-  border-top-color: #272727;
-}
-[data-theme="dark"] .nav-item span { color: #777; }
-[data-theme="dark"] .nav-item.active .active-label { color: #ff6b6b; }
-[data-theme="dark"] .nav-item.active svg path,
-[data-theme="dark"] .nav-item.active svg circle,
-[data-theme="dark"] .nav-item.active svg polyline { stroke: #ff6b6b; }
-
 /* ── Skeleton loading ─────────────────────────────────────────────────────── */
 @keyframes skel-sweep { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 .skel {
@@ -707,3 +643,4 @@ button {
   background: linear-gradient(90deg,#2a2a2a 25%,#222 50%,#2a2a2a 75%) !important;
   background-size: 200% 100% !important;
 }
+

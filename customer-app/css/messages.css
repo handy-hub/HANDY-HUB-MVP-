@@ -36,7 +36,7 @@ body {
 .ms-header-btns { display: flex; gap: 4px; }
 .ms-icon-btn {
   width: 40px; height: 40px; background: none; border: none; cursor: pointer;
-  border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--ui-radius-sm); display: flex; align-items: center; justify-content: center;
   transition: background 0.15s;
 }
 .ms-icon-btn:active { background: #f5f5f5; }
@@ -49,7 +49,7 @@ body {
 }
 .ms-search-bar {
   display: flex; align-items: center; gap: 10px;
-  background: #f5f5f5; border-radius: 14px; padding: 10px 14px;
+  background: #f5f5f5; border-radius: var(--ui-radius-md); padding: 10px 14px;
 }
 .ms-search-bar input {
   flex: 1; border: none; background: none; font-size: 14px;
@@ -57,19 +57,15 @@ body {
 }
 .ms-search-bar input::placeholder { color: #aaa; }
 
-/* Filter tabs */
+/* Filter tabs — migrated to canonical shared component
+   (shared/css/components/tabs.css, underline variant). The .ms-filter-bar
+   class is kept only as the sticky/scroll container; tab styling is shared. */
 .ms-filter-bar {
-  display: flex; padding: 0 18px; border-bottom: 1px solid #f0f0f0;
-  flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 .ms-filter-bar::-webkit-scrollbar { display: none; }
-.ms-filter-tab {
-  padding: 11px 16px; background: none; border: none; cursor: pointer;
-  font-size: 13px; font-weight: 700; color: #aaa; white-space: nowrap;
-  border-bottom: 2.5px solid transparent; font-family: inherit;
-  transition: color 0.15s, border-color 0.15s;
-}
-.ms-filter-tab.active { color: #730201; border-bottom-color: #730201; }
 
 /* Conversation list */
 .ms-conv-list {
@@ -109,7 +105,7 @@ body {
 .ms-conv-name { font-size: 15px; font-weight: 700; color: #111; }
 .ms-conv-item.unread .ms-conv-name { font-weight: 800; }
 .ms-conv-time { font-size: 11px; color: #aaa; flex-shrink: 0; }
-.ms-conv-item.unread .ms-conv-time { color: #730201; font-weight: 700; }
+.ms-conv-item.unread .ms-conv-time { color: var(--ui-primary); font-weight: 700; }
 
 .ms-conv-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .ms-conv-preview {
@@ -118,14 +114,14 @@ body {
 }
 .ms-conv-item.unread .ms-conv-preview { color: #444; font-weight: 600; }
 .ms-conv-badge {
-  min-width: 20px; height: 20px; background: #730201; color: #fff;
-  font-size: 10px; font-weight: 800; border-radius: 10px;
+  min-width: 20px; height: 20px; background: var(--ui-primary); color: #fff;
+  font-size: 10px; font-weight: 800; border-radius: var(--ui-radius-sm);
   display: flex; align-items: center; justify-content: center;
   padding: 0 5px; flex-shrink: 0;
 }
 
 /* Role chip */
-.ms-conv-role { font-size: 11px; color: #730201; font-weight: 600; margin-bottom: 2px; }
+.ms-conv-role { font-size: 11px; color: var(--ui-primary); font-weight: 600; margin-bottom: 2px; }
 
 /* Empty search state */
 .ms-empty {
@@ -157,7 +153,7 @@ body {
 }
 .ms-chat-back {
   width: 38px; height: 38px; background: #f5f5f5; border: none;
-  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--ui-radius-sm); display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; transition: background 0.15s;
 }
 .ms-chat-back:active { background: #eee; }
@@ -221,12 +217,12 @@ body {
 }
 
 .ms-bubble {
-  padding: 10px 14px; border-radius: 18px;
+  padding: 10px 14px; border-radius: var(--ui-radius-lg);
   font-size: 14px; line-height: 1.45; max-width: 100%;
   word-break: break-word;
 }
 .ms-bubble.mine {
-  background: #730201; color: #fff;
+  background: var(--ui-primary); color: #fff;
   border-bottom-right-radius: 4px;
 }
 .ms-bubble.theirs {
@@ -246,7 +242,7 @@ body {
   align-self: flex-start; max-width: 85%;
 }
 .ms-typing-bubble {
-  background: #fff; border-radius: 18px; border-bottom-left-radius: 4px;
+  background: #fff; border-radius: var(--ui-radius-lg); border-bottom-left-radius: 4px;
   padding: 12px 16px; display: flex; gap: 4px; align-items: center;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
@@ -258,7 +254,7 @@ body {
 .ms-typing-dot:nth-child(3) { animation-delay: 0.4s; }
 @keyframes msTyping {
   0%, 60%, 100% { transform: translateY(0); background: #ccc; }
-  30% { transform: translateY(-6px); background: #730201; }
+  30% { transform: translateY(-6px); background: var(--ui-primary); }
 }
 
 /* Input bar */
@@ -271,11 +267,11 @@ body {
 .ms-input-attach, .ms-input-emoji {
   width: 38px; height: 38px; background: none; border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  border-radius: 10px; transition: background 0.15s;
+  border-radius: var(--ui-radius-sm); transition: background 0.15s;
 }
 .ms-input-attach:active, .ms-input-emoji:active { background: #f5f5f5; }
 .ms-input-wrap {
-  flex: 1; background: #f5f5f5; border-radius: 22px;
+  flex: 1; background: #f5f5f5; border-radius: var(--ui-radius-lg);
   padding: 9px 14px; display: flex; align-items: center;
 }
 .ms-input-wrap textarea {
@@ -287,7 +283,7 @@ body {
 .ms-input-wrap textarea::-webkit-scrollbar { display: none; }
 .ms-input-wrap textarea::placeholder { color: #aaa; }
 .ms-send-btn {
-  width: 40px; height: 40px; background: #730201; border: none;
+  width: 40px; height: 40px; background: var(--ui-primary); border: none;
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; transition: transform 0.15s, background 0.15s;
 }
@@ -295,13 +291,13 @@ body {
 
 /* Requests tab — service request cards */
 .ms-request-card {
-  margin: 12px 18px; background: #fff; border-radius: 16px;
+  margin: 12px 18px; background: #fff; border-radius: var(--ui-radius-md);
   border: 1px solid #f0f0f0; padding: 14px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 .ms-request-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .ms-request-icon {
-  width: 44px; height: 44px; background: #fde8e8; border-radius: 12px;
+  width: 44px; height: 44px; background: #fde8e8; border-radius: var(--ui-radius-sm);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .ms-request-info { flex: 1; }
@@ -309,41 +305,20 @@ body {
 .ms-request-sub { font-size: 12px; color: #888; margin-top: 2px; }
 .ms-request-status {
   font-size: 10px; font-weight: 800; padding: 4px 10px;
-  border-radius: 20px; background: #fff3e0; color: #e65100;
+  border-radius: var(--ui-radius-lg); background: #fff3e0; color: #e65100;
 }
 .ms-request-status.active { background: #e3f2fd; color: #1565c0; }
 .ms-request-actions { display: flex; gap: 8px; }
 .ms-request-btn {
-  flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700;
+  flex: 1; padding: 10px; border-radius: var(--ui-radius-sm); font-size: 13px; font-weight: 700;
   cursor: pointer; font-family: inherit; border: none; transition: background 0.15s;
 }
-.ms-request-btn.primary { background: #730201; color: #fff; }
+.ms-request-btn.primary { background: var(--ui-primary); color: #fff; }
 .ms-request-btn.secondary { background: #f5f5f5; color: #555; }
 .ms-request-btn.primary:active { background: #5a0101; }
 
-/* ══════════════════════════════════════════
-   BOTTOM NAV
-══════════════════════════════════════════ */
-.bottom-nav {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 430px; z-index: 200;
-  background: rgba(255,255,255,0.96); backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  display: flex; align-items: center; justify-content: space-around;
-  padding: 8px 0 env(safe-area-inset-bottom, 10px);
-  border-top: 1px solid #f0f0f0;
-}
-.nav-item {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: none; border: none; cursor: pointer; text-decoration: none;
-  font-size: 10px; font-weight: 600; color: #aaa; padding: 4px 10px;
-}
-.nav-item span { font-size: 10px; font-weight: 600; color: #aaa; }
-.nav-item.active span { color: #730201; }
-.nav-item.active svg path,
-.nav-item.active svg circle,
-.nav-item.active svg polyline,
-.nav-item.active svg rect { stroke: #730201; }
+/* Bottom-nav styles removed — page uses the shared floatingNav component.
+   Old local .bottom-nav / .nav-item rules were orphaned (no matching markup). */
 
 /* ══════════════════════════════════════════
    DARK MODE
@@ -356,9 +331,7 @@ html.dark .ms-title { color: #f0f0f0; }
 html.dark .ms-search-wrap { background: #1e1e1e; }
 html.dark .ms-search-bar { background: #2a2a2a; }
 html.dark .ms-search-bar input { color: #f0f0f0; }
-html.dark .ms-filter-bar { border-color: #2e2e2e; }
-html.dark .ms-filter-tab { color: #555; }
-html.dark .ms-filter-tab.active { color: #f87171; border-color: #f87171; }
+/* Filter-tab dark-mode styles live in shared/css/components/tabs.css */
 html.dark .ms-conv-item { border-color: #1e1e1e; }
 html.dark .ms-conv-item.unread { background: #1a0000; }
 html.dark .ms-conv-item:active { background: #222; }
@@ -374,8 +347,3 @@ html.dark .ms-bubble.theirs { background: #1e1e1e; color: #f0f0f0; }
 html.dark .ms-input-bar { background: #1e1e1e; border-color: #2e2e2e; }
 html.dark .ms-input-wrap { background: #2a2a2a; }
 html.dark .ms-input-wrap textarea { color: #f0f0f0; }
-html.dark .bottom-nav { background: rgba(30,30,30,0.96); border-color: #2e2e2e; }
-html.dark .nav-item span { color: #555; }
-html.dark .nav-item.active span { color: #f87171; }
-html.dark .nav-item.active svg path,
-html.dark .nav-item.active svg circle { stroke: #f87171; }

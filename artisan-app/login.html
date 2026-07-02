@@ -1,24 +1,32 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>HandyHub – Artisan Login</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/design-system.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     :root {
-      --primary:       #F97316;
-      --primary-dark:  #EA6C08;
-      --primary-light: #FFF7ED;
-      --text-dark:     #111827;
-      --text-mid:      #4B5563;
-      --text-light:    #9CA3AF;
-      --surface:       #FFFFFF;
-      --surface-2:     #F9FAFB;
-      --border:        #E5E7EB;
-      --danger:        #EF4444;
-      --success:       #22C55E;
-      --radius-md:     14px;
+      /* Local aliases that map old names to canonical ds-* tokens.
+         --primary / --radius-md are replaced below so no page-local token
+         shadows a ds- value. New code should use --ds-* directly. */
+      --primary:       var(--ds-brand-500);
+      --primary-dark:  var(--ds-brand-600);
+      --primary-light: var(--ds-brand-50);
+      --text-dark:     var(--ds-ink);
+      --text-mid:      var(--ds-ink-2);
+      --text-light:    var(--ds-ink-4);
+      --surface:       var(--ds-surface);
+      --surface-2:     var(--ds-surface-2);
+      --border:        var(--ds-line-strong);
+      --danger:        var(--ds-danger);
+      --success:       var(--ds-success);
+      --radius-md:     var(--ds-r-control);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; -webkit-text-size-adjust: 100%; }
@@ -188,7 +196,7 @@
     </div>
     <p class="hero-title">HandyHub Pro</p>
     <p class="hero-sub">Your professional platform for skilled work</p>
-    <span class="hero-badge">🔧 Artisan Portal</span>
+    <span class="hero-badge"><i class="fa-solid fa-screwdriver-wrench"></i> Artisan Portal</span>
   </div>
 
   <div class="login-body">

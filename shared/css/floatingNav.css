@@ -1,4 +1,4 @@
-/* ════════════════════════════════════════════════════════════════════
+﻿/* ════════════════════════════════════════════════════════════════════
    HandyHub · Liquid Glass Floating Navigation
    shared/css/floatingNav.css
 ════════════════════════════════════════════════════════════════════ */
@@ -156,7 +156,7 @@
 
 /* ── Active state ───────────────────────────────────────────────── */
 .hh-fnav-item.hh-fnav-active {
-  color: #730201;
+  color: var(--nav-brand);
 }
 
 /* Icon scales up slightly */
@@ -172,8 +172,8 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(115, 2, 1, 0.14) 0%,
-    rgba(115, 2, 1, 0.05) 55%,
+    rgba(var(--nav-brand-rgb), 0.14) 0%,
+    rgba(var(--nav-brand-rgb), 0.05) 55%,
     transparent 70%
   );
   pointer-events: none;
@@ -197,7 +197,7 @@
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  background: #730201;
+  background: var(--nav-brand);
   color: #fff;
   font-size: 9px;
   font-weight: 800;
@@ -205,9 +205,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow:
-    0 0  0 2px rgba(255, 255, 255, 0.92),
-    0 2px 8px rgba(115, 2, 1, 0.55);
   pointer-events: none;
   letter-spacing: 0;
   line-height: 1;
@@ -256,28 +253,17 @@
   }
 
   .hh-fnav-item.hh-fnav-active {
-    color: #f04040;
+    color: var(--nav-brand-dark);
   }
 
   .hh-fnav-item.hh-fnav-active .hh-fnav-icon {
     transform: scale(1.12) translateY(-1px);
   }
 
-  .hh-fnav-item.hh-fnav-active .hh-fnav-icon::before {
-    background: radial-gradient(
-      circle,
-      rgba(240, 64, 64, 0.18) 0%,
-      rgba(240, 64, 64, 0.06) 55%,
-      transparent 70%
-    );
-  }
-
-
-
   .hh-fnav-badge {
     box-shadow:
       0 0  0 2px rgba(18, 18, 24, 0.95),
-      0 2px 8px rgba(240, 64, 64, 0.55);
+      0 2px 8px rgba(var(--nav-brand-rgb), 0.55);
   }
 }
 
@@ -367,12 +353,11 @@
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background: #730201;
+  background: var(--nav-brand);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 16px rgba(115, 2, 1, 0.38);
 }
 
 .em-modal-title {
@@ -401,7 +386,6 @@
   gap: 7px;
   padding: 14px 8px 12px;
   background: #fafafa;
-  border: 1.5px solid #efefef;
   border-radius: 16px;
   cursor: pointer;
   font-family: inherit;
@@ -410,24 +394,22 @@
 }
 .em-type-btn:active {
   transform: scale(0.94);
-  background: #fff0f0;
-  border-color: #730201;
+  background: rgba(var(--nav-brand-rgb), 0.06);
+  border-color: var(--nav-brand);
 }
 
 .em-type-icon {
   width: 42px;
   height: 42px;
-  background: #fff;
+  background: #fafafa;                                                                                                                                                                                                                                                                                                                                       
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid #efefef;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-}
+  }
 
 .em-type-name {
-  font-size: 10.5px;
+  font-size: 10.5px;                                                                                                                  
   font-weight: 700;
   color: #333;
   text-align: center;

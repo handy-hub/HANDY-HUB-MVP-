@@ -111,14 +111,17 @@ async function sendArtisanNotification(artisanId, data) {
 // Internal
 // ─────────────────────────────────────────────────────────────────────────────
 
+// FCM push title limit (iOS restricts to ~65 chars before truncation)
+const FCM_TITLE_MAX = 65;
+
 async function _write(receiverId, type, data) {
     const ref = db().collection(NOTIF_COL).doc();
     await ref.set({
         receiverId,
         senderId:  data.senderId  ?? null,
         type,
-        title:     data.title,
-        message:   data.message,
+        title:     String(data.title  || '').slice(0, FCM_TITLE_MAX),
+        message:   String(data.message || '').slice(0, 200),
         isRead:    false,
         readAt:    null,
         actionUrl: data.actionUrl ?? null,
@@ -133,8 +136,8 @@ async function _sendFcm(token, type, data, userId, userType) {
         await messaging().send({
             token,
             notification: {
-                title: data.title,
-                body:  data.message,
+                title: String(data.title  || '').slice(0, FCM_TITLE_MAX),
+                body:  String(data.message || '').slice(0, 200),
             },
             webpush: {
                 notification: {

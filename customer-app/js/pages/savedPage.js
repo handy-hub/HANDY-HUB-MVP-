@@ -1,5 +1,5 @@
-import { requireAuth }     from '../../shared/js/utils/authGuard.js';
-import { getAppContainer } from '../../shared/js/app/container.js';
+import { requireAuth }     from '../../../shared/js/utils/authGuard.js';
+import { getAppContainer } from '../../../shared/js/app/container.js';
 
 await requireAuth();
 

@@ -1,19 +1,29 @@
 /**
  * adBanner.js — Data-driven promotional banner system
  *
- * TO ADD / REMOVE / EDIT A BANNER: change BANNER_DATA only. Zero HTML edits needed.
- * TO GO LIVE WITH FIRESTORE:       replace loadBanners() with a Firestore query and
- *                                  pass the result array into mountAdBanner().
+ * Data source: Firestore "promotions" collection (see promotionService.js),
+ * filtered/targeted/capped by resolvePromotions(). If Firestore fails,
+ * returns no results, or the user has no session, this falls back to the
+ * hardcoded BANNER_DATA below unconditionally — the carousel must never
+ * render blank. See loadBanners() for the exact fallback sequence.
+ *
+ * TO ADD / REMOVE / EDIT THE FALLBACK BANNERS: change BANNER_DATA only.
+ * Live promotions are managed in Firestore (promotions collection), not here.
  *
  * Each banner's `action` field fully controls where a tap/click navigates.
  * Supported action types:
- *   'service'  → sets hh_service (+ optional hh_task) then goes to book-now.html
+ *   'service'  → opens the service-detail (research) page for that category
  *   'artisan'  → stores artisan object then goes to artisan-profile.html
  *   'route'    → navigates to any internal page (action.payload.url)
  *   'external' → opens a URL in a new tab (action.payload.url)
  *   'promo'    → stores a promo code then goes to action.payload.url
  *   'category' → stores browse category then goes to browse.html
  */
+import { resolveCategory } from '../../shared/js/data/serviceCatalog.js';
+import {
+  loadActivePromotions, resolveImage, resolvePromotions,
+  trackPromotionImpression, trackPromotionClick,
+} from '../../shared/js/services/promotionService.js';
 
 /* ═══════════════════════════════════════════════════
    BANNER DATA  ←  edit here to manage promotions
@@ -91,6 +101,94 @@ export const BANNER_DATA = [
 ];
 
 /* ═══════════════════════════════════════════════════
+   FIRESTORE ADAPTER
+   Maps the strict promotions/{id} schema (content/media/action/…) onto the
+   exact shape renderSlide()/resolveAction() already expect (title/subtitle/
+   image/action.payload/…), so the rendering and navigation code below never
+   needs to know whether a slide came from Firestore or BANNER_DATA.
+═══════════════════════════════════════════════════ */
+function adaptPromotion(promo) {
+  const content  = promo.content  ?? {};
+  const media    = promo.media    ?? {};
+  const action   = promo.action   ?? {};
+  const value    = action.value ?? '';
+
+  // Map the single flat `action.value` onto the payload shape resolveAction()
+  // already reads per type — this is the only place that knows both shapes.
+  const PAYLOAD_BY_TYPE = {
+    service:  { service: value },
+    artisan:  { id: value },
+    route:    { url: value },
+    external: { url: value },
+    promo:    { code: value, url: value },
+    category: { category: value, url: value },
+  };
+
+  return {
+    id: promo.id,
+    tag: content.tag ?? '',
+    title: content.title ?? '',
+    subtitle: content.subtitle ?? '',
+    body: content.body ?? '',
+    cta: content.cta ?? 'Learn More',
+    color: promo.color ?? 'linear-gradient(135deg, #4a8cc9 0%, #1e5a9a 100%)',
+    image: resolveImage(media.imageKey),
+    clients: promo.clients ?? null,
+    action: { type: action.type, payload: PAYLOAD_BY_TYPE[action.type] ?? {} },
+    _isPromotion: true, // marks a Firestore-sourced slide for analytics tracking
+  };
+}
+
+/* ═══════════════════════════════════════════════════
+   LOAD BANNERS  — explicit 5-stage pipeline, Firestore-first with a
+   deterministic BANNER_DATA fallback. NEVER throws, NEVER resolves to an
+   empty array — mountAdBanner() always gets at least the hardcoded
+   fallback slides to render.
+
+   Stage 1 Fetch      loadActivePromotions()   → PromotionLoadResult
+   Stage 2 Normalize  adaptPromotion()         → (applied per-item, Stage 4)
+   Stage 3 Filter     resolvePromotions()      → targeted array
+   Stage 4 State      resolveLoadState()       → { status, reason }
+   Stage 5 Fallback   decided from status ALONE, never from array length
+═══════════════════════════════════════════════════ */
+
+/**
+ * Stage 4 — turn a fetch result + filter result into one explicit state.
+ * The fallback decision (Stage 5, in loadBanners()) reads ONLY `.status`,
+ * never re-inspects array lengths — `reason` exists purely for logging.
+ * @returns {{status: "success"|"empty", reason: "network"|"no_docs"|"filtered_out"|null}}
+ */
+function resolveLoadState(fetchResult, targeted) {
+  if (fetchResult.status === 'error') {
+    return { status: 'error', reason: 'network' };
+  }
+  if (fetchResult.status === 'empty') {
+    return { status: 'empty', reason: 'no_docs' };
+  }
+  // fetchResult.status === 'success' (Firestore had active docs) but targeting
+  // may still have excluded all of them for this particular user.
+  if (targeted.length === 0) {
+    return { status: 'empty', reason: 'filtered_out' };
+  }
+  return { status: 'success', reason: null };
+}
+
+async function loadBanners(user) {
+  const fetchResult = await loadActivePromotions();        // Stage 1 — never throws
+  const targeted     = resolvePromotions(user, fetchResult.data); // Stage 3
+  const state         = resolveLoadState(fetchResult, targeted);  // Stage 4
+
+  // Stage 5 — fallback decided from status only, per the strict rule:
+  // "status === error OR status === empty" → BANNER_DATA, regardless of
+  // WHY it's empty (no_docs vs filtered_out are not distinguished here).
+  if (state.status !== 'success') {
+    console.info(`[adBanner] Using fallback banners (status=${state.status}, reason=${state.reason}).`);
+    return BANNER_DATA;
+  }
+  return targeted.map(adaptPromotion); // Stage 2 applied here, only on the success path
+}
+
+/* ═══════════════════════════════════════════════════
    NAVIGATION RESOLVER
    Reads the banner's action object — never hard-codes a URL.
 ═══════════════════════════════════════════════════ */
@@ -102,7 +200,12 @@ export function resolveAction(action) {
       const { service, task } = action.payload ?? {};
       if (service) sessionStorage.setItem('hh_service', service);
       if (task)    sessionStorage.setItem('hh_task', task);
-      window.location.href = 'book-now.html';
+      // Promo/recommendation → land on the service-detail (research) page so the
+      // customer can see what's included and the price before committing.
+      const cat = resolveCategory(service);
+      window.location.href = cat
+        ? `service-detail.html?cat=${encodeURIComponent(cat.id)}`
+        : 'book-step1.html';
       break;
     }
     case 'artisan': {
@@ -193,9 +296,16 @@ function renderSlide(banner, index) {
 
 /* ═══════════════════════════════════════════════════
    MOUNT  — call once per page that uses the banner
+   Async data source: if `banners` is omitted, this loads live Firestore
+   promotions (targeted for `user` if provided) and falls back to
+   BANNER_DATA automatically — see loadBanners() above. Passing an explicit
+   `banners` array (as before) skips the Firestore fetch entirely, so
+   existing/future synchronous callers are unaffected.
 ═══════════════════════════════════════════════════ */
-export function mountAdBanner(containerEl, dotsEl, banners = BANNER_DATA) {
-  if (!containerEl || !banners.length) return;
+export async function mountAdBanner(containerEl, dotsEl, banners = null, user = null) {
+  if (!containerEl) return;
+  if (!banners) banners = await loadBanners(user);
+  if (!banners.length) return;
 
   const sliderEl = containerEl.querySelector('.slider');
   if (!sliderEl) return;
@@ -248,6 +358,7 @@ export function mountAdBanner(containerEl, dotsEl, banners = BANNER_DATA) {
   let current = 0;
   let timer   = null;
   const INTERVAL = 5000;
+  const _trackedImpressions = new Set(); // one impression per slide per mount, not per re-view
 
   function goTo(index) {
     current = ((index % n) + n) % n;
@@ -256,6 +367,11 @@ export function mountAdBanner(containerEl, dotsEl, banners = BANNER_DATA) {
       dotsEl.querySelectorAll('.dot').forEach((d, i) =>
         d.classList.toggle('active', i === current)
       );
+    }
+    const shown = banners[current];
+    if (shown?._isPromotion && !_trackedImpressions.has(shown.id)) {
+      _trackedImpressions.add(shown.id);
+      trackPromotionImpression(shown.id); // fire-and-forget, never blocks the transition
     }
   }
 
@@ -298,6 +414,7 @@ export function mountAdBanner(containerEl, dotsEl, banners = BANNER_DATA) {
     const slide = e.target.closest('.slide');
     if (!slide) return;
     const banner = banners[parseInt(slide.dataset.bannerIndex, 10)];
+    if (banner?._isPromotion) trackPromotionClick(banner.id); // fire-and-forget
     if (banner?.action) resolveAction(banner.action);
   });
 
@@ -308,6 +425,7 @@ export function mountAdBanner(containerEl, dotsEl, banners = BANNER_DATA) {
     if (!slide) return;
     e.preventDefault();
     const banner = banners[parseInt(slide.dataset.bannerIndex, 10)];
+    if (banner?._isPromotion) trackPromotionClick(banner.id); // fire-and-forget
     if (banner?.action) resolveAction(banner.action);
   });
 

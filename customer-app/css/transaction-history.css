@@ -82,7 +82,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: var(--ui-radius-sm);
   transition: background 0.15s;
 }
 
@@ -96,14 +96,15 @@ button {
 =========================== */
 .wallet-card {
   background: #fff;
-  border-radius: 18px;
-  border: 1.5px solid #eee;
+  border-radius: var(--ui-radius-lg);
+  border: 1px solid #eee;
   padding: 24px 20px;
   margin-bottom: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  position: sticky;
 }
 
 .wallet-label {
@@ -117,7 +118,7 @@ button {
   font-weight: 800;
   color: #111;
   letter-spacing: -0.5px;
-  margin-bottom: 14px;
+  margin-bottom: 7px;
 }
 
 .wallet-btns {
@@ -135,7 +136,7 @@ button {
   font-size: 13px;
   font-weight: 700;
   padding: 10px 22px;
-  border-radius: 12px;
+  border-radius: var(--ui-radius-sm);
   font-family: inherit;
   transition: background 0.15s, transform 0.1s;
   flex: 1;
@@ -144,8 +145,7 @@ button {
 
 .topup-btn {
   background: #ffe0e0;
-  color: #730201;
-  border: 1.5px solid #f5c0c0;
+  color: var(--ui-primary);
 }
 
 .topup-btn:hover {
@@ -154,9 +154,9 @@ button {
 }
 
 .withdraw-btn {
-  background: #730201;
+  background: var(--ui-primary);
   color: #fff;
-  border: 1.5px solid #730201;
+  border: 1.5px solid var(--ui-primary);
 }
 
 .withdraw-btn:hover {
@@ -180,8 +180,8 @@ button {
 =========================== */
 .transactions-card {
   background: #fff;
-  border-radius: 18px;
-  border: 1.5px solid #eee;
+  border-radius: var(--ui-radius-lg);
+  border: 1px solid #eee;
   overflow: hidden;
   margin-bottom: 16px;
 }
@@ -215,10 +215,12 @@ button {
 
 .txn-icon.credit {
   background: #fff5f5;
+  color: var(--ui-primary);
 }
 
 .txn-icon.referral {
   background: #fff5f5;
+  color: var(--ui-primary);
 }
 
 .txn-details {
@@ -301,18 +303,18 @@ button {
 =========================== */
 .statement-banner {
   background: #fff5f5;
-  border-radius: 16px;
+  border-radius: var(--ui-radius-md);
   padding: 16px;
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
+  margin-top: 20px;
 }
 
 .statement-icon {
   width: 46px;
   height: 46px;
-  background: #ffe0e0;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -326,7 +328,7 @@ button {
 }
 
 .statement-title {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: #111;
   margin-bottom: 2px;
@@ -339,12 +341,12 @@ button {
 }
 
 .download-btn {
-  border: 1.8px solid #730201;
-  color: #730201;
+  border: 1.8px solid var(--ui-primary);
+  color: var(--ui-primary);
   font-size: 11.5px;
   font-weight: 700;
   padding: 9px 12px;
-  border-radius: 10px;
+  border-radius: var(--ui-radius-sm);
   white-space: nowrap;
   font-family: inherit;
   display: flex;
@@ -355,7 +357,7 @@ button {
 }
 
 .download-btn:hover {
-  background: #730201;
+  background: var(--ui-primary);
   color: #fff;
 }
 
@@ -379,48 +381,5 @@ button {
   color: #999;
 }
 
-/* ===========================
-   BOTTOM NAV
-=========================== */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(100%, 430px);
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 6px 0 max(8px, env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.97);
-  border-top: 1px solid #f0f0f0;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  z-index: 200;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  font-size: 10.5px;
-  font-weight: 500;
-  color: #aaa;
-  font-family: inherit;
-  transition: opacity 0.15s;
-}
-
-.nav-item:hover {
-  opacity: 0.7;
-}
-
-.nav-item span {
-  color: #aaa;
-}
-
-.nav-item.active span,
-.nav-item .active-label {
-  color: #730201;
-}
+/* Bottom-nav styles removed — page uses the shared floatingNav component.
+   Old local .bottom-nav / .nav-item rules were orphaned (no matching markup). */

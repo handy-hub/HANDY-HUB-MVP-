@@ -6,7 +6,10 @@
   <title>Personal Information | HandyHub</title>
   <link rel="stylesheet" href="css/settings.css" />
   <link rel="stylesheet" href="../shared/css/pageTransitions.css" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
   <script src="../shared/js/utils/themeManager.js"></script>
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
@@ -28,7 +31,7 @@
 
       <div class="privacy-note">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         Your information is kept private and only used to improve your experience on Handy Hub.
       </div>
@@ -99,9 +102,5 @@
 
   <script type="module" src="js/pages/settingsPersonalInfo.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
-<script type="module">
-  import { requireAuth } from '../shared/js/utils/authGuard.js';
-  await requireAuth();
-</script>
 </body>
 </html>

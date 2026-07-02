@@ -5,10 +5,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev":      "npx serve . -p 8766 --no-clipboard",
-    "start":    "npx serve . -p 8766 --no-clipboard",
-    "serve:ca": "npx serve customer-app -p 8765 --no-clipboard",
-    "test":     "python tests/verify_low_fixes.py"
+    "dev":           "npx serve . -p 8766 --no-clipboard",
+    "start":         "npx serve . -p 8766 --no-clipboard",
+    "serve:ca":      "npx serve customer-app -p 8765 --no-clipboard",
+    "stage":         "node scripts/stage-hosting.cjs customer-app && node scripts/stage-hosting.cjs artisan-app",
+    "deploy":        "npm run lint:filters && npm run stage && firebase deploy --only hosting",
+    "deploy:ca":     "npm run lint:filters && node scripts/stage-hosting.cjs customer-app && firebase deploy --only hosting:customer",
+    "deploy:aa":     "npm run lint:filters && node scripts/stage-hosting.cjs artisan-app && firebase deploy --only hosting:artisan",
+    "deploy:rules":  "firebase deploy --only firestore:rules,storage",
+    "deploy:all":    "npm run lint:filters && npm run stage && firebase deploy",
+    "lint:filters":  "node scripts/check-filter-tabs.cjs",
+    "test":          "npm run lint:filters && python tests/verify_low_fixes.py"
   },
   "devDependencies": {
     "serve": "^14.0.0"

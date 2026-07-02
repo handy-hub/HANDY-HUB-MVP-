@@ -181,7 +181,7 @@ async function executeCustomerWithdrawal(uid, { amountGHS, provider, phone, cust
         // Notify customer: withdrawal is on its way
         sendNotification(uid, {
             type:      'Payments',
-            title:     '⏳ Withdrawal Initiated',
+            title:     'Withdrawal Initiated',
             message:   `GHS ${amount.toFixed(2)} to your ${PROVIDER_NAMES[provider] || provider} account is being processed.`,
             actionUrl: 'transaction-history.html',
             metadata:  { ref, payoutId: payoutRef.id },
@@ -209,7 +209,7 @@ async function executeCustomerWithdrawal(uid, { amountGHS, provider, phone, cust
         // Notify customer: transfer could not start
         sendNotification(uid, {
             type:      'Payments',
-            title:     '❌ Withdrawal Failed',
+            title:     'Withdrawal Failed',
             message:   `Your GHS ${amount.toFixed(2)} withdrawal could not be initiated. Your balance has been restored.`,
             actionUrl: 'transaction-history.html',
             metadata:  { ref },
@@ -321,7 +321,7 @@ async function executeArtisanWithdrawal(uid, { amountGHS, provider, phone, artis
         // Notify artisan: payout is on its way
         sendArtisanNotification(uid, {
             type:      'Payments',
-            title:     '⏳ Withdrawal Initiated',
+            title:     'Withdrawal Initiated',
             message:   `GHS ${amount.toFixed(2)} to your ${PROVIDER_NAMES[provider] || provider} account is being processed.`,
             actionUrl: 'wallet.html',
             metadata:  { ref, payoutId: payoutRef.id },
@@ -348,7 +348,7 @@ async function executeArtisanWithdrawal(uid, { amountGHS, provider, phone, artis
         // Notify artisan: transfer could not start, balance restored
         sendArtisanNotification(uid, {
             type:      'Payments',
-            title:     '❌ Withdrawal Failed',
+            title:     'Withdrawal Failed',
             message:   `Your GHS ${amount.toFixed(2)} withdrawal could not be initiated. Your balance has been restored.`,
             actionUrl: 'wallet.html',
             metadata:  { ref },
@@ -439,7 +439,7 @@ async function _updateTransferOutcome(ref, newStatus, failureReason) {
         const url     = payout.userType === 'artisan' ? 'wallet.html' : 'transaction-history.html';
         notifFn(payout.userId, {
             type:      'Payments',
-            title:     '✅ Withdrawal Successful',
+            title:     'Withdrawal Successful',
             message:   `GHS ${payout.amount.toFixed(2)} has been sent to your ${providerLabel} account successfully.`,
             actionUrl: url,
             metadata:  { ref, payoutId: payoutDoc.id },
@@ -473,7 +473,7 @@ async function _updateTransferOutcome(ref, newStatus, failureReason) {
         const statusLabel = newStatus === 'reversed' ? 'reversed by the bank' : 'unsuccessful';
         notifFn(payout.userId, {
             type:      'Payments',
-            title:     '❌ Withdrawal Failed',
+            title:     'Withdrawal Failed',
             message:   `Your GHS ${payout.amount.toFixed(2)} withdrawal was ${statusLabel}. Your balance has been restored.`,
             actionUrl: url,
             metadata:  { ref, payoutId: payoutDoc.id },

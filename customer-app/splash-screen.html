@@ -1,4 +1,4 @@
-
+﻿
 
 
 <!DOCTYPE html>
@@ -14,8 +14,9 @@
 <body>
     <div class="app" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh;">
         <img src="../shared/assets/images/handyhub-logo-text.png" alt="HandyHub" style="width: 220px; max-width: 90%;"
-             onerror="this.onerror=null;this.style.display='none';this.insertAdjacentHTML('afterend','<span style=&quot;font-weight:800;font-size:28px;color:#730201;letter-spacing:-0.5px;&quot;>HandyHub</span>')">
-        <p style="margin-top: 20px; color: #730201; font-weight: 700;">Loading HandyHub...</p>
+             onerror="this.onerror=null;this.style.display='none';var fb=document.getElementById('splash-logo-fb');if(fb)fb.removeAttribute('hidden');">
+        <span id="splash-logo-fb" hidden style="font-weight:800;font-size:28px;color:var(--ui-primary,#730201);letter-spacing:-0.5px;">HandyHub</span>
+        <p style="margin-top: 20px; color: var(--ui-primary); font-weight: 700;">Loading HandyHub...</p>
     </div>
     <script src="../shared/js/utils/global-app.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
@@ -45,5 +46,3 @@
 </script>
 </body>
 </html>
-
-

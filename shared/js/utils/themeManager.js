@@ -77,7 +77,7 @@ function applyTheme(value) {
           const lon = position.coords.longitude;
           
           // Free reverse geocoding API with no API keys required
-          const geoUrl = `https://bigdatacloud.net{lat}&longitude=${lon}&localityLanguage=en`;
+          const geoUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
           const res = await fetch(geoUrl);
           const data = await res.json();
           

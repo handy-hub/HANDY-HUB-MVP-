@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Verify Email | HandyHub Artisan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+  <link rel="icon" href="../shared/assets/icons/favicon.ico">
+  <link rel="stylesheet" href="../shared/css/ui-polish.css">
+
+  <!-- Firebase init -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    initializeApp({
+      apiKey:            "AIzaSyD0GXJZ4o3QmPAQHm5U5KH-e3_xJHuDxFk",
+      authDomain:        "lamax-4fd82.firebaseapp.com",
+      projectId:         "lamax-4fd82",
+      storageBucket:     "lamax-4fd82.appspot.com",
+      messagingSenderId: "1083664950745",
+      appId:             "1:1083664950745:web:f1d3ad0e5a1f8b4d2f3c9e",
+    });
+  </script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --amb:       #D4880E;
+  --amb-dark:  #B8720A;
+  --amb-light: #FEF6EC;
+
+  --white:     #ffffff;
+  --grey-50:   #f7f7f7;
+  --grey-100:  #f0f0f0;
+  --grey-200:  #e4e4e4;
+  --grey-300:  #d4d4d4;
+  --grey-400:  #aaaaaa;
+  --grey-500:  #737373;
+  --grey-600:  #666666;
+  --grey-900:  #111111;
+
+  --text-primary:   var(--grey-900);
+  --text-secondary: var(--grey-600);
+
+  --spring:   cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+
+  --r-sm:  10px;
+  --r-md:  14px;
+  --r-lg:  16px;
+  --r-3xl: 32px;
+
+  --shadow-btn:      0 8px 24px rgba(212,136,14,0.40);
+  --shadow-btn-press:0 2px  8px rgba(212,136,14,0.24);
+  --shadow-card:     0 -3px 40px rgba(0,0,0,0.09);
+}
+
+html { min-height: 100%; }
+body {
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: 100dvh;
+  background: #fefefe;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── Page shell ─────────────────────────────────────────── */
+.as-page {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ── Hero ───────────────────────────────────────────────── */
+.as-hero {
+  position: relative;
+  overflow: hidden;
+  background: #fefefe;
+  padding: 0 0 80px;
+  flex-shrink: 0;
+}
+
+.as-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(212,136,14,0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+.as-hero::after {
+  content: '';
+  position: absolute;
+  bottom: 20px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(212,136,14,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Nav ─────────────────────────────────────────────────── */
+.as-nav {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(env(safe-area-inset-top, 0px), 18px) 20px 0;
+}
+
+.as-back-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.09);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--grey-900);
+  transition: background 0.18s;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+}
+.as-back-btn:active { background: rgba(0,0,0,0.12); }
+
+.as-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  background: var(--amb-light);
+  border: 1px solid rgba(212,136,14,0.20);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--amb-dark);
+  letter-spacing: 0.02em;
+}
+
+/* ── Brand ───────────────────────────────────────────────── */
+.as-brand {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  padding: 18px 24px 0;
+}
+
+.as-logo {
+  width: 200px;
+  max-width: 75%;
+  height: auto;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+/* ── Hero body ───────────────────────────────────────────── */
+.hero-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 24px 0;
+  text-align: center;
+}
+
+.email-badge {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, var(--amb-dark) 0%, var(--amb) 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(212,136,14,0.36);
+}
+
+.hero-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.hero-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 290px;
+}
+
+.hero-sub strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* ── Floating card ───────────────────────────────────────── */
+.as-card {
+  flex: 1;
+  background: var(--white);
+  border-radius: var(--r-3xl) var(--r-3xl) 0 0;
+  margin-top: -50px;
+  box-shadow: var(--shadow-card);
+  padding: 10px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.as-handle {
+  width: 38px;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin: 0 auto 28px;
+  flex-shrink: 0;
+}
+
+/* ── OTP inputs ──────────────────────────────────────────── */
+.otp-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--grey-600);
+  margin-bottom: 12px;
+  letter-spacing: 0.1px;
+}
+
+.otp-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.otp-input {
+  width: 48px;
+  height: 58px;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  font-family: 'DM Sans', monospace;
+  border: 1.5px solid var(--grey-200);
+  border-radius: var(--r-md);
+  background: var(--grey-50);
+  color: var(--text-primary);
+  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), background 0.2s;
+  outline: none;
+  caret-color: var(--amb);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.otp-input:focus {
+  border-color: var(--amb);
+  box-shadow: 0 0 0 3.5px rgba(212,136,14,0.14);
+  background: var(--white);
+}
+
+.otp-input.filled {
+  border-color: var(--amb);
+  background: var(--amb-light);
+  color: var(--amb-dark);
+}
+
+/* ── Error message ───────────────────────────────────────── */
+.otp-error {
+  font-size: 13px;
+  color: #dc2626;
+  text-align: center;
+  min-height: 18px;
+  margin: 10px 0 4px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+/* ── Expire notice ───────────────────────────────────────── */
+.expire-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--grey-400);
+  margin-bottom: 20px;
+  font-weight: 400;
+}
+
+/* ── Submit button ───────────────────────────────────────── */
+.as-btn {
+  width: 100%;
+  height: 56px;
+  background: var(--amb);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-lg);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  cursor: pointer;
+  box-shadow: var(--shadow-btn);
+  transition: background 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out),
+              transform 0.12s var(--spring), opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  margin-top: 20px;
+  margin-bottom: 24px;
+}
+
+.as-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: var(--shadow-btn-press);
+}
+
+.as-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+
+.btn-spinner {
+  width: 20px; height: 20px;
+  border: 2.5px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Resend area ─────────────────────────────────────────── */
+.resend-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.resend-countdown {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+.resend-countdown strong { color: var(--text-primary); font-weight: 700; }
+
+.resend-btn {
+  background: none;
+  border: none;
+  color: var(--amb-dark);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.resend-btn:hover:not(:disabled) { background: var(--amb-light); }
+.resend-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Divider + restart ───────────────────────────────────── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--grey-200);
+}
+.divider span {
+  font-size: 12px;
+  color: var(--grey-400);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.restart-btn {
+  width: 100%;
+  height: 48px;
+  background: var(--grey-50);
+  border: 1.5px solid var(--grey-200);
+  border-radius: var(--r-lg);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+}
+.restart-btn:hover { background: var(--grey-100); border-color: var(--grey-300); }
+
+/* ── Focus ring ──────────────────────────────────────────── */
+:focus-visible { outline: 3px solid var(--amb); outline-offset: 3px; border-radius: 4px; }
+:focus:not(:focus-visible) { outline: none; }
+
+@media (max-width: 380px) {
+  .otp-input { width: 42px; height: 52px; font-size: 22px; }
+  .otp-row   { gap: 7px; }
+}
+</style>
+</head>
+<body>
+
+<main class="as-page" role="main">
+
+  <!-- ── Hero ──────────────────────────────────────────────── -->
+  <section class="as-hero">
+    <nav class="as-nav">
+      <a href="signup.html" class="as-back-btn" id="otp-restart-link" aria-label="Back to signup">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+      </a>
+      <div class="as-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Artisan Portal
+      </div>
+    </nav>
+
+    <div class="as-brand">
+      <img src="../shared/assets/images/handyhub-logo-text.png" alt="HandyHub" class="as-logo">
+    </div>
+
+    <div class="hero-body">
+      <div class="email-badge" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+      </div>
+      <h1 class="hero-title">Check your email</h1>
+      <p class="hero-sub">
+        We sent a 6-digit code to<br>
+        <strong id="otp-email-display">your email address</strong>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Floating card ──────────────────────────────────────── -->
+  <div class="as-card">
+    <div class="as-handle" aria-hidden="true"></div>
+
+    <!-- OTP inputs -->
+    <p class="otp-label">Enter verification code</p>
+    <div class="otp-row" role="group" aria-label="6-digit verification code">
+      <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
+             data-otp-input="1" placeholder="—" autocomplete="one-time-code" aria-label="Digit 1">
+      <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
+             data-otp-input="2" placeholder="—" autocomplete="off" aria-label="Digit 2">
+      <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
+             data-otp-input="3" placeholder="—" autocomplete="off" aria-label="Digit 3">
+      <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
+             data-otp-input="4" placeholder="—" autocomplete="off" aria-label="Digit 4">
+      <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
+             data-otp-input="5" placeholder="—" autocomplete="off" aria-label="Digit 5">
+      <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
+             data-otp-input="6" placeholder="—" autocomplete="off" aria-label="Digit 6">
+    </div>
+
+    <!-- Error -->
+    <p class="otp-error" id="otp-error" role="alert" hidden></p>
+
+    <!-- Expire notice -->
+    <div class="expire-notice">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      Code expires in 5 minutes
+    </div>
+
+    <!-- Submit -->
+    <button class="as-btn" id="otp-submit-btn" type="button">
+      <span id="otp-loading" hidden>
+        <span class="btn-spinner" aria-hidden="true"></span>
+      </span>
+      Verify &amp; Create Account
+    </button>
+
+    <!-- Resend -->
+    <div class="resend-row" aria-live="polite">
+      <p class="resend-countdown" id="otp-countdown-wrap">
+        Resend code in <strong><span id="otp-countdown">60</span>s</strong>
+      </p>
+      <button class="resend-btn" id="otp-resend-btn" type="button" disabled>
+        Didn't get it? Resend code
+      </button>
+    </div>
+
+    <!-- Divider + restart -->
+    <div class="divider"><span>wrong email?</span></div>
+    <a href="signup.html" class="restart-btn" id="otp-restart-link-2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+      Go back and change email
+    </a>
+
+  </div>
+</main>
+
+<script type="module">
+  import { bootstrapOtpVerifyPage } from '../shared/js/ui/otpVerifyController.js';
+
+  bootstrapOtpVerifyPage({
+    appType:         'artisan',
+    successRedirect: 'onboarding.html',
+    restartRedirect: 'signup.html',
+  });
+
+  // Add .filled class for visual feedback
+  document.querySelectorAll('[data-otp-input]').forEach(input => {
+    const update = () => input.classList.toggle('filled', input.value.length > 0);
+    input.addEventListener('input', update);
+    input.addEventListener('paste', () => requestAnimationFrame(update));
+  });
+
+  // Both restart links (nav back + bottom button) are wired by the controller
+</script>
+
+</body>
+</html>

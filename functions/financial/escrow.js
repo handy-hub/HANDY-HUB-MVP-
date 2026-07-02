@@ -273,7 +273,7 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
     if (!txResult.idempotent) {
         sendNotification(customerId, {
             type:      'Payments',
-            title:     '💳 Payment Secured',
+            title:     'Payment Secured',
             message:   `GHS ${amountNum.toFixed(2)} is safely held in escrow for your booking.`,
             actionUrl: 'booking.html',
             metadata:  { bookingId, escrowId: escrowRef.id },
@@ -480,7 +480,7 @@ async function releaseEscrow(escrowId, { releasedBy = 'system', callerAuth } = {
 
     sendArtisanNotification(artisanId, {
         type:      'Payments',
-        title:     '🎉 Payment Received',
+        title:     'Payment Received',
         message:   `GHS ${artisanShare.toFixed(2)} has been credited to your wallet for completing a booking.`,
         actionUrl: 'wallet.html',
         metadata:  { bookingId, escrowId },
@@ -488,7 +488,7 @@ async function releaseEscrow(escrowId, { releasedBy = 'system', callerAuth } = {
 
     sendNotification(customerId, {
         type:      'Bookings',
-        title:     '✅ Booking Completed',
+        title:     'Booking Completed',
         message:   `Your booking is complete and payment has been released to the artisan.`,
         actionUrl: 'booking.html',
         metadata:  { bookingId, escrowId },
@@ -582,7 +582,7 @@ async function refundEscrow(escrowId, { reason = 'Booking cancelled', refundedBy
 
     sendNotification(customerId, {
         type:      'Payments',
-        title:     '↩️ Refund Issued',
+        title:     'Refund Issued',
         message:   `GHS ${amount.toFixed(2)} has been refunded to your wallet. Reason: ${reason}.`,
         actionUrl: 'transaction-history.html',
         metadata:  { bookingId: bookingId || null, escrowId },

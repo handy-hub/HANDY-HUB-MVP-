@@ -23,7 +23,7 @@ const CSS = `
   top: max(16px, env(safe-area-inset-top, 0px) + 12px);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 11000;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
   align-items: stretch;

@@ -7,9 +7,12 @@
   <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="stylesheet" href="css/settings.css" />
   <link rel="stylesheet" href="../shared/css/pageTransitions.css" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
 
@@ -35,8 +38,8 @@
         <button class="menu-item" onclick="goTo('settings-personal-info.html')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="12" cy="7" r="4" stroke="#730201" stroke-width="1.7"/>
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2.0"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -50,8 +53,8 @@
         <button class="menu-item" onclick="goTo('settings-security.html')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="12" cy="11" r="2" stroke="#730201" stroke-width="1.5"/>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="11" r="2" stroke="currentColor" stroke-width="1.5"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -65,8 +68,8 @@
         <button class="menu-item" onclick="goTo('settings-privacy.html')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="11" width="18" height="11" rx="2" stroke="#730201" stroke-width="1.7"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#730201" stroke-width="1.7" stroke-linecap="round"/>
+              <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2.0"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -80,8 +83,8 @@
         <button class="menu-item" onclick="goTo('settings-notifications.html')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -95,8 +98,8 @@
         <button class="menu-item" onclick="goTo('settings-location.html')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" stroke="#730201" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="12" cy="10" r="3" stroke="#730201" stroke-width="1.7"/>
+              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2.0"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -115,8 +118,8 @@
         <button class="menu-item" onclick="openSheet('language-sheet')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="#111" stroke-width="1.7"/>
-              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="10" stroke="#111" stroke-width="2.0"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" stroke="#111" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -134,8 +137,8 @@
         <button class="menu-item" onclick="openSheet('theme-sheet')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="5" stroke="#111" stroke-width="1.7"/>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="#111" stroke-width="1.7" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="5" stroke="#111" stroke-width="2.0"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="#111" stroke-width="2.0" stroke-linecap="round"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -153,8 +156,8 @@
         <button class="menu-item" onclick="openSheet('currency-sheet')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="#111" stroke-width="1.7"/>
-              <path d="M12 6v6l4 2" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="10" stroke="#111" stroke-width="2.0"/>
+              <path d="M12 6v6l4 2" stroke="#111" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -171,8 +174,8 @@
         <button class="menu-item" onclick="openSheet('address-sheet')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-              <polyline points="9 22 9 12 15 12 15 22" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="#111" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="9 22 9 12 15 12 15 22" stroke="#111" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -191,8 +194,8 @@
         <button class="menu-item" onclick="goTo('settings-help.html')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3ZM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3Z" stroke="#111" stroke-width="1.7"/>
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="#111" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3ZM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3Z" stroke="#111" stroke-width="2.0"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -206,8 +209,8 @@
         <button class="menu-item" onclick="goTo('settings-terms.html')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" stroke="#111" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="#111" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -221,7 +224,7 @@
         <button class="menu-item" onclick="goTo('settings-privacy-policy.html')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="#111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="#111" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="menu-text">
@@ -235,8 +238,8 @@
         <button class="menu-item" onclick="goTo('settings-about.html')">
           <div class="menu-icon-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="#111" stroke-width="1.7"/>
-              <line x1="12" y1="8" x2="12" y2="12" stroke="#111" stroke-width="1.7" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="10" stroke="#111" stroke-width="2.0"/>
+              <line x1="12" y1="8" x2="12" y2="12" stroke="#111" stroke-width="2.0" stroke-linecap="round"/>
               <line x1="12" y1="16" x2="12.01" y2="16" stroke="#111" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </div>
@@ -249,23 +252,15 @@
 
       </div>
 
-      <!-- Sign Out -->
-      <button id="settings-logout-btn" class="logout-btn"
-        style="display:flex;align-items:center;gap:10px;width:calc(100% - 32px);margin:0 16px 12px;padding:14px 16px;border-radius:14px;border:1.5px solid #fde8e8;background:#fff5f5;cursor:pointer;font-size:15px;font-weight:700;color:#e53e3e;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/>
-          <path d="M16 17l5-5-5-5M21 12H9" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        Sign Out
-      </button>
+
 
       <!-- Delete Account -->
       <button class="delete-btn" onclick="openDeleteModal()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <polyline points="3 6 5 6 21 6" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M10 11v6M14 11v6" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#730201" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         Delete Account
       </button>
@@ -284,19 +279,19 @@
     <p class="sheet-title">Select Language</p>
     <button class="sheet-option selected" data-value="English" onclick="selectPref('language','English',this)">
       English
-      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="sheet-option" data-value="French" onclick="selectPref('language','French',this)">
       French
-      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="sheet-option" data-value="Twi" onclick="selectPref('language','Twi',this)">
       Twi
-      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="sheet-option" data-value="Hausa" onclick="selectPref('language','Hausa',this)">
       Hausa
-      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
 
@@ -306,11 +301,11 @@
     <p class="sheet-title">Select Theme</p>
     <button class="sheet-option selected" data-value="Light" onclick="selectPref('theme','Light',this)">
       Light
-      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="sheet-option" data-value="Dark" onclick="selectPref('theme','Dark',this)">
       Dark
-      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
   -->
@@ -321,19 +316,19 @@
     <p class="sheet-title">Select Currency</p>
     <button class="sheet-option selected" data-value="GHC" onclick="selectPref('currency','GHC',this)">
       GHC – Ghana Cedi
-      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="sheet-option" data-value="USD" onclick="selectPref('currency','USD',this)">
       USD – US Dollar
-      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="sheet-option" data-value="GBP" onclick="selectPref('currency','GBP',this)">
       GBP – British Pound
-      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="sheet-option" data-value="NGN" onclick="selectPref('currency','NGN',this)">
       NGN – Nigerian Naira
-      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#730201" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
 
@@ -357,10 +352,10 @@
     <div class="modal-card">
       <div class="modal-icon">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-          <polyline points="3 6 5 6 21 6" stroke="#730201" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="#730201" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M10 11v6M14 11v6" stroke="#730201" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#730201" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
       <p class="modal-title">Delete Account?</p>
@@ -590,5 +585,3 @@
 <script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>
-
-

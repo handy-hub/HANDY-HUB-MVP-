@@ -1,17 +1,20 @@
 ﻿@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
 
+/* Tokens mapped to the canonical design system (shared/css/ui-polish.css).
+   This file is not loaded by any customer page; these aliases exist only so it
+   stays self-consistent if ever referenced. Do not add new tokens here. */
 :root {
-    --primary-red: #730201;
-    --light-red: #fde8e8;
-    --bg-white: #ffffff;
-    --text-dark: #111111;
-    --text-grey: #666666;
-    --secondary-bg: #730201;
-    --maroon: #730201;
-    --text-main: #111111;
-    --text-sub: #666666;
-    --bg-page: #f7f7f7;
-    --unread-bg: #fffafa;
+    --primary-red:  var(--ui-primary);
+    --light-red:    var(--ui-primary-soft);
+    --bg-white:     var(--ui-surface);
+    --text-dark:    var(--ui-text);
+    --text-grey:    var(--ui-muted);
+    --secondary-bg: var(--ui-primary);
+    --maroon:       var(--ui-primary);
+    --text-main:    var(--ui-text);
+    --text-sub:     var(--ui-muted);
+    --bg-page:      var(--ui-bg);
+    --unread-bg:    #fffafa;
 }
 
 * {
@@ -47,7 +50,7 @@ body {
     align-items: center;
     justify-content: space-between; /* Pushes content to edges */
     padding: 0 15px;
-    border-radius: 16px; /* Capsule shape */
+    border-radius: var(--ui-radius-md); /* Capsule shape */
     z-index: 1000;
     
     /* GLASS EFFECT */
@@ -164,13 +167,13 @@ body {
 .name {
     font-size: 11px;
     font-weight: 800;
-    color: #730201;
+    color: var(--ui-primary);
     letter-spacing: 1px;
     margin: 0;
 }
 
 .location {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
     color: #000000;
     opacity: 0.8;
@@ -197,7 +200,7 @@ body {
 .notification-icon {
     width: 90%;
     height: 90%;
-    color: #730201;
+    color: var(--ui-primary);
     cursor: pointer;
 }
 .notification-badge {
@@ -206,9 +209,9 @@ body {
     right: -5px;
     width: fit-content;
     height: fit-content;
-    background: #730201;
+    background: var(--ui-primary);
     color: white;
-    font-size: 8px;
+    font-size: 11px;
     font-weight: bold;
     border-radius: 50%;
     display: flex;
@@ -227,7 +230,7 @@ body {
     margin-top: 12px;
     background: #ffffff !important;
     padding: 5px 6px;
-    border-radius: 16px;
+    border-radius: var(--ui-radius-md);
     border: 1.5px solid rgba(0,0,0,0.06);
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
@@ -246,7 +249,7 @@ body {
     border: none;
     outline: none;
     transition: opacity 0.4s ease;
-    border-radius: 12px;
+    border-radius: var(--ui-radius-sm);
     padding-left:12px;
     background-color: white !important;
     font-size: 14px;
@@ -275,11 +278,11 @@ body {
     display: flex;
     align-items: center;
     padding: 8px 7px;
-    border-radius: 14px;
+    border-radius: var(--ui-radius-md);
     border: none;
     cursor: pointer;
     background-color: #fae9e8;
-    color: #730201;
+    color: var(--ui-primary);
     height: fit-content;
 }
 .cat-btn span{
@@ -300,7 +303,7 @@ body {
     position: relative;
     margin-top: 10px;
     height: 175px;
-    border-radius: 20px;
+    border-radius: var(--ui-radius-lg);
     overflow: hidden;
     background: #111;
     container-type: size;
@@ -345,7 +348,7 @@ body {
     background: #f5e7e757;
     font-size: clamp(8px, 1.5vh, 10px);
     padding: 0.3em 1.2em;
-    border-radius: 10px;
+    border-radius: var(--ui-radius-sm);
     font-weight: 600;
     display: inline-block;
     margin-bottom: 0.5em;
@@ -372,11 +375,11 @@ body {
 }
 
 .book-now {
-    background: #730201;
+    background: var(--ui-primary);
     color: white;
     border: none;
     padding: 0.4em 1em;
-    border-radius: 30px;
+    border-radius: var(--ui-radius-lg);
     font-weight: bold;
     font-size: 6.5cqh;
     display: flex;
@@ -387,7 +390,7 @@ body {
 
 .arrow-icon {
     background: white;
-    color: #730201;
+    color: var(--ui-primary);
     width: 1.8em;
     height: 1.8em;
     border-radius: 50%;
@@ -418,7 +421,7 @@ body {
 .dot.active {
     background: rgb(255, 255, 255);
     width: clamp(10px, 2.5vh, 15px);
-    border-radius: 10px;
+    border-radius: var(--ui-radius-sm);
 }
 
 /* SLIDE ANIMATION — single definition */
@@ -434,7 +437,7 @@ body {
     gap: 15px; /* Slightly wider gap for better sliding feel */
     padding: 10px;
     background-color: white;
-    border-radius: 10px;
+    border-radius: var(--ui-radius-sm);
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
     
     /* These 3 lines enable the horizontal slide */
@@ -454,10 +457,10 @@ body {
 #service-slider::-webkit-scrollbar { display: none; }
 
 .c-one {
-    background-color: #730201;
+    background-color: var(--ui-primary);
     height: 65px;
     width: 65px;
-    border-radius: 15px;
+    border-radius: var(--ui-radius-md);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -475,7 +478,7 @@ body {
     background-color: #6b0803;
     height: 60px;
     width: 60px;
-    border-radius: 10px;
+    border-radius: var(--ui-radius-sm);
     display: flex; /* Added to center the icon perfectly */
     justify-content: center;
     align-items: center;
@@ -502,149 +505,15 @@ body {
     font-weight: 500;
 }
 
-.pro-list {
-    padding: 10px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-/* 1. Main Card Wrapper */
-.pro-card {
-    background: #fff;
-    border: 1.5px solid rgba(0,0,0,0.06);
-    border-radius: 16px;
-    padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    max-width: 500px;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-}
-
-/* 2. Left Side (Image + Text) */
-.pro-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;         /* Takes up available space */
-    min-width: 0;    /* CRITICAL: Allows text truncation inside flex */
-}
-
-/* Responsive Image Container */
-.img-container {
-    position: relative;
-    width: 60px;     /* Smaller fixed size for mobile-first */
-    height: 60px;
-    flex-shrink: 0;  /* Prevents image from squishing */
-}
-
-.img-container img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.status-dot {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 12px;
-    height: 12px;
-    background: #2ecc71;
-    border: 2px solid #fff;
-    border-radius: 50%;
-}
-
-/* 3. Details (The part that usually breaks) */
-.pro-details {
-    min-width: 0; /* Important for word-wrap */
-}
-
-.pro-details h3 {
-    font-size: 14px;
-    font-weight: 800;
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.pro-type {
-    font-size: 13px;
-    color: #666;
-    margin: 2px 0;
-}
-
-.rating, .distance {
-    font-size: 11px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-/* 4. Right Side (Pricing & Button) */
-.pro-right {
-    text-align: right;
-    flex-shrink: 0; /* Keeps the price section whole */
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-}
-
-.starts {
-    font-size: 10px;
-    color: #888;
-    margin: 0;
-}
-
-.price {
-    font-size: 16px;
-    font-weight: 800;
-    color: #730201;
-    margin: 0 0 5px 0;
-}
-
-.card-book {
-    background: #730201;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-/* 5. Extreme Small Screen Fix (below 350px) */
-@media (max-width: 350px) {
-    .pro-card {
-        padding: 8px;
-    }
-    .img-container {
-        width: 50px;
-        height: 50px;
-    }
-    .card-book {
-        padding: 4px 8px;
-        font-size: 10px;
-    }
-}
-
 /* View More Styled like the image */
 .view-more-btn {
     width: 100%;
     height: 50px;
     background: #fde8e8; /* Light pink/red tint */
-    color: #730201;
+    color: var(--ui-primary);
     border: none;
     padding: 12px;
-    border-radius: 12px;
+    border-radius: var(--ui-radius-sm);
     font-weight: bold;
     font-size: 14px;
     display: flex;
@@ -681,15 +550,15 @@ margin-top: 10px;
     align-items: center;
     justify-content: space-between;
     padding: 0 15px;
-    z-index: 5000;
+    z-index: var(--ui-z-sticky);
 }
 .view-more-btn {
     width: 100%;
     background: #fde8e8; /* Light pink/red tint */
-    color: #730201;
+    color: var(--ui-primary);
     border: none;
     padding: 6px;
-    border-radius: 12px;
+    border-radius: var(--ui-radius-sm);
     font-weight: bold;
     font-size: 14px;
     display: flex;
@@ -740,20 +609,20 @@ margin-top: 10px;
     font-weight: 500;
 }
 
-/* --- THE ACTIVE STATE (#730201) --- */
+/* --- THE ACTIVE STATE (var(--ui-primary)) --- */
 
 /* Changes the text color to your brand red */
 .nav-item.active {
-    color: #730201;
+    color: var(--ui-primary);
 }
 
 .nav-item.active span {
-    color: #730201;
+    color: var(--ui-primary);
     font-weight: bold;
 }
 
 /* 1. Scale Effect: Makes the icon "pop" when active */
-/* 2. Color Filter: This turns the black filled icon into #730201 */
+/* 2. Color Filter: This turns the black filled icon into var(--ui-primary) */
 .nav-item.active img {
     transform: scale(1.15); 
     filter: invert(10%) sepia(87%) saturate(5415%) hue-rotate(352deg) brightness(88%) contrast(110%);
@@ -778,8 +647,8 @@ margin-top: 10px;
     border: 1px solid rgba(20, 19, 19, 0.438);
     color: rgb(190, 13, 13);
     padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 9px;
+    border-radius: var(--ui-radius-lg);
+    font-size: 11px;
     display: flex;
     align-items: center;
     gap: 5px;
@@ -793,13 +662,13 @@ margin-top: 10px;
     width: 160px;
     background: rgba(30, 30, 45, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: 15px;
+    border-radius: var(--ui-radius-md);
     border: 1px solid rgba(255, 255, 255, 0.1);
     list-style: none;
     padding: 10px 0;
     margin: 0;
     display: none; /* Hidden by default */
-    z-index: 5000;
+    z-index: var(--ui-z-dropdown);
 }
 
 /* Show menu when active class is added */
@@ -819,7 +688,7 @@ margin-top: 10px;
     height: 11px;
 }
 .lang-list li:hover {
-    background: rgba(115, 2, 1, 0.4); /* Maroon hover */
+    background: rgba(var(--ui-primary-rgb), 0.4); /* Maroon hover */
 }
 .handyhub-icon {
     justify-self: center; /* Centers horizontally */
@@ -886,7 +755,7 @@ margin-top: 10px;
     padding-left: 46px;
     padding-right: 14px;
     border: 1.5px solid #e5e5e5;
-    border-radius: 10px;
+    border-radius: var(--ui-radius-sm);
     font-size: 14px;
     width: 100%;
     box-sizing: border-box;
@@ -895,7 +764,7 @@ margin-top: 10px;
 }
 
 .input-group input:focus {
-    border-color: #730201;
+    border-color: var(--ui-primary);
 }
 
 .input-group img {
@@ -928,11 +797,11 @@ margin-top: 10px;
     text-align: right;
 }
 .login-btn {
-    background: #730201;
+    background: var(--ui-primary);
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 12px;
+    border-radius: var(--ui-radius-sm);
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
@@ -1049,7 +918,7 @@ margin-top: 10px;
 
 .banner {
     background-color: #fdf6f7;
-    border-radius: 24px;
+    border-radius: var(--ui-radius-lg);
     height: 180px;
     margin: 20px auto;
     padding: 0 10px;
@@ -1091,7 +960,7 @@ margin-top: 10px;
 }
 
 .user-icon {
-    background-color: #730201;
+    background-color: var(--ui-primary);
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -1128,7 +997,7 @@ margin-top: 10px;
 }
 
 .arrow-btn {
-    background-color: #730201;
+    background-color: var(--ui-primary);
     color: white;
     width: 30px;
     height: 30px;
@@ -1167,7 +1036,7 @@ margin-top: 10px;
 /* Background color is slightly warmer for Artisan */
 .banner-artisan {
     background-color: #fff9f2; 
-    border-radius: 24px;
+    border-radius: var(--ui-radius-lg);
     height: 180px;
     margin: 20px auto;
     padding: 0 10px;
@@ -1265,7 +1134,7 @@ margin-top: 10px;
 .security-banner {
     background-color: #ffffff;
     border: 1px solid #eeeeee;
-    border-radius: 16px;
+    border-radius: var(--ui-radius-md);
     padding: 16px 20px;
     display: flex;
     align-items: center;
@@ -1330,7 +1199,7 @@ margin-top: 10px;
 .search-bar-wrapper input {
     width: 100%;
     padding: 12px 45px 12px 15px;
-    border-radius: 25px;
+    border-radius: var(--ui-radius-lg);
     border: 1px solid #f0f0f0;
     background: #fafafa;
     font-size: 14px;
@@ -1393,7 +1262,7 @@ margin-top: 10px;
 
 .result-item {
     padding: 14px 16px;
-    border-radius: 14px;
+    border-radius: var(--ui-radius-md);
     border: 1px solid #f0f0f0;
     background: #fff;
     display: flex;
@@ -1427,8 +1296,8 @@ margin-top: 10px;
     padding: 3px 10px ;
     background: #fff5f5;
     border: 1px solid #ffebeb;
-    color: #730201;
-    border-radius: 20px;
+    color: var(--ui-primary);
+    border-radius: var(--ui-radius-lg);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -1493,7 +1362,7 @@ margin-top: 10px;
 .ai-box {
     background: #ffffff;
     border: 1px solid #f0f0f0;
-    border-radius: 15px;
+    border-radius: var(--ui-radius-md);
     padding: 15px;
     display: flex;
     align-items: center;
@@ -1509,7 +1378,7 @@ margin-top: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #730201;
+    color: var(--ui-primary);
     font-weight: bold;
 }
 
@@ -1531,7 +1400,7 @@ margin-top: 10px;
     background: #f9f9f9;
     border: 1px solid #eeeeee;
     padding: 15px 12px;
-    border-radius: 10px;
+    border-radius: var(--ui-radius-sm);
     color: black;
     font-size: 10px;
     font-weight: bold;
@@ -1551,7 +1420,7 @@ margin-top: 10px;
 .clear-btn {
     background: none;
     border: none;
-    color: #730201;
+    color: var(--ui-primary);
     font-size: 12px;
     font-weight: bold;
     cursor: pointer;
@@ -1613,10 +1482,10 @@ margin-top: 10px;
     width: 80%;
     margin: 20px auto;
     padding: 6px;
-    border: 1.5px solid #730201;
+    border: 1.5px solid var(--ui-primary);
     background: none;
-    border-radius: 30px;
-    color: #730201;
+    border-radius: var(--ui-radius-lg);
+    color: var(--ui-primary);
     font-weight: bold;
     align-items: center;
     justify-content: center;
@@ -1670,13 +1539,13 @@ margin-top: 10px;
 
 /* Optional: change color on hover */
 .settings-link:hover {
-    color: #730201;        /* Your maroon theme color */
+    color: var(--ui-primary);        /* Your maroon theme color */
 }
 
 .tab-item {
     background: #f5f5f5;
     padding: 8px 16px;
-    border-radius: 25px;
+    border-radius: var(--ui-radius-lg);
     font-size: 13px;
     font-weight: 600;
     white-space: nowrap;
@@ -1686,7 +1555,7 @@ margin-top: 10px;
     cursor: pointer;
 }
 .tab-item.active { background: var(--maroon); color: #fff; }
-.badge { background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 10px; font-size: 10px; }
+.badge { background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: var(--ui-radius-sm); font-size: 10px; }
 .tab-item.active .badge { background: rgba(255,255,255,0.2); }
 
 /* Notifications */
@@ -1704,7 +1573,7 @@ margin-top: 10px;
 .icon-circle {
     width: 48px;
     height: 48px;
-    border-radius: 12px;
+    border-radius: var(--ui-radius-sm);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1728,7 +1597,7 @@ margin-top: 10px;
 .unread-indicator {
     width: 8px;
     height: 8px;
-    background: #730201;
+    background: var(--ui-primary);
     border-radius: 50%;
     margin-top: 20px;
 }
@@ -1740,7 +1609,7 @@ margin-top: 10px;
     left: 15px;
     right: 15px;
     background: #fff;
-    border-radius: 20px;
+    border-radius: var(--ui-radius-lg);
     box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     padding: 20px;
     border: 1px solid #f0f0f0;
@@ -1751,16 +1620,18 @@ margin-top: 10px;
 .alert-text { flex: 1; }
 .alert-h { font-size: 14px; font-weight: 800; margin: 0; }
 .alert-p { font-size: 11px; color: var(--text-sub); margin: 4px 0 0; }
-.enable-btn { background: var(--maroon); color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 12px; }
+.enable-btn { background: var(--maroon); color: #fff; border: none; padding: 10px 20px; border-radius: var(--ui-radius-sm); font-weight: 700; font-size: 12px; }
 .close-alert { position: absolute; top: 10px; right: 15px; border: none; background: none; font-size: 18px; color: #ccc; cursor: pointer; }
 
 
 /*CUSTOMER-SIGNUP-PAGE*/
 
+/* Second token block mapped to canonical (was a competing override of
+   --handy-red / --text-dark). File is unused by any page; aliases keep it
+   self-consistent. Canonical source: shared/css/ui-polish.css. */
 :root {
-    --handy-red: #800000;
-    --text-dark: #000000bd;
-    --border-light: #eee;
+    --handy-red:    var(--ui-primary);
+    --border-light: var(--ui-border);
 }
 
 
@@ -1782,7 +1653,7 @@ margin-top: 10px;
 
 .lang-btn {
     border: 1px solid var(--border-light);
-    border-radius: 20px; background: none;
+    border-radius: var(--ui-radius-lg); background: none;
     padding: 5px; display: flex; align-items: center;
     gap: 5px; font-size: 13px; cursor: pointer;
 }
@@ -1824,7 +1695,7 @@ margin-top: 10px;
     padding-left: 48px;
     padding-right: 44px;
     border: 1.5px solid #eaeaea;
-    border-radius: 12px;
+    border-radius: var(--ui-radius-sm);
     font-size: 14px;
     width: 100%;
     box-sizing: border-box;
@@ -1834,7 +1705,7 @@ margin-top: 10px;
 }
 
 .input-signup input:focus {
-    border-color: #730201;
+    border-color: var(--ui-primary);
 }
 
 .input-signup .in-input {
@@ -1882,7 +1753,7 @@ margin-top: 10px;
     color: white;
     border: none;
     padding: 15px 16px;
-    border-radius: 12px;
+    border-radius: var(--ui-radius-sm);
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
@@ -1933,7 +1804,7 @@ margin-top: 10px;
 .social-row { display: flex; gap: 10px; }
 .social-btn {
     flex: 1; border: 1px solid #eee; background: #fff;
-    padding: 10px; border-radius: 10px; font-size: 12px;
+    padding: 10px; border-radius: var(--ui-radius-sm); font-size: 12px;
     display: flex; align-items: center; justify-content: center; gap: 5px;
     font-weight: 600;
 }
@@ -1953,7 +1824,7 @@ margin-top: 10px;
     color: white;
     font-size: 14px;
     font-weight: 500;
-    z-index: 9999;
+    z-index: var(--ui-z-toast);
     animation: slideIn 0.3s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     max-width: 350px;
@@ -1995,3 +1866,4 @@ margin-top: 10px;
         opacity: 0;
     }
 }
+

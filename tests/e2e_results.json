@@ -1,0 +1,978 @@
+{
+  "meta": {
+    "generated": "2026-06-28T21:05:59.620014",
+    "base_url": "http://localhost:8766/customer-app",
+    "authenticated": true,
+    "account": "test***",
+    "duration_s": 146.19
+  },
+  "summary": {
+    "actions": 94,
+    "passed": 76,
+    "failed": 3,
+    "warnings": 3,
+    "findings": 25,
+    "by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 1,
+      "MEDIUM": 24,
+      "LOW": 0
+    }
+  },
+  "findings": [
+    {
+      "severity": "MEDIUM",
+      "page": "login.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 4.83
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "dashboard.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 400 (); Failed to load resource: the server responded with a status of 400 (); Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 22.69
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "book-step1.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 404 (); Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 37.21
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "book-step1.html",
+      "title": "Network request failed",
+      "detail": "GET http://localhost:8766/customer-app/search-page.html; GET http://localhost:8766/customer-app/search-page.html; GET https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=150&h=150&fit=crop",
+      "repro": "",
+      "t": 37.21
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "book-step2.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 44.45
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "book-step2.html",
+      "title": "Network request failed",
+      "detail": "GET https://images.unsplash.com/photo-1609205807107-2f5ad87f5c4c?w=150&h=150&fit=crop",
+      "repro": "",
+      "t": 44.45
+    },
+    {
+      "severity": "HIGH",
+      "page": "book-step3.html",
+      "title": "JavaScript exception on page",
+      "detail": "window.applyFilter is not a function",
+      "repro": "Load book-step3.html and open console",
+      "t": 50.69
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "book-step3.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 400 (); Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 50.69
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "book-step4.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 62.6
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "book-emergency.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 66.92
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "booking.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 (); A bad HTTP response code (404) was received when fetching the script.",
+      "repro": "",
+      "t": 74.36
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "live-tracking.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 (); A bad HTTP response code (404) was received when fetching the script.",
+      "repro": "",
+      "t": 80.59
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "review.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 83.88
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "topup.html",
+      "title": "Console error(s)",
+      "detail": "Framing 'https://www.google.com/' violates the following report-only Content Security Policy directive: \"frame-ancestors 'self'\". The violation has been logged, but no further action has been taken.\n; Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 87.84
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "topup.html",
+      "title": "Network request failed",
+      "detail": "POST https://csp.withgoogle.com/csp/frame-ancestors/38fac9d5b82543fc4729580d18ff2d3d",
+      "repro": "",
+      "t": 87.84
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "transaction-history.html",
+      "title": "Console error(s)",
+      "detail": "Error: <svg> attribute viewBox: Unexpected end of attribute. Expected number, \" 0 24 24\".; Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 91.77
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "notification.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 97.39
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "messages.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 101.14
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "saved.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found); Failed to load resource: the server responded with a status of 404 (Not Found); requestStorageAccess: Permission denied.",
+      "repro": "",
+      "t": 104.91
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "saved.html",
+      "title": "Network request failed",
+      "detail": "GET http://localhost:8766/customer-app/shared/js/utils/authGuard.js; GET http://localhost:8766/customer-app/shared/js/app/container.js",
+      "repro": "",
+      "t": 104.91
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "profile.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 404 (); Failed to load resource: the server responded with a status of 401 ()",
+      "repro": "",
+      "t": 108.46
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "settings.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 (); A bad HTTP response code (404) was received when fetching the script.",
+      "repro": "",
+      "t": 112.21
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "settings-personal-info.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 115.59
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "settings-notifications.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 118.76
+    },
+    {
+      "severity": "MEDIUM",
+      "page": "settings-security.html",
+      "title": "Console error(s)",
+      "detail": "Failed to load resource: the server responded with a status of 401 (); Failed to load resource: the server responded with a status of 400 ()",
+      "repro": "",
+      "t": 121.94
+    }
+  ],
+  "actions": [
+    {
+      "t": 4.73,
+      "element": "nav:login.html",
+      "expected": "page loads",
+      "actual": "loaded 'Login | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 4.83,
+      "element": "health:login.html",
+      "expected": "clean load",
+      "actual": "btn=8 link=2 input=4 skel=0 brokenImg=0 jsExc=0 consoleErr=1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 4.98,
+      "element": "login:email/identifier input",
+      "expected": "field present",
+      "actual": "present",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 4.98,
+      "element": "login:password input",
+      "expected": "field present",
+      "actual": "present",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 4.99,
+      "element": "login:login button",
+      "expected": "field present",
+      "actual": "present",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 5.01,
+      "element": "login:fill",
+      "expected": "credentials entered",
+      "actual": "filled identifier=tes*** + password",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 8.02,
+      "element": "login:submit",
+      "expected": "submit triggers Firebase auth",
+      "actual": "clicked login button",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 18.24,
+      "element": "login:result",
+      "expected": "redirect to dashboard on success",
+      "actual": "authenticated, landed on dashboard",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 22.25,
+      "element": "nav:dashboard.html",
+      "expected": "page loads",
+      "actual": "loaded 'Home | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 22.69,
+      "element": "health:dashboard.html",
+      "expected": "clean load",
+      "actual": "btn=53 link=12 input=3 skel=0 brokenImg=0 jsExc=0 consoleErr=6",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 22.84,
+      "element": "dashboard:profile-binding",
+      "expected": "real user name + location bound from Firestore",
+      "actual": "name='Obed Korda' loc='Accra'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 22.91,
+      "element": "dashboard:service-grid",
+      "expected": "popular services rendered",
+      "actual": "8 visible service buttons",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 22.95,
+      "element": "dashboard:nearby-pros",
+      "expected": "real artisan query (cards or honest empty state)",
+      "actual": "cards=0 text='No professionals found\\n\\nTry expanding yo'",
+      "status": "PASS",
+      "note": "empty state is acceptable if no artisans in range"
+    },
+    {
+      "t": 23.09,
+      "element": "dashboard:ad-banner",
+      "expected": "promo banner present",
+      "actual": "9 banner slide(s)",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 24.68,
+      "element": "dashboard:search",
+      "expected": "typing surfaces suggestions/results or navigates",
+      "actual": "containerVisible=False, 0 childEls, navigated=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 27.59,
+      "element": "nav:dashboard.html",
+      "expected": "page loads",
+      "actual": "loaded 'Home | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 27.65,
+      "element": "dashboard:ai-search-btn",
+      "expected": "honest 'coming soon' affordance",
+      "actual": "title='AI Search — coming soon'",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 27.71,
+      "element": "dashboard:bottom-nav",
+      "expected": "bottom navigation present",
+      "actual": "5 nav targets",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 28.69,
+      "element": "dashboard:open-sidebar",
+      "expected": "sidebar opens",
+      "actual": "clicked OK (no navigation)",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 29.48,
+      "element": "dashboard:sidebar-name",
+      "expected": "sidebar shows real user name",
+      "actual": "'Obed Korda'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 30.43,
+      "element": "dashboard:close-sidebar",
+      "expected": "sidebar closes",
+      "actual": "clicked OK (no navigation)",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 33.01,
+      "element": "dashboard:service-click",
+      "expected": "selecting service navigates to booking flow",
+      "actual": "clicked 'Plumber' -> service-detail",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 36.0,
+      "element": "nav:book-step1.html",
+      "expected": "page loads",
+      "actual": "loaded 'Book a Service | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 37.21,
+      "element": "health:book-step1.html",
+      "expected": "clean load",
+      "actual": "btn=16 link=0 input=3 skel=0 brokenImg=0 jsExc=0 consoleErr=10",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 40.2,
+      "element": "step1:categories",
+      "expected": "service categories rendered",
+      "actual": "8 category buttons",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 40.26,
+      "element": "step1:service-list",
+      "expected": "services for category rendered",
+      "actual": "4 service rows",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 41.16,
+      "element": "step1:select-service",
+      "expected": "selecting a service marks it chosen",
+      "actual": "service item clicked",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 43.86,
+      "element": "step1:continue",
+      "expected": "Continue advances to step2",
+      "actual": "clicked OK (navigated book-step2)",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 43.98,
+      "element": "step1:advanced",
+      "expected": "now on step2 (Professional)",
+      "actual": "url=book-step2",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 44.45,
+      "element": "health:book-step2.html",
+      "expected": "clean load",
+      "actual": "btn=9 link=0 input=1 skel=0 brokenImg=0 jsExc=0 consoleErr=1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 44.63,
+      "element": "step2:professionals",
+      "expected": "real artisan list OR honest empty state",
+      "actual": "pro cards=0, empty=''",
+      "status": "PASS",
+      "note": "empty acceptable if no artisans match"
+    },
+    {
+      "t": 45.45,
+      "element": "step2:filter-Recommended",
+      "expected": "filter pill re-sorts/filters list",
+      "actual": "pill clicked, list responded",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 46.21,
+      "element": "step2:filter-Rating",
+      "expected": "filter pill re-sorts/filters list",
+      "actual": "pill clicked, list responded",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 46.99,
+      "element": "step2:filter-Price",
+      "expected": "filter pill re-sorts/filters list",
+      "actual": "pill clicked, list responded",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 46.99,
+      "element": "step2:select-pro",
+      "expected": "advance to step3",
+      "actual": "NO pros to select — empty list blocks flow",
+      "status": "WARN",
+      "note": "cannot proceed past pro selection without an artisan in DB"
+    },
+    {
+      "t": 50.52,
+      "element": "nav:book-step3.html",
+      "expected": "page loads",
+      "actual": "loaded 'Schedule and Confirm | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 50.69,
+      "element": "health:book-step3.html",
+      "expected": "clean load",
+      "actual": "btn=11 link=3 input=3 skel=0 brokenImg=0 jsExc=1 consoleErr=3",
+      "status": "FAIL",
+      "note": ""
+    },
+    {
+      "t": 50.81,
+      "element": "step3:price-binding",
+      "expected": "price reflects selected service (not static)",
+      "actual": "total='GHC 65.00' svcFee='GHC 50.00'",
+      "status": "INFO",
+      "note": "compare against step1 selection to judge if dynamic"
+    },
+    {
+      "t": 50.81,
+      "element": "step3:schedule-binding",
+      "expected": "schedule reflects chosen slot",
+      "actual": "date='Saturday, 25 May 2026'",
+      "status": "INFO",
+      "note": "if date == 'Saturday, 25 May 2026' it may be a static default"
+    },
+    {
+      "t": 50.81,
+      "element": "step3:service-binding",
+      "expected": "service summary reflects step1 choice",
+      "actual": "service='Fix Switch / Socket'",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 54.84,
+      "element": "step3:open-schedule",
+      "expected": "schedule editor opens",
+      "actual": "click error: Locator.click: Timeout 4000ms exceeded.\nCall log:\n  - waiting for locator(\"butto",
+      "status": "FAIL",
+      "note": ""
+    },
+    {
+      "t": 54.86,
+      "element": "step3:payment-options",
+      "expected": "payment method shown (wallet/MoMo)",
+      "actual": "2 option(s)",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 58.88,
+      "element": "step3:continue",
+      "expected": "advance to step4 (confirm)",
+      "actual": "click error: Locator.click: Timeout 4000ms exceeded.\nCall log:\n  - waiting for locator(\".btn-",
+      "status": "FAIL",
+      "note": ""
+    },
+    {
+      "t": 62.54,
+      "element": "nav:book-step4.html",
+      "expected": "page loads",
+      "actual": "loaded 'Request Sent | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 62.6,
+      "element": "health:book-step4.html",
+      "expected": "clean load",
+      "actual": "btn=7 link=0 input=1 skel=0 brokenImg=0 jsExc=0 consoleErr=2",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 62.66,
+      "element": "step4:booking-id",
+      "expected": "crypto booking ID generated (HHB-...)",
+      "actual": "id='Booking ID: HHB-260628-2104-52E5\\nShare'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 62.66,
+      "element": "step4:live-status",
+      "expected": "live status bar subscribes to Firestore booking",
+      "actual": "status='🕐\\n\\nSearching for a professional…\\n\\nFinding the best match near you.'",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 66.77,
+      "element": "nav:book-emergency.html",
+      "expected": "page loads",
+      "actual": "loaded 'Emergency Booking | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 66.92,
+      "element": "health:book-emergency.html",
+      "expected": "clean load",
+      "actual": "btn=13 link=0 input=1 skel=0 brokenImg=0 jsExc=0 consoleErr=2",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 66.99,
+      "element": "emergency:state-machine",
+      "expected": "shows searching state (NOT fake auto-confirm)",
+      "actual": "visible states: ['state-no-match']",
+      "status": "INFO",
+      "note": "must NOT jump to 'Professional Assigned' without real artisan accept"
+    },
+    {
+      "t": 71.06,
+      "element": "emergency:integrity",
+      "expected": "honest outcome (searching/no-match), not premature confirm",
+      "actual": "fakeConfirmPhrase=False honestPhrase=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 71.07,
+      "element": "emergency:cancel",
+      "expected": "cancel returns to safe page",
+      "actual": "element present but not visible",
+      "status": "WARN",
+      "note": ""
+    },
+    {
+      "t": 74.21,
+      "element": "nav:booking.html",
+      "expected": "page loads",
+      "actual": "loaded 'My Bookings | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 74.36,
+      "element": "health:booking.html",
+      "expected": "clean load",
+      "actual": "btn=23 link=5 input=2 skel=0 brokenImg=0 jsExc=0 consoleErr=3",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 75.19,
+      "element": "booking.html:tab[Upcoming (26)]",
+      "expected": "tab switches content",
+      "actual": "tab clicked, content updated",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 75.94,
+      "element": "booking.html:tab[Active]",
+      "expected": "tab switches content",
+      "actual": "tab clicked, content updated",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 76.68,
+      "element": "booking.html:tab[Completed]",
+      "expected": "tab switches content",
+      "actual": "tab clicked, content updated",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 77.43,
+      "element": "booking.html:tab[Cancelled (2)]",
+      "expected": "tab switches content",
+      "actual": "tab clicked, content updated",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 80.53,
+      "element": "nav:live-tracking.html",
+      "expected": "page loads",
+      "actual": "loaded 'Live Tracking | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 80.59,
+      "element": "health:live-tracking.html",
+      "expected": "clean load",
+      "actual": "btn=5 link=0 input=2 skel=0 brokenImg=0 jsExc=0 consoleErr=3",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 83.79,
+      "element": "nav:review.html",
+      "expected": "page loads",
+      "actual": "loaded 'Rate Your Experience | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 83.88,
+      "element": "health:review.html",
+      "expected": "clean load",
+      "actual": "btn=14 link=0 input=2 skel=0 brokenImg=0 jsExc=0 consoleErr=2",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 84.55,
+      "element": "review.html:rating",
+      "expected": "star rating selectable",
+      "actual": "5th star clicked",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 87.74,
+      "element": "nav:topup.html",
+      "expected": "page loads",
+      "actual": "loaded 'Top Up Wallet | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 87.84,
+      "element": "health:topup.html",
+      "expected": "clean load",
+      "actual": "btn=15 link=0 input=5 skel=0 brokenImg=0 jsExc=0 consoleErr=3",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 88.45,
+      "element": "topup.html:preset-amount",
+      "expected": "preset top-up amount selectable",
+      "actual": "preset clicked",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 88.49,
+      "element": "topup.html:paystack-guard",
+      "expected": "stop before real Paystack charge",
+      "actual": "intentionally NOT submitting payment (would charge real money)",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 91.61,
+      "element": "nav:transaction-history.html",
+      "expected": "page loads",
+      "actual": "loaded 'Transaction History | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 91.77,
+      "element": "health:transaction-history.html",
+      "expected": "clean load",
+      "actual": "btn=26 link=6 input=2 skel=0 brokenImg=0 jsExc=0 consoleErr=3",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 97.12,
+      "element": "nav:notification.html",
+      "expected": "page loads",
+      "actual": "loaded 'Notifications | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 97.39,
+      "element": "health:notification.html",
+      "expected": "clean load",
+      "actual": "btn=20 link=5 input=1 skel=1 brokenImg=0 jsExc=0 consoleErr=1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 100.75,
+      "element": "nav:messages.html",
+      "expected": "page loads",
+      "actual": "loaded 'Messages | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 101.14,
+      "element": "health:messages.html",
+      "expected": "clean load",
+      "actual": "btn=22 link=5 input=3 skel=0 brokenImg=0 jsExc=0 consoleErr=1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 104.48,
+      "element": "nav:saved.html",
+      "expected": "page loads",
+      "actual": "loaded 'Saved | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 104.91,
+      "element": "health:saved.html",
+      "expected": "clean load",
+      "actual": "btn=15 link=5 input=2 skel=12 brokenImg=0 jsExc=0 consoleErr=4",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 108.31,
+      "element": "nav:profile.html",
+      "expected": "page loads",
+      "actual": "loaded 'Profile | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 108.46,
+      "element": "health:profile.html",
+      "expected": "clean load",
+      "actual": "btn=12 link=5 input=2 skel=0 brokenImg=0 jsExc=0 consoleErr=2",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 111.78,
+      "element": "nav:settings.html",
+      "expected": "page loads",
+      "actual": "loaded 'Settings | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 112.21,
+      "element": "health:settings.html",
+      "expected": "clean load",
+      "actual": "btn=27 link=0 input=4 skel=0 brokenImg=0 jsExc=0 consoleErr=3",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 115.53,
+      "element": "nav:settings-personal-info.html",
+      "expected": "page loads",
+      "actual": "loaded 'Personal Information | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 115.59,
+      "element": "health:settings-personal-info.html",
+      "expected": "clean load",
+      "actual": "btn=2 link=0 input=6 skel=0 brokenImg=0 jsExc=0 consoleErr=2",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 118.7,
+      "element": "nav:settings-notifications.html",
+      "expected": "page loads",
+      "actual": "loaded 'Notification Preferences | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 118.76,
+      "element": "health:settings-notifications.html",
+      "expected": "clean load",
+      "actual": "btn=1 link=0 input=7 skel=0 brokenImg=0 jsExc=0 consoleErr=2",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 121.89,
+      "element": "nav:settings-security.html",
+      "expected": "page loads",
+      "actual": "loaded 'Security | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 121.94,
+      "element": "health:settings-security.html",
+      "expected": "clean load",
+      "actual": "btn=2 link=0 input=4 skel=0 brokenImg=0 jsExc=0 consoleErr=2",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 124.07,
+      "element": "nav:book-step2.html",
+      "expected": "page loads",
+      "actual": "loaded 'Choose Professional | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 125.64,
+      "element": "altpath:back-nav",
+      "expected": "back button returns to previous step",
+      "actual": "-> book-step1",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 127.23,
+      "element": "nav:login.html",
+      "expected": "page loads",
+      "actual": "loaded 'Login | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 128.31,
+      "element": "altpath:empty-login",
+      "expected": "empty submit blocked with validation msg",
+      "actual": "validation shown=True",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 129.44,
+      "element": "altpath:bad-email",
+      "expected": "invalid email rejected client-side",
+      "actual": "err shown=True",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 130.98,
+      "element": "nav:this-page-does-not-exist.html",
+      "expected": "page loads",
+      "actual": "loaded ''",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 130.98,
+      "element": "altpath:unknown-route",
+      "expected": "unknown route handled gracefully (404 or redirect)",
+      "actual": "landed this-page-does-not-exist",
+      "status": "INFO",
+      "note": ""
+    },
+    {
+      "t": 146.0,
+      "element": "nav:dashboard.html",
+      "expected": "page loads",
+      "actual": "loaded 'Home | HandyHub'",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "t": 146.13,
+      "element": "altpath:slow-network",
+      "expected": "graceful loading under throttled network",
+      "actual": "24 skeleton/loader still visible after 5s",
+      "status": "WARN",
+      "note": "many stuck skeletons under slow net = poor degraded UX"
+    }
+  ]
+}

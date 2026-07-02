@@ -1,6 +1,11 @@
 import "../../shared/js/utils/global-app.js";
 import { getAppContainer } from "../../shared/js/app/container.js";
 
+function _esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('tracking-search-input');
   const searchSubmitBtn = document.querySelector('.search-submit');
@@ -37,14 +42,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (resultsList) {
         if (artisans.length) {
           resultsList.innerHTML = artisans.map((artisan) => {
-            const profileImage = artisan.profileImage || '../shared/assets/icons/default-user.png';
+            const profileImage = _esc(artisan.profileImage || '../shared/assets/icons/default-user.png');
             return `
               <li class="artisan-card">
-                <img class="artisan-avatar" src="${profileImage}" alt="${artisan.name || 'Artisan'}">
+                <img class="artisan-avatar" src="${profileImage}" alt="${_esc(artisan.name || 'Artisan')}">
                 <div class="artisan-details">
-                  <strong class="artisan-name">${artisan.name || 'Unknown Artisan'}</strong>
-                  <p class="artisan-specialty">${artisan.specialty || 'General Service'}</p>
-                  <span class="artisan-rating">★ ${artisan.rating ?? 'N/A'} (${artisan.jobsCompleted ?? 0} jobs)</span>
+                  <strong class="artisan-name">${_esc(artisan.name || 'Unknown Artisan')}</strong>
+                  <p class="artisan-specialty">${_esc(artisan.specialty || 'General Service')}</p>
+                  <span class="artisan-rating"><i class="fa-solid fa-star"></i> ${_esc(artisan.rating ?? 'N/A')} (${_esc(artisan.jobsCompleted ?? 0)} jobs)</span>
                 </div>
               </li>
             `;

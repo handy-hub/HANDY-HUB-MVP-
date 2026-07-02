@@ -6,6 +6,7 @@
   <title>HandyHub Admin – Verifications</title>
   <link rel="stylesheet" href="css/admin.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     /* ── Verifications-specific styles ─────────────────── */
     .verif-grid {
@@ -922,11 +923,11 @@
      FIREBASE + PAGE LOGIC
 ═══════════════════════════════════════════════════════ -->
 <script type="module">
-import { db, auth, storage }           from './js/firebase-admin.js';
+import { db, auth, storage, callAdminFunction } from './js/firebase-admin.js';
 import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
 import { showToast, setDateHeader }    from './js/ui-utils.js';
 import { collection, doc, getDoc, getDocs, onSnapshot,
-         updateDoc, addDoc, query, where, orderBy, serverTimestamp, writeBatch }
+         query, where, orderBy }
                                from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { ref as storageRef, getDownloadURL }
                                from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
@@ -1233,7 +1234,7 @@ window.quickApprove = async function(uid) {
   if (!confirm(`Approve artisan ${uid.slice(0,8)}…? This grants full platform access.`)) return;
   try {
     await performApproval(uid, '');
-    showToast('✅ Artisan approved!', 'success');
+    showToast('Artisan approved!', 'success');
   } catch(e) {
     showToast('Error: ' + e.message, 'error');
   }
@@ -1335,14 +1336,14 @@ window.openModal = async function(uid) {
     btnReject.disabled = true;
     btnReject.style.opacity = '.4';
   } else if (status === 'suspended') {
-    btnSuspend.textContent = '▶ Reinstate';
+    btnSuspend.innerHTML = '<i class="fa-solid fa-play" style="font-size:14px;color:#7C3AED;"></i> Reinstate';
     btnSuspend.onclick = () => takeAction('reinstate');
   } else {
     btnApprove.disabled = false;
     btnApprove.style.opacity = '1';
     btnReject.disabled  = false;
     btnReject.style.opacity  = '1';
-    btnSuspend.textContent = '⏸ Suspend';
+    btnSuspend.innerHTML = '<i class="fa-solid fa-pause" style="font-size:14px;color:#7C3AED;"></i> Suspend';
     btnSuspend.onclick = () => takeAction('suspend');
   }
 
@@ -1411,7 +1412,11 @@ window.handleOverlayClick = function(e) {
   if (e.target === document.getElementById('review-overlay')) closeModal();
 };
 
-/* ── Action: approve / reject / info / suspend ───────── */
+/* ── Action: approve / reject / info / suspend ───────────────────────────
+ * All of these call server-side Cloud Functions (functions/artisanVerification.js).
+ * The functions re-validate admin permission, write verification_requests +
+ * artisans atomically, write the verification_logs audit entry, and send the
+ * artisan notification — this page no longer performs any of that directly. */
 window.takeAction = async function(action) {
   if (!currentRequest) return;
 
@@ -1431,29 +1436,31 @@ window.takeAction = async function(action) {
   };
   if (!confirm(confirmMsgs[action])) return;
 
-  // Disable buttons
   const actions = document.getElementById('modal-actions');
   actions.classList.add('action-loading');
 
+  const FN_BY_ACTION = {
+    approve:      'approveArtisan',
+    reject:       'rejectArtisan',
+    request_info: 'requestMoreInfo',
+    suspend:      'suspendArtisan',
+    reinstate:    'reinstateArtisan',
+  };
+  const PAYLOAD_KEY_BY_ACTION = {
+    approve: 'notes', reject: 'reason', request_info: 'notes',
+    suspend: 'reason', reinstate: 'notes',
+  };
+
   try {
     const uid = currentRequest.id;
-
-    if (action === 'approve') {
-      await performApproval(uid, notes);
-    } else if (action === 'reject') {
-      await performRejection(uid, notes);
-    } else if (action === 'request_info') {
-      await performRequestInfo(uid, notes);
-    } else if (action === 'suspend') {
-      await performSuspend(uid, notes);
-    } else if (action === 'reinstate') {
-      await performReinstate(uid, notes);
-    }
+    const fnName = FN_BY_ACTION[action];
+    const payload = { artisanId: uid, [PAYLOAD_KEY_BY_ACTION[action]]: notes };
+    await callAdminFunction(fnName, payload);
 
     showToast(getSuccessMsg(action), 'success');
     closeModal();
   } catch(err) {
-    showToast('Action failed: ' + err.message, 'error');
+    showToast('Action failed: ' + (err.message || err), 'error');
     console.error(err);
   } finally {
     actions.classList.remove('action-loading');
@@ -1462,219 +1469,12 @@ window.takeAction = async function(action) {
 
 function getSuccessMsg(action) {
   return {
-    approve:      '✅ Artisan approved! They can now accept bookings.',
-    reject:       '🚫 Artisan rejected. Notification sent.',
-    request_info: '📋 Info request sent to artisan.',
-    suspend:      '⏸ Account suspended.',
-    reinstate:    '▶ Account reinstated.'
+    approve:      'Artisan approved! They can now accept bookings.',
+    reject:       'Artisan rejected. Notification sent.',
+    request_info: 'Info request sent to artisan.',
+    suspend:      'Account suspended.',
+    reinstate:    'Account reinstated.'
   }[action] || 'Action completed.';
-}
-
-/* ── Approval ────────────────────────────────────────── */
-async function performApproval(uid, notes) {
-  const batch = writeBatch(db);
-
-  // Update verification_requests
-  batch.update(doc(db, 'verification_requests', uid), {
-    verificationStatus: 'approved',
-    status: 'approved',
-    approvedAt: serverTimestamp(),
-    approvedBy: currentAdmin.email
-  });
-
-  // Update artisan profile
-  batch.update(doc(db, 'artisans', uid), {
-    verificationStatus: 'approved',
-    isVerified: true,
-    isAvailable: false, // artisan sets this themselves after login
-    approvedAt: serverTimestamp(),
-    approvedBy: currentAdmin.email
-  });
-
-  await batch.commit();
-
-  // Log
-  await addDoc(collection(db, 'verification_logs'), {
-    artisanId: uid,
-    action: 'approved',
-    adminEmail: currentAdmin.email,
-    adminUid: currentAdmin.uid,
-    notes: notes || '',
-    timestamp: serverTimestamp()
-  });
-
-  // Notify artisan
-  await addDoc(collection(db, 'customer_notifications'), {
-    receiverId: uid,
-    type: 'System',
-    title: '🎉 You\'re Approved!',
-    message: 'Congratulations! Your HandyHub artisan profile has been approved. You can now accept bookings and start earning.',
-    isRead: false,
-    actionUrl: 'dashboard.html',
-    createdAt: serverTimestamp()
-  }).catch(() => {});
-}
-
-/* ── Rejection ───────────────────────────────────────── */
-async function performRejection(uid, notes) {
-  const batch = writeBatch(db);
-
-  batch.update(doc(db, 'verification_requests', uid), {
-    verificationStatus: 'rejected',
-    status: 'rejected',
-    rejectedAt: serverTimestamp(),
-    rejectedBy: currentAdmin.email,
-    rejectionReason: notes
-  });
-
-  batch.update(doc(db, 'artisans', uid), {
-    verificationStatus: 'rejected',
-    isVerified: false,
-    rejectedAt: serverTimestamp(),
-    rejectedBy: currentAdmin.email,
-    rejectionReason: notes
-  });
-
-  await batch.commit();
-
-  await addDoc(collection(db, 'verification_logs'), {
-    artisanId: uid,
-    action: 'rejected',
-    adminEmail: currentAdmin.email,
-    adminUid: currentAdmin.uid,
-    notes: notes,
-    timestamp: serverTimestamp()
-  });
-
-  await addDoc(collection(db, 'customer_notifications'), {
-    receiverId: uid,
-    type: 'System',
-    title: '❌ Verification Unsuccessful',
-    message: `Your HandyHub artisan application could not be approved. Reason: ${notes}. Please re-submit with the required corrections.`,
-    isRead: false,
-    actionUrl: 'onboarding.html',
-    createdAt: serverTimestamp()
-  }).catch(() => {});
-}
-
-/* ── Request Info ────────────────────────────────────── */
-async function performRequestInfo(uid, notes) {
-  const batch = writeBatch(db);
-
-  batch.update(doc(db, 'verification_requests', uid), {
-    verificationStatus: 're_verification_required',
-    status: 're_verification_required',
-    infoRequestedAt: serverTimestamp(),
-    infoRequestedBy: currentAdmin.email,
-    infoRequestNotes: notes
-  });
-
-  batch.update(doc(db, 'artisans', uid), {
-    verificationStatus: 're_verification_required'
-  });
-
-  await batch.commit();
-
-  await addDoc(collection(db, 'verification_logs'), {
-    artisanId: uid,
-    action: 'request_info',
-    adminEmail: currentAdmin.email,
-    adminUid: currentAdmin.uid,
-    notes: notes,
-    timestamp: serverTimestamp()
-  });
-
-  await addDoc(collection(db, 'customer_notifications'), {
-    receiverId: uid,
-    type: 'System',
-    title: '📋 Additional Information Required',
-    message: `Our team needs more information to complete your verification: ${notes}. Please log in and update your profile.`,
-    isRead: false,
-    actionUrl: 'onboarding.html',
-    createdAt: serverTimestamp()
-  }).catch(() => {});
-}
-
-/* ── Suspend ─────────────────────────────────────────── */
-async function performSuspend(uid, notes) {
-  const batch = writeBatch(db);
-
-  batch.update(doc(db, 'verification_requests', uid), {
-    verificationStatus: 'suspended',
-    status: 'suspended',
-    suspendedAt: serverTimestamp(),
-    suspendedBy: currentAdmin.email,
-    suspensionReason: notes
-  });
-
-  batch.update(doc(db, 'artisans', uid), {
-    verificationStatus: 'suspended',
-    isAvailable: false,
-    suspendedAt: serverTimestamp(),
-    suspendedBy: currentAdmin.email
-  });
-
-  await batch.commit();
-
-  await addDoc(collection(db, 'verification_logs'), {
-    artisanId: uid,
-    action: 'suspended',
-    adminEmail: currentAdmin.email,
-    adminUid: currentAdmin.uid,
-    notes: notes,
-    timestamp: serverTimestamp()
-  });
-
-  await addDoc(collection(db, 'customer_notifications'), {
-    receiverId: uid,
-    type: 'System',
-    title: '⏸ Account Suspended',
-    message: notes
-      ? `Your account has been temporarily suspended. Reason: ${notes}. Contact support for assistance.`
-      : 'Your HandyHub account has been temporarily suspended. Please contact support.',
-    isRead: false,
-    actionUrl: 'dashboard.html',
-    createdAt: serverTimestamp()
-  }).catch(() => {});
-}
-
-/* ── Reinstate ───────────────────────────────────────── */
-async function performReinstate(uid, notes) {
-  const batch = writeBatch(db);
-
-  batch.update(doc(db, 'verification_requests', uid), {
-    verificationStatus: 'approved',
-    status: 'approved',
-    reinstatedAt: serverTimestamp(),
-    reinstatedBy: currentAdmin.email
-  });
-
-  batch.update(doc(db, 'artisans', uid), {
-    verificationStatus: 'approved',
-    isVerified: true,
-    reinstatedAt: serverTimestamp()
-  });
-
-  await batch.commit();
-
-  await addDoc(collection(db, 'verification_logs'), {
-    artisanId: uid,
-    action: 'reinstate',
-    adminEmail: currentAdmin.email,
-    adminUid: currentAdmin.uid,
-    notes: notes,
-    timestamp: serverTimestamp()
-  });
-
-  await addDoc(collection(db, 'customer_notifications'), {
-    receiverId: uid,
-    type: 'System',
-    title: '✅ Account Reinstated',
-    message: 'Your HandyHub artisan account has been reinstated. You can log in and resume accepting bookings.',
-    isRead: false,
-    actionUrl: 'dashboard.html',
-    createdAt: serverTimestamp()
-  }).catch(() => {});
 }
 
 /* ── Lightbox ────────────────────────────────────────── */

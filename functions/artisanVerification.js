@@ -11,6 +11,8 @@
  *   - requestMoreInfo         (onCall, admin only)
  *   - suspendArtisan          (onCall, admin only)
  *   - reinstateArtisan        (onCall, admin only)
+ *   - banArtisan              (onCall, admin only — permanent, distinct from suspend)
+ *   - unbanArtisan            (onCall, admin only)
  *   - backfillSearchKeywords  (onCall, admin only — one-time migration)
  *   - onVerificationSubmitted (onDocumentCreated Firestore trigger)
  */
@@ -94,7 +96,7 @@ async function approveArtisan(auth, { artisanId, notes = '' }) {
 
     await sendArtisanNotification(artisanId, {
         type:      'System',
-        title:     '🎉 You\'re Approved!',
+        title:     'You\'re Approved!',
         message:   'Congratulations! Your HandyHub artisan profile has been approved. Log in to start accepting bookings.',
         actionUrl: 'dashboard.html',
     }).catch(() => {});
@@ -135,7 +137,7 @@ async function rejectArtisan(auth, { artisanId, reason }) {
 
     await sendArtisanNotification(artisanId, {
         type:      'System',
-        title:     '❌ Verification Unsuccessful',
+        title:     'Verification Unsuccessful',
         message:   `Your HandyHub application could not be approved. Reason: ${reason}. Please re-submit with corrections.`,
         actionUrl: 'onboarding.html',
     }).catch(() => {});
@@ -173,7 +175,7 @@ async function requestMoreInfo(auth, { artisanId, notes }) {
 
     await sendArtisanNotification(artisanId, {
         type:      'System',
-        title:     '📋 Additional Information Required',
+        title:     'Additional Information Required',
         message:   `Our team needs more info: ${notes}. Please log in and update your profile.`,
         actionUrl: 'onboarding.html',
     }).catch(() => {});
@@ -213,7 +215,7 @@ async function suspendArtisan(auth, { artisanId, reason = '' }) {
 
     await sendArtisanNotification(artisanId, {
         type:    'System',
-        title:   '⏸ Account Suspended',
+        title:   'Account Suspended',
         message: reason
             ? `Your account has been suspended. Reason: ${reason}. Contact support for assistance.`
             : 'Your account has been temporarily suspended. Please contact support.',
@@ -264,12 +266,122 @@ async function reinstateArtisan(auth, { artisanId, notes = '' }) {
 
     await sendArtisanNotification(artisanId, {
         type:      'System',
-        title:     '✅ Account Reinstated',
+        title:     'Account Reinstated',
         message:   'Your HandyHub artisan account has been reinstated. You can resume accepting bookings.',
         actionUrl: 'dashboard.html',
     }).catch(() => {});
 
     return { reinstated: true, artisanId };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// banArtisan
+// payload: { artisanId: string, reason: string }
+//
+// Distinct from suspendArtisan: 'banned' is a permanent status (per
+// firestore.rules artisans.status enum) that reinstateArtisan() does not
+// touch. Only unbanArtisan() below can lift it.
+// ─────────────────────────────────────────────────────────────────────────────
+async function banArtisan(auth, { artisanId, reason }) {
+    await requireAdmin(auth);
+    if (!artisanId) throw new Error('"artisanId" is required.');
+    if (!reason)    throw new Error('"reason" is required when banning.');
+
+    const db    = getDB();
+    const batch = db.batch();
+
+    // verification_requests may not exist for artisans created before the KYC
+    // workflow was introduced — only include it in the batch if it's there.
+    const verifRequestSnap = await db.collection('verification_requests').doc(artisanId).get();
+    if (verifRequestSnap.exists) {
+        batch.update(db.collection('verification_requests').doc(artisanId), {
+            verificationStatus: 'banned',
+            status:             'banned',
+            bannedAt:           FieldValue.serverTimestamp(),
+            bannedBy:           auth.token?.email || auth.uid,
+            banReason:          reason,
+        });
+    }
+
+    batch.update(db.collection('artisans').doc(artisanId), {
+        verificationStatus: 'banned',
+        isAvailable:        false,
+        bannedAt:           FieldValue.serverTimestamp(),
+        bannedBy:           auth.token?.email || auth.uid,
+        banReason:          reason,
+    });
+
+    await batch.commit();
+
+    await logAction(db, artisanId, 'banned', auth.token?.email || '', auth.uid, reason);
+
+    await sendArtisanNotification(artisanId, {
+        type:      'System',
+        title:     'Account Banned',
+        message:   `Your HandyHub account has been permanently banned. Reason: ${reason}. Contact support if you believe this is in error.`,
+        actionUrl: 'login.html',
+    }).catch(() => {});
+
+    return { banned: true, artisanId };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// unbanArtisan
+// payload: { artisanId: string, notes?: string }
+//
+// Lifts a permanent ban and restores the artisan to 'approved' — a deliberate,
+// separate action from reinstateArtisan() so ban lifting always leaves an
+// explicit audit trail distinct from a routine suspension reinstatement.
+// ─────────────────────────────────────────────────────────────────────────────
+async function unbanArtisan(auth, { artisanId, notes = '' }) {
+    await requireAdmin(auth);
+    if (!artisanId) throw new Error('"artisanId" is required.');
+
+    const db = getDB();
+    const artisanSnap = await db.collection('artisans').doc(artisanId).get();
+    if (!artisanSnap.exists) throw new Error(`Artisan document not found: ${artisanId}`);
+    if (artisanSnap.data().verificationStatus !== 'banned') {
+        throw new Error('This artisan is not currently banned.');
+    }
+    const searchKeywords = buildSearchKeywords(artisanSnap.data());
+
+    const batch = db.batch();
+
+    batch.update(db.collection('artisans').doc(artisanId), {
+        verificationStatus: 'approved',
+        status:             'active',
+        isVerified:         true,
+        searchKeywords,
+        bannedAt:           null,
+        bannedBy:           null,
+        banReason:          null,
+        unbannedAt:         FieldValue.serverTimestamp(),
+        unbannedBy:         auth.token?.email || auth.uid,
+        updatedAt:          new Date().toISOString(),
+    });
+
+    const verifRequestSnap = await db.collection('verification_requests').doc(artisanId).get();
+    if (verifRequestSnap.exists) {
+        batch.update(db.collection('verification_requests').doc(artisanId), {
+            verificationStatus: 'approved',
+            status:             'approved',
+            unbannedAt:         FieldValue.serverTimestamp(),
+            unbannedBy:         auth.token?.email || auth.uid,
+        });
+    }
+
+    await batch.commit();
+
+    await logAction(db, artisanId, 'unbanned', auth.token?.email || '', auth.uid, notes);
+
+    await sendArtisanNotification(artisanId, {
+        type:      'System',
+        title:     'Account Reinstated',
+        message:   'Your HandyHub artisan account ban has been lifted. You can log in and resume accepting bookings.',
+        actionUrl: 'dashboard.html',
+    }).catch(() => {});
+
+    return { unbanned: true, artisanId };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -300,7 +412,7 @@ async function onVerificationSubmitted(event) {
         // Optionally notify artisan that submission was received
         await sendArtisanNotification(artisanId, {
             type:    'System',
-            title:   '✅ Application Submitted',
+            title:   'Application Submitted',
             message: 'Your verification documents have been submitted. Our team will review within 1–3 business days.',
         }).catch(() => {});
 
@@ -394,6 +506,8 @@ module.exports = {
     requestMoreInfo,
     suspendArtisan,
     reinstateArtisan,
+    banArtisan,
+    unbanArtisan,
     backfillSearchKeywords,
     onVerificationSubmitted,
 };

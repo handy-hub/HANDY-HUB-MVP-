@@ -1,4 +1,4 @@
-/**
+﻿/**
  * nearbyPros.js — Nearby Professionals discovery module
  *
  * Architecture
@@ -167,12 +167,17 @@ const AVATAR_SVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 // Handles both Cloudinary (profileImageId) and legacy Firebase Storage (profileImage) accounts.
 // Inlined here because nearbyPros uses only dynamic imports for resilience across serving contexts.
 const _CDN_BASE      = 'https://res.cloudinary.com/dnwwglbl9/image/upload';
-const _AVATAR_XFORM  = 'w_80,h_80,c_fill,f_auto,q_auto,r_max';
+// TEMPORARY: on-the-fly transform delivery is currently 404-ing on this
+// Cloudinary account/plan for every derived request (any resize at all).
+// Falling back to the untransformed original — CSS object-fit/border-radius
+// on the <img> already does the crop/circle work client-side. Restore the
+// w_80,h_80,c_fill,f_auto,q_auto,r_max transform segment once Cloudinary
+// on-the-fly delivery is confirmed working again.
 
 function avatarSrc(a) {
   if (a.profileImageId) {
     const v = a.profileImageVersion ? `v${a.profileImageVersion}/` : '';
-    return `${_CDN_BASE}/${v}${_AVATAR_XFORM}/${a.profileImageId}`;
+    return `${_CDN_BASE}/${v}${a.profileImageId}`;
   }
   return a.profileImage || a.photo || AVATAR_SVG;
 }
@@ -278,10 +283,10 @@ function buildEmpty() {
     <div class="np-empty-icon">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
-              stroke="#730201" stroke-width="1.6" stroke-linecap="round"/>
-        <circle cx="9" cy="7" r="4" stroke="#730201" stroke-width="1.6"/>
+              stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.6"/>
         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
-              stroke="#730201" stroke-width="1.6" stroke-linecap="round"/>
+              stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
       </svg>
     </div>
     <p class="np-empty-title">No professionals found${catLabel}${distLabel}</p>
@@ -303,8 +308,8 @@ function buildError() {
   return `<div class="np-empty" role="alert">
     <div class="np-empty-icon">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="10" stroke="#730201" stroke-width="1.6"/>
-        <path d="M12 8v4M12 16h.01" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       </svg>
     </div>
     <p class="np-empty-title">Could not load professionals</p>
@@ -328,10 +333,10 @@ function render() {
   requestAnimationFrame(() => {
     $proList.innerHTML = shown.map(buildCard).join('') +
       (matched.length > DISPLAY
-        ? `<button class="view-more-btn" onclick="window.location.href='book-now.html'">
+        ? `<button class="view-more-btn" onclick="window.location.href='professionals.html'">
              Browse All Professionals
              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-               <path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2.5" stroke-linecap="round"/>
+               <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
              </svg>
            </button>` : '');
   });
@@ -512,8 +517,10 @@ window._npBookArtisan = function (artisanId, category) {
       location: a.location || '',
     }));
     sessionStorage.setItem('hh_service', a.category || category || '');
+    // Professional-first booking: flag so book-step1/2 pin and auto-select.
+    sessionStorage.setItem('hh_booking_intent', 'artisan');
   }
-  window.location.href = 'book-now.html';
+  window.location.href = 'book-step1.html';
 };
 
 window._npResetFilters = function () {
@@ -571,7 +578,10 @@ export function initNearbyPros() {
   $distPill?.addEventListener('click', openPanel);
   $filterBtn?.addEventListener('click', openPanel);
 
-  fetchArtisans();
+  // Defer Firestore fetch until auth state is confirmed — Firestore rules
+  // require isSignedIn(), so querying before auth restores causes a silent
+  // permission-denied failure that shows no professionals.
+  _waitForAuthThenFetch();
 
   window.addEventListener('storage', e => {
     if (e.key !== LOC_CACHE_KEY) return;
@@ -579,4 +589,22 @@ export function initNearbyPros() {
     syncPillLabel();
     scheduleRender();
   });
+}
+
+async function _waitForAuthThenFetch() {
+  try {
+    const candidatePaths = [
+      '../../shared/js/app/container.js',
+      '../shared/js/app/container.js',
+    ];
+    for (const path of candidatePaths) {
+      try {
+        const mod = await import(path);
+        const { services: { authService } } = mod.getAppContainer();
+        await authService.waitForUser();
+        break;
+      } catch (_) { /* try next path */ }
+    }
+  } catch (_) { /* auth unavailable — proceed anyway, fetch will handle the error */ }
+  fetchArtisans();
 }

@@ -1,14 +1,14 @@
-'use strict';
+﻿'use strict';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HandyHub Firebase Cloud Functions — Financial System
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// HandyHub Firebase Cloud Functions â€” Financial System
 //
 // Deploy:
 //   firebase deploy --only functions
 //
 // All secrets and env vars live in functions/.env (gitignored).
-// Firebase Functions v2 reads this file at deploy time — no Blaze plan needed.
-// ─────────────────────────────────────────────────────────────────────────────
+// Firebase Functions v2 reads this file at deploy time â€” no Blaze plan needed.
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const { initializeApp }    = require('firebase-admin/app');
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
@@ -18,54 +18,65 @@ const { FUNCTIONS_REGION }             = require('./config');
 
 initializeApp();
 
-// ── Financial modules ─────────────────────────────────────────────────────────
+// â”€â”€ Financial modules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const escrow            = require('./financial/escrow');
 const escrowAutoRelease = require('./financial/escrowAutoRelease');
 const transfers         = require('./financial/transfers');
 const webhooks          = require('./financial/webhooks');
 const { checkRateLimit } = require('./middleware/rateLimiter');
 
-// ── Artisan verification module ───────────────────────────────────────────────
+const VALID_PROVIDERS = new Set(['mtn', 'telecel', 'airteltigo']);
+
+// â”€â”€ Artisan verification module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const artisanVerif  = require('./artisanVerification');
 
-// ── Artisan index module ──────────────────────────────────────────────────────
+// â”€â”€ Dispute resolution module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const disputesModule = require('./disputes');
+
+// â”€â”€ Artisan index module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const artisanIndex = require('./artisanIndex');
 
-// ── Booking lifecycle module ──────────────────────────────────────────────────
+// â”€â”€ Booking lifecycle module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const bookingsModule = require('./bookings');
 
-// ── Review lifecycle module ───────────────────────────────────────────────────
+// â”€â”€ Review lifecycle module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const reviewsModule  = require('./reviews');
 
-// ── Dispatch engine module ────────────────────────────────────────────────────
+// â”€â”€ Dispatch engine module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const dispatchModule = require('./dispatch');
 
-// ── Quote lifecycle module ────────────────────────────────────────────────────
+// â”€â”€ Quote lifecycle module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const quotesModule = require('./quotes');
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WEBHOOK  —  Paystack → Firebase (public HTTPS endpoint)
-// Add this URL to your Paystack dashboard → Settings → API Keys & Webhooks
+// â”€â”€ AI search module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const aiSearchModule = require('./aiSearch');
+
+// ── Email OTP signup module ──────────────────────────────────────────────────
+const emailOtpModule = require('./emailOtp');
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// WEBHOOK  â€”  Paystack â†’ Firebase (public HTTPS endpoint)
+// Add this URL to your Paystack dashboard â†’ Settings â†’ API Keys & Webhooks
 // URL: https://{FUNCTIONS_REGION}-lamax-4fd82.cloudfunctions.net/paystackWebhook
 // e.g. https://europe-west1-lamax-4fd82.cloudfunctions.net/paystackWebhook
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.paystackWebhook = onRequest(
     { region: FUNCTIONS_REGION, invoker: 'public' },
     (req, res) => webhooks.handlePaystackWebhook(req, res),
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ESCROW — called from the booking flow
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ESCROW â€” called from the booking flow
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * holdBookingFunds — move customer funds into escrow when a booking is confirmed.
+ * holdBookingFunds â€” move customer funds into escrow when a booking is confirmed.
  *
  * Call from frontend (booking confirmation step):
  *   const hold = httpsCallable(functions, 'holdBookingFunds');
  *   await hold({ bookingId, artisanId, amount });
  */
-exports.holdBookingFunds = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+exports.holdBookingFunds = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'holdBookingFunds');
     const { bookingId, artisanId, amount } = request.data;
@@ -89,13 +100,13 @@ exports.holdBookingFunds = onCall({ region: FUNCTIONS_REGION }, async (request) 
 });
 
 /**
- * releaseEscrow — release funds to artisan after booking completion.
+ * releaseEscrow â€” release funds to artisan after booking completion.
  *
  * Call when BOTH parties confirm (or after auto-release timeout):
  *   const release = httpsCallable(functions, 'releaseEscrow');
  *   await release({ escrowId });
  */
-exports.releaseEscrow = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+exports.releaseEscrow = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'releaseEscrow');
     const { escrowId } = request.data;
@@ -113,13 +124,13 @@ exports.releaseEscrow = onCall({ region: FUNCTIONS_REGION }, async (request) => 
 });
 
 /**
- * refundBooking — refund escrow back to customer.
+ * refundBooking â€” refund escrow back to customer.
  *
  * Call on cancellation or admin dispute resolution:
  *   const refund = httpsCallable(functions, 'refundBooking');
  *   await refund({ escrowId, reason });
  */
-exports.refundBooking = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+exports.refundBooking = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'refundBooking');
     const { escrowId, reason } = request.data;
@@ -138,12 +149,12 @@ exports.refundBooking = onCall({ region: FUNCTIONS_REGION }, async (request) => 
 });
 
 /**
- * raiseDispute — freeze escrow while a dispute is under review.
+ * raiseDispute â€” freeze escrow while a dispute is under review.
  *
  *   const dispute = httpsCallable(functions, 'raiseDispute');
  *   await dispute({ escrowId, disputeId });
  */
-exports.raiseDispute = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+exports.raiseDispute = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'raiseDispute');
     const { escrowId, disputeId } = request.data;
@@ -161,21 +172,41 @@ exports.raiseDispute = onCall({ region: FUNCTIONS_REGION }, async (request) => {
     }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WITHDRAWALS — called from customer/artisan wallet pages
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * resolveDispute â€” admin closes an open dispute (full refund, release to
+ * artisan, or partial split). Server-authoritative: never trust a client-
+ * computed wallet balance.
+ *
+ *   const resolve = httpsCallable(functions, 'resolveDispute');
+ *   await resolve({ disputeId, resolution: 'full_refund', notes });
+ *   await resolve({ disputeId, resolution: 'partial_refund', notes, customerAmount });
+ */
+exports.resolveDispute = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+    _requireAuth(request);
+    try {
+        return await disputesModule.resolveDispute(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// WITHDRAWALS â€” called from customer/artisan wallet pages
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * processWithdrawal — customer withdraws available (non-escrowed) wallet balance.
+ * processWithdrawal â€” customer withdraws available (non-escrowed) wallet balance.
  *
  *   const withdraw = httpsCallable(functions, 'processWithdrawal');
  *   const { data } = await withdraw({ amount, provider, phone });
  */
-exports.processWithdrawal = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+exports.processWithdrawal = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'processWithdrawal');
     const { amount, provider, phone } = request.data;
     _validate({ amount, provider, phone }, ['amount', 'provider', 'phone']);
+    if (!VALID_PROVIDERS.has(provider)) throw new HttpsError('invalid-argument', 'Invalid payment provider.');
+    _validateGhanaPhone(phone);
 
     try {
         const result = await transfers.executeCustomerWithdrawal(request.auth.uid, {
@@ -191,16 +222,18 @@ exports.processWithdrawal = onCall({ region: FUNCTIONS_REGION }, async (request)
 });
 
 /**
- * processArtisanWithdrawal — artisan withdraws their completed earnings.
+ * processArtisanWithdrawal â€” artisan withdraws their completed earnings.
  *
  *   const withdraw = httpsCallable(functions, 'processArtisanWithdrawal');
  *   const { data } = await withdraw({ amount, provider, phone });
  */
-exports.processArtisanWithdrawal = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+exports.processArtisanWithdrawal = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'processArtisanWithdrawal');
     const { amount, provider, phone } = request.data;
     _validate({ amount, provider, phone }, ['amount', 'provider', 'phone']);
+    if (!VALID_PROVIDERS.has(provider)) throw new HttpsError('invalid-argument', 'Invalid payment provider.');
+    _validateGhanaPhone(phone);
 
     try {
         const result = await transfers.executeArtisanWithdrawal(request.auth.uid, {
@@ -215,13 +248,13 @@ exports.processArtisanWithdrawal = onCall({ region: FUNCTIONS_REGION }, async (r
     }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ARTISAN INDEX — keeps artisan_index in sync with artisans collection
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ARTISAN INDEX â€” keeps artisan_index in sync with artisans collection
 //
 // syncArtisanIndex fires on every artisans/{artisanId} write.
-// artisan_index is the search/dispatch layer — never queried by clients.
+// artisan_index is the search/dispatch layer â€” never queried by clients.
 //
-// backfillArtisanIndex — one-time admin migration.
+// backfillArtisanIndex â€” one-time admin migration.
 // Run once after deploying this version to populate artisan_index for all
 // artisans that have lat/lng. New artisans are indexed automatically by
 // syncArtisanIndex from this point on.
@@ -229,7 +262,7 @@ exports.processArtisanWithdrawal = onCall({ region: FUNCTIONS_REGION }, async (r
 //   const fn = httpsCallable(functions, 'backfillArtisanIndex');
 //   const { data } = await fn({});
 //   // { processed, skipped, errors, total }
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.syncArtisanIndex = artisanIndex.syncArtisanIndex;
 
 exports.backfillArtisanIndex = onCall(
@@ -248,12 +281,12 @@ exports.backfillArtisanIndex = onCall(
     }
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ARTISAN VERIFICATION — admin-driven KYC approval workflow
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ARTISAN VERIFICATION â€” admin-driven KYC approval workflow
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * approveArtisan — admin approves a submitted verification request.
+ * approveArtisan â€” admin approves a submitted verification request.
  *   const fn = httpsCallable(functions, 'approveArtisan');
  *   await fn({ artisanId, notes });
  */
@@ -267,7 +300,7 @@ exports.approveArtisan = onCall({ region: FUNCTIONS_REGION }, async (request) =>
 });
 
 /**
- * rejectArtisan — admin rejects with a mandatory reason.
+ * rejectArtisan â€” admin rejects with a mandatory reason.
  *   await fn({ artisanId, reason });
  */
 exports.rejectArtisan = onCall({ region: FUNCTIONS_REGION }, async (request) => {
@@ -280,7 +313,7 @@ exports.rejectArtisan = onCall({ region: FUNCTIONS_REGION }, async (request) => 
 });
 
 /**
- * requestMoreInfo — request additional documents / info.
+ * requestMoreInfo â€” request additional documents / info.
  *   await fn({ artisanId, notes });
  */
 exports.requestMoreInfo = onCall({ region: FUNCTIONS_REGION }, async (request) => {
@@ -293,7 +326,7 @@ exports.requestMoreInfo = onCall({ region: FUNCTIONS_REGION }, async (request) =
 });
 
 /**
- * suspendArtisan — suspend an approved artisan.
+ * suspendArtisan â€” suspend an approved artisan.
  *   await fn({ artisanId, reason });
  */
 exports.suspendArtisan = onCall({ region: FUNCTIONS_REGION }, async (request) => {
@@ -306,7 +339,7 @@ exports.suspendArtisan = onCall({ region: FUNCTIONS_REGION }, async (request) =>
 });
 
 /**
- * reinstateArtisan — lift a suspension.
+ * reinstateArtisan â€” lift a suspension.
  *   await fn({ artisanId, notes });
  */
 exports.reinstateArtisan = onCall({ region: FUNCTIONS_REGION }, async (request) => {
@@ -319,7 +352,33 @@ exports.reinstateArtisan = onCall({ region: FUNCTIONS_REGION }, async (request) 
 });
 
 /**
- * onVerificationSubmitted — Firestore trigger fires when a new
+ * banArtisan â€” permanently ban an artisan (distinct from suspendArtisan).
+ *   await fn({ artisanId, reason });
+ */
+exports.banArtisan = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+    _requireAuth(request);
+    try {
+        return await artisanVerif.banArtisan(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+/**
+ * unbanArtisan â€” lift a permanent ban.
+ *   await fn({ artisanId, notes });
+ */
+exports.unbanArtisan = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+    _requireAuth(request);
+    try {
+        return await artisanVerif.unbanArtisan(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+/**
+ * onVerificationSubmitted â€” Firestore trigger fires when a new
  * verification_request document is created. Sends an admin alert and
  * acknowledges receipt to the artisan.
  */
@@ -328,60 +387,78 @@ exports.onVerificationSubmitted = onDocumentCreated(
     (event) => artisanVerif.onVerificationSubmitted(event),
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BOOKING LIFECYCLE — status-change notifications
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// BOOKING LIFECYCLE â€” status-change notifications
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * onBookingStatusChanged — fires on any booking document update.
+ * onBookingStatusChanged â€” fires on any booking document update.
  * Sends notifications to the customer or artisan based on the new status:
- *   pending → accepted    : customer notified
- *   pending → rejected    : customer notified
- *   accepted → in_progress: customer notified
- *   * → completed         : both notified
- *   * → cancelled         : both notified
+ *   pending â†’ accepted    : customer notified
+ *   pending â†’ rejected    : customer notified
+ *   accepted â†’ in_progress: customer notified
+ *   * â†’ completed         : both notified
+ *   * â†’ cancelled         : both notified
  */
 exports.onBookingStatusChanged  = bookingsModule.onBookingStatusChanged;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REVIEW LIFECYCLE — atomic artisan rating update on new customer review
+/**
+ * cancelBookingAsAdmin â€” admin cancels a booking with a required reason.
+ * Writes status: 'cancelled' only after validating the current state; the
+ * onBookingStatusChanged trigger above then runs the existing, audited
+ * refund path for any booking transitioning to 'cancelled'.
+ *
+ *   const cancel = httpsCallable(functions, 'cancelBookingAsAdmin');
+ *   await cancel({ bookingId, reason });
+ */
+exports.cancelBookingAsAdmin = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+    _requireAuth(request);
+    try {
+        return await bookingsModule.cancelBookingAsAdmin(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// REVIEW LIFECYCLE â€” atomic artisan rating update on new customer review
 //
 // onBookingReviewed
 //   Fires when a customer writes their `rating` to a completed booking doc.
 //   Uses a Firestore transaction to atomically update the artisan's rolling
 //   average rating and reviewCount. Eliminates the client-side TOCTOU in the
 //   deprecated artisanRepository.applyNewReview().
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.onBookingReviewed = reviewsModule.onBookingReviewed;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DISPATCH ENGINE — Uber/Bolt-style sequential artisan matching
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// DISPATCH ENGINE â€” Uber/Bolt-style sequential artisan matching
 //
-// onBookingCreated       : fires when booking doc is created → first dispatch round
-// checkExpiredDispatches : scheduled every 1 min → re-dispatches timed-out rounds
+// onBookingCreated       : fires when booking doc is created â†’ first dispatch round
+// checkExpiredDispatches : scheduled every 1 min â†’ re-dispatches timed-out rounds
 //
 // Rejection + acceptance handling was previously a second onDocumentUpdated
 // trigger (onBookingDispatchEvent). It is now called from within
 // onBookingStatusChanged (bookings.js) so there is only one trigger per update.
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.onBookingCreated        = dispatchModule.onBookingCreated;
 exports.checkExpiredDispatches  = dispatchModule.checkExpiredDispatches;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// QUOTE LIFECYCLE — artisan submits quote, customer approves/rejects
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// QUOTE LIFECYCLE â€” artisan submits quote, customer approves/rejects
 //
 // submitJobQuote  (artisan callable)
 //   Artisan sends labour cost + optional materials list.
 //   System calculates total and notifies customer.
 //
 // approveJobQuote  (customer callable)
-//   Customer approves the quote → escrow holds full amount → artisan notified.
+//   Customer approves the quote â†’ escrow holds full amount â†’ artisan notified.
 //
 // rejectJobQuote  (customer callable)
-//   Customer rejects → artisan notified, can resubmit revised quote.
-// ─────────────────────────────────────────────────────────────────────────────
+//   Customer rejects â†’ artisan notified, can resubmit revised quote.
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-exports.submitJobQuote = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+exports.submitJobQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     try {
         return await quotesModule.submitJobQuote(request.auth, request.data);
@@ -390,7 +467,7 @@ exports.submitJobQuote = onCall({ region: FUNCTIONS_REGION }, async (request) =>
     }
 });
 
-exports.approveJobQuote = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+exports.approveJobQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     try {
         return await quotesModule.approveJobQuote(request.auth, request.data);
@@ -399,7 +476,7 @@ exports.approveJobQuote = onCall({ region: FUNCTIONS_REGION }, async (request) =
     }
 });
 
-exports.rejectJobQuote = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+exports.rejectJobQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     try {
         return await quotesModule.rejectJobQuote(request.auth, request.data);
@@ -408,29 +485,29 @@ exports.rejectJobQuote = onCall({ region: FUNCTIONS_REGION }, async (request) =>
     }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ESCROW LIFECYCLE — automated release of expired escrow records
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ESCROW LIFECYCLE â€” automated release of expired escrow records
 //
 // autoReleaseEscrow
 //   Scheduled: every 6 hours.
 //   Queries escrow where status=='held' AND autoReleaseAt<=now, pages through
 //   results in batches of 100, and calls releaseEscrow() or refundEscrow()
 //   per document based on the associated booking's status.
-//   Safe under repeated execution — idempotent by design.
+//   Safe under repeated execution â€” idempotent by design.
 //
-// adminBackfillEscrowLocks (callable — admin only)
+// adminBackfillEscrowLocks (callable â€” admin only)
 //   One-time migration: creates _escrow_locks documents for all pre-existing
 //   "held" escrow records that were created before the C1 lock-document fix.
 //   Call once after deploying the new escrow.js. Safe to re-run.
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Scheduled escrow auto-release.
  * Runs every 6 hours. Memory 512 MiB. Timeout 540 s.
  *
  * Writes observability docs to:
- *   _auto_release_runs/{runId}         — run summary (start, end, counts, status)
- *   _auto_release_failures/{escrowId}  — per-escrow failure details for admin review
+ *   _auto_release_runs/{runId}         â€” run summary (start, end, counts, status)
+ *   _auto_release_failures/{escrowId}  â€” per-escrow failure details for admin review
  */
 exports.autoReleaseEscrow = onSchedule(
     {
@@ -446,17 +523,17 @@ exports.autoReleaseEscrow = onSchedule(
 
 /**
  * Admin-callable one-time migration: backfill _escrow_locks for pre-existing escrows.
- * Only super-admins may call this — enforced inside backfillEscrowLocks().
+ * Only super-admins may call this â€” enforced inside backfillEscrowLocks().
  *
  *   const backfill = httpsCallable(functions, 'adminBackfillEscrowLocks');
  *   const { data } = await backfill({});
- *   // data → { processed, skipped, errors }
+ *   // data â†’ { processed, skipped, errors }
  */
 exports.adminBackfillEscrowLocks = onCall(
     { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
     async (request) => {
         _requireAuth(request);
-        // Restrict to super-admins only — backfill touches all escrow records.
+        // Restrict to super-admins only â€” backfill touches all escrow records.
         const { ADMIN_EMAILS } = require('./config');
         const callerEmail = request.auth.token?.email;
         if (!ADMIN_EMAILS.includes(callerEmail)) {
@@ -471,18 +548,18 @@ exports.adminBackfillEscrowLocks = onCall(
 );
 
 /**
- * backfillSearchKeywords — regenerate searchKeywords for all artisan documents.
+ * backfillSearchKeywords â€” regenerate searchKeywords for all artisan documents.
  *
  * Run once after deploying the updated artisanRepository.js that auto-generates
  * keywords. Artisans registered with the old repository have searchKeywords: []
  * and are invisible in search. This function rebuilds their keyword arrays from
  * their current profile data (name, specialty, category, commonSearchPhrases).
  *
- * Safe to re-run — artisans with complete keyword sets are skipped.
+ * Safe to re-run â€” artisans with complete keyword sets are skipped.
  *
  *   const fn = httpsCallable(functions, 'backfillSearchKeywords');
  *   const { data } = await fn({});
- *   // data → { processed, skipped, errors, total }
+ *   // data â†’ { processed, skipped, errors, total }
  */
 exports.backfillSearchKeywords = onCall(
     { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
@@ -501,8 +578,8 @@ exports.backfillSearchKeywords = onCall(
     }
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GEOHASH BACKFILL — one-time migration for existing artisans
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// GEOHASH BACKFILL â€” one-time migration for existing artisans
 //
 // backfillGeohash
 //   Iterates all artisan documents that have lat/lng but no geohash field,
@@ -511,8 +588,8 @@ exports.backfillSearchKeywords = onCall(
 //
 //   const fn = httpsCallable(functions, 'backfillGeohash');
 //   const { data } = await fn({});
-//   // data → { processed, skipped, errors, total }
-// ─────────────────────────────────────────────────────────────────────────────
+//   // data â†’ { processed, skipped, errors, total }
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.backfillGeohash = onCall(
     { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
     async (request) => {
@@ -526,7 +603,7 @@ exports.backfillGeohash = onCall(
         const { FIRESTORE_DB_ID } = require('./config');
         const db = getFirestore(FIRESTORE_DB_ID);
 
-        // Same encoder as artisanRepository.js — no external dep needed in Node
+        // Same encoder as artisanRepository.js â€” no external dep needed in Node
         function geohashForPoint(lat, lng, precision = 6) {
             const B = '0123456789bcdefghjkmnpqrstuvwxyz';
             let minLat = -90, maxLat = 90, minLng = -180, maxLng = 180;
@@ -586,8 +663,115 @@ exports.backfillGeohash = onCall(
 
         if (batchCount > 0) await batch.commit();
 
-        console.log(`[backfillGeohash] done — processed=${processed} skipped=${skipped} errors=${errors} total=${snap.size}`);
+        console.log(`[backfillGeohash] done â€” processed=${processed} skipped=${skipped} errors=${errors} total=${snap.size}`);
         return { processed, skipped, errors, total: snap.size };
+    }
+);
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// AI SEARCH â€” natural-language query interpretation via Claude
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+/**
+ * aiSearch â€” convert a natural-language query to structured artisan search terms.
+ *
+ *   const fn = httpsCallable(functions, 'aiSearch');
+ *   const { data } = await fn({ query: 'my ceiling is leaking' });
+ *   // data â†’ { searchTerms: ['plumber', 'ceiling leak'], category: 'plumbing', interpretation: '...' }
+ */
+exports.aiSearch = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+    _requireAuth(request);
+    const { query } = request.data;
+    if (!query || typeof query !== 'string' || !query.trim()) {
+        throw new HttpsError('invalid-argument', 'query is required.');
+    }
+    if (query.trim().length > 200) {
+        throw new HttpsError('invalid-argument', 'Query is too long.');
+    }
+    try {
+        return await aiSearchModule.interpretSearchQuery(query.trim());
+    } catch (err) {
+        console.warn('[aiSearch] interpretation failed:', err.message);
+        throw new HttpsError('internal', 'AI search temporarily unavailable.');
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMAIL OTP SIGNUP — server-authoritative email verification before account creation
+//
+// requestSignupOtp  (callable — public, unauthenticated)
+//   Validates payload, checks email uniqueness in Firebase Auth, generates
+//   a CSPRNG 6-digit OTP, hashes it (SHA-256 + random salt), stores in
+//   _email_verifications with 5-minute TTL, and sends the code by email.
+//   Returns { sessionId, email, expiresInSeconds, resendCooldownSeconds }.
+//
+// resendSignupOtp  (callable — public, unauthenticated)
+//   Enforces 60-second cooldown + 5 resends/hour per session.
+//   Generates a fresh OTP, invalidates the old hash in Firestore, resends.
+//
+// verifySignupOtp  (callable — public, unauthenticated)
+//   Constant-time hash compare, max 5 attempts.
+//   On success: atomically creates Firebase Auth user + Firestore profile.
+//   Returns { success: true, uid }.
+// ─────────────────────────────────────────────────────────────────────────────
+
+exports.requestSignupOtp = onCall(
+    { region: FUNCTIONS_REGION, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
+    async (request) => {
+        const ip        = request.rawRequest?.ip || request.rawRequest?.headers?.['x-forwarded-for'] || null;
+        const userAgent = request.rawRequest?.headers?.['user-agent'] || null;
+        try {
+            return await emailOtpModule.requestSignupOtp({
+                payload:   request.data.payload,
+                appType:   request.data.appType,
+                ip,
+                userAgent,
+            });
+        } catch (err) {
+            if (err instanceof HttpsError) throw err;
+            console.error('[requestSignupOtp]', err.message);
+            throw new HttpsError('internal', err.message || 'Failed to initiate verification.');
+        }
+    }
+);
+
+exports.resendSignupOtp = onCall(
+    { region: FUNCTIONS_REGION, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
+    async (request) => {
+        const ip        = request.rawRequest?.ip || request.rawRequest?.headers?.['x-forwarded-for'] || null;
+        const userAgent = request.rawRequest?.headers?.['user-agent'] || null;
+        try {
+            return await emailOtpModule.resendSignupOtp({
+                sessionId: request.data.sessionId,
+                email:     request.data.email,
+                appType:   request.data.appType,
+                ip,
+                userAgent,
+            });
+        } catch (err) {
+            if (err instanceof HttpsError) throw err;
+            console.error('[resendSignupOtp]', err.message);
+            throw new HttpsError('internal', err.message || 'Failed to resend OTP.');
+        }
+    }
+);
+
+exports.verifySignupOtp = onCall(
+    { region: FUNCTIONS_REGION, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
+    async (request) => {
+        const ip = request.rawRequest?.ip || request.rawRequest?.headers?.['x-forwarded-for'] || null;
+        try {
+            return await emailOtpModule.verifySignupOtp({
+                sessionId: request.data.sessionId,
+                otp:       request.data.otp,
+                appType:   request.data.appType,
+                ip,
+            });
+        } catch (err) {
+            if (err instanceof HttpsError) throw err;
+            console.error('[verifySignupOtp]', err.message);
+            throw new HttpsError('internal', err.message || 'Verification failed.');
+        }
     }
 );
 
@@ -606,5 +790,13 @@ function _validate(data, required) {
         if (data[key] === undefined || data[key] === null || data[key] === '') {
             throw new HttpsError('invalid-argument', `"${key}" is required.`);
         }
+    }
+}
+
+function _validateGhanaPhone(phone) {
+    const digits = String(phone).replace(/\D/g, '');
+    // Accept: 0XXXXXXXXX (10 digits) or 233XXXXXXXXX (12 digits)
+    if (!/^(0\d{9}|233\d{9})$/.test(digits)) {
+        throw new HttpsError('invalid-argument', 'Invalid phone number. Must be a valid Ghana mobile number.');
     }
 }

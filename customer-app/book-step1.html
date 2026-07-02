@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,12 +6,47 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Book a Service | HandyHub</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
   <!-- Auth guard runs before any page content renders -->
   <script type="module">
     import { requireAuth } from '../shared/js/utils/authGuard.js';
     await requireAuth();
+  </script>
+  <!-- Canonical service catalog → window.HH_CATALOG.
+       Binds the booking step to the single source of truth
+       (shared/js/data/serviceCatalog.js) instead of a hardcoded literal.
+       Builds a label-keyed view in the exact shape the step-1 render code
+       already expects, so no flow/logic changes — pure data binding. -->
+  <script type="module">
+    import { SERVICE_CATEGORIES } from '../shared/js/data/serviceCatalog.js';
+
+    // Font Awesome icon classes for the small service-meta line, keyed by
+    // category label. Rendered as <i class="${icon}"></i> by consumers, not
+    // inserted as raw text — see CAT_ICONS usage in this file.
+    const ICONS = {
+      Electrical: 'fa-solid fa-bolt', Plumbing: 'fa-solid fa-wrench', Carpentry: 'fa-solid fa-hammer',
+      'AC Repair': 'fa-solid fa-snowflake', Welding: 'fa-solid fa-fire', Cleaning: 'fa-solid fa-broom',
+      Painting: 'fa-solid fa-paintbrush', Gardening: 'fa-solid fa-leaf',
+    };
+    const DEFAULT_ICON = 'fa-solid fa-hammer';
+
+    const byLabel = {};   // { 'Electrical': [ {name,desc,price,dur,img}, ... ] }
+    const meta    = {};   // { 'Electrical': { id, key } } — backend-aligned identifiers
+    const icons   = {};
+    for (const cat of SERVICE_CATEGORIES) {
+      const label = cat.categoryLabel;
+      byLabel[label] = (cat.services || []).map(s => ({
+        name: s.name, desc: s.desc, price: s.price, dur: s.dur, img: s.img,
+      }));
+      meta[label]  = { id: cat.id, key: cat.key };
+      icons[label] = ICONS[label] || DEFAULT_ICON;
+    }
+
+    window.HH_CATALOG = { byLabel, icons, meta, categories: SERVICE_CATEGORIES };
+    // Signal late-binding consumers (book-step1 binds on DOMContentLoaded).
+    window.dispatchEvent(new Event('hh-catalog-ready'));
   </script>
 </head>
 <body>
@@ -20,7 +55,7 @@
   <!-- Header -->
   <div class="bk-header">
     <button class="bk-back-btn" onclick="window.location.href='dashboard.html'">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
     </button>
     <div class="bk-header-center">
       <p class="bk-header-title">Book a Service</p>
@@ -32,7 +67,7 @@
     </div>
     <div class="bk-bell-wrap">
       <button class="bk-bell-btn" onclick="window.location.href='notification.html'" aria-label="Notifications">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#111" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#111" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <span class="bk-bell-badge" id="bk-bell-badge" style="display:none;">0</span>
     </div>
@@ -72,10 +107,21 @@
   <!-- Scroll -->
   <div class="bk-scroll">
 
+    <!-- Pre-selected professional banner (shown only when arriving from an
+         artisan profile / saved pro — confirms the user's choice survived) -->
+    <div class="bk-chosen-pro" id="bk-chosen-pro" style="display:none;">
+      <div class="bk-chosen-avatar" id="bk-chosen-avatar"></div>
+      <div class="bk-chosen-info">
+        <p class="bk-chosen-label">Booking with</p>
+        <p class="bk-chosen-name" id="bk-chosen-name">Professional</p>
+      </div>
+      <button class="bk-chosen-change" id="bk-chosen-change" type="button">Change</button>
+    </div>
+
     <div class="bk-page-head">
       <h2 class="bk-page-title">What service do you need?</h2>
       <button class="bk-filter-btn"> Popular
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
       </button>
     </div>
 
@@ -85,33 +131,8 @@
       <input type="text" placeholder="Search for a service..." id="svc-search">
     </div>
 
-    <!-- Categories -->
-    <div class="cat-row">
-      <button class="cat-icon-btn active" onclick="selectCat(this, 'Electrical')">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Electrical</span>
-      </button>
-      <button class="cat-icon-btn" onclick="selectCat(this, 'Plumbing')">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="#888" stroke-width="2"/><path d="M7 10c0 5.52 10 5.52 10 0M12 19v3M9 22h6" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
-        <span>Plumbing</span>
-      </button>
-      <button class="cat-icon-btn" onclick="selectCat(this, 'Carpentry')">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
-        <span>Carpentry</span>
-      </button>
-      <button class="cat-icon-btn" onclick="selectCat(this, 'AC Repair')">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
-        <span>AC Repair</span>
-      </button>
-      <button class="cat-icon-btn" onclick="selectCat(this, 'Welding')">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Welding</span>
-      </button>
-      <button class="cat-icon-btn" onclick="selectCat(this, 'More')">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#888"/><circle cx="12" cy="12" r="1.5" fill="#888"/><circle cx="19" cy="12" r="1.5" fill="#888"/></svg>
-        <span>More</span>
-      </button>
-    </div>
+    <!-- Categories — rendered dynamically from the canonical service catalog -->
+    <div class="cat-row" id="cat-row"></div>
 
     <!-- Section head -->
     <div class="bk-section-head">
@@ -131,7 +152,7 @@
         <p class="loc-label">Service Location</p>
         <div class="loc-value-row">
           <p class="loc-value">Home</p>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
         </div>
         <p class="loc-address" id="step1-loc-address">East Legon, Accra, Ghana</p>
       </div>
@@ -159,7 +180,7 @@
           oninput="this.value=this.value.toUpperCase()"
           onfocus="this.style.borderColor='#730201'" onblur="this.style.borderColor='#eee'">
         <button onclick="applyPromoCode()"
-          style="background:#730201; color:#fff; border:none; border-radius:10px;
+          style="background: var(--ui-primary); color:#fff; border:none; border-radius:10px;
                  padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;">
           Apply
         </button>
@@ -178,7 +199,7 @@
       </div>
       <button class="btn-continue" onclick="saveAndContinue()">
         Continue
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2.0" stroke-linecap="round"/></svg>
       </button>
     </div>
   </div>
@@ -190,50 +211,48 @@
   const BK_KEY = _bkKey();
   function getState() { try { return JSON.parse(localStorage.getItem(BK_KEY)) || {}; } catch { return {}; } }
 
-  /* ── Service catalogue ── */
-  const SVC_CATALOG = {
-    Electrical: [
-      { name:'Fix Switch / Socket',        desc:'Repair or replace faulty switches or power outlets.',        price:50,  dur:'30–60 mins',  img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&h=150&fit=crop' },
-      { name:'Light Installation',          desc:'Install lights, chandeliers, or pendant fittings.',          price:60,  dur:'30–60 mins',  img:'https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?w=150&h=150&fit=crop' },
-      { name:'Circuit Breaker Repair',      desc:'Fix tripping issues and electrical breaker problems.',       price:80,  dur:'45–90 mins',  img:'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=150&h=150&fit=crop' },
-      { name:'Electrical Wiring / Rewiring',desc:'New wiring or full rewiring for homes and offices.',        price:200, dur:'2–4 hours',   img:'https://images.unsplash.com/photo-1609205807107-2f5ad87f5c4c?w=150&h=150&fit=crop' },
-    ],
-    Plumbing: [
-      { name:'Fix Leaking Pipe',            desc:'Repair burst or leaking water pipes quickly.',               price:60,  dur:'30–60 mins',  img:'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=150&h=150&fit=crop' },
-      { name:'Toilet Repair / Unclogging',  desc:'Fix running toilets, clogs, or broken cisterns.',           price:70,  dur:'30–90 mins',  img:'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=150&h=150&fit=crop' },
-      { name:'Water Heater Installation',   desc:'Install or replace electric or gas water heaters.',         price:150, dur:'1–2 hours',   img:'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=150&h=150&fit=crop' },
-      { name:'Tap / Faucet Replacement',    desc:'Replace old or dripping taps with new fittings.',           price:55,  dur:'30–60 mins',  img:'https://images.unsplash.com/photo-1516455590571-18256e5bb9ff?w=150&h=150&fit=crop' },
-    ],
-    Carpentry: [
-      { name:'Door Fitting / Repair',       desc:'Fix or install interior and exterior doors.',                price:80,  dur:'1–2 hours',   img:'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=150&h=150&fit=crop' },
-      { name:'Furniture Assembly',          desc:'Assemble flat-pack or custom furniture pieces.',             price:60,  dur:'1–3 hours',   img:'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=150&h=150&fit=crop' },
-      { name:'Cabinet Installation',        desc:'Install kitchen or bathroom cabinets and shelving.',         price:120, dur:'2–4 hours',   img:'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop' },
-      { name:'Window Repair / Fitting',     desc:'Fix broken window frames or install new windows.',          price:90,  dur:'1–3 hours',   img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&h=150&fit=crop' },
-    ],
-    'AC Repair': [
-      { name:'AC Installation',             desc:'Install split, window, or ceiling AC units.',               price:200, dur:'2–4 hours',   img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&h=150&fit=crop' },
-      { name:'AC Servicing / Cleaning',     desc:'Deep clean filters, coils, and drainage lines.',           price:80,  dur:'1–2 hours',   img:'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=150&h=150&fit=crop' },
-      { name:'AC Gas Recharge',             desc:'Refill refrigerant gas for optimal cooling.',              price:120, dur:'1–2 hours',   img:'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=150&h=150&fit=crop' },
-      { name:'AC Fault Diagnosis',          desc:'Identify why your AC is not cooling or making noise.',     price:60,  dur:'30–60 mins',  img:'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=150&h=150&fit=crop' },
-    ],
-    Welding: [
-      { name:'Gate / Fence Welding',        desc:'Weld, repair, or fabricate steel gates and fences.',       price:150, dur:'2–4 hours',   img:'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=150&h=150&fit=crop' },
-      { name:'Burglar Proof Installation',  desc:'Install burglar-proof bars on windows and doors.',        price:200, dur:'3–5 hours',   img:'https://images.unsplash.com/photo-1609205807107-2f5ad87f5c4c?w=150&h=150&fit=crop' },
-      { name:'Metal Furniture Welding',     desc:'Weld, reinforce, or fabricate metal furniture.',          price:100, dur:'1–3 hours',   img:'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop' },
-      { name:'Structural Welding',          desc:'Weld structural steel beams and joints in construction.', price:250, dur:'4–8 hours',   img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&h=150&fit=crop' },
-    ],
-    More: [
-      { name:'House Cleaning',              desc:'Full home deep clean including kitchen and bathrooms.',     price:80,  dur:'2–4 hours',   img:'https://images.unsplash.com/photo-1527515545081-5db817172677?w=150&h=150&fit=crop' },
-      { name:'Painting & Decoration',       desc:'Interior or exterior wall painting and touch-ups.',        price:120, dur:'3–6 hours',   img:'https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=150&h=150&fit=crop' },
-      { name:'Pest Control',                desc:'Exterminate cockroaches, rodents, termites and more.',     price:150, dur:'1–3 hours',   img:'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=150&h=150&fit=crop' },
-      { name:'Smart Home Setup',            desc:'Install smart locks, cameras, or home automation.',        price:180, dur:'2–5 hours',   img:'https://images.unsplash.com/photo-1558002038-bb4237b50b11?w=150&h=150&fit=crop' },
-    ],
-  };
+  /* ── Service catalogue ──
+     SOURCE OF TRUTH: shared/js/data/serviceCatalog.js (the canonical catalog).
+     The module script in <head> imports SERVICE_CATEGORIES and exposes a
+     label-keyed view on window.HH_CATALOG before this script's render runs.
+     We bind to it here so the existing render/search/save code is unchanged —
+     it simply consumes real catalog data instead of a hardcoded literal.
+     No business logic, pricing, or flow is computed here; this is pure data
+     binding to the backend-aligned catalog. */
+  /* Bound from the canonical catalog provided by a deferred module (see <head>).
+     Populated in bindCatalog() before any render runs. Kept as the same
+     SVC_CATALOG / CAT_ICONS names so all existing consumers are unchanged. */
+  let SVC_CATALOG = {};
+  let CAT_ICONS   = {};
+  function bindCatalog() {
+    if (window.HH_CATALOG) {
+      SVC_CATALOG = window.HH_CATALOG.byLabel || {};
+      CAT_ICONS   = window.HH_CATALOG.icons   || {};
+    }
+    // Keep the default category valid against the real catalog.
+    if (!SVC_CATALOG[currentCat]) {
+      const first = Object.keys(SVC_CATALOG)[0];
+      if (first) currentCat = first;
+    }
+  }
 
-  const CAT_ICONS = {
-    Electrical: '⚡', Plumbing: '🔧', Carpentry: '🪚',
-    'AC Repair': '❄️', Welding: '🔥', More: '✨',
-  };
+  /* Build the category tab row from the canonical catalog. Each tab keeps the
+     exact same selectCat(this, label) contract the flow already expects — only
+     the source of the tabs changes from static HTML to real catalog data. */
+  function renderCategoryTabs() {
+    const row = document.getElementById('cat-row');
+    const cats = (window.HH_CATALOG && window.HH_CATALOG.categories) || [];
+    if (!row || !cats.length) return;
+    row.innerHTML = cats.map(c => {
+      const label  = c.categoryLabel;
+      const active = label === currentCat ? ' active' : '';
+      const id     = c.id ? ` data-cat="${escHtml(c.id)}"` : '';
+      return `<button class="cat-icon-btn${active}"${id} onclick="selectCat(this, '${escHtml(label).replace(/'/g, "\\'")}')">
+        ${c.icon || ''}
+        <span>${escHtml(label)}</span>
+      </button>`;
+    }).join('');
+  }
 
   /* ── State ── */
   let currentCat = 'Electrical';
@@ -246,7 +265,7 @@
     if (!svcs.length) { list.innerHTML = '<p style="text-align:center;color:#aaa;padding:24px;">No services in this category yet.</p>'; return; }
     list.innerHTML = svcs.map(s => {
       const checked = selectedNames.has(s.name);
-      const icon = CAT_ICONS[cat] || '🔨';
+      const icon = CAT_ICONS[cat] || 'fa-solid fa-hammer';
       return `<div class="service-item${checked ? ' selected' : ''}" onclick="toggleService(this)"
           data-price="${s.price}" data-name="${escHtml(s.name)}" data-desc="${escHtml(s.desc)}"
           data-cat="${escHtml(cat)}" data-dur="${escHtml(s.dur)}">
@@ -256,8 +275,8 @@
           <p class="service-name">${escHtml(s.name)}</p>
           <p class="service-desc">${escHtml(s.desc)}</p>
           <div class="service-meta">
-            <span>${icon} ${escHtml(cat)}</span>
-            <span>⏱ ${escHtml(s.dur)}</span>
+            <span><i class="${icon}"></i> ${escHtml(cat)}</span>
+            <span><i class="fa-regular fa-clock"></i> ${escHtml(s.dur)}</span>
           </div>
         </div>
         <div class="service-right">
@@ -285,6 +304,89 @@
     document.getElementById('section-title').textContent = `Popular ${cat} Services`;
     renderServices(cat);
   }
+
+  /* ── Pre-selected professional (arriving from an artisan profile) ── */
+  function getPreselectedArtisan() {
+    try {
+      if (sessionStorage.getItem('hh_booking_intent') !== 'artisan') return null;
+      return JSON.parse(sessionStorage.getItem('hh_selected_artisan') || 'null');
+    } catch (_) { return null; }
+  }
+
+  function applyPreselectedArtisan() {
+    const pro = getPreselectedArtisan();
+    if (!pro || !(pro.id || pro.uid)) return;
+
+    // Persist the chosen professional into booking state so step 2 auto-confirms it.
+    const st = getState();
+    localStorage.setItem(BK_KEY, JSON.stringify({
+      ...st,
+      preselectedArtisan: {
+        id:        pro.id || pro.uid,
+        uid:       pro.uid || pro.id,
+        name:      pro.name      || 'Professional',
+        specialty: pro.specialty || pro.category || '',
+        category:  pro.category  || pro.specialty || '',
+        rating:    pro.rating != null ? pro.rating : null,
+        reviewCount:     pro.reviewCount || 0,
+        jobsCompleted:   pro.jobsCompleted || 0,
+        yearsExperience: pro.yearsExperience || null,
+        isAvailable:     Boolean(pro.isAvailable),
+        phone:           pro.phone || null,
+        profileImageId:      pro.profileImageId      || null,
+        profileImageVersion: pro.profileImageVersion || null,
+        profileImage:        pro.profileImage        || null,
+      },
+    }));
+
+    // Show the banner.
+    const wrap   = document.getElementById('bk-chosen-pro');
+    const nameEl = document.getElementById('bk-chosen-name');
+    const avEl   = document.getElementById('bk-chosen-avatar');
+    if (wrap && nameEl) {
+      nameEl.textContent = pro.name || 'Professional';
+      if (avEl) {
+        if (pro.profileImage) {
+          avEl.style.backgroundImage = `url("${pro.profileImage}")`;
+          avEl.textContent = '';
+        } else {
+          avEl.textContent = (pro.name || 'P').trim().charAt(0).toUpperCase();
+        }
+      }
+      wrap.style.display = 'flex';
+    }
+
+    // Open the professional's service category so the user picks the job.
+    const cat = pro.category || pro.specialty || '';
+    if (cat && SVC_CATALOG[cat]) {
+      currentCat = cat;
+      document.querySelectorAll('.cat-icon-btn').forEach(b => {
+        const label = b.querySelector('span')?.textContent?.trim();
+        b.classList.toggle('active', b.dataset.cat === cat || label === cat);
+      });
+      const titleEl = document.getElementById('section-title');
+      if (titleEl) titleEl.textContent = `Popular ${cat} Services`;
+    }
+
+    // Consume the intent flag now that it's persisted into booking state.
+    // This prevents a later fresh booking (from the dashboard) from wrongly
+    // inheriting this artisan if the sessionStorage entry lingers. The
+    // preselectedArtisan lives in booking state, which the booking flow owns
+    // and clears on completion.
+    sessionStorage.removeItem('hh_booking_intent');
+  }
+
+  /* "Change" → drop the pre-selection and reload the standard picker. */
+  document.getElementById('bk-chosen-change')?.addEventListener('click', function () {
+    sessionStorage.removeItem('hh_booking_intent');
+    sessionStorage.removeItem('hh_selected_artisan');
+    const st = getState();
+    delete st.preselectedArtisan;
+    delete st.professional;
+    localStorage.setItem(BK_KEY, JSON.stringify(st));
+    const wrap = document.getElementById('bk-chosen-pro');
+    if (wrap) wrap.style.display = 'none';
+  });
 
   /* ── Toggle service ── */
   function toggleService(item) {
@@ -321,6 +423,8 @@
 
   /* ── Search ── */
   document.addEventListener('DOMContentLoaded', function () {
+    bindCatalog();          // pull SVC_CATALOG / CAT_ICONS from the canonical catalog module
+    renderCategoryTabs();   // build the category tabs from real catalog data
     document.getElementById('svc-search').addEventListener('input', function () {
       const q = this.value.trim().toLowerCase();
       if (!q) { renderServices(currentCat); return; }
@@ -340,7 +444,7 @@
           <div class="service-info">
             <p class="service-name">${escHtml(s.name)}</p>
             <p class="service-desc">${escHtml(s.desc)}</p>
-            <div class="service-meta"><span>${CAT_ICONS[cat]||'🔨'} ${escHtml(cat)}</span><span>⏱ ${escHtml(s.dur)}</span></div>
+            <div class="service-meta"><span><i class="${CAT_ICONS[cat]||'fa-solid fa-hammer'}"></i> ${escHtml(cat)}</span><span><i class="fa-regular fa-clock"></i> ${escHtml(s.dur)}</span></div>
           </div>
           <div class="service-right">
             <div><p class="service-from">From</p><p class="service-price">GHC ${s.price}</p></div>
@@ -363,6 +467,32 @@
         document.getElementById('section-title').textContent = `Popular ${currentCat} Services`;
       }
     }
+
+    // Pre-open a service category passed via sessionStorage (dashboard quick
+    // chips, rebook-without-artisan, category shortcuts). Pure convenience — the
+    // user can still switch categories. Skipped if state already restored one.
+    if (!(state.category && SVC_CATALOG[state.category])) {
+      try {
+        const hint = sessionStorage.getItem('hh_service');
+        if (hint && SVC_CATALOG[hint]) {
+          currentCat = hint;
+          document.querySelectorAll('.cat-icon-btn').forEach(b => {
+            const label = b.querySelector('span')?.textContent?.trim();
+            b.classList.toggle('active', b.dataset.cat === hint || label === hint);
+          });
+          const t = document.getElementById('section-title');
+          if (t) t.textContent = `Popular ${hint} Services`;
+        }
+      } catch (_) {}
+    }
+
+    // ── Professional-first booking (I4): user arrived from an artisan profile.
+    //    Show the "Booking with {name}" banner, persist the chosen pro into
+    //    booking state, and pre-open that pro's service category so the user
+    //    only has to pick which job they need done. (Overrides the hint above
+    //    with the artisan's own category when present.)
+    applyPreselectedArtisan();
+
     renderServices(currentCat);
     updatePrice();
 
@@ -482,7 +612,7 @@
     setTimeout(() => window.togglePromoPanel(), 900);
   };
 
-  const BOOK_STEP_TOAST_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  const BOOK_STEP_TOAST_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>';
 
   function showToast(msg) {
     document.querySelector('.toast.app-toast')?.remove();
@@ -499,4 +629,3 @@
 </script>
 </body>
 </html>
-

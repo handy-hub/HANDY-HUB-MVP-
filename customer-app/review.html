@@ -1,12 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rate Your Experience | HandyHub</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../shared/css/ui-polish.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -26,7 +30,7 @@
 
     /* ── Header ── */
     .rv-header {
-      background: #730201;
+      background: var(--ui-primary);
       color: #fff;
       padding: 20px 16px 60px;
       position: relative;
@@ -88,7 +92,7 @@
     .rv-receipt-title {
       font-size: 13px;
       font-weight: 800;
-      color: #730201;
+      color: var(--ui-primary);
       text-transform: uppercase;
       letter-spacing: 0.4px;
       margin-bottom: 14px;
@@ -104,7 +108,7 @@
     .rv-receipt-row:last-child { border-bottom: none; }
     .rv-receipt-label { color: #888; font-weight: 500; }
     .rv-receipt-val { font-weight: 700; color: #111; }
-    .rv-receipt-val.rv-total { color: #730201; font-size: 16px; font-weight: 900; }
+    .rv-receipt-val.rv-total { color: var(--ui-primary); font-size: 16px; font-weight: 900; }
     .rv-paid-badge {
       display: inline-flex; align-items: center; gap: 4px;
       background: #e8f5e9; color: #2e7d32;
@@ -162,7 +166,7 @@
       text-align: center;
       font-size: 13px;
       font-weight: 700;
-      color: #730201;
+      color: var(--ui-primary);
       min-height: 20px;
       margin-bottom: 14px;
     }
@@ -187,8 +191,8 @@
     }
     .rv-tag.selected {
       background: #fde8e8;
-      border-color: #730201;
-      color: #730201;
+      border-color: var(--ui-primary);
+      color: var(--ui-primary);
     }
 
     /* ── Text review ── */
@@ -206,7 +210,7 @@
       transition: border-color 0.15s;
       outline: none;
     }
-    .rv-textarea:focus { border-color: #730201; background: #fff; }
+    .rv-textarea:focus { border-color: var(--ui-primary); background: #fff; }
     .rv-char-count { font-size: 11px; color: #bbb; text-align: right; margin-top: 4px; }
 
     /* ── Tip section ── */
@@ -235,8 +239,8 @@
       text-align: center;
       transition: all 0.15s;
     }
-    .rv-tip-btn:hover { background: #fde8e8; border-color: #f5c2c2; color: #730201; }
-    .rv-tip-btn.selected { background: #fde8e8; border-color: #730201; color: #730201; }
+    .rv-tip-btn:hover { background: #fde8e8; border-color: #f5c2c2; color: var(--ui-primary); }
+    .rv-tip-btn.selected { background: #fde8e8; border-color: var(--ui-primary); color: var(--ui-primary); }
     .rv-tip-btn.custom { font-size: 11px; }
 
     /* ── Bottom CTA ── */
@@ -253,7 +257,7 @@
     }
     .rv-submit-btn {
       width: 100%;
-      background: #730201;
+      background: var(--ui-primary);
       color: #fff;
       border: none;
       border-radius: 14px;
@@ -324,7 +328,7 @@
     .rv-success-sub { font-size: 13px; color: #888; line-height: 1.5; margin-bottom: 22px; }
     .rv-success-btn {
       width: 100%;
-      background: #730201;
+      background: var(--ui-primary);
       color: #fff;
       border: none;
       border-radius: 12px;
@@ -357,7 +361,7 @@
   <div class="rv-header">
     <div class="rv-header-row">
       <button class="rv-back-btn" onclick="window.location.href='booking.html'" aria-label="Back">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#fff" stroke-width="2.0" stroke-linecap="round"/></svg>
       </button>
       <span class="rv-header-title">Rate Your Experience</span>
     </div>
@@ -454,7 +458,7 @@
 
     <!-- Tip -->
     <div class="rv-tip-card">
-      <p class="rv-tip-title">Leave a Tip 🙏</p>
+      <p class="rv-tip-title">Leave a Tip <i class="fa-solid fa-hand-holding-heart"></i></p>
       <p class="rv-tip-sub">Show your appreciation for great service (optional)</p>
       <div class="rv-tip-btns">
         <button class="rv-tip-btn" data-tip="5" onclick="selectTip(this)">GHC 5</button>

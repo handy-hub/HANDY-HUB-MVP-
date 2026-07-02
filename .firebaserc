@@ -2,6 +2,17 @@
   "projects": {
     "handyhub": "lamax-4fd82"
   },
-  "targets": {},
+  "targets": {
+    "lamax-4fd82": {
+      "hosting": {
+        "customer": [
+          "lamax-4fd82"
+        ],
+        "artisan": [
+          "lamax-artisan"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

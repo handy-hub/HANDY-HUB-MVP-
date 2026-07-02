@@ -18,18 +18,9 @@ import { getFirestore }
   from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { getStorage }
   from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
+import { FIREBASE_CONFIG as ARTISAN_CONFIG, FIRESTORE_DB_ID } from '../../shared/js/config/appConfig.js';
 
-/* ── Config — must match shared/js/backend/providers/firebase/firebaseConfig.js ── */
-const ARTISAN_CONFIG = {
-  apiKey:            'AIzaSyBF-B48cl2jHJwcKxocpClNTYlLwK1cLiw',
-  authDomain:        'lamax-4fd82.firebaseapp.com',
-  projectId:         'lamax-4fd82',
-  storageBucket:     'lamax-4fd82.firebasestorage.app',
-  messagingSenderId: '1034220501833',
-  appId:             '1:1034220501833:web:bba9ad6f78881029a0f898',
-};
-
-export const ARTISAN_DB_ID = 'ai-studio-5589039d-72c4-40d8-ae39-f35c6c321eb6';
+export const ARTISAN_DB_ID = FIRESTORE_DB_ID;
 
 /* ── Singleton — reuse [DEFAULT] app if DI container already created it ── */
 const artisanApp = getApps().length > 0 ? getApp() : initializeApp(ARTISAN_CONFIG);

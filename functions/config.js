@@ -39,6 +39,15 @@ const COMMISSION_RATE = parseFloat(process.env.COMMISSION_RATE || '0.15');
 /** Minimum withdrawal amount in GHS. Also settable via MIN_WITHDRAWAL env var. */
 const MIN_WITHDRAWAL = parseFloat(process.env.MIN_WITHDRAWAL || '5');
 
+/** Minimum topup amount in GHS — prevents micro-topups that cost more in Paystack fees than value. */
+const MIN_TOPUP_GHS = parseFloat(process.env.MIN_TOPUP_GHS || '1');
+
+/** Maximum job quote amount in GHS — rejects obviously fraudulent or erroneous quotes. */
+const MAX_QUOTE_GHS = parseFloat(process.env.MAX_QUOTE_GHS || '10000');
+
+/** Maximum dispatch rounds before a booking is marked unfulfilled. */
+const MAX_DISPATCH_ROUNDS = parseInt(process.env.MAX_DISPATCH_ROUNDS || '10', 10);
+
 /** Auto-release escrow after N days if neither party disputes. */
 const ESCROW_AUTO_RELEASE_DAYS = 7;
 
@@ -62,6 +71,9 @@ module.exports = {
     ADMIN_EMAILS,
     COMMISSION_RATE,
     MIN_WITHDRAWAL,
+    MIN_TOPUP_GHS,
+    MAX_QUOTE_GHS,
+    MAX_DISPATCH_ROUNDS,
     ESCROW_AUTO_RELEASE_DAYS,
     PAYSTACK_BASE,
     CLOUDINARY_CLOUD_NAME,

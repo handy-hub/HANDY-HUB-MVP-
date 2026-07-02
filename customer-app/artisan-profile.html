@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../shared/css/ui-polish.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     /* ─────────────────────────────────────────
        RESET & BASE
@@ -343,7 +344,7 @@
       flex-shrink: 0;
     }
     .trust-item svg { width: 13px; height: 13px; display: block; flex-shrink: 0; }
-    .trust-item.t-verified { color: #730201; }
+    .trust-item.t-verified { color: var(--ui-primary); }
     .trust-item.t-approved { color: #1d9bf0; }
     .trust-sep {
       width: 1px;
@@ -415,7 +416,7 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      color: #730201;
+      color: var(--ui-primary);
     }
     .detail-ico svg { width: 16px; height: 16px; display: block; }
     .detail-key {
@@ -493,18 +494,18 @@
       justify-content: center;
       cursor: pointer;
       flex-shrink: 0;
-      color: #730201;
+      color: var(--ui-primary);
       -webkit-tap-highlight-color: transparent;
       transition: background 0.15s, transform 0.1s;
     }
     .ap-btn-save:active { background: #f5c2c2; transform: scale(0.93); }
     .ap-btn-save svg { width: 20px; height: 20px; display: block; }
-    .ap-btn-save.saved { background: #730201; color: #fff; }
+    .ap-btn-save.saved { background: var(--ui-primary); color: #fff; }
 
     .ap-btn-book {
       flex: 1;
       height: 48px;
-      background: #730201;
+      background: var(--ui-primary);
       color: #fff;
       border: none;
       border-radius: 12px;
@@ -567,7 +568,7 @@
     .nf-title { font-size: 17px; font-weight: 800; color: #111; }
     .nf-sub { font-size: 13px; color: #888; line-height: 1.5; }
     .nf-btn {
-      background: #730201;
+      background: var(--ui-primary);
       color: #fff;
       border: none;
       border-radius: 12px;
@@ -622,7 +623,7 @@
 
     html.dark .ap-btn-save { background: rgba(115,2,1,0.2); color: #f87171; }
     html.dark .ap-btn-save:active { background: rgba(115,2,1,0.32); }
-    html.dark .ap-btn-save.saved { background: #730201; color: #fff; }
+    html.dark .ap-btn-save.saved { background: var(--ui-primary); color: #fff; }
 
     html.dark .nf-icon { background: rgba(115,2,1,0.15); }
     html.dark .nf-title { color: #f0f0f0; }
@@ -642,7 +643,7 @@
   <header class="ap-header">
     <button class="ap-back-btn" id="ap-back" aria-label="Go back">
       <svg viewBox="0 0 24 24" fill="none">
-        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.2"
+        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0"
               stroke-linecap="round"/>
       </svg>
       Back
@@ -722,7 +723,7 @@
     <button class="ap-btn-book" id="ap-book-btn" disabled>
       Book Now
       <svg viewBox="0 0 24 24" fill="none">
-        <path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2.0" stroke-linecap="round"/>
       </svg>
     </button>
   </div>
@@ -753,11 +754,17 @@
   const AVATAR_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23730201'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E";
 
   // Handles Cloudinary (profileImageId+profileImageVersion) and legacy (profileImage) accounts.
+  // TEMPORARY: on-the-fly transform delivery is currently 404-ing on this
+  // Cloudinary account/plan for every derived request. Falling back to the
+  // untransformed original — the avatar <img>'s CSS (object-fit:cover;
+  // border-radius:50%) already does the crop/circle client-side. Restore
+  // the w_160,h_160,c_fill,f_auto,q_auto,r_max transform segment once
+  // Cloudinary on-the-fly delivery is confirmed working again.
   function resolveArtisanAvatar(a) {
     if (!a) return AVATAR_SVG;
     if (a.profileImageId) {
       var v = a.profileImageVersion ? 'v' + a.profileImageVersion + '/' : '';
-      return 'https://res.cloudinary.com/dnwwglbl9/image/upload/' + v + 'w_160,h_160,c_fill,f_auto,q_auto,r_max/' + a.profileImageId;
+      return 'https://res.cloudinary.com/dnwwglbl9/image/upload/' + v + a.profileImageId;
     }
     return a.profileImage || a.photo || AVATAR_SVG;
   }
@@ -786,7 +793,7 @@
   const ICO = {
     star:      `<svg viewBox="0 0 24 24" fill="#f59e0b" style="width:12px;height:12px;display:block;flex-shrink:0;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
     pin:       `<svg viewBox="0 0 24 24" fill="none" style="width:10px;height:10px;display:block;flex-shrink:0;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#aaa"/></svg>`,
-    check:     `<svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;display:block;flex-shrink:0;"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    check:     `<svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;display:block;flex-shrink:0;"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     shield:    `<svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;display:block;flex-shrink:0;"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
     id:        `<svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;display:block;flex-shrink:0;"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="12" r="2" stroke="currentColor" stroke-width="1.8"/><path d="M13 10h5M13 14h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
     wrench:    `<svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;display:block;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
@@ -907,7 +914,7 @@
       });
       document.getElementById('hero-msg-btn')?.addEventListener('click', () => {
         sessionStorage.setItem('hh_msg_artisan', JSON.stringify({ id: artisan.id, name: artisan.name }));
-        window.location.href = 'message.html';
+        window.location.href = 'messages.html';
       });
       document.getElementById('hero-loc-btn')?.addEventListener('click', () => {
         const loc = artisan.location || '';
@@ -921,7 +928,7 @@
     const statRating  = document.getElementById('stat-rating');
     const statReviews = document.getElementById('stat-reviews');
     if (statJobs)    { removeSkel(statJobs);    statJobs.textContent    = jobs    || '0'; }
-    if (statRating)  { removeSkel(statRating);  statRating.textContent  = rating  ? `★ ${rating}` : '—'; }
+    if (statRating)  { removeSkel(statRating);  statRating.innerHTML    = rating  ? `<i class="fa-solid fa-star" style="font-size:0.85em;"></i> ${rating}` : '—'; }
     if (statReviews) { removeSkel(statReviews); statReviews.textContent = reviews || '0'; }
 
     /* ── 3. Content body ── */
@@ -998,8 +1005,8 @@
           <div class="nf-icon">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
-                    stroke="#730201" stroke-width="2" stroke-linecap="round"/>
-              <circle cx="12" cy="7" r="4" stroke="#730201" stroke-width="2"/>
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
             </svg>
           </div>
           <p class="nf-title">Professional Not Found</p>
@@ -1013,7 +1020,11 @@
      EVENT WIRING (business logic unchanged)
   ════════════════════════════════════════ */
 
-  /* Book button */
+  /* Book button — professional-first booking (I4).
+     The user has already chosen THIS artisan, so we carry them straight into
+     the booking flow with the artisan pre-selected. We do NOT route through
+     book-now.html (the generic service/urgency picker) — that would discard
+     the user's stated choice and force re-selection. */
   document.getElementById('ap-book-btn')?.addEventListener('click', function () {
     const a = loadArtisan();
     if (!a) return;
@@ -1025,13 +1036,20 @@
       category:     a.category     || '',
       rating:       a.rating       || 0,
       reviewCount:  a.reviewCount  || 0,
+      jobsCompleted: a.jobsCompleted || 0,
+      yearsExperience: a.yearsExperience || null,
+      isAvailable:  Boolean(a.isAvailable),
+      phone:        a.phone        || null,
       profileImageId:      a.profileImageId      || null,
       profileImageVersion: a.profileImageVersion || null,
       profileImage:        a.profileImage        || null,
       location:            a.location            || '',
     }));
     sessionStorage.setItem('hh_service', a.category || '');
-    window.location.href = 'book-now.html';
+    /* intent flag lets the booking flow show "Booking {name}" and auto-confirm
+       this professional at step 2 instead of presenting a blank picker. */
+    sessionStorage.setItem('hh_booking_intent', 'artisan');
+    window.location.href = 'book-step1.html';
   });
 
   /* Save button */
@@ -1131,7 +1149,7 @@
       var newSrc;
       if (fresh.profileImageId) {
         var v = fresh.profileImageVersion ? 'v' + fresh.profileImageVersion + '/' : '';
-        newSrc = 'https://res.cloudinary.com/dnwwglbl9/image/upload/' + v + 'w_160,h_160,c_fill,f_auto,q_auto,r_max/' + fresh.profileImageId;
+        newSrc = 'https://res.cloudinary.com/dnwwglbl9/image/upload/' + v + fresh.profileImageId;
       } else if (fresh.profileImage) {
         newSrc = fresh.profileImage;
       } else {

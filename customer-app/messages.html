@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="css/messages.css" />
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <link rel='stylesheet' href='../shared/css/components/tabs.css' />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
 <div class="ms-shell">
@@ -23,13 +25,8 @@
       <div class="ms-header-btns">
         <button class="ms-icon-btn" aria-label="Search" onclick="focusSearch()">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <circle cx="11" cy="11" r="7" stroke="#111" stroke-width="2"/>
-            <path d="M16.5 16.5L21 21" stroke="#111" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </button>
-        <button class="ms-icon-btn" aria-label="New message" onclick="showToast('New message coming soon')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14M5 12h14" stroke="#111" stroke-width="2.2" stroke-linecap="round"/>
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
       </div>
@@ -46,23 +43,15 @@
       </div>
     </div>
 
-    <!-- Filter tabs -->
-    <div class="ms-filter-bar">
-      <button class="ms-filter-tab active" onclick="filterTab('all', this)">All</button>
-      <button class="ms-filter-tab" onclick="filterTab('unread', this)">Unread</button>
-      <button class="ms-filter-tab" onclick="filterTab('requests', this)">Requests</button>
+    <!-- Filter tabs — canonical ui-tabs (pill variant) -->
+    <div class="ui-tabs ms-filter-bar" role="tablist">
+      <button class="ui-tab active" role="tab" aria-selected="true"  onclick="filterTab('all', this)">All</button>
+      <button class="ui-tab"        role="tab" aria-selected="false" onclick="filterTab('unread', this)">Unread</button>
     </div>
 
     <!-- Conversation list -->
-    <div class="ms-conv-list" id="ms-conv-list"></div>
-
-    <!-- Service requests panel (hidden by default) -->
-    <div id="ms-requests-panel" style="display:none; flex:1; overflow-y:auto;">
-      <div style="text-align:center;padding:40px 20px;">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style="margin-bottom:10px;opacity:0.3"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="1.8"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#730201" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <p style="font-size:13px;font-weight:700;color:#333;margin:0 0 4px;">No service requests</p>
-        <p style="font-size:11.5px;color:#aaa;margin:0;">Your booking requests will appear here.</p>
-      </div>
+    <div class="ms-conv-list" id="ms-conv-list">
+      <div class="ms-empty"><p class="ms-empty-title">Loading…</p></div>
     </div>
 
   </div><!-- end ms-list-view -->
@@ -77,7 +66,7 @@
     <div class="ms-chat-header">
       <button class="ms-chat-back" onclick="closeChat()" aria-label="Back">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/>
         </svg>
       </button>
       <div class="ms-chat-pro-wrap">
@@ -96,11 +85,6 @@
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#111" stroke-width="1.8"/>
           </svg>
         </button>
-        <button class="ms-icon-btn" aria-label="More" onclick="showToast('More options coming soon')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="5" r="1.5" fill="#111"/><circle cx="12" cy="12" r="1.5" fill="#111"/><circle cx="12" cy="19" r="1.5" fill="#111"/>
-          </svg>
-        </button>
       </div>
     </div>
 
@@ -109,22 +93,16 @@
 
     <!-- Input bar -->
     <div class="ms-input-bar">
-      <button class="ms-input-attach" aria-label="Attach" onclick="showToast('Attachment coming soon')">
+      <button class="ms-input-attach" aria-label="Attach photo" onclick="document.getElementById('ms-attach-input').click()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
+      <input type="file" id="ms-attach-input" accept="image/*" style="display:none" onchange="handleAttachmentSelect(event)" />
       <div class="ms-input-wrap">
         <textarea id="ms-msg-input" rows="1" placeholder="Type a message…"
           oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
       </div>
-      <button class="ms-input-emoji" aria-label="Emoji" onclick="showToast('Emoji picker coming soon')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="#aaa" stroke-width="2"/>
-          <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="#aaa" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="9" cy="10" r="1" fill="#aaa"/><circle cx="15" cy="10" r="1" fill="#aaa"/>
-        </svg>
-      </button>
       <button class="ms-send-btn" onclick="sendMessage()" aria-label="Send">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -137,150 +115,167 @@
 </div><!-- end ms-shell -->
 
 <script src="../shared/js/utils/global-app.js"></script>
-<script type="module">
-  import { requireAuth } from '../shared/js/utils/authGuard.js';
-  await requireAuth();
-</script>
 <script src="../shared/js/components/floatingNav.js"></script>
-<script>
+<script type="module">
+import { requireAuth } from '../shared/js/utils/authGuard.js';
+import { getAppContainer } from '../shared/js/app/container.js';
+import { avatarUrl, uploadImage, UPLOAD_PRESETS } from '../shared/js/services/cloudinaryService.js';
+
+const user = await requireAuth();
+const uid  = user.uid;
+
+const { repositories } = getAppContainer();
+const { chatRepository, artisanRepository, customerRepository } = repositories;
+
 const TOAST_ICONS = {
-  success: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  error: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8V13" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M12 16.5V16.55" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21H20.47A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  info: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+  success: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 7L10.25 16.75L6 12.5" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  error: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8V13" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/><path d="M12 16.5V16.55" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/><path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21H20.47A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>'
 };
-/* ── Seed conversations from booking history ── */
-function seedConversations() {
-  const convs = [
-    {
-      id: 0, name: 'HandyHub Support', role: 'Support Team', online: true,
-      photo: null, grad: 'linear-gradient(135deg,#730201,#b10c0c)', gradInitials: 'HH',
-      time: 'Now', unread: 1, phone: null,
-      lastMsg: 'Welcome to HandyHub! We\'re here to help.',
-      messages: [{ from: 'pro', text: 'Welcome to HandyHub! How can we assist you today?', time: 'Now' }]
-    },
-  ];
 
-  try {
-    const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
-    const seen = new Set();
-    hist.forEach((b, i) => {
-      const proName = b.proName || (b.professional && b.professional.name);
-      if (!proName || seen.has(proName)) return;
-      seen.add(proName);
-      const proPhone = b.proPhone || (b.professional && b.professional.phone) || null;
-      const initials = proName.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
-      const gradients = [
-        'linear-gradient(135deg,#1e3a5f,#2e5f8e)',
-        'linear-gradient(135deg,#1a4731,#2e7d52)',
-        'linear-gradient(135deg,#4a1a6e,#7b2fb5)',
-        'linear-gradient(135deg,#5c3317,#9c6a38)',
-      ];
-      const serviceDate = b.dateDisplay || b.date || '';
-      convs.push({
-        id: i + 1,
-        name: proName,
-        role: b.proType || b.service || 'Professional',
-        online: Math.random() > 0.5,
-        photo: b.proPhoto || null,
-        grad: gradients[i % gradients.length],
-        gradInitials: initials,
-        time: serviceDate ? serviceDate.split(',')[0] : 'Recent',
-        unread: 0,
-        phone: proPhone,
-        lastMsg: 'Booking ' + (b.status || 'confirmed') + ' — ' + (b.service || 'your service'),
-        messages: [
-          { from: 'pro', text: 'Hi! I\'ve received your booking request for ' + (b.service || 'your service') + '. I\'ll be there on time!', time: serviceDate || 'Recent' },
-        ],
-      });
-    });
-  } catch(e) {}
+/* ── State ── */
+let CHATS          = [];   // [{ id, data }] — live from chatRepository.subscribeByUser
+const PARTICIPANT_CACHE = new Map(); // otherUid -> { name, avatarUrl, isOnline }
+let currentChatId  = null;
+let currentOtherUid = null;
+let currentFilter  = 'all';
+let unsubChats     = null;
+let unsubMessages  = null;
+let pendingAttachment = null;
 
-  return convs;
+function otherParticipant(chatData) {
+  return (chatData.participants || []).find(p => p !== uid) || null;
 }
 
-/* ── Data ── */
-const CONVERSATIONS = seedConversations();
+/** Resolve display info (name/avatar/online) for the other participant.
+ *  Tries artisanRepository first (the overwhelmingly common case — customer
+ *  messaging an artisan), falls back to customerRepository (artisan-initiated
+ *  or support thread edge case), cached per session. */
+async function resolveParticipant(otherUid) {
+  if (PARTICIPANT_CACHE.has(otherUid)) return PARTICIPANT_CACHE.get(otherUid);
 
-const AUTO_REPLIES = [
-  "Got it, I'll be right with you!",
-  "Sure, no problem at all.",
-  "I understand. Let me take care of that for you.",
-  "Perfect, I'm on my way.",
-  "Thanks for the update! See you soon.",
-  "Noted. I'll call you when I'm 5 minutes away."
+  let info = { name: 'HandyHub User', photo: null, isOnline: false, phone: null };
+  try {
+    const a = await artisanRepository.getById(otherUid);
+    if (a.exists) {
+      const d = a.data;
+      info = {
+        name: d.name || 'Professional',
+        photo: d.profileImageId ? avatarUrl(d.profileImageId, '', d.profileImageVersion ?? null) : (d.profileImage || null),
+        isOnline: d.isAvailable === true || d.isOnline === true,
+        phone: d.phone || null,
+      };
+      PARTICIPANT_CACHE.set(otherUid, info);
+      return info;
+    }
+  } catch (e) { /* not an artisan — fall through */ }
+
+  try {
+    const c = await customerRepository.getById(otherUid);
+    if (c.exists) {
+      const d = c.data;
+      info = {
+        name: d.name || 'Customer',
+        photo: d.profileImageId ? avatarUrl(d.profileImageId, '', d.profileImageVersion ?? null) : null,
+        isOnline: false,
+        phone: d.phone || null,
+      };
+    }
+  } catch (e) { /* neither — keep default */ }
+
+  PARTICIPANT_CACHE.set(otherUid, info);
+  return info;
+}
+
+function initialsOf(name) {
+  return (name || '?').split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+}
+
+const GRADIENTS = [
+  'linear-gradient(135deg,#1e3a5f,#2e5f8e)',
+  'linear-gradient(135deg,#1a4731,#2e7d52)',
+  'linear-gradient(135deg,#4a1a6e,#7b2fb5)',
+  'linear-gradient(135deg,#5c3317,#9c6a38)',
 ];
+function gradientFor(otherUid) {
+  let hash = 0;
+  for (let i = 0; i < otherUid.length; i++) hash = (hash * 31 + otherUid.charCodeAt(i)) >>> 0;
+  return GRADIENTS[hash % GRADIENTS.length];
+}
 
-let currentConvId = null;
-let currentFilter = 'all';
-let replyIndex = 0;
-
-/* ── Render list ── */
-function renderList(filter = 'all', query = '') {
+/* ── Render conversation list ── */
+async function renderList(filter = 'all', searchQuery = '') {
   const list = document.getElementById('ms-conv-list');
-  const reqPanel = document.getElementById('ms-requests-panel');
 
-  if (filter === 'requests') {
-    list.style.display = 'none';
-    reqPanel.style.display = 'block';
-    return;
+  let chats = CHATS;
+  if (filter === 'unread') chats = chats.filter(c => (c.data.unreadCount?.[uid] || 0) > 0);
+
+  // Resolve participant info for every visible chat up front (cached after first load).
+  const rows = await Promise.all(chats.map(async (c) => {
+    const otherUid = otherParticipant(c.data);
+    if (!otherUid) return null;
+    const info = await resolveParticipant(otherUid);
+    return { chat: c, otherUid, info };
+  }));
+  let visible = rows.filter(Boolean);
+
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    visible = visible.filter(r =>
+      r.info.name.toLowerCase().includes(q) ||
+      (r.chat.data.lastMessage || '').toLowerCase().includes(q)
+    );
   }
-  list.style.display = 'block';
-  reqPanel.style.display = 'none';
 
-  let convs = CONVERSATIONS;
-  if (filter === 'unread') convs = convs.filter(c => c.unread > 0);
-  if (query) convs = convs.filter(c =>
-    c.name.toLowerCase().includes(query.toLowerCase()) ||
-    c.lastMsg.toLowerCase().includes(query.toLowerCase())
-  );
-
-  if (convs.length === 0) {
+  if (visible.length === 0) {
     list.innerHTML = `<div class="ms-empty">
       <div class="ms-empty-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" stroke="#111" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <p class="ms-empty-title">No messages found</p>
-      <p class="ms-empty-sub">Try a different search or check back later.</p>
+      <p class="ms-empty-title">No messages yet</p>
+      <p class="ms-empty-sub">Conversations with your professionals will appear here.</p>
     </div>`;
     return;
   }
 
-  list.innerHTML = convs.map(c => `
-    <div class="ms-conv-item ${c.unread > 0 ? 'unread' : ''}" onclick="openChat(${c.id})">
+  list.innerHTML = visible.map(({ chat, otherUid, info }) => {
+    const unread = chat.data.unreadCount?.[uid] || 0;
+    const time = chat.data.lastMessageAt ? timeAgoShort(chat.data.lastMessageAt) : '';
+    return `
+    <div class="ms-conv-item ${unread > 0 ? 'unread' : ''}" onclick="openChat('${chat.id}')">
       <div class="ms-conv-avatar-wrap">
-        ${c.photo
-          ? `<img class="ms-conv-avatar" src="${c.photo}" alt="${c.name}">`
-          : `<div class="ms-conv-avatar-grad" style="background:${c.grad}">${c.gradInitials}</div>`
+        ${info.photo
+          ? `<img class="ms-conv-avatar" src="${esc(info.photo)}" alt="${esc(info.name)}">`
+          : `<div class="ms-conv-avatar-grad" style="background:${gradientFor(otherUid)}">${initialsOf(info.name)}</div>`
         }
-        <div class="ms-conv-dot ${c.online ? '' : 'offline'}"></div>
+        <div class="ms-conv-dot ${info.isOnline ? '' : 'offline'}"></div>
       </div>
       <div class="ms-conv-body">
         <div class="ms-conv-top">
-          <span class="ms-conv-name">${c.name}</span>
-          <span class="ms-conv-time">${c.time}</span>
+          <span class="ms-conv-name">${esc(info.name)}</span>
+          <span class="ms-conv-time">${time}</span>
         </div>
-        <p class="ms-conv-role">${c.role}</p>
         <div class="ms-conv-bottom">
-          <p class="ms-conv-preview">${escHtml(c.lastMsg)}</p>
-          ${c.unread > 0 ? `<span class="ms-conv-badge">${c.unread}</span>` : ''}
+          <p class="ms-conv-preview">${esc(chat.data.lastMessage || 'No messages yet')}</p>
+          ${unread > 0 ? `<span class="ms-conv-badge">${unread}</span>` : ''}
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 /* ── Open chat ── */
-function openChat(id) {
-  const conv = CONVERSATIONS.find(c => c.id === id);
-  if (!conv) return;
-  currentConvId = id;
+window.openChat = async function(chatId) {
+  const chat = CHATS.find(c => c.id === chatId);
+  if (!chat) return;
+  currentChatId  = chatId;
+  currentOtherUid = otherParticipant(chat.data);
+  if (!currentOtherUid) return;
 
-  // Clear unread
-  conv.unread = 0;
+  const info = await resolveParticipant(currentOtherUid);
 
-  // Populate chat header
   const avatar = document.getElementById('chat-avatar');
   let grad = document.querySelector('.ms-chat-pro-avatar-grad');
-  if (conv.photo) {
-    avatar.src = conv.photo;
+  if (info.photo) {
+    avatar.src = info.photo;
     avatar.style.display = 'block';
     if (grad) grad.style.display = 'none';
   } else {
@@ -291,45 +286,54 @@ function openChat(id) {
       avatar.parentNode.insertBefore(grad, avatar.nextSibling);
     }
     grad.style.display = 'flex';
-    grad.style.background = conv.grad;
-    grad.textContent = conv.gradInitials;
+    grad.style.background = gradientFor(currentOtherUid);
+    grad.textContent = initialsOf(info.name);
   }
-  document.getElementById('chat-name').textContent = conv.name;
+  document.getElementById('chat-name').textContent = info.name;
   const statusEl = document.getElementById('chat-status');
-  statusEl.textContent = conv.online ? 'Online' : 'Offline';
-  statusEl.className = 'ms-chat-pro-status' + (conv.online ? '' : ' offline');
+  statusEl.textContent = info.isOnline ? 'Online' : 'Offline';
+  statusEl.className = 'ms-chat-pro-status' + (info.isOnline ? '' : ' offline');
   const dot = document.getElementById('chat-dot');
-  dot.className = 'ms-chat-pro-dot' + (conv.online ? '' : ' offline');
+  dot.className = 'ms-chat-pro-dot' + (info.isOnline ? '' : ' offline');
 
-  // Render messages
-  renderMessages(conv);
+  // Real-time message subscription
+  if (unsubMessages) unsubMessages();
+  unsubMessages = chatRepository.subscribeToMessages(
+    chatId,
+    (messages) => renderMessages(messages, info),
+    (err) => console.error('[messages] subscribeToMessages error:', err)
+  );
 
-  // Slide to chat
+  // Mark thread read (zeroes badge, marks incoming messages isRead)
+  chatRepository.markChatRead(chatId, uid).catch(() => {});
+
   document.getElementById('ms-list-view').classList.add('slide-out');
   document.getElementById('ms-chat-view').classList.add('slide-in');
   const fnav = document.getElementById('hh-floating-nav');
   if (fnav) fnav.style.display = 'none';
+};
 
-  // Re-render list to clear badge
-  renderList(currentFilter);
-}
-
-function renderMessages(conv) {
+function renderMessages(messages, info) {
   const body = document.getElementById('ms-chat-body');
   body.innerHTML = `<div class="ms-date-sep"><span>Today</span></div>`;
 
-  conv.messages.forEach(msg => {
-    const isMine = msg.from === 'user';
+  messages.forEach(m => {
+    const msg = m.data;
+    const isMine = msg.senderId === uid;
+    const time = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    const bubbleContent = msg.attachment
+      ? `<img src="${esc(msg.attachment.url)}" alt="Attachment" style="max-width:200px;border-radius:12px;display:block;">${msg.text ? `<div style="margin-top:6px;">${esc(msg.text)}</div>` : ''}`
+      : esc(msg.text);
     body.innerHTML += `
       <div class="ms-bubble-wrap ${isMine ? 'mine' : 'theirs'}">
         ${!isMine
-          ? (conv.photo
-              ? `<img class="ms-bubble-avatar" src="${conv.photo}" alt="">`
-              : `<div class="ms-bubble-avatar-grad" style="background:${conv.grad}">${conv.gradInitials}</div>`)
+          ? (info.photo
+              ? `<img class="ms-bubble-avatar" src="${esc(info.photo)}" alt="">`
+              : `<div class="ms-bubble-avatar-grad" style="background:${gradientFor(currentOtherUid)}">${initialsOf(info.name)}</div>`)
           : ''}
         <div>
-          <div class="ms-bubble ${isMine ? 'mine' : 'theirs'}">${escHtml(msg.text)}</div>
-          <span class="ms-bubble-time">${msg.time}</span>
+          <div class="ms-bubble ${isMine ? 'mine' : 'theirs'}">${bubbleContent}</div>
+          <span class="ms-bubble-time">${time}</span>
         </div>
       </div>`;
   });
@@ -338,115 +342,134 @@ function renderMessages(conv) {
 }
 
 /* ── Close chat ── */
-function closeChat() {
+window.closeChat = function() {
   document.getElementById('ms-list-view').classList.remove('slide-out');
   document.getElementById('ms-chat-view').classList.remove('slide-in');
   const fnav = document.getElementById('hh-floating-nav');
   if (fnav) fnav.style.display = '';
-  currentConvId = null;
-  renderList(currentFilter);
-}
+  if (unsubMessages) { unsubMessages(); unsubMessages = null; }
+  currentChatId = null;
+  currentOtherUid = null;
+  pendingAttachment = null;
+};
+
+/* ── Attachments ── */
+window.handleAttachmentSelect = async function(e) {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file || !currentChatId) return;
+  try {
+    showToast('Uploading photo…');
+    // Reuses the 'job' preset — the closest semantic match for user-uploaded
+    // photos exchanged during an active booking relationship. No dedicated
+    // chat-attachment Cloudinary preset exists yet; if attachment volume
+    // grows, create 'hh_chat_attachments' in the Cloudinary dashboard and
+    // swap this constant.
+    const { publicId, version } = await uploadImage(file, UPLOAD_PRESETS.job, {
+      publicId: `chats/${currentChatId}/${Date.now()}`,
+    });
+    pendingAttachment = {
+      url: avatarUrl(publicId, '', version),
+      type: file.type,
+      name: file.name,
+      size: file.size,
+    };
+    await sendMessage();
+  } catch (err) {
+    showToast('Could not upload photo: ' + err.message, 'error');
+  }
+};
 
 /* ── Send message ── */
-function sendMessage() {
+window.sendMessage = async function() {
   const input = document.getElementById('ms-msg-input');
   const text = input.value.trim();
-  if (!text || currentConvId === null) return;
+  if (!currentChatId || (!text && !pendingAttachment)) return;
 
-  const conv = CONVERSATIONS.find(c => c.id === currentConvId);
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  conv.messages.push({ from: 'user', text, time: timeStr });
-  conv.lastMsg = text;
-  conv.time = timeStr;
-
+  const attachment = pendingAttachment;
+  pendingAttachment = null;
   input.value = '';
   input.style.height = 'auto';
-  renderMessages(conv);
 
-  // Typing indicator
-  const body = document.getElementById('ms-chat-body');
-  const typingId = 'typing-' + Date.now();
-  const proAvatar = conv.photo
-    ? `<img class="ms-bubble-avatar" src="${conv.photo}" alt="">`
-    : `<div class="ms-bubble-avatar-grad" style="background:${conv.grad}">${conv.gradInitials}</div>`;
-
-  body.innerHTML += `
-    <div class="ms-typing-wrap" id="${typingId}">
-      ${proAvatar}
-      <div class="ms-typing-bubble">
-        <div class="ms-typing-dot"></div>
-        <div class="ms-typing-dot"></div>
-        <div class="ms-typing-dot"></div>
-      </div>
-    </div>`;
-  scrollToBottom();
-
-  setTimeout(() => {
-    const reply = AUTO_REPLIES[replyIndex % AUTO_REPLIES.length];
-    replyIndex++;
-    const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    conv.messages.push({ from: 'pro', text: reply, time: replyTime });
-    conv.lastMsg = reply;
-    conv.time = replyTime;
-    renderMessages(conv);
-  }, 1500 + Math.random() * 800);
-}
+  try {
+    await chatRepository.sendMessage(currentChatId, {
+      senderId: uid,
+      text,
+      senderName: user.displayName || undefined,
+      attachment,
+    });
+  } catch (err) {
+    showToast('Message failed to send: ' + err.message, 'error');
+  }
+};
 
 /* ── Filter tabs ── */
-function filterTab(tab, btn) {
+window.filterTab = function(tab, btn) {
   currentFilter = tab;
-  document.querySelectorAll('.ms-filter-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ms-filter-bar .ui-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
   btn.classList.add('active');
+  btn.setAttribute('aria-selected','true');
   renderList(tab, document.getElementById('ms-search-input').value);
-}
+};
 
 /* ── Search ── */
-function searchConversations(query) {
+window.searchConversations = function(query) {
   renderList(currentFilter, query);
-}
+};
 
 /* ── Helpers ── */
-function callConversation() {
-  const conv = CONVERSATIONS.find(c => c.id === currentConvId);
-  if (conv && conv.phone) {
-    window.location.href = conv.phone;
+window.callConversation = async function() {
+  if (!currentOtherUid) return;
+  const info = await resolveParticipant(currentOtherUid);
+  if (info.phone) {
+    window.location.href = 'tel:' + info.phone;
   } else {
     showToast('No phone number on file for this contact');
   }
-}
+};
 
-function focusSearch() {
+window.focusSearch = function() {
   document.getElementById('ms-search-input').focus();
-}
+};
 
 function scrollToBottom() {
   const body = document.getElementById('ms-chat-body');
   requestAnimationFrame(() => { body.scrollTop = body.scrollHeight; });
 }
 
-function autoResize(el) {
+window.autoResize = function(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-}
+};
 
-function handleKey(e) {
+window.handleKey = function(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
   }
+};
+
+function timeAgoShort(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Now';
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d`;
+  return new Date(iso).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' });
 }
 
-function escHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function showToast(msg) {
+function showToast(msg, type = 'info') {
   document.querySelector('.toast.app-toast')?.remove();
 
   const t = document.createElement('div');
-  t.className = 'toast app-toast info';
+  t.className = 'toast app-toast ' + type;
   t.setAttribute('role', 'status');
   t.setAttribute('aria-live', 'polite');
   t.setAttribute('aria-atomic', 'true');
@@ -454,7 +477,7 @@ function showToast(msg) {
   const icon = document.createElement('span');
   icon.className = 'toast-icon';
   icon.setAttribute('aria-hidden', 'true');
-  icon.innerHTML = TOAST_ICONS.info;
+  icon.innerHTML = TOAST_ICONS[type] || TOAST_ICONS.info;
 
   const text = document.createElement('span');
   text.className = 'toast-message';
@@ -470,10 +493,37 @@ function showToast(msg) {
   }, 3000);
 }
 
+/* ── Deep-link: opened from artisan-profile.html "Message" button ──────────
+ * sessionStorage.hh_msg_artisan = { id, name } — get-or-create the real
+ * Firestore chat thread with that artisan and open it immediately. */
+async function handleDeepLink() {
+  const raw = sessionStorage.getItem('hh_msg_artisan');
+  if (!raw) return;
+  sessionStorage.removeItem('hh_msg_artisan');
+  try {
+    const { id: artisanId } = JSON.parse(raw);
+    if (!artisanId) return;
+    const chatId = await chatRepository.getOrCreateDirectChat(uid, artisanId);
+    // Give the live subscription a moment to include the new/existing chat.
+    await new Promise(r => setTimeout(r, 300));
+    await openChat(chatId);
+  } catch (e) {
+    console.warn('[messages] deep-link open failed:', e.message);
+  }
+}
+
 /* ── Init ── */
-renderList('all');
+unsubChats = chatRepository.subscribeByUser(
+  uid,
+  (chats) => { CHATS = chats; renderList(currentFilter, document.getElementById('ms-search-input').value); },
+  (err) => {
+    console.error('[messages] subscribeByUser error:', err);
+    document.getElementById('ms-conv-list').innerHTML =
+      '<div class="ms-empty"><p class="ms-empty-title">Could not load messages</p></div>';
+  }
+);
+handleDeepLink();
 </script>
 <script type="module" src="js/authInit.js"></script>
 </body>
 </html>
-

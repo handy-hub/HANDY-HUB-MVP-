@@ -6,6 +6,7 @@
   <title>HandyHub Admin – Customers</title>
   <link rel="stylesheet" href="css/admin.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     .customer-drawer {
       position:fixed;right:-460px;top:0;bottom:0;width:460px;max-width:92vw;
@@ -165,7 +166,7 @@
         <p class="profile-sub" id="d-email">—</p>
         <div style="margin-top:6px;display:flex;gap:6px;">
           <span id="d-status" class="badge badge-success">Active</span>
-          <span id="d-flagged" class="badge badge-warning" style="display:none;">⚠ Flagged</span>
+          <span id="d-flagged" class="badge badge-warning" style="display:none;"><i class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
         </div>
       </div>
     </div>
@@ -190,8 +191,8 @@
     </div>
   </div>
   <div class="drawer-footer">
-    <button class="btn-flag" id="d-btn-flag" onclick="toggleFlag()">⚠ Flag Account</button>
-    <button class="btn-ban" onclick="banCustomer()">🚫 Ban</button>
+    <button class="btn-flag" id="d-btn-flag" onclick="toggleFlag()"><i class="fa-solid fa-triangle-exclamation"></i> Flag Account</button>
+    <button class="btn-ban" onclick="banCustomer()"><i class="fa-solid fa-ban"></i> Ban</button>
   </div>
 </div>
 
@@ -335,7 +336,9 @@ window.openDrawer=async function(uid){
   document.getElementById('d-joined').textContent=ts?ts.toLocaleDateString('en-GH'):'—';
   document.getElementById('d-last-active').textContent=la?la.toLocaleString('en-GH'):'—';
   document.getElementById('d-currency').textContent=c.appPreferences?.currency||'GHS';
-  document.getElementById('d-btn-flag').textContent=c.isFlagged?'✓ Unflag Account':'⚠ Flag Account';
+  document.getElementById('d-btn-flag').innerHTML=c.isFlagged
+    ? '<i class="fa-solid fa-check"></i> Unflag Account'
+    : '<i class="fa-solid fa-triangle-exclamation"></i> Flag Account';
   loadCustomerBookings(uid);
   document.getElementById('profile-drawer').classList.add('open');
   document.getElementById('drawer-overlay').classList.add('open');
@@ -370,7 +373,7 @@ window.toggleFlag=async function(){
   const newVal=!activeCustomer.isFlagged;
   try{
     await updateDoc(doc(db,'customers',activeCustomer.id),{isFlagged:newVal,flaggedBy:currentAdmin.email,flaggedAt:serverTimestamp()});
-    showToast(newVal?'⚠ Account flagged.':'✓ Flag removed.','success');
+    showToast(newVal?'Account flagged.':'Flag removed.','success');
     closeDrawer();
   }catch(e){showToast('Error: '+e.message,'error');}
 };
@@ -382,7 +385,7 @@ window.banCustomer=async function(){
   if(!reason.trim()){showToast('Reason required.','error');return;}
   try{
     await updateDoc(doc(db,'customers',activeCustomer.id),{isBanned:true,bannedAt:serverTimestamp(),bannedBy:currentAdmin.email,banReason:reason});
-    showToast('🚫 Customer banned.','success');
+    showToast('Customer banned.','success');
     closeDrawer();
   }catch(e){showToast('Error: '+e.message,'error');}
 };

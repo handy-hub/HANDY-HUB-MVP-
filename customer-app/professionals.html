@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Professionals | HandyHub</title>
+  <!-- Reuse the proven book-now professional card + shell styles -->
+  <link rel="stylesheet" href="css/book-now.css" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <link rel="stylesheet" href="../shared/css/components/tabs.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    /* Page-specific: filter bar + sort row. Cards/shell come from book-now.css. */
+    .pf-filterbar { display:flex; gap:8px; align-items:center; padding: 0 16px 4px; }
+    .pf-sort {
+      margin-left:auto; flex-shrink:0;
+      display:flex; align-items:center; gap:6px;
+      font-size:12px; font-weight:700; color:var(--ui-muted,#666);
+      background:transparent; border:none; cursor:pointer; font-family:inherit;
+      padding:6px 4px;
+    }
+    .pf-sort svg { width:14px; height:14px; }
+    .pf-cat-scroll { display:flex; gap:8px; padding:10px 16px 4px; overflow-x:auto; scrollbar-width:none; }
+    .pf-cat-scroll::-webkit-scrollbar { display:none; }
+    .pf-count { font-size:12px; color:var(--ui-muted,#666); padding: 6px 16px 0; }
+    /* Sort sheet reuses the canonical bottom-sheet component */
+  </style>
+</head>
+<body>
+<div class="bn2-shell">
+
+  <!-- ── Header ── -->
+  <div class="bn2-header">
+    <button class="bn2-back-btn" onclick="goBack()" aria-label="Go back">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
+    </button>
+    <div class="bn2-header-center">
+      <span class="bn2-header-title">Browse Professionals</span>
+      <span class="bn2-header-sub" id="pf-sub">Compare and choose who you want</span>
+    </div>
+  </div>
+
+  <!-- ── Scrollable body ── -->
+  <div class="bn2-scroll">
+
+    <!-- Category filter chips (data-driven from the shared catalog) -->
+    <div class="ui-tabs pf-cat-scroll" id="pf-cats" role="tablist"></div>
+
+    <!-- Sort row -->
+    <div class="pf-filterbar">
+      <span class="pf-count" id="pf-count" style="padding-left:0;"></span>
+      <button class="pf-sort" id="pf-sort-btn" onclick="openSort()" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M6 12h12M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span id="pf-sort-label">Recommended</span>
+      </button>
+    </div>
+
+    <!-- Professionals list -->
+    <div id="pf-list" class="bn2-pros-list" style="padding:8px 16px 0;">
+      <div class="bn2-pro-skeleton"></div>
+      <div class="bn2-pro-skeleton"></div>
+      <div class="bn2-pro-skeleton"></div>
+    </div>
+
+    <div style="height:90px"></div>
+  </div>
+
+  <!-- ── Sort bottom sheet (canonical ui-sheet) ── -->
+  <div class="ui-sheet-overlay" id="pf-sort-overlay" role="presentation">
+    <div class="ui-sheet" role="dialog" aria-modal="true" aria-label="Sort professionals">
+      <div class="ui-sheet-handle" aria-hidden="true"></div>
+      <p class="ui-sheet-title">Sort by</p>
+      <div class="ui-sheet-body">
+        <button class="ui-sheet-option selected" data-sort="recommended" onclick="setSort('recommended')">
+          Recommended <svg class="ui-sheet-check" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="ui-sheet-option" data-sort="rating" onclick="setSort('rating')">
+          Highest rated <svg class="ui-sheet-check" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="ui-sheet-option" data-sort="jobs" onclick="setSort('jobs')">
+          Most experienced <svg class="ui-sheet-check" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<link rel="stylesheet" href="../shared/css/components/sheet.css" />
+<script src="../shared/js/utils/global-app.js"></script>
+<script src="../shared/js/components/floatingNav.js"></script>
+
+<script type="module">
+// ════════════════════════════════════════════════════════════════
+//  professionals.html — Layer 3: professional discovery (browse)
+//  Real Firestore artisans. Routes to profile (evaluate) or booking
+//  (commit, via the professional-first contract). NEVER a dead-end.
+// ════════════════════════════════════════════════════════════════
+import { requireAuth } from '../shared/js/utils/authGuard.js';
+import { avatarUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.js';
+import { SERVICE_CATEGORIES, getCategoryById } from '../shared/js/data/serviceCatalog.js';
+await requireAuth();
+
+let currentCat  = '';            // '' = all categories
+let currentSort = 'recommended';
+let loaded      = [];
+
+const listEl  = document.getElementById('pf-list');
+const countEl = document.getElementById('pf-count');
+const subEl   = document.getElementById('pf-sub');
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── Category chips ──────────────────────────────────────────── */
+function renderCats() {
+  const cats = [{ id:'', name:'All' }, ...SERVICE_CATEGORIES.map(c => ({ id:c.id, name:c.name }))];
+  document.getElementById('pf-cats').innerHTML = cats.map(c =>
+    `<button type="button" role="tab" data-cat="${esc(c.id)}"
+       class="ui-tab${c.id === currentCat ? ' active' : ''}"
+       aria-selected="${c.id === currentCat}"
+       onclick="window._pfSelectCat('${esc(c.id)}', this)">${esc(c.name)}</button>`
+  ).join('');
+}
+
+window._pfSelectCat = function(catId, btn) {
+  currentCat = catId;
+  document.querySelectorAll('#pf-cats .ui-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+  if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected','true'); }
+  const cat = getCategoryById(catId);
+  subEl.textContent = cat ? `${cat.name}s near you` : 'Compare and choose who you want';
+  load();
+};
+
+/* ── Sort sheet ──────────────────────────────────────────────── */
+window.openSort  = () => document.getElementById('pf-sort-overlay').classList.add('open');
+window.closeSort = () => document.getElementById('pf-sort-overlay').classList.remove('open');
+document.getElementById('pf-sort-overlay').addEventListener('click', e => {
+  if (e.target.id === 'pf-sort-overlay') window.closeSort();
+});
+window.setSort = function(sort) {
+  currentSort = sort;
+  const labels = { recommended:'Recommended', rating:'Highest rated', jobs:'Most experienced' };
+  document.getElementById('pf-sort-label').textContent = labels[sort] || 'Recommended';
+  document.querySelectorAll('#pf-sort-overlay .ui-sheet-option').forEach(o =>
+    o.classList.toggle('selected', o.dataset.sort === sort));
+  window.closeSort();
+  applySortAndRender();
+};
+
+/* ── Card (mirrors book-now's proven card markup) ─────────────── */
+function buildCard(artisan) {
+  const d = artisan.data || {};
+  const id = artisan.id;
+  const name = d.name || 'Professional';
+  const specialty = d.specialty || d.category || '';
+  const rating = d.rating ? parseFloat(d.rating).toFixed(1) : null;
+  const reviews = d.reviewCount || 0;
+  const jobs = d.jobsCompleted || 0;
+  const avail = d.isAvailable !== false && d.isOnline !== false;
+  const photo = d.profileImageId
+    ? avatarUrl(d.profileImageId, TRANSFORMS.avatarSm, d.profileImageVersion ?? null)
+    : (d.profileImage || null);
+  const location = d.location || '';
+  const photoHtml = photo
+    ? `<img class="bn2-pro-img" src="${esc(photo)}" alt="${esc(name)}" loading="lazy">`
+    : `<div class="bn2-pro-img bn2-pro-img-init">${esc(name.charAt(0).toUpperCase())}</div>`;
+  const ratingHtml = rating
+    ? `<span class="bn2-pro-rating"><i class="fa-solid fa-star"></i> ${esc(rating)}</span><span class="bn2-pro-reviews">(${esc(reviews)})</span>`
+    : `<span class="bn2-pro-reviews">No reviews yet</span>`;
+  const availHtml = avail
+    ? `<span class="bn2-pro-avail-dot"></span><span class="bn2-pro-avail-lbl">Available</span>`
+    : `<span class="bn2-pro-unavail-dot"></span><span class="bn2-pro-avail-lbl bn2-pro-avail-lbl--off">Busy</span>`;
+  return `
+    <div class="bn2-pro-card${!avail ? ' bn2-pro-card--dim' : ''}" onclick="window._pfView('${esc(id)}')">
+      <div class="bn2-pro-photo-wrap">
+        ${photoHtml}
+        <div class="bn2-pro-avail-badge">${availHtml}</div>
+      </div>
+      <div class="bn2-pro-body">
+        <p class="bn2-pro-name">${esc(name)}</p>
+        <p class="bn2-pro-spec">${esc(specialty)}${location ? ' · ' + esc(location) : ''}</p>
+        <div class="bn2-pro-meta-row">
+          ${ratingHtml}
+          <span class="bn2-pro-dot-sep">·</span>
+          <span class="bn2-pro-jobs">${esc(jobs)} jobs</span>
+        </div>
+      </div>
+      <div class="bn2-pro-action">
+        <button class="bn2-pro-select-btn" onclick="event.stopPropagation();window._pfBook('${esc(id)}')" aria-label="Book ${esc(name)}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>`;
+}
+
+/* ── View profile (evaluate) ─────────────────────────────────── */
+window._pfView = function(id) {
+  const a = loaded.find(x => x.id === id);
+  if (!a) return;
+  const d = a.data || {};
+  sessionStorage.setItem('hh_artisan_view', JSON.stringify({
+    id: a.id, uid: a.id,
+    name: d.name || '', specialty: d.specialty || '', category: d.category || '',
+    rating: d.rating || 0, reviewCount: d.reviewCount || 0, jobsCompleted: d.jobsCompleted || 0,
+    yearsExperience: d.yearsExperience || null, bio: d.bio || '',
+    profileImageId: d.profileImageId || null, profileImageVersion: d.profileImageVersion || null,
+    profileImage: d.profileImage || null, location: d.location || '', isAvailable: d.isAvailable || false,
+  }));
+  window.location.href = 'artisan-profile.html';
+};
+
+/* ── Book directly (commit, professional-first contract) ─────── */
+window._pfBook = function(id) {
+  const a = loaded.find(x => x.id === id);
+  if (!a) { window.location.href = 'book-step1.html'; return; }
+  const d = a.data || {};
+  try {
+    sessionStorage.setItem('hh_selected_artisan', JSON.stringify({
+      id: a.id, uid: a.id,
+      name: d.name || 'Professional', specialty: d.specialty || d.category || '',
+      category: d.category || d.specialty || '',
+      rating: d.rating != null ? d.rating : null, reviewCount: d.reviewCount || 0,
+      isAvailable: Boolean(d.isAvailable), phone: d.phone || null,
+      profileImageId: d.profileImageId || null, profileImageVersion: d.profileImageVersion || null,
+      profileImage: d.profileImage || null, location: d.location || '',
+    }));
+    sessionStorage.setItem('hh_service', d.category || d.specialty || '');
+    sessionStorage.setItem('hh_booking_intent', 'artisan');
+  } catch (_) {}
+  window.location.href = 'book-step1.html';
+};
+
+/* ── Sort + render ───────────────────────────────────────────── */
+function applySortAndRender() {
+  let arr = [...loaded];
+  if (currentSort === 'rating') {
+    arr.sort((a,b) => Number((b.data||{}).rating||0) - Number((a.data||{}).rating||0));
+  } else if (currentSort === 'jobs') {
+    arr.sort((a,b) => Number((b.data||{}).jobsCompleted||0) - Number((a.data||{}).jobsCompleted||0));
+  } else { // recommended: available first, then rating
+    arr.sort((a,b) => {
+      const da=a.data||{}, db=b.data||{};
+      const avA = da.isAvailable !== false && da.isOnline !== false;
+      const avB = db.isAvailable !== false && db.isOnline !== false;
+      if (avA !== avB) return avA ? -1 : 1;
+      return Number(db.rating||0) - Number(da.rating||0);
+    });
+  }
+  loaded = arr;
+  listEl.innerHTML = arr.map(buildCard).join('');
+  const n = arr.length;
+  countEl.textContent = `${n} professional${n!==1?'s':''}`;
+}
+
+/* ── Load from Firestore ─────────────────────────────────────── */
+function showSkeletons() {
+  listEl.innerHTML = '<div class="bn2-pro-skeleton"></div>'.repeat(3);
+}
+function showEmpty() {
+  const cat = getCategoryById(currentCat);
+  listEl.innerHTML = `
+    <div class="bn2-pros-empty">
+      <div class="bn2-pros-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#bbb" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <p class="bn2-pros-empty-title">No ${cat ? esc(cat.name)+'s' : 'professionals'} available right now</p>
+      <p class="bn2-pros-empty-sub">Try a different category or check back soon.</p>
+    </div>`;
+  countEl.textContent = '';
+}
+function showError() {
+  listEl.innerHTML = `
+    <div class="bn2-pros-empty">
+      <div class="bn2-pros-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#bbb" stroke-width="2"/><path d="M12 8v5M12 16v1" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <p class="bn2-pros-empty-title">Couldn't load professionals</p>
+      <p class="bn2-pros-empty-sub">Check your connection and <button class="bn2-inline-retry" onclick="window._pfReload()">try again</button>.</p>
+    </div>`;
+  countEl.textContent = '';
+}
+
+window._pfReload = () => load();
+
+async function load() {
+  showSkeletons();
+  countEl.textContent = '';
+  try {
+    const { getAppContainer } = await import('../shared/js/app/container.js');
+    const { repositories: { artisanRepository } } = getAppContainer();
+    const cat = getCategoryById(currentCat);
+    let results = cat
+      ? await artisanRepository.findByCategory(cat.categoryLabel, 25)
+      : await artisanRepository.getTopRated(25);
+    loaded = Array.isArray(results) ? results : [];
+    if (!loaded.length) { showEmpty(); return; }
+    applySortAndRender();
+  } catch (err) {
+    console.error('[professionals] load error:', err);
+    showError();
+  }
+}
+
+/* ── Back: respect where the user came from ──────────────────── */
+window.goBack = function() {
+  if (document.referrer && document.referrer.indexOf(location.host) !== -1) { history.back(); }
+  else { window.location.href = 'dashboard.html'; }
+};
+
+/* ── Init ────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  // Honour an incoming category from a service-detail page or dashboard.
+  const params = new URLSearchParams(location.search);
+  const incoming = params.get('cat') || sessionStorage.getItem('hh_browse_cat') || '';
+  sessionStorage.removeItem('hh_browse_cat');
+  if (incoming && getCategoryById(incoming)) currentCat = incoming;
+  const cat = getCategoryById(currentCat);
+  if (cat) subEl.textContent = `${cat.name}s near you`;
+  renderCats();
+  load();
+});
+</script>
+</body>
+</html>

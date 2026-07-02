@@ -6,6 +6,7 @@
   <title>HandyHub Admin – Disputes</title>
   <link rel="stylesheet" href="css/admin.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     /* Dispute card */
     .dispute-card {
@@ -196,17 +197,17 @@
         <p class="rm-section-title">Choose Resolution</p>
         <div class="resolution-options">
           <div class="res-option" data-res="full_refund" onclick="selectResolution('full_refund')">
-            <div class="res-option-icon">↩️</div>
+            <div class="res-option-icon"><i class="fa-solid fa-rotate-left"></i></div>
             <div class="res-option-title">Full Refund</div>
             <div class="res-option-sub">Return 100% to customer</div>
           </div>
           <div class="res-option" data-res="partial_refund" onclick="selectResolution('partial_refund')">
-            <div class="res-option-icon">⚖️</div>
+            <div class="res-option-icon"><i class="fa-solid fa-scale-balanced"></i></div>
             <div class="res-option-title">Partial Refund</div>
             <div class="res-option-sub">Split between parties</div>
           </div>
           <div class="res-option" data-res="release_artisan" onclick="selectResolution('release_artisan')">
-            <div class="res-option-icon">✅</div>
+            <div class="res-option-icon"><i class="fa-solid fa-check"></i></div>
             <div class="res-option-title">Release to Artisan</div>
             <div class="res-option-sub">Pay full amount to artisan</div>
           </div>
@@ -232,11 +233,11 @@
 <div class="admin-toast" id="admin-toast"></div>
 
 <script type="module">
-import { db, auth }                    from './js/firebase-admin.js';
+import { db, auth, callAdminFunction } from './js/firebase-admin.js';
 import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
 import { showToast, subscribeVerifBadge, setDateHeader } from './js/ui-utils.js';
 import { collection, doc, getDoc, getDocs, onSnapshot,
-         updateDoc, addDoc, query, where, orderBy, serverTimestamp, writeBatch }
+         query, where, orderBy }
                           from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 let currentAdmin=null;
@@ -251,20 +252,13 @@ let allDisputes=[],filtered=[],currentFilter='all',currentSort='newest',searchQ=
 let activeDispute=null, selectedResolution=null;
 
 function init(){
-  // Real-time disputes subscription
+  // Disputes exist as bookings with status === 'disputed' (canonical, lowercase —
+  // see firestore.rules isValidBookingUpdate()). Nothing in the app writes to a
+  // separate "disputes" collection today, so that is not queried here.
   onSnapshot(
-    query(collection(db,'disputes'), orderBy('createdAt','desc')),
-    snap=>{
-      allDisputes=snap.docs.map(d=>({id:d.id,...d.data()}));
-      updateKPIs(); applyAndRender();
-    },
-    err=>{
-      // Fallback: try bookings with status=Disputed
-      onSnapshot(
-        query(collection(db,'bookings'),where('status','==','Disputed'),orderBy('createdAt','desc')),
-        snap=>{ allDisputes=snap.docs.map(d=>({id:d.id,...d.data(),isFromBooking:true})); updateKPIs(); applyAndRender(); }
-      );
-    }
+    query(collection(db,'bookings'), where('status','==','disputed'), orderBy('createdAt','desc')),
+    snap=>{ allDisputes=snap.docs.map(d=>({id:d.id,...d.data(),isFromBooking:true})); updateKPIs(); applyAndRender(); },
+    err=>{ console.error('[disputes] subscription error:', err); showToast('Could not load disputes.','error'); }
   );
   subscribeVerifBadge();
 }
@@ -273,7 +267,7 @@ function updateKPIs(){
   document.getElementById('kpi-total').textContent=allDisputes.length;
   document.getElementById('kpi-open').textContent=allDisputes.filter(d=>d.status==='open'||d.status==='Disputed'||!d.resolvedAt).length;
   document.getElementById('kpi-resolved').textContent=allDisputes.filter(d=>d.status==='resolved').length;
-  const funds=allDisputes.filter(d=>d.status!=='resolved').reduce((s,d)=>s+(d.amount||d.disputedAmount||0),0);
+  const funds=allDisputes.filter(d=>d.status!=='resolved').reduce((s,d)=>s+(d.amount||d.disputedAmount||d.price||0),0);
   document.getElementById('kpi-funds').textContent=`GHS ${funds.toFixed(2)}`;
 }
 
@@ -289,7 +283,7 @@ function applyAndRender(){
   else if(currentFilter==='escalated') list=list.filter(d=>d.status==='escalated');
   if(searchQ) list=list.filter(d=>(d.customerName||'').toLowerCase().includes(searchQ)||(d.artisanName||'').toLowerCase().includes(searchQ)||(d.bookingId||d.id||'').toLowerCase().includes(searchQ)||(d.reason||'').toLowerCase().includes(searchQ));
   if(currentSort==='oldest') list.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-  else if(currentSort==='amount') list.sort((a,b)=>(b.amount||b.disputedAmount||0)-(a.amount||a.disputedAmount||0));
+  else if(currentSort==='amount') list.sort((a,b)=>(b.amount||b.disputedAmount||b.price||0)-(a.amount||a.disputedAmount||a.price||0));
   else list.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
   filtered=list;
   renderGrid();
@@ -307,7 +301,7 @@ function renderGrid(){
     const ts=d.createdAt?.toDate?.();
     const age=ts?ageStr(ts):'—';
     const isOld=ts&&(Date.now()-ts.getTime())>72*3600000&&status!=='resolved';
-    const amt=d.amount||d.disputedAmount;
+    const amt=d.amount||d.disputedAmount||d.price;
     return `<div class="dispute-card${isOld?' urgent':''}" onclick="openDispute('${d.id}')">
       <div class="dc-header">
         <div>
@@ -343,7 +337,7 @@ window.openDispute = function(id) {
   document.getElementById('rm-booking').textContent=(d.bookingId||d.id||'—').slice(0,14).toUpperCase();
   document.getElementById('rm-customer').textContent=d.customerName||d.customerId||'—';
   document.getElementById('rm-artisan').textContent=d.artisanName||d.artisanId||'—';
-  const amt=d.amount||d.disputedAmount;
+  const amt=d.amount||d.disputedAmount||d.price;
   document.getElementById('rm-amount').textContent=amt?`GHS ${Number(amt).toFixed(2)}`:'—';
   const ts=d.createdAt?.toDate?.();
   document.getElementById('rm-date').textContent=ts?ts.toLocaleString('en-GH'):'—';
@@ -388,7 +382,11 @@ function checkCanSubmit(){
 window.closeRM=()=>document.getElementById('rm-overlay').classList.remove('open');
 window.handleRMOverlay=e=>{if(e.target===document.getElementById('rm-overlay'))closeRM();};
 
-/* ── Submit Resolution ───────────────────────────────── */
+/* ── Submit Resolution ─────────────────────────────────────────────────────
+ * resolveDispute() (functions/disputes.js) re-validates admin permission and
+ * the booking's disputed status, finds the real escrow record server-side,
+ * and performs the refund/release/split inside a Firestore transaction —
+ * this page no longer reads or writes wallet balances directly. */
 window.submitResolution = async function() {
   if(!activeDispute||!selectedResolution) return;
   const notes=document.getElementById('rm-notes').value.trim();
@@ -398,87 +396,17 @@ window.submitResolution = async function() {
   btn.disabled=true; btn.textContent='Resolving…';
 
   try{
-    const disputeId=activeDispute.id;
-    const amount=activeDispute.amount||activeDispute.disputedAmount||0;
-    const customerId=activeDispute.customerId;
-    const artisanId=activeDispute.artisanId;
-
-    const batch=writeBatch(db);
-
-    // 1. Update dispute doc
-    const disputeRef = activeDispute.isFromBooking
-      ? doc(db,'bookings',disputeId)
-      : doc(db,'disputes',disputeId);
-
-    batch.update(disputeRef,{
-      status:'resolved',
-      resolvedAt:serverTimestamp(),
-      resolvedBy:currentAdmin.email,
-      resolution:selectedResolution,
-      resolutionNotes:notes,
-    });
-
-    // 2. Handle escrow / wallet based on resolution
-    if(selectedResolution==='full_refund' && customerId){
-      // Refund full amount to customer wallet
-      const custRef=doc(db,'customers',customerId);
-      const custSnap=await getDoc(custRef).catch(()=>null);
-      if(custSnap?.exists()){
-        batch.update(custRef,{walletBalance:(custSnap.data().walletBalance||0)+amount});
-      }
-      // Update booking escrow
-      if(activeDispute.escrowId){
-        batch.update(doc(db,'escrows',activeDispute.escrowId),{status:'refunded',refundedAt:serverTimestamp(),refundedBy:currentAdmin.email,reason:`Dispute: ${notes}`});
-      }
-    } else if(selectedResolution==='release_artisan' && artisanId){
-      // Release to artisan (minus platform fee)
-      const fee=amount*0.15;
-      const artisanPayout=amount-fee;
-      const artRef=doc(db,'artisans',artisanId);
-      const artSnap=await getDoc(artRef).catch(()=>null);
-      if(artSnap?.exists()){
-        batch.update(artRef,{walletBalance:(artSnap.data().walletBalance||0)+artisanPayout});
-      }
-      if(activeDispute.escrowId){
-        batch.update(doc(db,'escrows',activeDispute.escrowId),{status:'released',releasedAt:serverTimestamp(),releasedBy:currentAdmin.email});
-      }
-    } else if(selectedResolution==='partial_refund'){
-      const partialAmt=parseFloat(document.getElementById('partial-amount').value)||0;
-      const artisanAmt=Math.max(0,(amount-partialAmt)*0.85);
-      if(customerId&&partialAmt>0){
-        const custRef=doc(db,'customers',customerId);
-        const cSnap=await getDoc(custRef).catch(()=>null);
-        if(cSnap?.exists()) batch.update(custRef,{walletBalance:(cSnap.data().walletBalance||0)+partialAmt});
-      }
-      if(artisanId&&artisanAmt>0){
-        const artRef=doc(db,'artisans',artisanId);
-        const aSnap=await getDoc(artRef).catch(()=>null);
-        if(aSnap?.exists()) batch.update(artRef,{walletBalance:(aSnap.data().walletBalance||0)+artisanAmt});
-      }
+    const bookingId = activeDispute.id;
+    const payload = { bookingId, resolution: selectedResolution, notes };
+    if (selectedResolution === 'partial_refund') {
+      payload.customerAmount = parseFloat(document.getElementById('partial-amount').value) || 0;
     }
+    await callAdminFunction('resolveDispute', payload);
 
-    await batch.commit();
-
-    // 3. Notifications
-    const resMsg={
-      full_refund:`Your dispute has been resolved. GHS ${Number(amount).toFixed(2)} has been refunded to your wallet.`,
-      release_artisan:`Your dispute has been resolved. Payment has been released.`,
-      partial_refund:`Your dispute has been resolved with a partial settlement.`,
-    };
-    if(customerId){
-      await addDoc(collection(db,'customer_notifications'),{receiverId:customerId,type:'System',title:'⚖️ Dispute Resolved',message:resMsg[selectedResolution]||'Dispute resolved.',isRead:false,createdAt:serverTimestamp()}).catch(()=>{});
-    }
-    if(artisanId){
-      await addDoc(collection(db,'customer_notifications'),{receiverId:artisanId,type:'System',title:'⚖️ Dispute Resolved',message:`A booking dispute has been resolved. ${selectedResolution==='release_artisan'?'Your payment has been processed.':selectedResolution==='full_refund'?'The booking amount has been refunded to the customer.':'A partial settlement has been applied.'}`,isRead:false,createdAt:serverTimestamp()}).catch(()=>{});
-    }
-
-    // 4. Log
-    await addDoc(collection(db,'dispute_logs'),{disputeId,resolution:selectedResolution,notes,adminEmail:currentAdmin.email,adminUid:currentAdmin.uid,timestamp:serverTimestamp()}).catch(()=>{});
-
-    showToast('⚖️ Dispute resolved successfully!','success');
+    showToast('Dispute resolved successfully!','success');
     closeRM();
   }catch(e){
-    showToast('Error: '+e.message,'error');
+    showToast('Error: '+(e.message||e),'error');
     console.error(e);
   }finally{
     btn.disabled=false;btn.textContent='Submit Resolution';

@@ -5,97 +5,105 @@
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Jobs | HandyHub Artisan</title>
+  <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <link rel="stylesheet" href="../shared/css/components/tabs.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    .jobs-shell { max-width: 430px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; background: var(--surface-2); }
-    .jobs-header { background: var(--surface); padding: 14px 16px 0; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-    .jobs-header-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .jobs-back { width: 36px; height: 36px; border: none; background: var(--surface-3); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-    .jobs-title { font-size: 17px; font-weight: 800; color: var(--text-dark); flex: 1; }
-    .jobs-tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
-    .jobs-tabs::-webkit-scrollbar { display: none; }
-    .jobs-tab { flex-shrink: 0; padding: 10px 16px; font-size: 13px; font-weight: 700; color: var(--text-light); border: none; background: none; cursor: pointer; border-bottom: 2.5px solid transparent; white-space: nowrap; transition: color .15s, border-color .15s; }
-    .jobs-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    /* jobs.html — unified to the design system (artisan-app/css/design-system.css).
+       Class names preserved so the card-building JS is untouched; only the visual
+       language changes: --ds-* tokens, 3-tier radii, hairline borders over shadows,
+       artisan orange accent, neutral avatar (was a hardcoded customer-red gradient). */
+    .jobs-shell { max-width: var(--ds-shell); margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; background: var(--ds-bg); }
+    .jobs-header { background: var(--ds-surface); padding: var(--ds-3) var(--ds-gutter) 0; border-bottom: 1px solid var(--ds-line); flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
+    .jobs-header-row { display: flex; align-items: center; gap: var(--ds-3); margin-bottom: var(--ds-3); }
+    .jobs-back { width: 40px; height: 40px; border: 1px solid var(--ds-line); background: var(--ds-surface); border-radius: var(--ds-r-control); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .jobs-back svg { stroke: var(--ds-ink-2); }
+    .jobs-title { font: 800 18px/1.2 var(--ds-font); letter-spacing: -0.3px; color: var(--ds-ink); flex: 1; }
     .jobs-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    .jobs-panel { display: none; padding: 12px 14px; }
+    .jobs-panel { display: none; padding: var(--ds-4) var(--ds-gutter); }
     .jobs-panel.active { display: block; }
 
     /* ── Job card ── */
-    .job-card { background: var(--surface); border-radius: var(--radius-md); margin-bottom: 10px; padding: 14px; box-shadow: var(--shadow-sm); }
-    .job-card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
-    .job-av { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg,#730201,#a03030); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; font-weight: 800; flex-shrink: 0; overflow: hidden; }
+    .job-card { background: var(--ds-surface); border: 1px solid var(--ds-line); border-radius: var(--ds-r-card); margin-bottom: var(--ds-3); padding: var(--ds-4); }
+    .job-card-top { display: flex; align-items: flex-start; gap: var(--ds-3); margin-bottom: var(--ds-3); }
+    .job-av { width: 44px; height: 44px; border-radius: var(--ds-r-control); background: var(--ds-brand-50); display: flex; align-items: center; justify-content: center; color: var(--ds-brand-600); font: 800 16px/1 var(--ds-font); flex-shrink: 0; overflow: hidden; }
     .job-av img { width: 100%; height: 100%; object-fit: cover; }
     .job-info { flex: 1; min-width: 0; }
-    .job-service { font-size: 14px; font-weight: 800; color: var(--text-dark); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .job-customer { font-size: 12px; color: var(--text-mid); margin: 0 0 4px; }
-    .job-meta { display: flex; gap: 8px; flex-wrap: wrap; }
-    .job-meta-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-light); }
-    .job-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
-    .job-amount { font-size: 15px; font-weight: 800; color: var(--text-dark); }
-    .job-status-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
-    .pill-pending     { background: #fff8f0; color: #c2410c; }
-    .pill-accepted    { background: #f0fdf4; color: #15803d; }
-    .pill-en_route    { background: #eff6ff; color: #1d4ed8; }
-    .pill-in_progress { background: #eff6ff; color: #1d4ed8; }
-    .pill-awaiting    { background: #fefce8; color: #854d0e; }
-    .pill-completed   { background: #f0fdf4; color: #166534; }
-    .pill-cancelled   { background: #fef2f2; color: #991b1b; }
-    .pill-rejected    { background: #fef2f2; color: #991b1b; }
-    .job-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .job-btn { height: 36px; padding: 0 14px; border-radius: 10px; font-family: inherit; font-size: 12px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity .15s, transform .1s; }
+    .job-service { font: 800 14px/1.3 var(--ds-font); color: var(--ds-ink); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .job-customer { font: 500 12px/1.3 var(--ds-font); color: var(--ds-ink-2); margin: 0 0 4px; }
+    .job-meta { display: flex; gap: var(--ds-2); flex-wrap: wrap; }
+    .job-meta-item { display: flex; align-items: center; gap: 4px; font: 500 11px/1.3 var(--ds-font); color: var(--ds-ink-3); }
+    .job-right { display: flex; flex-direction: column; align-items: flex-end; gap: var(--ds-2); flex-shrink: 0; }
+    .job-amount { font: 800 15px/1 var(--ds-font); color: var(--ds-ink); font-variant-numeric: tabular-nums; }
+    .job-status-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 var(--ds-2); border-radius: var(--ds-r-pill); font: 700 10px/1 var(--ds-font); text-transform: uppercase; letter-spacing: .4px; }
+    .pill-pending     { background: var(--ds-brand-50);   color: var(--ds-brand-700); }
+    .pill-accepted    { background: var(--ds-success-bg); color: var(--ds-success); }
+    .pill-en_route    { background: var(--ds-info-bg);    color: var(--ds-info); }
+    .pill-in_progress { background: var(--ds-info-bg);    color: var(--ds-info); }
+    .pill-awaiting    { background: var(--ds-warning-bg); color: var(--ds-warning); }
+    .pill-completed   { background: var(--ds-success-bg); color: var(--ds-success); }
+    .pill-cancelled   { background: var(--ds-danger-bg);  color: var(--ds-danger); }
+    .pill-rejected    { background: var(--ds-danger-bg);  color: var(--ds-danger); }
+    .pill-quoted      { background: var(--ds-info-bg);    color: var(--ds-info); }
+    .job-actions { display: flex; gap: var(--ds-2); flex-wrap: wrap; }
+    .job-btn { height: 40px; padding: 0 var(--ds-4); border-radius: var(--ds-r-control); font: 700 13px/1 var(--ds-font); border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .15s, opacity .15s, transform .12s var(--ds-ease); }
     .job-btn:active { transform: scale(0.97); }
-    .job-btn-accept  { background: #22c55e; color: #fff; }
-    .job-btn-decline { background: var(--surface-3); color: var(--text-mid); }
-    .job-btn-track   { background: var(--primary); color: #fff; }
-    .job-btn-outline { background: none; border: 1.5px solid var(--border); color: var(--text-mid); }
+    .job-btn-accept  { background: var(--ds-success); color: #fff; }
+    .job-btn-decline { background: var(--ds-surface-2); color: var(--ds-ink-2); }
+    .job-btn-track   { background: var(--ds-brand-500); color: #fff; }
+    .job-btn-outline { background: none; border: 1px solid var(--ds-line-strong); color: var(--ds-ink-2); }
 
     /* ── Skeleton ── */
-    .job-skel { background: var(--surface); border-radius: var(--radius-md); margin-bottom: 10px; padding: 14px; animation: jPulse 1.4s ease-in-out infinite; }
-    .jsk { height: 12px; border-radius: 6px; background: #ebebeb; margin-bottom: 8px; }
-    @keyframes jPulse { 0%,100%{opacity:1}50%{opacity:.5} }
+    .job-skel { position: relative; overflow: hidden; background: var(--ds-surface); border: 1px solid var(--ds-line); border-radius: var(--ds-r-card); margin-bottom: var(--ds-3); padding: var(--ds-4); }
+    .jsk { height: 12px; border-radius: var(--ds-r-control); background: var(--ds-surface-2); margin-bottom: var(--ds-2); position: relative; overflow: hidden; }
+    .jsk::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: ds-shimmer 1.4s infinite; }
+    [data-theme="dark"] .jsk::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent); }
 
     /* ── Empty ── */
-    .jobs-empty { text-align: center; padding: 56px 24px; }
-    .jobs-empty-icon { font-size: 36px; margin-bottom: 12px; }
-    .jobs-empty-title { font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0 0 6px; }
-    .jobs-empty-sub { font-size: 13px; color: var(--text-light); margin: 0; }
+    .jobs-empty { text-align: center; padding: var(--ds-10) var(--ds-6); }
+    .jobs-empty-icon { width:56px; height:56px; margin:0 auto var(--ds-4); border-radius:var(--ds-r-card); background:var(--ds-surface-2); color:var(--ds-ink-3); display:inline-flex; align-items:center; justify-content:center; }
+    .jobs-empty-icon svg { width:26px; height:26px; }
+    .jobs-empty-title { font: 700 16px/1.3 var(--ds-font); color: var(--ds-ink); margin: 0 0 var(--ds-1); }
+    .jobs-empty-sub { font: 500 13px/1.5 var(--ds-font); color: var(--ds-ink-3); margin: 0; max-width: 260px; margin-inline: auto; }
 
     /* ── Error toast ── */
-    .jobs-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 12px; display: none; z-index: 9999; }
+    .jobs-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--ds-ink); color: var(--ds-bg); font: 600 13px/1.3 var(--ds-font); padding: var(--ds-3) var(--ds-5); border-radius: var(--ds-r-pill); display: none; z-index: var(--ui-z-toast); box-shadow: var(--ds-shadow-pop); }
 
-    /* ── Status pill: quoted ── */
-    .pill-quoted { background: #f0f9ff; color: #0369a1; }
-
-    /* ── Quote sheet ── */
-    .qs-overlay { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;opacity:0;pointer-events:none;transition:opacity .25s; }
+    /* ── Quote sheet (DS bottom-sheet language) ── */
+    .qs-overlay { position:fixed;inset:0;background:rgba(15,18,22,.5);z-index:900;opacity:0;pointer-events:none;transition:opacity var(--ds-t-base); }
     .qs-overlay.open { opacity:1;pointer-events:all; }
-    .qs-sheet { position:fixed;left:0;right:0;bottom:0;max-width:430px;margin:0 auto;background:var(--surface);border-radius:20px 20px 0 0;padding:0 16px 32px;z-index:901;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);max-height:92dvh;overflow-y:auto; }
+    .qs-sheet { position:fixed;left:0;right:0;bottom:0;max-width:var(--ds-shell);margin:0 auto;background:var(--ds-surface);border-radius:var(--ds-r-card) var(--ds-r-card) 0 0;padding:0 var(--ds-gutter) var(--ds-8);z-index:901;transform:translateY(100%);transition:transform var(--ds-t-slow) var(--ds-ease);max-height:92dvh;overflow-y:auto;box-shadow:var(--ds-shadow-sheet); }
     .qs-sheet.open { transform:translateY(0); }
-    .qs-handle { width:36px;height:4px;border-radius:2px;background:var(--border);margin:10px auto 16px; }
-    .qs-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:16px; }
-    .qs-title { font-size:16px;font-weight:800;color:var(--text-dark);margin:0; }
-    .qs-close { width:32px;height:32px;border:none;background:var(--surface-3);border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-mid); }
-    .qs-field { margin-bottom:14px; }
-    .qs-label { display:block;font-size:11px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px; }
-    .qs-input { width:100%;height:44px;border:1.5px solid var(--border);border-radius:10px;padding:0 12px;font-family:inherit;font-size:14px;font-weight:600;color:var(--text-dark);background:var(--surface);box-sizing:border-box;outline:none;transition:border-color .15s; }
-    .qs-input:focus { border-color:var(--primary); }
-    .qs-toggle { display:flex;gap:8px; }
-    .qs-tog-btn { flex:1;height:38px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;border:1.5px solid var(--border);background:var(--surface);color:var(--text-mid);cursor:pointer;transition:all .15s; }
-    .qs-tog-btn.active { background:var(--primary);color:#fff;border-color:var(--primary); }
+    .qs-handle { width:38px;height:4px;border-radius:var(--ds-r-pill);background:var(--ds-line-strong);margin:var(--ds-3) auto var(--ds-4); }
+    .qs-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--ds-4); }
+    .qs-title { font:800 18px/1.25 var(--ds-font);color:var(--ds-ink);margin:0; }
+    .qs-close { width:36px;height:36px;border:none;background:var(--ds-surface-2);border-radius:var(--ds-r-pill);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ds-ink-2); }
+    .qs-field { margin-bottom:var(--ds-3); }
+    .qs-label { display:block;font:600 13px/1 var(--ds-font);color:var(--ds-ink-2);margin-bottom:var(--ds-2); }
+    .qs-input { width:100%;height:50px;border:1.5px solid transparent;border-radius:var(--ds-r-control);padding:0 var(--ds-4);font:500 15px/1 var(--ds-font);color:var(--ds-ink);background:var(--ds-surface-2);box-sizing:border-box;outline:none;transition:background var(--ds-t-base),border-color var(--ds-t-base),box-shadow var(--ds-t-base); }
+    .qs-input:focus { background:var(--ds-surface);border-color:var(--ds-brand-500);box-shadow:0 0 0 3.5px rgba(249,115,22,.12); }
+    .qs-toggle { display:flex;gap:var(--ds-2); }
+    .qs-tog-btn { flex:1;height:44px;border-radius:var(--ds-r-control);font:700 14px/1 var(--ds-font);border:1px solid var(--ds-line-strong);background:var(--ds-surface);color:var(--ds-ink-2);cursor:pointer;transition:all .15s; }
+    .qs-tog-btn.active { background:var(--ds-brand-500);color:#fff;border-color:var(--ds-brand-500); }
     .qs-mat-header { display:grid;grid-template-columns:1fr 68px 80px 28px;gap:6px;margin-bottom:4px; }
-    .qs-mat-header span { font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px; }
-    .qs-mat-row { display:grid;grid-template-columns:1fr 68px 80px 28px;gap:6px;margin-bottom:8px;align-items:center; }
-    .qs-mat-row .qs-input { height:38px;font-size:13px; }
-    .qs-mat-del { width:28px;height:28px;border:none;background:#fef2f2;border-radius:8px;font-size:14px;cursor:pointer;color:#ef4444;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
-    .qs-add-item { width:100%;height:38px;border:1.5px dashed var(--border);border-radius:10px;background:none;font-family:inherit;font-size:13px;font-weight:700;color:var(--primary);cursor:pointer;margin-bottom:14px; }
-    .qs-summary { background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-bottom:14px; }
-    .qs-sum-row { display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-mid);margin-bottom:5px; }
-    .qs-sum-row.total { margin-bottom:0;font-size:14px;font-weight:800;color:var(--text-dark);border-top:1px solid var(--border);padding-top:8px;margin-top:4px; }
-    .qs-note { width:100%;min-height:60px;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--text-dark);background:var(--surface);box-sizing:border-box;outline:none;resize:none;margin-bottom:16px; }
-    .qs-note:focus { border-color:var(--primary); }
-    .qs-submit { width:100%;height:48px;border-radius:14px;border:none;background:var(--primary);color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s; }
+    .qs-mat-header span { font:700 10px/1 var(--ds-font);color:var(--ds-ink-3);text-transform:uppercase;letter-spacing:.4px; }
+    .qs-mat-row { display:grid;grid-template-columns:1fr 68px 80px 28px;gap:6px;margin-bottom:var(--ds-2);align-items:center; }
+    .qs-mat-row .qs-input { height:42px;font-size:13px; }
+    .qs-mat-del { width:28px;height:28px;border:none;background:var(--ds-danger-bg);border-radius:var(--ds-r-control);font-size:14px;cursor:pointer;color:var(--ds-danger);display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+    .qs-add-item { width:100%;height:44px;border:1.5px dashed var(--ds-line-strong);border-radius:var(--ds-r-control);background:none;font:700 13px/1 var(--ds-font);color:var(--ds-brand-600);cursor:pointer;margin-bottom:var(--ds-3); }
+    .qs-summary { background:var(--ds-surface-2);border-radius:var(--ds-r-control);padding:var(--ds-3) var(--ds-4);margin-bottom:var(--ds-3); }
+    .qs-sum-row { display:flex;justify-content:space-between;align-items:center;font:500 13px/1 var(--ds-font);color:var(--ds-ink-2);margin-bottom:var(--ds-2); }
+    .qs-sum-row.total { margin-bottom:0;font:800 15px/1 var(--ds-font);color:var(--ds-ink);border-top:1px solid var(--ds-line);padding-top:var(--ds-2);margin-top:var(--ds-1); }
+    .qs-note { width:100%;min-height:64px;border:1.5px solid transparent;border-radius:var(--ds-r-control);padding:var(--ds-3) var(--ds-4);font:500 14px/1.5 var(--ds-font);color:var(--ds-ink);background:var(--ds-surface-2);box-sizing:border-box;outline:none;resize:none;margin-bottom:var(--ds-4); }
+    .qs-note:focus { background:var(--ds-surface);border-color:var(--ds-brand-500);box-shadow:0 0 0 3.5px rgba(249,115,22,.12); }
+    .qs-submit { width:100%;height:52px;border-radius:var(--ds-r-control);border:none;background:var(--ds-brand-500);color:#fff;font:800 15px/1 var(--ds-font);cursor:pointer;transition:opacity .15s,background .15s; }
+    .qs-submit:active:not(:disabled) { background:var(--ds-brand-600); }
     .qs-submit:disabled { opacity:.55;cursor:default; }
   </style>
 </head>
@@ -106,16 +114,16 @@
   <div class="jobs-header">
     <div class="jobs-header-row">
       <button class="jobs-back" onclick="window.location.href='dashboard.html'" aria-label="Back">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <span class="jobs-title">My Jobs</span>
-      <span id="live-badge" style="display:none;background:#22c55e;color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;"></span>
+      <span id="live-badge" style="display:none;background:var(--ds-success);color:#fff;font:700 10px/1 var(--ds-font);padding:5px 9px;border-radius:var(--ds-r-pill);"></span>
     </div>
-    <div class="jobs-tabs" role="tablist">
-      <button class="jobs-tab active" role="tab" onclick="switchJobTab('pending',  this)">Pending</button>
-      <button class="jobs-tab"        role="tab" onclick="switchJobTab('active',   this)">Active</button>
-      <button class="jobs-tab"        role="tab" onclick="switchJobTab('completed',this)">Completed</button>
-      <button class="jobs-tab"        role="tab" onclick="switchJobTab('cancelled',this)">Cancelled</button>
+    <div class="ui-tabs ui-tabs--artisan" role="tablist">
+      <button class="ui-tab active" role="tab" aria-selected="true"  onclick="switchJobTab('pending',  this)">Pending</button>
+      <button class="ui-tab" role="tab" aria-selected="false" onclick="switchJobTab('active',   this)">Active</button>
+      <button class="ui-tab" role="tab" aria-selected="false" onclick="switchJobTab('completed',this)">Completed</button>
+      <button class="ui-tab" role="tab" aria-selected="false" onclick="switchJobTab('cancelled',this)">Cancelled</button>
     </div>
   </div>
 
@@ -145,7 +153,7 @@
   <div class="qs-handle"></div>
   <div class="qs-header">
     <h3 class="qs-title">Submit Job Quote</h3>
-    <button class="qs-close" onclick="closeQuoteSheet()" aria-label="Close">✕</button>
+    <button class="qs-close" onclick="closeQuoteSheet()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
   </div>
 
   <!-- Labour cost -->
@@ -338,7 +346,7 @@ function buildJobCard(b) {
         <p class="job-customer">${esc(b.customerName || 'Customer')}</p>
         <div class="job-meta">
           <div class="job-meta-item">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#9CA3AF" stroke-width="1.8"/><path d="M3 10h18" stroke="#9CA3AF" stroke-width="1.8"/></svg>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/></svg>
             ${esc(date)}
           </div>
           ${b.address ? `<div class="job-meta-item">
@@ -366,7 +374,7 @@ function render(jobs) {
   function setPanel(id, items, emptyMsg) {
     document.getElementById(id).innerHTML = items.length
       ? items.map(buildJobCard).join('')
-      : `<div class="jobs-empty"><div class="jobs-empty-icon">📋</div><p class="jobs-empty-title">${emptyMsg}</p><p class="jobs-empty-sub">Pull to refresh if you expect new jobs.</p></div>`;
+      : `<div class="jobs-empty"><div class="jobs-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 3v4M8 3v4M4 10h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><p class="jobs-empty-title">${emptyMsg}</p><p class="jobs-empty-sub">Pull to refresh if you expect new jobs.</p></div>`;
   }
 
   setPanel('list-pending',   pending,   'No pending requests');
@@ -377,7 +385,7 @@ function render(jobs) {
   // Tab counts
   const tabLabels = ['Pending','Active','Completed','Cancelled'];
   const tabCounts = [pending.length, active.length, completed.length, cancelled.length];
-  document.querySelectorAll('.jobs-tab').forEach((tab, i) => {
+  document.querySelectorAll('.jobs-header .ui-tab').forEach((tab, i) => {
     tab.textContent = tabCounts[i] > 0 ? `${tabLabels[i]} (${tabCounts[i]})` : tabLabels[i];
   });
 
@@ -391,8 +399,12 @@ function render(jobs) {
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 window.switchJobTab = function(tab, btn) {
-  document.querySelectorAll('.jobs-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.jobs-header .ui-tab').forEach(t => {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
   btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
   document.querySelectorAll('.jobs-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('jp-' + tab)?.classList.add('active');
 };
@@ -412,7 +424,7 @@ window.acceptJob = async function(bookingId, btn) {
       updatedAt:   n,
       artisanName: _currentArtisan.name || null,
     });
-    showToast('✅ Job accepted! Customer notified.');
+    showToast('Job accepted. Customer notified.');
     const card = document.getElementById(`jcard-${bookingId}`);
     if (card) { card.style.opacity = '0'; card.style.transition = 'opacity .25s'; setTimeout(() => card.remove(), 260); }
   } catch(e) {
@@ -492,7 +504,7 @@ window.addMatRow = function() {
     <input type="text"   class="qs-input" placeholder="Item name"  oninput="recalcQuote()" />
     <input type="number" class="qs-input" placeholder="Qty"  min="1" step="1"    oninput="recalcQuote()" />
     <input type="number" class="qs-input" placeholder="Price" min="0" step="0.01" oninput="recalcQuote()" />
-    <button class="qs-mat-del" onclick="removeMatRow(this)" aria-label="Remove">✕</button>`;
+    <button class="qs-mat-del" onclick="removeMatRow(this)" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button>`;
   document.getElementById('qs-mat-rows').appendChild(row);
   row.querySelector('input').focus();
 };
@@ -605,5 +617,7 @@ window.addEventListener('pagehide', () => {
   stopPresence();
 });
 </script>
+<script src="js/artisanFloatingNav.js"></script>
 </body>
 </html>
+

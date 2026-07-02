@@ -22,10 +22,11 @@ window.__saveAppPref = function (key, value) {
 };
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
-authService.subscribeToAuthState((user) => {
+const _unsubAuth = authService.subscribeToAuthState((user) => {
     if (!user) { window.location.href = 'login.html'; return; }
     currentUser = user;
 });
+window.addEventListener('pagehide', () => { if (_unsubAuth) _unsubAuth(); }, { once: true });
 
 // ── Delete account ────────────────────────────────────────────────────────────
 window.confirmDeleteAccount = async function () {

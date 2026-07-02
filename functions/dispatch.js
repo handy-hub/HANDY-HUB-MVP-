@@ -25,7 +25,7 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onSchedule }    = require('firebase-functions/v2/scheduler');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
-const { FIRESTORE_DB_ID, FUNCTIONS_REGION } = require('./config');
+const { FIRESTORE_DB_ID, FUNCTIONS_REGION, MAX_DISPATCH_ROUNDS } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const { geohashQueryBounds } = require('geofire-common');
 
@@ -193,6 +193,20 @@ async function dispatchRound(bookingId) {
         const alreadyTried = booking.artisanCandidates || [];
         round = (booking.currentDispatchRound || 0) + 1;
 
+        // Hard cap on dispatch rounds — prevents infinite loops when artisans
+        // continuously become available and get rejected indefinitely.
+        if (round > MAX_DISPATCH_ROUNDS) {
+            txn.update(bookingRef, {
+                status:               'unfulfilled',
+                dispatchStatus:       'unfulfilled',
+                currentDispatchRound: round,
+                currentArtisanId:     null,
+                updatedAt:            new Date().toISOString(),
+                unfulfillReason:      'max_rounds_exceeded',
+            });
+            return { unfulfilled: true, reason: 'max_rounds_exceeded' };
+        }
+
         // Find candidates — done outside transaction to avoid contention,
         // but we re-check eligibility inside via the excludeIds guard.
         const candidates = await findEligibleArtisans(booking, alreadyTried);
@@ -204,8 +218,9 @@ async function dispatchRound(bookingId) {
                 currentDispatchRound: round,
                 currentArtisanId:     null,
                 updatedAt:            new Date().toISOString(),
+                unfulfillReason:      'no_candidates',
             });
-            return { unfulfilled: true };
+            return { unfulfilled: true, reason: 'no_candidates' };
         }
 
         chosen = candidates[0];
@@ -238,7 +253,7 @@ async function dispatchRound(bookingId) {
 
         await sendArtisanNotification(chosen.id, {
             type:      'Bookings',
-            title:     isEmergency ? '🚨 Emergency Job Request' : '📋 New Booking Request',
+            title:     isEmergency ? 'Emergency Job Request' : 'New Booking Request',
             message:   `${serviceType} request${distText}. You have ${timeoutTxt} to respond.`,
             actionUrl: 'dashboard.html',
             metadata:  {

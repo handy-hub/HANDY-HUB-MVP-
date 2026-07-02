@@ -1,18 +1,122 @@
-﻿:root {
-  --ui-bg: #fefefe;
-  --ui-surface: #ffffff;
-  --ui-text: #111111;
-  --ui-muted: #666666;
-  --ui-border: rgba(0, 0, 0, 0.08);
-  --ui-primary: #730201;
-  --ui-primary-soft: #fde8e8;
-  --ui-radius-sm: 10px;
-  --ui-radius-md: 14px;
-  --ui-radius-lg: 18px;
-  --ui-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
-  --ui-shadow-md: 0 8px 24px rgba(16, 24, 40, 0.12);
-  --ui-shell-max: 430px;
-  --ui-shell-max-wide: 480px;
+﻿/* ============================================================================
+   HandyHub Customer App — CANONICAL DESIGN TOKENS  (single source of truth)
+   ----------------------------------------------------------------------------
+   This :root is THE design system for the customer app. All shared token files
+   (variables.css, global.css) now alias into these values rather than declaring
+   their own. Legacy token names are kept as aliases so existing CSS keeps
+   working with IDENTICAL values — no visual change, just one source.
+
+   RULES (see Design System Contract):
+     • New tokens are added HERE only.
+     • Do not add :root blocks in page CSS or inline <style>.
+     • Components reference var(--…) tokens, not raw hex/px.
+   ========================================================================== */
+:root {
+  /* ── Canonical: surfaces & ink ─────────────────────────────────────────── */
+  --ui-bg:            #fefefe;   /* app canvas */
+  --ui-surface:       #ffffff;   /* raised surface */
+  --ui-text:          #111111;   /* primary text */
+  --ui-muted:         #666666;   /* secondary text */
+  --ui-border:        rgba(0, 0, 0, 0.08);
+
+  /* ── Canonical: semantic functional colors ──────────────────────────────── */
+  --ui-danger:        #b22222;   /* destructive actions — used in modal danger btn */
+  --ui-danger-rgb:    178, 34, 34;
+  --ui-success:       #15904b;   /* success / completion state */
+  --ui-success-bg:    #e9f7ef;   /* success tint background */
+  --ui-warning:       #b45309;   /* caution / warning state */
+  --ui-warning-bg:    #fef3e2;
+  --ui-overlay:       rgba(0, 0, 0, 0.5);   /* modal / drawer backdrop */
+
+  /* ── Canonical: primary pressed / dark variant ──────────────────────────── */
+  --ui-primary-dark:  #5a0100;   /* hover / pressed state for maroon primary */
+
+  /* ── Canonical: component dimensions ───────────────────────────────────── */
+  --ui-btn-h:         48px;   /* primary CTA height — ONE rule, everywhere */
+
+  /* ── Canonical: sheet component token ──────────────────────────────────── */
+  --ui-sheet-radius:  var(--ui-radius-lg);  /* 18px customer; artisan overrides to 16px */
+
+  /* ── Canonical: spacing scale (4px grid) ───────────────────────────────── */
+  --ui-1:   4px;   --ui-2:   8px;   --ui-3:  12px;  --ui-4:  16px;
+  --ui-5:  20px;   --ui-6:  24px;   --ui-8:  32px;  --ui-10: 40px;
+  --ui-gutter: 16px;  /* standard horizontal page gutter */
+
+  /* ── Canonical: brand (maroon) ─────────────────────────────────────────── */
+  --ui-primary:       #730201;   /* brand maroon */
+  --ui-primary-rgb:   115, 2, 1; /* for rgba(var(--ui-primary-rgb), alpha) */
+  --ui-primary-soft:  #fde8e8;   /* maroon tint */
+
+  /* ── Navigation bridge tokens (Customer App context) ──────────────────────
+     These are the ONLY tokens the shared floating nav reads for brand colour.
+     Override these in artisan context — never touch --ui-primary inside the nav.
+  */
+  --nav-brand:        var(--ui-primary);       /* active item colour */
+  --nav-brand-rgb:    115, 2, 1;               /* for rgba() glow effects */
+  --nav-brand-dark:   #e05050;                 /* dark-mode active (warm, readable) */
+
+  /* ── Canonical: radius scale ───────────────────────────────────────────── */
+  --ui-radius-sm:     10px;   /* controls, chips, tiles, small badges */
+  --ui-radius-md:     14px;   /* cards, inputs, list rows */
+  --ui-radius-lg:     18px;   /* sheets, modals, hero surfaces */
+  --ui-radius-pill:   999px;  /* pills, toggles, avatars */
+
+  /* ── Canonical: elevation scale ────────────────────────────────────────────
+     Four levels only. Every "elevation" shadow maps to one of these. Functional
+     shadows (focus rings, brand glows, status rings) are NOT elevation and keep
+     their own values — they communicate state, not depth.
+       elev-0  flat (no shadow)
+       elev-1  resting cards
+       elev-2  floating UI (popovers, raised controls)
+       elev-3  modals / sticky bars / nav / drawers
+  */
+  --ui-elev-0:        none;
+  --ui-elev-1:        0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.07);
+  --ui-elev-2:        0 2px 8px rgba(16, 24, 40, 0.08), 0 8px 24px rgba(16, 24, 40, 0.10);
+  --ui-elev-3:        0 24px 64px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  /* Back-compat: existing names map onto the scale (no value change for sm). */
+  --ui-shadow-sm:     0 1px 4px rgba(0, 0, 0, 0.06);   /* ≈ elev-1 lite */
+  --ui-shadow-md:     var(--ui-elev-2);
+
+  /* ── Canonical: z-index scale ─────────────────────────────────────────────
+     All z-index values in the codebase must map to one of these layers.
+       base      content flow
+       sticky    sticky headers, fixed labels
+       dropdown  dropdowns, tooltips, popovers
+       nav       floating navigation bar
+       drawer    side drawers, bottom sheets
+       modal     dialogs, full-screen overlays
+       toast     toast notifications (always on top)
+  */
+  --ui-z-base:     0;
+  --ui-z-sticky:   100;
+  --ui-z-dropdown: 200;
+  --ui-z-nav:      500;
+  --ui-z-drawer:   800;
+  --ui-z-modal:    1000;
+  --ui-z-toast:    2000;
+
+  /* ── Canonical: layout ─────────────────────────────────────────────────── */
+  --ui-shell-max:     430px;
+  --ui-shell-max-wide:480px;
+
+  /* ════════════════════════════════════════════════════════════════════════
+     LEGACY ALIASES — map every historical token name onto the canonical
+     values above so older CSS keeps rendering identically. Do NOT add new
+     aliases; migrate code to the --ui-* names over time, then delete these.
+     ════════════════════════════════════════════════════════════════════════ */
+  --maroon:        var(--ui-primary);
+  --primary-red:   var(--ui-primary);
+  --secondary-bg:  var(--ui-primary);
+  --light-red:     var(--ui-primary-soft);
+  --bg-white:      var(--ui-surface);
+  --bg-page:       var(--ui-bg);
+  --text-dark:     var(--ui-text);
+  --text-main:     var(--ui-text);
+  --text-grey:     var(--ui-muted);
+  --text-sub:      var(--ui-muted);
+  --unread-bg:     #fffafa;
 }
 
 html {
@@ -295,8 +399,14 @@ textarea {
 }
 
 /* Sidebar sheets use right-edge radius for the slide-in effect.
-   Cards (.pro-card, .bk-card, etc.) are excluded — they use their own
-   uniform border-radius set in component CSS. */
+   Cards (.pro-card, etc.) are excluded — they use their own uniform
+   border-radius set in component CSS.
+   .bk-card, .sv-svc-card, .sv-pro-card removed from this list: those three
+   converged onto the Notification page's flat divided-row card architecture
+   (no radius at all, on any edge — shared/css/notification.css's .notif-card
+   is the canonical reference). Leaving them here left a rounded right-edge
+   clip on an otherwise-flat row, which cut a visible gap into the row's
+   opaque background and let a sibling .swipe-action panel show through. */
 .sidebar,
 .sched-modal,
 .em-modal-sheet,
@@ -307,12 +417,9 @@ textarea {
 .modal-card,
 .pmo-account,
 .service-item,
-.bk-card,
 .account-card,
 .wallet-card,
 .transactions-card,
-.sv-svc-card,
-.sv-pro-card,
 .sv-promo {
   border-top-right-radius: var(--ui-radius-lg);
   border-bottom-right-radius: var(--ui-radius-lg);
@@ -420,13 +527,6 @@ textarea {
   padding: 14px 16px 10px;
 }
 
-.sv-title {
-  font-size: clamp(26px, 6vw, 34px);
-  font-weight: 900;
-  letter-spacing: -0.6px;
-  color: #171717;
-}
-
 .sv-header-btns {
   display: flex;
   align-items: center;
@@ -450,36 +550,11 @@ textarea {
   padding: 14px 16px 90px;
 }
 
-.sv-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
-  padding: 5px;
-  border: 1px solid #ebebeb;
-  border-radius: 14px;
-  background: #fff;
-  margin-bottom: 16px;
-}
-
-.sv-tab {
-  border: none;
-  background: #ffffff;
-  border-radius: 10px;
-  color: #666;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 10px 8px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.sv-tab.active {
-  color: #730201;
-  background: #fff2f2;
-}
+/* .sv-tabs / .sv-tab (pre-canonicalization segmented tab implementation)
+   deleted from here — dead CSS. saved.html's markup now uses the canonical
+   shared/css/components/tabs.css contract (.ui-tabs / .ui-tab); this bare
+   `.sv-tabs` class survives only as a spacing hook in customer-app/css/
+   saved.css (margin-bottom), with no border/background/grid of its own. */
 
 .sv-panel {
   display: none;
@@ -489,32 +564,16 @@ textarea {
   display: block;
 }
 
-.sv-section {
-  background: #ffffff;
-  border: 1px solid #efefef;
-  border-radius: 16px;
-  box-shadow: var(--ui-shadow-sm);
-  padding: 14px;
-  margin-bottom: 12px;
-}
-
-.sv-section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.sv-section-title {
-  font-size: 16px;
-  font-weight: 800;
-  color: #101010;
-}
+/* .sv-section/.sv-section-head/.sv-section-title styling removed from here —
+   Saved converged onto Notification's flat, wrapper-less list layout (no
+   bordered/shadowed panel around each group); the section header is now
+   just a text label sitting directly on the page background, matching
+   Notification's .group-header exactly. Full rules live in
+   customer-app/css/saved.css (loaded after this file), not duplicated here. */
 
 .sv-view-all {
   text-decoration: none;
-  color: #730201;
+  color: var(--ui-primary);
   font-size: 12px;
   font-weight: 700;
   display: inline-flex;
@@ -632,7 +691,7 @@ textarea {
   margin: 0 auto 14px;
   border-radius: 50%;
   background: #fff5f5;
-  color: #730201;
+  color: var(--ui-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -659,9 +718,9 @@ textarea {
   justify-content: center;
   padding: 11px 16px;
   border-radius: 12px;
-  border: 1px solid #730201;
+  border: 1px solid var(--ui-primary);
   background: #fff;
-  color: #730201;
+  color: var(--ui-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -704,8 +763,6 @@ textarea {
   color: #f0f0f0;
 }
 
-[data-theme="dark"] .sv-tabs,
-[data-theme="dark"] .sv-section,
 [data-theme="dark"] .sv-svc-card,
 [data-theme="dark"] .sv-pro-card,
 [data-theme="dark"] .sv-promo,
@@ -716,15 +773,19 @@ textarea {
   box-shadow: none;
 }
 
-[data-theme="dark"] .sv-tab {
-  background: #1e1e1e;
-  color: #9a9a9a;
+/* .sv-svc-card / .sv-pro-card no longer carry a background/border in light
+   mode (flat divided-row cards, per the Notification convergence) — override
+   to transparent in dark mode too so no card "box" reappears at night. */
+[data-theme="dark"] .sv-svc-card,
+[data-theme="dark"] .sv-pro-card {
+  background: transparent;
+  border-bottom-color: #2a2a2a;
 }
 
-[data-theme="dark"] .sv-tab.active {
-  background: #2a1010;
-  color: #ff7a7a;
-}
+/* .sv-tab / .sv-tab.active dark-mode rules deleted — dead CSS for the
+   pre-canonicalization tab implementation (see the light-mode removal above).
+   The canonical .ui-tab's dark-mode styling lives in
+   shared/css/components/tabs.css. */
 
 [data-theme="dark"] .sv-svc-icon,
 [data-theme="dark"] .sv-empty-icon {
@@ -741,7 +802,7 @@ textarea {
 [data-theme="dark"] .sv-promo-btn,
 [data-theme="dark"] .sv-empty-btn {
   color: #ff7a7a;
-  border-color: #730201;
+  border-color: var(--ui-primary);
 }
 
 [data-theme="dark"] .loader-overlay,

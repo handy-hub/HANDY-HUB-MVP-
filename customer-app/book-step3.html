@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -13,13 +13,14 @@
     .loc-address-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
     .loc-address-text { font-size: 13px; color: #555; font-weight: 500; flex: 1; }
     .loc-open-maps {
-      font-size: 11px; font-weight: 700; color: #730201;
+      font-size: 11px; font-weight: 700; color: var(--ui-primary);
       background: #fde8e8; border: none; border-radius: 8px;
       padding: 5px 10px; cursor: pointer; flex-shrink: 0; text-decoration: none;
     }
   </style>
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
 <div class="phone-shell">
@@ -27,7 +28,7 @@
   <!-- Header -->
   <div class="bk-header">
     <button class="bk-back-btn" onclick="window.location.href='book-step2.html'">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
     </button>
     <div class="bk-header-center">
       <p class="bk-header-title">Book a Service</p>
@@ -39,7 +40,7 @@
     </div>
     <div class="bk-bell-wrap">
       <button class="bk-bell-btn" onclick="window.location.href='notification.html'" aria-label="Notifications">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#111" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#111" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <span class="bk-bell-badge" id="bk-bell-badge" style="display:none">0</span>
     </div>
@@ -98,27 +99,27 @@
       </div>
       <button class="view-profile-link" id="view-profile-btn" onclick="goToArtisanProfile()">
         View Profile
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
 
     <!-- Service card -->
     <div class="detail-bk-card">
       <div class="detail-bk-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#730201" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div class="detail-bk-body">
         <div class="detail-bk-head">
           <span class="detail-bk-title" id="svc3-title">Fix Switch / Socket</span>
           <button class="edit-link" onclick="window.location.href='book-step1.html'">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             Edit
           </button>
         </div>
         <p class="detail-bk-desc" id="svc3-desc">Repair or replace faulty switches or power outlets.</p>
         <div class="detail-bk-meta" id="svc3-meta">
-          <span>⚡ Electrical</span>
-          <span>⏱ 30–60 mins</span>
+          <span><i class="fa-solid fa-bolt"></i> Electrical</span>
+          <span><i class="fa-regular fa-clock"></i> 30–60 mins</span>
         </div>
       </div>
     </div>
@@ -126,13 +127,13 @@
     <!-- Schedule card -->
     <div class="detail-bk-card">
       <div class="detail-bk-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#730201" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
       <div class="detail-bk-body">
         <div class="detail-bk-head">
           <span class="detail-bk-title">Schedule</span>
           <button class="edit-link" onclick="openSchedModal()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             Edit
           </button>
         </div>
@@ -162,7 +163,7 @@
         <div class="detail-bk-head">
           <span class="detail-bk-title">Service Location</span>
           <button class="edit-link" onclick="window.location.href='settings-location.html'">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#730201" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             Edit
           </button>
         </div>
@@ -205,7 +206,7 @@
       </div>
       <div class="payment-option" onclick="selectPayment(this)">
         <div class="payment-opt-icon" style="background:#fde8e8;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#730201" stroke-width="2"/><path d="M2 10h20" stroke="#730201" stroke-width="2"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 10h20" stroke="currentColor" stroke-width="2"/></svg>
         </div>
         <div>
           <p class="payment-opt-label">Wallet Balance</p>
@@ -227,7 +228,7 @@
     <!-- Additional Notes -->
     <div class="notes-row" onclick="toggleNotes()" id="notes-toggle-row" style="cursor:pointer;">
       <div class="notes-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#730201" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
       <div>
         <p class="notes-label">Additional Notes <span style="color:#bbb;font-size:11px;font-weight:400;">(Optional)</span></p>
@@ -277,7 +278,7 @@
     </div>
     <button class="bk-view-price" onclick="document.querySelector('.price-table-card').scrollIntoView({behavior:'smooth',block:'center'})">
       View price details
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#730201" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
     </button>
     <button class="btn-confirm" onclick="confirmBooking()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="#fff" stroke-width="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
@@ -378,7 +379,7 @@
                  .setView([LAT, LNG], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
     const icon = L.divIcon({
-      html: '<div style="width:32px;height:32px;background:#730201;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 8px rgba(115,2,1,0.4);"></div>',
+      html: '<div style="width:32px;height:32px;background: var(--ui-primary);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 8px rgba(115,2,1,0.4);"></div>',
       iconSize: [32, 32], iconAnchor: [16, 32], className: ''
     });
     L.marker([LAT, LNG], { icon }).addTo(map);
@@ -400,7 +401,7 @@
       document.getElementById('pro3-online').style.display = pro.isOnline ? '' : 'none';
       document.getElementById('pro3-name').textContent = pro.name;
       document.getElementById('pro3-type').textContent = `${pro.type} · ${pro.exp}`;
-      document.getElementById('pro3-stats').innerHTML = `★ <strong>${pro.rating}</strong> (${pro.reviews} reviews) &nbsp;|&nbsp; ${pro.jobs} jobs completed`;
+      document.getElementById('pro3-stats').innerHTML = `<i class="fa-solid fa-star" style="color:#F97316;"></i> <strong>${pro.rating}</strong> (${pro.reviews} reviews) &nbsp;|&nbsp; ${pro.jobs} jobs completed`;
       document.getElementById('pro3-chip').style.display = pro.isTopRated ? '' : 'none';
     }
 
@@ -408,7 +409,14 @@
       const svc = state.services[0];
       document.getElementById('svc3-title').textContent = svc.name;
       document.getElementById('svc3-desc').textContent = svc.desc;
-      document.getElementById('svc3-meta').innerHTML = `<span>⚡ ${svc.category}</span><span>⏱ ${svc.duration}</span>`;
+      // Category icon — same mapping used on book-step1.html's service list.
+      const CAT_ICON = {
+        Electrical: 'fa-solid fa-bolt', Plumbing: 'fa-solid fa-wrench', Carpentry: 'fa-solid fa-hammer',
+        'AC Repair': 'fa-solid fa-snowflake', Welding: 'fa-solid fa-fire', Cleaning: 'fa-solid fa-broom',
+        Painting: 'fa-solid fa-paintbrush', Gardening: 'fa-solid fa-leaf',
+      };
+      const catIcon = CAT_ICON[svc.category] || 'fa-solid fa-hammer';
+      document.getElementById('svc3-meta').innerHTML = `<span><i class="${catIcon}"></i> ${svc.category}</span><span><i class="fa-regular fa-clock"></i> ${svc.duration}</span>`;
       document.getElementById('price3-svcfee-label').textContent = `Service Fee (${svc.name})`;
     }
 
@@ -582,5 +590,3 @@
 <script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>
-
-

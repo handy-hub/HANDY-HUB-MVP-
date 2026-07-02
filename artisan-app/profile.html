@@ -1,55 +1,89 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Profile | HandyHub Artisan</title>
+  <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <style>
+    /* Profile screen — built on the design system, mirroring the Customer
+       App's profile structure (identity card → stat bar → titled sections →
+       menu rows) adapted to artisan content. */
+    .pf2-header { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-3) var(--ds-gutter);
+      background:var(--ds-surface); border-bottom:1px solid var(--ds-line); position:sticky; top:0; z-index:10; }
+    .pf2-header h1 { font:800 18px/1 var(--ds-font); letter-spacing:-0.3px; color:var(--ds-ink); flex:1; }
+    .pf2-wrap { padding:var(--ds-4) var(--ds-gutter) 0; }
+
+    /* Identity card */
+    .pf2-id { display:flex; align-items:center; gap:var(--ds-3); }
+    .pf2-av-wrap { position:relative; flex-shrink:0; }
+    .pf2-av { width:64px; height:64px; border-radius:var(--ds-r-pill); object-fit:cover; display:block; background:var(--ds-surface-2); }
+    .pf2-cam { position:absolute; bottom:-2px; right:-2px; width:26px; height:26px; border-radius:var(--ds-r-pill);
+      background:var(--ds-brand-500); border:2.5px solid var(--ds-surface); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+    .pf2-cam svg { width:12px; height:12px; }
+    .pf2-name { font:800 19px/1.2 var(--ds-font); letter-spacing:-0.3px; color:var(--ds-ink); }
+    .pf2-role { font:500 13px/1.3 var(--ds-font); color:var(--ds-ink-2); margin-top:2px; }
+
+    /* Stat bar */
+    .pf2-stats { display:flex; align-items:center; margin-top:var(--ds-4); padding-top:var(--ds-4); border-top:1px solid var(--ds-line); }
+    .pf2-stat { flex:1; text-align:center; }
+    .pf2-stat-val { font:800 17px/1 var(--ds-font); color:var(--ds-ink); font-variant-numeric:tabular-nums; }
+    .pf2-stat-lbl { font:500 11px/1 var(--ds-font); color:var(--ds-ink-3); margin-top:5px; display:block; }
+    .pf2-stat-sep { width:1px; height:30px; background:var(--ds-line); }
+
+    /* Menu rows */
+    .pf2-menu { overflow:hidden; }
+    .pf2-row { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-4); width:100%;
+      background:none; border:none; cursor:pointer; text-decoration:none; text-align:left; font-family:inherit; }
+    .pf2-row + .pf2-row { border-top:1px solid var(--ds-line); }
+    .pf2-row:active { background:var(--ds-surface-2); }
+    .pf2-row-ic { width:36px; height:36px; border-radius:var(--ds-r-control); background:var(--ds-brand-50);
+      color:var(--ds-brand-600); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .pf2-row-ic svg { width:18px; height:18px; }
+    .pf2-row-ic.danger { background:var(--ds-danger-bg); color:var(--ds-danger); }
+    .pf2-row-body { flex:1; min-width:0; }
+    .pf2-row-title { display:block; font:600 14px/1.3 var(--ds-font); color:var(--ds-ink); }
+    .pf2-row-sub { display:block; font:500 12px/1.3 var(--ds-font); color:var(--ds-ink-3); margin-top:2px; }
+    .pf2-row-chev { color:var(--ds-ink-4); flex-shrink:0; }
+    .pf2-row-chev svg { width:16px; height:16px; }
+
+    /* Earnings hero (mirrors customer wallet card, dark operator surface) */
+    .pf2-earn { border-radius:var(--ds-r-card); padding:var(--ds-5);
+      background:linear-gradient(150deg,#1A1D23,#0F1216); display:flex; align-items:center; justify-content:space-between; gap:var(--ds-4); }
+    .pf2-earn-lbl { font:500 12px/1 var(--ds-font); color:rgba(255,255,255,.55); margin-bottom:var(--ds-2); }
+    .pf2-earn-val { font:800 24px/1 var(--ds-font); letter-spacing:-0.5px; color:#fff; font-variant-numeric:tabular-nums; }
+    .pf2-earn-val .cur { font:600 13px/1 var(--ds-font); color:rgba(255,255,255,.6); margin-right:3px; }
+  </style>
 </head>
 <body>
 <div class="phone-shell">
   <div class="scroll-area" style="padding-bottom:80px;">
 
-    <div class="page-header" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#fff;border-bottom:1px solid #E5E7EB;position:sticky;top:0;z-index:10;">
-      <button onclick="history.back()" style="width:36px;height:36px;border:none;background:#F3F4F6;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;" aria-label="Back">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <div class="pf2-header">
+      <button class="ds-iconbtn" onclick="window.location.href='dashboard.html'" aria-label="Home">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <h1 style="font-size:17px;font-weight:800;color:#111827;flex:1;">My Profile</h1>
+      <h1>Profile</h1>
     </div>
 
-    <div id="profile-content" style="padding:16px;">
+    <div id="profile-content" class="pf2-wrap">
       <!-- Profile content rendered by JS below -->
-      <div style="text-align:center;padding:48px 24px;color:#9CA3AF;">
-        <p style="font-size:13px;">Loading profile…</p>
+      <div class="ds-card" style="display:flex;gap:var(--ds-3);align-items:center;">
+        <div class="ds-skel" style="width:64px;height:64px;border-radius:999px;"></div>
+        <div style="flex:1;"><div class="ds-skel" style="width:55%;height:16px;margin-bottom:8px;"></div><div class="ds-skel" style="width:35%;height:12px;"></div></div>
       </div>
     </div>
 
   </div>
 
-  <nav class="bottom-nav">
-    <a class="nav-item" href="dashboard.html">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <span>Home</span>
-    </a>
-    <a class="nav-item" href="jobs.html">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <span>Jobs</span>
-    </a>
-    <a class="nav-center-btn" href="jobs.html" aria-label="Jobs">
-      <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
-    </a>
-    <a class="nav-item" href="wallet.html">
-      <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke="#9CA3AF" stroke-width="1.8"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z" stroke="#9CA3AF" stroke-width="1.8"/></svg>
-      <span>Wallet</span>
-    </a>
-    <a class="nav-item active" href="profile.html">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="#F97316" stroke-width="1.8"/></svg>
-      <span style="color:#F97316;">Profile</span>
-    </a>
-  </nav>
+  <!-- Bottom navigation is injected by js/artisanFloatingNav.js -->
 </div>
 
 <div class="toast" id="toast"></div>
@@ -59,7 +93,7 @@
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
 import {
-  uploadImage, cdnUrl, TRANSFORMS, UPLOAD_PRESETS, fallbackAvatar,
+  uploadImage, avatarUrl, TRANSFORMS, UPLOAD_PRESETS, fallbackAvatar,
 } from '../shared/js/services/cloudinaryService.js';
 
 // Blocking guard — all artisans (including pending) can view/edit their profile
@@ -82,18 +116,22 @@ async function handlePhotoUpload(file) {
   if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
 
   try {
+    // Unique id per upload — the hh_profiles unsigned upload preset cannot set
+    // `overwrite` (Cloudinary rejects it on unsigned presets), so re-using the
+    // same public_id silently no-ops on re-upload. A fresh id per upload
+    // guarantees the new photo actually replaces the old one for the user.
     const { publicId, version } = await uploadImage(
       file,
       UPLOAD_PRESETS.profile,
-      { publicId: `artisans/${user.uid}` }
+      { publicId: `artisans/${user.uid}/${Date.now()}` }
     );
     await databaseService.updateDocument('artisans', user.uid, {
       profileImageId:      publicId,
       profileImageVersion: version,
       updatedAt: new Date().toISOString(),
     });
-    if (img) img.src = cdnUrl(publicId, TRANSFORMS.avatarLg, version);
-    showToast('Photo updated ✓');
+    if (img) img.src = avatarUrl(publicId, TRANSFORMS.avatarLg, version);
+    showToast('Photo updated');
   } catch (err) {
     console.error('Photo upload error:', err);
     showToast('Upload failed. Try again.');
@@ -122,73 +160,130 @@ function render(data) {
   const location   = data.location   || '';
   const bio        = data.bio        || '';
   const kycStatus  = data.verificationStatus || 'draft';
-  const kycLabel   = { approved: '✅ Verified', pending_review: '⏳ Under Review', rejected: '❌ Rejected', draft: '📋 Not Submitted' };
+  const kycLabel   = { approved: 'Verified', pending_review: 'Under Review', rejected: 'Rejected', draft: 'Not Submitted' };
   const kycColor   = { approved: '#16a34a', pending_review: '#f97316', rejected: '#dc2626', draft: '#9CA3AF' };
   const avatarSrc  = data.profileImageId
-    ? cdnUrl(data.profileImageId, TRANSFORMS.avatarLg, data.profileImageVersion ?? null)
+    ? avatarUrl(data.profileImageId, TRANSFORMS.avatarLg, data.profileImageVersion ?? null)
     : fallbackAvatar(name);
 
+  // Stats + earnings (read-only; financial values are CF-owned)
+  const jobsDone   = data.jobsCompleted ?? 0;
+  const rating     = (data.rating ?? 0) > 0 ? Number(data.rating).toFixed(1) : '—';
+  const available  = Number(data.availableBalance ?? 0);
+  const pending    = Number(data.pendingBalance ?? 0);
+  const totalEarned= Number(data.totalEarned ?? 0);
+  const kycPillCls = { approved:'ds-pill--success', pending_review:'ds-pill--warning', rejected:'ds-pill--danger', draft:'ds-pill--neutral' };
+
+  const CH = '<span class="pf2-row-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+  const menuRow = (href, icon, title, sub, danger) =>
+    `<a href="${href}" class="pf2-row">
+       <span class="pf2-row-ic${danger?' danger':''}">${icon}</span>
+       <span class="pf2-row-body"><span class="pf2-row-title">${title}</span>${sub?`<span class="pf2-row-sub">${sub}</span>`:''}</span>
+       ${CH}
+     </a>`;
+
   document.getElementById('profile-content').innerHTML = `
-    <div style="background:#fff;border-radius:16px;padding:20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);">
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
-        <div style="position:relative;flex-shrink:0;">
-          <img id="profile-avatar-img" src="${avatarSrc}"
-            style="width:64px;height:64px;border-radius:18px;object-fit:cover;display:block;"
-            onerror="this.src='${fallbackAvatar(name)}'" />
-          <button id="avatar-camera-btn"
-            style="position:absolute;bottom:-4px;right:-4px;width:24px;height:24px;border-radius:50%;background:#F97316;border:2px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;"
-            aria-label="Change photo">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-              <circle cx="12" cy="13" r="4" stroke="#fff" stroke-width="2"/>
-            </svg>
+    <!-- Identity card -->
+    <div class="ds-card ds-rise">
+      <div class="pf2-id">
+        <div class="pf2-av-wrap">
+          <img id="profile-avatar-img" class="pf2-av" src="${avatarSrc}" onerror="this.src='${fallbackAvatar(name)}'" />
+          <button id="avatar-camera-btn" class="pf2-cam" aria-label="Change photo">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="13" r="4" stroke="#fff" stroke-width="2"/></svg>
           </button>
           <input type="file" id="avatar-file-input" accept="image/*" style="display:none" />
         </div>
-        <div>
-          <p style="font-size:17px;font-weight:800;color:#111827;margin:0 0 2px;">${name || 'Artisan'}</p>
-          <p style="font-size:12px;color:#9CA3AF;margin:0;">${specialty || 'Service Provider'}</p>
-          <p style="font-size:11px;font-weight:700;color:${kycColor[kycStatus]||'#9CA3AF'};margin:4px 0 0;">${kycLabel[kycStatus]||kycStatus}</p>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="pf2-name">${name || 'Artisan'}</span>
+            <span class="ds-pill ${kycPillCls[kycStatus]||'ds-pill--neutral'}">${kycLabel[kycStatus]||kycStatus}</span>
+          </div>
+          <p class="pf2-role">${specialty || 'Service Provider'}</p>
         </div>
       </div>
-      ${kycStatus !== 'approved' ? `<div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:13px;color:#92400E;">
-        <strong>Complete your verification</strong> to start receiving jobs and earning on HandyHub.
-        <br><a href="onboarding.html" style="color:#F97316;font-weight:700;text-decoration:none;">Go to KYC →</a>
-      </div>` : ''}
+      <div class="pf2-stats">
+        <div class="pf2-stat"><span class="pf2-stat-val">${jobsDone}</span><span class="pf2-stat-lbl">Jobs Done</span></div>
+        <div class="pf2-stat-sep"></div>
+        <div class="pf2-stat"><span class="pf2-stat-val">${rating}</span><span class="pf2-stat-lbl">Rating</span></div>
+        <div class="pf2-stat-sep"></div>
+        <div class="pf2-stat"><span class="pf2-stat-val">GHS ${totalEarned.toFixed(0)}</span><span class="pf2-stat-lbl">Earned</span></div>
+      </div>
     </div>
 
-    <div style="background:#fff;border-radius:16px;padding:20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);">
-      <p style="font-size:13px;font-weight:800;color:#374151;margin:0 0 14px;text-transform:uppercase;letter-spacing:.5px;">Personal Details</p>
-      ${field('Full Name',      name,      'text',  'name')}
-      ${field('Email',          email,     'email', 'email')}
-      ${field('Phone',          phone,     'tel',   'phone')}
-      ${field('Specialty',      specialty, 'text',  'specialty')}
-      ${field('Location',       location,  'text',  'location')}
+    ${kycStatus !== 'approved' ? `
+    <div class="ds-card ds-rise ds-rise-1" style="margin-top:var(--ds-3);background:var(--ds-warning-bg);border-color:color-mix(in srgb,var(--ds-warning) 22%,transparent);">
+      <div style="display:flex;align-items:center;gap:var(--ds-3);">
+        <span class="pf2-row-ic" style="background:var(--ds-warning-bg);color:var(--ds-warning);">
+          <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <div style="flex:1;min-width:0;">
+          <p class="pf2-row-title" style="color:var(--ds-warning);">Complete your verification</p>
+          <p class="pf2-row-sub">Finish KYC to start receiving jobs.</p>
+        </div>
+        <a href="onboarding.html" class="ds-btn ds-btn--sm" style="background:var(--ds-warning);color:#fff;">Verify</a>
+      </div>
+    </div>` : ''}
+
+    <!-- Earnings -->
+    <div class="ds-section ds-section--tight ds-rise ds-rise-1" style="padding-inline:0;">
+      <div class="ds-section-head"><span class="ds-section-title">Earnings</span><a class="ds-link" href="wallet.html">Open wallet ›</a></div>
+      <div class="pf2-earn">
+        <div>
+          <div class="pf2-earn-lbl">Available to withdraw</div>
+          <div class="pf2-earn-val"><span class="cur">GHS</span>${available.toFixed(2)}</div>
+          ${pending > 0 ? `<div style="font:500 12px/1 var(--ds-font);color:rgba(255,255,255,.5);margin-top:8px;">Pending <span style="color:var(--ds-brand-200);font-weight:700;">GHS ${pending.toFixed(2)}</span></div>` : ''}
+        </div>
+        <a href="wallet.html" class="ds-btn ds-btn--primary ds-btn--sm">Withdraw</a>
+      </div>
     </div>
 
-    <div style="background:#fff;border-radius:16px;padding:20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);">
-      <p style="font-size:13px;font-weight:800;color:#374151;margin:0 0 14px;text-transform:uppercase;letter-spacing:.5px;">About You</p>
-      <textarea id="field-bio" placeholder="Tell customers about your experience and services…"
-        style="width:100%;min-height:100px;border:1.5px solid #E5E7EB;border-radius:12px;padding:12px;font-family:inherit;font-size:14px;resize:vertical;outline:none;color:#111827;"
-        onfocus="this.style.borderColor='#F97316'" onblur="this.style.borderColor='#E5E7EB'">${bio}</textarea>
+    <!-- Activity menu -->
+    <div class="ds-section ds-section--tight ds-rise ds-rise-2" style="padding-inline:0;">
+      <div class="ds-section-head"><span class="ds-section-title">Activity</span></div>
+      <div class="ds-card ds-card--flush pf2-menu">
+        ${menuRow('reviews.html', '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 16.78l-5.2 2.74.99-5.8-4.21-4.1 5.82-.85L12 3.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>', 'My Reviews', 'See customer ratings & feedback')}
+        ${menuRow('performance.html', '<svg viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 8-8M21 7v5M21 7h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>', 'Performance', 'Track your stats & level')}
+        ${menuRow('bookings.html', '<svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 3v4M8 3v4M4 10h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>', 'Booking History', 'View all past & active jobs')}
+      </div>
     </div>
 
-    <button onclick="saveProfile()" style="width:100%;height:52px;background:#F97316;color:#fff;border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;">
-      Save Profile
-    </button>
+    <!-- Editable details -->
+    <div class="ds-section ds-section--tight ds-rise ds-rise-3" style="padding-inline:0;">
+      <div class="ds-section-head"><span class="ds-section-title">Personal Details</span></div>
+      <div class="ds-card">
+        ${field('Full Name', name,      'text', 'name')}
+        ${field('Email',     email,     'email','email')}
+        ${field('Phone',     phone,     'tel',  'phone')}
+        ${field('Specialty', specialty, 'text', 'specialty')}
+        ${field('Location',  location,  'text', 'location')}
+        <p class="ds-field-label" style="margin-bottom:var(--ds-2);">About You</p>
+        <textarea id="field-bio" class="ds-input" placeholder="Tell customers about your experience and services…"
+          style="height:auto;min-height:96px;padding:12px 14px;line-height:1.5;resize:vertical;">${bio}</textarea>
+        <button onclick="saveProfile()" class="ds-btn ds-btn--primary ds-btn--block" style="margin-top:var(--ds-4);">Save Changes</button>
+      </div>
+    </div>
 
-    <button onclick="signOut()" style="width:100%;height:48px;background:#F3F4F6;color:#6B7280;border:none;border-radius:14px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;">
-      Sign Out
-    </button>
+    <!-- Account -->
+    <div class="ds-section ds-section--tight ds-rise ds-rise-4" style="padding-inline:0;">
+      <div class="ds-section-head"><span class="ds-section-title">Account</span></div>
+      <div class="ds-card ds-card--flush pf2-menu">
+        ${menuRow('settings.html', '<svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>', 'Settings', 'Preferences, notifications & more')}
+        ${menuRow('support.html', '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .8-1 1.7M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>', 'Help & Support', 'FAQs and contact us')}
+        <button onclick="signOut()" class="pf2-row">
+          <span class="pf2-row-ic danger"><svg viewBox="0 0 24 24" fill="none"><path d="M16 17l5-5-5-5M21 12H9M12 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="pf2-row-body"><span class="pf2-row-title" style="color:var(--ds-danger);">Sign Out</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div style="height:var(--ds-4);"></div>
   `;
 }
 
 function field(label, value, type, id) {
-  return `<div style="margin-bottom:14px;">
-    <p style="font-size:12px;font-weight:600;color:#6B7280;margin:0 0 5px;">${label}</p>
-    <input id="field-${id}" type="${type}" value="${(value||'').replace(/"/g,'&quot;')}"
-      style="width:100%;height:46px;border:1.5px solid #E5E7EB;border-radius:10px;padding:0 14px;font-family:inherit;font-size:14px;color:#111827;outline:none;"
-      onfocus="this.style.borderColor='#F97316'" onblur="this.style.borderColor='#E5E7EB'" />
+  return `<div style="margin-bottom:var(--ds-3);">
+    <label class="ds-field-label" for="field-${id}">${label}</label>
+    <input id="field-${id}" class="ds-input" type="${type}" value="${(value||'').replace(/"/g,'&quot;')}" />
   </div>`;
 }
 
@@ -210,7 +305,7 @@ window.saveProfile = async function() {
 
   try {
     await databaseService.updateDocument('artisans', user.uid, updates);
-    showToast('Profile saved ✓');
+    showToast('Profile saved');
   } catch(e) {
     showToast('Could not save. Try again.');
   } finally {
@@ -243,5 +338,6 @@ databaseService.subscribeToDocument('artisans', user.uid, snap => {
   }
 });
 </script>
+<script src="js/artisanFloatingNav.js"></script>
 </body>
 </html>
