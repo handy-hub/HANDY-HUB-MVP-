@@ -42,7 +42,8 @@
         { "source": "/saved",         "destination": "/customer-app/saved.html" },
         { "source": "/notifications", "destination": "/customer-app/notification.html" },
         { "source": "/professionals", "destination": "/customer-app/professionals.html" },
-        { "source": "/services",      "destination": "/customer-app/service-detail.html" },
+        { "source": "/services",      "destination": "/customer-app/book-request.html" },
+        { "source": "/book",          "destination": "/customer-app/book-request.html" },
         { "source": "/emergency",     "destination": "/customer-app/book-emergency.html" },
         { "source": "**",             "destination": "/customer-app/login.html" }
       ]

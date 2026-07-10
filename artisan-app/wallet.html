@@ -32,20 +32,20 @@
     <!-- Hero Balance Card -->
     <div class="hero-card">
       <p class="hero-label">Available to Withdraw</p>
-      <p class="hero-amount" id="available-balance">GHC —</p>
+      <p class="hero-amount" id="available-balance">GHS —</p>
       <p class="hero-sub">Completed job earnings</p>
       <div class="hero-stats">
         <div class="hero-stat">
           <p class="hero-stat-label">Pending</p>
-          <p class="hero-stat-value pending" id="pending-balance">GHC —</p>
+          <p class="hero-stat-value pending" id="pending-balance">GHS —</p>
         </div>
         <div class="hero-stat">
           <p class="hero-stat-label">Total Earned</p>
-          <p class="hero-stat-value" id="total-earned">GHC —</p>
+          <p class="hero-stat-value" id="total-earned">GHS —</p>
         </div>
         <div class="hero-stat">
           <p class="hero-stat-label">Withdrawn</p>
-          <p class="hero-stat-value" id="total-withdrawn">GHC —</p>
+          <p class="hero-stat-value" id="total-withdrawn">GHS —</p>
         </div>
       </div>
     </div>
@@ -66,7 +66,7 @@
       </div>
       <div class="info-pill">
         <p class="pill-label">Min. Withdrawal</p>
-        <p class="pill-value">GHC 5</p>
+        <p class="pill-value">GHS 5</p>
       </div>
       <div class="info-pill">
         <p class="pill-label">Payout Time</p>
@@ -110,24 +110,24 @@
 
       <div class="wd-header">
         <p class="wd-header-title">Withdraw Earnings</p>
-        <p class="wd-header-balance" id="wd-avail">GHC 0.00</p>
+        <p class="wd-header-balance" id="wd-avail">GHS 0.00</p>
         <p class="wd-header-sub">Available balance</p>
       </div>
 
       <div class="wd-body">
 
         <!-- Amount -->
-        <p class="wd-label">Amount (GHC)</p>
+        <p class="wd-label">Amount (GHS)</p>
         <div class="wd-amount-wrap">
-          <span class="wd-ghc">GHC</span>
+          <span class="wd-ghc">GHS</span>
           <input type="number" id="wd-amount" class="wd-amount-input"
                  placeholder="0.00" min="5" step="0.01" inputmode="decimal" />
         </div>
         <div class="wd-quick-row">
-          <button class="wd-quick" data-amount="20">GHC 20</button>
-          <button class="wd-quick" data-amount="50">GHC 50</button>
-          <button class="wd-quick" data-amount="100">GHC 100</button>
-          <button class="wd-quick" data-amount="200">GHC 200</button>
+          <button class="wd-quick" data-amount="20">GHS 20</button>
+          <button class="wd-quick" data-amount="50">GHS 50</button>
+          <button class="wd-quick" data-amount="100">GHS 100</button>
+          <button class="wd-quick" data-amount="200">GHS 200</button>
         </div>
 
         <!-- MoMo Provider -->
@@ -219,7 +219,7 @@
   let artisanData      = {};
 
   // ── Formatting ──────────────────────────────────────────────────────────────
-  const fmtGHC  = (n) => `GHC ${Number(n).toFixed(2)}`;
+  const fmtGHS  = (n) => `GHS ${Number(n).toFixed(2)}`;
   const fmtDate = (iso) => {
     const d = new Date(iso);
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -231,10 +231,10 @@
   function updateWalletDisplay(w) {
     if (!w) return;
     currentWallet = w;
-    availEl.textContent     = fmtGHC(w.available);
-    pendingEl.textContent   = fmtGHC(w.pending);
-    totalEl.textContent     = fmtGHC(w.totalEarned);
-    withdrawnEl.textContent = fmtGHC(w.withdrawn);
+    availEl.textContent     = fmtGHS(w.available);
+    pendingEl.textContent   = fmtGHS(w.pending);
+    totalEl.textContent     = fmtGHS(w.totalEarned);
+    withdrawnEl.textContent = fmtGHS(w.withdrawn);
     withdrawBtn.disabled    = w.available < 5;
   }
 
@@ -264,7 +264,7 @@
     const amtClass = isCredit ? 'credit' : 'debit';
 
     const commissionNote = (d.type === 'earning' && d.commission)
-      ? `<p class="txn-ref">After ${(d.commissionRate * 100).toFixed(0)}% commission · Gross GHC ${Number(d.totalAmount).toFixed(2)}</p>`
+      ? `<p class="txn-ref">After ${(d.commissionRate * 100).toFixed(0)}% commission · Gross GHS ${Number(d.totalAmount).toFixed(2)}</p>`
       : (d.ref ? `<p class="txn-ref">Ref: ${d.ref}</p>` : '');
 
     return `
@@ -276,7 +276,7 @@
           ${commissionNote}
         </div>
         <div class="txn-amount-col">
-          <p class="txn-amount ${amtClass}">${sign} GHC ${Number(d.amount).toFixed(2)}</p>
+          <p class="txn-amount ${amtClass}">${sign} GHS ${Number(d.amount).toFixed(2)}</p>
           <span class="txn-status ${statusClass(d.status)}">${d.status || '—'}</span>
         </div>
       </div>
@@ -303,7 +303,7 @@
     selectedProvider    = null;
     document.querySelectorAll('.wd-provider-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
-    wdAvail.textContent = fmtGHC(currentWallet.available);
+    wdAvail.textContent = fmtGHS(currentWallet.available);
     wdOverlay.classList.add('open');
     wdOverlay.setAttribute('aria-hidden', 'false');
     updateConfirm();
@@ -320,7 +320,7 @@
     const ready  = selectedProvider && amount >= 5 && amount <= currentWallet.available && phone.length >= 9;
     wdConfirmBtn.disabled    = !ready;
     wdConfirmBtn.textContent = ready
-      ? `Withdraw GHC ${amount.toFixed(2)}`
+      ? `Withdraw GHS ${amount.toFixed(2)}`
       : 'Confirm Withdrawal';
   }
 
@@ -372,7 +372,7 @@
       });
 
       closeWithdrawModal();
-      showToast(`GHC ${amount.toFixed(2)} sent to ${phone}. Ref: ${ref}`, 'success');
+      showToast(`GHS ${amount.toFixed(2)} sent to ${phone}. Ref: ${ref}`, 'success');
 
     } catch (err) {
       console.error('Artisan withdrawal error:', err);

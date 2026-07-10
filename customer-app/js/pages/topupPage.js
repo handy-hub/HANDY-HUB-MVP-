@@ -8,6 +8,7 @@ import {
 import { initiatePayment } from '../../../shared/js/services/paystackService.js';
 import { createNotification } from '../../../shared/js/services/notificationRepository.js';
 import { PLATFORM_CONFIG } from '../../../shared/js/config/appConfig.js';
+import { formatGHS } from '../../../shared/js/utils/currency.js';
 
 // Minimum top-up the UI will allow (mirrors the server-side MIN_TOPUP enforcement).
 const MIN_TOPUP_GHS = PLATFORM_CONFIG?.minTopupGHS ?? 1;
@@ -96,9 +97,8 @@ let expectedCredit   = 0;
 let preTopupBalance  = 0; // wallet balance snapshotted when Confirm is clicked
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function formatGHC(n) {
-    return 'GHC ' + Number(n).toFixed(2);
-}
+// Currency formatting centralised in shared/js/utils/currency.js (GHS).
+const formatGHC = formatGHS;
 
 // ── Render all accounts ───────────────────────────────────────────────────────
 function renderAccounts() {
@@ -158,7 +158,7 @@ function updateConfirmBtn() {
     const amount = parseFloat(amountInput.value);
     // A saved account is optional — users can pay by card/bank without one.
     // Enforce the platform minimum top-up client-side so users can't submit
-    // zero/sub-minimum amounts (e.g. 0.001 rounding to GHC 0.00).
+    // zero/sub-minimum amounts (e.g. 0.001 rounding to GHS 0.00).
     const ready = Number.isFinite(amount) && amount >= MIN_TOPUP_GHS;
     confirmBtn.disabled = !ready;
     if (ready) {
@@ -414,7 +414,7 @@ ssDownloadBtn.addEventListener('click', () => {
         `Ref        : ${paystackRef || '—'}`,
         '------------------------------------',
         `Amount     : ${formatGHC(amount)}`,
-        `Charges    : GHC 0.00`,
+        `Charges    : ${formatGHS(0)}`,
         `Total      : ${formatGHC(amount)}`,
         '------------------------------------',
         `Provider   : ${meta?.label || provider}`,
@@ -458,7 +458,7 @@ authService.subscribeToAuthState(user => {
             balanceDisplay.style.opacity    = '';
             balanceDisplay.style.fontStyle  = '';
             balanceDisplay.style.fontSize   = '';
-            balanceDisplay.innerHTML = `<span class="balance-currency">GHC</span>${balance.toFixed(2)}`;
+            balanceDisplay.innerHTML = `<span class="balance-currency">GHS</span>${balance.toFixed(2)}`;
         }
 
         // Show escrow balance sub-note so customer understands why available balance
@@ -466,7 +466,7 @@ authService.subscribeToAuthState(user => {
         const noteEl = document.getElementById('balance-note');
         if (noteEl) {
             if (inEscrow > 0) {
-                noteEl.innerHTML = `Available to spend &nbsp;·&nbsp; <span style="color:#f97316;font-weight:700;">GHC ${inEscrow.toFixed(2)} in escrow</span>`;
+                noteEl.innerHTML = `Available to spend &nbsp;·&nbsp; <span style="color:#f97316;font-weight:700;">${formatGHS(inEscrow)} in escrow</span>`;
             } else {
                 noteEl.textContent = 'Available to spend';
             }
@@ -481,7 +481,7 @@ authService.subscribeToAuthState(user => {
                 ssCreditStatus.style.color = '#16a34a';
             }
 
-            showToast(`GHC ${expectedCredit.toFixed(2)} has been added to your wallet!`, 'success');
+            showToast(`${formatGHS(expectedCredit)} has been added to your wallet!`, 'success');
         }
     }, (err) => {
         console.warn('[topupPage] wallet listener error:', err);

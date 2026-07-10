@@ -659,7 +659,16 @@ async function verifySignupOtp({ sessionId, otp, appType, ip }) {
         console.log(`[OTP][${correlationId}] Session already verified (duplicate submit) session=${sessionId}`);
         const alreadySnap = await sessionRef.get();
         const alreadyData = alreadySnap.exists ? alreadySnap.data() : {};
-        return { success: true, uid: alreadyData.uid || null, alreadyVerified: true };
+        const alreadyUid  = alreadyData.uid || null;
+        // Re-mint a token so a duplicate submit / page refresh still signs the
+        // user in rather than dead-ending on an "already verified" success with
+        // no session.
+        let customToken = null;
+        if (alreadyUid) {
+            try { customToken = await getAuth().createCustomToken(alreadyUid); }
+            catch (err) { console.error(`[OTP][${correlationId}] createCustomToken (already-verified) failed: ${err.message}`); }
+        }
+        return { success: true, uid: alreadyUid, alreadyVerified: true, customToken };
     }
     if (result.error === 'invalid_status') {
         throw new HttpsError('failed-precondition', 'Verification session is no longer active. Please restart signup.');
@@ -708,8 +717,21 @@ async function verifySignupOtp({ sessionId, otp, appType, ip }) {
         accountCreatedAt: new Date().toISOString(),
     }).catch(() => {});
 
+    // Mint a custom auth token so the CLIENT can sign in immediately after
+    // verification. Without this the account is created + enabled server-side
+    // but the browser has no Firebase Auth session — the auth guard would then
+    // bounce the user straight to login. signInWithCustomToken(token) on the
+    // client establishes the session so they land authenticated.
+    let customToken = null;
+    try {
+        customToken = await getAuth().createCustomToken(sessionUid);
+    } catch (err) {
+        console.error(`[OTP][${correlationId}] createCustomToken failed uid=${sessionUid}: ${err.message}`);
+        // Non-fatal: the account exists; client falls back to the login page.
+    }
+
     console.log(`[OTP][${correlationId}] Account activated uid=${sessionUid} session=${sessionId} appType=${finalAppType}`);
-    return { success: true, uid: sessionUid };
+    return { success: true, uid: sessionUid, customToken };
 }
 
 // ── Account activation: customer ──────────────────────────────────────────────

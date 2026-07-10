@@ -82,16 +82,21 @@ async function resolveDispute(auth, { bookingId, resolution, notes, customerAmou
         throw new Error(`This booking is not currently disputed (status: "${booking.status}").`);
     }
 
-    // Find the escrow record for this booking — held or disputed.
+    // Find the JOB escrow record for this booking — held or disputed. Kind is
+    // filtered in code (legacy escrow docs predate the field → treated as 'job')
+    // so a stuck callout escrow can never be mistaken for the disputed job
+    // payment (F5 — same invariant as _findHeldEscrow). In practice a callout is
+    // always settled before a dispute is possible, but this stays defensive.
     const escrowQuery = await firestore.collection('escrow')
         .where('bookingId', '==', bookingId)
         .where('status', 'in', ['held', 'disputed'])
-        .limit(1)
+        .limit(5)
         .get();
-    if (escrowQuery.empty) {
+    const escrowDoc = escrowQuery.docs.find(d => (d.data().kind || 'job') === 'job');
+    if (!escrowDoc) {
         throw new Error('No held/disputed escrow record found for this booking — cannot resolve financially.');
     }
-    const escrowId = escrowQuery.docs[0].id;
+    const escrowId = escrowDoc.id;
 
     const customerId = booking.customerId;
     const artisanId  = booking.artisanId;

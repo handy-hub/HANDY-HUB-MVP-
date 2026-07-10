@@ -99,6 +99,8 @@ const TRANSITIONS = [
         title:  'Job Complete — Confirm?',
         body:   (b) => `${b.artisanName || 'Your artisan'} has marked the ${b.serviceType || 'service'} job as done. Please confirm to release payment.`,
         type:   'booking_awaiting',
+        // Deep-link the customer straight to the confirm/release control.
+        customerActionUrl: 'live-tracking.html',
     },
     {
         from: null,
@@ -139,17 +141,26 @@ function _str(v) { return (v == null ? '' : String(v)).toLowerCase().trim(); }
 
 // ── Escrow helpers ────────────────────────────────────────────────────────────
 
-// Find the single 'held' escrow document for a booking.
+// Find the 'held' escrow document of the given kind for a booking.
 // Requires composite Firestore index: escrow → bookingId ASC, status ASC.
-async function _findHeldEscrow(bookingId) {
+//
+// kind filtering is done in code (not in the query) because escrow documents
+// created before the inspection track existed carry no `kind` field — those
+// are always job escrows. This helper must NEVER return a callout escrow:
+// callout fees settle exclusively through settleCallout() (functions/pricing.js),
+// whose refund-vs-release decision this generic trigger cannot make. During the
+// approveJobQuote window a booking can briefly hold BOTH escrows, so a bare
+// limit(1) could previously pick either one nondeterministically.
+async function _findHeldEscrow(bookingId, kind = 'job') {
     const snap = await db()
         .collection('escrow')
         .where('bookingId', '==', bookingId)
         .where('status',    '==', 'held')
-        .limit(1)
+        .limit(5)
         .get();
     if (snap.empty) return null;
-    return { id: snap.docs[0].id, ...snap.docs[0].data() };
+    const doc = snap.docs.find(d => (d.data().kind || 'job') === kind);
+    return doc ? { id: doc.id, ...doc.data() } : null;
 }
 
 // Attempt to hold funds for an accepted booking.
@@ -233,6 +244,30 @@ async function _refundEscrowForBooking(bookingId, bookingData) {
         console.log(`[bookings] Escrow refunded: booking=${bookingId} escrow=${heldEscrow.id}`);
     } catch (refundErr) {
         console.error(`[bookings] Escrow refund FAILED: booking=${bookingId} reason="${refundErr.message}". Auto-release scheduler will refund within 7 days.`);
+    }
+}
+
+// Settle the callout escrow for inspection-track cancellations that did NOT go
+// through cancelInspectionBooking — i.e. admin cancels (cancelBookingAsAdmin
+// writes only the status and relies on this trigger for money movement) or any
+// other Admin-SDK write. The CF paths (cancelInspectionBooking, rejectJobQuote
+// final, checkBookingTimeouts) all settle BEFORE writing 'cancelled', so
+// calloutSettled / calloutSettlePending is already present and this is a no-op
+// for them. Direction follows the same fairness rule as cancelInspectionBooking:
+// inspection delivered before cancellation → fee pays the artisan; otherwise →
+// customer refunded. settleCallout() remains the only settlement path.
+async function _settleCalloutOnCancellation(bookingId, before, after) {
+    if (after.track !== 'inspection') return;
+    if (!after.calloutPaid || after.calloutSettled || after.calloutSettlePending) return;
+    try {
+        const pricing   = require('./pricing');
+        const delivered = ['inspection_done', 'quoted'].includes(_str(before.status));
+        const settleTo  = delivered ? 'artisan' : 'customer';
+        await pricing.settleCallout(after, bookingId, settleTo, 'cancelled_out_of_band');
+        console.log(`[bookings] Out-of-band cancellation: callout settled to ${settleTo} booking=${bookingId}`);
+    } catch (err) {
+        // settleCallout flags calloutSettlePending itself; this catch is belt-and-braces.
+        console.error(`[bookings] Callout settlement on cancellation failed booking=${bookingId}:`, err.message);
     }
 }
 
@@ -328,26 +363,37 @@ const onBookingStatusChanged = onDocumentUpdated(
                 (rule.skipIfSystemCancelled && isSystemCancelled);
 
             if (!shouldSkip) {
+                // FIELD MAPPING (F7): notifications.js writes `message` (not
+                // `body`), deep-links via `actionUrl`, and stores the bookingId in
+                // `metadata.bookingId`. The rules define `body`/`artisanBody`, so we
+                // map body→message and supply actionUrl + metadata here. Before this
+                // fix every generic transition notification (en_route, in_progress,
+                // awaiting, completed, cancelled, disputed) was written with an EMPTY
+                // message body, no working deep-link, and no bookingId in metadata.
+                const custAction = rule.customerActionUrl || 'booking.html';
+                const artAction  = rule.artisanActionUrl  || 'dashboard.html';
+
                 if ((rule.notify === 'customer' || rule.notify === 'both') && customerId) {
                     promises.push(
                         sendNotification(customerId, {
-                            title:     rule.title,
-                            body:      typeof rule.body === 'function' ? rule.body(ctx) : rule.body,
                             type:      rule.type,
-                            bookingId,
+                            title:     rule.title,
+                            message:   typeof rule.body === 'function' ? rule.body(ctx) : rule.body,
+                            actionUrl: custAction,
+                            metadata:  { bookingId },
                         }).catch(err => console.error('[bookings] customer notif error:', err?.message))
                     );
                 }
 
                 if ((rule.notify === 'artisan' || rule.notify === 'both') && artisanId) {
+                    const artisanCopy = rule.artisanBody || rule.body;
                     promises.push(
                         sendArtisanNotification(artisanId, {
-                            title: rule.artisanTitle || rule.title,
-                            body:  typeof (rule.artisanBody || rule.body) === 'function'
-                                       ? (rule.artisanBody || rule.body)(ctx)
-                                       : (rule.artisanBody || rule.body),
                             type:      rule.type,
-                            bookingId,
+                            title:     rule.artisanTitle || rule.title,
+                            message:   typeof artisanCopy === 'function' ? artisanCopy(ctx) : artisanCopy,
+                            actionUrl: artAction,
+                            metadata:  { bookingId },
                         }).catch(err => console.error('[bookings] artisan notif error:', err?.message))
                     );
                 }
@@ -379,13 +425,42 @@ const onBookingStatusChanged = onDocumentUpdated(
             const holdResult = await _holdEscrowForAcceptance(bookingId, after);
 
             if (holdResult.success) {
-                if (rule && customerId) {
-                    await sendNotification(customerId, {
-                        title:     rule.title,
-                        body:      typeof rule.body === 'function' ? rule.body(ctx) : rule.body,
-                        type:      rule.type,
-                        bookingId,
-                    }).catch(err => console.error('[bookings] accepted notif error:', err?.message));
+                if (customerId) {
+                    // Track-aware accept notification.
+                    //
+                    // INSPECTION TRACK (F2): accepting does NOT secure payment —
+                    // the customer still has to pay the callout fee, and that
+                    // control lives ONLY on book-request.html?resume=ID. Point the
+                    // notification straight there so a customer who left the flow
+                    // can get back to pay. Without this the booking stalls at
+                    // 'accepted' forever (the pay screen was otherwise unreachable).
+                    //
+                    // Note on fields: notifications.js reads `message` (not `body`)
+                    // and `metadata.bookingId`, and deep-links FCM taps via
+                    // `actionUrl`. These are passed explicitly here so the recovery
+                    // notification actually carries copy and a working link.
+                    const isInspection = after.track === 'inspection' && !after.calloutPaid;
+                    const artisanLabel = after.artisanName || after.proName || 'A professional';
+                    const svc          = after.serviceType || after.service || 'service';
+
+                    const notif = isInspection
+                        ? {
+                            type:      'Bookings',
+                            title:     'Pay your visit fee',
+                            message:   `${artisanLabel} accepted your ${svc} inspection. Pay the callout fee to lock it in — it's credited toward your final job price.`,
+                            actionUrl: `book-request.html?resume=${bookingId}`,
+                            metadata:  { bookingId },
+                        }
+                        : {
+                            type:      'Bookings',
+                            title:     'Booking Accepted!',
+                            message:   `${artisanLabel} has accepted your ${svc} request. Your payment has been secured.`,
+                            actionUrl: 'booking.html',
+                            metadata:  { bookingId },
+                        };
+
+                    await sendNotification(customerId, notif)
+                        .catch(err => console.error('[bookings] accepted notif error:', err?.message));
                 }
             } else {
                 await _handleEscrowHoldFailure(
@@ -404,10 +479,14 @@ const onBookingStatusChanged = onDocumentUpdated(
         }
 
         // 3. REFUND — * → cancelled
-        //    Return held escrow to customer immediately on any cancellation.
+        //    Return the held JOB escrow to the customer immediately on any
+        //    cancellation (_findHeldEscrow is kind-filtered — it never touches
+        //    the callout escrow). The callout, if still unsettled, is settled
+        //    by the fairness rule below.
         //    Non-fatal: auto-release scheduler refunds stuck escrows within 7 days.
         if (nextStatus === 'cancelled') {
             await _refundEscrowForBooking(bookingId, after);
+            await _settleCalloutOnCancellation(bookingId, before, after);
         }
 
         // ── Completion logging ─────────────────────────────────────────────────

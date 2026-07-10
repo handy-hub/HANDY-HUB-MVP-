@@ -355,7 +355,7 @@ async function handleDispatchEvent(before, after, bookingId) {
                         type:      'Bookings',
                         title:     'Searching for another professional…',
                         message:   'The previous professional couldn\'t take your booking. We\'re finding another one.',
-                        actionUrl: 'book-step4.html',
+                        actionUrl: 'booking.html',
                         metadata:  { bookingId },
                     }).catch(e => console.warn('[dispatch] searching notif error:', e.message));
                 }
@@ -408,20 +408,38 @@ const checkExpiredDispatches = onSchedule(
             const bookingId = doc.id;
             const booking   = doc.data();
             try {
-                // Log timeout
-                await db().collection('bookings').doc(bookingId).update({
-                    dispatchStatus:   'searching',
-                    artisanId:        null,        // cleared so artisan dashboard doesn't show stale
-                    currentArtisanId: null,
-                    responseDeadline: null,
-                    dispatchHistory:  FieldValue.arrayUnion({
-                        artisanId:  booking.currentArtisanId || null,
-                        response:   'timeout',
-                        expiredAt:  new Date().toISOString(),
-                        round:      booking.currentDispatchRound || 1,
-                    }),
-                    updatedAt: new Date().toISOString(),
+                // ── Re-check the timeout inside a transaction (F4) ────────────
+                // The query snapshot is stale by the time we act on it. If the
+                // artisan ACCEPTED (or the booking was cancelled/re-dispatched)
+                // in the gap, blindly nulling artisanId here would strip the
+                // professional off an accepted booking. Claim the timeout only
+                // if the booking is still dispatched to the same round.
+                const claimed = await db().runTransaction(async (txn) => {
+                    const live = await txn.get(doc.ref);
+                    if (!live.exists) return false;
+                    const d = live.data();
+                    if (d.dispatchStatus !== 'dispatched') return false;      // already accepted/re-dispatched
+                    if ((d.status || '').toLowerCase() !== 'pending') return false; // no longer pending
+                    txn.update(doc.ref, {
+                        dispatchStatus:   'searching',
+                        artisanId:        null,        // cleared so artisan dashboard doesn't show stale
+                        currentArtisanId: null,
+                        responseDeadline: null,
+                        dispatchHistory:  FieldValue.arrayUnion({
+                            artisanId:  d.currentArtisanId || null,
+                            response:   'timeout',
+                            expiredAt:  new Date().toISOString(),
+                            round:      d.currentDispatchRound || 1,
+                        }),
+                        updatedAt: new Date().toISOString(),
+                    });
+                    return true;
                 });
+
+                if (!claimed) {
+                    console.log(`[dispatch] Expiry skipped — booking ${bookingId} advanced before timeout claim.`);
+                    return;
+                }
 
                 // Notify customer
                 if (booking.customerId) {
@@ -429,7 +447,7 @@ const checkExpiredDispatches = onSchedule(
                         type:      'Bookings',
                         title:     'Searching for another professional…',
                         message:   'The previous professional didn\'t respond in time. Finding another one for you.',
-                        actionUrl: 'book-step4.html',
+                        actionUrl: 'booking.html',
                         metadata:  { bookingId },
                     }).catch(e => console.warn('[dispatch] timeout notif error:', e.message));
                 }

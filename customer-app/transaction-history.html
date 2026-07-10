@@ -38,7 +38,7 @@
       <!-- Wallet Balance Card -->
       <div class="wallet-card">
         <p class="wallet-label">Wallet Balance</p>
-        <p class="wallet-amount" id="wallet-balance">GHC —</p>
+        <p class="wallet-amount" id="wallet-balance">GHS —</p>
         <div class="wallet-btns">
           <button class="topup-btn" onclick="window.location.href='topup.html'">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -157,7 +157,7 @@
           <div class="wd-header-inner">
             <div>
               <p class="wd-header-title">Withdraw Funds</p>
-              <p class="wd-header-balance" id="wd-avail">GHC 0.00</p>
+              <p class="wd-header-balance" id="wd-avail">GHS 0.00</p>
               <p class="wd-header-sub">Available balance</p>
             </div>
             <div class="wd-header-icon">
@@ -188,17 +188,17 @@
           </div>
 
           <!-- Amount -->
-          <p class="wd-section-label" style="margin-top:4px">Amount (GHC)</p>
+          <p class="wd-section-label" style="margin-top:4px">Amount (GHS)</p>
           <div class="wd-amount-wrap">
-            <span class="wd-currency">GHC</span>
+            <span class="wd-currency">GHS</span>
             <input type="number" id="wd-amount" class="wd-amount-input"
                    placeholder="0.00" min="1" step="0.01" inputmode="decimal" />
           </div>
           <div class="wd-quick-row">
-            <button class="wd-quick" data-amount="20">GHC 20</button>
-            <button class="wd-quick" data-amount="50">GHC 50</button>
-            <button class="wd-quick" data-amount="100">GHC 100</button>
-            <button class="wd-quick" data-amount="200">GHC 200</button>
+            <button class="wd-quick" data-amount="20">GHS 20</button>
+            <button class="wd-quick" data-amount="50">GHS 50</button>
+            <button class="wd-quick" data-amount="100">GHS 100</button>
+            <button class="wd-quick" data-amount="200">GHS 200</button>
           </div>
 
           <!-- Info card -->
@@ -279,7 +279,7 @@
     .wd-overlay.open { display: flex; }
 
     .wd-sheet {
-      width: 100%; background: #f2f2f7; border-radius: 24px 24px 0 0;
+      width: 100%; background: var(--ui-surface-2); border-radius: 24px 24px 0 0;
       box-sizing: border-box;
       transform: translateY(100%);
       transition: transform .42s cubic-bezier(.22,1,.36,1);
@@ -325,7 +325,7 @@
     /* Content */
     .wd-content { padding: 20px 20px 36px; }
     .wd-section-label {
-      font-size: 11px; font-weight: 700; color: #888;
+      font-size: 11px; font-weight: 700; color: var(--ui-faint);
       text-transform: uppercase; letter-spacing: .07em; margin: 0 0 10px;
     }
 
@@ -342,12 +342,12 @@
     .wd-acc-card.active { border-color: var(--ui-primary); }
     .wd-acc-logo {
       width: 42px; height: 42px; border-radius: 50%; overflow: hidden;
-      flex-shrink: 0; background: #f5f5f5;
+      flex-shrink: 0; background: var(--ui-surface-2);
     }
     .wd-acc-logo svg { width: 42px; height: 42px; display: block; }
     .wd-acc-info { flex: 1; }
     .wd-acc-phone { font-size: 14px; font-weight: 700; color: #111; margin: 0 0 2px; }
-    .wd-acc-prov  { font-size: 12px; color: #888; margin: 0; }
+    .wd-acc-prov  { font-size: 12px; color: var(--ui-faint); margin: 0; }
     .wd-acc-default {
       font-size: 10px; font-weight: 700; color: var(--ui-primary);
       background: #fff5f5; border: 1px solid #f5c0c0;
@@ -374,7 +374,7 @@
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto 12px;
     }
-    .wd-no-accts p    { font-size: 14px; font-weight: 700; color: #444; margin-bottom: 5px; }
+    .wd-no-accts p    { font-size: 14px; font-weight: 700; color: var(--ui-muted); margin-bottom: 5px; }
     .wd-no-accts span { font-size: 12px; color: #aaa; line-height: 1.5; }
 
     /* Amount */
@@ -419,7 +419,7 @@
     .wd-info-icon.fee   { background: #f0f9ff; }
     .wd-info-divider    { height: 1px; background: #f0f0f0; margin: 14px 0 0; }
     .wd-info-title { font-size: 13px; font-weight: 700; color: #111; margin: 2px 0 3px; }
-    .wd-info-sub   { font-size: 12px; color: #888; line-height: 1.5; }
+    .wd-info-sub   { font-size: 12px; color: var(--ui-faint); line-height: 1.5; }
 
     /* Actions */
     .wd-confirm-btn {
@@ -433,7 +433,7 @@
     .wd-confirm-btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; transform: none; }
     .wd-cancel-btn {
       width: 100%; padding: 10px; background: none; border: none;
-      color: #888; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+      color: var(--ui-faint); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
     }
 
     /* Dark theme */
@@ -568,7 +568,7 @@
               ${provBadge}
             </div>
             <div class="txn-amount-wrap">
-              <p class="txn-amount ${amtClass}">${sign}GHC ${fmtGHC(d.amount)}</p>
+              <p class="txn-amount ${amtClass}">${sign}GHS ${fmtGHC(d.amount)}</p>
               <p class="txn-status ${statusClass(d.status)}">${d.status ? esc(d.status.charAt(0).toUpperCase() + d.status.slice(1)) : 'Done'}</p>
             </div>
             <svg class="txn-chevron" width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -624,7 +624,7 @@
         document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
         wdOverlay.classList.add('open');
         wdOverlay.setAttribute('aria-hidden', 'false');
-        wdAvail.textContent = 'GHC ' + currentBalance.toFixed(2);
+        wdAvail.textContent = 'GHS ' + currentBalance.toFixed(2);
         buildWdAccounts();
         updateWdConfirm();
     }
@@ -681,7 +681,7 @@
         const acc    = savedAccounts.find(a => a.id === wdSelAccount);
         const ready  = !!acc && amount > 0 && amount <= currentBalance;
         wdConfirmBtn.disabled    = !ready;
-        wdConfirmBtn.textContent = ready ? `Withdraw GHC ${amount.toFixed(2)}` : 'Confirm Withdrawal';
+        wdConfirmBtn.textContent = ready ? `Withdraw GHS ${amount.toFixed(2)}` : 'Confirm Withdrawal';
     }
 
     // Quick amounts
@@ -722,7 +722,7 @@
             });
 
             closeWithdrawModal();
-            showToast(`GHC ${amount.toFixed(2)} sent to ${acc.data.phone}. Ref: ${ref}`, 'success');
+            showToast(`GHS ${amount.toFixed(2)} sent to ${acc.data.phone}. Ref: ${ref}`, 'success');
         } catch (err) {
             console.error('Withdrawal error:', err);
             // Firebase HttpsError surfaces the message from the Cloud Function
@@ -745,7 +745,7 @@
         const _unsubWallet = databaseService.subscribeToDocument('customers', user.uid, snap => {
             if (snap.exists) {
                 currentBalance = Number(snap.data.walletBalance || 0);
-                if (walletEl) walletEl.textContent = 'GHC ' + currentBalance.toFixed(2);
+                if (walletEl) walletEl.textContent = 'GHS ' + currentBalance.toFixed(2);
             }
         }, err => console.warn('[transaction-history] wallet listener error:', err));
 

@@ -164,6 +164,16 @@ async function processOneEscrow(escrowId, escrowData) {
 
     const baseResult = { escrowId, bookingId, customerId, amount };
 
+    // ── Callout escrows settle ONLY through settleCallout (F5, invariant #7) ──
+    // A callout fee's release-vs-refund is a fairness decision (was the
+    // inspection delivered?) that the generic release/refund routing below
+    // cannot make — routing it here could pay an artisan for an undelivered
+    // inspection or double-pay an already-credited one. Defer to the single
+    // settlement authority in pricing.js, driven by the booking's state.
+    if ((escrowData.kind || 'job') === 'callout') {
+        return await settleStuckCallout(escrowId, escrowData, baseResult);
+    }
+
     let routedTo;
     try {
         routedTo = await determineOutcome(escrowData);
@@ -218,6 +228,49 @@ async function processOneEscrow(escrowId, escrowData) {
         err.escrowData = escrowData;
         throw err;
     }
+}
+
+// ── Stuck-callout settlement ────────────────────────────────────────────────────
+
+/**
+ * Settle a callout escrow that has been 'held' past its autoReleaseAt — always
+ * through pricing.settleCallout so the fairness rule and the single settlement
+ * path (invariant #7) are honoured. This only fires for callouts that slipped
+ * past the hourly checkBookingTimeouts sweep (e.g. a prior settleCallout failed
+ * and calloutSettlePending was never cleared).
+ *
+ * Direction: inspection delivered (booking reached inspection_done/quoted or is
+ * completed) → artisan; otherwise → customer. settleCallout is a no-op if the
+ * booking already records calloutSettled, so concurrent runs are safe.
+ */
+async function settleStuckCallout(escrowId, escrowData, baseResult) {
+    const pricing = require('../pricing');
+    const { bookingId } = escrowData;
+
+    let booking = null;
+    if (bookingId) {
+        const snap = await db().collection('bookings').doc(bookingId).get().catch(() => null);
+        if (snap && snap.exists) booking = snap.data();
+    }
+    // No booking to cross-check → refund the customer (conservative, same as the
+    // job path). Synthesize the minimal shape settleCallout needs.
+    if (!booking) {
+        booking = { calloutPaid: true, calloutEscrowId: escrowId, customerId: escrowData.customerId, artisanId: escrowData.artisanId };
+        await pricing.settleCallout(booking, bookingId || escrowId, 'customer', 'auto_release_orphan_callout');
+        return { ...baseResult, outcome: 'refunded' };
+    }
+
+    // Already settled by settleCallout — the escrow status change will drop it
+    // from future queries; report as a no-op.
+    if (booking.calloutSettled) {
+        return { ...baseResult, outcome: 'already_processed' };
+    }
+
+    const delivered = ['inspection_done', 'quoted', 'completed'].includes((booking.status || '').toLowerCase())
+                   || !!booking.quoteApproved;
+    const settleTo  = delivered ? 'artisan' : 'customer';
+    const ok = await pricing.settleCallout(booking, bookingId, settleTo, 'auto_release_stuck_callout');
+    return { ...baseResult, outcome: !ok ? 'already_processed' : settleTo === 'artisan' ? 'released' : 'refunded' };
 }
 
 // ── Batch processor ────────────────────────────────────────────────────────────

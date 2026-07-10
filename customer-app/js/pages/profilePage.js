@@ -3,6 +3,7 @@ import { getAppContainer }   from '../../../shared/js/app/container.js';
 import { showToast }         from '../../../shared/js/components/toast.js';
 import { initPaymentModal }  from './paymentMethodsModal.js';
 import { clearUserSession }  from '../../../shared/js/utils/clearUserSession.js';
+import { formatGHS, formatGHSShort } from '../../../shared/js/utils/currency.js';
 import {
   uploadImage,
   avatarUrl,
@@ -46,14 +47,10 @@ function buildDefaultAvatar(name) {
     return fallbackAvatar(name || '');
 }
 
-function formatGHC(n) {
-    return 'GHC ' + Number(n || 0).toFixed(2);
-}
-
-function formatGHCShort(n) {
-    const v = Number(n || 0);
-    return v >= 1000 ? 'GHC ' + (v / 1000).toFixed(1) + 'k' : 'GHC ' + v.toFixed(0);
-}
+// Currency formatting is centralised in shared/js/utils/currency.js (GHS).
+// Local aliases keep the existing call sites unchanged.
+const formatGHC      = formatGHS;
+const formatGHCShort = formatGHSShort;
 
 const PROFILE_CACHE_KEY = 'hh_profile_cache';
 
@@ -110,7 +107,7 @@ function populateProfile(data) {
     const escrowNote = document.getElementById('wallet-escrow-note');
     if (escrowNote) {
         if (inEscrow > 0) {
-            escrowNote.textContent = `GHC ${inEscrow.toFixed(2)} held in escrow`;
+            escrowNote.textContent = `${formatGHS(inEscrow)} held in escrow`;
             escrowNote.style.display = '';
         } else {
             escrowNote.style.display = 'none';

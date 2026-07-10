@@ -50,8 +50,8 @@
   flex-shrink: 0;
 
   /* Geometry */
-  padding: 8px 18px;
-  min-height: 36px;
+  padding: 10px 18px;
+  min-height: 44px;   /* mobile tap-target floor (was 36px) */
   border-radius: var(--ui-radius-pill, 999px);
 
   /* Appearance — inactive */
@@ -117,7 +117,7 @@
   border-radius: 0;
   background: transparent;
   color: var(--ui-muted, #666);
-  padding: 12px 16px 10px;
+  padding: 14px 16px 12px;   /* keeps min-height ≥ 44px tap floor */
   border-bottom: 2px solid transparent;
   position: relative;
 }

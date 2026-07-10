@@ -226,8 +226,8 @@ export function getEmergencyCategories() {
   return SERVICE_CATEGORIES.filter(c => c.emergencyEligible);
 }
 
-/** Human price-range string, e.g. "GHC 50–200". */
+/** Human price-range string, e.g. "GHS 50–200". */
 export function priceRangeLabel(cat) {
-  if (!cat || !cat.priceRange) return 'GHC 50–200';
-  return `GHC ${cat.priceRange.min}–${cat.priceRange.max}`;
+  if (!cat || !cat.priceRange) return 'GHS 50–200';
+  return `GHS ${cat.priceRange.min}–${cat.priceRange.max}`;
 }

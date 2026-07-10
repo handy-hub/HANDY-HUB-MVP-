@@ -331,7 +331,21 @@ service cloud.firestore {
                     )
                   );
 
-      // Customers create bookings
+      // ── Customer-created bookings (standard + emergency tracks ONLY) ──────────
+      //
+      // TRUST MODEL (see bookingSystemFieldGuard below):
+      //   Client-created bookings carry ONLY client-intent + display data. Every
+      //   pricing, escrow, payment, inspection, and workflow-authority field is
+      //   locked to the server (Cloud Functions via the Admin SDK, which bypass
+      //   these rules). The INSPECTION track is created exclusively by the
+      //   createInspectionBooking Cloud Function and can NEVER be born from a
+      //   client write — bookingHasNoSystemFields() rejects `track` and every
+      //   inspection/escrow/quote flag at the rule level, regardless of auth.
+      //
+      // This closes the client state-injection vector: an attacker with the
+      // Firebase config issuing direct REST writes cannot pre-set calloutPaid,
+      // quoteApproved, track, inspectionFee, pricingQuoteToken, escrow ids, or
+      // any derived financial flag, and cannot smuggle extra unknown fields.
       allow create: if isSignedIn() &&
                        incoming().customerId == request.auth.uid &&
                        // Accept both 'pending' (canonical) and 'Pending' (legacy) at create time
@@ -346,10 +360,18 @@ service cloud.firestore {
                        ) &&
                        incoming().serviceType is string &&
                        incoming().createdAt   is string &&
-                       // Minimum booking price — prevents zero-value or negative bookings.
-                       // Quote-based jobs set price to the callout fee; pure-quote flows
-                       // must still pass a non-trivial callout fee at create time.
-                       incoming().price is number && incoming().price >= 10;
+                       // Client bookings are only ever the standard or emergency track.
+                       // The inspection track is server-only (createInspectionBooking).
+                       (!('type' in incoming()) || incoming().type in ['standard', 'emergency']) &&
+                       // Any money value the client sets must be non-negative. It is
+                       // NOT authoritative — holdBookingFunds/payCalloutFee recompute
+                       // server-side — but a negative value is never legitimate.
+                       // (Emergency writes price:0; standard writes only `total`.)
+                       (!('price' in incoming()) || (incoming().price is number && incoming().price >= 0)) &&
+                       (!('total' in incoming()) || (incoming().total is number && incoming().total >= 0)) &&
+                       // HARD LOCK: no system-authoritative field may be present on a
+                       // client create — this is the injection-proof boundary.
+                       bookingHasNoSystemFields(incoming());
 
       // Status transitions:
       //   Customer:  pending → cancelled
@@ -359,13 +381,75 @@ service cloud.firestore {
       //              (functions/bookings.js, functions/disputes.js) use the
       //              Admin SDK and bypass these rules entirely — admin has no
       //              remaining legitimate reason to write bookings directly.
+      // Client updates: (1) caller is a party to the booking, (2) the diff
+      // matches an allowed state-machine transition, AND (3) the diff introduces
+      // or mutates NO system-authoritative field. (3) is defense-in-depth: every
+      // transition below already uses hasOnly() over a client-safe field set, so
+      // this is a belt-and-braces invariant that also fails safe for any future
+      // transition branch that forgets its hasOnly() constraint.
       allow update: if isSignedIn() && (
                         request.auth.uid == resource.data.customerId ||
                         request.auth.uid == resource.data.artisanId
                       ) &&
+                      bookingUpdateTouchesNoSystemFields() &&
                       isValidBookingUpdate();
 
       allow delete: if isSuperAdmin();
+    }
+
+    // ── SYSTEM-AUTHORITATIVE FIELD GUARD (booking trust boundary) ─────────────
+    //
+    // The single denylist of fields that ONLY server-side Cloud Functions
+    // (Admin SDK) may ever write. Grouped by concern for auditability:
+    //
+    //   Inspection track  — createInspectionBooking / completeInspection CFs
+    //   Pricing           — getPricingQuote / createInspectionBooking CFs
+    //   Callout escrow    — payCalloutFee / settleCallout CFs
+    //   Job quote         — submitJobQuote / approveJobQuote / rejectJobQuote CFs
+    //   Escrow / payment  — holdBookingFunds / releaseEscrow / refundEscrow CFs
+    //   Dispatch          — onBookingCreated / checkExpiredDispatches CFs
+    //
+    // Used two ways:
+    //   1. On CREATE — a client booking must contain NONE of these (block
+    //      fabricated inspection/paid bookings).
+    //   2. On UPDATE — a client update must not INTRODUCE or MUTATE any of them
+    //      (defense-in-depth behind the per-transition hasOnly allowlists).
+    //
+    // Firestore Rules cap boolean expressions, so the list is checked in one
+    // hasAny() call over the affected/incoming keys.
+    function bookingSystemFields() {
+      return [
+        // Inspection track
+        'track', 'inspectionFee', 'inspectionFindings', 'inspectionDoneAt',
+        // Pricing (server-computed)
+        'priceType', 'calloutFee', 'travelFee', 'travelEstimated',
+        'pricingQuoteToken', 'calloutCredit', 'escrowHeldAmount',
+        // Callout escrow lifecycle
+        'calloutPaid', 'calloutPaidAt', 'calloutEscrowId',
+        'calloutSettled', 'calloutSettledAt', 'calloutSettlePending', 'calloutSettleReason',
+        // Job quote lifecycle
+        'jobQuote', 'labourCost', 'materials', 'materialsCost', 'hasMaterials',
+        'quoteNote', 'quoteSubmittedAt', 'quoteApproved', 'quoteApprovedAt',
+        'quoteRejectedAt', 'quoteRejectionReason', 'quoteRevisionCount',
+        'commissionRate', 'artisanEarns', 'platformFee',
+        // Escrow / payment settlement
+        'escrowId', 'disputeId',
+        // Dispatch engine authority
+        'dispatchStatus', 'currentArtisanId', 'currentArtisanName',
+        'currentArtisanPhoto', 'currentArtisanRating', 'currentArtisanCategory',
+        'responseDeadline', 'currentDispatchRound', 'lastDispatchAt',
+        'artisanCandidates', 'dispatchHistory'
+      ];
+    }
+
+    // CREATE guard: none of the system fields may be present.
+    function bookingHasNoSystemFields(data) {
+      return !data.keys().hasAny(bookingSystemFields());
+    }
+
+    // UPDATE guard: the diff may not touch any system field.
+    function bookingUpdateTouchesNoSystemFields() {
+      return !incoming().diff(existing()).affectedKeys().hasAny(bookingSystemFields());
     }
 
     // Strict booking state machine.
@@ -393,7 +477,11 @@ service cloud.firestore {
         artisanProfile.status             == 'active';
 
       // Canonical status values (all snake_case lowercase):
-      //   pending → accepted → en_route → in_progress → awaiting → completed
+      //   Legacy track:     pending → accepted → en_route → in_progress → awaiting → completed
+      //   Inspection track: pending → accepted → inspection_scheduled → (en_route/in_progress)
+      //                     → inspection_done → quoted → accepted → ... (normal execution)
+      //                     (inspection transitions are written by Cloud Functions:
+      //                      payCalloutFee / completeInspection / quote CFs)
       //   Any non-terminal → cancelled | disputed
       //   pending → rejected (artisan declines; dispatch re-assigns immediately)
 
@@ -401,10 +489,17 @@ service cloud.firestore {
 
         // ── Customer actions ────────────────────────────────────────
         (isCustomer && (
-          // Cancel a pending, accepted, or quoted booking
+          // Cancel a pending, accepted, or quoted booking.
+          // INSPECTION-TRACK bookings are excluded: their cancellation MUST go
+          // through the cancelInspectionBooking Cloud Function so the callout
+          // escrow settles fairly (refund vs release is a server decision —
+          // settleCallout in functions/pricing.js is the only settlement path).
+          // A raw client cancel here would let the generic refund trigger hand
+          // the callout back to the customer even after a delivered inspection.
           (keys.hasAny(['status']) &&
            keys.hasOnly(['status', 'updatedAt', 'cancellationReason']) &&
-           prev in ['pending', 'Pending', 'accepted', 'quoted'] && next == 'cancelled') ||
+           prev in ['pending', 'Pending', 'accepted', 'quoted'] && next == 'cancelled' &&
+           (!('track' in existing()) || existing().track != 'inspection')) ||
           // Leave a review — only after job is completed, no status change.
           // Rating must be a valid integer 1–5.
           (!keys.hasAny(['status']) &&
@@ -424,7 +519,8 @@ service cloud.firestore {
           // Raise a dispute while booking is active
           (keys.hasAny(['status']) &&
            keys.hasOnly(['status', 'updatedAt']) &&
-           prev in ['accepted', 'quoted', 'en_route', 'in_progress', 'awaiting'] &&
+           prev in ['accepted', 'quoted', 'en_route', 'in_progress', 'awaiting',
+                    'inspection_scheduled', 'inspection_done'] &&
            next == 'disputed')
         )) ||
 
@@ -437,10 +533,13 @@ service cloud.firestore {
           (keys.hasAny(['status']) &&
            keys.hasOnly(['status', 'rejectedAt', 'artisanNotes', 'updatedAt']) &&
            prev in ['pending', 'Pending'] && next == 'rejected') ||
-          // Cancel an accepted booking — also always allowed (cannot trap accepted bookings)
+          // Cancel an accepted booking — also always allowed (cannot trap accepted bookings).
+          // Inspection-track excluded for the same reason as the customer clause:
+          // cancelInspectionBooking (CF) owns callout settlement on that track.
           (keys.hasAny(['status']) &&
            keys.hasOnly(['status', 'updatedAt', 'cancellationReason']) &&
-           prev in ['accepted', 'quoted'] && next == 'cancelled') ||
+           prev in ['accepted', 'quoted'] && next == 'cancelled' &&
+           (!('track' in existing()) || existing().track != 'inspection')) ||
           // Add artisan notes without status change — always allowed
           (!keys.hasAny(['status']) &&
            keys.hasOnly(['artisanNotes', 'updatedAt'])) ||
@@ -452,22 +551,24 @@ service cloud.firestore {
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'acceptedAt', 'updatedAt', 'artisanName']) &&
              prev in ['pending', 'Pending'] && next == 'accepted') ||
-            // Submit quote: accepted → quoted
-            // Cloud Function (quotes.js) writes these fields — this rule is the
-            // fallback guard if the CF ever becomes client-callable in future.
-            (keys.hasAny(['status']) &&
-             keys.hasOnly(['status', 'jobQuote', 'labourCost', 'materials',
-                           'materialsCost', 'hasMaterials', 'quoteNote',
-                           'commissionRate', 'artisanEarns', 'platformFee',
-                           'quoteSubmittedAt', 'updatedAt']) &&
-             prev == 'accepted' && next == 'quoted' &&
-             incoming().jobQuote is number && incoming().jobQuote > 0 &&
-             incoming().labourCost is number && incoming().labourCost > 0) ||
+            // NOTE: quote submission (accepted → quoted) is SERVER-ONLY. It is
+            // performed by the submitJobQuote Cloud Function (Admin SDK), which
+            // writes jobQuote/labourCost/materials/commissionRate/etc. The client
+            // artisan app calls that CF (artisan-app/jobs.html), never a direct
+            // Firestore write. There is deliberately NO client transition here —
+            // all of those fields are locked by bookingSystemFields().
             // En route: accepted → en_route (only after quote approved)
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'enRouteAt', 'updatedAt']) &&
              prev == 'accepted' && next == 'en_route' &&
              existing().quoteApproved == true) ||
+            // En route to an INSPECTION: inspection_scheduled → en_route.
+            // No quoteApproved requirement — on the inspection track the
+            // artisan travels BEFORE quoting; the callout fee is already
+            // escrowed (payCalloutFee CF is the only writer of that status).
+            (keys.hasAny(['status']) &&
+             keys.hasOnly(['status', 'enRouteAt', 'updatedAt']) &&
+             prev == 'inspection_scheduled' && next == 'en_route') ||
             // Arrived / in progress: en_route → in_progress
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'arrivedAt', 'updatedAt']) &&
@@ -479,7 +580,8 @@ service cloud.firestore {
             // Raise a dispute while booking is active
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'updatedAt']) &&
-             prev in ['accepted', 'quoted', 'en_route', 'in_progress', 'awaiting'] &&
+             prev in ['accepted', 'quoted', 'en_route', 'in_progress', 'awaiting',
+                      'inspection_scheduled', 'inspection_done'] &&
              next == 'disputed')
           ))
         ))
@@ -690,6 +792,27 @@ service cloud.firestore {
     // Never read or modified by clients.
     // ═══════════════════════════════════════════════════════════════
     match /_escrow_locks/{bookingId} {
+      allow read:                    if false;
+      allow create, update, delete:  if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PRICING CONFIG  (admin-managed callout fee parameters per category)
+    // Read by any signed-in user (fee transparency); written only by admins.
+    // getPricingQuote CF is the authoritative fee calculator — clients read
+    // this collection for display purposes only.
+    // ═══════════════════════════════════════════════════════════════
+    match /pricing_config/{category} {
+      allow read:   if isSignedIn();
+      allow write:  if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PRICING QUOTE TOKENS  (server-only — single-use callout fee locks)
+    // Written and consumed exclusively by Cloud Functions (Admin SDK).
+    // No client has any reason to touch these documents.
+    // ═══════════════════════════════════════════════════════════════
+    match /pricing_quotes/{token} {
       allow read:                    if false;
       allow create, update, delete:  if false;
     }

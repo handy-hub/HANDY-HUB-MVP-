@@ -128,7 +128,7 @@ body {
 
 .sidebar-menu a {
     text-decoration: none;
-    color: #333;
+    color: var(--ui-text);
     font-size: 18px;
     display: block;
     padding: 10px;
@@ -257,7 +257,7 @@ body {
 
 /* remove default weird spacing */
 .search input::placeholder {
-    color: #888;
+    color: var(--ui-faint);
 }
 /* CATEGORIES */
 .categories {
@@ -499,7 +499,7 @@ body {
 
 .cards p {
     font-size: 11px;
-    color: #333;
+    color: var(--ui-text);
     text-align: center;
     margin-top: 7px;
     font-weight: 500;
@@ -819,7 +819,7 @@ margin-top: 10px;
     align-items: center;
     text-align: center;
     margin: 20px 0;
-    color: #888; /* Grey color to match your image */
+    color: var(--ui-faint); /* Grey color to match your image */
     font-size: 12px;
 }
 
@@ -850,7 +850,7 @@ margin-top: 10px;
 
 .social-btn {
     background-color: #ffffff;
-    color: #333;
+    color: var(--ui-text);
     border: 1px solid #acabab33;
     padding: 10px;
     border-radius: 8px;
@@ -984,7 +984,7 @@ margin-top: 10px;
 
 .banner-mid p {
     font-size: 0.8rem;
-    color: #555;
+    color: var(--ui-muted);
     line-height: 1.5;
     margin-left: 10px;
 }
@@ -1115,7 +1115,7 @@ margin-top: 10px;
 
 .banner-mid p {
     font-size: 0.8rem;
-    color: #555;
+    color: var(--ui-muted);
     line-height: 1.5;
     margin-left: 10px;
 }
@@ -1248,7 +1248,7 @@ margin-top: 10px;
 
 .results-message {
     font-size: 13px;
-    color: #555;
+    color: var(--ui-muted);
     margin-bottom: 10px;
 }
 
@@ -1529,7 +1529,7 @@ margin-top: 10px;
     background: none;      /* Removes the grey box */
     border: none;          /* Removes the border */
     font-size: 20px;       /* Controls the size of the icon */
-    color: #333;           /* Sets the icon color */
+    color: var(--ui-text);           /* Sets the icon color */
     cursor: pointer;       /* Makes it look clickable */
     padding: 5px;
     display: flex;
@@ -1543,7 +1543,7 @@ margin-top: 10px;
 }
 
 .tab-item {
-    background: #f5f5f5;
+    background: var(--ui-surface-2);
     padding: 8px 16px;
     border-radius: var(--ui-radius-lg);
     font-size: 13px;
@@ -1584,7 +1584,7 @@ margin-top: 10px;
 /* Color Palette */
 .bg-red-light { background: #fdf2f2; }
 .bg-blue-light { background: #f0f4ff; }
-.bg-grey-light { background: #f5f5f5; }
+.bg-grey-light { background: var(--ui-surface-2); }
 .color-maroon { color: var(--maroon); }
 .color-blue { color: #3b82f6; }
 

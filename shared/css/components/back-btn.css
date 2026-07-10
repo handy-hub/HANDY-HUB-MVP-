@@ -7,10 +7,13 @@
              onboarding.css (artisan), global.css,
              .bn-back-btn in book-now.css.
 
-   Canonical spec:
-     Container: 40×40px, border-radius: var(--ui-radius-sm)
+   Canonical spec (2026-07-03 — aligned to the login reference, the design
+   north star):
+     Container: 44×44px (meets the 44px tap-target minimum),
+                border-radius: 50% (circular), background rgba(0,0,0,0.06)
      Icon:      20×20px SVG child, stroke currentColor, stroke-width: 2
-     All page-specific sizes (34/36/38/52px) are retired.
+     All page-specific sizes (34/36/38/52px) and the old transparent
+     rounded-square treatment are retired.
 
    Usage:
      <button class="ui-back-btn" aria-label="Go back">
@@ -23,10 +26,12 @@
 .bn-back-btn,
 .bk-back-btn,
 .bn2-back-btn,
-.em-map-back-btn {
-  /* Geometry */
-  width:  40px;
-  height: 40px;
+.em-map-back-btn,
+.br-back,
+.back-to-dashboard {
+  /* Geometry — 44px meets the mobile tap-target minimum */
+  width:  44px;
+  height: 44px;
   flex-shrink: 0;
 
   /* Layout */
@@ -34,10 +39,10 @@
   align-items: center;
   justify-content: center;
 
-  /* Appearance */
+  /* Appearance — circular grey, matching the login reference (design north star) */
   border: none;
-  border-radius: var(--ui-radius-sm, 10px);
-  background: transparent;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 
@@ -51,7 +56,9 @@
 .bn-back-btn > svg,
 .bk-back-btn > svg,
 .bn2-back-btn > svg,
-.em-map-back-btn > svg {
+.em-map-back-btn > svg,
+.br-back > svg,
+.back-to-dashboard > svg {
   width:  20px;
   height: 20px;
   min-width:  20px;
@@ -67,8 +74,10 @@
 .bn-back-btn:hover,
 .bk-back-btn:hover,
 .bn2-back-btn:hover,
-.em-map-back-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+.em-map-back-btn:hover,
+.br-back:hover,
+.back-to-dashboard:hover {
+  background: rgba(0, 0, 0, 0.09);
 }
 
 .ui-back-btn:active,
@@ -76,8 +85,10 @@
 .bn-back-btn:active,
 .bk-back-btn:active,
 .bn2-back-btn:active,
-.em-map-back-btn:active {
-  background: rgba(0, 0, 0, 0.09);
+.em-map-back-btn:active,
+.br-back:active,
+.back-to-dashboard:active {
+  background: rgba(0, 0, 0, 0.12);
   transform: scale(0.94);
 }
 

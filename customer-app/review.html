@@ -106,7 +106,7 @@
       font-size: 13px;
     }
     .rv-receipt-row:last-child { border-bottom: none; }
-    .rv-receipt-label { color: #888; font-weight: 500; }
+    .rv-receipt-label { color: var(--ui-faint); font-weight: 500; }
     .rv-receipt-val { font-weight: 700; color: #111; }
     .rv-receipt-val.rv-total { color: var(--ui-primary); font-size: 16px; font-weight: 900; }
     .rv-paid-badge {
@@ -135,7 +135,7 @@
     }
     .rv-pro-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .rv-pro-name { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 2px; }
-    .rv-pro-type { font-size: 12px; color: #888; font-weight: 500; }
+    .rv-pro-type { font-size: 12px; color: var(--ui-faint); font-weight: 500; }
     .rv-pro-distance { font-size: 11px; color: #aaa; margin-top: 3px; }
 
     /* ── Star rating ── */
@@ -146,7 +146,7 @@
       box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     }
     .rv-rating-title { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 4px; }
-    .rv-rating-sub { font-size: 12px; color: #888; margin-bottom: 16px; }
+    .rv-rating-sub { font-size: 12px; color: var(--ui-faint); margin-bottom: 16px; }
     .rv-stars {
       display: flex;
       gap: 8px;
@@ -179,13 +179,13 @@
       margin-bottom: 14px;
     }
     .rv-tag {
-      background: #f5f5f5;
+      background: var(--ui-surface-2);
       border: 1.5px solid transparent;
       border-radius: 20px;
       padding: 7px 13px;
       font-size: 12px;
       font-weight: 600;
-      color: #555;
+      color: var(--ui-muted);
       cursor: pointer;
       transition: all 0.15s;
     }
@@ -221,20 +221,20 @@
       box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     }
     .rv-tip-title { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 4px; }
-    .rv-tip-sub { font-size: 12px; color: #888; margin-bottom: 14px; }
+    .rv-tip-sub { font-size: 12px; color: var(--ui-faint); margin-bottom: 14px; }
     .rv-tip-btns {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 8px;
     }
     .rv-tip-btn {
-      background: #f5f5f5;
+      background: var(--ui-surface-2);
       border: 1.5px solid transparent;
       border-radius: 10px;
       padding: 10px 4px;
       font-size: 13px;
       font-weight: 700;
-      color: #555;
+      color: var(--ui-muted);
       cursor: pointer;
       text-align: center;
       transition: all 0.15s;
@@ -325,7 +325,7 @@
       margin: 0 auto 16px;
     }
     .rv-success-title { font-size: 20px; font-weight: 900; color: #111; margin-bottom: 8px; }
-    .rv-success-sub { font-size: 13px; color: #888; line-height: 1.5; margin-bottom: 22px; }
+    .rv-success-sub { font-size: 13px; color: var(--ui-faint); line-height: 1.5; margin-bottom: 22px; }
     .rv-success-btn {
       width: 100%;
       background: var(--ui-primary);
@@ -403,7 +403,7 @@
       </div>
       <div class="rv-receipt-row">
         <span class="rv-receipt-label">Amount Paid</span>
-        <span class="rv-receipt-val rv-total" id="rv-total">GHC —</span>
+        <span class="rv-receipt-val rv-total" id="rv-total">GHS —</span>
       </div>
     </div>
 
@@ -461,9 +461,9 @@
       <p class="rv-tip-title">Leave a Tip <i class="fa-solid fa-hand-holding-heart"></i></p>
       <p class="rv-tip-sub">Show your appreciation for great service (optional)</p>
       <div class="rv-tip-btns">
-        <button class="rv-tip-btn" data-tip="5" onclick="selectTip(this)">GHC 5</button>
-        <button class="rv-tip-btn" data-tip="10" onclick="selectTip(this)">GHC 10</button>
-        <button class="rv-tip-btn" data-tip="20" onclick="selectTip(this)">GHC 20</button>
+        <button class="rv-tip-btn" data-tip="5" onclick="selectTip(this)">GHS 5</button>
+        <button class="rv-tip-btn" data-tip="10" onclick="selectTip(this)">GHS 10</button>
+        <button class="rv-tip-btn" data-tip="20" onclick="selectTip(this)">GHS 20</button>
         <button class="rv-tip-btn custom" data-tip="custom" onclick="selectCustomTip()">Custom</button>
       </div>
     </div>
@@ -558,7 +558,7 @@
     const dateStr = (state.schedule && state.schedule.dateDisplay) || last.dateDisplay || now.toDateString();
     const timeStr = (state.schedule && state.schedule.time) || last.time || '';
     document.getElementById('rv-date').textContent = timeStr ? dateStr + ', ' + timeStr : dateStr;
-    document.getElementById('rv-total').textContent = 'GHC ' + ((state.total || last.total || 65) + '.00');
+    document.getElementById('rv-total').textContent = 'GHS ' + ((state.total || last.total || 65) + '.00');
 
     // Pro card
     const pro = state.professional || state.artisan || {};
@@ -631,12 +631,12 @@
     }
   };
   window.selectCustomTip = function () {
-    const val = prompt('Enter tip amount (GHC):');
+    const val = prompt('Enter tip amount (GHS):');
     if (val && !isNaN(val) && parseFloat(val) > 0) {
       document.querySelectorAll('.rv-tip-btn').forEach(b => b.classList.remove('selected'));
       const btn = document.querySelector('.rv-tip-btn.custom');
       btn.classList.add('selected');
-      btn.textContent = 'GHC ' + parseFloat(val).toFixed(0);
+      btn.textContent = 'GHS ' + parseFloat(val).toFixed(0);
       selectedTip = parseFloat(val);
     }
   };

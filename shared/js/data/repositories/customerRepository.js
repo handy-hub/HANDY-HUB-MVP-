@@ -10,7 +10,7 @@
  * phone                   string   (indexed)
  * name                    string
  * profileImage            string | null   (Storage download URL)
- * walletBalance           number          (GHC)
+ * walletBalance           number          (GHS)
  * recentSearches          string[]
  * recentSearchesUpdatedAt string          (ISO timestamp)
  * createdAt               string          (ISO timestamp, set on first upsert)

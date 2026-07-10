@@ -15,7 +15,11 @@
     "deploy:rules":  "firebase deploy --only firestore:rules,storage",
     "deploy:all":    "npm run lint:filters && npm run stage && firebase deploy",
     "lint:filters":  "node scripts/check-filter-tabs.cjs",
-    "test":          "npm run lint:filters && python tests/verify_low_fixes.py"
+    "lint:tokens":   "node scripts/design-token-lint.cjs",
+    "lint:tokens:strict": "node scripts/design-token-lint.cjs --strict",
+    "lint:status":   "node scripts/check-status-vocab.cjs",
+    "lint":          "npm run lint:filters && npm run lint:tokens && npm run lint:status",
+    "test":          "npm run lint && python tests/verify_low_fixes.py"
   },
   "devDependencies": {
     "serve": "^14.0.0"

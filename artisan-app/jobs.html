@@ -200,6 +200,7 @@
 <script type="module">
 import { getAppContainer }                   from '../shared/js/app/container.js';
 import { createBookingRepository }           from '../shared/js/data/repositories/bookingRepository.js';
+import { describe as describeStatus }        from '../shared/js/domain/bookingStatusMeta.js';
 import { requireArtisanAuth, canAcceptJobs } from './js/utils/artisanAuthGuard.js';
 import { startPresence, stopPresence }       from '../shared/js/services/presenceService.js';
 import { getFunctions, httpsCallable }
@@ -217,29 +218,10 @@ let _currentArtisan = _guardArtisan || {};
 const LOGIN_URL = 'login.html';
 
 // ── STATUS MAPS ───────────────────────────────────────────────────────────────
-const TAB_MAP = {
-  pending:   ['pending', 'dispatching', 'searching', 'dispatched', 'assigned'],
-  active:    ['accepted', 'quoted', 'en_route', 'in_progress', 'awaiting'],
-  completed: ['completed'],
-  cancelled: ['cancelled', 'rejected', 'unfulfilled'],
-};
-
-const PILL_META = {
-  pending:     { label: 'Pending',      cls: 'pill-pending'     },
-  dispatching: { label: 'Dispatching',  cls: 'pill-pending'     },
-  searching:   { label: 'Searching',    cls: 'pill-pending'     },
-  dispatched:  { label: 'Waiting',      cls: 'pill-pending'     },
-  assigned:    { label: 'Assigned',     cls: 'pill-pending'     },
-  accepted:    { label: 'Accepted',     cls: 'pill-accepted'    },
-  quoted:      { label: 'Quoted',       cls: 'pill-quoted'      },
-  en_route:    { label: 'En Route',     cls: 'pill-en_route'    },
-  in_progress: { label: 'In Progress',  cls: 'pill-in_progress' },
-  awaiting:    { label: 'Awaiting',     cls: 'pill-awaiting'    },
-  completed:   { label: 'Completed',    cls: 'pill-completed'   },
-  cancelled:   { label: 'Cancelled',    cls: 'pill-cancelled'   },
-  rejected:    { label: 'Declined',     cls: 'pill-rejected'    },
-  unfulfilled: { label: 'Unmatched',    cls: 'pill-cancelled'   },
-};
+// PILL_META + TAB_MAP removed — status vocabulary and grouping now come from the
+// single source of truth (shared/js/domain/bookingStatusMeta.js, artisan
+// audience). NEXT_ACTION below is retained: it is page-specific INTERACTION
+// (which write each progression button performs), not status vocabulary.
 
 // Status → next action label for progression
 const NEXT_ACTION = {
@@ -273,9 +255,13 @@ function fmtDate(d) {
   catch { return String(d); }
 }
 
-function getPill(status) {
-  return PILL_META[(status || '').toLowerCase()] || { label: status || '—', cls: 'pill-pending' };
+// Track-aware pill from the single source of truth (artisan audience).
+function getPill(booking) {
+  const d = describeStatus(booking, 'artisan');
+  return { label: d.label, cls: `pill-${d.tone}` };
 }
+// Group membership from the same source (replaces the local TAB_MAP).
+const bkGroup = (booking) => describeStatus(booking, 'artisan').group;
 
 function showToast(msg, dur = 2800) {
   const el = document.getElementById('jobs-toast');
@@ -298,11 +284,12 @@ function showSkeletons(id) {
 
 // ── CARD BUILDER ─────────────────────────────────────────────────────────────
 function buildJobCard(b) {
-  const pill    = getPill(b.status);
+  const pill    = getPill(b);
   const st      = (b.status || '').toLowerCase();
   const action  = NEXT_ACTION[st];
-  const isPending = TAB_MAP.pending.includes(st);
-  const isActive  = TAB_MAP.active.includes(st);
+  const grp       = bkGroup(b);
+  const isPending = grp === 'upcoming';
+  const isActive  = grp === 'ongoing';
 
   const name    = b.customerName || b.proName || 'Customer';
   const initials= name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
@@ -316,6 +303,32 @@ function buildJobCard(b) {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>Accept
       </button>
       <button class="job-btn job-btn-decline" onclick="declineJob('${esc(b.id)}', this)">Decline</button>`;
+  } else if (isActive && b.track === 'inspection' && !b.quoteApproved &&
+             ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'inspection_done'].includes(st)) {
+    // ── Inspection track (pre-quote-approval) ────────────────────────────────
+    if (st === 'accepted') {
+      // Customer hasn't paid the callout fee yet — nothing to do but wait.
+      actionsHtml = `
+        <button class="job-btn job-btn-decline" disabled style="opacity:.5;cursor:default;">Awaiting callout fee…</button>
+        <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
+    } else if (st === 'inspection_done') {
+      actionsHtml = `
+        <button class="job-btn job-btn-track" onclick="openQuoteSheet('${esc(b.id)}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Submit Quote
+        </button>
+        <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
+    } else {
+      // inspection_scheduled / en_route / in_progress → complete the inspection
+      actionsHtml = `
+        <button class="job-btn job-btn-track" onclick="completeInspectionJob('${esc(b.id)}', this)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Complete Inspection
+        </button>
+        ${st === 'inspection_scheduled'
+          ? `<button class="job-btn job-btn-outline" onclick="advanceJob('${esc(b.id)}','en_route','enRouteAt',this)">Mark En Route</button>`
+          : `<button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`}`;
+    }
   } else if (isActive && action) {
     if (st === 'accepted' && !b.quoteApproved) {
       // Quote not yet submitted — artisan must send quote before going en_route
@@ -356,7 +369,7 @@ function buildJobCard(b) {
         </div>
       </div>
       <div class="job-right">
-        <span class="job-amount">GHC ${Number(amount).toFixed(0)}</span>
+        <span class="job-amount">GHS ${Number(amount).toFixed(0)}</span>
         <span class="job-status-pill ${pill.cls}">${pill.label}</span>
       </div>
     </div>
@@ -366,10 +379,10 @@ function buildJobCard(b) {
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render(jobs) {
-  const pending   = jobs.filter(b => TAB_MAP.pending.includes((b.status   || '').toLowerCase()));
-  const active    = jobs.filter(b => TAB_MAP.active.includes((b.status    || '').toLowerCase()));
-  const completed = jobs.filter(b => TAB_MAP.completed.includes((b.status || '').toLowerCase()));
-  const cancelled = jobs.filter(b => TAB_MAP.cancelled.includes((b.status || '').toLowerCase()));
+  const pending   = jobs.filter(b => bkGroup(b) === 'upcoming');
+  const active    = jobs.filter(b => bkGroup(b) === 'ongoing');
+  const completed = jobs.filter(b => bkGroup(b) === 'completed');
+  const cancelled = jobs.filter(b => bkGroup(b) === 'cancelled');
 
   function setPanel(id, items, emptyMsg) {
     document.getElementById(id).innerHTML = items.length
@@ -463,6 +476,17 @@ window.advanceJob = async function(bookingId, nextStatus, timestampField, btn) {
 };
 
 // ── QUOTE SHEET ───────────────────────────────────────────────────────────────
+window.completeInspectionJob = async function(bookingId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+  try {
+    await httpsCallable(_fn(), 'completeInspection')({ bookingId });
+    showToast('Inspection complete. Now submit your quote.');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Complete Inspection'; }
+    showToast(e?.message || 'Could not complete inspection. Try again.');
+  }
+};
+
 window.openQuoteSheet = function(bookingId) {
   _quoteBookingId = bookingId;
   _needsMaterials = false;

@@ -102,10 +102,19 @@ async function assertEscrowAccess(auth, escrowData, allowedRoles) {
  *   collection is additive. Run backfillEscrowLocks() once after deploying to
  *   protect pre-existing "held" escrow records against re-invocation.
  *
- * @param {{ bookingId, customerId, artisanId, amount, callerAuth }} opts
+ * @param {{ bookingId, customerId, artisanId, amount, callerAuth, kind? }} opts
+ *   kind: 'job' (default — the main job escrow, lock = bookingId) or
+ *         'callout' (inspection callout fee, lock = `${bookingId}_callout`).
+ *   Distinct lock keys let one booking carry a callout escrow AND a job escrow
+ *   without the idempotency mutexes colliding. They are never simultaneously
+ *   'held' in the normal flow: callout settles at quote decision, before the
+ *   job escrow is created.
  * @returns {{ escrowId: string, commission: number, artisanShare: number }}
  */
-async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, callerAuth }) {
+async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, callerAuth, kind = 'job' }) {
+    if (!['job', 'callout'].includes(kind)) {
+        throw new Error(`Invalid escrow kind "${kind}". Must be 'job' or 'callout'.`);
+    }
     // ── Authorization ─────────────────────────────────────────────────────────
     // This is an identity check (who is the caller?), not a financial state check.
     // It is safe outside the transaction — even if two callers pass auth at the
@@ -140,7 +149,8 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
     // Firestore auto-IDs are generated client-side (random strings). Creating a
     // DocumentReference does NOT contact Firestore. References are stable across
     // transaction retries — the same escrowRef.id is used regardless of retries.
-    const lockRef     = firestore.collection('_escrow_locks').doc(bookingId);
+    const lockRef     = firestore.collection('_escrow_locks')
+                                 .doc(kind === 'job' ? bookingId : `${bookingId}_${kind}`);
     const escrowRef   = firestore.collection('escrow').doc();
     const auditRef    = firestore.collection('financialAudit').doc();
     const customerRef = firestore.collection('customers').doc(customerId);
@@ -200,6 +210,7 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
         txn.set(lockRef, {
             bookingId,
             customerId,
+            kind,
             escrowId:     escrowRef.id,
             commission,
             artisanShare,
@@ -219,6 +230,7 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
             bookingId,
             customerId,
             artisanId:         artisanId ?? null,
+            kind,
             amount:            amountNum,
             commission,
             artisanShare,
@@ -243,7 +255,9 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
             amount:      amountNum,
             bookingId,
             escrowId:    escrowRef.id,
-            description: 'Payment secured for booking',
+            description: kind === 'callout'
+                ? 'Callout fee secured for inspection visit'
+                : 'Payment secured for booking',
             status:      'completed',
             ref:         genId('ESC'),
             createdAt:   n,
@@ -254,6 +268,7 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
             action:         'escrow_hold',
             userId:         customerId,
             userType:       'customer',
+            kind,
             bookingId,
             escrowId:       escrowRef.id,
             amount:         amountNum,

@@ -22,7 +22,7 @@ body {
   border-bottom: 1px solid #f0f0f0; flex-shrink: 0; z-index: 10;
 }
 .bn-back-btn {
-  width: 38px; height: 38px; border: none; background: #f5f5f5;
+  width: 38px; height: 38px; border: none; background: var(--ui-surface-2);
   border-radius: var(--ui-radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 .bn-header-title { flex: 1; text-align: center; font-size: 17px; font-weight: 800; color: #111; }
@@ -59,7 +59,7 @@ body {
 .bn-location-change { font-size: 12px; color: var(--ui-primary); font-weight: 600; margin-top: 1px; }
 .bn-location-arrow { color: #bbb; flex-shrink: 0; }
 
-.bn-svc-label { font-size: 13px; font-weight: 700; color: #888; margin-bottom: 10px; }
+.bn-svc-label { font-size: 13px; font-weight: 700; color: var(--ui-faint); margin-bottom: 10px; }
 
 /* ── Service categories ── */
 .bn-categories {
@@ -95,7 +95,7 @@ body {
 }
 .bn-toggle-body { flex: 1; }
 .bn-toggle-title { font-size: 14px; font-weight: 800; color: #111; margin-bottom: 2px; }
-.bn-toggle-sub { font-size: 12px; color: #888; }
+.bn-toggle-sub { font-size: 12px; color: var(--ui-faint); }
 .bn-toggle-switch {
   width: 46px; height: 26px; background: var(--ui-primary); border-radius: var(--ui-radius-md);
   position: relative; cursor: pointer; flex-shrink: 0; border: none; padding: 0;
@@ -201,9 +201,9 @@ body {
 .bn-sheet-svc-body { flex: 1; }
 .bn-sheet-svc-name { font-size: 17px; font-weight: 800; color: #111; margin-bottom: 3px; letter-spacing: -0.3px; }
 .bn-sheet-svc-tag { font-size: 12px; font-weight: 700; color: #2e7d32; margin-bottom: 4px; }
-.bn-sheet-svc-desc { font-size: 12px; color: #888; line-height: 1.4; }
+.bn-sheet-svc-desc { font-size: 12px; color: var(--ui-faint); line-height: 1.4; }
 .bn-sheet-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
-.bn-stat-label { font-size: 10px; color: #888; }
+.bn-stat-label { font-size: 10px; color: var(--ui-faint); }
 .bn-stat-val { font-size: 14px; font-weight: 800; color: #111; }
 .bn-stat-val.price { font-size: 18px; color: #111; display: flex; align-items: center; gap: 4px; }
 .bn-stat-info { font-size: 12px; color: #aaa; cursor: pointer; }
@@ -211,7 +211,7 @@ body {
 .bn-trust {
   background: #fde8e8; border-radius: var(--ui-radius-sm); padding: 10px 12px;
   display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
-  font-size: 12px; color: #555; line-height: 1.4;
+  font-size: 12px; color: var(--ui-muted); line-height: 1.4;
 }
 
 .bn-request-btn {
@@ -299,7 +299,7 @@ body {
 }
 @keyframes emPop { from { transform: scale(0); } to { transform: scale(1); } }
 .em-match-title { font-size: 26px; font-weight: 900; color: #2e7d32; margin-bottom: 8px; }
-.em-match-sub { font-size: 14px; color: #888; margin-bottom: 28px; text-align: center; line-height: 1.5; }
+.em-match-sub { font-size: 14px; color: var(--ui-faint); margin-bottom: 28px; text-align: center; line-height: 1.5; }
 .em-match-pro-card {
   background: #fff; border: 1px solid #eee; border-radius: var(--ui-radius-lg);
   padding: 16px; display: flex; gap: 14px; align-items: center;
@@ -312,10 +312,10 @@ body {
 }
 .em-match-info { flex: 1; }
 .em-match-name { font-size: 16px; font-weight: 800; color: #111; margin-bottom: 3px; }
-.em-match-type { font-size: 12px; color: #888; margin-bottom: 6px; }
+.em-match-type { font-size: 12px; color: var(--ui-faint); margin-bottom: 6px; }
 .em-match-rating { font-size: 13px; font-weight: 700; color: #f5a623; }
 .em-match-eta { text-align: right; }
-.em-match-eta-label { font-size: 10px; color: #888; }
+.em-match-eta-label { font-size: 10px; color: var(--ui-faint); }
 .em-match-eta-val { font-size: 22px; font-weight: 900; color: var(--ui-primary); }
 
 /* ── Search stats row ── */
@@ -335,9 +335,9 @@ body {
 
 /* ── Match state progress ── */
 .em-match-progress-wrap { margin-top: 28px; width: 100%; max-width: 320px; }
-.em-match-progress-track { background: #f5f5f5; border-radius: var(--ui-radius-sm); overflow: hidden; }
+.em-match-progress-track { background: var(--ui-surface-2); border-radius: var(--ui-radius-sm); overflow: hidden; }
 .em-match-progress-fill { height: 4px; background: var(--ui-primary); width: 0%; transition: width 2s linear; border-radius: var(--ui-radius-sm); }
-.em-match-progress-label { text-align: center; font-size: 12px; color: #888; margin-top: 8px; }
+.em-match-progress-label { text-align: center; font-size: 12px; color: var(--ui-faint); margin-top: 8px; }
 
 /* ── Confirmed state (Uber-style) ── */
 #state-confirmed { background: #fff; }
@@ -397,7 +397,7 @@ body {
 }
 .em-sheet-eta-line { display: flex; align-items: baseline; gap: 5px; margin-bottom: 4px; }
 .em-sheet-eta-num { font-size: 40px; font-weight: 900; color: #0a0a0a; letter-spacing: -1.5px; line-height: 1; }
-.em-sheet-eta-unit { font-size: 14px; font-weight: 700; color: #888; }
+.em-sheet-eta-unit { font-size: 14px; font-weight: 700; color: var(--ui-faint); }
 .em-sheet-eta-addr { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #999; }
 .em-sheet-live-badge {
   background: #e8f5e9; color: #2e7d32; font-size: 11px; font-weight: 700;
@@ -406,7 +406,7 @@ body {
 }
 .em-eta-dot-live { width: 7px; height: 7px; background: #4caf50; border-radius: 50%; animation: emLive 1s ease infinite; }
 
-.em-sheet-divider { height: 1px; background: #f4f4f4; margin: 0 0 14px; }
+.em-sheet-divider { height: 1px; background: var(--ui-surface-2); margin: 0 0 14px; }
 
 /* Professional row */
 .em-sheet-pro-row {
@@ -415,7 +415,7 @@ body {
 .em-sheet-pro-img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .em-sheet-pro-info { flex: 1; }
 .em-sheet-pro-name { font-size: 15px; font-weight: 800; color: #0a0a0a; margin-bottom: 4px; }
-.em-sheet-pro-meta { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #888; }
+.em-sheet-pro-meta { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ui-faint); }
 .em-sheet-sep { color: #ddd; }
 .em-sheet-verified-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0; }
 .em-sheet-verified-lbl { font-size: 11px; font-weight: 700; color: #1d9bf0; }
@@ -435,7 +435,7 @@ body {
   background: #fff; display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; transition: background 0.12s;
 }
-.em-sheet-btn-icon:active { background: #f5f5f5; }
+.em-sheet-btn-icon:active { background: var(--ui-surface-2); }
 
 /* Booking ref */
 .em-sheet-ref-row {
@@ -500,18 +500,18 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
   border-bottom: 1px solid #f0f0f0; flex-shrink: 0; z-index: 20;
 }
 .bn2-back-btn {
-  width: 38px; height: 38px; border: none; background: #f5f5f5;
+  width: 38px; height: 38px; border: none; background: var(--ui-surface-2);
   border-radius: var(--ui-radius-sm); display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #333; flex-shrink: 0;
+  cursor: pointer; color: var(--ui-text); flex-shrink: 0;
 }
 .bn2-header-center { flex: 1; }
 .bn2-header-title { display: block; font-size: 16px; font-weight: 800; color: #111; line-height: 1.2; }
-.bn2-header-sub   { display: block; font-size: 11px; color: #888; font-weight: 500; }
+.bn2-header-sub   { display: block; font-size: 11px; color: var(--ui-faint); font-weight: 500; }
 .bn2-header-actions { display: flex; gap: 2px; flex-shrink: 0; }
 .bn2-icon-btn {
   width: 38px; height: 38px; border: none; background: none;
   border-radius: var(--ui-radius-sm); display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #333;
+  cursor: pointer; color: var(--ui-text);
 }
 
 /* ── Stepper ── */
@@ -552,7 +552,7 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
 .bn2-loc-label { font-size: 11px; color: #aaa; font-weight: 600; margin-bottom: 2px; }
 .bn2-loc-addr  { font-size: 14px; font-weight: 700; color: #111; }
 .bn2-loc-edit-btn {
-  width: 34px; height: 34px; border: none; background: #f5f5f5; border-radius: var(--ui-radius-sm);
+  width: 34px; height: 34px; border: none; background: var(--ui-surface-2); border-radius: var(--ui-radius-sm);
   display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
 }
 
@@ -636,7 +636,7 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
   display: flex; align-items: center; gap: 7px; padding: 9px 14px;
   border: 1.5px solid rgba(0,0,0,0.08); border-radius: var(--ui-radius-lg);
   background: #fff; cursor: pointer; white-space: nowrap;
-  font-size: 13px; font-weight: 700; color: #555; flex-shrink: 0;
+  font-size: 13px; font-weight: 700; color: var(--ui-muted); flex-shrink: 0;
   transition: all 0.15s; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -657,7 +657,7 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
 }
 .bn2-svc-detail-body { flex: 1; }
 .bn2-svc-detail-name    { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 3px; }
-.bn2-svc-detail-desc    { font-size: 12px; color: #888; line-height: 1.5; }
+.bn2-svc-detail-desc    { font-size: 12px; color: var(--ui-faint); line-height: 1.5; }
 .bn2-svc-detail-meta    { text-align: right; flex-shrink: 0; }
 .bn2-svc-detail-price   { font-size: 14px; font-weight: 800; color: #111; margin-bottom: 4px; }
 .bn2-svc-detail-arrival {
@@ -678,10 +678,10 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
 .bn2-urgency-icon {
   width: 36px; height: 36px; background: #f0f0f0; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  color: #888; transition: all 0.15s;
+  color: var(--ui-faint); transition: all 0.15s;
 }
 .bn2-urgency-btn.active .bn2-urgency-icon { background: var(--ui-primary); color: #fff; }
-.bn2-urgency-label { font-size: 13px; font-weight: 800; color: #333; }
+.bn2-urgency-label { font-size: 13px; font-weight: 800; color: var(--ui-text); }
 .bn2-urgency-btn.active .bn2-urgency-label { color: var(--ui-primary); }
 .bn2-urgency-sub { font-size: 10px; color: #aaa; font-weight: 600; }
 
@@ -720,12 +720,12 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
 
 .bn2-pro-body    { flex: 1; }
 .bn2-pro-name    { font-size: 14px; font-weight: 800; color: #111; margin-bottom: 2px; }
-.bn2-pro-spec    { font-size: 12px; color: #888; margin-bottom: 5px; }
+.bn2-pro-spec    { font-size: 12px; color: var(--ui-faint); margin-bottom: 5px; }
 .bn2-pro-meta-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .bn2-pro-rating  { font-size: 13px; font-weight: 800; color: #f5a623; }
 .bn2-pro-reviews { font-size: 12px; color: #aaa; }
 .bn2-pro-dot-sep { color: #ddd; font-size: 12px; }
-.bn2-pro-jobs    { font-size: 12px; color: #888; }
+.bn2-pro-jobs    { font-size: 12px; color: var(--ui-faint); }
 
 .bn2-pro-action { flex-shrink: 0; }
 .bn2-pro-select-btn {
@@ -750,10 +750,10 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
   padding: 32px 0; display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
 .bn2-pros-empty-icon {
-  width: 64px; height: 64px; background: #f5f5f5; border-radius: 50%;
+  width: 64px; height: 64px; background: var(--ui-surface-2); border-radius: 50%;
   display: flex; align-items: center; justify-content: center; margin-bottom: 4px;
 }
-.bn2-pros-empty-title { font-size: 15px; font-weight: 800; color: #333; text-align: center; }
+.bn2-pros-empty-title { font-size: 15px; font-weight: 800; color: var(--ui-text); text-align: center; }
 .bn2-pros-empty-sub   { font-size: 13px; color: #aaa; text-align: center; line-height: 1.5; }
 .bn2-inline-retry {
   background: none; border: none; color: var(--ui-primary); font-weight: 700;
@@ -771,7 +771,7 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
 }
 .bn2-sticky-info   { flex: 1; }
 .bn2-sticky-price  { font-size: 18px; font-weight: 900; color: #111; line-height: 1.1; }
-.bn2-sticky-arrive { font-size: 12px; color: #888; font-weight: 500; margin-top: 2px; }
+.bn2-sticky-arrive { font-size: 12px; color: var(--ui-faint); font-weight: 500; margin-top: 2px; }
 .bn2-sticky-cta {
   background: var(--ui-primary); color: #fff; border: none; border-radius: var(--ui-radius-md);
   padding: 14px 22px; font-size: 15px; font-weight: 800; cursor: pointer;

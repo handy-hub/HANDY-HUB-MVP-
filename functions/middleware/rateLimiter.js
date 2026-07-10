@@ -43,6 +43,11 @@ const LIMITS = Object.freeze({
   releaseEscrow:            { maxRequests: 5,  windowMs:  60 * 60_000 },
   refundBooking:            { maxRequests: 5,  windowMs:  60 * 60_000 },
   raiseDispute:             { maxRequests: 3,  windowMs:  24 * 60 * 60_000 },
+  // Inspection-track pricing lifecycle
+  getPricingQuote:          { maxRequests: 30, windowMs:  60 * 60_000 },
+  createInspectionBooking:  { maxRequests: 5,  windowMs:  60 * 60_000 },
+  completeInspection:       { maxRequests: 10, windowMs:  60 * 60_000 },
+  cancelInspectionBooking:  { maxRequests: 5,  windowMs:  60 * 60_000 },
 });
 
 // ── Firestore lazy init ────────────────────────────────────────────────────────

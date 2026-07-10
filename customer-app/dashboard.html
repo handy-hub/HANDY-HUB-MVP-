@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -27,7 +27,7 @@
         <path d="M4 6H20M4 12H14M4 18H18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
-    <span class="hh-logo">Handy <span class="hh-logo-red">Hub</span></span>
+    <span class="hh-logo">Handy<span class="hh-logo-red">Hub</span></span>
     <div class="hh-hdr-right">
       <button class="hh-icon-btn" id="msg-btn" aria-label="Messages">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -134,6 +134,13 @@
 
 
 
+  <!-- ════ RESUME CARD — in-flight inspection request (populated by resumeCard.js) ════
+       Closes the F2 dead-end: a customer who left the booking flow after
+       requesting a visit is shown a persistent "you have a request in progress"
+       card that routes back to the pay-callout / quote screen. Driven by a live
+       Firestore subscription (survives device changes — not sessionStorage). ══ -->
+  <div id="resume-card-mount" hidden></div>
+
   <!-- ════ AD BANNER — populated by adBanner.js ════ -->
   <section class="ads" id="ad-banner">
     <div class="slider" id="ad-slider"></div>
@@ -187,7 +194,7 @@
   #loc-map-el{width:100%;height:300px;flex-shrink:0}
   .loc-footer{padding:10px 16px 22px;flex-shrink:0}
   .loc-name-row{display:flex;align-items:center;gap:6px;padding:8px 0 10px;min-height:38px}
-  .loc-name-row span{font-size:13px;font-weight:600;color:#333;flex:1;line-height:1.35}
+  .loc-name-row span{font-size:13px;font-weight:600;color:var(--ui-text);flex:1;line-height:1.35}
   .loc-confirm{width:100%;background: var(--ui-primary);color:#fff;border:none;border-radius:13px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s}
   .loc-confirm:disabled{opacity:.38;cursor:not-allowed}
   .loc-cancel{width:100%;background:none;color:#aaa;border:none;padding:9px;font-size:13px;cursor:pointer;margin-top:2px;font-family:inherit}
@@ -458,6 +465,16 @@
     initNearbyPros();
   }
 </script>
+
+<!-- Resume card: in-flight inspection request recovery (F2) -->
+<script type="module">
+  import { initResumeCard } from './js/resumeCard.js';
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initResumeCard);
+  } else {
+    initResumeCard();
+  }
+</script>
 <script src="../shared/js/components/serviceIcons.js"></script>
 <script src="../shared/js/components/pageTransition.js"></script>
 <script type="module" src="../shared/js/services/logoutService.js"></script>
@@ -547,25 +564,11 @@
         }, 200);
       });
     } else if (i === 1) {
-      // Rebook Last → prefill booking state from last history entry then go to step 3
+      // Rebook Last → start a fresh inspection request (the old multi-step
+      // prefill flow was removed with the book-step pages)
       btn.addEventListener('click', () => {
         closeSidebar();
-        try {
-          const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
-          const last = hist[0];
-          if (last && last.services) {
-            const bkKey = window.HH_State ? window.HH_State.scopedKey('hh_booking') : 'hh_booking';
-            localStorage.setItem(bkKey, JSON.stringify({
-              services:     last.services,
-              professional: last.professional || null,
-              total:        last.total || 0,
-              payment:      last.payment || 'Wallet',
-            }));
-            go('book-step3.html');
-          } else {
-            go('booking.html');
-          }
-        } catch (_) { go('booking.html'); }
+        go('book-request.html');
       });
     }
   });
@@ -589,16 +592,16 @@
      they remain as harmless hooks in case the chip row is reintroduced.
      They now carry only a real service CATEGORY (a backend-aligned value), never
      a fabricated task string — the booking flow owns task selection. */
-  document.getElementById('chip-fixpipe')?.addEventListener('click',  () => go('book-step1.html', { hh_service: 'Plumbing' }));
-  document.getElementById('chip-fan')?.addEventListener('click',      () => go('book-step1.html', { hh_service: 'Electrical' }));
+  document.getElementById('chip-fixpipe')?.addEventListener('click',  () => go('book-request.html', { hh_service_preselect: 'plumbing' }));
+  document.getElementById('chip-fan')?.addEventListener('click',      () => go('book-request.html', { hh_service_preselect: 'electrical' }));
   document.getElementById('chip-em-elec')?.addEventListener('click',  () => {
     sessionStorage.setItem('em_service', 'Electrical');
     go('book-emergency.html', { hh_service: 'Electrical' });
   });
-  document.getElementById('chip-more')?.addEventListener('click',     () => go('book-step1.html'));
+  document.getElementById('chip-more')?.addEventListener('click',     () => go('book-request.html'));
 
   /* section buttons */
-  document.getElementById('view-all-svc')?.addEventListener('click', () => go('book-step1.html'));
+  document.getElementById('view-all-svc')?.addEventListener('click', () => go('book-request.html'));
   document.getElementById('ai-search-btn')?.addEventListener('click', () => toast('AI Search coming soon', 'info'));
   /* "View more professionals" is a BROWSE intent → the discovery surface,
      not a commitment page. */
@@ -646,9 +649,9 @@
     const cats = (window.HH_CATALOG && window.HH_CATALOG.categories) || [];
     const known = cats.some(c => c.id === serviceId);
     if (known) {
-      window.location.href = `service-detail.html?cat=${encodeURIComponent(serviceId)}`;
+      window.location.href = `book-request.html?cat=${encodeURIComponent(serviceId)}`;
     } else {
-      window.location.href = 'book-step1.html';
+      window.location.href = 'book-request.html';
     }
   };
 
@@ -682,7 +685,7 @@ function renderPopularServices() {
     const hot = i < 3 && totalEng > 0 && (clicks[s.id] || 0) > 0;
     return `<button class="svc-btn" onclick="handleServiceClick('${s.id}')">
       <div class="svc-circle">${hot ? `<span class="svc-hot">Hot</span>` : ''}
-        <img src="${s.img}" alt="${s.name}" width="26" height="26" onerror="this.style.opacity='0'">
+        <img src="${s.img}" alt="${s.name}" width="30" height="30" onerror="this.style.opacity='0'">
       </div>
       <span class="svc-lbl">${s.name}</span>
     </button>`;

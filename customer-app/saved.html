@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -25,7 +25,7 @@
     .sv-search-bar.open { display: block; }
     .sv-search-input {
       width: 100%;
-      background: #f5f5f5;
+      background: var(--ui-surface-2);
       border: none;
       border-radius: 12px;
       padding: 10px 14px;
@@ -304,7 +304,7 @@
       <div class="sv-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/></svg></div>
       <p class="sv-empty-title">No Saved Services</p>
       <p class="sv-empty-sub">Save services you use often for quick access next time.</p>
-      <button class="sv-empty-btn" onclick="window.location.href='book-step1.html'">Browse Services</button>
+      <button class="sv-empty-btn" onclick="window.location.href='book-request.html'">Browse Services</button>
     </div>`;
   }
 
@@ -381,7 +381,7 @@
      Routes to book-step1, NOT the generic book-now picker. */
   window.bookPro = function (id) {
     const pro = (window._svPros || []).find(function (p) { return p.id === id; });
-    if (!pro) { window.location.href = 'book-step1.html'; return; }
+    if (!pro) { window.location.href = 'book-request.html'; return; }
     try {
       sessionStorage.setItem('hh_selected_artisan', JSON.stringify({
         id:           pro.id,
@@ -398,7 +398,7 @@
       sessionStorage.setItem('hh_service', pro.category || pro.specialty || '');
       sessionStorage.setItem('hh_booking_intent', 'artisan');
     } catch (_) {}
-    window.location.href = 'book-step1.html';
+    window.location.href = 'book-request.html';
   };
 
   /* ── Tab switch ── */

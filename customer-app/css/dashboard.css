@@ -33,7 +33,7 @@ body {
   background: none; border: none; cursor: pointer; color: #111;
   transition: background 0.15s; flex-shrink: 0;
 }
-.hh-menu-btn:active { background: #f5f5f5; }
+.hh-menu-btn:active { background: var(--ui-surface-2); }
 .hh-logo { font-size: 20px; font-weight: 900; color: #0a0a0a; letter-spacing: -0.6px; }
 .hh-logo-red { color: var(--ui-primary); }
 .hh-hdr-right { display: flex; align-items: center; gap: 4px; }
@@ -43,7 +43,7 @@ body {
   background: none; border: none; cursor: pointer; color: #111;
   border-radius: var(--ui-radius-sm); transition: background 0.15s;
 }
-.hh-icon-btn:active { background: #f5f5f5; }
+.hh-icon-btn:active { background: var(--ui-surface-2); }
 /* Lock SVG at 24 px — explicit size guarantee for header icon buttons */
 .hh-menu-btn > svg, .hh-icon-btn > svg { width: 24px; height: 24px; min-width: 24px; min-height: 24px; display: block; flex-shrink: 0; }
 .hh-badge {
@@ -63,8 +63,8 @@ body {
 .sidebar {
   position: fixed; top: 0; left: 0;
   width: 285px; max-width: 88vw; height: 100%;
-  background: #fff; box-shadow: 4px 0 24px rgba(0,0,0,0.1);
-  z-index: 1001;
+  background: var(--ui-surface); box-shadow: var(--ui-elev-3);
+  z-index: var(--ui-z-modal);
   transform: translateX(-100%);
   transition: transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex; flex-direction: column; overflow: hidden;
@@ -72,9 +72,9 @@ body {
 .sidebar.active { transform: translateX(0); }
 .sidebar-close-btn {
   position: absolute; top: 12px; right: 12px;
-  background: #f5f5f5; border: none; width: 34px; height: 34px;
+  background: var(--ui-surface-2); border: none; width: 34px; height: 34px;
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #555; z-index: 10;
+  cursor: pointer; color: var(--ui-muted); z-index: 10;
   transition: background 0.15s;
 }
 .sidebar-close-btn svg { width: 18px; height: 18px; display: block; flex-shrink: 0; }
@@ -104,7 +104,7 @@ body {
   background: #fff; border: 1px solid #f0f0f0; border-radius: var(--ui-radius-sm);
   padding: 11px 6px; display: flex; flex-direction: column; align-items: center;
   gap: 6px; cursor: pointer; text-align: center;
-  font-size: 11px; font-weight: 700; color: #333; line-height: 1.3;
+  font-size: 11px; font-weight: 700; color: var(--ui-text); line-height: 1.3;
   font-family: inherit; transition: background 0.15s;
 }
 .quick-action-btn:active { background: #fde8e8; }
@@ -374,17 +374,17 @@ body {
 }
 .svc-btn:active .svc-circle { transform: scale(0.91); }
 .svc-circle {
-  width: 60px; height: 60px; border-radius: 50%;
-  background: #fff; border: 1px solid #ebebeb;
+  width: 60px; height: 60px; border-radius: var(--ui-radius-pill);
+  background: var(--ui-surface); border: 1px solid var(--ui-border);
   display: flex; align-items: center; justify-content: center;
   transition: transform 0.1s;
 }
 .svc-circle img { width: 30px; height: 30px; }
-.svc-lbl { font-size: 11px; font-weight: 600; color: #444; text-align: center; white-space: nowrap; }
+.svc-lbl { font-size: 11px; font-weight: 600; color: var(--ui-muted); text-align: center; white-space: nowrap; }
 .svc-hot {
   position: absolute; top: -3px; right: -3px;
-  background: #187301; color: #fff; font-size: 11px; font-weight: 800;
-  padding: 1.5px 4px; border-radius: 5px; border: 1.5px solid #f2f2f7; letter-spacing: 0.2px;
+  background: var(--ui-primary); color: var(--ui-surface); font-size: 11px; font-weight: 700;
+  padding: 1.5px 4px; border-radius: var(--ui-radius-sm); border: 1.5px solid var(--ui-bg); letter-spacing: 0.2px;
 }
 
 /* ══════════════════════════════════════
@@ -403,12 +403,12 @@ body {
   display: flex; align-items: center; gap: 5px;
   background: #fff; border: 1px solid #e0e0e0;
   border-radius: var(--ui-radius-sm); padding: 9px 14px;
-  font-size: 11px; font-weight: 600; color: #444;
+  font-size: 11px; font-weight: 600; color: var(--ui-muted);
   cursor: pointer; font-family: inherit;
   white-space: nowrap; flex-shrink: 0;
   transition: background .15s;
 }
-.filter-btn:active { background: #f5f5f5; }
+.filter-btn:active { background: var(--ui-surface-2); }
 
 /* ══════════════════════════════════════
    ARTISAN CARDS
@@ -614,13 +614,13 @@ html.dark .pc-top-badge {
   background: #fde8e8; display: flex; align-items: center; justify-content: center;
   color: var(--ui-primary);
 }
-.em-type-name { font-size: 11px; font-weight: 700; color: #333; text-align: center; line-height: 1.25; }
+.em-type-name { font-size: 11px; font-weight: 700; color: var(--ui-text); text-align: center; line-height: 1.25; }
 .em-modal-cancel {
   width: 100%; background: #f5f5f7; border: none; border-radius: var(--ui-radius-sm);
-  padding: 13px; font-size: 13.5px; font-weight: 700; color: #555;
+  padding: 13px; font-size: 13px; font-weight: 700; color: var(--ui-muted);
   cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.em-modal-cancel:active { background: #ebebeb; }
+.em-modal-cancel:active { background: var(--ui-border-2); }
 
 /* ══════════════════════════════════════
    ARTISAN PROFILE MODAL
@@ -897,7 +897,7 @@ html.dark .skel {
 }
 .np-reset-btn {
   padding: 8px 16px; border-radius: var(--ui-radius-lg);
-  background: #f5f5f5; color: #555;
+  background: var(--ui-surface-2); color: var(--ui-muted);
   font-size: 12px; font-weight: 700;
   border: none; cursor: pointer; font-family: inherit;
 }
@@ -916,8 +916,8 @@ html.dark .skel {
 .np-panel {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
   width: 100%; max-width: 430px; max-height: 85dvh;
-  background: #fff; border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0;
-  box-shadow: 0 -6px 32px rgba(0,0,0,.18);
+  background: var(--ui-surface); border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0;
+  box-shadow: var(--ui-elev-3);
   z-index: 1101; display: flex; flex-direction: column;
   transition: transform 0.3s cubic-bezier(0.34,1.3,0.64,1);
   will-change: transform;
@@ -935,17 +935,17 @@ html.dark .skel {
 .np-panel-title { font-size: 15px; font-weight: 800; color: #111; margin: 0; }
 .np-panel-close {
   width: 30px; height: 30px; border-radius: 50%;
-  background: #f5f5f5; border: none; cursor: pointer;
+  background: var(--ui-surface-2); border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  color: #555;
+  color: var(--ui-muted);
 }
-.np-panel-close:active { background: #ebebeb; }
+.np-panel-close:active { background: var(--ui-border-2); }
 
 /* flex: 1 + min-height: 0 are both required — without them overflow-y: auto
    is silently ignored inside a flex column, letting the body exceed max-height */
 .np-panel-body { padding: 4px 16px 8px; overflow-y: auto; flex: 1; min-height: 0; }
 .np-panel-label {
-  font-size: 10px; font-weight: 700; color: #888;
+  font-size: 10px; font-weight: 700; color: var(--ui-faint);
   text-transform: uppercase; letter-spacing: .09em;
   margin: 16px 0 10px;
 }
@@ -960,31 +960,31 @@ html.dark .skel {
 .np-radius-chip,
 .np-cat-chip {
   padding: 8px 16px; border-radius: var(--ui-radius-lg);
-  background: #f5f5f5; color: #333;
-  font-size: 12.5px; font-weight: 600;
-  border: 1.5px solid #e8e8e8; cursor: pointer;
+  background: var(--ui-surface-2); color: var(--ui-text);
+  font-size: 13px; font-weight: 600;
+  border: 1.5px solid var(--ui-border-2); cursor: pointer;
   font-family: inherit; white-space: nowrap; flex-shrink: 0;
   transition: background .15s, color .15s, border-color .15s;
-  min-height: 36px; display: flex; align-items: center;
+  min-height: 44px; display: flex; align-items: center;   /* tap-target floor */
 }
 .np-radius-chip:active, .np-cat-chip:active { opacity:.8; }
 .np-chip--active {
-  background: #fde8e8 !important; color: var(--ui-primary) !important;
+  background: var(--ui-primary-soft) !important; color: var(--ui-primary) !important;
   border-color: #f5c2c2 !important;
 }
 
 .np-panel-footer {
   display: flex; gap: 10px; padding: 14px 16px env(safe-area-inset-bottom,18px);
-  flex-shrink: 0; border-top: 1px solid #f0f0f0; background: #fff;
+  flex-shrink: 0; border-top: 1px solid var(--ui-border); background: var(--ui-surface);
 }
 .np-panel-reset {
   flex: 1; padding: 14px; border-radius: var(--ui-radius-md);
-  background: #f5f5f5; color: #444;
-  font-size: 13.5px; font-weight: 700;
+  background: var(--ui-surface-2); color: var(--ui-muted);
+  font-size: 13px; font-weight: 700;
   border: none; cursor: pointer; font-family: inherit;
   transition: background .15s;
 }
-.np-panel-reset:active { background: #ebebeb; }
+.np-panel-reset:active { background: var(--ui-border-2); }
 .np-panel-apply {
   flex: 2; padding: 14px; border-radius: var(--ui-radius-md);
   background: var(--ui-primary); color: #fff;
@@ -1045,7 +1045,7 @@ html.dark .np-reset-btn { background: #222; color: #888; }
 }
 .svc-circle img { width: 32px; height: 32px; }
 .svc-lbl {
-  font-size: 11.5px; font-weight: 600;
+  font-size: 11px; font-weight: 600;
   max-width: 72px;
   overflow: hidden; text-overflow: ellipsis;
 }
@@ -1063,7 +1063,7 @@ html.dark .np-reset-btn { background: #222; color: #888; }
 .np-panel { max-height: 78dvh; }
 .np-panel-body { padding: 2px 16px 12px; }
 .np-panel-label {
-  font-size: 10.5px; font-weight: 800; color: #555;
+  font-size: 11px; font-weight: 800; color: var(--ui-muted);
   text-transform: uppercase; letter-spacing: .09em;
   margin: 16px 0 9px;
 }
@@ -1091,12 +1091,24 @@ html.dark .np-reset-btn { background: #222; color: #888; }
 }
 .ads:empty::after { display: none; }
 #ad-dots:empty { display: none; }
-#ad-banner { background: #f4f4f4; }
-/* Shimmer plays until adBanner.js inserts a .slide element.
-   :has() is supported in Chrome 105+, Firefox 121+, Safari 15.4+;
-   older browsers fall back to the flat #f4f4f4 colour above.      */
+
+/* Ad banner is PROGRESSIVE: it occupies zero space until adBanner.js inserts a
+   real .slide. This prevents the "permanent grey placeholder above the fold"
+   the design audit flagged — an empty banner must never render broken content.
+   A brief shimmer is shown only while the module is actively loading (the
+   .ads-loading class is set by adBanner.js on mount and removed on resolve). */
 #ad-banner:not(:has(.slide)) {
-  background: linear-gradient(90deg, #efefef 25%, #e4e4e4 50%, #efefef 75%);
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+#ad-banner.ads-loading:not(:has(.slide)) {
+  height: 150px;
+  margin: 12px 0;
+  border-radius: var(--ui-radius-md);
+  overflow: hidden;
+  background: linear-gradient(90deg,
+    var(--ui-bg) 25%, rgba(0,0,0,0.05) 50%, var(--ui-bg) 75%);
   background-size: 600px 100%;
   animation: hh-ad-shimmer 1.5s infinite linear;
 }
@@ -1124,7 +1136,7 @@ html.dark .np-reset-btn { background: #222; color: #888; }
   .svc-row { padding: 2px 10px 8px; gap: 8px; }
   .svc-circle { width: 54px; height: 54px; }
   .svc-circle img { width: 26px; height: 26px; }
-  .svc-lbl { font-size: 10.5px; max-width: 60px; }
+  .svc-lbl { font-size: 11px; max-width: 60px; }
 
   .pro-list { padding: 0 10px; gap: 10px; }
   .pro-card { padding: 12px; gap: 10px; }
@@ -1170,3 +1182,71 @@ html.dark .np-reset-btn { background: #222; color: #888; }
   }
   .np-panel { max-width: 430px; }
 }
+
+/* ══════════════════════════════════════
+   RESUME CARD — in-flight inspection request (F2 recovery)
+   Tokenised (ui-polish.css); no hardcoded neutrals so the design-token
+   lint baseline is unaffected. Sits at the top of the dashboard content.
+══════════════════════════════════════ */
+#resume-card-mount { margin: 12px 16px 4px; }
+
+.resume-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--ui-border-2);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-elev-1);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  position: relative;
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.resume-card:active { transform: scale(0.99); }
+.resume-card--urgent {
+  border-color: var(--ui-primary);
+  background: var(--ui-primary-soft);
+}
+
+.resume-card-pulse {
+  flex: 0 0 auto;
+  width: 10px; height: 10px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-faint);
+  position: relative;
+}
+.resume-card--urgent .resume-card-pulse { background: var(--ui-primary); }
+.resume-card--urgent .resume-card-pulse::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: var(--ui-radius-pill);
+  border: 2px solid var(--ui-primary);
+  opacity: 0.5;
+  animation: resumePulse 1.6s ease-out infinite;
+}
+@keyframes resumePulse {
+  0%   { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(2.0); opacity: 0; }
+}
+
+.resume-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.resume-card-kicker {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--ui-faint);
+}
+.resume-card--urgent .resume-card-kicker { color: var(--ui-primary); }
+.resume-card-label {
+  font-size: 14px; font-weight: 600; color: var(--ui-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.resume-card-cta {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px;
+  font-size: 13px; font-weight: 700; color: var(--ui-primary);
+}
+
+[data-theme="dark"] .resume-card { background: var(--ui-surface); border-color: var(--ui-border-2); }
+[data-theme="dark"] .resume-card-label { color: var(--ui-text); }

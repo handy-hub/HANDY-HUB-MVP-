@@ -10,17 +10,12 @@
   <link rel="icon" href="../shared/assets/icons/favicon.ico">
   <link rel="stylesheet" href="../shared/css/ui-polish.css">
 
-  <!-- Firebase init -->
+  <!-- Firebase init — use the CANONICAL config from appConfig.js. The previous
+       inline config was stale (wrong apiKey / appId / sender / bucket). -->
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    initializeApp({
-      apiKey:            "AIzaSyD0GXJZ4o3QmPAQHm5U5KH-e3_xJHuDxFk",
-      authDomain:        "lamax-4fd82.firebaseapp.com",
-      projectId:         "lamax-4fd82",
-      storageBucket:     "lamax-4fd82.appspot.com",
-      messagingSenderId: "1083664950745",
-      appId:             "1:1083664950745:web:f1d3ad0e5a1f8b4d2f3c9e",
-    });
+    import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { FIREBASE_CONFIG } from '../shared/js/config/appConfig.js';
+    if (!getApps().length) initializeApp(FIREBASE_CONFIG);
   </script>
 
 <style>
@@ -532,7 +527,8 @@ body {
 
   bootstrapOtpVerifyPage({
     appType:         'artisan',
-    successRedirect: 'onboarding.html',
+    successRedirect: 'onboarding.html',   // signed in via custom token → complete KYC
+    loginRedirect:   'login.html',        // fallback if client sign-in couldn't complete
     restartRedirect: 'signup.html',
   });
 

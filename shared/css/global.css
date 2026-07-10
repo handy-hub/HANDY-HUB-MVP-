@@ -812,8 +812,10 @@ body {
 }
 
 /* View More Styled like the image */
+/* Geometry, background, radius come from the canonical back-btn component
+   (shared/css/components/back-btn.css, imported by ui-polish.css). This legacy
+   rule keeps only the font-weight/cursor defaults for any bare .back-btn. */
 .back-btn {
-    background: none;
     border: none;
     font-weight: bold;
     cursor: pointer;

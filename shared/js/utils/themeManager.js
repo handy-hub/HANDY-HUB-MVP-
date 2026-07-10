@@ -34,7 +34,7 @@ function applyTheme(value) {
 
   // Currency mapping based on ISO 2-letter country codes
   const currencyMap = {
-    'GH': 'GHC', // Ghana
+    'GH': 'GHS', // Ghana (ISO 4217 — 'GHC' was retired in 2007)
     'NG': 'NGN', // Nigeria
     'US': 'USD', // United States
     'GB': 'GBP', // United Kingdom
@@ -45,7 +45,7 @@ function applyTheme(value) {
     'PT': 'EUR', 'SK': 'EUR', 'SI': 'EUR', 'ES': 'EUR', 'HR': 'EUR'
   };
 
-  const defaultCurrency = 'GHC';
+  const defaultCurrency = 'GHS';
 
   // Helper function to set currency from country code
   function applyCurrency(countryCode) {

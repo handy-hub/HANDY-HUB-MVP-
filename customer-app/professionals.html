@@ -213,7 +213,7 @@ window._pfView = function(id) {
 /* ── Book directly (commit, professional-first contract) ─────── */
 window._pfBook = function(id) {
   const a = loaded.find(x => x.id === id);
-  if (!a) { window.location.href = 'book-step1.html'; return; }
+  if (!a) { window.location.href = 'book-request.html'; return; }
   const d = a.data || {};
   try {
     sessionStorage.setItem('hh_selected_artisan', JSON.stringify({
@@ -228,7 +228,7 @@ window._pfBook = function(id) {
     sessionStorage.setItem('hh_service', d.category || d.specialty || '');
     sessionStorage.setItem('hh_booking_intent', 'artisan');
   } catch (_) {}
-  window.location.href = 'book-step1.html';
+  window.location.href = 'book-request.html';
 };
 
 /* ── Sort + render ───────────────────────────────────────────── */

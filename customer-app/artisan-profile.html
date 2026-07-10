@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -18,7 +18,7 @@
 
     body {
       font-family: 'DM Sans', sans-serif;
-      background: #f7f7f7;
+      background: var(--ui-surface-2);
       color: #0d0d0d;
       min-height: 100dvh;
       overscroll-behavior: none;
@@ -78,7 +78,7 @@
       background: none;
       border: none;
       cursor: pointer;
-      color: #888;
+      color: var(--ui-faint);
       width: 36px;
       height: 36px;
       display: flex;
@@ -88,7 +88,7 @@
       -webkit-tap-highlight-color: transparent;
       transition: background 0.15s, color 0.15s;
     }
-    .ap-share-btn:active { background: #f5f5f5; color: #111; }
+    .ap-share-btn:active { background: var(--ui-surface-2); color: #111; }
     .ap-share-btn svg { width: 18px; height: 18px; display: block; }
 
     /* ─────────────────────────────────────────
@@ -305,7 +305,7 @@
     .ap-stat-lbl {
       font-size: 10.5px;
       font-weight: 500;
-      color: #888;
+      color: var(--ui-faint);
       display: block;
       letter-spacing: 0.01em;
     }
@@ -315,7 +315,7 @@
     ───────────────────────────────────────── */
     .sec-gap {
       height: 8px;
-      background: #f7f7f7;
+      background: var(--ui-surface-2);
     }
 
     /* ─────────────────────────────────────────
@@ -339,7 +339,7 @@
       gap: 5px;
       font-size: 11.5px;
       font-weight: 600;
-      color: #555;
+      color: var(--ui-muted);
       white-space: nowrap;
       flex-shrink: 0;
     }
@@ -388,7 +388,7 @@
     .sec-bio {
       font-size: 14px;
       font-weight: 400;
-      color: #444;
+      color: var(--ui-muted);
       line-height: 1.68;
     }
 
@@ -566,7 +566,7 @@
     }
     .nf-icon svg { width: 26px; height: 26px; display: block; }
     .nf-title { font-size: 17px; font-weight: 800; color: #111; }
-    .nf-sub { font-size: 13px; color: #888; line-height: 1.5; }
+    .nf-sub { font-size: 13px; color: var(--ui-faint); line-height: 1.5; }
     .nf-btn {
       background: var(--ui-primary);
       color: #fff;
@@ -745,10 +745,10 @@
 
   /* ── Price map ── */
   const PRICE_RANGES = {
-    Electrical: 'GHC 60–150', Plumbing:   'GHC 50–130',
-    Carpentry:  'GHC 70–200', 'AC Repair': 'GHC 80–200',
-    Welding:    'GHC 90–250', Painting:    'GHC 80–180',
-    Cleaning:   'GHC 50–120', Gardening:   'GHC 40–100',
+    Electrical: 'GHS 60–150', Plumbing:   'GHS 50–130',
+    Carpentry:  'GHS 70–200', 'AC Repair': 'GHS 80–200',
+    Welding:    'GHS 90–250', Painting:    'GHS 80–180',
+    Cleaning:   'GHS 50–120', Gardening:   'GHS 40–100',
   };
 
   const AVATAR_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23730201'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E";
@@ -832,7 +832,7 @@
     const bio        = a.bio              || '';
     const online     = a.isAvailable === true || a.isOnline === true;
     const location   = a.location         || '';
-    const price      = PRICE_RANGES[category] || 'GHC 50–150';
+    const price      = PRICE_RANGES[category] || 'GHS 50–150';
     const isVerified = a.isVerified === true || a.verificationStatus === 'approved';
     const avatarSrc  = resolveArtisanAvatar(a);
 
@@ -1049,7 +1049,7 @@
     /* intent flag lets the booking flow show "Booking {name}" and auto-confirm
        this professional at step 2 instead of presenting a blank picker. */
     sessionStorage.setItem('hh_booking_intent', 'artisan');
-    window.location.href = 'book-step1.html';
+    window.location.href = 'book-request.html';
   });
 
   /* Save button */

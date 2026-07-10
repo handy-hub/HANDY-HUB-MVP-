@@ -18,7 +18,7 @@
 
     <!-- ── Top Bar ──────────────────────────────────── -->
     <header class="top-bar">
-      <span class="top-bar-logo">Handy <span>Hub</span></span>
+      <span class="top-bar-logo">Handy<span>Hub</span></span>
       <div class="top-bar-actions">
         <button class="icon-btn" aria-label="Settings" onclick="window.location.href='settings.html'">
           <svg viewBox="0 0 24 24" fill="none">
@@ -79,10 +79,10 @@
       <div>
         <p class="wallet-label">Wallet Balance</p>
         <p class="wallet-balance">
-          <span class="currency">GHC</span>
+          <span class="currency">GHS</span>
           <span id="wallet-amount">0.00</span>
         </p>
-        <p class="wallet-pending">Pending: <span id="pending-amount">GHC 0.00</span></p>
+        <p class="wallet-pending">Pending: <span id="pending-amount">GHS 0.00</span></p>
       </div>
       <button class="withdraw-btn" onclick="window.location.href='wallet.html'">
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
@@ -303,6 +303,8 @@ import { startPresence, stopPresence, setOnlineState } from '../shared/js/servic
 import { subscribeToUnreadCount }                      from '../shared/js/services/notificationRepository.js';
 import { requireArtisanAuth, canAcceptJobs }           from './js/utils/artisanAuthGuard.js';
 import { resolveAvatar, TRANSFORMS }                   from '../shared/js/services/cloudinaryService.js';
+import { pricingService }                              from '../shared/js/services/pricingService.js';
+import { describe as describeStatus }                  from '../shared/js/domain/bookingStatusMeta.js';
 
 // ── BLOCKING AUTH GUARD ───────────────────────────────────────────────────────
 // Verifies: authenticated + role=artisan + not suspended.
@@ -573,7 +575,7 @@ function renderJobCard(booking) {
       </p>` : ''}
     </div>
 
-    <p class="job-budget">Budget: <strong>GHC ${Number(d.total || d.price || 0).toFixed(0)}</strong></p>
+    <p class="job-budget">Budget: <strong>GHS ${Number(d.total || d.price || 0).toFixed(0)}</strong></p>
 
     <div class="job-actions">
       <button class="btn-accept" onclick="acceptJob('${id}')">
@@ -645,34 +647,46 @@ window.declineJob = async function(bookingId) {
 };
 
 // ── Status label / pill helpers ────────────────────────
-const STATUS_META = {
-  accepted:    { label: 'Accepted',     pillCls: 'pill-accepted',    hint: 'Customer is waiting — head to their location.' },
-  en_route:    { label: 'En Route',     pillCls: 'pill-en_route',    hint: 'On your way — mark arrived when you get there.' },
-  in_progress: { label: 'In Progress',  pillCls: 'pill-in_progress', hint: 'Job in progress — mark done when finished.' },
-  awaiting:    { label: 'Awaiting',     pillCls: 'pill-awaiting',    hint: 'Waiting for the customer to confirm completion.' },
-};
+// Vocabulary comes from the single source of truth (shared/js/domain/
+// bookingStatusMeta.js, artisan audience). This adapter preserves the
+// { label, pillCls, hint } shape the rest of this page renders against, but
+// the values are now track-aware and never drift from the other surfaces.
+function statusMeta(booking) {
+  const d = describeStatus(booking, 'artisan');
+  return { label: d.label, pillCls: `pill-${d.tone}`, hint: d.description };
+}
 
 // Steps for the in-card mini stepper (index = how many are 'done')
 const ACTIVE_STEPS = ['Accepted', 'En Route', 'In Progress', 'Awaiting', 'Complete'];
 const STEP_IDX = { accepted: 0, en_route: 1, in_progress: 2, awaiting: 3, completed: 4 };
+
+// Inspection-track steps (pre-quote-approval — after approval the card
+// switches to the normal execution stepper above)
+const INSPECTION_STEPS   = ['Booked', 'En Route', 'Inspected', 'Quoted', 'Approved'];
+const INSPECTION_STEP_IDX = { inspection_scheduled: 0, en_route: 1, in_progress: 1, inspection_done: 2, quoted: 3 };
 
 // ── Render active job card (with progression button) ───
 function renderActiveJobCard(booking) {
   const d      = booking.data;
   const id     = booking.id;
   const status = (d.status || '').toLowerCase();
-  const meta   = STATUS_META[status] || { label: status, pillCls: 'pill-accepted', hint: '' };
-  const doneIdx = STEP_IDX[status] ?? 0;
+  // Inspection track BEFORE quote approval gets its own stepper + actions.
+  // After approval the booking re-enters the normal execution pipeline.
+  const isInspection = d.track === 'inspection' && !d.quoteApproved;
+  const meta   = statusMeta(d);
+  const stepList = isInspection ? INSPECTION_STEPS : ACTIVE_STEPS;
+  const stepIdx  = isInspection ? INSPECTION_STEP_IDX : STEP_IDX;
+  const doneIdx  = stepIdx[status] ?? 0;
 
   // Build mini stepper HTML
-  const steps = ACTIVE_STEPS.map((lbl, i) => {
+  const steps = stepList.map((lbl, i) => {
     const isDone   = i < doneIdx;
     const isActive = i === doneIdx;
     const cls      = isDone ? 'done' : isActive ? 'active' : '';
     const dotContent = isDone
       ? `<svg viewBox="0 0 24 24" fill="none" width="10" height="10"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`
       : String(i + 1);
-    const lineHtml = i < ACTIVE_STEPS.length - 1
+    const lineHtml = i < stepList.length - 1
       ? `<div class="aj-line ${isDone ? 'done' : ''}"></div>`
       : '';
     return `<div class="aj-step ${cls}"><div class="aj-step-dot">${dotContent}</div><div class="aj-step-lbl">${lbl}</div></div>${lineHtml}`;
@@ -680,7 +694,33 @@ function renderActiveJobCard(booking) {
 
   // Progression button HTML
   let btnHtml = '';
-  if (status === 'accepted') {
+  if (isInspection) {
+    if (status === 'inspection_scheduled') {
+      btnHtml = `<button class="btn-progress btn-progress-orange" onclick="markEnRoute('${id}')">
+        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Mark En Route
+      </button>
+      <button class="btn-progress btn-progress-green" onclick="completeInspectionAction('${id}')" style="margin-top:8px">
+        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+        Complete Inspection
+      </button>`;
+    } else if (status === 'en_route' || status === 'in_progress') {
+      btnHtml = `<button class="btn-progress btn-progress-green" onclick="completeInspectionAction('${id}')">
+        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+        Complete Inspection
+      </button>`;
+    } else if (status === 'inspection_done') {
+      btnHtml = `<button class="btn-progress btn-progress-orange" onclick="window.location.href='jobs.html'">
+        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Submit Quote
+      </button>`;
+    } else if (status === 'quoted') {
+      btnHtml = `<button class="btn-progress btn-progress-grey" disabled>
+        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Waiting for customer decision…
+      </button>`;
+    }
+  } else if (status === 'accepted') {
     btnHtml = `<button class="btn-progress btn-progress-orange" onclick="markEnRoute('${id}')">
       <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Mark En Route
@@ -754,6 +794,18 @@ window.markArrived = async function(bookingId) {
   }
 };
 
+window.completeInspectionAction = async function(bookingId) {
+  const btn = document.querySelector(`#active-job-${bookingId} .btn-progress-green`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+  try {
+    await pricingService.completeInspection(bookingId);
+    showToast('Inspection complete. Now submit your quote from Jobs.');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Complete Inspection'; }
+    showToast(e?.message || 'Could not complete inspection. Try again.');
+  }
+};
+
 window.markJobDone = async function(bookingId) {
   const btn = document.querySelector(`#active-job-${bookingId} .btn-progress`);
   if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
@@ -780,7 +832,7 @@ function renderScheduleItem(booking) {
   const h12   = ((hours % 12) || 12);
   const today = new Date();
   const isToday = date.toDateString() === today.toDateString();
-  const sm = STATUS_META[d.status] || {};
+  const sm = statusMeta(d);
   const statusClass = d.status === 'accepted' ? 'status-upcoming' : d.status === 'in_progress' ? 'status-progress' : 'status-pending';
   const statusLabel = sm.label || d.status || 'Pending';
 
@@ -900,7 +952,8 @@ authService.subscribeToAuthState(async user => {
   const u3 = databaseService.subscribeToCollection(
     'bookings',
     [{ field: 'artisanId', op: '==', value: uid },
-     { field: 'status',    op: 'in', value: ['accepted', 'en_route', 'in_progress', 'awaiting'] }],
+     { field: 'status',    op: 'in', value: ['accepted', 'en_route', 'in_progress', 'awaiting',
+                                             'inspection_scheduled', 'inspection_done', 'quoted'] }],
     { orderBy: { field: 'updatedAt', direction: 'desc' }, limit: 10 },
     records => {
       activeJobsList.querySelectorAll('.active-job-card').forEach(c => c.remove());

@@ -135,7 +135,7 @@ body {
   transition: background 0.12s;
   -webkit-tap-highlight-color: transparent;
 }
-.sv-pro-card:active { background: #f5f5f5; }
+.sv-pro-card:active { background: var(--ui-surface-2); }
 .sv-pro-card:last-child { border-bottom: none; }
 
 /* Left: avatar + info */
@@ -291,7 +291,7 @@ body {
   transition: background 0.12s;
   -webkit-tap-highlight-color: transparent;
 }
-.sv-svc-card:active { background: #f5f5f5; }
+.sv-svc-card:active { background: var(--ui-surface-2); }
 .sv-svc-card:last-child { border-bottom: none; }
 
 /* Matches Notification's .notif-icon-wrap: 48px circle (not a rounded square). */
@@ -359,7 +359,7 @@ body {
 
 .sv-promo-sub {
   font-size: 11px;
-  color: #888;
+  color: var(--ui-faint);
   margin-top: 3px;
   line-height: 1.45;
 }
@@ -408,7 +408,7 @@ body {
 .sv-empty-title {
   font-size: 15px;
   font-weight: 700;
-  color: #333;
+  color: var(--ui-text);
   margin-bottom: 8px;
 }
 

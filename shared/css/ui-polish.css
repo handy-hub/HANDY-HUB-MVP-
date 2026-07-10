@@ -1,4 +1,9 @@
-﻿/* ============================================================================
+﻿/* Canonical shared components — imported so every page that links ui-polish.css
+   (all customer pages) inherits the ONE back-button treatment automatically.
+   @import must precede all rulesets, so it stays at the very top of the file. */
+@import url("components/back-btn.css");
+
+/* ============================================================================
    HandyHub Customer App — CANONICAL DESIGN TOKENS  (single source of truth)
    ----------------------------------------------------------------------------
    This :root is THE design system for the customer app. All shared token files
@@ -13,11 +18,14 @@
    ========================================================================== */
 :root {
   /* ── Canonical: surfaces & ink ─────────────────────────────────────────── */
-  --ui-bg:            #fefefe;   /* app canvas */
-  --ui-surface:       #ffffff;   /* raised surface */
+  --ui-bg:            #fefefe;   /* L0 — app canvas (lowest) */
+  --ui-surface:       #ffffff;   /* L2 — raised surface (cards, sheets) */
+  --ui-surface-2:     #f5f5f5;   /* L1 — inset/quiet fill (chips, secondary buttons, wells) */
   --ui-text:          #111111;   /* primary text */
   --ui-muted:         #666666;   /* secondary text */
+  --ui-faint:         #888888;   /* tertiary text / labels */
   --ui-border:        rgba(0, 0, 0, 0.08);
+  --ui-border-2:      #e8e8e8;   /* solid hairline (chip/well borders) */
 
   /* ── Canonical: semantic functional colors ──────────────────────────────── */
   --ui-danger:        #b22222;   /* destructive actions — used in modal danger btn */
@@ -317,15 +325,16 @@ textarea {
 /* These have explicit fixed dimensions (34–44 px). padding + box-sizing:  */
 /* border-box collapses the content area; svg { max-width:100% } then       */
 /* shrinks the icon to match — making icons near-invisible.                  */
+/* Back-button classes (.back-btn/.bk-back-btn/.bn-back-btn) are intentionally
+   EXCLUDED here — they are owned by the canonical circular back-btn component
+   (components/back-btn.css, @imported at the top of this file). This group is
+   only for non-back icon buttons (menu, bell, generic icon actions). */
 .hh-menu-btn,
 .hh-icon-btn,
-.bk-back-btn,
 .bk-bell-btn,
-.back-btn,
 .icon-btn,
 .sv-icon-btn,
 .ms-icon-btn,
-.bn-back-btn,
 .bn-icon-btn {
   padding: 0;
   border-radius: 12px;
@@ -335,13 +344,10 @@ textarea {
    Note: .filter-btn intentionally excluded — it is a text+icon button, not icon-only. */
 .hh-menu-btn > svg,
 .hh-icon-btn > svg,
-.bk-back-btn > svg,
 .bk-bell-btn > svg,
-.back-btn > svg,
 .icon-btn > svg,
 .sv-icon-btn > svg,
 .ms-icon-btn > svg,
-.bn-back-btn > svg,
 .bn-icon-btn > svg {
   width: 24px;
   height: 24px;
@@ -883,4 +889,38 @@ textarea {
     scroll-behavior: auto !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   TAP-TARGET FLOOR  (accessibility — mobile usability standard: 44×44px min)
+   ----------------------------------------------------------------------------
+   Enforces the 44px minimum hit area on the interactive class families the
+   design audit found below spec, WITHOUT changing their visual glyph size
+   (min-width/height grows the hit box; the icon child keeps its own size).
+   Applied here in the canonical layer so every page that links ui-polish.css
+   inherits compliance. New interactive components should meet 44px on their own.
+   ════════════════════════════════════════════════════════════════════════════ */
+.hh-menu-btn,
+.hh-icon-btn,
+.hh-search-ai,
+.sidebar-close-btn,
+.np-panel-close,
+.su-trail-btn,
+.dist-pill,
+.filter-btn,
+.np-radius-chip,
+.np-cat-chip,
+.np-reset-btn,
+.pf-sort,
+.view-all-btn,
+.bn2-inline-retry {
+  min-width:  44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Checkbox keeps its small visual box (18px) by design; the accessible target
+   is the surrounding label row (which is already tall enough). We do NOT inflate
+   the box itself — that would visually break the control. Left as-is intentionally. */
 

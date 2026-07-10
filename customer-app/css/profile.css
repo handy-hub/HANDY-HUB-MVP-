@@ -75,6 +75,12 @@ button {
   border-radius: var(--ui-radius-sm);
   transition: background 0.15s;
   padding: 0;
+  /* Pin the icon colour so currentColor resolves the same whether .icon-btn is a
+     <button> (Settings) or an <a> (Go to Dashboard). Without this the anchor's
+     SVG inherited the UA link colour and rendered blue/purple in light mode,
+     while the identical button icon was dark. */
+  color: var(--ui-text, #1a1a1a);
+  text-decoration: none;
 }
 
 .icon-btn svg {
@@ -85,7 +91,7 @@ button {
 }
 
 .icon-btn:hover {
-  background: #f5f5f5;
+  background: var(--ui-surface-2);
 }
 
 /* ===========================
@@ -299,7 +305,7 @@ button {
 
 .wallet-label {
   font-size: 12px;
-  color: #888;
+  color: var(--ui-faint);
   margin-bottom: 4px;
 }
 
@@ -392,7 +398,7 @@ button {
   padding: 10px 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #333;
+  color: var(--ui-text);
   transition: opacity 0.15s;
   text-align: center;
   line-height: 1.3;

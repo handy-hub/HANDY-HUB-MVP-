@@ -55,7 +55,7 @@
    *   professional  — professional object from book-step2
    *   services      — array of service objects
    *   schedule      — { date, dateDisplay, dateShort, time }
-   *   total         — numeric total (GHC)
+   *   total         — numeric total (GHS)
    *   payment       — payment method label string
    *   notes         — optional string
    *   type          — 'standard' | 'emergency' (default 'standard')

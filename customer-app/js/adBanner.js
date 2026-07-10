@@ -49,7 +49,7 @@ export const BANNER_DATA = [
     },
     action: {
       type: 'route',
-      payload: { url: 'book-step1.html' },
+      payload: { url: 'book-request.html' },
     },
   },
   {
@@ -204,8 +204,8 @@ export function resolveAction(action) {
       // customer can see what's included and the price before committing.
       const cat = resolveCategory(service);
       window.location.href = cat
-        ? `service-detail.html?cat=${encodeURIComponent(cat.id)}`
-        : 'book-step1.html';
+        ? `book-request.html?cat=${encodeURIComponent(cat.id)}`
+        : 'book-request.html';
       break;
     }
     case 'artisan': {
@@ -228,7 +228,7 @@ export function resolveAction(action) {
     case 'promo': {
       const { code, url } = action.payload ?? {};
       if (code) sessionStorage.setItem('hh_promo', code);
-      window.location.href = url ?? 'book-step1.html';
+      window.location.href = url ?? 'book-request.html';
       break;
     }
     case 'category': {
@@ -304,8 +304,13 @@ function renderSlide(banner, index) {
 ═══════════════════════════════════════════════════ */
 export async function mountAdBanner(containerEl, dotsEl, banners = null, user = null) {
   if (!containerEl) return;
+  // Show the shimmer skeleton only while actively loading. The CSS collapses
+  // the banner to zero height when it has no .slide and is NOT loading, so a
+  // failed/empty load never leaves a permanent grey block above the fold.
+  containerEl.classList.add('ads-loading');
   if (!banners) banners = await loadBanners(user);
-  if (!banners.length) return;
+  containerEl.classList.remove('ads-loading');
+  if (!banners.length) return;   // banner stays collapsed (0 height)
 
   const sliderEl = containerEl.querySelector('.slider');
   if (!sliderEl) return;

@@ -166,7 +166,10 @@ export async function onBookingConfirmed(booking) {
             status:      'pending',
             type:        isEmergency ? 'emergency' : 'standard',
             reviewLeft:  false,
-            escrowId:    null,  // populated by holdBookingFunds after escrow is held
+            // NOTE: escrowId is a SYSTEM-authoritative field (holdBookingFunds
+            // Cloud Function writes it after escrow is held). It is intentionally
+            // NOT set here — the bookings create rule blocks client writes of
+            // escrowId and all other financial/workflow fields. Absent === null.
             ...(isEmergency && {
                 eta:         booking.eta     || null,
                 refCode:     booking.refCode || booking.id,

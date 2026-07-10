@@ -11,7 +11,7 @@
  * serviceType   string      e.g. "Plumbing", "Electrical"
  * status        string      "pending" | "accepted" | "rejected" | "completed" | "cancelled"
  * scheduledAt   string | null   ISO timestamp of the appointment
- * price         number      agreed price in GHC
+ * price         number      agreed price in GHS
  * notes         string      any special instructions from the customer
  * address       string      service location
  * createdAt     string      ISO timestamp
@@ -25,24 +25,17 @@
  * 4. artisanId  ASC + status ASC + createdAt DESC
  */
 
+import { BOOKING_STATUSES } from "../../domain/bookingStatusMeta.js";
+
 const DEFAULT_COLLECTION = "bookings";
 
-// All statuses in the canonical booking state machine (snake_case, Firestore authoritative)
-const VALID_STATUSES = [
-    "pending",       // created, waiting for dispatch
-    "dispatching",   // dispatch engine searching
-    "searching",     // emergency — scanning for artisan
-    "dispatched",    // artisan has been notified, awaiting response
-    "assigned",      // artisan assigned via admin or manual flow
-    "accepted",      // artisan accepted
-    "rejected",      // artisan declined (dispatch re-tries)
-    "en_route",      // artisan travelling to customer
-    "in_progress",   // job underway
-    "awaiting",      // artisan marked done, waiting for customer confirmation
-    "completed",     // customer confirmed done / auto-released
-    "cancelled",     // cancelled by customer, artisan, or admin
-    "unfulfilled",   // dispatch exhausted all artisans — no match found
-];
+// The booking state-machine vocabulary is owned by the single source of truth
+// (shared/js/domain/bookingStatusMeta.js). Deriving it here — rather than
+// re-declaring — is what guarantees the repository, every UI surface, and the
+// status metadata can never drift apart again. `disputed` is included via that
+// list (a booking CAN be moved to disputed by the rules/CFs; the old local copy
+// was missing it, so updateStatus(id,'disputed') used to throw).
+const VALID_STATUSES = BOOKING_STATUSES;
 
 function now() {
     return new Date().toISOString();

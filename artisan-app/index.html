@@ -19,45 +19,49 @@
   <script type="module">
     import { getAppContainer } from '../shared/js/app/container.js';
 
-    const { services: { authService, databaseService } } = getAppContainer();
+    // The routing logic lives inside an async IIFE rather than at module top
+    // level. Top-level `return` is valid ES-module syntax, but wrapping it in a
+    // function makes the entry point robust if this file is ever loaded/served
+    // as a classic script (some static dev servers strip type="module"), where a
+    // top-level `return` is a fatal "Illegal return statement" that hangs the
+    // spinner forever. A function body's `return` is always legal.
+    (async () => {
+      const { services: { authService, databaseService } } = getAppContainer();
 
-    // Smart entry-point: check auth state and route appropriately.
-    // If already logged in and is a valid artisan → dashboard.
-    // If already logged in but not an artisan → kick to login with error.
-    // If not logged in → login.
-    try {
-      const user = await Promise.race([
-        authService.waitForUser(),
-        new Promise(r => setTimeout(() => r(null), 4000)),
-      ]);
+      // Smart entry-point: check auth state and route appropriately.
+      //   logged-in valid artisan   → dashboard
+      //   logged-in non-artisan     → login
+      //   not logged in / any error → login
+      try {
+        const user = await Promise.race([
+          authService.waitForUser(),
+          new Promise(r => setTimeout(() => r(null), 4000)),
+        ]);
 
-      if (!user) {
-        window.location.replace('login.html');
-        return;
-      }
+        if (!user) {
+          window.location.replace('login.html');
+          return;
+        }
 
-      // Check artisan document
-      const snap = await databaseService.getDocument('artisans', user.uid).catch(() => null);
+        const snap = await databaseService.getDocument('artisans', user.uid).catch(() => null);
 
-      if (!snap || !snap.exists || snap.data?.userType !== 'artisan') {
-        // Not an artisan — send to login
-        window.location.replace('login.html');
-        return;
-      }
+        if (!snap || !snap.exists || snap.data?.userType !== 'artisan') {
+          window.location.replace('login.html');
+          return;
+        }
 
-      const status = (snap.data.status || '').toLowerCase();
-      if (status === 'suspended' || status === 'banned') {
-        // Guard on destination page will show the suspended screen
+        const status = (snap.data.status || '').toLowerCase();
+        if (status === 'suspended' || status === 'banned') {
+          // The destination page's guard shows the suspended screen.
+          window.location.replace('dashboard.html');
+          return;
+        }
+
         window.location.replace('dashboard.html');
-        return;
+      } catch (_) {
+        window.location.replace('login.html');
       }
-
-      // Valid artisan → go to dashboard
-      window.location.replace('dashboard.html');
-
-    } catch (_) {
-      window.location.replace('login.html');
-    }
+    })();
   </script>
 </body>
 </html>

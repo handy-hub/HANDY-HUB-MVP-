@@ -20,6 +20,8 @@ import { getFunctions, httpsCallable }
     from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
 import { getApp }
     from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getAuth, signInWithCustomToken }
+    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { showToast }
     from '../components/toast.js';
 
@@ -144,7 +146,10 @@ function startResendCountdown(countdownEl, resendBtn) {
 }
 
 // ── Main bootstrap ────────────────────────────────────────────────────────────
-export function bootstrapOtpVerifyPage({ appType, successRedirect, restartRedirect }) {
+export function bootstrapOtpVerifyPage({ appType, successRedirect, restartRedirect, loginRedirect }) {
+    // loginRedirect is where we send the user if the account was created but the
+    // client sign-in could not be completed (they must log in manually).
+    const _loginRedirect = loginRedirect || 'login.html';
     const session = loadSession();
 
     // Redirect to signup if there's no pending session
@@ -216,9 +221,27 @@ export function bootstrapOtpVerifyPage({ appType, successRedirect, restartRedire
 
             if (result.data?.success) {
                 clearSession();
-                showToast('Email verified! Setting up your account...', 'success');
-                setTimeout(() => { window.location.replace(successRedirect); }, 1400);
-                // keep _submitting = true — page is navigating away
+
+                // Sign the user in with the server-minted custom token so they
+                // land on the dashboard with a live Firebase Auth session. Without
+                // this the account exists but the browser has no session and the
+                // auth guard bounces them to login.
+                const customToken = result.data.customToken;
+                if (customToken) {
+                    try {
+                        await signInWithCustomToken(getAuth(getApp()), customToken);
+                        showToast('Email verified! Setting up your account...', 'success');
+                        setTimeout(() => { window.location.replace(successRedirect); }, 1200);
+                        return;   // keep _submitting = true — navigating away
+                    } catch (signInErr) {
+                        console.error('Custom-token sign-in failed:', signInErr);
+                        // Account is created; fall through to manual login.
+                    }
+                }
+
+                // No token, or sign-in failed → account exists, send to login.
+                showToast('Account created! Please sign in to continue.', 'success');
+                setTimeout(() => { window.location.replace(_loginRedirect); }, 1400);
                 return;
             }
 

@@ -42,6 +42,10 @@
     .pill-pending     { background:#fff8f0; color:#c2410c; }
     .pill-dispatched  { background:#fff8f0; color:#c2410c; }
     .pill-accepted    { background:#f0fdf4; color:#15803d; }
+    /* quoted = customer decision pending; pending = upcoming/dispatch states.
+       Added so the shared status resolver's tones always have a styled pill. */
+    .pill-quoted      { background:#eff6ff; color:#1d4ed8; }
+    .pill-pending     { background:#faf5ff; color:#6d28d9; }
     .pill-en_route    { background:#eff6ff; color:#1d4ed8; }
     .pill-in_progress { background:#eff6ff; color:#1d4ed8; }
     .pill-awaiting    { background:#fefce8; color:#854d0e; }
@@ -143,6 +147,7 @@
 import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+import { describe } from '../shared/js/domain/bookingStatusMeta.js';
 
 const { user } = await requireArtisanAuth({ allowPending: false });
 const { services: { databaseService } } = getAppContainer();
@@ -151,8 +156,6 @@ const { services: { databaseService } } = getAppContainer();
 let _all    = [];
 let _filter = 'active';
 let _unsub  = null;
-
-const ACTIVE_STATUSES = new Set(['pending','dispatching','searching','dispatched','assigned','accepted','en_route','in_progress','awaiting']);
 
 // ── DOM ────────────────────────────────────────────────
 const listEl    = document.getElementById('bk-list');
@@ -187,28 +190,26 @@ function initials(name) {
   return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
 }
 
-function pillClass(status) {
-  return `pill-${(status||'').replace(/\s/g,'_').toLowerCase()}`;
+// Status pill class + label now derive from the shared, track-aware resolver
+// (artisan audience). This is what stops inspection statuses rendering as raw
+// snake_case ("inspection_scheduled") with a pill-inspection_scheduled class
+// that has no CSS.
+function pillClass(booking) {
+  return `pill-${describe(booking?.data || booking, 'artisan').tone}`;
 }
 
-function pillLabel(status) {
-  const MAP = {
-    pending:'Pending', dispatching:'Finding...', searching:'Searching',
-    dispatched:'Assigned', assigned:'Assigned', accepted:'Accepted',
-    en_route:'En Route', in_progress:'In Progress', awaiting:'Awaiting',
-    completed:'Completed', cancelled:'Cancelled', rejected:'Declined',
-    unfulfilled:'Unfulfilled',
-  };
-  return MAP[status] || status;
+function pillLabel(booking) {
+  return describe(booking?.data || booking, 'artisan').label;
 }
 
 // ── Filter ─────────────────────────────────────────────
 function filtered(bookings) {
+  const grp = (b) => describe(b.data, 'artisan').group;
   switch (_filter) {
-    case 'active':    return bookings.filter(b => ACTIVE_STATUSES.has(b.data.status));
-    case 'pending':   return bookings.filter(b => ['pending','dispatching','searching','dispatched'].includes(b.data.status));
-    case 'completed': return bookings.filter(b => b.data.status === 'completed');
-    case 'cancelled': return bookings.filter(b => ['cancelled','rejected','unfulfilled'].includes(b.data.status));
+    case 'active':    return bookings.filter(b => grp(b) === 'ongoing');
+    case 'pending':   return bookings.filter(b => grp(b) === 'upcoming');
+    case 'completed': return bookings.filter(b => grp(b) === 'completed');
+    case 'cancelled': return bookings.filter(b => grp(b) === 'cancelled');
     default:          return bookings;
   }
 }
@@ -309,7 +310,7 @@ function render(bookings) {
         </div>
         <div class="bk-right">
           <span class="bk-amount">GHS ${Number(amount).toFixed(2)}</span>
-          <span class="bk-pill ${pillClass(d.status)}">${pillLabel(d.status)}</span>
+          <span class="bk-pill ${pillClass(d)}">${pillLabel(d)}</span>
         </div>
       </div>
       ${notes ? `<div class="bk-notes">"${esc(notes)}"</div>` : ''}
@@ -338,7 +339,21 @@ window.updateStatus = async function(bookingId, newStatus) {
   }
 
   try {
-    await databaseService.updateDocument('bookings', bookingId, payload);
+    const record = _all.find(b => b.id === bookingId);
+    if (newStatus === 'cancelled' && record?.data?.track === 'inspection') {
+      // Inspection-track cancellations MUST go through the Cloud Function so the
+      // callout escrow settles fairly (artisan cancel → customer refunded).
+      // Raw status writes on this track are rejected by firestore.rules.
+      const [{ getFunctions, httpsCallable }, { getApp }, { FUNCTIONS_REGION }] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js'),
+        import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js'),
+        import('../shared/js/config/appConfig.js'),
+      ]);
+      const cancelFn = httpsCallable(getFunctions(getApp(), FUNCTIONS_REGION), 'cancelInspectionBooking');
+      await cancelFn({ bookingId, reason: 'Cancelled by artisan' });
+    } else {
+      await databaseService.updateDocument('bookings', bookingId, payload);
+    }
     showToast(
       newStatus === 'en_route'    ? 'On your way! Customer notified.' :
       newStatus === 'in_progress' ? 'Job started!' :
@@ -346,7 +361,7 @@ window.updateStatus = async function(bookingId, newStatus) {
       newStatus === 'cancelled'   ? 'Booking cancelled.' : 'Updated.'
     );
   } catch (e) {
-    showToast('Update failed. Try again.');
+    showToast(e?.message || 'Update failed. Try again.');
     btns?.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
   }
 };

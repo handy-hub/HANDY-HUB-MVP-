@@ -109,7 +109,7 @@ button {
 
 .wallet-label {
   font-size: 12px;
-  color: #888;
+  color: var(--ui-faint);
   margin-bottom: 6px;
 }
 
@@ -240,7 +240,7 @@ button {
 
 .txn-meta {
   font-size: 11.5px;
-  color: #888;
+  color: var(--ui-faint);
   margin-bottom: 1px;
 }
 
@@ -294,7 +294,7 @@ button {
 
 .txn-divider {
   height: 1px;
-  background: #f4f4f4;
+  background: var(--ui-surface-2);
   margin: 0 16px;
 }
 

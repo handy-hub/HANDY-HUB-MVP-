@@ -67,7 +67,13 @@
   padding: 14px 16px 10px;
   border-bottom: 1px solid var(--bf-border);
 }
-.bf-back-btn {
+/* .bk-back-btn (used by all 4 booking-step pages) was only getting
+   sizing/padding from ui-polish.css's generic icon-button rule — no
+   color/background/flex-centering, so the SVG arrow rendered invisible.
+   Aliased onto the canonical .bf-back-btn rule, same pattern as
+   .btn-continue → .bk-cta-btn above. */
+.bf-back-btn,
+.bk-back-btn {
   width: 40px; height: 40px; border-radius: var(--ui-radius-sm);
   border: none; background: transparent;
   display: flex; align-items: center; justify-content: center;
@@ -75,9 +81,10 @@
   color: var(--bf-text);
   transition: background .15s;
 }
-.bf-back-btn > svg { width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: block; }
-.bf-back-btn:hover  { background: rgba(0,0,0,.05); }
-.bf-back-btn:active { background: rgba(0,0,0,.09); transform: scale(.94); }
+.bf-back-btn > svg,
+.bk-back-btn > svg { width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: block; }
+.bf-back-btn:hover,  .bk-back-btn:hover  { background: rgba(0,0,0,.05); }
+.bf-back-btn:active, .bk-back-btn:active { background: rgba(0,0,0,.09); transform: scale(.94); }
 .bf-header-title {
   flex: 1; font-size: 17px; font-weight: 800; color: var(--bf-text);
 }
@@ -340,7 +347,8 @@
   color: var(--bf-red);
 }
 .cat-icon-btn.active svg { stroke: var(--bf-red); }
-[data-theme="dark"] .cat-icon-btn.active { background: #2a1414; }
+[data-theme="dark"] .cat-icon-btn.active { background: #2a1414; color: var(--nav-brand-dark, #e05050); border-color: var(--nav-brand-dark, #e05050); }
+[data-theme="dark"] .cat-icon-btn.active svg { stroke: var(--nav-brand-dark, #e05050); }
 
 /* Service item row (rendered by step-1 JS) */
 .service-item {
@@ -466,7 +474,8 @@
   transition: background .15s;
 }
 .bk-anchor-action:active { background: var(--bf-red-mid); }
-[data-theme="dark"] .bk-anchor-svc-icon { background: #2a1414; }
+[data-theme="dark"] .bk-anchor-svc-icon { background: #2a1414; color: var(--nav-brand-dark, #e05050); }
+[data-theme="dark"] .bk-anchor-action { border-color: var(--nav-brand-dark, #e05050); color: var(--nav-brand-dark, #e05050); }
 
 /* ── Pre-selected professional banner (artisan-first booking) ─────── */
 .bk-chosen-pro {
@@ -497,6 +506,7 @@
 }
 .bk-chosen-change:active { background: var(--bf-red-mid); }
 [data-theme="dark"] .bk-chosen-pro { background: #2a1414; border-color: #3a1c1c; }
+[data-theme="dark"] .bk-chosen-change { border-color: var(--nav-brand-dark, #e05050); color: var(--nav-brand-dark, #e05050); }
 
 /* ══════════════════════════════════════════════════════════════
    PRO CARD (step 2 list)  — was a JS-injected <style> block with
@@ -723,7 +733,8 @@
   border-radius: var(--ui-radius-md);
   padding: 14px;
 }
-.pro-call-avatar { position: relative; flex-shrink: 0; }
+.pro-call-avatar,
+.pro-avatar-wrap { position: relative; flex-shrink: 0; }
 .online-dot {
   position: absolute; bottom: 2px; right: 2px;
   width: 8px; height: 8px; border-radius: 50%;
@@ -804,7 +815,561 @@
 [data-theme="dark"] .confirmed-title { color: #f0f0f0; }
 [data-theme="dark"] .booking-id-row { background: #0a1f0f; border-color: #14532d; }
 [data-theme="dark"] .help-card       { background: #0a1f0f; border-color: #14532d; }
-[data-theme="dark"] .bf-back-btn     { color: #f0f0f0; }
-[data-theme="dark"] .bf-back-btn:hover { background: rgba(255,255,255,.06); }
+[data-theme="dark"] .bf-back-btn,
+[data-theme="dark"] .bk-back-btn     { color: #f0f0f0; }
+[data-theme="dark"] .bf-back-btn:hover,
+[data-theme="dark"] .bk-back-btn:hover { background: rgba(255,255,255,.06); }
 [data-theme="dark"] .bk-bell-btn    { color: #f0f0f0; }
 [data-theme="dark"] .bk-bell-btn:hover { background: rgba(255,255,255,.06); }
+
+/* ══════════════════════════════════════════════════════════════
+   SHARED FOOTER BAR  (steps 1–3)
+   ────────────────────────────────────────────────────────────────
+   .bk-footer was referenced by book-step1/2/3.html with NO style
+   rule anywhere — rendered as an unstyled block stacked into page
+   flow instead of a sticky bottom CTA bar. Mirrors .bf-cta-bar's
+   fixed-bottom behaviour so all 4 steps share one footer language.
+   ══════════════════════════════════════════════════════════════ */
+/* NOT position:sticky — .bk-footer is a flex sibling of .bk-scroll inside
+   .phone-shell (a fixed-height flex column), not a descendant of the
+   scrolling element. sticky there computed against the wrong containing
+   block and rendered the footer floating on top of mid-scroll content
+   instead of pinned below it (visible as the footer overlapping the
+   Location card on step 3). flex-shrink:0 is what actually keeps it fixed
+   at the bottom, the same way .bk-scroll's flex:1 fills the remaining
+   space above it — no sticky positioning needed. */
+.bk-footer {
+  flex-shrink: 0;
+  background: var(--bf-surface);
+  border-top: 1px solid var(--bf-border);
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 20px rgba(0,0,0,.05);
+  z-index: var(--ui-z-sticky, 100);
+}
+
+/* Step 1 footer: price estimate + Continue button side by side */
+.bk-footer-row1 {
+  display: flex; align-items: center; gap: 12px;
+}
+.bk-est-block { flex: 1; min-width: 0; }
+.bk-est-label {
+  font-size: 11.5px; font-weight: 600; color: var(--bf-sub); margin: 0 0 2px;
+  display: flex; align-items: center; gap: 4px;
+}
+.bk-est-value { font-size: 17px; font-weight: 900; color: var(--bf-text); margin: 0; }
+.bk-footer .btn-continue { flex-shrink: 0; width: auto; min-width: 168px; }
+
+/* Step 2 footer: selection recap + full-width Continue */
+.bk-footer-step2 { display: flex; flex-direction: column; gap: 6px; }
+.bk-your-sel {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 2px;
+}
+.bk-your-sel-label {
+  font-size: 11px; font-weight: 700; color: var(--bf-sub);
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.bk-change-link {
+  background: none; border: none; padding: 0; font-family: inherit;
+  font-size: 12px; font-weight: 700; color: var(--bf-red); cursor: pointer;
+}
+.bk-sel-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--bf-text);
+}
+.bk-sel-row svg { flex-shrink: 0; color: var(--bf-red); }
+.bk-footer-price-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0 2px; margin-top: 2px;
+  border-top: 1px solid var(--bf-border);
+}
+.bk-footer-price-lbl {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; color: var(--bf-sub); font-weight: 600;
+}
+.bk-footer-price-val { font-size: 15px; font-weight: 800; color: var(--bf-red); }
+.bk-pick-time {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--bf-sub); margin: 6px 0 0; justify-content: center;
+}
+/* Shown instead of the neutral hint when Continue is disabled (no
+   professional selected yet) — makes the blocked state readable at a
+   glance instead of a silent grey button + easy-to-miss toast. */
+.bk-pick-time-warn { color: #b45309; font-weight: 700; }
+[data-theme="dark"] .bk-pick-time-warn { color: #fbbf24; }
+
+/* Step 3 footer: total + view-price link + Confirm button */
+.bk-footer-step3 { display: flex; flex-direction: column; gap: 8px; }
+.bk-total-row {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.bk-total-label {
+  font-size: 12.5px; font-weight: 600; color: var(--bf-sub);
+  display: flex; align-items: center; gap: 4px;
+}
+.bk-total-value { font-size: 19px; font-weight: 900; color: var(--bf-text); }
+.bk-view-price {
+  background: none; border: none; padding: 0; font-family: inherit;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 700; color: var(--bf-red); cursor: pointer;
+  align-self: flex-start;
+}
+.btn-confirm {
+  width: 100%; height: var(--ui-btn-h, 48px);
+  background: var(--bf-red); color: #fff; border: none;
+  border-radius: var(--ui-radius-md);
+  font-size: 16px; font-weight: 800; font-family: inherit; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity .2s, transform .1s;
+}
+.btn-confirm:active { opacity: .88; transform: scale(.98); }
+.bk-secure-text {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 11px; color: var(--bf-sub); margin: 0;
+}
+
+[data-theme="dark"] .bk-footer { background: var(--bf-surface); box-shadow: 0 -4px 20px rgba(0,0,0,.3); }
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 1 — page content (header row, location card, promo row)
+   ────────────────────────────────────────────────────────────────
+   .bk-page-head/.bk-page-title/.bk-filter-btn/.bk-section-head/
+   .bk-section-title/.bk-view-all/.location-card/.promo-row and all
+   children were referenced with NO style rule — rendered as bare
+   stacked text/blocks.
+   ══════════════════════════════════════════════════════════════ */
+.bk-page-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin: 4px 16px 14px;
+}
+.bk-page-title {
+  font-size: 19px; font-weight: 900; color: var(--bf-text); margin: 0;
+  letter-spacing: -0.3px;
+}
+.bk-page-sub { font-size: 13px; color: var(--bf-sub); margin: -8px 16px 14px; }
+.bk-filter-btn {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+  background: var(--bf-surface); border: 1.5px solid var(--bf-border);
+  border-radius: var(--ui-radius-lg); padding: 7px 12px;
+  font-size: 12px; font-weight: 700; color: var(--bf-text);
+  font-family: inherit; cursor: pointer;
+}
+
+.bk-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 4px 16px 10px;
+}
+.bk-section-title { font-size: 15px; font-weight: 800; color: var(--bf-text); margin: 0; }
+.bk-view-all {
+  background: none; border: none; padding: 0; font-family: inherit;
+  font-size: 12px; font-weight: 700; color: var(--bf-red); cursor: pointer;
+}
+
+.location-card {
+  display: flex; align-items: center; gap: 12px;
+  margin: 4px 16px 14px; padding: 14px;
+  background: var(--bf-surface); border: 1.5px solid var(--bf-border);
+  border-radius: var(--bf-radius); box-shadow: var(--bf-shadow);
+}
+.loc-icon {
+  width: 40px; height: 40px; border-radius: var(--ui-radius-sm); flex-shrink: 0;
+  background: var(--bf-red-light);
+  display: flex; align-items: center; justify-content: center;
+}
+.loc-body { flex: 1; min-width: 0; }
+.loc-label { font-size: 11px; font-weight: 600; color: var(--bf-sub); margin: 0 0 2px; }
+.loc-value-row { display: flex; align-items: center; gap: 4px; }
+.loc-value { font-size: 14px; font-weight: 800; color: var(--bf-text); margin: 0; }
+.loc-value-row svg { color: var(--bf-sub); }
+.loc-address {
+  font-size: 12px; color: var(--bf-sub); margin: 2px 0 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.loc-add-btn {
+  flex-shrink: 0; background: var(--bf-red-light); border: none;
+  color: var(--bf-red); font-size: 12px; font-weight: 700;
+  padding: 8px 12px; border-radius: var(--ui-radius-sm);
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+}
+
+.promo-row {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 16px 10px; padding: 12px 14px;
+  background: var(--bf-surface); border: 1.5px solid var(--bf-border);
+  border-radius: var(--bf-radius);
+}
+.promo-row-icon {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: #eafaea;
+  display: flex; align-items: center; justify-content: center;
+}
+.promo-row-label { font-size: 13px; font-weight: 700; color: var(--bf-text); margin: 0; }
+.promo-row-sub { font-size: 11.5px; color: var(--bf-sub); margin: 1px 0 0; }
+
+[data-theme="dark"] .promo-row-icon { background: #0f2a12; }
+[data-theme="dark"] #promo-panel { background: var(--bf-surface) !important; box-shadow: 0 2px 12px rgba(0,0,0,.4) !important; }
+[data-theme="dark"] #promo-input { border-color: var(--bf-border) !important; color: var(--bf-text); background: transparent; }
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 2 — page content (service context chip, filters, verify banner)
+   ══════════════════════════════════════════════════════════════ */
+.svc-ctx-card {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 16px 14px; padding: 14px;
+  background: var(--bf-surface); border: 1.5px solid var(--bf-border);
+  border-radius: var(--bf-radius); box-shadow: var(--bf-shadow);
+}
+.svc-ctx-icon {
+  width: 40px; height: 40px; border-radius: var(--ui-radius-sm); flex-shrink: 0;
+  background: var(--bf-red-light); color: var(--bf-red);
+  display: flex; align-items: center; justify-content: center;
+}
+.svc-ctx-card > div:not(.svc-ctx-icon) { flex: 1; min-width: 0; }
+.svc-ctx-name {
+  font-size: 14px; font-weight: 800; color: var(--bf-text); margin: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-ctx-desc {
+  font-size: 12px; color: var(--bf-sub); margin: 2px 0 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.edit-link {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  background: none; border: none; padding: 0; font-family: inherit;
+  font-size: 12px; font-weight: 700; color: var(--bf-red); cursor: pointer;
+}
+
+.filter-pills {
+  display: flex; gap: 8px; margin: 0 16px 14px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.filter-pills::-webkit-scrollbar { display: none; }
+.filter-pill {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+  background: var(--bf-surface); border: 1.5px solid var(--bf-border);
+  border-radius: var(--ui-radius-lg); padding: 8px 13px;
+  font-size: 12.5px; font-weight: 700; color: var(--bf-text);
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.filter-pill.active {
+  background: var(--bf-red-light); border-color: var(--bf-red); color: var(--bf-red);
+}
+
+.verify-banner {
+  display: flex; align-items: center; gap: 12px;
+  margin: 4px 16px 16px; padding: 12px 14px;
+  background: #fff8ec; border: 1.5px solid #fde8c4;
+  border-radius: var(--bf-radius);
+}
+.verify-banner-icon {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  background: #fff1d6;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* --bf-red (#730201) on a #2a1414 dark chip background is sub-3:1 contrast —
+   swap to --nav-brand-dark, the token the system already defines for exactly
+   this "warm, readable" dark-mode active state (ui-polish.css). */
+[data-theme="dark"] .filter-pill.active { background: #2a1414; color: var(--nav-brand-dark, #e05050); border-color: var(--nav-brand-dark, #e05050); }
+[data-theme="dark"] .verify-banner { background: #241b0a; border-color: #3a2a0e; }
+[data-theme="dark"] .verify-banner-icon { background: #2e2210; }
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 3 — Schedule & Confirm  (book-step3.html)
+   ────────────────────────────────────────────────────────────────
+   Near the entire page body had no CSS: .pro-mini-card wrapper,
+   .detail-bk-* family (service/schedule/location cards),
+   .schedule-info, .price-table-*, .payment-*, .notes-*, .trust-*,
+   and the schedule-picker modal internals.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Pro mini card (inner .pro-mini-* text classes already existed —
+   only the card wrapper + view-profile link were missing) */
+.pro-mini-card {
+  display: flex; align-items: center; gap: 12px;
+  margin: 4px 16px 14px; padding: 14px;
+  background: var(--bf-surface); border: 1.5px solid var(--bf-border);
+  border-radius: var(--bf-radius); box-shadow: var(--bf-shadow);
+}
+.view-profile-link {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  background: none; border: none; padding: 0; font-family: inherit;
+  font-size: 12px; font-weight: 700; color: var(--bf-red); cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Generic detail card — used for Service / Schedule / Location */
+.detail-bk-card {
+  display: flex; gap: 12px;
+  margin: 0 16px 12px; padding: 14px;
+  background: var(--bf-surface); border: 1.5px solid var(--bf-border);
+  border-radius: var(--bf-radius); box-shadow: var(--bf-shadow);
+}
+.detail-bk-icon {
+  width: 38px; height: 38px; border-radius: var(--ui-radius-sm); flex-shrink: 0;
+  background: var(--bf-red-light); color: var(--bf-red);
+  display: flex; align-items: center; justify-content: center;
+}
+.detail-bk-body { flex: 1; min-width: 0; }
+.detail-bk-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 4px;
+}
+.detail-bk-title { font-size: 14px; font-weight: 800; color: var(--bf-text); }
+.detail-bk-desc { font-size: 12.5px; color: var(--bf-sub); margin: 0 0 8px; line-height: 1.5; }
+.detail-bk-meta { display: flex; gap: 14px; font-size: 11.5px; color: var(--bf-sub); }
+.detail-bk-meta span { display: flex; align-items: center; gap: 5px; }
+.detail-bk-row { display: flex; gap: 24px; margin-top: 2px; }
+.detail-bk-label { font-size: 11px; color: var(--bf-sub); margin: 0 0 2px; }
+.detail-bk-value { font-size: 13.5px; font-weight: 700; color: var(--bf-text); margin: 0; }
+
+.schedule-info {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-top: 12px; padding: 10px 12px;
+  background: #f0fdf4; border-radius: var(--ui-radius-sm);
+  font-size: 11.5px; color: #2e7d32; line-height: 1.5;
+}
+.schedule-info svg { flex-shrink: 0; margin-top: 1px; }
+
+/* Price details table */
+.price-table-card {
+  margin: 0 16px 12px; padding: 14px 16px;
+  background: var(--bf-surface); border: 1.5px solid var(--bf-border);
+  border-radius: var(--bf-radius); box-shadow: var(--bf-shadow);
+}
+.price-table-title { font-size: 14px; font-weight: 800; color: var(--bf-text); margin: 0 0 10px; }
+.price-row-bk {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 0; font-size: 13px; color: var(--bf-sub);
+}
+.price-row-bk span:last-child { color: var(--bf-text); font-weight: 600; }
+.price-row-bk.total {
+  border-top: 1.5px solid var(--bf-border); margin-top: 4px; padding-top: 12px;
+  font-size: 14px; font-weight: 800; color: var(--bf-text);
+}
+.price-row-bk.total span:last-child { color: var(--bf-red); font-size: 16px; }
+.info-sm { color: var(--bf-sub); font-size: 10.5px; }
+
+/* Payment method card */
+.payment-card {
+  margin: 0 16px 12px; padding: 14px;
+  background: var(--bf-surface); border: 1.5px solid var(--bf-border);
+  border-radius: var(--bf-radius); box-shadow: var(--bf-shadow);
+}
+.payment-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.payment-card-title { font-size: 14px; font-weight: 800; color: var(--bf-text); }
+.payment-change-link {
+  background: none; border: none; padding: 0; font-family: inherit;
+  font-size: 12px; font-weight: 700; color: var(--bf-red); cursor: pointer;
+}
+.payment-option {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 4px; cursor: pointer;
+}
+.payment-option + .payment-option { border-top: 1px solid var(--bf-border); }
+.payment-opt-icon {
+  width: 42px; height: 42px; border-radius: var(--ui-radius-sm); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--bf-red);
+}
+.payment-option > div:not(.payment-opt-icon):not(.radio-btn) { flex: 1; min-width: 0; }
+.payment-opt-label { font-size: 13.5px; font-weight: 700; color: var(--bf-text); margin: 0; }
+.payment-opt-sub { font-size: 11.5px; color: var(--bf-sub); margin: 2px 0 0; }
+.radio-btn {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--bf-border); position: relative;
+  transition: border-color .15s;
+}
+.radio-btn.selected { border-color: var(--bf-red); }
+.radio-btn.selected::after {
+  content: ''; position: absolute; inset: 3px;
+  background: var(--bf-red); border-radius: 50%;
+}
+.add-card-row { opacity: .6; }
+
+/* Additional notes */
+.notes-row {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 16px 4px; padding: 14px;
+  background: var(--bf-surface); border: 1.5px solid var(--bf-border);
+  border-radius: var(--bf-radius); box-shadow: var(--bf-shadow);
+}
+.notes-icon {
+  width: 38px; height: 38px; border-radius: var(--ui-radius-sm); flex-shrink: 0;
+  background: var(--bf-red-light); color: var(--bf-red);
+  display: flex; align-items: center; justify-content: center;
+}
+.notes-row > div:not(.notes-icon) { flex: 1; min-width: 0; }
+.notes-label { font-size: 13.5px; font-weight: 700; color: var(--bf-text); margin: 0; }
+.notes-sub { font-size: 11.5px; color: var(--bf-sub); margin: 2px 0 0; }
+#notes-expand { margin: 0 16px 12px; }
+
+/* Trust badges row */
+.trust-row {
+  display: flex; gap: 10px;
+  margin: 4px 16px 16px;
+}
+.trust-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 6px;
+  padding: 12px 8px;
+  background: var(--bf-surface); border: 1px solid var(--bf-border);
+  border-radius: var(--bf-radius);
+}
+.trust-item-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #f0fdf4;
+  display: flex; align-items: center; justify-content: center;
+}
+.trust-item-label { font-size: 11px; font-weight: 800; color: var(--bf-text); margin: 0; }
+.trust-item-sub { font-size: 9.5px; color: var(--bf-sub); margin: 0; line-height: 1.4; }
+
+/* Schedule picker modal (bottom sheet) */
+.sched-modal {
+  position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  background: var(--bf-surface);
+  border-radius: 20px 20px 0 0;
+  padding: 18px 18px max(18px, env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 32px rgba(0,0,0,.18);
+  translate: 0 110%;
+  transition: translate .32s cubic-bezier(.32,.72,0,1);
+}
+.sched-overlay.open .sched-modal { translate: 0 0; }
+.sched-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.sched-modal-title { font-size: 16px; font-weight: 800; color: var(--bf-text); margin: 0; }
+.sched-modal-close {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  background: var(--bf-border); color: var(--bf-sub);
+  font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.sched-label {
+  display: block; font-size: 12px; font-weight: 700; color: var(--bf-sub);
+  margin: 14px 0 6px;
+}
+.sched-label:first-of-type { margin-top: 0; }
+.sched-date-input {
+  width: 100%; height: 46px; padding: 0 14px;
+  border: 1.5px solid var(--bf-border); border-radius: var(--ui-radius-sm);
+  background: var(--bf-surface); color: var(--bf-text);
+  font-family: inherit; font-size: 14px; outline: none;
+}
+.sched-date-input:focus { border-color: var(--bf-red); }
+.sched-time-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 8px; margin-top: 4px;
+}
+.sched-time-chip {
+  padding: 10px 8px; border-radius: var(--ui-radius-sm);
+  border: 1.5px solid var(--bf-border);
+  background: var(--bf-surface); color: var(--bf-text);
+  font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.sched-time-chip.selected {
+  border-color: var(--bf-red); background: var(--bf-red-light); color: var(--bf-red);
+}
+.sched-time-chip.disabled {
+  opacity: .4; cursor: not-allowed; text-decoration: line-through;
+}
+.sched-confirm-btn {
+  width: 100%; height: var(--ui-btn-h, 48px); margin-top: 18px;
+  background: var(--bf-red); color: #fff; border: none;
+  border-radius: var(--ui-radius-md);
+  font-size: 15px; font-weight: 800; font-family: inherit; cursor: pointer;
+}
+.sched-confirm-btn:active { opacity: .88; }
+
+[data-theme="dark"] .schedule-info { background: #0a1f0f; color: #6ee7a0; }
+[data-theme="dark"] .trust-item-icon { background: #0a1f0f; }
+[data-theme="dark"] .sched-modal-close { background: #2a2a2a; }
+
+/* Location map (step 3) — migrated from an inline <style> block in
+   book-step3.html to keep all booking-flow styling in one file. */
+#loc-map { width: 100%; height: 148px; border-radius: var(--ui-radius-sm); margin-top: 10px; z-index: 0; }
+.loc-address-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.loc-address-text { font-size: 13px; color: var(--bf-sub); font-weight: 500; flex: 1; }
+.loc-open-maps {
+  font-size: 11px; font-weight: 700; color: var(--bf-red);
+  background: var(--bf-red-light); border: none; border-radius: var(--ui-radius-sm);
+  padding: 5px 10px; cursor: pointer; flex-shrink: 0; text-decoration: none;
+}
+[data-theme="dark"] .loc-open-maps { background: #2a1414; }
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 4 — remaining gaps
+   ────────────────────────────────────────────────────────────────
+   .help-banner is the class actually used in book-step4.html markup
+   (the pre-existing .help-card rule above is unused dead CSS from an
+   earlier rename — kept as-is so nothing else that may reference it
+   breaks; .help-banner now gets the same treatment).
+   Booking Summary grid (.summary-*) also had no rule at all.
+   ══════════════════════════════════════════════════════════════ */
+.help-banner {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 16px 12px; padding: 14px;
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+  border-radius: var(--ui-radius-md);
+}
+.help-icon-wrap {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #dcfce7; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.help-label { font-size: 13px; font-weight: 800; color: #166534; margin: 0 0 3px; }
+.help-sub   { font-size: 11px; color: #4b7a5a; margin: 0; line-height: 1.4; }
+
+.booking-summary-card {
+  margin: 0 16px 12px;
+  background: var(--bf-surface); border: 1px solid var(--bf-border);
+  border-radius: var(--ui-radius-md); padding: 16px;
+}
+.summary-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.summary-card-title { font-size: 13px; font-weight: 800; color: var(--bf-text); }
+.summary-view-details {
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: none; padding: 0; font-family: inherit;
+  font-size: 12px; font-weight: 700; color: var(--bf-red); cursor: pointer;
+}
+.summary-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.summary-cell { display: flex; flex-direction: column; gap: 4px; }
+.summary-cell-icon {
+  width: 32px; height: 32px; border-radius: var(--ui-radius-sm);
+  background: var(--bf-red-light); color: var(--bf-red);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 2px;
+}
+.summary-cell-label { font-size: 10.5px; font-weight: 600; color: var(--bf-sub); text-transform: uppercase; letter-spacing: .03em; }
+.summary-cell-val { font-size: 13px; font-weight: 700; color: var(--bf-text); line-height: 1.4; }
+.summary-cell-val.red { color: var(--bf-red); }
+
+[data-theme="dark"] .help-banner { background: #0a1f0f; border-color: #14532d; }
+[data-theme="dark"] .help-icon-wrap { background: #123a1a; }
+[data-theme="dark"] .booking-summary-card { background: var(--bf-surface); }
+[data-theme="dark"] .summary-cell-icon { background: #2a1414; }
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — tablet / desktop refinements
+   ════════════════════════════════════════════════════════════ */
+@media (min-width: 480px) {
+  .trust-row { gap: 12px; }
+  .summary-grid { gap: 20px; }
+}
+@media (max-width: 359px) {
+  .bk-footer .btn-continue { min-width: 140px; font-size: 14px; }
+  .bk-est-value { font-size: 15px; }
+  .trust-item-sub { display: none; }
+}

@@ -4,7 +4,7 @@
 //                   (for cross-device persistence).
 //
 // Stored at: customers/{uid}.appPreferences
-//   { theme: 'Light'|'Dark', currency: 'GHC'|'USD'|…, language: 'English'|… }
+//   { theme: 'Light'|'Dark', currency: 'GHS'|'USD'|…, language: 'English'|… }
 //
 // Usage:
 //   import { initSettingsSync, saveAppPreference } from '../utils/settingsSync.js';

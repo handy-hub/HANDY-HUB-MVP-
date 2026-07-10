@@ -1,13 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" rx="14" fill="#F1F8E9"/>
-  <!-- Shovel handle -->
-  <line x1="38" y1="12" x2="26" y2="44" stroke="#795548" stroke-width="2.5" stroke-linecap="round"/>
-  <!-- Shovel blade -->
-  <ellipse cx="24" cy="47" rx="7" ry="5" fill="#8D6E63" stroke="#6D4C41" stroke-width="1.5" transform="rotate(-20 24 47)"/>
-  <!-- Leaf 1 -->
-  <path d="M30 30 Q42 20 44 32 Q38 38 30 30z" fill="#66BB6A" stroke="#388E3C" stroke-width="1"/>
-  <!-- Leaf 2 -->
-  <path d="M26 24 Q34 14 40 22 Q34 30 26 24z" fill="#81C784" stroke="#43A047" stroke-width="1"/>
-  <!-- Plant stem -->
-  <path d="M32 44 Q32 32 36 26" stroke="#388E3C" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Flat brand-monochrome gardening icon (trowel + sprout) — normalised to
+       match the maroon line-icon family. Previous asset was a green/brown
+       full-colour illustration (design drift). -->
+  <g stroke="#730201" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Trowel handle -->
+    <line x1="40" y1="14" x2="30" y2="34"/>
+    <!-- Trowel blade -->
+    <path d="M24 44c-3-3-3-8 1-10l7 7c-2 4-5 6-8 3z"/>
+    <!-- Sprout stem -->
+    <path d="M40 50V36"/>
+    <!-- Sprout leaves -->
+    <path d="M40 40c-5 0-8-3-8-8 5 0 8 3 8 8z"/>
+    <path d="M40 44c5 0 8-3 8-8-5 0-8 3-8 8z"/>
+  </g>
 </svg>

@@ -198,6 +198,7 @@
 import { db, auth, callAdminFunction } from './js/firebase-admin.js';
 import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
 import { showToast, subscribeVerifBadge, setDateHeader } from './js/ui-utils.js';
+import { describe, TAB_STATUSES } from '../shared/js/domain/bookingStatusMeta.js';
 import { collection, doc, getDoc, getDocs, onSnapshot,
          query, where, orderBy }
                           from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
@@ -224,9 +225,12 @@ function init(){
   subscribeVerifBadge();
 }
 
-const ACTIVE_STATUSES    = ['accepted','en_route','in_progress','awaiting'];
-const COMPLETED_STATUSES = ['completed'];
-const PENDING_STATUSES   = ['pending','dispatching','searching','dispatched','assigned'];
+// Buckets derive from the single source of truth so inspection-track bookings
+// (inspection_scheduled/inspection_done/quoted/disputed) count as active, not
+// silently dropped from the KPI.
+const ACTIVE_STATUSES    = TAB_STATUSES.ongoing;
+const COMPLETED_STATUSES = TAB_STATUSES.completed;
+const PENDING_STATUSES   = TAB_STATUSES.upcoming;
 
 function updateKPIs(){
   const norm = s => (s || '').toLowerCase();
@@ -274,7 +278,7 @@ function renderTable(){
       <td><span class="badge badge-info" style="font-size:10px;">${esc(b.serviceType||b.category||'—')}</span></td>
       <td style="font-size:13px;font-weight:600;">${amt}</td>
       <td><span class="badge ${escrowMap[escrow]||'badge-default'}" style="font-size:10px;">${escrow}</span></td>
-      <td><span class="badge ${sMap[(b.status||'').toLowerCase()]||'badge-default'}" style="font-size:10px;">${b.status||'—'}</span></td>
+      <td><span class="badge ${sMap[(b.status||'').toLowerCase()]||'badge-default'}" style="font-size:10px;">${esc(describe(b,'admin').label)}</span></td>
       <td style="font-size:11px;color:var(--text-light);">${ds}</td>
       <td onclick="event.stopPropagation()">
         <button class="btn btn-sm btn-secondary" onclick="openBookingModal('${b.id}')">Details</button>

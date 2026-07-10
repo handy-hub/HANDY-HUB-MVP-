@@ -458,7 +458,7 @@ function wireCategories() {
             if (!label) return;
             // "More" has no search value — send to full service catalogue
             if (label.toLowerCase() === 'more') {
-                window.location.href = 'book-step1.html';
+                window.location.href = 'book-request.html';
                 return;
             }
             executeSearch(label).catch(err =>

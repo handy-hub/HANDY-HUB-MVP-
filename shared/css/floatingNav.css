@@ -48,6 +48,10 @@
   max-width: 420px;
   height: 64px;
   border-radius: 36px;
+  /* Clip children (inner-surface gradient + active glow blob) to the pill's
+     rounded shape — without this the active highlight on the edge items
+     (Home / Profile) bleeds past the rounded corner. */
+  overflow: hidden;
   pointer-events: all;
 
   /* Light-mode glass — warm white frost */

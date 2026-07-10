@@ -1,4 +1,4 @@
-﻿/**
+/**
  * nearbyPros.js — Nearby Professionals discovery module
  *
  * Architecture
@@ -55,10 +55,10 @@ const CATEGORIES = [
 ];
 
 const PRICE_RANGES = {
-  Electrical: 'GHC 60–150', Plumbing: 'GHC 50–130',
-  Carpentry:  'GHC 70–200', 'AC Repair': 'GHC 80–200',
-  Welding:    'GHC 90–250', Painting:   'GHC 80–180',
-  Cleaning:   'GHC 50–120', Gardening:  'GHC 40–100',
+  Electrical: 'GHS 60–150', Plumbing: 'GHS 50–130',
+  Carpentry:  'GHS 70–200', 'AC Repair': 'GHS 80–200',
+  Welding:    'GHS 90–250', Painting:   'GHS 80–180',
+  Cleaning:   'GHS 50–120', Gardening:  'GHS 40–100',
 };
 
 /* ── Module state ──────────────────────────────────────────────────────── */
@@ -520,7 +520,7 @@ window._npBookArtisan = function (artisanId, category) {
     // Professional-first booking: flag so book-step1/2 pin and auto-select.
     sessionStorage.setItem('hh_booking_intent', 'artisan');
   }
-  window.location.href = 'book-step1.html';
+  window.location.href = 'book-request.html';
 };
 
 window._npResetFilters = function () {

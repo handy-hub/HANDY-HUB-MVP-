@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#730201" />
+  <title>Book a Visit | HandyHub</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <link rel="stylesheet" href="css/book-request.css" />
+</head>
+<body>
+  <div class="br-shell">
+
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <header class="br-header">
+      <button class="br-back" id="br-back" aria-label="Go back">
+        <svg viewBox="0 0 24 24" fill="none" width="20" height="20" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="br-head-txt">
+        <p class="br-kicker" id="br-kicker">New request</p>
+        <h1 class="br-title" id="br-title">Book a visit</h1>
+      </div>
+      <div class="br-head-seal" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+          <path d="M12 2l7 4v6c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </header>
+
+    <div class="br-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="33" id="br-progressbar">
+      <div class="br-progress-fill" id="br-progress"></div>
+    </div>
+
+    <main class="br-scroll" id="br-scroll">
+
+      <!-- ── VIEW 1 · THE REQUEST ─────────────────────────────── -->
+      <section class="br-view" id="view-request">
+        <h2 class="br-q br-stagger">What needs fixing?</h2>
+        <div class="br-cat-grid br-stagger" id="br-cat-grid" role="radiogroup" aria-label="Service category"></div>
+
+        <h2 class="br-q br-stagger">Describe the problem</h2>
+        <div class="br-field br-stagger">
+          <textarea id="br-desc" maxlength="2000" rows="4"
+            placeholder="e.g. The kitchen tap has been dripping for a week and the cabinet below is getting wet…"></textarea>
+          <div class="br-field-foot">
+            <span class="br-field-hint">The more detail, the better the visit.</span>
+            <span class="br-count" id="br-count">0/2000</span>
+          </div>
+        </div>
+
+        <h2 class="br-q br-stagger">Add photos <span class="br-opt">optional · up to 4</span></h2>
+        <div class="br-photo-row br-stagger" id="br-photo-row">
+          <button class="br-photo-add" id="br-photo-add" type="button" aria-label="Add photos">
+            <svg viewBox="0 0 24 24" fill="none" width="22" height="22" aria-hidden="true">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2v11z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+            <span>Add</span>
+          </button>
+          <input type="file" id="br-photo-input" accept="image/jpeg,image/png,image/webp" multiple hidden />
+        </div>
+
+        <h2 class="br-q br-stagger">Where should we come?</h2>
+        <div class="br-loc-card br-stagger">
+          <div class="br-loc-beacon" aria-hidden="true"><span></span></div>
+          <div class="br-loc-body">
+            <p class="br-loc-line" id="br-loc-line">Detecting your location…</p>
+            <input id="br-address" type="text" maxlength="300" autocomplete="street-address"
+              placeholder="House / street / landmark, area" />
+          </div>
+          <button class="br-loc-refresh" id="br-loc-refresh" type="button" aria-label="Detect my location">
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ── VIEW 2 · THE VISIT FEE (receipt) ─────────────────── -->
+      <section class="br-view" id="view-fee" hidden>
+        <div class="br-choice-line br-stagger" id="br-choice-line"></div>
+
+        <div class="br-receipt br-stagger" id="br-receipt" aria-live="polite">
+          <p class="br-receipt-brand">HANDYHUB &middot; VISIT FEE</p>
+          <div class="br-receipt-rows" id="br-receipt-rows"></div>
+          <div class="br-receipt-tear" aria-hidden="true"></div>
+          <div class="br-receipt-total">
+            <span>Callout fee</span>
+            <strong id="br-receipt-total">GHS —</strong>
+          </div>
+          <div class="br-credit-stamp" aria-label="This fee is credited toward your job">
+            CREDITED TOWARD YOUR JOB
+          </div>
+          <p class="br-fee-lock" id="br-fee-lock"></p>
+        </div>
+
+        <div class="br-hiw br-stagger">
+          <p class="br-hiw-title">How it works</p>
+          <ol class="br-hiw-list">
+            <li><strong>Your pro inspects</strong> the problem in person — no guesswork pricing.</li>
+            <li><strong>You receive a fixed quote</strong> in the app. Approve it, ask for one revision, or decline.</li>
+            <li><strong>Approve &amp; pay into escrow.</strong> This visit fee is subtracted from the quote.</li>
+            <li><strong>Money moves only when the job is done</strong> and you confirm it.</li>
+          </ol>
+        </div>
+
+        <p class="br-fineprint br-stagger">
+          If your professional never shows up, or inspects but sends no quote within 24&nbsp;hours,
+          this fee is <strong>refunded to your wallet in full</strong>. If you decline the final
+          quote after the inspection, the fee pays the professional for the visit.
+        </p>
+      </section>
+
+      <!-- ── VIEW 3 · LIVE TRACKING ───────────────────────────── -->
+      <section class="br-view" id="view-track" hidden>
+        <div id="br-track-body"></div>
+      </section>
+
+    </main>
+
+    <!-- ── Sticky footer CTA ──────────────────────────────────── -->
+    <footer class="br-footer" id="br-footer">
+      <div class="br-footer-meta" id="br-footer-meta" aria-live="polite"></div>
+      <button class="br-cta" id="br-cta" type="button">See the visit fee</button>
+    </footer>
+
+  </div>
+
+  <script type="module" src="js/pages/bookRequestPage.js"></script>
+</body>
+</html>

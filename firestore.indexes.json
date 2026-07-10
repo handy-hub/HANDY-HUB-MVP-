@@ -180,6 +180,39 @@
       ]
     },
     {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",           "order": "ASCENDING" },
+        { "fieldPath": "quoteSubmittedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",           "order": "ASCENDING" },
+        { "fieldPath": "inspectionDoneAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",        "order": "ASCENDING" },
+        { "fieldPath": "calloutPaidAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "comment": "F6 callout_unpaid sweep: accepted inspection bookings whose callout was never paid.",
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",     "order": "ASCENDING" },
+        { "fieldPath": "acceptedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "chats",
       "queryScope": "COLLECTION",
       "fields": [
@@ -296,6 +329,12 @@
   "fieldOverrides": [
     {
       "collectionGroup": "_email_verifications",
+      "fieldPath": "ttlAt",
+      "ttlConfig": {},
+      "indexes": []
+    },
+    {
+      "collectionGroup": "pricing_quotes",
       "fieldPath": "ttlAt",
       "ttlConfig": {},
       "indexes": []

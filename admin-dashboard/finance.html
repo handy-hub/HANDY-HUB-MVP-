@@ -250,12 +250,12 @@
     <div class="stats-grid">
       <div class="stat-card">
         <p class="stat-label">Total Commissions</p>
-        <p class="stat-value green" id="stat-commissions">GHC —</p>
+        <p class="stat-value green" id="stat-commissions">GHS —</p>
         <p class="stat-note">Platform revenue (15%)</p>
       </div>
       <div class="stat-card">
         <p class="stat-label">Artisan Payouts</p>
-        <p class="stat-value" id="stat-payouts">GHC —</p>
+        <p class="stat-value" id="stat-payouts">GHS —</p>
         <p class="stat-note">Released to artisans</p>
       </div>
       <div class="stat-card">
@@ -349,7 +349,9 @@
     query, where, orderBy, limit,
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-  const fmtGHC  = (n) => fmtGHS(n);
+  // fmtGHS is imported from ./js/ui-utils.js (GHS-formatted). Local alias kept
+  // so the existing fmtGHC(...) call sites don't each need editing.
+  const fmtGHC  = fmtGHS;
   const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   const fmtRef  = (r)   => r ? `<span class="ref-code">${r.slice(0, 16)}</span>` : '—';
 
@@ -419,7 +421,7 @@
     statEscrowCount.textContent = active.length;
 
     const total = active.reduce((s, r) => s + (Number(r.data.amount) || 0), 0);
-    statEscrowValue.textContent = `GHC ${total.toFixed(2)} locked`;
+    statEscrowValue.textContent = `GHS ${total.toFixed(2)} locked`;
 
     if (!active.length) {
       escrowBody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:#aaa;font-size:13px">No active escrow</td></tr>`;

@@ -109,7 +109,7 @@ body[data-page-type="notification"] {
     -webkit-tap-highlight-color: transparent;
 }
 .notif-card:active {
-    background: #f5f5f5;
+    background: var(--ui-surface-2);
 }
 .notif-card--unread {
     background: #fffafa;
@@ -195,7 +195,7 @@ body[data-page-type="notification"] {
 .empty-title {
     font-size: 15px;
     font-weight: 700;
-    color: #333;
+    color: var(--ui-text);
     margin: 0 0 8px;
 }
 .empty-sub {

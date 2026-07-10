@@ -127,7 +127,12 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8766/admin-dashboard/seed-promotions.html)",
       "Bash(npx serve *)",
       "Bash(curl -s \"http://localhost:8766/admin-dashboard/seed-promotions.html\" -o /dev/null -w \"seed page still reachable: %{http_code}\\\\n\")",
-      "Bash(xargs -I{} sh -c 'echo {}; grep -l \"detail-bk-card\" \"{}\"')"
+      "Bash(xargs -I{} sh -c 'echo {}; grep -l \"detail-bk-card\" \"{}\"')",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 17180 //F)",
+      "Bash(python \"C:/Users/Herty/.claude/skills/webapp-testing/scripts/with_server.py\" --help)",
+      "Bash(python \"C:/Users/Herty/.claude/skills/webapp-testing/scripts/with_server.py\" --server \"npx --yes serve -l 3000 .\" --port 3000 --timeout 60 -- python \"C:/Users/Herty/AppData/Local/Temp/claude/c--Users-Herty-OneDrive-Desktop-Lunch-HANDY-HUB-MVP-/3dc2a3c8-2f2b-4e9f-b2b9-10cf0e1928a2/scratchpad/verify_booking_flow.py\")",
+      "Bash(python3 -c \"import playwright; print\\(playwright.__file__\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Herty\\.claude\\projects\\c--Users-Herty-OneDrive-Desktop-Lunch-HANDY-HUB-MVP-\\memory",

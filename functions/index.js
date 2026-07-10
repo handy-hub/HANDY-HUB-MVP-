@@ -48,6 +48,9 @@ const dispatchModule = require('./dispatch');
 // â”€â”€ Quote lifecycle module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const quotesModule = require('./quotes');
 
+// ── Pricing & inspection lifecycle module ────────────────────────────────────
+const pricingModule = require('./pricing');
+
 // â”€â”€ AI search module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const aiSearchModule = require('./aiSearch');
 
@@ -482,6 +485,88 @@ exports.rejectJobQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120,
         return await quotesModule.rejectJobQuote(request.auth, request.data);
     } catch (err) {
         throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRICING & INSPECTION LIFECYCLE — server-authoritative callout fees
+//
+// getPricingQuote          (customer) additive capped callout fee + quote token
+// createInspectionBooking  (customer) booking written server-side from token
+// payCalloutFee            (customer) escrows callout → inspection_scheduled
+// completeInspection       (artisan)  status-only transition → inspection_done
+// cancelInspectionBooking  (either)   fair callout settlement + cancel
+// checkBookingTimeouts     (schedule) expires stale quotes/inspections hourly
+// adminSeedPricingConfig   (admin)    seeds pricing_config defaults
+// ─────────────────────────────────────────────────────────────────────────────
+
+exports.getPricingQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async (request) => {
+    _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'getPricingQuote');
+    try {
+        return await pricingModule.getPricingQuote(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+exports.createInspectionBooking = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120 }, async (request) => {
+    _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'createInspectionBooking');
+    try {
+        return await pricingModule.createInspectionBooking(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+exports.payCalloutFee = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+    _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'holdBookingFunds');   // shares the financial-hold bucket
+    try {
+        return await pricingModule.payCalloutFee(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+exports.completeInspection = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async (request) => {
+    _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'completeInspection');
+    try {
+        return await pricingModule.completeInspection(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+exports.cancelInspectionBooking = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+    _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'cancelInspectionBooking');
+    try {
+        return await pricingModule.cancelInspectionBooking(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+exports.checkBookingTimeouts = onSchedule(
+    { schedule: 'every 1 hours', region: FUNCTIONS_REGION, timeoutSeconds: 300, memory: '512MiB' },
+    async () => {
+        await pricingModule.checkBookingTimeouts();
+    }
+);
+
+exports.adminSeedPricingConfig = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120 }, async (request) => {
+    _requireAuth(request);
+    const { ADMIN_EMAILS } = require('./config');
+    if (!ADMIN_EMAILS.includes(request.auth.token?.email)) {
+        throw new HttpsError('permission-denied', 'Super-admin access required.');
+    }
+    try {
+        return await pricingModule.seedPricingConfig();
+    } catch (err) {
+        throw new HttpsError('internal', err.message);
     }
 });
 

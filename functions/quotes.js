@@ -6,23 +6,34 @@
  * Flow:
  *   1. Artisan submits quote (labour + optional materials list)
  *      → booking gains jobQuote, materials fields
- *      → status: accepted → quoted
+ *      → status: accepted → quoted            (legacy track)
+ *                inspection_done → quoted     (inspection track)
  *      → customer notified
  *
  *   2. Customer approves quote
- *      → escrow holds jobQuote amount
+ *      → inspection track: callout fee CREDITED toward the job —
+ *        escrow holds (jobQuote − calloutFee), callout escrow released to artisan
+ *      → legacy track: escrow holds full jobQuote
  *      → status: quoted → accepted  (artisan can now go en_route)
  *      → artisan notified
  *
- *   3. Customer rejects quote
- *      → status: quoted → accepted  (artisan can resubmit)
- *      → artisan notified with rejection
+ *   3. Customer rejects quote — SINGLE REVISION RULE (no bargaining loops):
+ *      → 1st rejection: status reverts (inspection_done / accepted),
+ *        quoteRevisionCount → 1, artisan may submit ONE revised quote
+ *      → 2nd rejection: FINAL — booking cancelled; on the inspection track the
+ *        callout escrow is released to the artisan (inspection was delivered)
  */
 
 const { FieldValue } = require('firebase-admin/firestore');
 const { FIRESTORE_DB_ID, COMMISSION_RATE, MAX_QUOTE_GHS } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const escrow = require('./financial/escrow');
+// claimBookingTransition is the shared atomic compare-and-set primitive (F4).
+// Lazy-required inside handlers to avoid a require cycle (pricing.js requires
+// this module's sibling escrow, and requires quotes indirectly via index).
+function claimBookingTransition(...args) {
+    return require('./pricing').claimBookingTransition(...args);
+}
 
 let _db;
 function db() {
@@ -54,14 +65,21 @@ async function submitJobQuote(auth, { bookingId, labourCost, materials = [], not
     const bookingSnap = await bookingRef.get();
     if (!bookingSnap.exists) throw new Error('Booking not found.');
 
-    const booking = bookingSnap.data();
+    const preBooking = bookingSnap.data();
 
     // Only the assigned artisan may submit a quote
-    if (booking.artisanId !== auth.uid) throw new Error('Not authorised for this booking.');
+    if (preBooking.artisanId !== auth.uid) throw new Error('Not authorised for this booking.');
 
-    // Only valid from accepted status
-    if (booking.status !== 'accepted') {
-        throw new Error(`Cannot submit quote — booking is ${booking.status}.`);
+    // Legacy track quotes from 'accepted'; inspection track only after the
+    // inspection is actually done.
+    const quotableFrom = preBooking.track === 'inspection' ? ['inspection_done'] : ['accepted'];
+    if (!quotableFrom.includes(preBooking.status)) {
+        throw new Error(`Cannot submit quote — booking is ${preBooking.status}.`);
+    }
+
+    // Single-revision rule: initial quote + at most one revision.
+    if (Number(preBooking.quoteRevisionCount || 0) >= 2) {
+        throw new Error('Quote revision limit reached for this booking.');
     }
 
     // ── Validate and total up materials ─────────────────────────────────────
@@ -89,20 +107,28 @@ async function submitJobQuote(auth, { bookingId, labourCost, materials = [], not
     const artisanEarns   = fmt(jobQuote * (1 - COMMISSION_RATE));
     const platformFee    = fmt(jobQuote * COMMISSION_RATE);
 
-    // ── Write quote to booking ───────────────────────────────────────────────
-    await bookingRef.update({
-        status:              'quoted',
-        jobQuote,
-        labourCost:          labourCostFmt,
-        materials:           cleanMaterials,
-        materialsCost,
-        hasMaterials:        cleanMaterials.length > 0,
-        quoteNote:           note.trim().slice(0, 300),
-        commissionRate:      COMMISSION_RATE,   // locked at quote time
-        artisanEarns,
-        platformFee,
-        quoteSubmittedAt:    new Date().toISOString(),
-        updatedAt:           FieldValue.serverTimestamp(),
+    // ── Claim <quotableFrom> → quoted atomically with the quote payload (F4) ──
+    // Serializes a double-submit and a submit racing a customer cancel: whoever
+    // claims first moves the booking to 'quoted'; the loser aborts.
+    const booking = await claimBookingTransition(bookingRef, {
+        authUid: auth.uid,
+        party:   'artisan',
+        fromStatuses: quotableFrom,
+        guard: (b) => Number(b.quoteRevisionCount || 0) < 2,
+        guardMessage: 'Quote revision limit reached for this booking.',
+        patch: {
+            status:              'quoted',
+            jobQuote,
+            labourCost:          labourCostFmt,
+            materials:           cleanMaterials,
+            materialsCost,
+            hasMaterials:        cleanMaterials.length > 0,
+            quoteNote:           note.trim().slice(0, 300),
+            commissionRate:      COMMISSION_RATE,   // locked at quote time
+            artisanEarns,
+            platformFee,
+            quoteSubmittedAt:    new Date().toISOString(),
+        },
     });
 
     // ── Notify customer ──────────────────────────────────────────────────────
@@ -134,44 +160,77 @@ async function approveJobQuote(auth, { bookingId }) {
     const bookingSnap = await bookingRef.get();
     if (!bookingSnap.exists) throw new Error('Booking not found.');
 
-    const booking = bookingSnap.data();
+    const preBooking = bookingSnap.data();
 
     // Only the customer of this booking may approve
-    if (booking.customerId !== auth.uid) throw new Error('Not authorised for this booking.');
+    if (preBooking.customerId !== auth.uid) throw new Error('Not authorised for this booking.');
 
     // Must be in quoted status
-    if (booking.status !== 'quoted') {
-        throw new Error(`Quote cannot be approved — booking is ${booking.status}.`);
+    if (preBooking.status !== 'quoted') {
+        throw new Error(`Quote cannot be approved — booking is ${preBooking.status}.`);
     }
 
-    const jobQuote = Number(booking.jobQuote || 0);
+    const jobQuote = Number(preBooking.jobQuote || 0);
     if (jobQuote <= 0) throw new Error('No valid quote to approve.');
 
     // ── Re-verify artisan is still active before locking funds ───────────────
-    if (booking.artisanId) {
-        const artisanSnap = await db().collection('artisans').doc(booking.artisanId).get();
+    if (preBooking.artisanId) {
+        const artisanSnap = await db().collection('artisans').doc(preBooking.artisanId).get();
         if (!artisanSnap.exists || artisanSnap.data().status !== 'active' ||
             artisanSnap.data().verificationStatus !== 'approved') {
             throw new Error('The artisan is no longer available. Please contact support.');
         }
     }
 
-    // ── Hold escrow for full quote amount ────────────────────────────────────
-    await escrow.holdFundsForBooking({
-        bookingId,
-        customerId:  booking.customerId,
-        artisanId:   booking.artisanId || null,
-        amount:      jobQuote,
-        callerAuth:  null,   // server-authoritative call
+    const isInspection  = preBooking.track === 'inspection';
+    const calloutCredit = (isInspection && preBooking.calloutPaid)
+        ? fmt(Number(preBooking.calloutFee || 0))
+        : 0;
+    const escrowAmount  = fmt(Math.max(jobQuote - calloutCredit, 0));
+
+    // ── Claim quoted → accepted atomically BEFORE moving money (F4) ───────────
+    // This is the compare-and-set that serializes a concurrent approve/reject
+    // (double-tap, two tabs) or approve racing a cancel. Whoever claims first
+    // moves the booking out of 'quoted'; the loser re-reads a non-'quoted' status
+    // and aborts before holding any escrow. Setting quoteApproved:true inside the
+    // claim also flips off cancelInspectionBooking's guard, so a cancel that
+    // arrives after this point is rejected rather than double-settling the callout.
+    const booking = await claimBookingTransition(bookingRef, {
+        authUid: auth.uid,
+        party:   'customer',
+        fromStatuses: ['quoted'],
+        patch: {
+            status:           'accepted',   // artisan can now go en_route
+            quoteApproved:    true,
+            quoteApprovedAt:  new Date().toISOString(),
+            calloutCredit,
+            escrowHeldAmount: escrowAmount,
+        },
     });
 
-    // ── Update booking status ────────────────────────────────────────────────
-    await bookingRef.update({
-        status:          'accepted',    // artisan can now go en_route
-        quoteApproved:   true,
-        quoteApprovedAt: new Date().toISOString(),
-        updatedAt:       FieldValue.serverTimestamp(),
-    });
+    // ── Hold job escrow (idempotent via _escrow_locks/{bookingId}) ───────────
+    // The claim already advanced the status; if this fails the booking is left
+    // 'accepted' with quoteApproved:true and no job escrow — the completion path
+    // and auto-release scheduler reconcile, and the customer sees the standard
+    // "payment could not be secured" flow rather than a lost decision.
+    if (escrowAmount > 0) {
+        await escrow.holdFundsForBooking({
+            bookingId,
+            customerId:  booking.customerId,
+            artisanId:   booking.artisanId || null,
+            amount:      escrowAmount,
+            callerAuth:  null,   // server-authoritative call
+            kind:        'job',
+        });
+    }
+
+    // ── Release the callout escrow to the artisan (credited into the job) ────
+    // Failure is non-fatal: settleCallout flags the booking and the hourly
+    // sweeper retries.
+    if (calloutCredit > 0) {
+        const pricing = require('./pricing');
+        await pricing.settleCallout(booking, bookingId, 'artisan', 'quote_approved_credit');
+    }
 
     // ── Notify artisan ───────────────────────────────────────────────────────
     await sendArtisanNotification(booking.artisanId, {
@@ -182,8 +241,8 @@ async function approveJobQuote(auth, { bookingId }) {
         bookingId,
     }).catch(() => {});
 
-    console.log(`[quotes] Quote approved: booking=${bookingId} amount=GHS${jobQuote}`);
-    return { success: true, jobQuote };
+    console.log(`[quotes] Quote approved: booking=${bookingId} quote=GHS${jobQuote} credit=GHS${calloutCredit} escrowed=GHS${escrowAmount}`);
+    return { success: true, jobQuote, calloutCredit, escrowAmount };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -191,7 +250,10 @@ async function approveJobQuote(auth, { bookingId }) {
 //
 // Called by: customer app
 // Payload: { bookingId, reason? }
-// Artisan is notified and can resubmit a new quote.
+// SINGLE REVISION RULE:
+//   1st rejection → artisan may submit exactly ONE revised quote
+//   2nd rejection → FINAL: booking cancelled. Inspection track: callout escrow
+//                   released to the artisan (the inspection was delivered).
 // ─────────────────────────────────────────────────────────────────────────────
 async function rejectJobQuote(auth, { bookingId, reason = '' }) {
     if (!bookingId) throw new Error('bookingId is required.');
@@ -200,45 +262,91 @@ async function rejectJobQuote(auth, { bookingId, reason = '' }) {
     const bookingSnap = await bookingRef.get();
     if (!bookingSnap.exists) throw new Error('Booking not found.');
 
-    const booking = bookingSnap.data();
+    const preBooking = bookingSnap.data();
 
-    if (booking.customerId !== auth.uid) throw new Error('Not authorised for this booking.');
-    if (booking.status !== 'quoted')     throw new Error(`Cannot reject — booking is ${booking.status}.`);
+    if (preBooking.customerId !== auth.uid) throw new Error('Not authorised for this booking.');
+    if (preBooking.status !== 'quoted')     throw new Error(`Cannot reject — booking is ${preBooking.status}.`);
 
-    const prevQuote = booking.jobQuote;
+    const prevQuote  = preBooking.jobQuote;
+    const rejections = Number(preBooking.quoteRevisionCount || 0);
+    const cleanReason = reason.trim().slice(0, 300);
 
-    // ── Revert to accepted so artisan can resubmit ───────────────────────────
-    await bookingRef.update({
-        status:           'accepted',
-        quoteApproved:    false,
-        quoteRejectedAt:  new Date().toISOString(),
-        quoteRejectionReason: reason.trim().slice(0, 300),
-        // Clear the old quote so artisan starts fresh
-        jobQuote:         FieldValue.delete(),
-        labourCost:       FieldValue.delete(),
-        materials:        FieldValue.delete(),
-        materialsCost:    FieldValue.delete(),
-        hasMaterials:     FieldValue.delete(),
-        quoteNote:        FieldValue.delete(),
-        quoteSubmittedAt: FieldValue.delete(),
-        artisanEarns:     FieldValue.delete(),
-        platformFee:      FieldValue.delete(),
-        updatedAt:        FieldValue.serverTimestamp(),
+    // ── 2nd rejection — FINAL. No bargaining loops. ──────────────────────────
+    if (rejections >= 1) {
+        // Claim quoted → cancelled atomically BEFORE settling the callout (F4),
+        // so a concurrent approve cannot also fire. settleCallout is idempotent.
+        const booking = await claimBookingTransition(bookingRef, {
+            authUid: auth.uid,
+            party:   'customer',
+            fromStatuses: ['quoted'],
+            patch: {
+                status:               'cancelled',
+                quoteApproved:        false,
+                quoteRejectedAt:      new Date().toISOString(),
+                quoteRejectionReason: cleanReason,
+                cancellationReason:   'quote_rejected_final',
+                cancelledBy:          'customer',
+                cancelledAt:          new Date().toISOString(),
+            },
+        });
+
+        if (booking.track === 'inspection' && booking.calloutPaid) {
+            const pricing = require('./pricing');
+            await pricing.settleCallout(booking, bookingId, 'artisan', 'quote_rejected_final');
+        }
+
+        await sendArtisanNotification(booking.artisanId, {
+            type:      'Bookings',
+            title:     'Quote Declined — Booking Closed',
+            message:   `The customer declined your revised quote of GHS ${prevQuote}. The booking is closed${booking.calloutPaid ? ' and the callout fee has been released to you' : ''}.`,
+            actionUrl: 'jobs.html',
+            bookingId,
+        }).catch(() => {});
+
+        console.log(`[quotes] Quote FINAL-rejected: booking=${bookingId} prevQuote=GHS${prevQuote}`);
+        return { success: true, final: true };
+    }
+
+    // ── 1st rejection — revert so artisan can submit ONE revision ────────────
+    // Claim quoted → revertTo atomically (F4): no money moves on a first
+    // rejection, but this still prevents a concurrent approve from firing.
+    const revertTo = preBooking.track === 'inspection' ? 'inspection_done' : 'accepted';
+    const booking = await claimBookingTransition(bookingRef, {
+        authUid: auth.uid,
+        party:   'customer',
+        fromStatuses: ['quoted'],
+        patch: {
+            status:             revertTo,
+            quoteApproved:      false,
+            quoteRevisionCount: rejections + 1,
+            quoteRejectedAt:    new Date().toISOString(),
+            quoteRejectionReason: cleanReason,
+            // Clear the old quote so artisan starts fresh
+            jobQuote:         FieldValue.delete(),
+            labourCost:       FieldValue.delete(),
+            materials:        FieldValue.delete(),
+            materialsCost:    FieldValue.delete(),
+            hasMaterials:     FieldValue.delete(),
+            quoteNote:        FieldValue.delete(),
+            quoteSubmittedAt: FieldValue.delete(),
+            artisanEarns:     FieldValue.delete(),
+            platformFee:      FieldValue.delete(),
+        },
     });
 
     // ── Notify artisan ───────────────────────────────────────────────────────
     await sendArtisanNotification(booking.artisanId, {
         type:      'Bookings',
-        title:     'Quote Rejected',
+        title:     'Quote Rejected — One Revision Left',
         message:   reason
-            ? `Customer rejected your GHS ${prevQuote} quote: "${reason}". You can submit a new quote.`
-            : `Customer rejected your GHS ${prevQuote} quote. You can submit a revised quote.`,
+            ? `Customer rejected your GHS ${prevQuote} quote: "${cleanReason}". You may submit ONE revised quote.`
+            : `Customer rejected your GHS ${prevQuote} quote. You may submit ONE revised quote.`,
         actionUrl: 'jobs.html',
         bookingId,
     }).catch(() => {});
 
-    console.log(`[quotes] Quote rejected: booking=${bookingId} prevQuote=GHS${prevQuote}`);
-    return { success: true };
+    console.log(`[quotes] Quote rejected (revision 1 allowed): booking=${bookingId} prevQuote=GHS${prevQuote}`);
+    return { success: true, final: false };
 }
 
 module.exports = { submitJobQuote, approveJobQuote, rejectJobQuote };

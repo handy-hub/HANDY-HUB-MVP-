@@ -22,7 +22,7 @@
       padding: 12px 16px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
     }
     .trk-back-btn {
-      width: 36px; height: 36px; border: none; background: #f5f5f5;
+      width: 36px; height: 36px; border: none; background: var(--ui-surface-2);
       border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     .trk-stage-pill {
@@ -97,7 +97,7 @@
     .trk-stage-row.done    .trk-stage-icon { background: var(--ui-primary); }
     .trk-stage-row.current .trk-stage-icon { background: #fff5f5; border: 2px solid #730201; }
     .trk-stage-text { padding-top: 2px; }
-    .trk-stage-name { font-size: 12px; font-weight: 700; color: #333; margin: 0 0 1px; }
+    .trk-stage-name { font-size: 12px; font-weight: 700; color: var(--ui-text); margin: 0 0 1px; }
     .trk-stage-row.done    .trk-stage-name { color: var(--ui-primary); }
     .trk-stage-row.current .trk-stage-name { color: var(--ui-primary); font-weight: 800; }
     .trk-stage-time { font-size: 10px; color: #aaa; margin: 0; }
@@ -624,7 +624,7 @@ window.showTrackingUnavailable = function showTrackingUnavailable() {
       const anchor = (userLat != null && userLng != null) ? [userLat, userLng] : CITY_VIEW;
       L.popup({ closeButton: false, autoClose: false, closeOnClick: false })
         .setLatLng(anchor)
-        .setContent('<div style="font-size:12px;font-weight:600;color:#555;text-align:center;padding:2px 4px;">Live tracking will appear<br>when artisan is en route</div>')
+        .setContent('<div style="font-size:12px;font-weight:600;color:var(--ui-muted);text-align:center;padding:2px 4px;">Live tracking will appear<br>when artisan is en route</div>')
         .openOn(map);
     }
   }
