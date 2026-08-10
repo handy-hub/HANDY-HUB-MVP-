@@ -16,11 +16,16 @@
  *   threshold  {number}  Fraction of sheet height that triggers dismiss (0.38)
  *   velThresh  {number}  Velocity in px/ms that triggers fast-dismiss (0.45)
  *   handleSel  {string}  CSS selector for drag handle within the sheet
+ *   canDismiss {Function} Predicate checked at touchstart. When it returns false
+ *                        the gesture is ignored outright — the sheet never moves,
+ *                        so a sheet can become non-dismissible at runtime (e.g. a
+ *                        payment in flight) without detaching the handler.
  */
 export function attachSwipeDismiss(overlayEl, sheetEl, closeFn, {
   threshold = 0.38,
   velThresh = 0.45,
   handleSel = '[class$="-handle"]',
+  canDismiss = () => true,
 } = {}) {
   const EASE_CLOSE = 'cubic-bezier(0.32, 0.72, 0, 1)';
   const EASE_SNAP  = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -59,6 +64,7 @@ export function attachSwipeDismiss(overlayEl, sheetEl, closeFn, {
 
   function onTouchStart(e) {
     if (state !== 'idle') return;
+    if (!canDismiss()) return;   // locked — leave the gesture to native scrolling
     const touch = e.touches[0];
     const target = document.elementFromPoint(touch.clientX, touch.clientY) || e.target;
     scrollable = findScrollable(target);
@@ -113,8 +119,7 @@ export function attachSwipeDismiss(overlayEl, sheetEl, closeFn, {
     // Fade overlay proportional to drag toward the dismiss threshold
     const dismissPx = sheetEl.offsetHeight * threshold;
     const progress  = Math.max(0, Math.min(1, (yPx - originYpx) / dismissPx));
-    overlayEl.style.transition = 'none';
-    overlayEl.style.opacity    = (1 - progress * 0.85).toFixed(3);
+    overlayEl.style.setProperty('--ui-backdrop-opacity', (1 - progress * 0.85).toFixed(3));
   }
 
   function onTouchEnd() {
@@ -129,8 +134,7 @@ export function attachSwipeDismiss(overlayEl, sheetEl, closeFn, {
       const exitY = sheetEl.offsetHeight + 40;
       sheetEl.style.transition  = `transform 0.30s ${EASE_CLOSE}`;
       applyTransform(exitY);
-      overlayEl.style.transition = 'opacity 0.28s ease';
-      overlayEl.style.opacity    = '0';
+      overlayEl.style.setProperty('--ui-backdrop-opacity', '0');
 
       setTimeout(() => {
         closeFn();
@@ -143,22 +147,20 @@ export function attachSwipeDismiss(overlayEl, sheetEl, closeFn, {
         // closeFn (e.g. background .3s on #pmo-overlay) has time to finish
         // before we restore opacity, preventing a dark-flash artifact.
         setTimeout(() => {
-          overlayEl.style.transition = '';
-          overlayEl.style.opacity   = '';
+          overlayEl.style.removeProperty('--ui-backdrop-opacity');
         }, 380);
       }, 310);
     } else {
       // ── Snap back with spring ──
       sheetEl.style.transition  = `transform 0.42s ${EASE_SNAP}`;
       applyTransform(originYpx);
-      overlayEl.style.transition = 'opacity 0.32s ease';
-      overlayEl.style.opacity    = '1';
+      overlayEl.style.setProperty('--ui-backdrop-opacity', '1');
 
       // Clear inline styles after spring completes (safety timeout as fallback)
       const clear = () => {
         sheetEl.style.transition = '';
         sheetEl.style.transform  = '';
-        overlayEl.style.transition = '';
+        overlayEl.style.removeProperty('--ui-backdrop-opacity');
       };
       const timer = setTimeout(clear, 480);
       sheetEl.addEventListener('transitionend', () => { clearTimeout(timer); clear(); },

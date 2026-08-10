@@ -508,8 +508,18 @@ function callArtisan() {
 (function enforceTrackingGate() {
   try {
     const b = window.HH_State ? window.HH_State.booking.get() : {};
-    const gatedStatuses = ['accepted', 'en_route', 'in_progress', 'awaiting', 'completed'];
-    window._trkNoActiveBooking = !gatedStatuses.includes((b.status || '').toLowerCase());
+    const st = (b.status || '').toLowerCase();
+    // This is a classic (non-module) script and cannot import the shared status
+    // vocabulary, so it must stay PERMISSIVE: it only suppresses the UI for
+    // statuses that are unambiguously not trackable. Anything else (quoted,
+    // disputed, inspection_*) is left alone for the authoritative module gate
+    // below, which uses bookingStatusMeta + the routing contract and will either
+    // render, redirect, or show the empty state. Previously this list was the
+    // same narrow allowlist as the module gate, so a live `quoted`/inspection
+    // booking flashed "no active booking" before the real check ran.
+    const notTrackable = ['', 'cancelled', 'rejected', 'unfulfilled', 'pending',
+                          'dispatching', 'searching', 'dispatched', 'assigned'];
+    window._trkNoActiveBooking = notTrackable.includes(st);
   } catch (_) {
     window._trkNoActiveBooking = true;
   }
@@ -684,6 +694,8 @@ if (window._trkNoActiveBooking) {
   import { requireAuth }     from '../shared/js/utils/authGuard.js';
   import { getAppContainer } from '../shared/js/app/container.js';
   import { getHaversineDistanceKm, estimateEtaMinutes } from '../shared/js/utils/geo.js';
+  import { describe }        from '../shared/js/domain/bookingStatusMeta.js';
+  import { bookingHref }     from '../shared/js/domain/bookingRouter.js';
 
   await requireAuth();
   const { services: { databaseService } } = getAppContainer();
@@ -705,12 +717,34 @@ if (window._trkNoActiveBooking) {
           resolve(s);
         }, reject);
       });
-      const _allowed = ['accepted', 'en_route', 'in_progress', 'awaiting', 'completed'];
-      if (_snap?.data && !_allowed.includes(_snap.data.status)) {
-        if (typeof window.showNoBookingEmptyState === 'function') {
-          window.showNoBookingEmptyState();
+      // ── Status gate via the single source of truth ────────────────────────
+      // This page renders the EXECUTION stages (accepted → en_route → in_progress
+      // → awaiting → completed). It previously hardcoded that list, so a booking
+      // that was genuinely live but in another phase — `quoted`, `disputed`, or any
+      // inspection-track status — fell through to "no active booking" while the
+      // bookings list simultaneously showed it as active. That contradiction is
+      // the bug. Now:
+      //   • trackable here (ongoing execution / completed) → proceed
+      //   • live, but belongs on another screen (quote decision, inspection
+      //     console) → REDIRECT to its canonical home via the routing contract,
+      //     instead of lying that there is no booking
+      //   • genuinely nothing to track (cancelled/unfulfilled/still matching) →
+      //     show the empty state
+      const _b = _snap?.data;
+      if (_b) {
+        const _meta = describe(_b, 'customer');
+        const _href = bookingHref({ ..._b, id: _bookingId, bookingId: _bookingId });
+        const _trackableHere = _href.startsWith('live-tracking') || _meta.key === 'completed';
+
+        if (!_trackableHere) {
+          _setupAborted = true;  // C1: flag instead of return
+          if (!_meta.isTerminal && _meta.group === 'ongoing') {
+            // Live booking whose controls live elsewhere — send them there.
+            window.location.replace(_href);
+          } else if (typeof window.showNoBookingEmptyState === 'function') {
+            window.showNoBookingEmptyState();
+          }
         }
-        _setupAborted = true;  // C1: flag instead of return
       }
     } catch (e) {
       // Firestore error — fall through and let the local gate stand

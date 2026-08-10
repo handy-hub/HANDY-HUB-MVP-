@@ -15,8 +15,13 @@
 
 import { getToken, onMessage }   from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js';
 import { doc, updateDoc }        from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { firebaseMessaging, firebaseDb } from '../backend/providers/firebase/firebaseConfig.js';
+// Keep push optional during rolling deployments. An older cached config module
+// may not expose firebaseMessaging yet; that must not stop the dashboard graph.
+import * as firebaseConfig from '../backend/providers/firebase/firebaseConfig.js';
 import { FCM_VAPID_KEY }         from '../config/appConfig.js';
+
+const { firebaseDb } = firebaseConfig;
+const firebaseMessaging = firebaseConfig.firebaseMessaging ?? null;
 
 let _initialized = false;
 

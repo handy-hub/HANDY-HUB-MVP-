@@ -478,3 +478,10 @@ body {
 [data-theme="dark"] body { background: var(--ds-bg); }
 [data-theme="dark"] .wallet-card { border: 1px solid var(--ds-line); }
 [data-theme="dark"] .icon-btn svg { stroke: var(--ds-ink-2); }
+/* Some artisan pages load dashboard.css without design-system.css. */
+a,
+a:hover,
+a:focus,
+a:active {
+  text-decoration: none !important;
+}

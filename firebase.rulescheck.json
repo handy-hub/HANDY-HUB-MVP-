@@ -1,0 +1,15 @@
+{
+  "firestore": [
+    {
+      "database": "(default)",
+      "rules": "firestore.rules",
+      "indexes": "firestore.indexes.json"
+    }
+  ],
+  "emulators": {
+    "auth": { "port": 9299 },
+    "firestore": { "port": 8199 },
+    "ui": { "enabled": false },
+    "hub": { "port": 4499 }
+  }
+}

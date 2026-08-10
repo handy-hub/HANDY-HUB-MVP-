@@ -501,8 +501,8 @@
 <script type="module">
 import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
-import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
-import { uploadImage, UPLOAD_PRESETS } from '../shared/js/services/cloudinaryService.js';
+import { requireArtisanAuth, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
+import { replaceProfilePhoto } from '../shared/js/services/profilePhotoService.js';
 
 // Onboarding is accessible to ALL artisans regardless of KYC status,
 // including pending and rejected — this IS the KYC submission page.
@@ -789,15 +789,7 @@ async function submitApplication() {
     let selfiePublicId = null;
     let selfieVersion  = null;
     if (uploadedFiles.selfie?.file) {
-      // Unique id per upload — the hh_profiles unsigned upload preset cannot
-      // set `overwrite` (Cloudinary rejects it on unsigned presets), so a
-      // resubmission (e.g. after requestMoreInfo) reusing the same public_id
-      // would silently keep the original selfie instead of the new one.
-      const selfieResult = await uploadImage(
-        uploadedFiles.selfie.file,
-        UPLOAD_PRESETS.profile,
-        { publicId: `artisans/${uid}/${Date.now()}` }
-      );
+      const selfieResult = await replaceProfilePhoto(uploadedFiles.selfie.file, 'artisan');
       selfiePublicId = selfieResult.publicId;
       selfieVersion  = selfieResult.version;
     }
@@ -869,8 +861,16 @@ async function submitApplication() {
       gpsAddress:       gps,
       emergencyContact: { name: emergName, phone: emergPhone },
       // Profile & skills
-      profileImageId:      selfiePublicId || null,
-      profileImageVersion: selfieVersion  || null,
+      // The profile photo is written authoritatively SERVER-side by the commit
+      // inside replaceProfilePhoto(); only mirror it when a NEW selfie was
+      // uploaded in this submission. Never write null here: on a resubmit
+      // (e.g. after a rejection) where the artisan doesn't re-pick a selfie,
+      // `merge: true` would write null over their existing photo — wiping it and
+      // orphaning the Cloudinary asset, which nothing would ever clean up.
+      ...(selfiePublicId ? {
+        profileImageId:      selfiePublicId,
+        profileImageVersion: selfieVersion,
+      } : {}),
       category,
       specialty:        category,
       skills:           [...selectedSkills],
@@ -939,7 +939,7 @@ async function submitApplication() {
 }
 
 // ── Auth bootstrap ─────────────────────────────────────
-authService.subscribeToAuthState(user => {
+subscribeToArtisanAuthState(user => {
   if (!user) { window.location.href = 'login.html'; return; }
   uid = user.uid;
 

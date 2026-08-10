@@ -51,7 +51,14 @@
 
     <!-- Conversation list -->
     <div class="ms-conv-list" id="ms-conv-list">
-      <div class="ms-empty"><p class="ms-empty-title">Loading…</p></div>
+      <div class="ms-skeleton-list" role="status" aria-live="polite" aria-label="Loading conversations">
+        <span class="ms-skeleton-sr">Loading your conversations</span>
+        <div class="ms-skeleton-row" aria-hidden="true"><span class="ms-skeleton-avatar"></span><span class="ms-skeleton-copy"><span class="ms-skeleton-line name"></span><span class="ms-skeleton-line preview wide"></span></span><span class="ms-skeleton-meta"><span class="ms-skeleton-line time"></span><span class="ms-skeleton-unread"></span></span></div>
+        <div class="ms-skeleton-row" aria-hidden="true"><span class="ms-skeleton-avatar"></span><span class="ms-skeleton-copy"><span class="ms-skeleton-line name short"></span><span class="ms-skeleton-line preview"></span></span><span class="ms-skeleton-meta"><span class="ms-skeleton-line time"></span></span></div>
+        <div class="ms-skeleton-row" aria-hidden="true"><span class="ms-skeleton-avatar"></span><span class="ms-skeleton-copy"><span class="ms-skeleton-line name"></span><span class="ms-skeleton-line preview short"></span></span><span class="ms-skeleton-meta"><span class="ms-skeleton-line time"></span><span class="ms-skeleton-unread"></span></span></div>
+        <div class="ms-skeleton-row" aria-hidden="true"><span class="ms-skeleton-avatar"></span><span class="ms-skeleton-copy"><span class="ms-skeleton-line name short"></span><span class="ms-skeleton-line preview wide"></span></span><span class="ms-skeleton-meta"><span class="ms-skeleton-line time"></span></span></div>
+        <div class="ms-skeleton-row" aria-hidden="true"><span class="ms-skeleton-avatar"></span><span class="ms-skeleton-copy"><span class="ms-skeleton-line name"></span><span class="ms-skeleton-line preview"></span></span><span class="ms-skeleton-meta"><span class="ms-skeleton-line time"></span></span></div>
+      </div>
     </div>
 
   </div><!-- end ms-list-view -->

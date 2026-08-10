@@ -9,6 +9,9 @@ import { initiatePayment } from '../../../shared/js/services/paystackService.js'
 import { createNotification } from '../../../shared/js/services/notificationRepository.js';
 import { PLATFORM_CONFIG } from '../../../shared/js/config/appConfig.js';
 import { formatGHS } from '../../../shared/js/utils/currency.js';
+import { openSecurityPinSheet } from '../../../shared/js/components/securityPinSheet.js';
+import { openFinancialAuthorizationSheet } from '../../../shared/js/components/financialAuthorizationSheet.js';
+import { setSecurityPin, pinErrorMessage } from '../../../shared/js/services/securityPinService.js';
 
 // Minimum top-up the UI will allow (mirrors the server-side MIN_TOPUP enforcement).
 const MIN_TOPUP_GHS = PLATFORM_CONFIG?.minTopupGHS ?? 1;
@@ -95,6 +98,12 @@ let currentBalance   = 0;   // live wallet balance — updated by the Firestore 
 let waitingForCredit = false;
 let expectedCredit   = 0;
 let preTopupBalance  = 0; // wallet balance snapshotted when Confirm is clicked
+
+// Security PIN state — SERVER-written metadata mirrored from customers/{uid}
+// (securityPinConfigured). null = customer doc not loaded yet. The client can
+// only READ this flag (isSafeCustomerProfileUpdate excludes it), so it can't
+// be forged from the frontend; real enforcement is server-side at charge time.
+let pinConfigured = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 // Currency formatting centralised in shared/js/utils/currency.js (GHS).
@@ -266,7 +275,19 @@ addSaveBtn.addEventListener('click', async () => {
     }
 });
 
-// ── Confirm top up (Paystack flow) ────────────────────────────────────────────
+// ── Confirm top up → Handy Hub Security PIN sheet ─────────────────────────────
+// The internal payment experience starts here: pressing Top Up opens the
+// Security PIN sheet (shared/js/components/securityPinSheet.js) on THIS page —
+// no redirect, no Paystack popup, no OS keyboard. This phase captures the PIN
+// UX only; the next phase sends { amount, paymentMethodId, pin } to the
+// initiateTopupCharge Cloud Function, which verifies the PIN server-side and
+// starts the Mobile Money charge. The popup checkout (launchPaystackPopup,
+// below) is retained until that server path ships — and is intentionally
+// unreachable meanwhile: with live Paystack keys and the wallet webhook not
+// yet deployed, a popup charge would take real money without crediting the
+// wallet.
+const USE_LEGACY_PAYSTACK_POPUP = false;
+
 confirmBtn.addEventListener('click', async () => {
     const amount = parseFloat(amountInput.value);
     if (!Number.isFinite(amount) || amount < MIN_TOPUP_GHS) {
@@ -274,6 +295,138 @@ confirmBtn.addEventListener('click', async () => {
         return;
     }
 
+    if (USE_LEGACY_PAYSTACK_POPUP) { launchPaystackPopup(amount); return; }
+
+    // ── Smart routing: the SYSTEM decides Enter vs Create from real backend
+    // state — the customer is never asked to choose. pinConfigured mirrors the
+    // live customer doc, so this stays SYNCHRONOUS: opening the sheet inside this
+    // gesture is what lets the system keyboard appear instantly. Awaiting a read
+    // here would push the sheet into a later task and cost the keyboard on iOS.
+    if (pinConfigured !== null) {
+        if (pinConfigured) openEnterPinFlow(amount);
+        else               openCreatePinFlow(amount);
+        return;
+    }
+
+    // Cold start only: the customer doc hasn't arrived yet. The keyboard can't be
+    // raised from a post-await task, so don't pretend — resolve the flag, then
+    // open. The entry is still tappable to raise it.
+    try {
+        const snap = await databaseService.getDocument('customers', currentUid);
+        if (snap?.exists && snap.data?.securityPinConfigured) openEnterPinFlow(amount);
+        else                                                  openCreatePinFlow(amount);
+    } catch (_) {
+        showToast('Unable to verify your PIN right now. Please try again.', 'error');
+    }
+});
+
+// ── Enter-PIN flow (PIN already configured) ───────────────────────────────────
+function openEnterPinFlow(amount) {
+    openSecurityPinSheet({
+        mode:         'enter',
+        title:        'Enter your PIN',
+        message:      'Enter your 4-digit Handy Hub Security PIN to confirm this top-up. This is not your Mobile Money PIN.',
+        context:      `Top-up · ${formatGHC(amount)}`,
+        confirmLabel: 'Confirm Top Up',
+        onConfirm: (_pin, controls) => {
+            // Integration boundary — PIN verification is deliberately NOT a
+            // standalone endpoint (it would be a brute-force oracle); it runs
+            // inside the trusted initiateTopupCharge call in the next phase.
+            // No fake success, no charge, nothing stored or logged.
+            controls.setBusy(true);
+            proceedToPaymentBoundary(amount, controls);
+        },
+        onForgot: (controls) => {
+            controls.close('forgot');
+            sessionStorage.setItem('pageTransitionDirection', 'forward');
+            window.location.href = 'settings-security.html';
+        },
+        // Dismissing costs the user nothing: the amount and selected account
+        // live on the page underneath and are left untouched.
+    });
+}
+
+// ── First-time Create-PIN flow (no PIN configured yet) ────────────────────────
+function openCreatePinFlow(amount) {
+    openSecurityPinSheet({
+        mode:    'create',
+        context: `Top-up · ${formatGHC(amount)}`,
+        onCreate: async (pin, controls) => {
+            controls.setBusy(true);
+            try {
+                await setSecurityPin(pin);   // real create — scrypt-hashed server-side
+                pinConfigured = true;
+                showToast('Security PIN created.', 'success');
+                // The PIN the customer just set authorises THIS top-up — never
+                // ask them to re-enter it immediately.
+                proceedToPaymentBoundary(amount, controls);
+            } catch (err) {
+                if (String(err?.code || '').includes('already-exists')) {
+                    // Metadata lagged behind the protected record — heal locally
+                    // and continue through the Enter flow instead of failing.
+                    pinConfigured = true;
+                    controls.close('created');
+                    showToast(pinErrorMessage(err), 'info');
+                    openEnterPinFlow(amount);
+                    return;
+                }
+                controls.showError(pinErrorMessage(err));
+            }
+        },
+    });
+}
+
+// ── Authorization step — the PIN sheet MORPHS into this ───────────────────────
+// The customer never leaves this page, and the sheet never leaves the screen:
+// the Security PIN step hands its shell over and the content swaps in place, so
+// this reads as one continuous financial journey rather than two unrelated
+// modals. The entered amount and selected account sit untouched underneath.
+//
+// PHASE 3 wires the real charge here — initiateTopupCharge({ amount,
+// paymentMethodId, pin }), with PIN verification, lockout, amount limits and
+// dedupe all enforced server-side — then a payments/{id} subscription drives
+// api.setState('approved' | 'confirmed' | 'failed'). Until that Cloud Function
+// is deployed nothing resolves the authorization, so the timeout below settles
+// it honestly: no charge is made, and success is never faked.
+const AUTH_TIMEOUT_MS = 90_000;
+
+function proceedToPaymentBoundary(amount, controls) {
+    const acc           = savedAccounts.find(a => a.id === selectedAccount) || null;
+    const provider      = acc?.data?.provider || '';
+    const providerLabel = PROVIDER_META[provider]?.label || provider || 'Mobile Money';
+    const phone         = acc?.data?.phone ? maskPhone(acc.data.phone) : '';
+
+    // The PIN step stops its idle timer, drops its listeners and wipes its
+    // secrets, then gives up the shell — without closing it.
+    controls.release();
+
+    let timer = null;
+    openFinancialAuthorizationSheet({
+        sheet:    controls.sheet,        // ← morph this shell, don't open a second sheet
+        state:    'waiting',
+        amount:   formatGHC(amount),
+        provider: providerLabel,
+        phone,
+        onCancel(api) {
+            clearTimeout(timer);
+            api.setState('cancelled');
+            setTimeout(() => api.close('cancelled'), 650);
+        },
+        onRetry(api) {
+            clearTimeout(timer);
+            api.close('retry');
+            openEnterPinFlow(amount);    // amount survives — page state is intact
+        },
+        onClose() { clearTimeout(timer); },
+    }).then((api) => {
+        timer = setTimeout(() => {
+            if (api.getState() === 'waiting') api.setState('timed_out');
+        }, AUTH_TIMEOUT_MS);
+    });
+}
+
+// ── Legacy Paystack popup checkout (superseded — see flag above) ──────────────
+async function launchPaystackPopup(amount) {
     // Snapshot balance before opening payment so we can detect the webhook credit later.
     preTopupBalance = currentBalance;
 
@@ -363,7 +516,7 @@ confirmBtn.addEventListener('click', async () => {
         showToast(err.message || 'Could not open payment. Try again.', 'error');
         resetBtn();
     }
-});
+}
 
 // ── Success screen ────────────────────────────────────────────────────────────
 function showSuccess({ amount, provider, phone, paystackRef }) {
@@ -451,6 +604,10 @@ authService.subscribeToAuthState(user => {
         const balance  = Number(snap.data.walletBalance  || 0);
         const inEscrow = Number(snap.data.escrowBalance   || 0);
 
+        // Smart PIN routing input — kept live so the Top Up button always knows
+        // whether to open Enter-PIN or first-time Create-PIN.
+        pinConfigured = Boolean(snap.data.securityPinConfigured);
+
         // Keep module-level mirror so the confirm handler can snapshot it as a baseline.
         currentBalance = balance;
 
@@ -498,4 +655,3 @@ authService.subscribeToAuthState(user => {
         err => console.error('Accounts error:', err)
     );
 });
-

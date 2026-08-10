@@ -1,88 +1,66 @@
-/**
- * errorCopy.js — turn raw errors into friendly, actionable user copy.
- *
- * The booking flow surfaced errors with `showToast(err.message)`, which at a
- * payment moment could display the literal word "internal" (a Firebase callable
- * error code) — a trust-destroying, non-actionable message. This module maps
- * error shapes to human copy so users never see a raw code.
- *
- * Strategy:
- *   1. If the app deliberately threw an Error with a human sentence (our Cloud
- *      Functions do — "This pricing quote has expired…"), pass it through: it is
- *      already the right message for the user.
- *   2. If it is a Firebase callable/SDK error (err.code like "functions/internal",
- *      "auth/…", "resource-exhausted"), map the code to friendly copy.
- *   3. Otherwise fall back to a safe generic message.
- *
- * No imports — evaluates in every browser context.
- */
+/** Central user-safe error classification and diagnostic logging. */
 
-// Friendly copy per Firebase error code (bare code or `functions/<code>` form).
-const CODE_COPY = {
-    'internal':            'Something went wrong on our end. Please try again in a moment.',
-    'unavailable':         'We can’t reach the server right now. Check your connection and try again.',
-    'deadline-exceeded':   'That took too long. Please try again.',
-    'unauthenticated':     'Your session expired. Please sign in again.',
-    'permission-denied':   'You don’t have permission to do that.',
-    'resource-exhausted':  'You’re doing that a bit too often. Please wait a moment and try again.',
-    'not-found':           'We couldn’t find that. It may have been removed.',
-    'already-exists':      'That already exists.',
-    'failed-precondition': 'This can’t be done right now. Please refresh and try again.',
-    'invalid-argument':    'Some details look off. Please check and try again.',
-    'cancelled':           'That was cancelled.',
-    'unknown':             'Something went wrong. Please try again.',
-    // Auth-specific
-    'auth/network-request-failed': 'Network problem. Check your connection and try again.',
-    'auth/too-many-requests':      'Too many attempts. Please wait a moment and try again.',
-    'auth/user-not-found':         'No account found with those details.',
-    'auth/wrong-password':         'Incorrect email or password.',
-    'auth/invalid-email':          'That email address doesn’t look right.',
-    // App-specific
-    'rate-limited':        'You’re doing that a bit too often. Please wait a moment and try again.',
+const COPY = {
+  offline:      { title: 'You’re offline', message: 'Check your internet connection and try again.', actionLabel: 'Retry' },
+  timeout:      { title: 'This is taking longer than expected', message: 'The request could not be completed in time. Please try again.', actionLabel: 'Retry' },
+  unavailable:  { title: 'We couldn’t load this right now', message: 'Our service is temporarily unavailable. Please try again shortly.', actionLabel: 'Retry' },
+  unauthorized: { title: 'Please sign in again', message: 'Your session has expired. Sign in to continue.', actionLabel: 'Sign In' },
+  forbidden:    { title: 'You can’t access this information', message: 'This content is not available for your account.', actionLabel: 'Go Back' },
+  notFound:     { title: 'We couldn’t find what you’re looking for', message: 'It may have been removed, changed, or is no longer available.', actionLabel: 'Go Back' },
+  invalid:      { title: 'Check the details', message: 'Some information is missing or invalid. Review it and try again.', actionLabel: 'Review' },
+  rateLimited:  { title: 'Please wait a moment', message: 'There have been too many attempts. Try again shortly.', actionLabel: 'Try Again' },
+  conflict:     { title: 'That has already been updated', message: 'Refresh the page to see the latest information.', actionLabel: 'Refresh' },
+  cancelled:    { title: 'The request was cancelled', message: 'No changes were made.', actionLabel: null },
+  failure:      { title: 'We couldn’t complete that', message: 'Please try again. If the problem continues, contact support.', actionLabel: 'Retry' },
 };
 
-const GENERIC = 'Something went wrong. Please try again.';
+const CONTEXT_COPY = {
+  'booking-create': { title: 'We couldn’t create your booking', message: 'No booking was submitted. Please review the details and try again.', actionLabel: 'Try Again' },
+  profile:          { title: 'We couldn’t load your profile', message: 'Your account is still safe. Please retry or refresh the page.', actionLabel: 'Retry' },
+  tracking:         { title: 'Live location is temporarily unavailable', message: 'Please retry while we reconnect.', actionLabel: 'Retry' },
+  upload:           { title: 'We couldn’t upload that file', message: 'Check your connection and file, then try again.', actionLabel: 'Try Again' },
+  message:          { title: 'Your message wasn’t sent', message: 'Check your connection and try sending it again.', actionLabel: 'Try Again' },
+  // Payment state is uncertain unless a backend response explicitly proves it.
+  payment:          { title: 'We couldn’t confirm your payment', message: 'Your payment status may still be updating. Do not pay again yet. Check your transactions before retrying.', actionLabel: 'View Transactions' },
+};
 
-// Bare Firebase error codes are short kebab tokens with no spaces/punctuation
-// (e.g. "internal", "unavailable"). Our own thrown messages are full sentences.
-// This distinguishes a leaked code from a human message.
-function looksLikeRawCode(msg) {
-    if (!msg) return true;
-    const m = String(msg).trim();
-    // A human sentence has a space or ends with punctuation; a raw code doesn't.
-    return !/\s/.test(m) && m.length <= 24;
+function normalizedCode(error) {
+  const raw = String(error?.code || error?.name || '').toLowerCase();
+  return raw.replace(/^firebase(error)?:\s*/i, '').replace(/^functions\//, '').replace(/^firestore\//, '');
 }
 
-function normalizeCode(code) {
-    if (!code) return null;
-    const c = String(code).toLowerCase();
-    return c.startsWith('functions/') ? c.slice('functions/'.length) : c;
+export function classifyError(error, { context = 'general', online = typeof navigator === 'undefined' ? true : navigator.onLine } = {}) {
+  const code = normalizedCode(error);
+  let kind = 'failure';
+  if (!online || code.includes('network-request-failed')) kind = 'offline';
+  else if (code.includes('deadline-exceeded') || code.includes('timeout')) kind = 'timeout';
+  else if (code.includes('unavailable') || code === 'internal' || code.endsWith('/internal')) kind = 'unavailable';
+  else if (code.includes('unauthenticated') || code.includes('user-token-expired')) kind = 'unauthorized';
+  else if (code.includes('permission-denied')) kind = 'forbidden';
+  else if (code.includes('not-found') || code.includes('user-not-found')) kind = 'notFound';
+  else if (code.includes('invalid-argument') || code.includes('invalid-email') || code.includes('wrong-password')) kind = 'invalid';
+  else if (code.includes('resource-exhausted') || code.includes('too-many-requests') || code.includes('rate-limit')) kind = 'rateLimited';
+  else if (code.includes('already-exists') || code.includes('aborted')) kind = 'conflict';
+  else if (code.includes('cancelled') || code.includes('popup-closed')) kind = 'cancelled';
+
+  const base = kind === 'failure' && CONTEXT_COPY[context] ? CONTEXT_COPY[context] : COPY[kind];
+  return { kind, context, code: code || 'unknown', ...base };
 }
 
-/**
- * @param {unknown} err  the caught error
- * @param {string} [fallback]  message to use if nothing better is found
- * @returns {string} user-facing copy — never a bare code
- */
-export function mapError(err, fallback = GENERIC) {
-    if (!err) return fallback;
+export function reportError(error, { context = 'general', operation = 'unknown', metadata = {} } = {}) {
+  const safeMetadata = Object.fromEntries(Object.entries(metadata).filter(([key]) =>
+    !/token|password|secret|otp|card|address|phone|email/i.test(key)));
+  const diagnostic = {
+    timestamp: new Date().toISOString(), context, operation,
+    code: normalizedCode(error) || 'unknown', message: String(error?.message || error || '').slice(0, 300),
+    metadata: safeMetadata,
+  };
+  console.error('[HandyHub]', diagnostic);
+  return classifyError(error, { context });
+}
 
-    // 1. Known code → friendly copy (checked first: "internal" must never leak).
-    const code = normalizeCode(err.code);
-    if (code && CODE_COPY[code]) return CODE_COPY[code];
-
-    // 2. A deliberate, human-readable message from our own code → pass through.
-    const msg = err.message || err.reason || (typeof err === 'string' ? err : '');
-    if (msg && !looksLikeRawCode(msg)) {
-        // Guard: some SDKs put the code in the message ("internal", "INTERNAL").
-        const asCode = normalizeCode(msg);
-        if (CODE_COPY[asCode]) return CODE_COPY[asCode];
-        return msg;
-    }
-
-    // 3. Message was itself a bare code we recognise.
-    const msgCode = normalizeCode(msg);
-    if (msgCode && CODE_COPY[msgCode]) return CODE_COPY[msgCode];
-
-    return fallback;
+/** Back-compatible string API used by existing toast call sites. */
+export function mapError(error, fallback = '') {
+  const mapped = classifyError(error);
+  return mapped.message || fallback || COPY.failure.message;
 }

@@ -74,6 +74,36 @@ body {
 }
 .ms-conv-list::-webkit-scrollbar { display: none; }
 
+/* Conversation-list loading skeleton mirrors the final row geometry. */
+.ms-skeleton-list { width: 100%; }
+.ms-skeleton-row {
+  display: flex; align-items: center; gap: var(--ui-3, 12px);
+  min-height: 82px; padding: 14px 18px; border-bottom: 1px solid var(--ui-surface-2);
+}
+.ms-skeleton-avatar, .ms-skeleton-line, .ms-skeleton-unread {
+  display: block;
+  background: linear-gradient(100deg, var(--ui-surface-2) 20%, var(--ui-surface) 40%, var(--ui-surface-2) 60%);
+  background-size: 220% 100%;
+  animation: msSkeletonShimmer 1.35s var(--ui-ease-emphasis, ease) infinite;
+}
+.ms-skeleton-avatar { width: 54px; height: 54px; border-radius: var(--ui-radius-pill); flex: 0 0 54px; }
+.ms-skeleton-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: var(--ui-2, 8px); }
+.ms-skeleton-line { height: 11px; border-radius: var(--ui-radius-pill); }
+.ms-skeleton-line.name { width: min(48%, 142px); height: 13px; }
+.ms-skeleton-line.name.short { width: min(34%, 104px); }
+.ms-skeleton-line.preview { width: 72%; }
+.ms-skeleton-line.preview.wide { width: 88%; }
+.ms-skeleton-line.preview.short { width: 52%; }
+.ms-skeleton-meta { display: flex; width: 34px; min-height: 42px; flex: 0 0 34px; flex-direction: column; align-items: flex-end; justify-content: space-between; }
+.ms-skeleton-line.time { width: 30px; height: 9px; }
+.ms-skeleton-unread { width: 20px; height: 20px; border-radius: var(--ui-radius-sm); }
+.ms-skeleton-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@keyframes msSkeletonShimmer { from { background-position: 100% 0; } to { background-position: -120% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-skeleton-avatar, .ms-skeleton-line, .ms-skeleton-unread { animation: none; }
+}
+
 /* Conversation item */
 .ms-conv-item {
   display: flex; align-items: center; gap: 12px;
@@ -335,6 +365,13 @@ html.dark .ms-search-bar input { color: #f0f0f0; }
 html.dark .ms-conv-item { border-color: #1e1e1e; }
 html.dark .ms-conv-item.unread { background: #1a0000; }
 html.dark .ms-conv-item:active { background: #222; }
+html.dark .ms-skeleton-row { border-color: #1e1e1e; }
+html.dark .ms-skeleton-avatar,
+html.dark .ms-skeleton-line,
+html.dark .ms-skeleton-unread {
+  background: linear-gradient(100deg, #232323 20%, #2d2d2d 40%, #232323 60%);
+  background-size: 220% 100%;
+}
 html.dark .ms-conv-name { color: #f0f0f0; }
 html.dark .ms-conv-preview { color: #666; }
 html.dark .ms-conv-item.unread .ms-conv-preview { color: #bbb; }

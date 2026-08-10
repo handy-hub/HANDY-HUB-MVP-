@@ -278,7 +278,7 @@
 import { auth, db }     from './js/firebase-artisan.js';
 import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword,
-  updateProfile, sendPasswordResetEmail,
+  updateProfile, sendPasswordResetEmail, signOut,
   GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { doc, getDoc, setDoc, serverTimestamp }
@@ -306,7 +306,18 @@ onAuthStateChanged(auth, async user => {
   const snap = await getDoc(doc(db, 'artisans', user.uid)).catch(() => null);
 
   if (!snap?.exists()) {
-    // New artisan — no document yet — send to onboarding
+    // No artisan profile for this UID. Before sending to onboarding, confirm this
+    // isn't a CUSTOMER signing into the wrong app. Roles are mutually exclusive:
+    // a customer UID can never create an artisan profile (firestore.rules), so
+    // routing them to onboarding would only dead-end at "Access Denied".
+    const custSnap = await getDoc(doc(db, 'customers', user.uid)).catch(() => null);
+    if (custSnap?.exists()) {
+      await signOut(auth).catch(() => {});
+      showError('This is a customer account. Redirecting you to the Customer app…');
+      setTimeout(() => { location.replace('../customer-app/login.html'); }, 1600);
+      return;
+    }
+    // Genuinely new artisan — no document yet — send to onboarding
     location.replace('onboarding.html');
     return;
   }
@@ -442,6 +453,27 @@ function showFE(eid,iid) { document.getElementById(eid).classList.add('show'); d
 function clearBanners() { ['error-banner','success-banner'].forEach(id=>document.getElementById(id).classList.remove('show')); document.querySelectorAll('.field-error').forEach(e=>e.classList.remove('show')); document.querySelectorAll('.field-input.error').forEach(e=>e.classList.remove('error')); }
 function showError(m) { const b=document.getElementById('error-banner'); b.textContent=m; b.classList.add('show'); }
 function showSuccess(m) { const b=document.getElementById('success-banner'); b.textContent=m; b.classList.add('show'); }
+</script>
+
+<!-- ── Development Access Mode entry point ──────────────────────────────────
+     Renders ONLY when ARTISAN_DEV_ACCESS is on AND the host is local. It is
+     deliberately styled as a dev tool, not a real login, and never appears in
+     production (the guard inside decides). See docs/ARTISAN_DEV_ACCESS.md. -->
+<script type="module">
+  try {
+    const { isArtisanDevAccessEnabled } = await import('../shared/js/config/devAccess.js');
+    if (isArtisanDevAccessEnabled()) {
+      const bar = document.createElement('div');
+      bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:100000;background:#1f2937;border-top:2px dashed #f59e0b;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));text-align:center;font-family:DM Sans,sans-serif;';
+      bar.innerHTML =
+        '<p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.4px;color:#fbbf24;">DEVELOPMENT MODE — bypasses login &amp; onboarding (local only)</p>' +
+        '<button type="button" id="hh-dev-enter" style="width:100%;max-width:430px;height:46px;border:none;border-radius:12px;background:#f59e0b;color:#111827;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;">Enter Artisan Development Mode</button>';
+      document.body.appendChild(bar);
+      document.getElementById('hh-dev-enter').addEventListener('click', () => {
+        window.location.href = 'dashboard.html';
+      });
+    }
+  } catch (_) { /* dev module unavailable → normal login only */ }
 </script>
 </body>
 </html>

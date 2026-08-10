@@ -146,7 +146,6 @@
 
     </div><!-- /scroll-area -->
 
-
     <!-- ── Withdrawal Modal ───────────────────────────────────────────────── -->
     <div id="wd-overlay" class="wd-overlay" aria-hidden="true">
       <div id="wd-sheet" class="wd-sheet">
@@ -466,6 +465,7 @@
     // Cancel the auth-fallback timer — JS modules loaded successfully
     if (window.__txnTimerId) { clearTimeout(window.__txnTimerId); window.__txnTimerId = null; }
     import { showToast }                               from '../shared/js/components/toast.js';
+    import { openSheet }                               from '../shared/js/components/sheet.js';
     import { createPaymentRepository, PROVIDER_META }  from '../shared/js/data/repositories/paymentRepository.js';
     import { initiateWithdrawal }                      from '../shared/js/services/paystackService.js';
 
@@ -559,7 +559,7 @@
             ? `<span class="txn-provider-badge ${escClass(d.provider)}">${providerLabel}${d.phone ? ' · ' + esc(d.phone) : ''}</span>`
             : '';
         return `
-          <div class="txn-item" data-id="${esc(t.id)}">
+          <div class="txn-item" data-id="${esc(t.id)}" role="button" tabindex="0" aria-label="View receipt for ${esc(d.description || 'transaction')}">
             ${icon}
             <div class="txn-details">
               <p class="txn-title">${esc(d.description || 'Transaction')}</p>
@@ -590,6 +590,79 @@
             buildTxnHTML(t) + (i < filtered.length - 1 ? '<div class="txn-divider"></div>' : '')
         ).join('');
     }
+
+    function receiptRow(label, value) {
+        if (value == null || value === '') return null;
+        const row = document.createElement('div');
+        row.className = 'receipt-row';
+        const dt = document.createElement('dt');
+        const dd = document.createElement('dd');
+        dt.textContent = label;
+        dd.textContent = String(value);
+        row.append(dt, dd);
+        return row;
+    }
+
+    async function openReceipt(transaction) {
+        if (!transaction) return;
+        const d = transaction.data || {};
+        const isCredit = d.type === 'topup' || d.type === 'referral';
+        const status = d.status
+            ? d.status.charAt(0).toUpperCase() + d.status.slice(1)
+            : 'Completed';
+
+        const content = document.createElement('div');
+        content.className = 'receipt-content';
+        content.innerHTML = `
+          <div class="receipt-header">
+            <h2 id="receipt-title">Transaction details</h2>
+          </div>
+          <div class="receipt-summary">
+            <span class="receipt-description"></span>
+            <strong class="receipt-amount"></strong>
+            <span class="receipt-status"></span>
+          </div>
+          <dl class="receipt-details"></dl>
+          <button class="receipt-done" type="button">Done</button>`;
+
+        content.querySelector('.receipt-description').textContent = d.description || 'Transaction';
+        content.querySelector('.receipt-amount').textContent = `${isCredit ? '+' : '-'} GHS ${fmtGHC(d.amount || 0)}`;
+        const statusEl = content.querySelector('.receipt-status');
+        statusEl.textContent = status;
+        statusEl.className = `receipt-status ${statusClass(d.status)}`;
+        content.querySelector('.receipt-details').replaceChildren(...[
+            receiptRow('Date & time', fmtDate(d.createdAt)),
+            receiptRow('Transaction type', d.type ? d.type.replace(/_/g, ' ') : 'Transaction'),
+            receiptRow('Provider', PROVIDER_META[d.provider]?.label || d.provider),
+            receiptRow('Phone number', d.phone),
+            receiptRow('Booking ID', d.bookingId),
+            receiptRow('Reference', d.ref),
+            receiptRow('Transaction ID', transaction.id),
+        ].filter(Boolean));
+
+        const handle = await openSheet({
+            id: 'transaction-receipt',
+            content,
+            labelledBy: 'receipt-title',
+            describedBy: '',
+            dismissible: { backdrop: true, swipe: true, escape: true },
+            initialFocus: '.receipt-done',
+        });
+        content.querySelector('.receipt-done').addEventListener('click', () => handle.close('done'));
+    }
+
+    listEl.addEventListener('click', e => {
+        const row = e.target.closest('.txn-item[data-id]');
+        if (!row) return;
+        openReceipt(allTxns.find(t => t.id === row.dataset.id));
+    });
+    listEl.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const row = e.target.closest('.txn-item[data-id]');
+        if (!row) return;
+        e.preventDefault();
+        openReceipt(allTxns.find(t => t.id === row.dataset.id));
+    });
 
     // ── CSV statement download ────────────────────────────────────────────────
     downloadBtn.addEventListener('click', () => {

@@ -1,0 +1,112 @@
+rules_version = '2';
+
+/**
+ * HandyHub â€” Firebase Storage Security Rules
+ *
+ * Buckets / paths:
+ *   artisans/{artisanId}/documents/{file}  â€” KYC photos, ID scans, certificates
+ *   customers/{customerId}/profile/{file}  â€” Profile photos
+ *   shared/{allPaths}                      â€” App assets (read-only for authenticated users)
+ *
+ * Security principles:
+ *   â€¢ Only the owner can WRITE to their own path
+ *   â€¢ Any authenticated user can READ artisan profile photos (needed for browse)
+ *   â€¢ Admins have full access (identified by email â€” Storage rules cannot query Firestore)
+ *   â€¢ Maximum file size: 5 MB
+ *   â€¢ Allowed types: images (JPEG, PNG, WebP, GIF) and PDF
+ */
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // â”€â”€ Helper functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.email in [
+        'silas7korda@gmail.com',
+        'clasceth4traders@gmail.com',
+        'paakumisam@gmail.com'
+      ];
+    }
+
+    function isValidFileSize() {
+      // 5 MB limit
+      return request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    function isValidImageOrPdf() {
+      return request.resource.contentType.matches('image/.*') ||
+             request.resource.contentType == 'application/pdf';
+    }
+
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // â”€â”€ Artisan KYC documents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Selfie, Ghana Card front/back, business registration, certifications
+    match /artisans/{artisanId}/documents/{file} {
+      // Artisan can read their own docs; admins can read all (for KYC review)
+      allow read: if isOwner(artisanId) || isSuperAdmin();
+
+      // Artisan uploads their own docs during onboarding; admins can also upload
+      allow write: if (isOwner(artisanId) || isSuperAdmin()) &&
+                      isValidFileSize() &&
+                      isValidImageOrPdf();
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // â”€â”€ Customer profile photos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    match /customers/{customerId}/profile/{file} {
+      // Profile photos are visible to all signed-in users (needed for artisan-side chat)
+      allow read: if isSignedIn();
+
+      allow write: if isOwner(customerId) &&
+                      isValidFileSize() &&
+                      isValidImage();
+
+      allow delete: if isOwner(customerId) || isSuperAdmin();
+    }
+
+    // â”€â”€ Artisan profile photos (public-facing, shown on browse/search) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    match /artisans/{artisanId}/profile/{file} {
+      allow read: if isSignedIn();
+
+      allow write: if isOwner(artisanId) &&
+                      isValidFileSize() &&
+                      isValidImage();
+
+      allow delete: if isOwner(artisanId) || isSuperAdmin();
+    }
+
+    // â”€â”€ Chat attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    match /chats/{chatId}/attachments/{file} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() &&
+                      isValidFileSize() &&
+                      isValidImageOrPdf();
+      allow delete: if isSuperAdmin();
+    }
+
+    // â”€â”€ Admin uploads (verification documents, platform assets) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    match /admin/{allPaths=**} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // â”€â”€ Deny everything else â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+  }
+}
+

@@ -56,6 +56,39 @@ const aiSearchModule = require('./aiSearch');
 
 // ── Email OTP signup module ──────────────────────────────────────────────────
 const emailOtpModule = require('./emailOtp');
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILE PHOTOS — orphan-free Cloudinary replacement (begin → upload → commit)
+//
+// Cloudinary credentials come from functions/.env via ./config, the same way
+// PAYSTACK_SECRET_KEY, PIN_PEPPER and RESEND_API_KEY do. These previously used
+// defineSecret(), which reads Google Secret Manager — but the values live in
+// .env, Secret Manager had no copy, and Firebase rejects the same key existing
+// as both an env var and a secret, so the deploy could never succeed. Migrating
+// EVERY secret to Secret Manager is a reasonable future step; doing it for one
+// function while four others use .env just fragments the pattern.
+// ─────────────────────────────────────────────────────────────────────────────
+const profilePhotos = require('./profilePhotos');
+
+exports.beginProfilePhotoReplacement = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async request => {
+    _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'beginProfilePhotoReplacement');
+    return profilePhotos.begin(request.auth, request.data);
+});
+
+exports.commitProfilePhotoReplacement = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async request => {
+    _requireAuth(request);
+    return profilePhotos.commit(request.auth, request.data);
+});
+
+exports.abortProfilePhotoReplacement = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async request => {
+    _requireAuth(request);
+    return profilePhotos.abort(request.auth, request.data);
+});
+
+exports.retryProfilePhotoCleanup = onSchedule(
+    { schedule: 'every 30 minutes', region: FUNCTIONS_REGION, timeoutSeconds: 300 },
+    () => profilePhotos.retryCleanup()
+);
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // WEBHOOK  â€”  Paystack â†’ Firebase (public HTTPS endpoint)
@@ -66,6 +99,34 @@ const emailOtpModule = require('./emailOtp');
 exports.paystackWebhook = onRequest(
     { region: FUNCTIONS_REGION, invoker: 'public' },
     (req, res) => webhooks.handlePaystackWebhook(req, res),
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECURITY PIN — account-level credential for financial actions
+//
+// setSecurityPin  (callable — authenticated)
+//   First-time creation of the customer's 4-digit Security PIN. The raw PIN is
+//   scrypt-hashed (per-user salt + env pepper) into payment_security/{uid},
+//   which no client can read; only safe metadata lands on customers/{uid}.
+//   PIN *verification* has NO standalone endpoint by design (brute-force
+//   oracle) — trusted flows call securityPin.verifySecurityPinForCharge()
+//   internally (e.g. the upcoming initiateTopupCharge).
+// ─────────────────────────────────────────────────────────────────────────────
+const securityPin = require('./securityPin');
+
+exports.setSecurityPin = onCall(
+    { region: FUNCTIONS_REGION, timeoutSeconds: 30, memory: '256MiB' },
+    async (request) => {
+        _requireAuth(request);
+        await checkRateLimit(request.auth.uid, 'setSecurityPin');
+        try {
+            return await securityPin.setSecurityPin(request.auth, request.data || {});
+        } catch (err) {
+            if (err instanceof HttpsError) throw err;
+            console.error('[setSecurityPin] Unexpected:', err.message);
+            throw new HttpsError('internal', 'Unable to set up your PIN right now.');
+        }
+    },
 );
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -556,6 +617,38 @@ exports.checkBookingTimeouts = onSchedule(
         await pricingModule.checkBookingTimeouts();
     }
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACCOUNT LIFECYCLE (CX-1)
+//
+// Account deletion is server-authoritative. The old client-only path
+// (reauth → deleteUser) destroyed the Auth identity while leaving wallet funds,
+// held escrow, and PII behind, with no cleanup function anywhere — money simply
+// became unreachable. These callables refuse deletion while the user has money or
+// obligations, then anonymize + delete in a safe order.
+// ─────────────────────────────────────────────────────────────────────────────
+const accountLifecycle = require('./accountLifecycle');
+
+/** Pre-flight: tell the UI whether deletion is possible, and why not. */
+exports.checkAccountDeletable = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async (request) => {
+    _requireAuth(request);
+    try {
+        return await accountLifecycle.checkAccountDeletable(request.auth);
+    } catch (err) {
+        throw new HttpsError('internal', err.message);
+    }
+});
+
+/** Destructive: guarded teardown. Throws failed-precondition with blockers attached. */
+exports.requestAccountDeletion = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+    _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'requestAccountDeletion');
+    try {
+        return await accountLifecycle.requestAccountDeletion(request.auth);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message, { blockers: err.blockers || [] });
+    }
+});
 
 exports.adminSeedPricingConfig = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120 }, async (request) => {
     _requireAuth(request);

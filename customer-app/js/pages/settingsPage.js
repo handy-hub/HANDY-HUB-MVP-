@@ -40,30 +40,51 @@ window.confirmDeleteAccount = async function () {
     btn.textContent = 'Deleting…';
 
     try {
-        // 1. Delete the Firebase Auth account first (requires password re-auth).
-        //    This revokes all sessions and prevents further sign-in.
-        await authService.deleteAccount(password);
+        // ── 1. Prove identity (password re-auth), but do NOT delete here ──────
+        // The old code called authService.deleteAccount(password), which destroyed
+        // the Firebase Auth user client-side. That orphaned any wallet balance,
+        // held escrow, and all PII, because nothing on the server ever cleaned up
+        // and the user could never sign in again to reach their money (CX-1).
+        // Re-auth now only PROVES who we are; the server owns the teardown.
+        await authService.reauthenticateWithPassword(password);
 
-        // 2. Best-effort: soft-mark the Firestore profile as deleted for audit trails.
-        //    Firestore rules only allow profile-field updates, so we update with
-        //    a field that passes isSafeCustomerProfileUpdate (updatedAt) and rely
-        //    on a backend cleanup job for full removal.  Failure here is non-fatal
-        //    because the auth account is already gone — the doc is inaccessible.
-        try {
-            await databaseService.updateDocument('customers', currentUser.uid, {
-                updatedAt: new Date().toISOString(),
-            });
-        } catch (_) { /* non-fatal */ }
+        // ── 2. Server-authoritative, guarded deletion ─────────────────────────
+        // requestAccountDeletion refuses while the user still holds money or has
+        // an active booking, then anonymizes the profile and deletes the Auth user
+        // in a safe order (Firestore first, Auth last).
+        await deleteAccountOnServer();
 
+        // Auth user is gone; clear any local session remnants and leave.
+        try { await authService.signOut(); } catch (_) { /* already gone */ }
         window.location.href = 'login.html';
+
     } catch (err) {
         console.error('Delete account error:', err);
-        const msg =
-            err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
-                ? 'Incorrect password. Please try again.'
-                : 'Failed to delete account. Please try again.';
+
+        let msg;
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            msg = 'Incorrect password. Please try again.';
+        } else if (err.code === 'functions/failed-precondition') {
+            // The server refused because money or obligations are outstanding.
+            // Its message is already user-facing and actionable
+            // ("Withdraw your GHS 50.00 balance before deleting your account.").
+            msg = err.message || 'Your account cannot be deleted yet.';
+        } else {
+            msg = 'Failed to delete account. Please try again.';
+        }
         showToast(msg, 'error');
         btn.disabled    = false;
         btn.textContent = 'Yes, Delete My Account';
     }
 };
+
+/** Call the guarded server-side deletion Cloud Function. */
+async function deleteAccountOnServer() {
+    const [{ getFunctions, httpsCallable }, { firebaseApp }, { FUNCTIONS_REGION }] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js'),
+        import('../../../shared/js/backend/providers/firebase/firebaseConfig.js'),
+        import('../../../shared/js/config/appConfig.js'),
+    ]);
+    const fn = httpsCallable(getFunctions(firebaseApp, FUNCTIONS_REGION), 'requestAccountDeletion');
+    await fn({});
+}

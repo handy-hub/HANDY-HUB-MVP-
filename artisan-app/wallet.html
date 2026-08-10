@@ -187,7 +187,7 @@
   import { showToast }                 from '../shared/js/components/toast.js';
   import { createWalletRepository }    from '../shared/js/data/repositories/walletRepository.js';
   import { withdrawArtisan }           from '../shared/js/services/walletService.js';
-  import { requireArtisanAuth }        from './js/utils/artisanAuthGuard.js';
+  import { requireArtisanAuth, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 
   // Wallet requires full auth + role + not suspended.
   // All artisans (including pending) can view their earnings.
@@ -386,7 +386,7 @@
   const { services: { authService, databaseService } } = getAppContainer();
   const walletRepo = createWalletRepository({ databaseService });
 
-  authService.subscribeToAuthState(user => {
+  subscribeToArtisanAuthState(user => {
     if (!user) { window.location.replace(LOGIN_URL); return; }
     currentUid = user.uid;
 

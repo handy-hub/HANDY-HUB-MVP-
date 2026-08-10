@@ -201,7 +201,7 @@
 import { getAppContainer }                   from '../shared/js/app/container.js';
 import { createBookingRepository }           from '../shared/js/data/repositories/bookingRepository.js';
 import { describe as describeStatus }        from '../shared/js/domain/bookingStatusMeta.js';
-import { requireArtisanAuth, canAcceptJobs } from './js/utils/artisanAuthGuard.js';
+import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 import { startPresence, stopPresence }       from '../shared/js/services/presenceService.js';
 import { getFunctions, httpsCallable }
     from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
@@ -604,7 +604,7 @@ _dbService = databaseService;
 
 const bookingRepo = createBookingRepository({ databaseService });
 
-authService.subscribeToAuthState(async user => {
+subscribeToArtisanAuthState(async user => {
   if (!user) { window.location.replace(LOGIN_URL); return; }
   _uid = user.uid;
 

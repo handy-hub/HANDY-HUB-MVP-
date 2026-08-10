@@ -5,7 +5,7 @@
 // Bump CACHE_VERSION when deploying new assets to force cache refresh.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION = 'handyhub-v3';
+const CACHE_VERSION = 'handyhub-v5';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -90,6 +90,15 @@ self.addEventListener('fetch', (event) => {
     }
 
     // Everything else (CSS, JS, images, fonts served from same origin) → cache-first
+    // App scripts and styles use stable (unhashed) URLs, so cache-first can
+    // mix module versions after a deploy. Fetch code from the network first;
+    // retain the cached response only as an offline fallback.
+    if (url.origin === self.location.origin &&
+        (request.destination === 'script' || request.destination === 'style')) {
+        event.respondWith(networkFirst(request));
+        return;
+    }
+
     event.respondWith(cacheFirst(request));
 });
 

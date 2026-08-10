@@ -26,6 +26,13 @@
     // top-level `return` is a fatal "Illegal return statement" that hangs the
     // spinner forever. A function body's `return` is always legal.
     (async () => {
+      // Development Access Mode: skip the real auth route entirely and land in
+      // the app shell. Never active on production hosts (fail-closed).
+      try {
+        const dev = await import('../shared/js/config/devAccess.js');
+        if (dev.isArtisanDevAccessEnabled()) { window.location.replace('dashboard.html'); return; }
+      } catch (_) { /* dev module missing → real routing below */ }
+
       const { services: { authService, databaseService } } = getAppContainer();
 
       // Smart entry-point: check auth state and route appropriately.

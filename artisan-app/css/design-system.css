@@ -353,3 +353,10 @@
   .ds-rise, .ds-skel::after { animation: none !important; }
   .ds-rise { opacity: 1 !important; transform: none !important; }
 }
+/* Keep link styling consistent throughout the artisan app. */
+a,
+a:hover,
+a:focus,
+a:active {
+  text-decoration: none !important;
+}

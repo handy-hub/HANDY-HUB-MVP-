@@ -17,7 +17,12 @@
 </head>
 <body>
   <h1>TEMP: Seed Example Promotions</h1>
-  <div class="warn">This is a one-time, temporary admin utility. Delete this file after use — it is not linked from the sidebar and not meant to be permanent.</div>
+  <div class="warn"><b>Deprecated — do not use for day-to-day management.</b> The authoritative
+    promotions interface is now the <a href="promotions.html">Promotions manager</a>
+    (Admin&nbsp;→&nbsp;Marketing&nbsp;→&nbsp;Promotions): it creates, edits, previews, targets,
+    schedules, prioritises, and analyses promotions using the same Firestore schema. This page is a
+    one-time example seeder kept only for cold-start/dev use — it is not linked from the sidebar and
+    should be removed once no longer needed. Re-running overwrites the example docs by fixed id.</div>
   <p>Writes 4 example documents into the <code>promotions</code> collection (Accra-targeted, new-users-only, Cleaning-repeat, and one untargeted) using your current signed-in admin session — no Cloud Function, no billing plan required.</p>
   <button id="seed-btn" disabled>Checking admin session…</button>
   <pre id="status"></pre>
@@ -36,7 +41,7 @@
         id: 'promo-accra-only',
         content: { title: 'Accra Special', subtitle: '15% off this week', cta: 'Book Now' },
         media: { imageKey: null },
-        action: { type: 'route', value: 'book-step1.html' },
+        action: { type: 'route', value: 'book-request.html' },
         targeting: { cities: ['Accra'], serviceTypes: [], newUsersOnly: false },
         schedule: { start: null, end: null, priority: 100 },
         analytics: { impressions: 0, clicks: 0 },
@@ -66,7 +71,7 @@
         id: 'promo-everyone',
         content: { title: 'Trusted Pros, Every Time', subtitle: 'Verified. Rated. Ready.', cta: 'Explore Services' },
         media: { imageKey: null },
-        action: { type: 'route', value: 'book-step1.html' },
+        action: { type: 'route', value: 'book-request.html' },
         targeting: { cities: [], serviceTypes: [], newUsersOnly: false },
         schedule: { start: null, end: null, priority: 10 },
         analytics: { impressions: 0, clicks: 0 },

@@ -48,6 +48,9 @@ const LIMITS = Object.freeze({
   createInspectionBooking:  { maxRequests: 5,  windowMs:  60 * 60_000 },
   completeInspection:       { maxRequests: 10, windowMs:  60 * 60_000 },
   cancelInspectionBooking:  { maxRequests: 5,  windowMs:  60 * 60_000 },
+  // Account lifecycle — destructive and irreversible; a human needs at most a
+  // couple of attempts (e.g. after clearing a wallet balance blocker).
+  requestAccountDeletion:   { maxRequests: 3,  windowMs:  24 * 60 * 60_000 },
 });
 
 // ── Firestore lazy init ────────────────────────────────────────────────────────

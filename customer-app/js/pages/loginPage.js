@@ -71,6 +71,8 @@ function loginErrorMessage(error) {
     case "permission-denied":
     case "firestore/permission-denied":
       return "Phone lookup is not allowed right now. Please login with your email.";
+    case "auth/wrong-app-role":
+      return "This is an artisan account. Please sign in through the HandyHub Pro (artisan) app.";
     case "auth/invalid-email":
       return "Please enter a valid email address.";
     case "auth/wrong-password":
@@ -89,6 +91,8 @@ function loginErrorMessage(error) {
 
 function socialErrorMessage(error, providerName) {
   switch (error.code) {
+    case "auth/wrong-app-role":
+      return "This is an artisan account. Please sign in through the HandyHub Pro (artisan) app.";
     case "auth/operation-not-allowed":
       return `${providerName} sign-in is not enabled in authentication settings.`;
     case "auth/popup-closed-by-user":

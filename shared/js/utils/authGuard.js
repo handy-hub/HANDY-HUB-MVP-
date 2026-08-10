@@ -29,12 +29,17 @@
  */
 
 import { getAppContainer } from '../app/container.js';
+import { resolveAppRole, ROLE } from './roleGuard.js';
 
 const AUTH_REDIRECT_KEY    = 'hh_auth_redirect';
 const LOGIN_PAGE           = 'login.html';
+// Absolute path to the artisan app so a mis-routed artisan can be bounced to
+// the application they actually belong to.
+const ARTISAN_APP_URL      = '/artisan-app/login.html';
 // 6 s allows Firebase to initialise on Ghana mobile networks (2G/3G cold-start).
 // 3 s was too aggressive and caused false logout redirects on slow connections.
 const AUTH_GUARD_TIMEOUT_MS = 6000;
+const DENY_OVERLAY_ID       = 'hh-role-deny-overlay';
 
 /**
  * Resolve the login page URL relative to the current page.
@@ -75,9 +80,73 @@ function redirectToLogin() {
 }
 
 /**
- * The main auth guard.
- * Returns a Promise that resolves with the Firebase user if authenticated,
- * or redirects (and never resolves) if not.
+ * Full-screen blocking overlay shown when an authenticated user is NOT allowed
+ * in the customer app (e.g. an artisan account). Prevents any protected page
+ * content from flashing behind it, signs the wrong-role user out, and forwards
+ * them to the application they belong to. Self-contained (no page CSS deps) so
+ * it works identically on every customer page.
+ */
+function showRoleDenied({ title, message, buttonLabel, buttonHref }) {
+  try {
+    let overlay = document.getElementById(DENY_OVERLAY_ID);
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = DENY_OVERLAY_ID;
+      overlay.setAttribute('role', 'alertdialog');
+      overlay.style.cssText = [
+        'position:fixed', 'inset:0', 'z-index:2147483647',
+        'display:flex', 'align-items:center', 'justify-content:center',
+        'background:#FEFEFE', 'padding:24px',
+        'font-family:-apple-system,BlinkMacSystemFont,"DM Sans",sans-serif',
+      ].join(';');
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML =
+      '<div style="text-align:center;max-width:360px;width:100%;">' +
+        '<div style="width:72px;height:72px;border-radius:22px;margin:0 auto 20px;background:#F3F4F6;' +
+          'display:flex;align-items:center;justify-content:center;">' +
+          '<svg width="32" height="32" viewBox="0 0 24 24" fill="none">' +
+            '<rect x="3" y="11" width="18" height="11" rx="2" stroke="#9CA3AF" stroke-width="2"/>' +
+            '<path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"/>' +
+          '</svg>' +
+        '</div>' +
+        '<p style="font-size:20px;font-weight:800;color:#111827;margin:0 0 8px;">' + title + '</p>' +
+        '<p style="font-size:14px;color:#6B7280;line-height:1.55;margin:0 0 24px;">' + message + '</p>' +
+        '<button id="hh-role-deny-btn" style="width:100%;height:50px;border:none;border-radius:14px;' +
+          'font:inherit;font-size:15px;font-weight:700;cursor:pointer;background:#8B1E3F;color:#fff;">' +
+          buttonLabel +
+        '</button>' +
+      '</div>';
+    const btn = document.getElementById('hh-role-deny-btn');
+    if (btn) {
+      btn.addEventListener('click', async () => {
+        try {
+          const { services } = getAppContainer();
+          if (services.sessionService) await services.sessionService.logout();
+          else if (services.authService?.signOut) await services.authService.signOut();
+        } catch (_) { /* ignore */ }
+        window.location.replace(buttonHref);
+      });
+    }
+  } catch (_) {
+    // If DOM injection fails for any reason, fall back to a hard redirect so the
+    // wrong-role user is never left sitting on a protected page.
+    window.location.replace(buttonHref);
+  }
+}
+
+/**
+ * The main auth guard — AUTHENTICATION + AUTHORIZATION (application boundary).
+ *
+ * Order of checks:
+ *   1. Firebase authentication — a signed-in user must exist.
+ *   2. Role authorization      — the user's authoritative role (resolveAppRole)
+ *                                must be CUSTOMER. An artisan is blocked with a
+ *                                "wrong app" screen; authentication alone never
+ *                                grants entry.
+ *
+ * Returns a Promise that resolves with the Firebase user ONLY for an authorized
+ * customer; otherwise it redirects / shows a denial overlay and never resolves.
  *
  * @returns {Promise<object>} Resolves with the current Firebase user object.
  */
@@ -89,18 +158,66 @@ export async function requireAuth() {
       redirectToLogin();
     }, AUTH_GUARD_TIMEOUT_MS);
 
-    getAppContainer()
-      .services.authService.waitForUser()
-      .then((user) => {
+    const container = getAppContainer();
+
+    container.services.authService.waitForUser()
+      .then(async (user) => {
         clearTimeout(timeout);
-        if (user) {
-          // Activate uid-scoped storage so all HH_State reads/writes are
-          // isolated to this user. This runs on every protected page.
+
+        // ── Step 1: authentication ────────────────────────────────
+        if (!user) {
+          redirectToLogin();
+          return;
+        }
+
+        // ── Step 2: role authorization (application boundary) ──────
+        // Authentication proves identity, not permission. Verify this UID is a
+        // customer before any protected page state initializes.
+        let roleInfo = null;
+        try {
+          roleInfo = await resolveAppRole(container.services.databaseService, user.uid);
+        } catch (_) {
+          roleInfo = null;
+        }
+
+        // Positively an artisan → hard deny (the reported vulnerability). This
+        // also catches legacy hybrid accounts because artisan identity wins.
+        if (roleInfo && roleInfo.isArtisan) {
+          showRoleDenied({
+            title: 'Wrong App',
+            message: "You're signed in with an artisan account. Artisans use the HandyHub Pro app, not the Customer app.",
+            buttonLabel: 'Go to Artisan App',
+            buttonHref: ARTISAN_APP_URL,
+          });
+          return;
+        }
+
+        // Positively a customer → authorized.
+        if (roleInfo && roleInfo.role === ROLE.CUSTOMER) {
           if (window.HH_State) window.HH_State.setUser(user.uid);
           resolve(user);
-        } else {
-          redirectToLogin();
+          return;
         }
+
+        // Ambiguous: role reads failed entirely (readError). Degrade OPEN rather
+        // than false-deny a legitimate customer on a flaky network — the server
+        // (firestore.rules) remains the authoritative backstop for every read
+        // and write, so a non-customer gains no data access here.
+        if (!roleInfo || roleInfo.readError) {
+          if (window.HH_State) window.HH_State.setUser(user.uid);
+          resolve(user);
+          return;
+        }
+
+        // Reads succeeded but the UID owns no customer identity (e.g. an admin,
+        // or a brand-new account whose profile write hasn't landed yet). Send
+        // them back to login rather than into a half-provisioned customer app.
+        showRoleDenied({
+          title: 'Account Not Found',
+          message: 'We could not find a customer profile for this account. Please sign in with a customer account.',
+          buttonLabel: 'Back to Login',
+          buttonHref: resolveLoginUrl(),
+        });
       })
       .catch(() => {
         clearTimeout(timeout);

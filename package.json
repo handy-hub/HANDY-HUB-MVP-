@@ -18,8 +18,11 @@
     "lint:tokens":   "node scripts/design-token-lint.cjs",
     "lint:tokens:strict": "node scripts/design-token-lint.cjs --strict",
     "lint:status":   "node scripts/check-status-vocab.cjs",
-    "lint":          "npm run lint:filters && npm run lint:tokens && npm run lint:status",
-    "test":          "npm run lint && python tests/verify_low_fixes.py"
+    "lint:syntax":   "node scripts/check-syntax.cjs",
+    "lint":          "npm run lint:syntax && npm run lint:filters && npm run lint:tokens && npm run lint:status",
+    "test:settings-overlays": "node tests/settings-overlay-architecture.test.cjs",
+    "test:transaction-receipt": "node tests/transaction-receipt-modal.test.cjs",
+    "test":          "npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && python tests/verify_low_fixes.py"
   },
   "devDependencies": {
     "serve": "^14.0.0"

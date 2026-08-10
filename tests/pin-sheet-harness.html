@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PIN Sheet Harness</title>
+  <!-- Real customer pages load the canonical token layer; the harness must too,
+       or it tests the fallback path instead of production reality. -->
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <link rel="stylesheet" href="../shared/css/components/sheet.css" />
+  <!-- Component test fixture for shared/js/components/securityPinSheet.js.
+       No Firebase, no auth, no remote fonts — exercises the sheet + PIN keypad
+       in isolation. Serve the repo root and open /tests/pin-sheet-harness.html. -->
+  <style>
+    body { font-family: 'DM Sans', -apple-system, sans-serif; margin: 0; background: #FEFEFE; }
+    .wrap { max-width: 480px; margin: 0 auto; padding: 24px 18px; }
+    h1 { font-size: 18px; }
+    button.case { display: block; width: 100%; margin: 8px 0; padding: 12px; font: inherit; }
+    #log { font: 12px/1.6 monospace; background: #f5f5f5; padding: 10px; min-height: 120px; white-space: pre-wrap; }
+    input#amount { padding: 10px; font: inherit; width: 120px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Security PIN Sheet — harness</h1>
+    <p>Page state that must survive dismissal: <input id="amount" value="50" /></p>
+    <button class="case" id="open-topup">Open top-up PIN sheet (correct PIN: 1234)</button>
+    <button class="case" id="open-create">Open first-time CREATE flow (create → confirm)</button>
+    <button class="case" id="open-plain">Open minimal sheet (no forgot, no context)</button>
+    <button class="case" id="open-journey">PIN → Authorization (seamless morph, PIN: 1234)</button>
+    <div id="log" aria-live="polite"></div>
+  </div>
+
+  <script type="module">
+    import { openSecurityPinSheet } from '../shared/js/components/securityPinSheet.js';
+    import { openFinancialAuthorizationSheet } from '../shared/js/components/financialAuthorizationSheet.js';
+
+    // Phase 2: the PIN step must MORPH into the authorization step — same shell,
+    // never a second sheet. window.__auth exposes the state machine to the suite.
+    document.getElementById('open-journey').addEventListener('click', () => {
+      openSecurityPinSheet({
+        title: 'Enter your PIN',
+        message: 'Enter your 4-digit Handy Hub Security PIN to confirm this top-up.',
+        context: 'Top-up · GHS 50.00',
+        confirmLabel: 'Confirm Top Up',
+        onConfirm: async (pin, controls) => {
+          if (pin !== '1234') { controls.showError('Incorrect PIN.'); return; }
+          log('journey:pin-ok');
+          controls.setBusy(true);
+          controls.release();
+          window.__auth = await openFinancialAuthorizationSheet({
+            sheet: controls.sheet,
+            state: 'waiting',
+            amount: 'GHS 50.00', provider: 'MTN MoMo', phone: '····3455',
+            onCancel: (api) => { api.setState('cancelled'); log('journey:cancelled'); },
+            onRetry:  (api) => { api.close('retry'); log('journey:retry'); },
+            onClose:  (r) => log('journey:closed:' + r),
+          });
+          log('journey:morphed');
+        },
+        onDismiss: (reason) => log('journey:pin-dismiss:' + reason),
+      });
+    });
+
+    window.__events = [];
+    const logEl = document.getElementById('log');
+    function log(...parts) {
+      const line = parts.join(' ');
+      window.__events.push(line);
+      logEl.textContent += line + '\n';
+    }
+
+    document.getElementById('open-topup').addEventListener('click', () => {
+      openSecurityPinSheet({
+        title: 'Enter your PIN',
+        message: 'Enter your 4-digit Handy Hub Security PIN to authorise this top-up. This is not your Mobile Money PIN.',
+        context: 'Top-up · GHS 50.00',
+        confirmLabel: 'Confirm Top Up',
+        onConfirm: (pin, controls) => {
+          log('confirm:len=' + pin.length);
+          if (pin === '1234') {
+            controls.close('confirmed');
+            log('closed:confirmed');
+          } else {
+            controls.setBusy(true);
+            setTimeout(() => controls.showError('Incorrect PIN. 4 attempts remaining.'), 250);
+            log('error-shown');
+          }
+        },
+        onForgot: (controls) => { controls.close('forgot'); log('forgot'); },
+        onDismiss: (reason) => log('dismiss:' + reason),
+      });
+    });
+
+    document.getElementById('open-create').addEventListener('click', () => {
+      openSecurityPinSheet({
+        mode: 'create',
+        context: 'Top-up · GHS 25.00',
+        onCreate: (pin, controls) => {
+          log('created:len=' + pin.length);
+          controls.setBusy(true);
+          setTimeout(() => { controls.close('created'); log('closed:created'); }, 300);
+        },
+        onDismiss: (reason) => log('create-dismiss:' + reason),
+      });
+    });
+
+    document.getElementById('open-plain').addEventListener('click', () => {
+      openSecurityPinSheet({
+        message: 'Minimal configuration.',
+        onDismiss: (reason) => log('plain-dismiss:' + reason),
+      });
+    });
+
+    log('harness-ready');
+  </script>
+</body>
+</html>

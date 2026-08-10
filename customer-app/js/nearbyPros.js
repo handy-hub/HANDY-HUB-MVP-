@@ -33,6 +33,15 @@ const ACCRA_LNG     = -0.1870;
 const FETCH_LIMIT   = 50;
 const DEBOUNCE_MS   = 120;
 
+// Cost control: the "top rated available" query is identical for every user and
+// changes slowly, yet a plain refresh re-ran it (up to 50 billed reads) because
+// module state resets on every page load. Cache the pool in localStorage so a
+// refresh within the TTL renders from cache at ZERO Firestore reads. Radius /
+// category filtering already runs client-side off this pool, so nothing about
+// the UX changes. Tune ARTISAN_CACHE_TTL_MS to trade freshness against cost.
+const ARTISAN_CACHE_KEY    = 'hh_nearby_artisans_v1';
+const ARTISAN_CACHE_TTL_MS = 5 * 60 * 1000;   // 5 minutes
+
 const RADIUS_OPTIONS = [
   { label: '2 km',  km: 2   },
   { label: '5 km',  km: 5   },
@@ -134,22 +143,48 @@ async function getArtisanRepo() {
   return null; // shared/ not accessible — skip Firestore fetch
 }
 
+/* ── Pool cache (localStorage, TTL) ────────────────────────────────────── */
+function readArtisanCache() {
+  try {
+    const obj = JSON.parse(localStorage.getItem(ARTISAN_CACHE_KEY) || 'null');
+    if (!obj || !Array.isArray(obj.artisans)) return null;
+    if (Date.now() - Number(obj.ts || 0) > ARTISAN_CACHE_TTL_MS) return null;
+    return obj.artisans;
+  } catch (_) { return null; }
+}
+
+function writeArtisanCache(artisans) {
+  try {
+    localStorage.setItem(ARTISAN_CACHE_KEY, JSON.stringify({ ts: Date.now(), artisans }));
+  } catch (_) { /* quota / private mode — caching is best-effort, never fatal */ }
+}
+
 /* ── Fetch ─────────────────────────────────────────────────────────────── */
-async function fetchArtisans() {
+async function fetchArtisans({ force = false } = {}) {
   if (_loading) return;
+
+  // Serve a fresh cached pool without touching Firestore. This is the whole
+  // point of the change: a refresh within the TTL costs zero reads.
+  if (!force) {
+    const cached = readArtisanCache();
+    if (cached) { _artisans = cached; _fetchError = null; render(); return; }
+  }
+
   _loading    = true;
   _fetchError = null;
   renderSkeleton();
   try {
     const repo = await getArtisanRepo();
     if (!repo) {
-      // Running in isolation (customer-app server) — show friendly empty state
+      // Running in isolation (customer-app server) — show friendly empty state.
+      // Do NOT cache this: it's an environment miss, not a real empty pool.
       _artisans = [];
     } else {
       const docs  = await repo.getTopRated(FETCH_LIMIT);
       _artisans   = (docs || [])
         .filter(d => d && d.exists !== false && d.data)
         .map(d => ({ id: d.id, ...d.data }));
+      writeArtisanCache(_artisans);
     }
   } catch (err) {
     console.warn('[nearbyPros] Fetch failed:', err);
@@ -558,8 +593,9 @@ window._npExpandRadius = function (km) {
 };
 
 window._npRetry = function () {
+  // Explicit user retry after an error → bypass the cache and hit the server.
   _artisans = null; _fetchError = null;
-  fetchArtisans();
+  fetchArtisans({ force: true });
 };
 
 /* ── Init ──────────────────────────────────────────────────────────────── */

@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HandyHub Admin – Promotions</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Page-local layout (uses admin tokens only) ─────────────────────── */
+    .promo-toolbar-row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+    .notice { display:flex; gap:10px; align-items:flex-start; background:var(--info-bg); border:1px solid #BFDBFE; color:#1E40AF;
+              border-radius:var(--radius-md); padding:11px 14px; font-size:12.5px; line-height:1.5; margin-bottom:16px; }
+    .notice svg { width:16px; height:16px; flex-shrink:0; margin-top:1px; }
+    .notice code { background:rgba(255,255,255,.6); padding:1px 5px; border-radius:4px; font-size:11.5px; }
+
+    .promo-thumb { width:56px; height:36px; border-radius:6px; object-fit:cover; background:var(--surface-3); flex-shrink:0;
+                   display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--text-light); overflow:hidden; }
+    .promo-thumb img { width:100%; height:100%; object-fit:cover; }
+    .cell-title { font-weight:700; color:var(--text-dark); font-size:13px; }
+    .cell-sub   { font-size:11.5px; color:var(--text-light); margin-top:1px; }
+    .metric-pair { display:flex; gap:12px; }
+    .metric b { display:block; font-size:13px; color:var(--text-dark); }
+    .metric span { font-size:10px; color:var(--text-light); text-transform:uppercase; letter-spacing:.03em; }
+    .row-actions { display:flex; gap:5px; justify-content:flex-end; }
+    .icon-btn { width:30px; height:30px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2);
+                display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-mid); }
+    .icon-btn:hover { background:var(--surface-3); color:var(--text-dark); }
+    .icon-btn svg { width:15px; height:15px; }
+    .icon-btn.danger:hover { background:var(--danger-bg); color:var(--danger); border-color:#FECACA; }
+
+    /* ── Editor modal is wider than the default 560 ─────────────────────── */
+    .modal.modal-lg { max-width: 940px; }
+    .editor-grid { display:grid; grid-template-columns: 1fr 340px; gap:20px; }
+    @media (max-width: 820px){ .editor-grid { grid-template-columns:1fr; } }
+
+    .form-section { margin-bottom:18px; }
+    .form-section-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-light); margin-bottom:10px; }
+    .field { margin-bottom:12px; }
+    .field label { display:block; font-size:12px; font-weight:600; color:var(--text-mid); margin-bottom:5px; }
+    .field .req { color:var(--danger); }
+    .field input[type=text], .field input[type=url], .field input[type=number],
+    .field input[type=datetime-local], .field textarea, .field select {
+      width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:var(--radius-sm);
+      font-family:inherit; font-size:13px; color:var(--text-dark); background:var(--surface); outline:none;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color:var(--brand); box-shadow:0 0 0 3px rgba(115,2,1,.08); }
+    .field textarea { resize:vertical; min-height:54px; }
+    .field .hint { font-size:11px; color:var(--text-light); margin-top:4px; line-height:1.45; }
+    .field .err  { font-size:11px; color:var(--danger); margin-top:4px; font-weight:600; display:none; }
+    .field.invalid input, .field.invalid select, .field.invalid textarea { border-color:var(--danger); }
+    .field.invalid .err { display:block; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+    .chips-input { display:flex; flex-wrap:wrap; gap:6px; padding:6px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); }
+    .chips-input .tag { display:inline-flex; align-items:center; gap:5px; background:var(--brand-light); color:var(--brand);
+                        font-size:12px; font-weight:600; padding:3px 8px; border-radius:14px; }
+    .chips-input .tag button { border:none; background:none; cursor:pointer; color:var(--brand); font-size:14px; line-height:1; padding:0; }
+    .chips-input input { border:none; outline:none; flex:1; min-width:90px; font-size:12px; padding:4px; background:none; }
+    .quick-cities { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+    .quick-cities button { font-size:11px; padding:3px 9px; border-radius:12px; border:1px solid var(--border);
+                           background:var(--surface-2); color:var(--text-mid); cursor:pointer; }
+    .quick-cities button:hover { border-color:var(--brand); color:var(--brand); }
+
+    .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:9px 11px; border:1px solid var(--border); border-radius:var(--radius-sm); }
+    .toggle-row span { font-size:13px; color:var(--text-dark); font-weight:600; }
+    .switch { position:relative; width:40px; height:22px; flex-shrink:0; }
+    .switch input { opacity:0; width:0; height:0; }
+    .switch .track { position:absolute; inset:0; background:var(--border); border-radius:22px; transition:.15s; cursor:pointer; }
+    .switch .track::before { content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.15s; }
+    .switch input:checked + .track { background:var(--brand); }
+    .switch input:checked + .track::before { transform:translateX(18px); }
+
+    /* Image dropzone */
+    .img-drop { border:1.5px dashed var(--border); border-radius:var(--radius-md); padding:14px; text-align:center; cursor:pointer; background:var(--surface-2); }
+    .img-drop:hover { border-color:var(--brand); }
+    .img-drop.busy { opacity:.6; pointer-events:none; }
+    .img-status { font-size:11.5px; margin-top:7px; line-height:1.4; }
+    .img-status.ok   { color:#166534; }
+    .img-status.warn { color:#92400E; }
+    .img-status.err  { color:var(--danger); }
+
+    .color-swatches { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+    .color-swatches button { width:26px; height:26px; border-radius:6px; border:2px solid transparent; cursor:pointer; }
+    .color-swatches button.sel { border-color:var(--text-dark); }
+
+    /* ── Live preview — faithful copy of the customer banner slide ──────── */
+    .preview-panel { position:sticky; top:0; }
+    .preview-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-light); margin-bottom:8px; }
+    .pp-phone { width:100%; max-width:320px; margin:0 auto; }
+    .pp-ads { border-radius:12px; overflow:hidden; height:200px; position:relative; box-shadow:var(--shadow-sm); }
+    .pp-slide { height:100%; display:flex; position:relative; background:#f4f2f0; overflow:hidden; }
+    .pp-content { width:55%; padding:16px 14px 16px 18px; display:flex; flex-direction:column; justify-content:space-between; z-index:2; position:relative; }
+    .pp-imgwrap { position:absolute; right:0; top:0; bottom:0; width:48%; }
+    .pp-imgwrap img { width:100%; height:100%; object-fit:cover; object-position:center top; display:block; }
+    .pp-imgwrap::before { content:''; position:absolute; left:0; top:0; bottom:0; width:55%; background:linear-gradient(to right,#f4f2f0,transparent); z-index:1; }
+    .pp-imgwrap.failed img { visibility:hidden; }
+    .pp-imgwrap.failed::before { display:none; }
+    .pp-tag { background:#730201; color:#fff; font-size:10px; padding:5px 12px; border-radius:16px; font-weight:700; display:inline-block; width:fit-content; letter-spacing:.2px; }
+    .pp-headline { flex:1; display:flex; flex-direction:column; justify-content:center; padding:6px 0; }
+    .pp-title { font-size:22px; font-weight:900; color:#0d0d0d; line-height:1.05; letter-spacing:-.5px; margin-bottom:2px; word-break:break-word; }
+    .pp-sub { font-size:12.5px; font-weight:500; color:#666; margin-bottom:4px; }
+    .pp-body { font-size:11px; line-height:1.4; color:#999; }
+    .pp-bottom { display:flex; flex-direction:column; gap:8px; }
+    .pp-cta { background:#730201; color:#fff; padding:9px 16px; border-radius:8px; font-weight:700; font-size:12px;
+              display:inline-flex; align-items:center; gap:5px; width:fit-content; }
+    .pp-clients { display:flex; align-items:center; gap:7px; }
+    .pp-avs { display:flex; }
+    .pp-av { width:22px; height:22px; border-radius:50%; border:2px solid #f4f2f0; font-size:11px; font-weight:800;
+             display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0; margin-left:-7px; }
+    .pp-av:first-child { margin-left:0; }
+    .pp-count { display:flex; flex-direction:column; line-height:1.25; }
+    .pp-count strong { font-size:11.5px; font-weight:800; color:#0d0d0d; }
+    .pp-count span { font-size:10px; color:#999; font-weight:400; }
+    .preview-note { font-size:11px; color:var(--text-light); text-align:center; margin-top:10px; line-height:1.5; }
+
+    .empty-state { text-align:center; padding:56px 20px; color:var(--text-light); }
+    .empty-state svg { width:44px; height:44px; margin-bottom:12px; opacity:.5; }
+    .empty-state p { font-size:14px; }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#fff" stroke-width="2" stroke-linecap="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#fff" stroke-width="2"/></svg>
+      </div>
+      <span class="sidebar-logo-text">HandyHub</span>
+      <span class="sidebar-logo-badge">Admin</span>
+    </div>
+
+    <div class="sidebar-section-label">Main</div>
+    <a class="nav-link" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>
+      Overview
+    </a>
+    <a class="nav-link" href="analytics.html">
+      <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Analytics
+    </a>
+
+    <div class="sidebar-section-label">Users</div>
+    <a class="nav-link" href="artisans.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>
+      Artisans
+    </a>
+    <a class="nav-link" href="customers.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Customers
+    </a>
+    <a class="nav-link" href="verifications.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Verifications
+      <span class="nav-badge" id="verif-badge">0</span>
+    </a>
+
+    <div class="sidebar-section-label">Operations</div>
+    <a class="nav-link" href="bookings.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Bookings
+    </a>
+    <a class="nav-link" href="disputes.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      Disputes
+    </a>
+
+    <div class="sidebar-section-label">Marketing</div>
+    <a class="nav-link active" href="promotions.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M3 11l18-5v12L3 14v-3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M11.6 16.8a3 3 0 0 1-5.8-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Promotions
+    </a>
+
+    <div class="sidebar-section-label">Finance</div>
+    <a class="nav-link" href="finance.html">
+      <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Finance
+    </a>
+    <a class="nav-link" href="payouts.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.8"/><polyline points="3.27 6.96 12 12.01 20.73 6.96" stroke="currentColor" stroke-width="1.8"/><line x1="12" y1="22.08" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+      Payouts
+    </a>
+
+    <div class="sidebar-section-label">System</div>
+    <a class="nav-link" href="admins.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16 11h6M19 8v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Admin Users
+    </a>
+    <a class="nav-link" href="settings.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg>
+      Settings
+    </a>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="admin-avatar">A</div>
+        <div class="sidebar-user-info">
+          <p class="sidebar-user-name" id="admin-name">Admin</p>
+          <p class="sidebar-user-role" id="admin-role">Super Admin</p>
+        </div>
+        <button onclick="signOut()" style="background:none;border:none;cursor:pointer;margin-left:8px;color:#64748B;" title="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <div class="main-content">
+    <header class="admin-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none"><line x1="3" y1="6" x2="21" y2="6" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="12" x2="21" y2="12" stroke="#374151" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="18" x2="21" y2="18" stroke="#374151" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <span class="page-title-bar">Promotions</span>
+      </div>
+      <div class="header-actions">
+        <span id="hdr-date" style="font-size:12px;color:var(--text-light);white-space:nowrap;"></span>
+      </div>
+    </header>
+
+    <div class="page-body">
+
+      <div class="notice">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
+        <div>
+          Promotions drive the Customer App dashboard banner. Customer devices cache the banner, so a change can take up to
+          <b>~10&nbsp;minutes</b> to reach everyone (background revalidation applies sooner, ~60s). The customer app also ships
+          <b>3 hardcoded fallback slides</b> that show only when no eligible Firestore promotion exists — these live in
+          <code>customer-app/js/adBanner.js</code> and are <b>not editable here</b>. Only the top <b>3</b> eligible promotions (by priority) display at once.
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+          <div class="table-toolbar" style="flex:1;">
+            <div class="table-search">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.8"/><path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <input type="text" id="promo-search" placeholder="Search by title…" />
+            </div>
+            <select class="admin-select" id="promo-sort">
+              <option value="priority">Sort: Priority (high→low)</option>
+              <option value="impressions">Sort: Impressions</option>
+              <option value="clicks">Sort: Clicks</option>
+              <option value="ctr">Sort: CTR</option>
+              <option value="title">Sort: Title (A→Z)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="new-promo-btn">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            New Promotion
+          </button>
+        </div>
+
+        <div class="filter-chips" id="promo-filters">
+          <button class="chip active" data-state="all">All <span class="chip-count" id="cnt-all">0</span></button>
+          <button class="chip" data-state="active">Active <span class="chip-count" id="cnt-active">0</span></button>
+          <button class="chip" data-state="scheduled">Scheduled <span class="chip-count" id="cnt-scheduled">0</span></button>
+          <button class="chip" data-state="expired">Expired <span class="chip-count" id="cnt-expired">0</span></button>
+          <button class="chip" data-state="inactive">Inactive <span class="chip-count" id="cnt-inactive">0</span></button>
+          <button class="chip" data-state="draft">Draft <span class="chip-count" id="cnt-draft">0</span></button>
+          <button class="chip" data-state="invalid">Invalid <span class="chip-count" id="cnt-invalid">0</span></button>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="admin-table" id="promo-table">
+            <thead>
+              <tr>
+                <th>Promotion</th>
+                <th>State</th>
+                <th>Priority</th>
+                <th>Schedule</th>
+                <th>Targeting</th>
+                <th>Action</th>
+                <th>Performance</th>
+                <th style="text-align:right;">Manage</th>
+              </tr>
+            </thead>
+            <tbody id="promo-tbody">
+              <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-light);">Loading promotions…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /.page-body -->
+  </div><!-- /.main-content -->
+</div><!-- /.admin-layout -->
+
+<!-- ═══════════ EDITOR MODAL ═══════════ -->
+<div class="modal-overlay" id="editor-overlay">
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+    <div class="modal-header">
+      <span class="modal-title" id="editor-title">New Promotion</span>
+      <button class="modal-close" id="editor-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="#64748B" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="editor-grid">
+        <!-- ── FORM ── -->
+        <form id="promo-form" novalidate>
+          <div class="form-section">
+            <div class="form-section-title">Content</div>
+            <div class="field">
+              <label>Title <span class="req">*</span></label>
+              <input type="text" id="f-title" maxlength="40" placeholder="Get 20% OFF" />
+              <p class="err" id="e-title">A title is required.</p>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label>Tag</label><input type="text" id="f-tag" maxlength="24" placeholder="Limited Time" /></div>
+              <div class="field"><label>CTA button text</label><input type="text" id="f-cta" maxlength="20" placeholder="Book Now" /></div>
+            </div>
+            <div class="field"><label>Subtitle</label><input type="text" id="f-subtitle" maxlength="48" placeholder="Your first booking" /></div>
+            <div class="field"><label>Body</label><textarea id="f-body" maxlength="90" placeholder="Trusted professionals, quality service."></textarea></div>
+            <div class="field">
+              <label>Background colour / gradient</label>
+              <input type="text" id="f-color" placeholder="linear-gradient(135deg, #4a8cc9 0%, #1e5a9a 100%)" />
+              <div class="color-swatches" id="color-swatches"></div>
+              <p class="hint">Shown behind the text, and when there is no image. Any CSS colour or gradient.</p>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Image</div>
+            <div class="img-drop" id="img-drop">
+              <input type="file" id="img-file" accept="image/*" hidden />
+              <svg viewBox="0 0 24 24" fill="none" width="22" height="22" style="opacity:.5;"><path d="M21 15l-5-5L5 21" stroke="#64748B" stroke-width="1.8" stroke-linecap="round"/><rect x="3" y="3" width="18" height="18" rx="2" stroke="#64748B" stroke-width="1.8"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#64748B" stroke-width="1.8"/></svg>
+              <p style="font-size:12.5px;color:var(--text-mid);margin-top:6px;">Click to upload a banner image</p>
+              <p style="font-size:11px;color:var(--text-light);margin-top:2px;">JPEG/PNG/WebP · uploaded to Cloudinary (<code>hh_banners</code>)</p>
+            </div>
+            <div class="field" style="margin-top:10px;">
+              <label>Cloudinary public_id (<code>media.imageKey</code>)</label>
+              <input type="text" id="f-imagekey" placeholder="promotions/summer_sale_v1  (or upload above)" />
+              <p class="hint">Stored as a <b>public_id</b>, never a full URL — the customer app builds the URL at render time.
+                Leave blank for a colour-only banner.</p>
+              <p class="img-status" id="img-status"></p>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Action (where a tap goes)</div>
+            <div class="grid-2">
+              <div class="field">
+                <label>Action type</label>
+                <select id="f-action-type">
+                  <option value="route">Route — open a customer page</option>
+                  <option value="service">Service — book-request for a service</option>
+                  <option value="category">Category — browse a category</option>
+                  <option value="artisan">Artisan — open an artisan profile</option>
+                  <option value="promo">Promo — apply a promo code</option>
+                  <option value="external">External — open a URL in a new tab</option>
+                </select>
+              </div>
+              <div class="field" id="action-value-wrap">
+                <label id="action-value-label">Value <span class="req">*</span></label>
+                <select id="f-action-value-select"></select>
+                <input type="text" id="f-action-value-text" style="display:none;" />
+                <p class="err" id="e-action">This action needs a valid value.</p>
+                <p class="hint" id="action-hint"></p>
+                <p class="hint" id="action-dest" style="font-weight:600;color:var(--text-mid);"></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Targeting</div>
+            <div class="field">
+              <label>Cities <span class="hint" style="display:inline;">(empty = everywhere)</span></label>
+              <div class="chips-input" id="cities-input"><input type="text" id="cities-entry" placeholder="Type a city, press Enter…" /></div>
+              <div class="quick-cities" id="quick-cities"></div>
+              <p class="hint">Matched as a case-insensitive substring against the customer's free-text location.</p>
+            </div>
+            <div class="field">
+              <label>Service types <span class="hint" style="display:inline;">(empty = all services)</span></label>
+              <div id="servicetypes-checks" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;"></div>
+            </div>
+            <div class="field">
+              <div class="toggle-row">
+                <span>New users only</span>
+                <label class="switch"><input type="checkbox" id="f-newusers" /><span class="track"></span></label>
+              </div>
+              <p class="hint">Shows only to customers with zero completed bookings.</p>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Schedule &amp; Priority</div>
+            <div class="grid-2">
+              <div class="field"><label>Start</label><input type="datetime-local" id="f-start" /><p class="hint">Empty = starts immediately.</p></div>
+              <div class="field"><label>End</label><input type="datetime-local" id="f-end" /><p class="err" id="e-schedule">End must be after start.</p><p class="hint">Empty = never expires.</p></div>
+            </div>
+            <div class="field">
+              <label>Priority</label>
+              <input type="number" id="f-priority" value="50" min="0" max="1000" />
+              <p class="hint" id="priority-hint">Higher shows first. Only the top 3 eligible promotions display.</p>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Social proof (optional)</div>
+            <div class="grid-2">
+              <div class="field"><label>Client count</label><input type="text" id="f-clients-count" maxlength="8" placeholder="500+" /></div>
+              <div class="field"><label>Client label</label><input type="text" id="f-clients-label" maxlength="20" placeholder="Happy clients" /></div>
+            </div>
+            <div class="field">
+              <label>Avatar initials <span class="hint" style="display:inline;">(comma-separated, up to 3)</span></label>
+              <input type="text" id="f-clients-avatars" maxlength="12" placeholder="K, A, M" />
+              <p class="hint">Coloured initials shown next to the count.</p>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Status</div>
+            <div class="field">
+              <select id="f-status">
+                <option value="draft">Draft — not shown to anyone</option>
+                <option value="active">Active — eligible to show</option>
+                <option value="inactive">Inactive — hidden</option>
+              </select>
+            </div>
+          </div>
+        </form>
+
+        <!-- ── PREVIEW ── -->
+        <div class="preview-panel">
+          <div class="preview-label">Live preview</div>
+          <div class="pp-phone">
+            <div class="pp-ads" id="pp-ads">
+              <div class="pp-slide" id="pp-slide"></div>
+            </div>
+          </div>
+          <p class="preview-note">Rendered with the exact customer-app banner markup, colours and image logic
+            (untransformed Cloudinary delivery — see below).</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="editor-cancel">Cancel</button>
+      <button class="btn btn-primary" id="editor-save">Save promotion</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ CONFIRM MODAL ═══════════ -->
+<div class="modal-overlay" id="confirm-overlay">
+  <div class="modal" style="max-width:420px;" role="alertdialog" aria-modal="true">
+    <div class="modal-header"><span class="modal-title" id="confirm-title">Confirm</span></div>
+    <div class="modal-body"><p id="confirm-msg" style="font-size:13.5px;color:var(--text-mid);line-height:1.55;"></p></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-toast" id="admin-toast"></div>
+
+<script type="module">
+import { db, auth }                           from './js/firebase-admin.js';
+import { initAdminPage, signOutAdmin, SUPER_ADMIN_EMAILS } from './js/auth-guard.js';
+import { showToast, esc, fmtNum, setDateHeader } from './js/ui-utils.js';
+import {
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { cdnUrl, uploadImage, UPLOAD_PRESETS } from '../shared/js/services/cloudinaryService.js';
+import { SERVICE_CATEGORIES }                  from '../shared/js/data/serviceCatalog.js';
+import { PROMO_ACTION_TYPES, CUSTOMER_ROUTES, isValidPromotionActionValue,
+         describePromotionActionDestination }  from '../shared/js/domain/promotionAction.js';
+
+setDateHeader();
+window.signOut = signOutAdmin;
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Constants mirrored from the customer app so admin ↔ customer stay in lockstep
+   ───────────────────────────────────────────────────────────────────────── */
+const MAX_ROTATION = 3;   // promotionService.MAX_RESULTS — top-3 eligible shown
+const ACTION_TYPES = PROMO_ACTION_TYPES;   // single source of truth (promotionAction.js)
+// CUSTOMER_ROUTES + all destination/validation rules come from the shared contract.
+const CITY_SUGGESTIONS = ['Accra', 'Kumasi', 'Takoradi', 'Tema', 'Cape Coast', 'Tamale', 'Sunyani', 'Koforidua', 'Ho', 'Sekondi'];
+const COLOR_PRESETS = [
+  'linear-gradient(135deg, #4a8cc9 0%, #1e5a9a 100%)',
+  'linear-gradient(135deg, #3db87a 0%, #1a8a52 100%)',
+  'linear-gradient(135deg, #f0844a 0%, #c45520 100%)',
+  'linear-gradient(135deg, #730201 0%, #b10c0c 100%)',
+  'linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%)',
+  '#0d0d0d',
+];
+const AV_COLORS = ['#4A90D9', '#E8703A', '#2ECC71', '#9B59B6', '#E74C3C', '#1ABC9C'];
+
+let currentUser  = null;
+let isSuper      = false;
+let promos       = [];             // [{ id, ...data }]
+let analyticsById = {};            // { id: { impressions, clicks } }
+let editingId    = null;           // null = create
+let uiState      = { filter: 'all', search: '', sort: 'priority' };
+
+/* ── Small helpers (mirror promotionService semantics) ─────────────────── */
+function toMillis(v) {
+  if (!v) return 0;
+  if (typeof v === 'number') return v;
+  if (typeof v?.toMillis === 'function') return v.toMillis();   // Firestore Timestamp
+  const p = Date.parse(v);
+  return Number.isNaN(p) ? 0 : p;
+}
+function validAction(a) {
+  // Delegates to the shared contract — a dead route or unresolvable service is invalid.
+  return !!(a && isValidPromotionActionValue(a.type, a.value));
+}
+function requiredOk(p) {
+  return !!(p.content?.title && String(p.content.title).trim()) && validAction(p.action);
+}
+/** Objective lifecycle state — NOT just the raw status field. */
+function deliveryState(p) {
+  if (!requiredOk(p)) return { key: 'invalid', label: 'Invalid', badge: 'danger' };
+  const status = (p.status || 'draft').toLowerCase();
+  if (status === 'draft')  return { key: 'draft', label: 'Draft', badge: 'default' };
+  if (status !== 'active') return { key: 'inactive', label: status.charAt(0).toUpperCase() + status.slice(1), badge: 'default' };
+  const now = Date.now(), start = toMillis(p.schedule?.start), end = toMillis(p.schedule?.end);
+  if (start && now < start) return { key: 'scheduled', label: 'Scheduled', badge: 'info' };
+  if (end && now > end)     return { key: 'expired', label: 'Expired', badge: 'warning' };
+  return { key: 'active', label: 'Active', badge: 'success' };
+}
+function targetingSummary(t) {
+  if (!t) return 'Everyone';
+  const bits = [];
+  if (Array.isArray(t.cities) && t.cities.length)       bits.push(t.cities.length === 1 ? t.cities[0] : `${t.cities.length} cities`);
+  if (Array.isArray(t.serviceTypes) && t.serviceTypes.length) bits.push(t.serviceTypes.length === 1 ? t.serviceTypes[0] : `${t.serviceTypes.length} services`);
+  if (t.newUsersOnly) bits.push('New users');
+  return bits.length ? bits.join(' · ') : 'Everyone';
+}
+function fmtSchedule(s) {
+  if (!s) return 'Always';
+  const st = s.start ? new Date(toMillis(s.start)) : null;
+  const en = s.end   ? new Date(toMillis(s.end))   : null;
+  const d = x => x.toLocaleDateString('en-GH', { month: 'short', day: 'numeric' });
+  if (!st && !en) return 'Always';
+  if (st && !en)  return `From ${d(st)}`;
+  if (!st && en)  return `Until ${d(en)}`;
+  return `${d(st)} – ${d(en)}`;
+}
+function ctr(a) {
+  const im = a?.impressions || 0, cl = a?.clicks || 0;
+  return im > 0 ? ((cl / im) * 100).toFixed(1) + '%' : '—';
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   LOAD  — promotions + analytics (two collection reads, admin-gated by rules)
+   ───────────────────────────────────────────────────────────────────────── */
+async function loadAll() {
+  const [pSnap, aSnap] = await Promise.all([
+    getDocs(collection(db, 'promotions')),
+    getDocs(collection(db, 'promotionAnalytics')).catch(() => ({ docs: [] })),
+  ]);
+  promos        = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  analyticsById = {};
+  (aSnap.docs || []).forEach(d => { analyticsById[d.id] = d.data(); });
+  render();
+}
+
+/* ── Rotation rank among currently-active promos (targeting-agnostic estimate) ── */
+function rotationRankMap() {
+  const active = promos.filter(p => deliveryState(p).key === 'active')
+    .sort((a, b) => (b.schedule?.priority ?? 0) - (a.schedule?.priority ?? 0));
+  const map = {};
+  active.forEach((p, i) => { map[p.id] = i; });
+  return map;
+}
+
+function render() {
+  // Counts per state
+  const counts = { all: promos.length, active: 0, scheduled: 0, expired: 0, inactive: 0, draft: 0, invalid: 0 };
+  promos.forEach(p => { counts[deliveryState(p).key]++; });
+  Object.keys(counts).forEach(k => { const el = document.getElementById('cnt-' + k); if (el) el.textContent = counts[k]; });
+
+  const rank = rotationRankMap();
+  const q = uiState.search.toLowerCase();
+
+  let rows = promos.filter(p => {
+    if (uiState.filter !== 'all' && deliveryState(p).key !== uiState.filter) return false;
+    if (q && !String(p.content?.title || '').toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  rows.sort((a, b) => {
+    const aa = analyticsById[a.id] || {}, ba = analyticsById[b.id] || {};
+    switch (uiState.sort) {
+      case 'impressions': return (ba.impressions || 0) - (aa.impressions || 0);
+      case 'clicks':      return (ba.clicks || 0) - (aa.clicks || 0);
+      case 'ctr':         return ((ba.clicks || 0) / (ba.impressions || 1)) - ((aa.clicks || 0) / (aa.impressions || 1));
+      case 'title':       return String(a.content?.title || '').localeCompare(String(b.content?.title || ''));
+      default:            return (b.schedule?.priority ?? 0) - (a.schedule?.priority ?? 0);
+    }
+  });
+
+  const tbody = document.getElementById('promo-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M3 11l18-5v12L3 14v-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <p>${promos.length ? 'No promotions match this filter.' : 'No promotions yet. Create your first one.'}</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(p => {
+    const st = deliveryState(p);
+    const a  = analyticsById[p.id] || {};
+    const imgKey = p.media?.imageKey;
+    const thumbUrl = imgKey ? cdnUrl(imgKey, '') : null;
+    const inRotation = st.key === 'active' && rank[p.id] < MAX_ROTATION;
+    const rotationTag = st.key === 'active'
+      ? (inRotation ? '<span class="badge success" style="font-size:10px;">In rotation</span>'
+                    : `<span class="badge default" style="font-size:10px;">Queued #${(rank[p.id] ?? 0) + 1}</span>`)
+      : '';
+    return `<tr data-id="${esc(p.id)}">
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="promo-thumb">${thumbUrl ? `<img src="${esc(thumbUrl)}" alt="" onerror="this.style.display='none';this.parentNode.textContent='no img'">` : 'colour'}</div>
+          <div style="min-width:0;">
+            <div class="cell-title">${esc(p.content?.title || '(untitled)')}</div>
+            <div class="cell-sub">${esc(p.content?.tag || p.content?.subtitle || p.id)}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="badge ${st.badge}">${st.label}</span> ${rotationTag}</td>
+      <td style="font-weight:700;">${Number(p.schedule?.priority ?? 0)}</td>
+      <td style="font-size:12px;color:var(--text-mid);">${esc(fmtSchedule(p.schedule))}</td>
+      <td style="font-size:12px;color:var(--text-mid);">${esc(targetingSummary(p.targeting))}</td>
+      <td><span class="badge info" style="font-size:10px;">${esc(p.action?.type || '—')}</span><div class="cell-sub">${esc(p.action?.value || '')}</div></td>
+      <td>
+        <div class="metric-pair">
+          <div class="metric"><b>${fmtNum(a.impressions || 0)}</b><span>Impr</span></div>
+          <div class="metric"><b>${fmtNum(a.clicks || 0)}</b><span>Clicks</span></div>
+          <div class="metric"><b>${ctr(a)}</b><span>CTR</span></div>
+        </div>
+      </td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn" data-act="edit" title="Edit"><svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="icon-btn" data-act="toggle" title="${st.key === 'active' ? 'Deactivate' : 'Activate'}">
+            ${st.key === 'active'
+              ? '<svg viewBox="0 0 24 24" fill="none"><rect x="6" y="4" width="4" height="16" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="4" width="4" height="16" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>'
+              : '<svg viewBox="0 0 24 24" fill="none"><path d="M6 4l14 8-14 8V4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>'}
+          </button>
+          <button class="icon-btn" data-act="duplicate" title="Duplicate"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8"/></svg></button>
+          <button class="icon-btn danger" data-act="remove" title="${isSuper ? 'Delete' : 'Archive'}"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+    const p = promos.find(x => x.id === tr.dataset.id);
+    tr.querySelector('[data-act=edit]').onclick      = () => openEditor(p);
+    tr.querySelector('[data-act=toggle]').onclick    = () => toggleActive(p);
+    tr.querySelector('[data-act=duplicate]').onclick = () => duplicatePromo(p);
+    tr.querySelector('[data-act=remove]').onclick    = () => removePromo(p);
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   EDITOR
+   ───────────────────────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const editorOverlay = $('editor-overlay');
+
+function buildStaticControls() {
+  // Colour swatches
+  $('color-swatches').innerHTML = COLOR_PRESETS.map(c =>
+    `<button type="button" data-color="${esc(c)}" style="background:${c};" title="${esc(c)}"></button>`).join('');
+  $('color-swatches').querySelectorAll('button').forEach(b => {
+    b.onclick = () => { $('f-color').value = b.dataset.color; syncSwatchSel(); livePreview(); };
+  });
+  // Quick cities
+  $('quick-cities').innerHTML = CITY_SUGGESTIONS.map(c => `<button type="button" data-city="${esc(c)}">+ ${esc(c)}</button>`).join('');
+  $('quick-cities').querySelectorAll('button').forEach(b => { b.onclick = () => addCity(b.dataset.city); });
+  // Service-type checkboxes (from the real catalog)
+  $('servicetypes-checks').innerHTML = SERVICE_CATEGORIES.map(c =>
+    `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-mid);font-weight:500;cursor:pointer;">
+       <input type="checkbox" class="svc-check" value="${esc(c.categoryLabel)}"> ${esc(c.categoryLabel)}</label>`).join('');
+  $('servicetypes-checks').querySelectorAll('.svc-check').forEach(c => c.onchange = livePreview);
+}
+function syncSwatchSel() {
+  const v = $('f-color').value.trim();
+  $('color-swatches').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.color === v));
+}
+
+/* ── Cities chips state ── */
+let cityTags = [];
+function renderCities() {
+  const wrap = $('cities-input');
+  wrap.querySelectorAll('.tag').forEach(t => t.remove());
+  const entry = $('cities-entry');
+  cityTags.forEach(c => {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.innerHTML = `${esc(c)} <button type="button" aria-label="Remove">&times;</button>`;
+    tag.querySelector('button').onclick = () => { cityTags = cityTags.filter(x => x !== c); renderCities(); livePreview(); };
+    wrap.insertBefore(tag, entry);
+  });
+}
+function addCity(c) {
+  c = (c || '').trim();
+  if (c && !cityTags.some(x => x.toLowerCase() === c.toLowerCase())) { cityTags.push(c); renderCities(); livePreview(); }
+}
+
+/* ── Action value UI (per-type, validated) ── */
+function refreshActionValueUI(preset) {
+  const type = $('f-action-type').value;
+  const sel = $('f-action-value-select'), txt = $('f-action-value-text'), label = $('action-value-label'), hint = $('action-hint');
+  const useSelect = (opts) => {
+    sel.style.display = ''; txt.style.display = 'none';
+    sel.innerHTML = opts.map(o => `<option value="${esc(o.v)}">${esc(o.l)}</option>`).join('');
+    if (preset != null) {
+      if (!opts.some(o => o.v === preset)) sel.insertAdjacentHTML('afterbegin', `<option value="${esc(preset)}">⚠ ${esc(preset)} (unknown)</option>`);
+      sel.value = preset;
+    }
+  };
+  const useText = (placeholder) => {
+    sel.style.display = 'none'; txt.style.display = ''; txt.placeholder = placeholder;
+    if (preset != null) txt.value = preset;
+  };
+  if (type === 'route')      { label.innerHTML = 'Customer page <span class="req">*</span>'; useSelect(CUSTOMER_ROUTES.map(r => ({ v: r, l: r }))); hint.textContent = 'Opens this page inside the customer app.'; }
+  else if (type === 'service')  { label.innerHTML = 'Service category <span class="req">*</span>'; useSelect(SERVICE_CATEGORIES.map(c => ({ v: c.categoryLabel, l: c.categoryLabel }))); hint.textContent = 'Opens book-request pre-filtered to this service.'; }
+  else if (type === 'category') { label.innerHTML = 'Category <span class="req">*</span>'; useSelect(SERVICE_CATEGORIES.map(c => ({ v: c.categoryLabel, l: c.categoryLabel }))); hint.textContent = 'Opens the category’s discovery page (book-request.html?cat=…).'; }
+  else if (type === 'artisan')  { label.innerHTML = 'Artisan ID <span class="req">*</span>'; useText('artisan document id'); hint.textContent = 'Opens that artisan’s profile. Use a real artisans/{id}.'; }
+  else if (type === 'promo')    { label.innerHTML = 'Promo code <span class="req">*</span>'; useText('WELCOME20'); hint.textContent = 'Stores the code, then opens book-request.'; }
+  else if (type === 'external') { label.innerHTML = 'External URL <span class="req">*</span>'; useText('https://example.com'); hint.textContent = 'Opens in a new browser tab.'; }
+  livePreview();
+}
+function currentActionValue() {
+  return ($('f-action-value-select').style.display === 'none' ? $('f-action-value-text').value : $('f-action-value-select').value).trim();
+}
+
+/* ── Open / populate ── */
+function openEditor(p) {
+  editingId = p ? p.id : null;
+  $('editor-title').textContent = p ? 'Edit Promotion' : 'New Promotion';
+  clearErrors();
+
+  const c = p?.content || {}, m = p?.media || {}, act = p?.action || {}, tg = p?.targeting || {}, sc = p?.schedule || {}, cl = p?.clients || {};
+  $('f-title').value = c.title || '';
+  $('f-tag').value = c.tag || '';
+  $('f-cta').value = c.cta || '';
+  $('f-subtitle').value = c.subtitle || '';
+  $('f-body').value = c.body || '';
+  $('f-color').value = p?.color || COLOR_PRESETS[0];
+  $('f-imagekey').value = m.imageKey || '';
+  $('img-status').textContent = '';
+  $('img-status').className = 'img-status';
+
+  $('f-action-type').value = ACTION_TYPES.includes(act.type) ? act.type : 'route';
+  refreshActionValueUI(act.value != null ? String(act.value) : null);
+
+  cityTags = Array.isArray(tg.cities) ? [...tg.cities] : [];
+  renderCities();
+  const svcSet = new Set(Array.isArray(tg.serviceTypes) ? tg.serviceTypes : []);
+  $('servicetypes-checks').querySelectorAll('.svc-check').forEach(ch => { ch.checked = svcSet.has(ch.value); });
+  $('f-newusers').checked = !!tg.newUsersOnly;
+
+  $('f-start').value = toDatetimeLocal(sc.start);
+  $('f-end').value   = toDatetimeLocal(sc.end);
+  $('f-priority').value = Number(sc.priority ?? 50);
+
+  $('f-clients-count').value = cl?.count || '';
+  $('f-clients-label').value = cl?.label || '';
+  $('f-clients-avatars').value = Array.isArray(cl?.avatars) ? cl.avatars.map(a => a.initial).join(', ') : '';
+
+  $('f-status').value = ['draft', 'active', 'inactive'].includes(p?.status) ? p.status : 'draft';
+
+  syncSwatchSel();
+  validateImage();
+  livePreview();
+  editorOverlay.classList.add('open');
+}
+
+function toDatetimeLocal(v) {
+  const ms = toMillis(v);
+  if (!ms) return '';
+  const d = new Date(ms - new Date().getTimezoneOffset() * 60000);
+  return d.toISOString().slice(0, 16);
+}
+function fromDatetimeLocal(s) { return s ? new Date(s).toISOString() : null; }
+
+/* ── Read the form into the exact nested schema ── */
+function readForm() {
+  const avatars = ($('f-clients-avatars').value || '').split(',').map(s => s.trim()).filter(Boolean).slice(0, 3)
+    .map((initial, i) => ({ initial: initial.slice(0, 1).toUpperCase(), color: AV_COLORS[i % AV_COLORS.length] }));
+  const count = $('f-clients-count').value.trim(), label = $('f-clients-label').value.trim();
+  const clients = (count || label || avatars.length) ? { count, label, avatars } : null;
+
+  const serviceTypes = [...$('servicetypes-checks').querySelectorAll('.svc-check:checked')].map(c => c.value);
+
+  return {
+    status: $('f-status').value,
+    content: {
+      tag:      $('f-tag').value.trim(),
+      title:    $('f-title').value.trim(),
+      subtitle: $('f-subtitle').value.trim(),
+      body:     $('f-body').value.trim(),
+      cta:      $('f-cta').value.trim() || 'Learn More',
+    },
+    media: { imageKey: $('f-imagekey').value.trim() || null },
+    color: $('f-color').value.trim() || null,
+    action: { type: $('f-action-type').value, value: currentActionValue() },
+    targeting: {
+      cities: cityTags,
+      serviceTypes,
+      newUsersOnly: $('f-newusers').checked,
+    },
+    schedule: {
+      start:    fromDatetimeLocal($('f-start').value),
+      end:      fromDatetimeLocal($('f-end').value),
+      priority: Number($('f-priority').value || 0),
+    },
+    clients,
+  };
+}
+
+/* ── Validation ── */
+function clearErrors() {
+  ['title', 'action', 'schedule'].forEach(k => { const el = $('e-' + k); if (el) el.parentElement.classList.remove('invalid'); });
+}
+function validate(data) {
+  clearErrors();
+  let ok = true;
+  if (!data.content.title) { $('e-title').parentElement.classList.add('invalid'); ok = false; }
+  if (!isValidPromotionActionValue(data.action.type, data.action.value)) {
+    $('e-action').textContent = actionError(data.action.type);
+    $('e-action').parentElement.classList.add('invalid'); ok = false;
+  }
+  const s = toMillis(data.schedule.start), e = toMillis(data.schedule.end);
+  if (s && e && e <= s) { $('e-schedule').parentElement.classList.add('invalid'); ok = false; }
+  return ok;
+}
+function actionError(type) {
+  switch (type) {
+    case 'route':    return 'Choose a known customer page — deleted/unknown routes can’t be published.';
+    case 'external': return 'Enter a full http(s):// URL.';
+    case 'service':
+    case 'category': return 'Choose a real service category.';
+    default:         return 'This action needs a value.';
+  }
+}
+
+/* ── Image upload + deliverability check ── */
+$('img-drop').onclick = () => $('img-file').click();
+$('img-file').onchange = async (ev) => {
+  const file = ev.target.files?.[0];
+  if (!file) return;
+  const drop = $('img-drop'); drop.classList.add('busy');
+  setImgStatus('Uploading to Cloudinary…', '');
+  try {
+    const { publicId } = await uploadImage(file, UPLOAD_PRESETS.banner);
+    $('f-imagekey').value = publicId;
+    await validateImage();
+    livePreview();
+  } catch (err) {
+    setImgStatus('Upload failed: ' + err.message, 'err');
+  } finally {
+    drop.classList.remove('busy');
+    ev.target.value = '';
+  }
+};
+$('f-imagekey').oninput = () => { validateImage(); livePreview(); };
+
+function setImgStatus(msg, cls) { const el = $('img-status'); el.textContent = msg; el.className = 'img-status' + (cls ? ' ' + cls : ''); }
+
+function validateImage() {
+  const key = $('f-imagekey').value.trim();
+  if (!key) { setImgStatus('No image — the banner will show its colour background (intended).', ''); return Promise.resolve(true); }
+  const url = cdnUrl(key, '');   // untransformed delivery — the path that works on this account
+  setImgStatus('Checking image delivery…', '');
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload  = () => { setImgStatus('✔ Image resolves and will display.', 'ok'); resolve(true); };
+    img.onerror = () => { setImgStatus('⚠ This public_id does not resolve on Cloudinary — the banner will fall back to its colour background. Check the public_id, or upload above.', 'warn'); resolve(false); };
+    img.src = url;
+  });
+}
+
+/* ── Live preview — faithful to the customer renderSlide() ── */
+function livePreview() {
+  const d = readForm();
+  syncSwatchSel();
+  const dst = $('action-dest'); if (dst) dst.textContent = describePromotionActionDestination(d.action);
+  const key = d.media.imageKey;
+  const url = key ? cdnUrl(key, '') : null;
+  const avatarHTML = (d.clients?.avatars || []).map(a => `<div class="pp-av" style="background:${a.color}">${esc(a.initial)}</div>`).join('');
+  const clientsHTML = d.clients && (d.clients.count || d.clients.label || (d.clients.avatars || []).length) ? `
+    <div class="pp-clients"><div class="pp-avs">${avatarHTML}</div>
+      <div class="pp-count"><strong>${esc(d.clients.count || '')}</strong><span>${esc(d.clients.label || '')}</span></div></div>` : '';
+  $('pp-slide').innerHTML = `
+    <div class="pp-content">
+      <span class="pp-tag" style="${d.content.tag ? '' : 'visibility:hidden'}">${esc(d.content.tag || 'Tag')}</span>
+      <div class="pp-headline">
+        <p class="pp-title">${esc(d.content.title || 'Your title')}</p>
+        <p class="pp-sub">${esc(d.content.subtitle || '')}</p>
+        <p class="pp-body">${esc(d.content.body || '')}</p>
+      </div>
+      <div class="pp-bottom">
+        <span class="pp-cta">${esc(d.content.cta || 'Learn More')}
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span>
+        ${clientsHTML}
+      </div>
+    </div>
+    <div class="pp-imgwrap${url ? '' : ' failed'}">${url ? `<img src="${esc(url)}" alt="" onerror="this.parentNode.classList.add('failed')">` : ''}</div>`;
+  $('pp-slide').style.background = d.color || '#f4f2f0';
+  // Match customer: the slide bg shows through the image gradient edge
+  $('pp-slide').querySelector('.pp-imgwrap')?.style.setProperty('--img-fallback', d.color || '#e8e8e8');
+}
+
+// Re-render preview on any form input
+$('promo-form').addEventListener('input', livePreview);
+$('f-action-type').addEventListener('change', () => refreshActionValueUI(null));
+$('cities-entry').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCity($('cities-entry').value); $('cities-entry').value = ''; } });
+
+/* ── Save ── */
+let saving = false;
+$('editor-save').onclick = async () => {
+  if (saving) return;
+  const data = readForm();
+  if (!validate(data)) { showToast('Please fix the highlighted fields', 'error'); return; }
+  // Any image warning is already visible in the status line — publishing with an
+  // unresolved image is allowed on purpose (colour fallback), and is never silent.
+
+  saving = true;
+  const btn = $('editor-save'); const orig = btn.textContent; btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    const base = {
+      ...data,
+      updatedAt: serverTimestamp(),
+      updatedBy: currentUser.email,
+    };
+    if (editingId) {
+      // Preserve fields we don't edit (createdAt + display analytics parity).
+      const existing = promos.find(p => p.id === editingId) || {};
+      const full = {
+        ...base,
+        createdAt: existing.createdAt || serverTimestamp(),
+        createdBy: existing.createdBy || currentUser.email,
+        analytics: existing.analytics || { impressions: 0, clicks: 0 },
+      };
+      await setDoc(doc(db, 'promotions', editingId), full);   // full overwrite → exact schema, no stale sub-fields
+      showToast('Promotion updated', 'success');
+    } else {
+      const ref = doc(collection(db, 'promotions'));
+      await setDoc(ref, {
+        ...base,
+        analytics: { impressions: 0, clicks: 0 },
+        createdAt: serverTimestamp(),
+        createdBy: currentUser.email,
+      });
+      showToast('Promotion created', 'success');
+    }
+    closeEditor();
+    await loadAll();
+  } catch (err) {
+    showToast('Save failed: ' + (err.code === 'permission-denied' ? 'you do not have write permission' : err.message), 'error');
+  } finally {
+    saving = false; btn.textContent = orig; btn.disabled = false;
+  }
+};
+
+function closeEditor() { editorOverlay.classList.remove('open'); editingId = null; }
+$('editor-close').onclick = closeEditor;
+$('editor-cancel').onclick = closeEditor;
+$('new-promo-btn').onclick = () => openEditor(null);
+editorOverlay.addEventListener('click', e => { if (e.target === editorOverlay) closeEditor(); });
+
+/* ─────────────────────────────────────────────────────────────────────────
+   LIFECYCLE ACTIONS
+   ───────────────────────────────────────────────────────────────────────── */
+async function toggleActive(p) {
+  const next = deliveryState(p).key === 'active' ? 'inactive' : 'active';
+  try {
+    await updateDoc(doc(db, 'promotions', p.id), { status: next, updatedAt: serverTimestamp(), updatedBy: currentUser.email });
+    showToast(next === 'active' ? 'Promotion activated' : 'Promotion deactivated', 'success');
+    await loadAll();
+  } catch (err) { showToast('Update failed: ' + err.message, 'error'); }
+}
+
+async function duplicatePromo(p) {
+  try {
+    const { id, createdAt, updatedAt, analytics, ...rest } = p;
+    const ref = doc(collection(db, 'promotions'));
+    await setDoc(ref, {
+      ...rest,
+      status: 'draft',
+      content: { ...(rest.content || {}), title: ((rest.content?.title) || 'Promotion') + ' (copy)' },
+      analytics: { impressions: 0, clicks: 0 },
+      createdAt: serverTimestamp(), createdBy: currentUser.email,
+      updatedAt: serverTimestamp(), updatedBy: currentUser.email,
+    });
+    showToast('Duplicated as a draft', 'success');
+    await loadAll();
+  } catch (err) { showToast('Duplicate failed: ' + err.message, 'error'); }
+}
+
+function removePromo(p) {
+  if (isSuper) {
+    confirmModal('Delete promotion?',
+      `Permanently delete “${p.content?.title || p.id}”. This cannot be undone. Its analytics document is left intact for records.`,
+      'Delete', async () => {
+        try { await deleteDoc(doc(db, 'promotions', p.id)); showToast('Promotion deleted', 'success'); await loadAll(); }
+        catch (err) { showToast('Delete failed: ' + (err.code === 'permission-denied' ? 'super-admin only' : err.message), 'error'); }
+      });
+  } else {
+    // Regular admins cannot hard-delete (super-admin only per Firestore rules) → archive instead.
+    confirmModal('Archive promotion?',
+      `“${p.content?.title || p.id}” will be set to Inactive and stop showing. (Only a super-admin can permanently delete.)`,
+      'Archive', async () => {
+        try { await updateDoc(doc(db, 'promotions', p.id), { status: 'inactive', updatedAt: serverTimestamp(), updatedBy: currentUser.email }); showToast('Promotion archived', 'success'); await loadAll(); }
+        catch (err) { showToast('Archive failed: ' + err.message, 'error'); }
+      });
+  }
+}
+
+/* ── Confirm modal ── */
+const confirmOverlay = $('confirm-overlay');
+let confirmHandler = null;
+function confirmModal(title, msg, okLabel, onOk) {
+  $('confirm-title').textContent = title;
+  $('confirm-msg').textContent = msg;
+  $('confirm-ok').textContent = okLabel;
+  confirmHandler = onOk;
+  confirmOverlay.classList.add('open');
+}
+$('confirm-cancel').onclick = () => confirmOverlay.classList.remove('open');
+confirmOverlay.addEventListener('click', e => { if (e.target === confirmOverlay) confirmOverlay.classList.remove('open'); });
+$('confirm-ok').onclick = async () => { const h = confirmHandler; confirmOverlay.classList.remove('open'); if (h) await h(); };
+
+/* ── Toolbar wiring ── */
+$('promo-search').oninput = e => { uiState.search = e.target.value; render(); };
+$('promo-sort').onchange  = e => { uiState.sort = e.target.value; render(); };
+document.getElementById('promo-filters').querySelectorAll('.chip').forEach(chip => {
+  chip.onclick = () => {
+    document.querySelectorAll('#promo-filters .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active'); uiState.filter = chip.dataset.state; render();
+  };
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BOOT (auth-guarded)
+   ───────────────────────────────────────────────────────────────────────── */
+initAdminPage(async user => {
+  currentUser = user;
+  isSuper = SUPER_ADMIN_EMAILS.includes(user.email);
+  buildStaticControls();
+  try {
+    await loadAll();
+  } catch (err) {
+    document.getElementById('promo-tbody').innerHTML =
+      `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--danger);">Failed to load promotions: ${esc(err.message)}</td></tr>`;
+  }
+});
+</script>
+</body>
+</html>

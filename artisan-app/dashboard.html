@@ -301,7 +301,9 @@ import '../shared/js/utils/global-app.js';
 import { getAppContainer }                             from '../shared/js/app/container.js';
 import { startPresence, stopPresence, setOnlineState } from '../shared/js/services/presenceService.js';
 import { subscribeToUnreadCount }                      from '../shared/js/services/notificationRepository.js';
-import { requireArtisanAuth, canAcceptJobs }           from './js/utils/artisanAuthGuard.js';
+import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
+import { isArtisanDevAccessEnabled } from '../shared/js/config/devAccess.js';
+import { getDevStateKey }            from '../shared/dev/artisanDevSession.js';
 import { resolveAvatar, TRANSFORMS }                   from '../shared/js/services/cloudinaryService.js';
 import { pricingService }                              from '../shared/js/services/pricingService.js';
 import { describe as describeStatus }                  from '../shared/js/domain/bookingStatusMeta.js';
@@ -867,12 +869,61 @@ function _timeAgo(iso) {
   return `${Math.floor(h/24)}d ago`;
 }
 
+// ── Development Access Mode dashboard renderer ─────────
+// Paints the mock artisan + work lists through the SAME render functions the
+// real path uses, so dev mode looks like production with data.
+function renderDevDashboard(data) {
+  applyProfile(_currentArtisan || {});
+
+  if (data.unreadCount > 0) {
+    notifBadge.textContent   = data.unreadCount > 99 ? '99+' : String(data.unreadCount);
+    notifBadge.style.display = 'flex';
+  } else {
+    notifBadge.style.display = 'none';
+  }
+
+  jobSkeleton?.remove();
+  jobsList.querySelectorAll('.job-request-card').forEach(c => c.remove());
+  if (data.jobRequests.length) {
+    jobsEmpty.style.display = 'none';
+    data.jobRequests.forEach(b => jobsList.appendChild(renderJobCard(b)));
+  } else { jobsEmpty.style.display = 'block'; }
+
+  const activeJobsList  = document.getElementById('active-jobs-list');
+  const activeJobsEmpty = document.getElementById('active-jobs-empty');
+  activeJobsList.querySelectorAll('.active-job-card').forEach(c => c.remove());
+  if (data.activeJobs.length) {
+    activeJobsEmpty.style.display = 'none';
+    data.activeJobs.forEach(b => activeJobsList.appendChild(renderActiveJobCard(b)));
+  } else { activeJobsEmpty.style.display = 'block'; }
+
+  scheduleList.querySelectorAll('.schedule-item').forEach(c => c.remove());
+  if (data.schedule.length) {
+    scheduleEmpty.style.display = 'none';
+    data.schedule.forEach(b => scheduleList.appendChild(renderScheduleItem(b)));
+  } else { scheduleEmpty.style.display = 'block'; }
+}
+
 // ── Auth bootstrap ────────────────────────────────────
-// Guard above already verified auth. subscribeToAuthState handles session
-// expiry and signs out if the token is revoked after page load.
-authService.subscribeToAuthState(async user => {
+// Guard above already verified auth. This watches for session expiry after page
+// load. Routed through the shared dev-aware accessor so it delegates to real
+// Firebase in production but serves the mock session (and never bounces to
+// login) under Development Access Mode.
+subscribeToArtisanAuthState(async user => {
   if (!user) { window.location.replace('login.html'); return; }
   uid = user.uid;
+
+  // ── Development Access Mode ──────────────────────────────────────────────
+  // Render the mock profile + structured mock work lists, and SKIP every real
+  // Firestore subscription + presence. Without this the live artisan-doc
+  // subscription would resolve not-exists (dev uid) and bounce to onboarding,
+  // and presence would write to real Firestore under the mock uid.
+  if (isArtisanDevAccessEnabled()) {
+    const { getDevDashboardData } = await import('../shared/dev/artisanDevData.js');
+    renderDevDashboard(getDevDashboardData(getDevStateKey()));
+    return;
+  }
+
   // Keep _currentArtisan in sync when profile updates
   if (user.uid) {
     databaseService.getDocument('artisans', user.uid)

@@ -104,10 +104,13 @@
           var img = document.getElementById('profile-avatar');
           if (img) {
             var src = null;
-            if (cache.profileImageId) {
+            // The module controller owns normalized, failure-aware remote
+            // avatar assignment; this inline cache painter handles text only.
+            var allowInlineRemoteAvatar = false;
+            if (allowInlineRemoteAvatar && cache.profileImageId) {
               var v = cache.profileImageVersion ? 'v' + cache.profileImageVersion + '/' : '';
               src = 'https://res.cloudinary.com/dnwwglbl9/image/upload/' + v + 'w_160,h_160,c_fill,f_auto,q_auto,r_max/' + cache.profileImageId;
-            } else {
+            } else if (allowInlineRemoteAvatar) {
               src = cache.profileImage || null;
             }
             if (src) {

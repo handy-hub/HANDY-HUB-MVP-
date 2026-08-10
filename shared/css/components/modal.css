@@ -23,26 +23,42 @@
 
 /* ── Overlay backdrop ────────────────────────────────────────────────────── */
 .ui-modal-overlay {
+  --ui-backdrop-opacity: 0;
   position: fixed;
   inset: 0;
-  background: var(--ui-overlay, rgba(0, 0, 0, 0.5));
   z-index: var(--ui-z-modal, 1000);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.22s ease;
+  isolation: isolate;
+  transition: visibility 0s linear 0.28s;
 }
 
 .ui-modal-overlay.open {
-  opacity: 1;
+  --ui-backdrop-opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.ui-modal-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--ui-overlay, rgba(0, 0, 0, 0.5));
+  opacity: var(--ui-backdrop-opacity);
+  transition: opacity 0.22s ease;
 }
 
 /* ── Modal panel ─────────────────────────────────────────────────────────── */
 .ui-modal {
+  outline: none;
+  position: relative;
+  z-index: 1;
   width: min(100%, 420px);
   max-height: min(86dvh, 760px);
   overflow-y: auto;
@@ -200,4 +216,9 @@
   background: var(--ds-surface-2, #242424);
   border-color: var(--ds-line-strong, #333);
   color: var(--ds-ink, #f0f0f0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal-overlay::before,
+  .ui-modal { transition-duration: 0.01ms; }
 }

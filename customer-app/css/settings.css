@@ -442,7 +442,7 @@ button {
    BOTTOM SHEET — aliases to shared/css/components/sheet.css
    Local class names kept for HTML back-compat; all styles from shared component.
 =========================== */
-.bottom-sheet         { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: min(100%, 430px); background: var(--ui-surface, #fff); border-radius: var(--ui-sheet-radius, 18px) var(--ui-sheet-radius, 18px) 0 0; z-index: var(--ui-z-drawer, 800); padding: 0 0 max(24px, env(safe-area-inset-bottom)); transition: transform 0.32s cubic-bezier(0.22,1,0.36,1); will-change: transform; }
+.bottom-sheet         { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: min(100%, 430px); background: var(--ui-surface, #fff); border-radius: var(--ui-sheet-radius, 18px) var(--ui-sheet-radius, 18px) 0 0; z-index: var(--ui-z-drawer, 800); padding: 0 0 max(24px, env(safe-area-inset-bottom)); outline: none; transition: transform 0.32s cubic-bezier(0.22,1,0.36,1); will-change: transform; }
 .bottom-sheet.open    { transform: translateX(-50%) translateY(0); }
 .sheet-handle         { width: 36px; height: 4px; background: rgba(0,0,0,.12); border-radius: var(--ui-radius-pill); margin: 12px auto 4px; }
 .sheet-title          { font-size: 15px; font-weight: 800; color: var(--ui-text, #111); text-align: center; padding: 10px 20px 12px; border-bottom: 1px solid var(--ui-border, rgba(0,0,0,.08)); }
@@ -456,9 +456,10 @@ button {
    CONFIRM MODAL — aliases to shared/css/components/modal.css
    Local class names kept for HTML back-compat; token-aligned implementations.
 =========================== */
-.modal-overlay         { position: fixed; inset: 0; background: var(--ui-overlay, rgba(0,0,0,.5)); z-index: var(--ui-z-modal, 1000); display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.22s ease; }
-.modal-overlay.visible { opacity: 1; pointer-events: auto; }
-.modal-card            { background: var(--ui-surface, #fff); border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0; width: min(100%, 430px); padding: 28px 24px max(40px, env(safe-area-inset-bottom, 24px)); transform: translateY(24px); transition: transform 0.28s cubic-bezier(0.22,1,0.36,1); }
+.modal-overlay         { --ui-backdrop-opacity: 0; position: fixed; inset: 0; z-index: var(--ui-z-modal, 1000); display: flex; align-items: flex-end; justify-content: center; visibility: hidden; pointer-events: none; isolation: isolate; transition: visibility 0s linear .28s; }
+.modal-backdrop        { position: absolute; inset: 0; z-index: 0; background: var(--ui-overlay, rgba(0,0,0,.5)); opacity: var(--ui-backdrop-opacity); transition: opacity .22s ease; }
+.modal-overlay.visible { --ui-backdrop-opacity: 1; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+.modal-card            { position: relative; z-index: 1; isolation: isolate; opacity: 1; filter: none; outline: none; background-color: var(--ui-surface, #fff); border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0; width: min(100%, 430px); padding: 28px 24px max(40px, env(safe-area-inset-bottom, 24px)); transform: translateY(24px); transition: transform 0.28s cubic-bezier(0.22,1,0.36,1); }
 .modal-overlay.visible .modal-card { transform: translateY(0); }
 .modal-icon            { width: 52px; height: 52px; background: rgba(var(--ui-primary-rgb, 115,2,1), .08); border-radius: var(--ui-radius-pill); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
 .modal-title           { font-size: 18px; font-weight: 800; color: var(--ui-text, #111); text-align: center; margin-bottom: 8px; }

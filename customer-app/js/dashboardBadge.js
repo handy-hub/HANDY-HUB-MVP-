@@ -1,10 +1,11 @@
 import { getAppContainer }         from '../../shared/js/app/container.js';
 import { subscribeToUnreadCount } from '../../shared/js/services/notificationRepository.js';
-import { resolveAvatar, TRANSFORMS } from '../../shared/js/services/cloudinaryService.js';
+import { bindAvatarImage, TRANSFORMS } from '../../shared/js/services/cloudinaryService.js';
 
 // Active cleanup handles — cancelled when auth state changes
 let unsubscribeCount   = null;
 let unsubscribeProfile = null;
+let unsubscribeAuth    = null;
 
 // ── DOM painters ──────────────────────────────────────────────────────────────
 
@@ -38,13 +39,11 @@ function applyProfileToDOM(data) {
     const sideImgEl  = document.getElementById('sidebar-profile-img');
     const locEl      = document.getElementById('uc-loc-text');
 
-    const src = resolveAvatar(data, TRANSFORMS.avatarSm);
-
     if (nameEl     && data.name)     { nameEl.textContent     = data.name;     removeSkel(nameEl); }
     if (sideNameEl && data.name)       sideNameEl.textContent = data.name;
     if (locEl      && data.location) { locEl.textContent      = data.location; removeSkel(locEl); }
-    if (imgEl      && src)           { if (imgEl.src !== src) imgEl.src = src; removeSkel(imgEl); }
-    if (sideImgEl  && src)           { if (sideImgEl.src !== src) sideImgEl.src = src; }
+    if (imgEl)     { bindAvatarImage(imgEl, data, TRANSFORMS.avatarSm); removeSkel(imgEl); }
+    if (sideImgEl) { bindAvatarImage(sideImgEl, data, TRANSFORMS.avatarSm); }
 }
 
 // ── Cleanup helper ────────────────────────────────────────────────────────────
@@ -54,13 +53,18 @@ function teardown() {
     if (unsubscribeProfile) { unsubscribeProfile(); unsubscribeProfile = null; }
 }
 
+function teardownAll() {
+    teardown();
+    if (unsubscribeAuth) { unsubscribeAuth(); unsubscribeAuth = null; }
+}
+
 // ── Auth state driver ─────────────────────────────────────────────────────────
 
 const { services: { authService } } = getAppContainer();
 
-window.addEventListener('pagehide', teardown, { once: true });
+window.addEventListener('pagehide', teardownAll, { once: true });
 
-authService.subscribeToAuthState(user => {
+unsubscribeAuth = authService.subscribeToAuthState(user => {
     teardown(); // always cancel previous subscriptions first
 
     if (!user) {

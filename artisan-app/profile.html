@@ -92,9 +92,8 @@
 <script type="module">
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
-import {
-  uploadImage, avatarUrl, TRANSFORMS, UPLOAD_PRESETS, fallbackAvatar,
-} from '../shared/js/services/cloudinaryService.js';
+import { avatarUrl, TRANSFORMS, fallbackAvatar } from '../shared/js/services/cloudinaryService.js';
+import { replaceProfilePhoto } from '../shared/js/services/profilePhotoService.js';
 
 // Blocking guard — all artisans (including pending) can view/edit their profile
 const { user, artisan } = await requireArtisanAuth({ allowPending: true });
@@ -116,20 +115,7 @@ async function handlePhotoUpload(file) {
   if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
 
   try {
-    // Unique id per upload — the hh_profiles unsigned upload preset cannot set
-    // `overwrite` (Cloudinary rejects it on unsigned presets), so re-using the
-    // same public_id silently no-ops on re-upload. A fresh id per upload
-    // guarantees the new photo actually replaces the old one for the user.
-    const { publicId, version } = await uploadImage(
-      file,
-      UPLOAD_PRESETS.profile,
-      { publicId: `artisans/${user.uid}/${Date.now()}` }
-    );
-    await databaseService.updateDocument('artisans', user.uid, {
-      profileImageId:      publicId,
-      profileImageVersion: version,
-      updatedAt: new Date().toISOString(),
-    });
+    const { publicId, version } = await replaceProfilePhoto(file, 'artisan');
     if (img) img.src = avatarUrl(publicId, TRANSFORMS.avatarLg, version);
     showToast('Photo updated');
   } catch (err) {

@@ -12,6 +12,10 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <!-- Canonical sheet styles (Security PIN / payment authorization). Linked here
+       so sheet.js never waits on a stylesheet inside the tap that opens the
+       sheet — that wait is what costs the instant system keyboard on iOS. -->
+  <link rel="stylesheet" href="../shared/css/components/sheet.css" />
 </head>
 <body>
 

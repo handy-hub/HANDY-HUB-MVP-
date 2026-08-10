@@ -30,6 +30,8 @@
 
 import { getAppContainer }              from '../../../shared/js/app/container.js';
 import { initializePushNotifications } from '../../../shared/js/services/pushNotificationService.js';
+import { isArtisanDevAccessEnabled }   from '../../../shared/js/config/devAccess.js';
+import { getDevArtisanSession, endDevSession } from '../../../shared/dev/artisanDevSession.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const LOGIN_URL        = 'login.html';
@@ -230,6 +232,14 @@ export function consumeReturnUrl() {
 
 // ── Exposed helpers (called from overlay buttons) ─────────────────────────────
 window._agSignOut = async function () {
+  // Dev mode: there is no real Firebase user to sign out. End the mock session
+  // and return to login. (Guarded so it only ever short-circuits in dev.)
+  if (isArtisanDevAccessEnabled()) {
+    endDevSession();
+    sessionStorage.removeItem(SESSION_KEY);
+    window.location.replace(LOGIN_URL);
+    return;
+  }
   try {
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(RETURN_KEY);
@@ -261,6 +271,18 @@ window._agGoToDashboard = function () {
  *   Never resolves if auth fails — guard redirects instead.
  */
 export async function requireArtisanAuth({ requireApproved = false, allowPending = false } = {}) {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DEVELOPMENT ACCESS MODE (temporary, non-production only)
+  // When enabled, resolve a controlled mock session instead of real Firebase +
+  // Firestore. It still HONOURS the same gates (suspended / pending / error) per
+  // the selected dev state, so the guard's real access contract is reproduced,
+  // not discarded. Everything below this block — the entire real system — is
+  // untouched and runs verbatim when the flag is off.
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (isArtisanDevAccessEnabled()) {
+    return resolveDevArtisanAccess({ requireApproved, allowPending });
+  }
+
   // Block ALL page content immediately — overlay covers the body before
   // any HTML renders visibly.
   showOverlay('loading');
@@ -343,6 +365,67 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
         window.location.replace(LOGIN_URL);
       });
   });
+}
+
+// ── Development Access Mode resolver ──────────────────────────────────────────
+// Mirrors the real guard's outcomes for the selected dev state, so every access
+// path (enter / suspended / pending / error) can be exercised without a backend.
+// Always mounts the dev badge + state switcher (above the overlay) so the state
+// is switchable even when the current state blocks the page. Never touches
+// Firebase or push notifications.
+async function resolveDevArtisanAccess({ requireApproved, allowPending }) {
+  showOverlay('loading');
+  // Badge module is loaded lazily so its code + styles never reach production.
+  const { mountArtisanDevBadge } = await import('../../../shared/dev/artisanDevBadge.js');
+  const { user, artisan, gate } = getDevArtisanSession();
+
+  mountArtisanDevBadge({ onExit: () => window._agSignOut() });
+
+  return new Promise((resolve) => {
+    // data-error state → exercise the error path.
+    if (!artisan || gate === 'unauthorized') { showOverlay('unauthorized'); return; }
+    // suspended/banned → suspended screen (same as real).
+    if (gate === 'suspended') { showOverlay('suspended'); return; }
+    // KYC-required pages block a pending artisan, unless the page allows pending.
+    if (gate === 'pending' && requireApproved && !allowPending) { showOverlay('pending'); return; }
+
+    cacheSession(user.uid, artisan);
+    hideOverlay();
+    resolve({ user, artisan });
+  });
+}
+
+// ── Shared, dev-aware auth accessors ──────────────────────────────────────────
+// Artisan pages must resolve the current user through THESE, not by calling
+// Firebase Auth (authService.subscribeToAuthState / waitForUser) directly. In
+// production they delegate 1:1 to the real authService; in dev mode they serve
+// the one canonical mock session and never bounce to login. This is what lets a
+// page's post-guard "session expiry" watcher keep working under the bypass.
+
+/**
+ * Subscribe to the artisan auth state. Dev mode: fires once with the mock user
+ * and returns a no-op unsubscribe. Production: the real Firebase subscription.
+ * @param {(user: object|null) => void} cb
+ * @returns {() => void} unsubscribe
+ */
+export function subscribeToArtisanAuthState(cb) {
+  if (isArtisanDevAccessEnabled()) {
+    try { cb(getDevArtisanSession().user); } catch (_) {}
+    return () => {};
+  }
+  const { services: { authService } } = getAppContainer();
+  return authService.subscribeToAuthState(cb);
+}
+
+/**
+ * Resolve the current artisan user. Dev mode: the mock user. Production: the
+ * real awaited Firebase user (may be null).
+ * @returns {Promise<object|null>}
+ */
+export async function waitForArtisanUser() {
+  if (isArtisanDevAccessEnabled()) return getDevArtisanSession().user;
+  const { services: { authService } } = getAppContainer();
+  return authService.waitForUser();
 }
 
 /**

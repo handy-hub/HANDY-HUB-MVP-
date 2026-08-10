@@ -31,7 +31,10 @@ function buildContainer(backendName) {
     const services = {
         customerAuthService: createCustomerAuthService({
             authRepository:     repositories.authRepository,
-            customerRepository: repositories.customerRepository
+            customerRepository: repositories.customerRepository,
+            // artisanRepository lets the customer auth flow reject an artisan UID
+            // BEFORE minting a conflicting customer identity (RBAC boundary).
+            artisanRepository:  repositories.artisanRepository
         }),
         sessionService: createSessionService({
             authRepository: repositories.authRepository

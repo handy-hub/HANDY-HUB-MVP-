@@ -110,6 +110,31 @@ body {
 .bk-card:active { background: var(--ui-surface-2); }
 .bk-card:last-child { border-bottom: none; }
 
+/* Booking-card loading skeleton: identical geometry to the final rows. */
+.bk-skeleton-card { pointer-events: none; cursor: default; }
+.bk-skeleton {
+  display: block;
+  background: linear-gradient(100deg, var(--ui-surface-2) 20%, var(--ui-surface) 40%, var(--ui-surface-2) 60%);
+  background-size: 220% 100%;
+  animation: bkSkeletonShimmer 1.35s var(--ui-ease-emphasis, ease) infinite;
+}
+.bk-skeleton-avatar { width: 48px; height: 48px; border-radius: var(--ui-radius-pill); }
+.bk-skeleton-service-badge { position: absolute; right: -2px; bottom: -2px; width: 20px; height: 20px; border: 2px solid var(--ui-surface); border-radius: var(--ui-radius-pill); }
+.bk-skeleton-line { height: 10px; border-radius: var(--ui-radius-pill); }
+.bk-skeleton-line.service { width: min(72%, 180px); height: 13px; margin-bottom: var(--ui-2, 8px); }
+.bk-skeleton-line.professional { width: min(46%, 112px); margin-bottom: var(--ui-2, 8px); }
+.bk-skeleton-line.metadata { width: min(64%, 150px); margin-top: var(--ui-1, 4px); }
+.bk-skeleton-line.metadata.short { width: min(42%, 96px); }
+.bk-skeleton-right { min-height: 68px; }
+.bk-skeleton-status { width: 62px; height: 22px; border-radius: var(--ui-radius-pill); }
+.bk-skeleton-line.amount { width: 54px; height: 11px; margin-top: auto; }
+.bk-skeleton-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@keyframes bkSkeletonShimmer { from { background-position: 100% 0; } to { background-position: -120% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .bk-skeleton { animation: none; }
+}
+
 /* Cancellable cards are wrapped in the shared .swipe-row (shared/css/components/
    swipeAction.css), which clips overflow. The row itself carries the divider;
    the card inside needs no border of its own to avoid a doubled line. */
@@ -272,6 +297,12 @@ html.dark .bk-main-header, html.dark .ui-tabs { background: #1a1a1a; border-colo
 html.dark .bk-main-title { color: #f5f5f5; }
 /* Tab dark-mode styles live in shared/css/components/tabs.css */
 html.dark .bk-card { background: #1a1a1a; border-color: rgba(255,255,255,0.06); box-shadow: none; }
+html.dark .bk-skeleton-card { background: transparent; }
+html.dark .bk-skeleton {
+  background: linear-gradient(100deg, #202020 20%, #2c2c2c 40%, #202020 60%);
+  background-size: 220% 100%;
+}
+html.dark .bk-skeleton-service-badge { border-color: #0a0a0a; }
 html.dark .bk-banner { box-shadow: 0 4px 20px rgba(var(--ui-primary-rgb),0.4); }
 html.dark .bk-card-service, html.dark .bk-section-title { color: #f5f5f5; }
 html.dark .bk-banner-icon { background: rgba(255,255,255,0.12); }

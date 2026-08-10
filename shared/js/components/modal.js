@@ -42,19 +42,28 @@ function _injectStyles() {
     style.id = 'hh-modal-styles';
     style.textContent = `
 #hh-modal-overlay {
+    --ui-backdrop-opacity: 1;
     position: fixed;
     inset: 0;
-    background: var(--ui-overlay, rgba(0,0,0,0.5));
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: var(--ui-z-modal, 1000);
     padding: 16px;
-    animation: hh-modal-fade-in 0.18s ease;
+    isolation: isolate;
 }
-@keyframes hh-modal-fade-in {
+#hh-modal-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: var(--ui-overlay, rgba(0,0,0,0.5));
+    opacity: var(--ui-backdrop-opacity);
+    animation: hh-modal-backdrop-in 0.18s ease;
+}
+@keyframes hh-modal-backdrop-in {
     from { opacity: 0; }
-    to   { opacity: 1; }
+    to   { opacity: var(--ui-backdrop-opacity); }
 }
 #hh-modal-dialog {
     background: var(--ui-surface, #fff);
@@ -67,6 +76,7 @@ function _injectStyles() {
     box-shadow: 0 8px 32px rgba(0,0,0,0.18);
     animation: hh-modal-slide-up 0.2s ease;
     position: relative;
+    z-index: 1;
 }
 @keyframes hh-modal-slide-up {
     from { transform: translateY(16px); opacity: 0; }

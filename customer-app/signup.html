@@ -140,6 +140,36 @@ body {
 }
 .su-back-btn:active { background: rgba(0,0,0,0.12); }
 
+/* Switch-flow action — the back button's mirror twin, top-right of .su-nav.
+   Same fill, border, ink, transition and press state; only elongated into a
+   pill (999px === the 40px circle's curvature) so it can carry its text label.
+   Neutral ink — never competes with the title or the maroon CTA. */
+.su-switch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 40px;
+    padding: 0 14px;
+    background: rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.09);
+    border-radius: 999px;
+    color: var(--grey-900);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1px;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.18s;
+    -webkit-tap-highlight-color: transparent;
+}
+.su-switch-btn:active { background: rgba(0,0,0,0.12); }
+/* Shared keyboard-focus ring — keeps the back button + switch pill one family.
+   Only visible on keyboard focus, so normal touch/mouse appearance is unchanged. */
+.su-back-btn:focus-visible,
+.su-switch-btn:focus-visible { outline: 3px solid var(--ui-primary, #730201); outline-offset: 2px; }
+
 /* ── Brand ────────────────────────────────────────────────── */
 .su-brand {
     position: relative;
@@ -597,6 +627,13 @@ body {
                           stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
+
+            <!-- Switch to Login — mirror of the back button, follows the same
+                 <a href> navigation contract as the footer link (progress bar +
+                 destination entrance animation). -->
+            <a class="su-switch-btn" href="login.html">
+                Login
+            </a>
 
         </nav>
 

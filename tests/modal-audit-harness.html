@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modal System Audit Harness</title>
+  <!-- Renders every competing modal implementation side by side so their REAL
+       computed values can be measured in a browser (not read from source).
+       Feeds docs/design-system/MODAL_DESIGN_SYSTEM.md. Serve the repo root. -->
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <link rel="stylesheet" href="../shared/css/components/modal.css" />
+  <link rel="stylesheet" href="../shared/css/components/sheet.css" />
+  <link rel="stylesheet" href="../customer-app/css/settings.css" />
+  <link rel="stylesheet" href="../customer-app/css/quote-modal.css" />
+  <style> body { font-family: 'DM Sans', sans-serif; margin: 0; } </style>
+</head>
+<body>
+
+  <!-- 1. CANONICAL centered dialog -->
+  <div class="ui-modal-overlay open" id="c-modal">
+    <div class="ui-modal" role="dialog" aria-modal="true">
+      <div class="ui-modal-icon"></div>
+      <h2 class="ui-modal-title">Title</h2>
+      <p class="ui-modal-body">Body copy.</p>
+      <div class="ui-modal-actions">
+        <button class="ui-modal-btn ui-modal-btn--primary">Primary</button>
+        <button class="ui-modal-btn ui-modal-btn--ghost">Ghost</button>
+      </div>
+      <input class="ui-modal-input" />
+    </div>
+  </div>
+
+  <!-- 2. CANONICAL sheet variant of the dialog -->
+  <div class="ui-modal-overlay ui-modal-overlay--sheet open" id="c-modal-sheet">
+    <div class="ui-modal"><h2 class="ui-modal-title">S</h2></div>
+  </div>
+
+  <!-- 3. CANONICAL bottom sheet -->
+  <div class="ui-sheet-overlay open" id="c-sheet">
+    <div class="ui-sheet" role="dialog" aria-modal="true">
+      <div class="ui-sheet-handle"></div>
+      <div class="ui-sheet-title">Sheet title</div>
+      <div class="ui-sheet-body"><button class="ui-sheet-option">Option</button></div>
+    </div>
+  </div>
+
+  <!-- 4. settings.css alias layer (confirm/delete/sign-out modals) -->
+  <div class="modal-overlay visible" id="s-modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-icon"></div>
+      <p class="modal-title">Title</p>
+      <p class="modal-body">Body</p>
+      <div class="modal-actions">
+        <button class="modal-btn-danger">Danger</button>
+        <button class="modal-btn-cancel">Cancel</button>
+      </div>
+      <input class="modal-input" />
+    </div>
+  </div>
+
+  <!-- 5. settings.css bottom-sheet clone (language/theme pickers) -->
+  <div class="bottom-sheet open" id="s-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">T</div>
+    <button class="sheet-option">O</button>
+  </div>
+
+  <!-- 6. quote-modal.css page-specific sheet -->
+  <div id="hh-qm-overlay" class="open" style="display:flex">
+    <div id="hh-qm-sheet"><div class="hh-qm-card">card</div></div>
+  </div>
+
+  <script type="module">
+    // 7. paymentMethodsModal injects its own #pmo-* styles on import.
+    import { initPaymentModal } from '../customer-app/js/pages/paymentMethodsModal.js';
+    try { initPaymentModal('audit-uid', { subscribeToDocument(){}, }); } catch (_) {}
+    // 8. the PIN sheet (component under audit)
+    import { openSecurityPinSheet } from '../shared/js/components/securityPinSheet.js';
+    window.openPin = () => openSecurityPinSheet({ context: 'Audit', onConfirm(){} });
+    window.__ready = true;
+  </script>
+</body>
+</html>

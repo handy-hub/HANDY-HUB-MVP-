@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Financial authorization preview</title>
+  <link rel="stylesheet" href="../shared/css/ui-polish.css">
+  <style>
+    body { min-height: 100dvh; margin: 0; font-family: 'DM Sans', sans-serif; background: #fefefe; }
+    .preview-page { max-width: 430px; min-height: 100dvh; margin: auto; padding: 28px 20px; }
+    .preview-page h1 { margin: 0 0 28px; text-align: center; font-size: 20px; }
+    .preview-card { padding: 24px; border-radius: var(--ui-radius-lg); background: linear-gradient(135deg,#730201,#b20b08); color: white; }
+    .preview-label { margin: 0 0 10px; opacity: .72; font-size: 13px; font-weight: 700; }
+    .preview-amount { margin: 0; font-size: 34px; font-weight: 800; }
+  </style>
+</head>
+<body>
+  <main class="preview-page">
+    <h1>Top Up Wallet</h1>
+    <section class="preview-card">
+      <p class="preview-label">WALLET BALANCE</p>
+      <p class="preview-amount">GHS 150.00</p>
+    </section>
+  </main>
+  <script type="module">
+    import { openFinancialAuthorizationSheet } from '../shared/js/components/financialAuthorizationSheet.js';
+    openFinancialAuthorizationSheet({
+      state: 'waiting', amount: 'GHS 50.00', provider: 'MTN MoMo', phone: '······3455'
+    });
+  </script>
+</body>
+</html>

@@ -161,6 +161,15 @@
     if (_toggling) return;
     _toggling = true;
     try {
+      // Development Access Mode: paint the toggle only — never bounce to login
+      // and never write to real Firestore under the mock session.
+      var dev = await import('../../shared/js/config/devAccess.js').catch(function () { return null; });
+      if (dev && dev.isArtisanDevAccessEnabled()) {
+        var cur = document.getElementById('hh-online-toggle');
+        paintOnline(!(cur && cur.classList.contains('is-online')));
+        return;
+      }
+
       var mod = await import(sharedRoot() + '/js/app/container.js');
       var c = mod.getAppContainer();
       var user = await c.services.authService.waitForUser();

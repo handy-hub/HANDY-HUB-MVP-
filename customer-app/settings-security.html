@@ -13,6 +13,9 @@
   <script src="../shared/js/utils/themeManager.js"></script>
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <!-- Canonical sheet styles (Create Security PIN) — linked so sheet.js never
+       waits on a stylesheet inside the tap that opens the sheet. -->
+  <link rel="stylesheet" href="../shared/css/components/sheet.css" />
 </head>
 <body>
   <div class="phone-shell">
@@ -27,6 +30,28 @@
         </button>
         <h1 class="page-title">Security</h1>
         <div class="header-spacer"></div>
+      </div>
+
+      <!-- Security PIN — the account-level credential that authorises financial
+           actions (top-ups, withdrawals, payouts). Status + actions are rendered
+           by settingsSecurity.js from server-written metadata; the PIN itself
+           never exists client-side. Create/Change/Reset flows land next phase. -->
+      <p class="section-label">Security PIN</p>
+      <div class="menu-card">
+        <div class="menu-item" style="cursor:default;">
+          <div class="menu-icon-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3l7 2.8v5.4c0 4.5-2.9 7.9-7 9.8-4.1-1.9-7-5.3-7-9.8V5.8L12 3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <circle cx="12" cy="10.5" r="1.6" fill="currentColor"/>
+              <path d="M12 12v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="menu-text">
+            <p class="menu-title">Security PIN</p>
+            <p class="menu-sub" id="pin-status">Checking status…</p>
+          </div>
+        </div>
+        <div id="pin-actions"></div>
       </div>
 
       <p class="section-label">Change Password</p>

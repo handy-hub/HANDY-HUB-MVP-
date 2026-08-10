@@ -500,13 +500,16 @@
     return snap.exists ? snap.data : null;
   }
 
-  requestAnimationFrame(async () => {
+  requestAnimationFrame(() => {
     const containerEl = document.getElementById('ad-banner');
     const dotsEl       = document.getElementById('ad-dots');
 
-    const userPromise = getDashboardUser().catch(() => null);
-    const user = await userPromise;
-    mountAdBanner(containerEl, dotsEl, null, user);
+    // Pass the resolver as a LAZY provider (not an awaited value): mountAdBanner
+    // invokes it — triggering requireAuth + the customer profile read — ONLY when
+    // it actually needs to fetch fresh promotions. A warm banner cache therefore
+    // paints instantly and does ZERO Firebase reads on a normal return visit.
+    // (Auth gating itself is unaffected — authInit.js still calls requireAuth.)
+    mountAdBanner(containerEl, dotsEl, null, () => getDashboardUser().catch(() => null));
   });
 </script>
 <script src="../shared/js/components/fastLoader.js"></script>
@@ -601,7 +604,13 @@
   document.getElementById('chip-more')?.addEventListener('click',     () => go('book-request.html'));
 
   /* section buttons */
-  document.getElementById('view-all-svc')?.addEventListener('click', () => go('book-request.html'));
+  /* "View all" services → the dedicated Popular Services page (services.html):
+     the complete category catalogue. This is a DISCOVERY step, not the booking
+     flow — the customer browses categories there, drills into a category's
+     professionals, then chooses one before any booking begins. Journey:
+     dashboard → Popular Services → services.html → category → professionals.html
+     → profile → book. */
+  document.getElementById('view-all-svc')?.addEventListener('click', () => go('services.html'));
   document.getElementById('ai-search-btn')?.addEventListener('click', () => toast('AI Search coming soon', 'info'));
   /* "View more professionals" is a BROWSE intent → the discovery surface,
      not a commitment page. */
@@ -726,8 +735,11 @@ if (document.readyState === 'loading') {
     if (sideNameEl && p.name)      sideNameEl.textContent = p.name;
     if (locEl     && p.location) { locEl.textContent      = p.location; removeSkel(locEl); }
 
+    // Remote avatars are deliberately not painted by this classic inline
+    // cache path. dashboardBadge.js owns normalized, failure-aware assignment.
+    var allowInlineRemoteAvatar = false;
     var src = null;
-    if (p.profileImageId) {
+    if (allowInlineRemoteAvatar && p.profileImageId) {
       // TEMPORARY: on-the-fly transform delivery is currently 404-ing on this
       // Cloudinary account/plan for every derived request. Falling back to
       // the untransformed original — the avatar <img>'s CSS (object-fit:
@@ -736,7 +748,7 @@ if (document.readyState === 'loading') {
       // once Cloudinary on-the-fly delivery is confirmed working again.
       var _iv = p.profileImageVersion ? 'v' + p.profileImageVersion + '/' : '';
       src = 'https://res.cloudinary.com/dnwwglbl9/image/upload/' + _iv + p.profileImageId;
-    } else if (p.profileImage) {
+    } else if (allowInlineRemoteAvatar && p.profileImage) {
       src = p.profileImage;
     } else {
       var _nm = (p.name || '').trim();

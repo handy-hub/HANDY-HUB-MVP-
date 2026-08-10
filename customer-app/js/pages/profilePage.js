@@ -5,12 +5,12 @@ import { initPaymentModal }  from './paymentMethodsModal.js';
 import { clearUserSession }  from '../../../shared/js/utils/clearUserSession.js';
 import { formatGHS, formatGHSShort } from '../../../shared/js/utils/currency.js';
 import {
-  uploadImage,
   avatarUrl,
+  bindAvatarImage,
   TRANSFORMS,
-  UPLOAD_PRESETS,
   fallbackAvatar,
 } from '../../../shared/js/services/cloudinaryService.js';
+import { replaceProfilePhoto } from '../../../shared/js/services/profilePhotoService.js';
 
 const LOGIN_URL = 'login.html';
 
@@ -72,9 +72,6 @@ function populateProfile(data) {
     const location = data.location || 'No location set';
     const bio      = data.bio      || '';
     // profileImageId is a Cloudinary public_id — construct the URL at render time
-    const photo    = data.profileImageId
-      ? avatarUrl(data.profileImageId, TRANSFORMS.avatarLg, data.profileImageVersion ?? null)
-      : fallbackAvatar(name);
     const wallet   = Number(data.walletBalance  || 0);
     const inEscrow = Number(data.escrowBalance  || 0);
     const bookings = Number(data.bookings       || 0);
@@ -92,10 +89,7 @@ function populateProfile(data) {
     }
 
     if (avatarImg) {
-        const target = photo || buildDefaultAvatar(name);
-        if (avatarImg.src !== target) {
-            avatarImg.src = target;
-        }
+        bindAvatarImage(avatarImg, data, TRANSFORMS.avatarLg);
         removeSkel(avatarImg); // safe to call repeatedly — only removes classes, never hides
     }
 
@@ -142,10 +136,6 @@ try {
 } catch (_) {}
 
 // ── Avatar error fallback ─────────────────────────────────────────────────────
-if (avatarImg) {
-    avatarImg.addEventListener('error', () => { avatarImg.src = DEFAULT_AVATAR; });
-}
-
 // ── Photo upload ──────────────────────────────────────────────────────────────
 let currentUserId = null;
 
@@ -167,30 +157,7 @@ async function handlePhotoUpload(file) {
     setCameraLoading(true);
 
     try {
-        const { services: { databaseService } } = getAppContainer();
-
-        // Upload to Cloudinary — file goes directly, never through your server
-        // Unique id per upload — Cloudinary's unsigned upload presets cannot set
-        // `overwrite`, so re-using the same public_id silently no-ops on a
-        // re-upload (the old image is kept, the new one is discarded). A
-        // fresh id per upload guarantees the new photo actually replaces the
-        // old one from the user's point of view (Firestore always points at
-        // the newest asset); the old Cloudinary asset is simply left unused.
-        const { publicId, version } = await uploadImage(
-          file,
-          UPLOAD_PRESETS.profile,
-          { publicId: `customers/${currentUserId}/${Date.now()}` }
-        );
-
-        // Store public_id + version in Firestore.
-        // version is embedded in the CDN URL so each upload produces a
-        // distinct browser/CDN cache entry — no stale images after re-upload.
-        await databaseService.setDocument(
-          'customers',
-          currentUserId,
-          { profileImageId: publicId, profileImageVersion: version },
-          { merge: true }
-        );
+        const { publicId, version } = await replaceProfilePhoto(file, 'customer');
 
         // Update the avatar immediately from CDN (versioned URL)
         if (avatarImg) avatarImg.src = avatarUrl(publicId, TRANSFORMS.avatarLg, version);

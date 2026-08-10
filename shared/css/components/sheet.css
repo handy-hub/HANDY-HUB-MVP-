@@ -17,49 +17,82 @@
    ============================================================================ */
 
 /* ── App-level sheet-radius bridge ──────────────────────────────────────────
-   Customer app (ui-polish.css):    --ui-sheet-radius: var(--ui-radius-lg); /* 18px */
-   Artisan app  (design-system.css): --ui-sheet-radius: var(--ds-r-card);   /* 16px */
-   Fallback baked in here so the component never renders with 0-radius.      */
+   Customer app (ui-polish.css):     --ui-sheet-radius: var(--ui-radius-lg) = 18px
+   Artisan app  (design-system.css): --ui-sheet-radius: var(--ds-r-card)    = 16px
+   Fallback baked in here so the component never renders with 0-radius.
+   NOTE: never nest comment markers inside this block — CSS comments do not
+   nest, and a stray close marker here once terminated the comment early and
+   made the parser discard the ENTIRE :root token block below (undefined
+   --ui-sheet-bg computed to a fully TRANSPARENT sheet surface app-wide). */
 :root {
   --ui-sheet-radius: 18px;      /* customer default; artisan overrides to 16px */
   --ui-sheet-z:      var(--ui-z-drawer, 800);
   --ui-sheet-overlay-z: calc(var(--ui-z-drawer, 800) - 1);
   --ui-sheet-bg:     var(--ui-surface, #ffffff);
   --ui-sheet-handle-color: rgba(0, 0, 0, 0.12);
-  --ui-sheet-ease:   cubic-bezier(0.22, 1, 0.36, 1);
-  --ui-sheet-duration: 0.32s;
+  /* Canonical motion tokens (ui-polish.css) with the literal values as
+     fallbacks, so this component still renders correctly standalone. */
+  --ui-sheet-ease:     var(--ui-ease-emphasis, cubic-bezier(0.22, 1, 0.36, 1));
+  --ui-sheet-duration: var(--ui-dur-sheet, 0.32s);
 }
 
 /* ── Overlay backdrop ────────────────────────────────────────────────────── */
 .ui-sheet-overlay {
+  --ui-backdrop-opacity: 0;
   position: fixed;
   inset: 0;
-  background: var(--ui-overlay, rgba(0, 0, 0, 0.5));
   z-index: var(--ui-sheet-overlay-z);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity var(--ui-sheet-duration) var(--ui-sheet-ease);
+  isolation: isolate;
+  /* --ui-kb-inset is measured from the VisualViewport by sheet.js while the
+     sheet is open. The on-screen keyboard overlays a fixed sheet instead of
+     resizing the layout, so we pad the bottom by the covered height — with
+     align-items:flex-end that lifts the sheet to sit exactly on top of the
+     keyboard. 0 when no keyboard is showing. */
+  padding-bottom: var(--ui-kb-inset, 0px);
+  transition: visibility 0s linear var(--ui-sheet-duration),
+              padding-bottom 0.18s var(--ui-sheet-ease);
 }
 
 .ui-sheet-overlay.open {
-  opacity: 1;
+  --ui-backdrop-opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  transition-delay: 0s;
+}
+
+/* Keep backdrop compositing independent from the opaque sheet surface. */
+.ui-sheet-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--ui-overlay, rgba(0, 0, 0, 0.5));
+  opacity: var(--ui-backdrop-opacity);
+  transition: opacity var(--ui-sheet-duration) var(--ui-sheet-ease);
 }
 
 /* ── Sheet panel ─────────────────────────────────────────────────────────── */
 .ui-sheet {
+  outline: none;
   width: min(100%, 430px);
-  background: var(--ui-sheet-bg);
+  /* Layered fallbacks: a missing token must degrade to solid white, never to
+     transparent — this surface sits over dimmed page content. */
+  background: var(--ui-sheet-bg, var(--ui-surface, #ffffff));
   border-radius: var(--ui-sheet-radius) var(--ui-sheet-radius) 0 0;
-  max-height: min(92dvh, 820px);
+  /* Shrink to whatever the keyboard leaves visible, so a tall sheet scrolls
+     internally instead of having its top pushed off-screen. */
+  max-height: min(92dvh, 820px, calc(100dvh - var(--ui-kb-inset, 0px) - 8px));
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   box-shadow: 0 -12px 32px -8px rgba(16, 22, 38, 0.18);
-  z-index: var(--ui-sheet-z);
+  position: relative;
+  z-index: 1;
   transform: translateY(100%);
   transition: transform var(--ui-sheet-duration) var(--ui-sheet-ease);
   will-change: transform;
@@ -68,6 +101,20 @@
 
 .ui-sheet-overlay.open .ui-sheet {
   transform: translateY(0);
+}
+
+/* ── Content swap (multi-step journeys) ──────────────────────────────────────
+   When a sheet morphs from one step to the next (e.g. Security PIN → payment
+   authorization) the SHELL stays put and only the content changes, so the flow
+   reads as one continuous journey instead of unrelated modals. Applied by
+   sheet.js replaceContent(). */
+@keyframes ui-sheet-swap-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.ui-sheet-swap-in {
+  animation: ui-sheet-swap-in var(--ui-dur-dialog, 0.28s) var(--ui-sheet-ease);
 }
 
 /* ── Drag handle ─────────────────────────────────────────────────────────── */
@@ -151,3 +198,13 @@
 /* ── Artisan context: radius override ───────────────────────────────────── */
 /* When design-system.css is loaded it sets --ui-sheet-radius: var(--ds-r-card)
    which resolves to 16px. No extra rule needed here — the token does it. */
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* Sheets appear/disappear near-instantly for users who opt out of motion.
+   Applies to every .ui-sheet consumer app-wide, not any single flow. */
+@media (prefers-reduced-motion: reduce) {
+  .ui-sheet-overlay::before,
+  .ui-sheet {
+    transition-duration: 0.01ms;
+  }
+}

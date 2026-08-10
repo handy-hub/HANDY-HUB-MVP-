@@ -163,6 +163,19 @@ Artisan status changes (accept/reject) update Firestore but do **not** push to t
 | `admin_sessions/{uid}` | ❌ denied | ❌ denied | Own read/write |
 | `verification_requests/{uid}` | ❌ denied | Own read/write | Full |
 
+### 5.1 Role Isolation & Application Boundary Enforcement (MANDATORY)
+
+**Authentication ≠ authorization.** The three roles (`customer`, `artisan`, `admin`)
+are **mutually exclusive per UID** and each app validates the authenticated user's
+role *before* it initializes. This is enforced at four layers — centralized role
+resolver (`shared/js/utils/roleGuard.js`), route guards, login/provisioning
+handlers, and Firestore rules (`customers`/`artisans` create are mutually exclusive;
+`bookings` create requires a customer profile). Cross-role login is prohibited.
+
+**Before touching any auth, routing, login, signup, session, or rules code, read
+[`docs/SECURITY_ROLE_ISOLATION.md`](docs/SECURITY_ROLE_ISOLATION.md).** Regression
+test: `tests/rbac-role-isolation-audit.cjs` (must report `8 passed, 0 failed`).
+
 ---
 
 ## 6. Firebase Provider Replacement Guide

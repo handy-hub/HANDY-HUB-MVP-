@@ -43,19 +43,8 @@
 
     <!-- ── UPCOMING ── -->
     <div class="bk-panel active" id="panel-upcoming">
-      <div class="bk-banner">
-        <div class="bk-banner-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="4" width="18" height="18" rx="2" stroke="#fff" stroke-width="2"/>
-            <path d="M3 10h18M8 2v4M16 2v4" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="bk-banner-body">
-          <p class="bk-banner-title">Need a service?</p>
-          <p class="bk-banner-sub">Book trusted professionals<br>near you in minutes.</p>
-        </div>
-        <button class="bk-banner-btn" onclick="window.location.href='book-request.html'">Book Now</button>
-      </div>
+      <!-- Remains empty until the booking repository confirms zero bookings. -->
+      <div id="booking-promo-slot"></div>
 
       <h2 class="bk-section-title">Upcoming Bookings</h2>
       <div id="list-upcoming"></div>
@@ -98,6 +87,7 @@ import { wireSwipeAction, createUndoToast } from '../shared/js/components/swipeA
 import { pricingService }           from '../shared/js/services/pricingService.js';
 import { showToast }                from '../shared/js/components/toast.js';
 import { bookingHref }              from '../shared/js/domain/bookingRouter.js';
+import { reportError }              from '../shared/js/utils/errorCopy.js';
 
 await requireAuth();
 
@@ -105,6 +95,9 @@ await requireAuth();
 let _allBookings = [];
 let _unsub       = null;
 let _firstPaint  = false;
+let _bookingHistoryLoaded = false;
+let _hasAnyBooking        = false;
+let _bookingLoadId        = 0;
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function escHtml(s) {
@@ -151,22 +144,21 @@ function avatarHtml(name, photo) {
 
 // ── SKELETON ──────────────────────────────────────────────────────────────────
 function skeletonCard() {
-  return `<div class="bk-card" style="pointer-events:none;animation:bkPulse 1.4s ease-in-out infinite;">
-    <div class="bk-card-photo-wrap"><div class="bk-card-photo-grad" style="background:#e8e8e8;"></div></div>
+  return `<div class="bk-card bk-skeleton-card" aria-hidden="true">
+    <div class="bk-card-photo-wrap"><span class="bk-skeleton bk-skeleton-avatar"></span><span class="bk-skeleton bk-skeleton-service-badge"></span></div>
     <div class="bk-card-body">
-      <div style="height:13px;width:55%;border-radius:6px;background:#e8e8e8;margin-bottom:9px;"></div>
-      <div style="height:11px;width:38%;border-radius:6px;background:var(--ui-surface-2);margin-bottom:7px;"></div>
-      <div style="height:10px;width:48%;border-radius:6px;background:var(--ui-surface-2);"></div>
+      <span class="bk-skeleton bk-skeleton-line service"></span>
+      <span class="bk-skeleton bk-skeleton-line professional"></span>
+      <span class="bk-skeleton bk-skeleton-line metadata"></span>
+      <span class="bk-skeleton bk-skeleton-line metadata short"></span>
     </div>
-    <div class="bk-card-right">
-      <div style="height:22px;width:62px;border-radius:10px;background:#e8e8e8;"></div>
-    </div>
+    <div class="bk-card-right bk-skeleton-right"><span class="bk-skeleton bk-skeleton-status"></span><span class="bk-skeleton bk-skeleton-line amount"></span></div>
   </div>`;
 }
 
 function showSkeletons(id, count = 3) {
   const el = document.getElementById(id);
-  if (el) el.innerHTML = Array(count).fill(skeletonCard()).join('');
+  if (el) el.innerHTML = `<div class="bk-skeleton-list" role="status" aria-live="polite"><span class="bk-skeleton-sr">Loading bookings</span>${Array(count).fill(skeletonCard()).join('')}</div>`;
 }
 
 // ── EMPTY STATES ──────────────────────────────────────────────────────────────
@@ -175,7 +167,33 @@ function emptyState(icon, title, sub, btnText, href) {
     <div class="bk-empty-icon">${icon}</div>
     <p class="bk-empty-title">${title}</p>
     <p class="bk-empty-sub">${sub}</p>
-    <button class="bk-empty-btn" onclick="window.location.href='${href}'">${btnText}</button>
+    ${btnText && href ? `<button class="bk-empty-btn" onclick="window.location.href='${href}'">${btnText}</button>` : ''}
+  </div>`;
+}
+
+function renderBookingPromo() {
+  const slot = document.getElementById('booking-promo-slot');
+  if (!slot) return;
+
+  // Cached or initially empty live data is not proof of an empty account. Keep
+  // the banner entirely absent until the customer-wide history query completes.
+  if (!_bookingHistoryLoaded || _hasAnyBooking) {
+    slot.replaceChildren();
+    return;
+  }
+
+  slot.innerHTML = `<div class="bk-banner">
+    <div class="bk-banner-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="4" width="18" height="18" rx="2" stroke="#fff" stroke-width="2"/>
+        <path d="M3 10h18M8 2v4M16 2v4" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="bk-banner-body">
+      <p class="bk-banner-title">Need a service?</p>
+      <p class="bk-banner-sub">Book trusted professionals<br>near you in minutes.</p>
+    </div>
+    <button class="bk-banner-btn" type="button" onclick="window.location.href='book-request.html'">Book Now</button>
   </div>`;
 }
 
@@ -352,7 +370,7 @@ async function commitCancel(bookingId) {
     console.error('[booking] Cancel failed:', e);
     // The undo toast already claimed success — put the row back and say so.
     render(_allBookings);
-    showToast(e?.message || 'Could not cancel this booking. Please try again.', 'error');
+    showToast(reportError(e, { context: 'booking', operation: 'cancel-booking', metadata: { bookingId } }).message, 'error');
   }
 }
 
@@ -379,9 +397,17 @@ function render(bookings) {
   const completed = bookings.filter(b => TAB_STATUSES.completed.includes((b.status || '').toLowerCase()));
   const cancelled = bookings.filter(b => TAB_STATUSES.cancelled.includes((b.status || '').toLowerCase()));
 
+  renderBookingPromo();
+
   document.getElementById('list-upcoming').innerHTML = upcoming.length
     ? upcoming.map(buildUpcomingCard).join('')
-    : emptyState(CAL_ICO, 'No Upcoming Bookings', 'Book a trusted professional near you.', 'Book a Service', 'book-request.html');
+    : emptyState(
+        CAL_ICO,
+        'No Upcoming Bookings',
+        'Book a trusted professional near you.',
+        _bookingHistoryLoaded && !_hasAnyBooking ? '' : 'Book a Service',
+        'book-request.html'
+      );
 
   const upcomingListEl = document.getElementById('list-upcoming');
   if (upcoming.length) {
@@ -548,8 +574,18 @@ const { services: { authService, databaseService } } = getAppContainer();
 const bookingRepo = createBookingRepository({ databaseService });
 
 authService.subscribeToAuthState(user => {
-  if (!user) return;
+  const loadId = ++_bookingLoadId;
+  if (!user) {
+    _bookingHistoryLoaded = false;
+    _hasAnyBooking = false;
+    renderBookingPromo();
+    return;
+  }
   if (_unsub) { _unsub(); _unsub = null; }
+
+  _bookingHistoryLoaded = false;
+  _hasAnyBooking = false;
+  renderBookingPromo();
 
   // Activate uid-scoped cache key for this user
   BK_CACHE_KEY = BK_CACHE_BASE + '_' + user.uid;
@@ -558,6 +594,7 @@ authService.subscribeToAuthState(user => {
     user.uid,
     records => {
       _allBookings = records.map(r => ({ id: r.id, ...(r.data || {}) }));
+      if (_allBookings.length) _hasAnyBooking = true;
       try { localStorage.setItem(BK_CACHE_KEY, JSON.stringify(_allBookings.slice(0, 30))); } catch(_) {}
       render(_allBookings);
     },
@@ -571,6 +608,23 @@ authService.subscribeToAuthState(user => {
       }
     }
   );
+
+  // The live listener intentionally covers 90 days. Query the same repository
+  // across all history so any older booking also suppresses the first-booking
+  // promo. Limit one keeps this existence check lightweight.
+  bookingRepo.getByCustomerId(user.uid, { limit: 1 })
+    .then(records => {
+      if (loadId !== _bookingLoadId) return;
+      _hasAnyBooking = _hasAnyBooking || records.length > 0;
+      _bookingHistoryLoaded = true;
+      render(_allBookings);
+    })
+    .catch(err => {
+      if (loadId !== _bookingLoadId) return;
+      console.error('[booking] Booking history check failed:', err);
+      _bookingHistoryLoaded = false;
+      renderBookingPromo();
+    });
 });
 
 window.addEventListener('pagehide', () => {
@@ -579,8 +633,5 @@ window.addEventListener('pagehide', () => {
 });
 </script>
 
-<style>
-@keyframes bkPulse { 0%,100%{opacity:1} 50%{opacity:.5} }
-</style>
 </body>
 </html>

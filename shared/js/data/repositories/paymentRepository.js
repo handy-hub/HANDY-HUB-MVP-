@@ -1,3 +1,5 @@
+import { toE164, maskPhone } from '../../utils/momo.js';
+
 const CUSTOMERS   = 'customers';
 const ACCOUNTS    = 'paymentAccounts';
 const TRANSACTIONS = 'transactions';
@@ -34,13 +36,23 @@ export function createPaymentRepository({ databaseService: db }) {
 
     async function addAccount(uid, { provider, phone, nickname = '', isDefault = false }) {
         if (isDefault) await _clearDefaults(uid);
+        const local = String(phone || '').trim();
+        // Normalise once at save time so the charge/transfer backends and the UI all
+        // read consistent values. phoneE164 is what the Paystack Charge API needs;
+        // phoneMasked is what every display surface should show.
+        const n = now();
         return db.addSubDocument(CUSTOMERS, uid, ACCOUNTS, {
+            type:        'mobile_money',
             provider,
-            phone:     phone.trim(),
-            nickname:  nickname.trim(),
-            isDefault: Boolean(isDefault),
-            deleted:   false,
-            createdAt: now()
+            phone:       local,
+            phoneE164:   toE164(local),
+            phoneMasked: maskPhone(local),
+            nickname:    nickname.trim(),
+            isDefault:   Boolean(isDefault),
+            active:      true,
+            deleted:     false,
+            createdAt:   n,
+            updatedAt:   n
         });
     }
 

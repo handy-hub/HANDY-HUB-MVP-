@@ -23,7 +23,16 @@ function verifySignature(rawBody, signature) {
         .createHmac('sha512', secret)
         .update(rawBody)
         .digest('hex');
-    return expected === signature;
+
+    // CX-5: constant-time comparison. A plain `expected === signature` short-circuits
+    // on the first differing byte, leaking (in principle) how much of a forged
+    // signature was correct. timingSafeEqual requires equal-length buffers, so the
+    // length check must happen first — and it must not itself be the secret-dependent
+    // branch, which it isn't (HMAC-SHA512 hex is always 128 chars).
+    const a = Buffer.from(String(expected), 'utf8');
+    const b = Buffer.from(String(signature || ''), 'utf8');
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
 }
 
 /**

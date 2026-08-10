@@ -10,20 +10,22 @@
  * TO ADD / REMOVE / EDIT THE FALLBACK BANNERS: change BANNER_DATA only.
  * Live promotions are managed in Firestore (promotions collection), not here.
  *
- * Each banner's `action` field fully controls where a tap/click navigates.
- * Supported action types:
- *   'service'  → opens the service-detail (research) page for that category
- *   'artisan'  → stores artisan object then goes to artisan-profile.html
- *   'route'    → navigates to any internal page (action.payload.url)
- *   'external' → opens a URL in a new tab (action.payload.url)
- *   'promo'    → stores a promo code then goes to action.payload.url
- *   'category' → stores browse category then goes to browse.html
+ * Each banner's `action` ({ type, value }) controls where a tap navigates. The
+ * canonical destination + validation for EVERY type lives in one shared contract —
+ * shared/js/domain/promotionAction.js — also imported by the admin editor, so the
+ * two can never disagree. resolveAction() below only executes that contract.
+ *   'service' / 'category' → book-request.html?cat=<id> (discovery/booking entry)
+ *   'artisan'              → artisan-profile.html (sets hh_artisan_view)
+ *   'route'                → a known internal page (validated against the registry)
+ *   'external'             → opens an http(s) URL in a new tab
+ *   'promo'                → sets hh_promo, then book-request.html
  */
-import { resolveCategory } from '../../shared/js/data/serviceCatalog.js';
+import { promotionActionTarget } from '../../shared/js/domain/promotionAction.js';
 import {
   loadActivePromotions, resolveImage, resolvePromotions,
   trackPromotionImpression, trackPromotionClick,
 } from '../../shared/js/services/promotionService.js';
+import { readCache, writeCache } from '../../shared/js/services/persistentCache.js';
 
 /* ═══════════════════════════════════════════════════
    BANNER DATA  ←  edit here to manage promotions
@@ -47,10 +49,7 @@ export const BANNER_DATA = [
         { initial: 'M', color: '#2ECC71' },
       ],
     },
-    action: {
-      type: 'route',
-      payload: { url: 'book-request.html' },
-    },
+    action: { type: 'route', value: 'book-request.html' },
   },
   {
     id: 'promo-cleaning',
@@ -70,10 +69,7 @@ export const BANNER_DATA = [
         { initial: 'B', color: '#1ABC9C' },
       ],
     },
-    action: {
-      type: 'service',
-      payload: { service: 'Cleaning' },
-    },
+    action: { type: 'service', value: 'Cleaning' },
   },
   {
     id: 'promo-ac',
@@ -93,10 +89,7 @@ export const BANNER_DATA = [
         { initial: 'J', color: '#27AE60' },
       ],
     },
-    action: {
-      type: 'service',
-      payload: { service: 'AC Repair' },
-    },
+    action: { type: 'service', value: 'AC Repair' },
   },
 ];
 
@@ -104,25 +97,13 @@ export const BANNER_DATA = [
    FIRESTORE ADAPTER
    Maps the strict promotions/{id} schema (content/media/action/…) onto the
    exact shape renderSlide()/resolveAction() already expect (title/subtitle/
-   image/action.payload/…), so the rendering and navigation code below never
+   image/action {type,value}/…), so the rendering and navigation code below never
    needs to know whether a slide came from Firestore or BANNER_DATA.
 ═══════════════════════════════════════════════════ */
 function adaptPromotion(promo) {
   const content  = promo.content  ?? {};
   const media    = promo.media    ?? {};
   const action   = promo.action   ?? {};
-  const value    = action.value ?? '';
-
-  // Map the single flat `action.value` onto the payload shape resolveAction()
-  // already reads per type — this is the only place that knows both shapes.
-  const PAYLOAD_BY_TYPE = {
-    service:  { service: value },
-    artisan:  { id: value },
-    route:    { url: value },
-    external: { url: value },
-    promo:    { code: value, url: value },
-    category: { category: value, url: value },
-  };
 
   return {
     id: promo.id,
@@ -134,7 +115,9 @@ function adaptPromotion(promo) {
     color: promo.color ?? 'linear-gradient(135deg, #4a8cc9 0%, #1e5a9a 100%)',
     image: resolveImage(media.imageKey),
     clients: promo.clients ?? null,
-    action: { type: action.type, payload: PAYLOAD_BY_TYPE[action.type] ?? {} },
+    // Canonical {type, value} — the SAME shape BANNER_DATA and the admin editor use.
+    // What each type resolves to is owned by promotionActionTarget() (one contract).
+    action: { type: action.type, value: action.value ?? '' },
     _isPromotion: true, // marks a Firestore-sourced slide for analytics tracking
   };
 }
@@ -174,7 +157,13 @@ function resolveLoadState(fetchResult, targeted) {
 }
 
 async function loadBanners(user) {
-  const fetchResult = await loadActivePromotions();        // Stage 1 — never throws
+  const loaded = await loadActivePromotions();             // Stage 1 — never throws
+  // Accept legacy/bad cached loader results without crashing the carousel.
+  const fetchResult = Array.isArray(loaded)
+    ? { status: loaded.length ? 'success' : 'empty', data: loaded, reason: loaded.length ? null : 'no_docs' }
+    : (loaded && typeof loaded === 'object')
+      ? { ...loaded, data: Array.isArray(loaded.data) ? loaded.data : [] }
+      : { status: 'error', data: [], reason: 'network' };
   const targeted     = resolvePromotions(user, fetchResult.data); // Stage 3
   const state         = resolveLoadState(fetchResult, targeted);  // Stage 4
 
@@ -194,52 +183,15 @@ async function loadBanners(user) {
 ═══════════════════════════════════════════════════ */
 export function resolveAction(action) {
   if (!action?.type) return;
-
-  switch (action.type) {
-    case 'service': {
-      const { service, task } = action.payload ?? {};
-      if (service) sessionStorage.setItem('hh_service', service);
-      if (task)    sessionStorage.setItem('hh_task', task);
-      // Promo/recommendation → land on the service-detail (research) page so the
-      // customer can see what's included and the price before committing.
-      const cat = resolveCategory(service);
-      window.location.href = cat
-        ? `book-request.html?cat=${encodeURIComponent(cat.id)}`
-        : 'book-request.html';
-      break;
-    }
-    case 'artisan': {
-      if (action.payload) {
-        sessionStorage.setItem('hh_artisan_view', JSON.stringify(action.payload));
-      }
-      window.location.href = 'artisan-profile.html';
-      break;
-    }
-    case 'route': {
-      const url = action.payload?.url;
-      if (url) window.location.href = url;
-      break;
-    }
-    case 'external': {
-      const url = action.payload?.url;
-      if (url) window.open(url, '_blank', 'noopener,noreferrer');
-      break;
-    }
-    case 'promo': {
-      const { code, url } = action.payload ?? {};
-      if (code) sessionStorage.setItem('hh_promo', code);
-      window.location.href = url ?? 'book-request.html';
-      break;
-    }
-    case 'category': {
-      const cat = action.payload?.category;
-      if (cat) sessionStorage.setItem('hh_browse_category', cat);
-      window.location.href = action.payload?.url ?? 'browse.html';
-      break;
-    }
-    default:
-      console.warn('[adBanner] Unknown action type:', action.type);
-  }
+  // ONE contract owns every destination decision (shared with the admin editor):
+  // shared/js/domain/promotionAction.js. This function only executes the result —
+  // set the session context it asks for, then navigate.
+  const { url, newTab, session } = promotionActionTarget(action);
+  try {
+    Object.entries(session).forEach(([k, v]) => sessionStorage.setItem(k, v));
+  } catch (_) { /* storage blocked — navigation still proceeds */ }
+  if (newTab) window.open(url, '_blank', 'noopener,noreferrer');
+  else        window.location.href = url;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -302,16 +254,104 @@ function renderSlide(banner, index) {
    `banners` array (as before) skips the Firestore fetch entirely, so
    existing/future synchronous callers are unaffected.
 ═══════════════════════════════════════════════════ */
-export async function mountAdBanner(containerEl, dotsEl, banners = null, user = null) {
-  if (!containerEl) return;
-  // Show the shimmer skeleton only while actively loading. The CSS collapses
-  // the banner to zero height when it has no .slide and is NOT loading, so a
-  // failed/empty load never leaves a permanent grey block above the fold.
-  containerEl.classList.add('ads-loading');
-  if (!banners) banners = await loadBanners(user);
-  containerEl.classList.remove('ads-loading');
-  if (!banners.length) return;   // banner stays collapsed (0 height)
+/* ═══════════════════════════════════════════════════
+   PERSISTENT SWR CACHE for the resolved banner payload.
+   The customer app is multi-page: a fresh document loads on every navigation,
+   wiping all in-memory state — so WITHOUT a navigation-surviving cache the
+   banner re-shimmers, re-reads Firestore, and rebuilds on every dashboard visit
+   (the "banner flash"). We store the resolved slides in persistentCache and
+   instant-paint them (no shimmer, single mount), then revalidate quietly.
+   This mirrors the pattern nearbyPros.js + the dashboard profile paint already
+   use. Promotions are non-sensitive marketing data — never financial/booking.
+═══════════════════════════════════════════════════ */
+const BANNER_CACHE_KEY     = 'promotions';
+// v2 invalidates payloads written before the Firestore loader compatibility fix.
+const BANNER_CACHE_VERSION = 2;
+const BANNER_STALE_MS      = 60_000;        // < 60s old → skip the network entirely (0 reads)
+const BANNER_TTL_MS        = 10 * 60_000;   // usable-from-cache window; revalidate when older
 
+/** Scope the cache by the authenticated uid (promo targeting is per-user),
+ *  resolved the same way the dashboard profile paint does. */
+function resolveBannerUid(user) {
+  try {
+    const w = (typeof window !== 'undefined') ? window : globalThis.window;
+    if (w?.HH_State?.currentUid?.()) return w.HH_State.currentUid();
+    const last = w?.localStorage?.getItem('hh_last_session_uid');
+    if (last) return last;
+  } catch { /* storage blocked */ }
+  return user?.uid ?? user?.id ?? null;
+}
+
+/** The 4th arg may be a user object OR a lazy async provider. The provider is
+ *  invoked ONLY when a real fetch is needed, so a warm cache does ZERO reads. */
+async function resolveUser(userOrProvider) {
+  try {
+    return (typeof userOrProvider === 'function' ? await userOrProvider() : userOrProvider) || null;
+  } catch { return null; }
+}
+
+/**
+ * Mount the promo carousel. 4th arg accepts a user object OR a lazy provider fn.
+ * Stale-while-revalidate: paint a navigation-surviving cache instantly (no
+ * shimmer), and only touch Firestore when the cache is stale or absent.
+ */
+export async function mountAdBanner(containerEl, dotsEl, banners = null, userOrProvider = null) {
+  if (!containerEl) return;
+
+  // Explicit banners array passed in → legacy synchronous path, unchanged.
+  if (banners) {
+    if (banners.length) renderAndWire(containerEl, dotsEl, banners);
+    return;
+  }
+
+  const uid = resolveBannerUid(typeof userOrProvider === 'function' ? null : userOrProvider);
+  const cached = readCache(BANNER_CACHE_KEY, {
+    uid, version: BANNER_CACHE_VERSION, ttlMs: BANNER_TTL_MS, storage: 'local',
+  });
+
+  // ── Warm path — instant paint from a navigation-surviving cache ──────────
+  if (cached && Array.isArray(cached.data) && cached.data.length) {
+    renderAndWire(containerEl, dotsEl, cached.data);   // no shimmer, single mount
+    if (cached.ageMs < BANNER_STALE_MS) return;        // fresh enough → 0 reads
+    // Stale-but-usable: revalidate for the NEXT visit only. We do NOT re-render
+    // now — that would re-wire listeners and reintroduce a flash. Fresh promos
+    // appear on the next dashboard load.
+    resolveUser(userOrProvider)
+      .then((u) => loadBanners(u))
+      .then((fresh) => {
+        if (Array.isArray(fresh) && fresh.some((banner) => banner?._isPromotion)) {
+          writeCache(BANNER_CACHE_KEY, fresh, {
+            uid, version: BANNER_CACHE_VERSION, storage: 'local',
+          });
+        }
+      })
+      .catch(() => {});
+    return;
+  }
+
+  // ── Cold path — no usable cache: shimmer → fetch → mount → cache ─────────
+  containerEl.classList.add('ads-loading');
+  const user  = await resolveUser(userOrProvider);
+  const loaded = await loadBanners(user);
+  const fresh = Array.isArray(loaded) && loaded.length ? loaded : BANNER_DATA;
+  containerEl.classList.remove('ads-loading');
+  // Never persist the hardcoded fallback. Caching "no eligible promotions"
+  // made a newly activated Firestore promotion remain invisible until expiry.
+  // Real promotion payloads still retain the normal SWR performance path.
+  if (fresh.some((banner) => banner?._isPromotion)) {
+    writeCache(BANNER_CACHE_KEY, fresh, {
+      uid: resolveBannerUid(user), version: BANNER_CACHE_VERSION, storage: 'local',
+    });
+  }
+  renderAndWire(containerEl, dotsEl, fresh);
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER + WIRE  — build the slides and attach the carousel behaviour.
+   Called EXACTLY ONCE per mountAdBanner (from cache OR from a fresh fetch,
+   never both) so its document/window listeners are never duplicated.
+═══════════════════════════════════════════════════ */
+function renderAndWire(containerEl, dotsEl, banners) {
   const sliderEl = containerEl.querySelector('.slider');
   if (!sliderEl) return;
 

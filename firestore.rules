@@ -130,7 +130,13 @@ service cloud.firestore {
                       isZeroOrAbsent(incoming(), 'availableBalance') &&
                       isZeroOrAbsent(incoming(), 'pendingBalance') &&
                       isZeroOrAbsent(incoming(), 'totalEarned') &&
-                      isZeroOrAbsent(incoming(), 'withdrawnTotal');
+                      isZeroOrAbsent(incoming(), 'withdrawnTotal') &&
+                      // ── ROLE ISOLATION (application boundary) ──────────────
+                      // Symmetric to the customers rule: a UID that already owns
+                      // a customer profile may NEVER also become an artisan.
+                      // Mutual exclusivity is enforced on BOTH collections so the
+                      // race can't be won from either direction.
+                      !exists(/databases/$(database)/documents/customers/$(artisanId));
 
       // ── Artisan self-update (profile, onboarding, availability toggle) ──
       // Admin: may ONLY touch the scoped, non-financial, non-status fields in
@@ -194,7 +200,15 @@ service cloud.firestore {
       allow create: if isOwner(customerId) &&
                       incoming().userType == 'customer' &&
                       incoming().status   == 'active' &&
-                      isValidCustomerDoc(incoming());
+                      isValidCustomerDoc(incoming()) &&
+                      // ── ROLE ISOLATION (application boundary) ──────────────
+                      // A UID that already owns an artisan profile may NEVER also
+                      // become a customer. Roles are mutually exclusive per UID.
+                      // This is the server-side backstop for the customer app's
+                      // client guard (shared/js/utils/roleGuard.js) — even a
+                      // direct REST write with the Firebase config cannot mint a
+                      // second (customer) identity for an artisan account.
+                      !exists(/databases/$(database)/documents/artisans/$(customerId));
 
       // Admin: flag/ban/unlock account fields only — walletBalance/escrowBalance/
       // spent remain Cloud-Function-only regardless of admin role (see
@@ -243,7 +257,8 @@ service cloud.firestore {
         'name', 'phone', 'location', 'bio',
         // Cloudinary fields — public_id + version stored together.
         // version is embedded in the CDN URL to bust browser/CDN cache on re-upload.
-        'profileImageId', 'profileImageVersion',
+        // Profile images are replaced by authenticated Cloud Functions so the
+        // prior Cloudinary asset can be deleted without exposing credentials.
         'recentSearches', 'recentSearchesUpdatedAt',
         'notificationPreferences', 'privacySettings', 'appPreferences',
         // Saved items — managed by the customer via saved.html
@@ -264,7 +279,7 @@ service cloud.firestore {
         // Core identity
         'id', 'name', 'email', 'phone',
         // Profile content
-        'bio', 'profileImage', 'profileImageId', 'profileImageVersion', 'location', 'address', 'gpsAddress',
+        'bio', 'profileImage', 'location', 'address', 'gpsAddress',
         'availability', 'isAvailable', 'isOnline',
         'baseRate', 'workRadius', 'skills', 'specialty',
         'yearsExperience', 'gender', 'category',
@@ -287,6 +302,15 @@ service cloud.firestore {
     }
 
     // Customer payment accounts subcollection  (MoMo, etc.)
+    // ── Security PIN protected record — Admin SDK ONLY ────────────────────────
+    // pinHash / salt / failedAttempts / lockedUntil live here. No client may
+    // ever read (would expose lockout state + hash material for offline
+    // brute-force) or write (would forge/reset the credential). All access
+    // goes through Cloud Functions (functions/securityPin.js).
+    match /payment_security/{uid} {
+      allow read, write: if false;
+    }
+
     match /customers/{customerId}/paymentAccounts/{accountId} {
       allow read:   if isOwner(customerId) || isAdmin();
       allow create: if isOwner(customerId) &&
@@ -294,28 +318,41 @@ service cloud.firestore {
                        incoming().phone       is string && incoming().phone.size() >= 9 &&
                        incoming().isDefault   is bool &&
                        incoming().deleted     == false &&
-                       incoming().createdAt   is string;
+                       incoming().createdAt   is string &&
+                       // Charge-ready fields — validated WHEN PRESENT so a mid-deploy old
+                       // client (which omits them) still works; the current client always
+                       // writes them. providerChargeCode is NEVER stored — it's derived from
+                       // the shared MOMO_PROVIDERS map at charge time to avoid drift.
+                       (!('type'        in incoming()) || incoming().type == 'mobile_money') &&
+                       (!('phoneE164'   in incoming()) || incoming().phoneE164   is string) &&
+                       (!('phoneMasked' in incoming()) || incoming().phoneMasked is string) &&
+                       (!('active'      in incoming()) || incoming().active      is bool) &&
+                       (!('updatedAt'   in incoming()) || incoming().updatedAt   is string);
       allow update: if isOwner(customerId) &&
                        incoming().diff(existing()).affectedKeys().hasOnly([
-                         'isDefault', 'deleted', 'deletedAt', 'nickname', 'updatedAt'
+                         'isDefault', 'deleted', 'deletedAt', 'nickname', 'active', 'updatedAt'
                        ]);
       allow delete: if isAdmin();
     }
 
-    // Customer transactions subcollection
-    // Clients may ONLY create 'topup' records (after a Paystack charge popup).
-    // All other types (withdrawal, escrow_hold, escrow_release, refund) are written
-    // exclusively by Cloud Functions via the Admin SDK — allowing clients to write
-    // these types would let them fabricate fake escrow or refund records.
+    // Customer transactions subcollection — THE FINANCIAL LEDGER.
+    //
+    // CX-2: clients have NO write access at all. Previously a client could create a
+    // `type:'topup'` row with any amount and `status:'successful'`. That could not
+    // inflate walletBalance (balances are Cloud-Function-only and are never derived
+    // by summing this collection), but it let a customer fabricate convincing
+    // "GHS 10,000 top-up — successful" receipts in their own history: chargeback /
+    // support fraud, corrupted reconciliation, and a ledger that no longer agrees
+    // with the balance.
+    //
+    // Nothing legitimate needs this capability: the authoritative topup row is
+    // written by creditWalletFromCharge (functions/financial/wallets.js) inside the
+    // same idempotent transaction that credits the wallet, with source:'webhook'.
+    // The ledger is now append-only by Cloud Functions and immutable to everyone.
     match /customers/{customerId}/transactions/{txnId} {
       allow read:   if isOwner(customerId) || isAdmin();
-      allow create: if isOwner(customerId) &&
-                       incoming().type      == 'topup' &&
-                       incoming().amount    is number && incoming().amount > 0 &&
-                       incoming().status    in ['pending', 'successful', 'failed'] &&
-                       incoming().createdAt is string;
-      // Status updates (e.g., Paystack webhook confirmation) come from Cloud Functions → admin
-      allow update: if isAdmin();
+      allow create: if false;   // Cloud Functions (Admin SDK) only
+      allow update: if false;   // immutable ledger — not even admins rewrite history
       allow delete: if false;
     }
 
@@ -348,6 +385,12 @@ service cloud.firestore {
       // any derived financial flag, and cannot smuggle extra unknown fields.
       allow create: if isSignedIn() &&
                        incoming().customerId == request.auth.uid &&
+                       // ── ROLE ISOLATION ────────────────────────────────────
+                       // Only a genuine customer (owns a customers/{uid} doc) may
+                       // create a booking as the customer party. An artisan UID
+                       // has no customers doc (mutual exclusivity), so this blocks
+                       // artisan self-booking / wash-trading at the server layer.
+                       exists(/databases/$(database)/documents/customers/$(request.auth.uid)) &&
                        // Accept both 'pending' (canonical) and 'Pending' (legacy) at create time
                        incoming().status     in ['pending', 'Pending'] &&
                        // artisanId must be a non-empty string for standard bookings, OR

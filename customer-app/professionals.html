@@ -105,6 +105,11 @@ await requireAuth();
 let currentCat  = '';            // '' = all categories
 let currentSort = 'recommended';
 let loaded      = [];
+let loadState   = 'loading';
+let loadId      = 0;
+let disposed    = false;
+
+const LOAD_TIMEOUT_MS = 12000;
 
 const listEl  = document.getElementById('pf-list');
 const countEl = document.getElementById('pf-count');
@@ -255,9 +260,13 @@ function applySortAndRender() {
 
 /* ── Load from Firestore ─────────────────────────────────────── */
 function showSkeletons() {
+  loadState = 'loading';
+  listEl.dataset.state = loadState;
   listEl.innerHTML = '<div class="bn2-pro-skeleton"></div>'.repeat(3);
 }
 function showEmpty() {
+  loadState = 'empty';
+  listEl.dataset.state = loadState;
   const cat = getCategoryById(currentCat);
   listEl.innerHTML = `
     <div class="bn2-pros-empty">
@@ -267,12 +276,28 @@ function showEmpty() {
     </div>`;
   countEl.textContent = '';
 }
-function showError() {
+function showError(state = 'failure') {
+  loadState = state;
+  listEl.dataset.state = loadState;
+  const copy = {
+    offline: {
+      title: 'You are offline',
+      sub: 'Reconnect to the internet, then try again.',
+    },
+    timeout: {
+      title: 'This is taking longer than expected',
+      sub: 'The connection timed out. Please try again.',
+    },
+    failure: {
+      title: "Couldn't load professionals",
+      sub: 'Check your connection and try again.',
+    },
+  }[state] || { title: "Couldn't load professionals", sub: 'Please try again.' };
   listEl.innerHTML = `
     <div class="bn2-pros-empty">
       <div class="bn2-pros-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#bbb" stroke-width="2"/><path d="M12 8v5M12 16v1" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></div>
-      <p class="bn2-pros-empty-title">Couldn't load professionals</p>
-      <p class="bn2-pros-empty-sub">Check your connection and <button class="bn2-inline-retry" onclick="window._pfReload()">try again</button>.</p>
+      <p class="bn2-pros-empty-title">${copy.title}</p>
+      <p class="bn2-pros-empty-sub">${copy.sub} <button class="bn2-inline-retry" onclick="window._pfReload()">Retry</button></p>
     </div>`;
   countEl.textContent = '';
 }
@@ -280,21 +305,45 @@ function showError() {
 window._pfReload = () => load();
 
 async function load() {
+  const requestId = ++loadId;
+  let timeoutId = null;
   showSkeletons();
   countEl.textContent = '';
+
+  if (!navigator.onLine) {
+    showError('offline');
+    return;
+  }
+
   try {
-    const { getAppContainer } = await import('../shared/js/app/container.js');
-    const { repositories: { artisanRepository } } = getAppContainer();
-    const cat = getCategoryById(currentCat);
-    let results = cat
-      ? await artisanRepository.findByCategory(cat.categoryLabel, 25)
-      : await artisanRepository.getTopRated(25);
+    const timeout = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        const error = new Error('Professionals request timed out');
+        error.code = 'professionals/timeout';
+        reject(error);
+      }, LOAD_TIMEOUT_MS);
+    });
+    const request = (async () => {
+      const { getAppContainer } = await import('../shared/js/app/container.js');
+      const { repositories: { artisanRepository } } = getAppContainer();
+      const cat = getCategoryById(currentCat);
+      return cat
+        ? artisanRepository.findByCategory(cat.categoryLabel, 25)
+        : artisanRepository.getTopRated(25);
+    })();
+    const results = await Promise.race([request, timeout]);
+    if (disposed || requestId !== loadId) return;
     loaded = Array.isArray(results) ? results : [];
     if (!loaded.length) { showEmpty(); return; }
+    loadState = 'success';
+    listEl.dataset.state = loadState;
     applySortAndRender();
   } catch (err) {
+    if (disposed || requestId !== loadId) return;
     console.error('[professionals] load error:', err);
-    showError();
+    showError(err?.code === 'professionals/timeout' ? 'timeout' : (navigator.onLine ? 'failure' : 'offline'));
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 }
 
@@ -305,7 +354,7 @@ window.goBack = function() {
 };
 
 /* ── Init ────────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
   // Honour an incoming category from a service-detail page or dashboard.
   const params = new URLSearchParams(location.search);
   const incoming = params.get('cat') || sessionStorage.getItem('hh_browse_cat') || '';
@@ -314,6 +363,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const cat = getCategoryById(currentCat);
   if (cat) subEl.textContent = `${cat.name}s near you`;
   renderCats();
+  load();
+}
+
+// Authentication is awaited before this code runs. On a slow auth restore the
+// DOM event may already be over, so initialise immediately when appropriate.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init, { once: true });
+} else {
+  init();
+}
+
+window.addEventListener('offline', () => {
+  if (loadState === 'loading') {
+    ++loadId;
+    showError('offline');
+  }
+});
+window.addEventListener('online', () => {
+  if (loadState === 'offline') load();
+});
+window.addEventListener('pagehide', () => {
+  disposed = true;
+  ++loadId;
+});
+window.addEventListener('pageshow', event => {
+  if (!event.persisted) return;
+  disposed = false;
   load();
 });
 </script>

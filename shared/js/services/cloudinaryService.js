@@ -91,6 +91,138 @@ export function avatarUrl(publicId, _transform = '', version = null) {
   return cdnUrl(publicId, '', version);
 }
 
+const CLOUDINARY_HTTPS_PREFIX = `https://res.cloudinary.com/${CLOUD_NAME}/`;
+const FAILED_AVATAR_KEY = 'hh_failed_avatar_urls';
+const FAILED_AVATAR_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function validPublicId(value) {
+  return typeof value === 'string'
+    && value.trim().length > 0
+    && value.trim().length <= 255
+    && !/^(?:https?:|data:|blob:|javascript:)/i.test(value.trim())
+    && !/[?#\\]/.test(value.trim())
+    && !value.trim().split('/').some(part => !part || part === '.' || part === '..');
+}
+
+function validVersion(value) {
+  return value == null || value === ''
+    || (Number.isInteger(Number(value)) && Number(value) > 0);
+}
+
+function failedAvatarUrls() {
+  const now = Date.now();
+  const urls = new Set();
+  try {
+    const parsed = JSON.parse(localStorage.getItem(FAILED_AVATAR_KEY) || '{}');
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      Object.entries(parsed).forEach(([url, failedAt]) => {
+        if (now - Number(failedAt || 0) < FAILED_AVATAR_TTL_MS) urls.add(url);
+      });
+    }
+  } catch {}
+  // Backward compatibility with the prior per-tab array cache.
+  try {
+    const legacy = JSON.parse(sessionStorage.getItem(FAILED_AVATAR_KEY) || '[]');
+    if (Array.isArray(legacy)) legacy.forEach(url => urls.add(url));
+  } catch {}
+  return urls;
+}
+
+function rememberFailedAvatar(url) {
+  const failed = failedAvatarUrls();
+  failed.add(url);
+  try {
+    const now = Date.now();
+    const entries = [...failed].slice(-20).map(item => [item, now]);
+    localStorage.setItem(FAILED_AVATAR_KEY, JSON.stringify(Object.fromEntries(entries)));
+    sessionStorage.removeItem(FAILED_AVATAR_KEY);
+  } catch {}
+}
+
+function avatarDebug(event, details = {}) {
+  if (typeof location === 'undefined') return;
+  if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+  console.info(`[profile:image] ${event}`, details);
+}
+
+/** Normalize current and legacy profile image fields without inventing a URL. */
+export function normalizeProfileImage(data, transform = TRANSFORMS.avatarSm) {
+  const profile = data && typeof data === 'object' ? data : {};
+  const name = typeof profile.name === 'string' ? profile.name : '';
+  const fallback = fallbackAvatar(name);
+
+  if (validPublicId(profile.profileImageId) && validVersion(profile.profileImageVersion)) {
+    const publicId = profile.profileImageId.trim();
+    const version = profile.profileImageVersion == null || profile.profileImageVersion === ''
+      ? null
+      : Number(profile.profileImageVersion);
+    return {
+      kind: 'cloudinary-public-id',
+      url: avatarUrl(publicId, transform, version),
+      fallback,
+      publicId,
+      version,
+      needsRepair: false,
+    };
+  }
+
+  if (typeof profile.profileImage === 'string') {
+    const legacyUrl = profile.profileImage.trim();
+    if (legacyUrl.startsWith(CLOUDINARY_HTTPS_PREFIX)) {
+      return {
+        kind: 'legacy-cloudinary-url',
+        url: legacyUrl,
+        fallback,
+        publicId: null,
+        version: null,
+        needsRepair: true,
+      };
+    }
+  }
+
+  return {
+    kind: 'fallback',
+    url: fallback,
+    fallback,
+    publicId: null,
+    version: null,
+    needsRepair: Boolean(profile.profileImageId || profile.profileImage),
+  };
+}
+
+/**
+ * Assign an avatar safely. Failed CDN URLs are remembered for the tab so
+ * cached and live profile paints cannot repeatedly request the same 404.
+ */
+export function bindAvatarImage(img, data, transform = TRANSFORMS.avatarSm) {
+  const resolved = normalizeProfileImage(data, transform);
+  if (!img) return resolved;
+
+  const target = failedAvatarUrls().has(resolved.url)
+    ? resolved.fallback
+    : resolved.url;
+
+  img.onerror = null;
+  if (target !== resolved.fallback) {
+    img.onerror = () => {
+      img.onerror = null;
+      rememberFailedAvatar(target);
+      img.dataset.avatarFailed = 'true';
+      avatarDebug('fallback-activated', {
+        kind: resolved.kind,
+        needsRepair: true,
+      });
+      img.src = resolved.fallback;
+    };
+  }
+  if (resolved.needsRepair) {
+    img.dataset.avatarNeedsRepair = 'true';
+    avatarDebug('normalization-requires-repair', { kind: resolved.kind });
+  }
+  if (img.src !== target) img.src = target;
+  return resolved;
+}
+
 /* ─────────────────────────────────────────────────────────────────
    uploadImage(file, preset, options?)
    Uploads a File directly to Cloudinary using an unsigned preset.
@@ -221,6 +353,8 @@ export function fallbackAvatar(name = '') {
    directly, so the app stays consistent regardless of account age.
 ───────────────────────────────────────────────────────────────── */
 export function resolveAvatar(data, transform = TRANSFORMS.avatarSm) {
+  return normalizeProfileImage(data, transform).url;
+  /*
   if (!data) return fallbackAvatar('');
   if (data.profileImageId)
     // TEMPORARY: avatarUrl() (not cdnUrl()) — on-the-fly transform delivery
@@ -230,4 +364,5 @@ export function resolveAvatar(data, transform = TRANSFORMS.avatarSm) {
     return avatarUrl(data.profileImageId, transform, data.profileImageVersion ?? null);
   if (data.profileImage) return data.profileImage;
   return fallbackAvatar(data.name || '');
+  */
 }

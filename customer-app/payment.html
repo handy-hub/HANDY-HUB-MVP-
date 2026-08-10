@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Pay | HandyHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <style>
+    :root {
+      --pay-primary: var(--ui-primary, #730201);
+      --pay-bg:      #FEFEFE;
+      --pay-ink:     #111;
+      --pay-ink-2:   #555;
+      --pay-ink-3:   #9a9a9a;
+      --pay-line:    #ececec;
+      --pay-surface: #fff;
+      --pay-ok:      #16a34a;
+      --pay-bad:     #dc2626;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--pay-bg); color: var(--pay-ink);
+      min-height: 100dvh; -webkit-font-smoothing: antialiased;
+    }
+    .pay-shell {
+      max-width: 480px; margin: 0 auto; min-height: 100dvh;
+      display: flex; flex-direction: column; position: relative;
+      background: var(--pay-bg);
+    }
+
+    /* Header */
+    .pay-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 16px 18px 10px; flex-shrink: 0;
+    }
+    .pay-icon-btn {
+      width: 40px; height: 40px; border-radius: 12px; border: none;
+      background: #f4f4f4; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; transition: background .15s;
+    }
+    .pay-icon-btn:active { background: #e8e8e8; }
+    .pay-kicker { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--pay-primary); }
+    .pay-title  { font-size: 18px; font-weight: 800; letter-spacing: -.3px; }
+
+    /* Progress */
+    .pay-progress { height: 3px; background: #f0f0f0; border-radius: 99px; margin: 4px 18px 0; overflow: hidden; }
+    .pay-progress > span { display: block; height: 100%; background: var(--pay-primary); width: 33%; transition: width .35s cubic-bezier(.22,1,.36,1); }
+
+    /* Simulate banner */
+    .pay-sim {
+      margin: 10px 18px 0; padding: 8px 12px; border-radius: 10px;
+      background: #fff7ed; border: 1px solid #fed7aa; color: #b45309;
+      font-size: 11.5px; font-weight: 600; display: flex; align-items: center; gap: 6px;
+    }
+
+    .pay-body { flex: 1; overflow-y: auto; padding: 12px 18px 120px; scrollbar-width: none; }
+    .pay-body::-webkit-scrollbar { display: none; }
+    .pay-view[hidden] { display: none; }
+    .pay-view { animation: pay-in .32s cubic-bezier(.22,1,.36,1); }
+    @keyframes pay-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .pay-label { font-size: 12px; font-weight: 700; color: var(--pay-ink-3); text-transform: uppercase; letter-spacing: .6px; margin: 18px 2px 10px; }
+
+    /* Amount */
+    .pay-amount-card { background: var(--pay-surface); border: 1.5px solid var(--pay-line); border-radius: 18px; padding: 18px; }
+    .pay-amount-wrap { display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--pay-line); padding-bottom: 10px; }
+    .pay-amount-cur { font-size: 20px; font-weight: 800; color: var(--pay-ink-3); }
+    .pay-amount-input { flex: 1; border: none; outline: none; font-family: inherit; font-size: 34px; font-weight: 800; color: var(--pay-ink); background: none; letter-spacing: -1px; }
+    .pay-amount-input::placeholder { color: #d5d5d5; }
+    .pay-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .pay-quick button {
+      border: 1.5px solid var(--pay-line); background: #fff; border-radius: 999px;
+      padding: 9px 15px; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--pay-ink-2);
+      cursor: pointer; transition: all .15s;
+    }
+    .pay-quick button.active, .pay-quick button:active { border-color: var(--pay-primary); color: var(--pay-primary); background: #fff5f5; }
+
+    /* Method rows */
+    .pay-method {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      background: #fff; border: 1.5px solid var(--pay-line); border-radius: 16px;
+      padding: 13px 14px; margin-bottom: 10px; cursor: pointer; text-align: left;
+      font-family: inherit; transition: border-color .15s;
+    }
+    .pay-method.active { border-color: var(--pay-primary); background: #fff8f8; }
+    .pay-method-logo { width: 42px; height: 42px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
+    .pay-method-logo svg { width: 42px; height: 42px; }
+    .pay-method-info { flex: 1; min-width: 0; }
+    .pay-method-num { font-size: 15px; font-weight: 700; color: var(--pay-ink); }
+    .pay-method-prov { font-size: 12px; color: var(--pay-ink-3); margin-top: 1px; }
+    .pay-method-radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #d5d5d5; flex-shrink: 0; position: relative; transition: border-color .15s; }
+    .pay-method.active .pay-method-radio { border-color: var(--pay-primary); }
+    .pay-method.active .pay-method-radio::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--pay-primary); }
+    .pay-method-badge { font-size: 10px; font-weight: 700; color: var(--pay-primary); background: #ffe6e6; padding: 3px 8px; border-radius: 999px; }
+
+    .pay-add-method {
+      width: 100%; border: 2px dashed #dcdcdc; background: none; border-radius: 14px;
+      padding: 13px; font-family: inherit; font-size: 13.5px; font-weight: 700; color: var(--pay-primary);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .pay-empty { text-align: center; color: var(--pay-ink-3); font-size: 13px; padding: 14px 0; line-height: 1.6; }
+
+    /* Summary */
+    .pay-summary { background: #faf7f7; border: 1.5px solid #f0e6e6; border-radius: 16px; padding: 16px; margin-top: 18px; }
+    .pay-sum-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; padding: 5px 0; }
+    .pay-sum-row .k { color: var(--pay-ink-2); }
+    .pay-sum-row .v { font-weight: 700; color: var(--pay-ink); }
+    .pay-sum-row.total { border-top: 1px dashed #e2d3d3; margin-top: 6px; padding-top: 11px; }
+    .pay-sum-row.total .v { font-size: 18px; color: var(--pay-primary); }
+    .pay-sum-note { font-size: 11.5px; color: var(--pay-ink-3); margin-top: 10px; display: flex; align-items: center; gap: 6px; line-height: 1.5; }
+
+    /* Sticky CTA */
+    .pay-cta-wrap { position: fixed; left: 0; right: 0; bottom: 0; max-width: 480px; margin: 0 auto; padding: 14px 18px calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, var(--pay-bg) 72%, transparent); }
+    .pay-cta { width: 100%; height: 54px; border: none; border-radius: 16px; background: var(--pay-primary); color: #fff; font-family: inherit; font-size: 15.5px; font-weight: 800; cursor: pointer; transition: opacity .15s, transform .1s; }
+    .pay-cta:disabled { opacity: .45; cursor: not-allowed; }
+    .pay-cta:not(:disabled):active { transform: scale(.99); }
+    .pay-cta-meta { text-align: center; font-size: 11.5px; color: var(--pay-ink-3); margin-top: 8px; }
+
+    /* PIN */
+    .pin-wrap { text-align: center; padding-top: 20px; }
+    .pin-lock { width: 60px; height: 60px; border-radius: 18px; background: #fff5f5; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+    .pin-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    .pin-sub { font-size: 13.5px; color: var(--pay-ink-2); line-height: 1.5; margin-bottom: 26px; padding: 0 20px; }
+    .pin-dots { display: flex; justify-content: center; gap: 16px; margin-bottom: 12px; }
+    .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #d0d0d0; transition: all .15s; }
+    .pin-dot.filled { background: var(--pay-primary); border-color: var(--pay-primary); }
+    .pin-wrap.err .pin-dot { border-color: var(--pay-bad); animation: pin-shake .4s; }
+    @keyframes pin-shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-7px)} 40%,80%{transform:translateX(7px)} }
+    .pin-err-msg { font-size: 12.5px; color: var(--pay-bad); font-weight: 600; min-height: 18px; margin-bottom: 12px; }
+    .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 300px; margin: 8px auto 0; }
+    .pin-key { height: 64px; border: none; border-radius: 16px; background: #f5f5f5; font-family: inherit; font-size: 24px; font-weight: 700; color: var(--pay-ink); cursor: pointer; transition: background .12s, transform .08s; }
+    .pin-key:active { background: #e8e8e8; transform: scale(.96); }
+    .pin-key.ghost { background: none; }
+    .pin-forgot { margin-top: 20px; font-size: 12.5px; color: var(--pay-primary); font-weight: 700; background: none; border: none; cursor: pointer; font-family: inherit; }
+
+    /* Authorize */
+    .auth-wrap { text-align: center; padding-top: 34px; }
+    .auth-phone { position: relative; width: 96px; height: 96px; margin: 0 auto 22px; }
+    .auth-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--pay-primary); opacity: 0; animation: auth-pulse 2s ease-out infinite; }
+    .auth-ring:nth-child(2) { animation-delay: .6s; }
+    .auth-ring:nth-child(3) { animation-delay: 1.2s; }
+    @keyframes auth-pulse { 0%{transform:scale(.6);opacity:.6} 100%{transform:scale(1.5);opacity:0} }
+    .auth-core { position: absolute; inset: 26px; border-radius: 20px; background: var(--pay-primary); display: flex; align-items: center; justify-content: center; }
+    .auth-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    .auth-sub { font-size: 14px; color: var(--pay-ink-2); line-height: 1.6; padding: 0 14px; margin-bottom: 22px; }
+    .auth-sub strong { color: var(--pay-ink); }
+    .auth-steps { text-align: left; max-width: 320px; margin: 0 auto; background: #fafafa; border-radius: 14px; padding: 16px 18px; }
+    .auth-step { display: flex; gap: 10px; font-size: 13px; color: var(--pay-ink-2); padding: 6px 0; line-height: 1.5; }
+    .auth-step .n { width: 20px; height: 20px; border-radius: 50%; background: var(--pay-primary); color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .auth-status { margin-top: 20px; font-size: 13px; font-weight: 600; color: var(--pay-ink-3); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .auth-spin { width: 15px; height: 15px; border: 2px solid #e5e5e5; border-top-color: var(--pay-primary); border-radius: 50%; animation: auth-rot .7s linear infinite; }
+    @keyframes auth-rot { to { transform: rotate(360deg); } }
+
+    /* OTP (Paystack send_otp branch) */
+    .otp-wrap { text-align: center; padding-top: 28px; }
+    .otp-icon { width: 60px; height: 60px; border-radius: 18px; background: #fff5f5; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+    .otp-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    .otp-sub { font-size: 13.5px; color: var(--pay-ink-2); line-height: 1.5; margin-bottom: 22px; padding: 0 16px; }
+    .otp-sub strong { color: var(--pay-ink); }
+    .otp-input { width: 100%; max-width: 260px; margin: 0 auto; display: block; text-align: center; letter-spacing: 8px; font-family: inherit; font-size: 26px; font-weight: 800; color: var(--pay-ink); border: 2px solid var(--pay-line); border-radius: 14px; padding: 14px; outline: none; }
+    .otp-input:focus { border-color: var(--pay-primary); }
+    .otp-err { font-size: 12.5px; color: var(--pay-bad); font-weight: 600; min-height: 18px; margin-top: 10px; }
+    .otp-note { font-size: 11.5px; color: var(--pay-ink-3); margin-top: 16px; line-height: 1.5; }
+
+    /* Result */
+    .res-wrap { text-align: center; padding-top: 40px; }
+    .res-icon { width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+    .res-icon.ok  { background: #ecfdf3; }
+    .res-icon.bad { background: #fef2f2; }
+    .res-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .res-sub { font-size: 14px; color: var(--pay-ink-2); line-height: 1.6; padding: 0 20px; margin-bottom: 24px; }
+    .res-amt { font-size: 32px; font-weight: 800; color: var(--pay-primary); margin-bottom: 4px; letter-spacing: -1px; }
+    .res-ref { font-size: 12px; color: var(--pay-ink-3); margin-bottom: 26px; }
+  </style>
+</head>
+<body>
+  <div class="pay-shell">
+
+    <!-- Header -->
+    <div class="pay-head">
+      <button class="pay-icon-btn" id="pay-back" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div>
+        <div class="pay-kicker" id="pay-kicker">Top up</div>
+        <div class="pay-title" id="pay-title">Add money</div>
+      </div>
+    </div>
+    <div class="pay-progress" id="pay-progressbar"><span id="pay-progress"></span></div>
+    <div class="pay-sim" id="pay-sim" hidden>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Simulation mode — no real charge is made.
+    </div>
+
+    <div class="pay-body" id="pay-body">
+
+      <!-- ── VIEW 1: COMPOSE ──────────────────────────────────────── -->
+      <section class="pay-view" id="view-compose">
+        <p class="pay-label">Amount</p>
+        <div class="pay-amount-card">
+          <div class="pay-amount-wrap">
+            <span class="pay-amount-cur">GHS</span>
+            <input class="pay-amount-input" id="pay-amount" type="number" inputmode="decimal" placeholder="0.00" min="1" step="0.01" />
+          </div>
+          <div class="pay-quick" id="pay-quick">
+            <button data-amount="10">10</button>
+            <button data-amount="20">20</button>
+            <button data-amount="50">50</button>
+            <button data-amount="100">100</button>
+            <button data-amount="200">200</button>
+          </div>
+        </div>
+
+        <p class="pay-label">Pay with</p>
+        <div id="pay-methods"></div>
+        <button class="pay-add-method" id="pay-add-method">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Add Mobile Money
+        </button>
+
+        <div class="pay-summary" id="pay-summary" hidden>
+          <div class="pay-sum-row"><span class="k">Top-up amount</span><span class="v" id="sum-amount">—</span></div>
+          <div class="pay-sum-row"><span class="k">Charges</span><span class="v">GHS 0.00</span></div>
+          <div class="pay-sum-row"><span class="k">Pay from</span><span class="v" id="sum-method">—</span></div>
+          <div class="pay-sum-row total"><span class="k">Total</span><span class="v" id="sum-total">—</span></div>
+          <div class="pay-sum-note">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="1.8"/><path d="M5 10h14v11H5z" stroke="currentColor" stroke-width="1.8"/></svg>
+            You'll approve the Mobile Money request on your phone.
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW 2: PIN ──────────────────────────────────────────── -->
+      <section class="pay-view" id="view-pin" hidden>
+        <div class="pin-wrap" id="pin-wrap">
+          <div class="pin-lock">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="4" y="11" width="16" height="10" rx="2.5" stroke="var(--pay-primary)" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="var(--pay-primary)" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <p class="pin-title" id="pin-title">Enter your security PIN</p>
+          <p class="pin-sub" id="pin-sub">This is your <strong>Handy Hub</strong> PIN — not your Mobile Money PIN. It authorises Handy Hub to start the payment.</p>
+          <div class="pin-dots" id="pin-dots">
+            <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+          </div>
+          <p class="pin-err-msg" id="pin-err"></p>
+          <div class="pin-pad" id="pin-pad">
+            <button class="pin-key" data-k="1">1</button>
+            <button class="pin-key" data-k="2">2</button>
+            <button class="pin-key" data-k="3">3</button>
+            <button class="pin-key" data-k="4">4</button>
+            <button class="pin-key" data-k="5">5</button>
+            <button class="pin-key" data-k="6">6</button>
+            <button class="pin-key" data-k="7">7</button>
+            <button class="pin-key" data-k="8">8</button>
+            <button class="pin-key" data-k="9">9</button>
+            <button class="pin-key ghost" data-k="forgot">?</button>
+            <button class="pin-key" data-k="0">0</button>
+            <button class="pin-key" data-k="del" aria-label="Delete">⌫</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW 3: AUTHORIZE (approve on phone) ─────────────────── -->
+      <section class="pay-view" id="view-authorize" hidden>
+        <div class="auth-wrap">
+          <div class="auth-phone">
+            <span class="auth-ring"></span><span class="auth-ring"></span><span class="auth-ring"></span>
+            <span class="auth-core">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="7" y="2" width="10" height="20" rx="2.5" stroke="#fff" stroke-width="2"/><path d="M11 18h2" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+          </div>
+          <p class="auth-title">Approve on your phone</p>
+          <p class="auth-sub" id="auth-sub">We've sent a payment request to <strong id="auth-num">your number</strong>.</p>
+          <div class="auth-steps">
+            <div class="auth-step"><span class="n">1</span><span>Check your phone for a Mobile Money prompt.</span></div>
+            <div class="auth-step"><span class="n">2</span><span>Enter your <strong>Mobile Money PIN</strong> to approve.</span></div>
+            <div class="auth-step"><span class="n">3</span><span>Your wallet is credited automatically.</span></div>
+          </div>
+          <div class="auth-status" id="auth-status"><span class="auth-spin"></span> Waiting for approval…</div>
+        </div>
+      </section>
+
+      <!-- ── VIEW 3b: OTP (Paystack send_otp branch) ──────────────── -->
+      <section class="pay-view" id="view-otp" hidden>
+        <div class="otp-wrap">
+          <div class="otp-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2.5" stroke="var(--pay-primary)" stroke-width="2"/><path d="M4 7l8 6 8-6" stroke="var(--pay-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <p class="otp-title">Enter the code sent to your phone</p>
+          <p class="otp-sub" id="otp-sub">Your provider sent a one-time code to <strong id="otp-num">your number</strong>. Enter it to approve this top-up.</p>
+          <input class="otp-input" id="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="––––––" />
+          <p class="otp-err" id="otp-err"></p>
+          <p class="otp-note">This is a one-time transaction code — <strong>not</strong> your Mobile Money PIN.</p>
+        </div>
+      </section>
+
+      <!-- ── VIEW 4: RESULT ───────────────────────────────────────── -->
+      <section class="pay-view" id="view-result" hidden>
+        <div class="res-wrap">
+          <div class="res-icon ok" id="res-icon">
+            <svg id="res-svg" width="38" height="38" viewBox="0 0 24 24" fill="none"><path d="M20 7L10.25 16.75L6 12.5" stroke="#16a34a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <p class="res-title" id="res-title">Wallet credited!</p>
+          <p class="res-amt" id="res-amt" hidden>—</p>
+          <p class="res-ref" id="res-ref" hidden>—</p>
+          <p class="res-sub" id="res-sub">Your top-up was successful.</p>
+        </div>
+      </section>
+
+    </div><!-- /pay-body -->
+
+    <!-- Sticky CTA -->
+    <div class="pay-cta-wrap" id="pay-cta-wrap">
+      <button class="pay-cta" id="pay-cta" disabled>Continue</button>
+      <p class="pay-cta-meta" id="pay-cta-meta"></p>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { requireAuth } from '../shared/js/utils/authGuard.js';
+    await requireAuth();
+  </script>
+  <script type="module" src="js/pages/paymentPage.js"></script>
+  <script src="../shared/js/components/fastLoader.js"></script>
+</body>
+</html>

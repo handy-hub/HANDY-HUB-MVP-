@@ -9,10 +9,12 @@ for the customer app. It is loaded on 34/35 customer pages.
 ### Approved canonical tokens (`--ui-*`)
 | Group | Tokens |
 |---|---|
-| Surfaces / ink | `--ui-bg` `--ui-surface` `--ui-text` `--ui-muted` `--ui-border` |
+| Surfaces / ink | `--ui-bg` `--ui-surface` `--ui-text` `--ui-muted` `--ui-border` + customer dark-theme `--ui-dark-*` counterparts |
 | Brand (maroon) | `--ui-primary` (#730201) `--ui-primary-soft` (#fde8e8) |
 | Radius | `--ui-radius-sm` (10) `--ui-radius-md` (14) `--ui-radius-lg` (18) — *pill = 999px* |
 | Elevation scale | `--ui-elev-0` (none) `--ui-elev-1` (cards) `--ui-elev-2` (floating) `--ui-elev-3` (modals/nav) + back-compat `--ui-shadow-sm` / `--ui-shadow-md`→elev-2 |
+| Typography *(Tier A, 2026-07-17)* | `--ui-font` · scale `--ui-text-display/title/heading/body/sub/label/caption/micro` (22/18/15/14/13/12/11/10) · `--ui-lh-tight/snug/base` · `--ui-fw-regular…heavy` |
+| Rings (functional, state) | `--ui-ring` (brand focus) `--ui-ring-danger` |
 | Layout | `--ui-shell-max` `--ui-shell-max-wide` |
 
 ### Elevation rule (shadows)
@@ -37,12 +39,30 @@ references to `--ui-*` over time, then delete the aliases.
 - Page-specific values that have **no canonical equivalent** may stay as
   documented local tokens (see §4) — but must be commented as local.
 
+## 2a. Canonical component primitives (Tier A — 2026-07-17)
+
+One button and one field, imported by `ui-polish.css` so they're available on
+every page. Both are **additive** (new `.ui-*` classes) — existing bespoke CTAs
+and inputs keep working and migrate on-touch.
+
+| Primitive | File | Classes |
+|---|---|---|
+| **Button** | `shared/css/components/button.css` | `.ui-btn` + `--primary` `--secondary` `--tint` `--ghost` `--danger`, sizes `--sm`/`--lg`/`--block`/`--icon`, states `is-loading`/`:disabled` |
+| **Field** | `shared/css/components/field.css` | `.ui-field` (+ `--icon` `--trail` `--filled` `has-error`) with `.ui-field-label/control/input/icon/trail/hint/error` |
+| Modal / sheet / tabs / back-btn / floating-nav | `shared/css/components/*`, `floatingNav.css` | see `MODAL_DESIGN_SYSTEM.md` |
+
+**Rule:** new screens build CTAs with `.ui-btn` and inputs with `.ui-field` —
+never hand-roll a maroon button or a bordered input again.
+
 ## 3. Forbidden patterns
 - ❌ New `:root` token blocks in page CSS or inline `<style>`.
 - ❌ Defining a token *value* anywhere except `ui-polish.css`.
 - ❌ New competing namespaces (`--ds-*` is the **artisan** brand — never use it
   in the customer app).
 - ❌ Hardcoded brand hex (`#730201`) — use `var(--ui-primary)`.
+- ❌ Hand-rolled primary buttons / bordered inputs on new screens — use
+  `.ui-btn` / `.ui-field`.
+- ❌ Arbitrary `font-size` px — use the `--ui-text-*` ramp.
 
 ## 4. Migration status
 | File | Status |

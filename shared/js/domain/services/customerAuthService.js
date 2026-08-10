@@ -67,9 +67,39 @@ function buildCustomerProfile(user, payload = {}, existing = null) {
   };
 }
 
-export function createCustomerAuthService({ authRepository, customerRepository }) {
+export function createCustomerAuthService({ authRepository, customerRepository, artisanRepository }) {
   if (!authRepository || !customerRepository) {
     throw new Error("CustomerAuthService requires authRepository and customerRepository.");
+  }
+
+  // ── Application-boundary guard (RBAC) ──────────────────────────────────────
+  // Authentication proves identity, not permission to enter the Customer app.
+  // A valid Firebase credential may belong to an ARTISAN. If so, we must NOT
+  // provision a customer profile for that UID (which would mint a second,
+  // conflicting identity) and must NOT let the session proceed. This mirrors the
+  // server-side mutual-exclusivity rule in firestore.rules — see roleGuard.js.
+  async function assertNotArtisan(uid) {
+    if (!artisanRepository || !uid) return;
+
+    let snap;
+    try {
+      snap = await artisanRepository.getById(uid);
+    } catch (_) {
+      // Degrade open on a read error — the Firestore rules still forbid an
+      // artisan UID from owning a customers/{uid} document, so no cross-role
+      // identity can actually be created even if this check can't run.
+      return;
+    }
+
+    if (snap && snap.exists && snap.data && snap.data.userType === "artisan") {
+      // Tear down the just-established session so no artisan is left signed in
+      // on the customer surface.
+      try { await authRepository.signOut(); } catch (_) { /* ignore */ }
+      throw Object.assign(
+        new Error("This is an artisan account. Please use the HandyHub Pro (artisan) app to sign in."),
+        { code: "auth/wrong-app-role" }
+      );
+    }
   }
 
   async function resolveEmailIdentifier(identifier) {
@@ -114,6 +144,9 @@ export function createCustomerAuthService({ authRepository, customerRepository }
   }
 
   async function ensureCustomerProfile(user, profileInput = {}) {
+    // Application-boundary check BEFORE any customer document is written.
+    await assertNotArtisan(user.uid);
+
     const current = await customerRepository.getById(user.uid);
     const currentData = current.exists ? current.data : null;
     const profile = buildCustomerProfile(user, profileInput, currentData);
@@ -164,6 +197,9 @@ export function createCustomerAuthService({ authRepository, customerRepository }
       const user = credential.user;
 
       try {
+        // Defense-in-depth: never provision a customer profile onto an artisan UID.
+        await assertNotArtisan(user.uid);
+
         const profile = buildCustomerProfile(user, {
           fullName,
           email: cleanEmail,

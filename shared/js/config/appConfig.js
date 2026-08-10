@@ -46,9 +46,10 @@ export const FIRESTORE_DB_ID = 'ai-studio-5589039d-72c4-40d8-ae39-f35c6c321eb6';
 // Public key only — safe in frontend bundles.
 // Secret key lives in Cloud Functions environment variables ONLY.
 export const PAYSTACK_CONFIG = {
-    publicKey: 'pk_test_de485c75259b4953fb05891cffe6980428c59e50',
+    publicKey: 'pk_live_d6968fbd7d79fe8776477a4bd4e9ad6097281310',
     sdkUrl:    'https://js.paystack.co/v1/inline.js',
-    // Switch to 'pk_live_...' and update sdkUrl for production.
+    // LIVE publishable key (real charges). sdkUrl is identical for test and live.
+    // The matching sk_live_ SECRET lives only in functions/.env — never here.
 };
 
 // ── Platform business rules ───────────────────────────────────────────────────
@@ -82,24 +83,40 @@ export const SUPER_ADMIN_EMAILS = [
 ];
 
 // ── Ghana Mobile Money providers ──────────────────────────────────────────────
+// SINGLE source of truth for provider identity + Paystack codes. Paystack uses
+// DIFFERENT codes for charges vs transfers, so both live here and must never be
+// re-invented in a page:
+//   chargeCode   → Charge API  (mobile_money.provider) — customer top-ups
+//   transferBank → Transfer API (bank_code)            — artisan/customer payouts
+// ⚠️ VERIFY chargeCode values against live Paystack once, via
+//    GET /bank?currency=GHS&type=mobile_money  (esp. Telecel post-Vodafone rebrand).
 export const MOMO_PROVIDERS = {
     mtn: {
-        label:    'MTN MoMo',
-        name:     'MTN Mobile Money',
-        prefixes: ['024', '054', '055', '059', '025', '053'],
-        color:    '#FFCC00',
+        key:          'mtn',
+        label:        'MTN MoMo',
+        name:         'MTN Mobile Money',
+        prefixes:     ['024', '054', '055', '059', '025', '053'],
+        color:        '#FFCC00',
+        chargeCode:   'mtn',
+        transferBank: 'MTN',
     },
     telecel: {
-        label:    'Telecel Cash',
-        name:     'Telecel Cash',
-        prefixes: ['020', '050'],
-        color:    '#E00000',
+        key:          'telecel',
+        label:        'Telecel Cash',
+        name:         'Telecel Cash',
+        prefixes:     ['020', '050'],
+        color:        '#E00000',
+        chargeCode:   'vod',   // Vodafone Cash lineage — confirm against live Paystack
+        transferBank: 'VOD',
     },
     airteltigo: {
-        label:    'AirtelTigo',
-        name:     'AirtelTigo Money',
-        prefixes: ['026', '056', '027', '057'],
-        color:    '#003F7F',
+        key:          'airteltigo',
+        label:        'AirtelTigo',
+        name:         'AirtelTigo Money',
+        prefixes:     ['026', '056', '027', '057'],
+        color:        '#003F7F',
+        chargeCode:   'atl',
+        transferBank: 'ATL',
     },
 };
 

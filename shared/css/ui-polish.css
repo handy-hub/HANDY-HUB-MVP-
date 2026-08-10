@@ -1,7 +1,14 @@
 ﻿/* Canonical shared components — imported so every page that links ui-polish.css
    (all customer pages) inherits the ONE back-button treatment automatically.
-   @import must precede all rulesets, so it stays at the very top of the file. */
+   @import must precede all rulesets, so these stay at the very top of the file.
+
+   Phase 2 · Tier A primitives (2026-07-17): button + field are additive —
+   they define NEW `.ui-btn` / `.ui-field` classes that no existing markup uses
+   yet, so importing them here changes zero current pixels while making the ONE
+   button and ONE input available on every page that links ui-polish.css. */
 @import url("components/back-btn.css");
+@import url("components/button.css");
+@import url("components/field.css");
 
 /* ============================================================================
    HandyHub Customer App — CANONICAL DESIGN TOKENS  (single source of truth)
@@ -26,6 +33,14 @@
   --ui-faint:         #888888;   /* tertiary text / labels */
   --ui-border:        rgba(0, 0, 0, 0.08);
   --ui-border-2:      #e8e8e8;   /* solid hairline (chip/well borders) */
+
+  /* Customer dark-theme surfaces. Components use these instead of reaching
+     into the artisan-only --ds-* namespace. */
+  --ui-dark-surface:  #1e1e1e;
+  --ui-dark-surface-2:#252525;
+  --ui-dark-text:     #f0f0f0;
+  --ui-dark-muted:    #999999;
+  --ui-dark-border:   #333333;
 
   /* ── Canonical: semantic functional colors ──────────────────────────────── */
   --ui-danger:        #b22222;   /* destructive actions — used in modal danger btn */
@@ -108,6 +123,64 @@
   /* ── Canonical: layout ─────────────────────────────────────────────────── */
   --ui-shell-max:     430px;
   --ui-shell-max-wide:480px;
+
+  /* ── Canonical: motion ─────────────────────────────────────────────────────
+     The app's real curves + durations, previously hardcoded in five different
+     places. Overlays/sheets/dialogs MUST use these — never invent a timing.
+     See docs/design-system/MODAL_DESIGN_SYSTEM.md.                          */
+  --ui-ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1);    /* signature enter/settle */
+  --ui-ease-exit:     cubic-bezier(0.32, 0.72, 0, 1);    /* fast-out — swipe dismiss */
+  --ui-ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1); /* snap-back overshoot */
+  --ui-dur-instant:   0.12s;   /* tap/press feedback */
+  --ui-dur-fast:      0.15s;   /* hover, colour, opacity */
+  --ui-dur-backdrop:  0.22s;   /* overlay scrim fade */
+  --ui-dur-dialog:    0.28s;   /* centred dialog enter */
+  --ui-dur-sheet:     0.32s;   /* bottom sheet slide */
+
+  /* ── Canonical: modal type scale ───────────────────────────────────────────
+     Measured from .ui-modal — the approved dialog. Every modal title/body
+     (including sheets) uses these so type never drifts per-feature.         */
+  --ui-modal-title-size:   18px;
+  --ui-modal-title-weight: 800;
+  --ui-modal-title-lh:     1.25;
+  --ui-modal-body-size:    13.5px;
+  --ui-modal-body-lh:      1.55;
+  --ui-modal-pad-inline:   24px;   /* dialog side padding */
+  --ui-modal-pad-block:    28px;   /* dialog top padding */
+
+  /* ── Canonical: typography (Phase 2 · Tier A) ──────────────────────────────
+     ONE type ramp for the whole customer app. The page CSS today carries ~590
+     ad-hoc font-sizes clustered at 9–22px; this scale is the target those
+     collapse onto. Sizes are the app's existing dominant values, de-duplicated.
+     `--ui-modal-title-size` (18) and `--ui-modal-body-size` (13.5) still exist
+     for the modal contract; they line up with `title` / `sub` here.            */
+  --ui-font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --ui-text-display: 22px;   /* screen hero / large numeric */
+  --ui-text-title:   18px;   /* page + section-page titles */
+  --ui-text-heading: 15px;   /* card / section headings */
+  --ui-text-body:    14px;   /* default body + primary button label */
+  --ui-text-sub:     13px;   /* secondary body, subtitles, field labels */
+  --ui-text-label:   12px;   /* small labels, helper + error text */
+  --ui-text-caption: 11px;   /* captions, metadata, timestamps */
+  --ui-text-micro:   10px;   /* nav labels, overlines, badges */
+
+  --ui-lh-tight: 1.25;   /* headings / titles */
+  --ui-lh-snug:  1.4;    /* subtitles, dense rows */
+  --ui-lh-base:  1.55;   /* body copy */
+
+  --ui-fw-regular:  400;
+  --ui-fw-medium:   500;
+  --ui-fw-semibold: 600;
+  --ui-fw-bold:     700;
+  --ui-fw-heavy:    800;
+
+  /* ── Canonical: focus / state rings (functional, not elevation) ────────────
+     Brand + danger focus rings, previously hand-rolled per page as
+     `0 0 0 3.5px rgba(115,2,1,0.10)`. These encode STATE, so — like the
+     elevation contract for glows — they keep their own values.               */
+  --ui-ring:        0 0 0 3.5px rgba(var(--ui-primary-rgb, 115, 2, 1), 0.14);
+  --ui-ring-danger: 0 0 0 3.5px rgba(var(--ui-danger-rgb, 178, 34, 34), 0.14);
 
   /* ════════════════════════════════════════════════════════════════════════
      LEGACY ALIASES — map every historical token name onto the canonical
@@ -454,7 +527,6 @@ textarea {
   z-index: 1490;
 }
 
-.overlay-backdrop,
 .modal-overlay,
 .sched-overlay,
 .em-modal-overlay,
@@ -470,6 +542,18 @@ textarea {
   width: 100vw !important;
   height: 100dvh !important;
   z-index: 1900 !important;
+}
+
+/* Standalone backdrops belong immediately below drawer/sheet surfaces.
+   This must not share the modal-overlay elevation: Settings loads this file
+   after its page CSS, and the former 1900 !important value painted the dark
+   backdrop above every 800-level bottom sheet. */
+.overlay-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  z-index: calc(var(--ui-z-drawer, 800) - 1) !important;
 }
 
 .wd-overlay.open {

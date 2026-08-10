@@ -69,10 +69,22 @@
     /* Notes preview */
     .bk-notes { margin:0 14px 10px; padding:10px 12px; background:var(--surface-2); border-radius:10px; font-size:12px; color:var(--text-mid); line-height:1.5; border-left:3px solid var(--border); }
 
-    /* Skeleton */
-    .bk-skel { background:var(--surface); border-radius:var(--radius-md); margin-bottom:10px; padding:14px; animation:bkPulse 1.4s ease-in-out infinite; }
-    .bsk { height:12px; border-radius:6px; background:#ebebeb; margin-bottom:8px; }
-    @keyframes bkPulse { 0%,100%{opacity:1}50%{opacity:.5} }
+    /* Skeleton composition uses the canonical .ds-skel shimmer primitive. */
+    .bk-skel { background:var(--surface); border-radius:var(--radius-md); margin-bottom:10px; padding:14px; box-shadow:var(--shadow-sm); }
+    .bk-skel-top { display:flex; align-items:flex-start; gap:12px; margin-bottom:12px; }
+    .bk-skel-avatar { width:46px; height:46px; border-radius:13px; flex:0 0 46px; }
+    .bk-skel-copy { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+    .bk-skel-line { display:block; height:11px; }
+    .bk-skel-line.service { width:64%; height:14px; }
+    .bk-skel-line.customer { width:42%; }
+    .bk-skel-line.meta { width:76%; }
+    .bk-skel-side { width:72px; flex:0 0 72px; display:flex; flex-direction:column; align-items:flex-end; gap:7px; }
+    .bk-skel-amount { width:58px; height:14px; }
+    .bk-skel-pill { width:70px; height:20px; border-radius:var(--ds-r-pill,20px); }
+    .bk-skel-actions { display:flex; gap:8px; }
+    .bk-skel-action { height:36px; flex:1; }
+    .bk-skel-action.short { flex:0 0 90px; }
+    .bk-skel-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 
     /* Empty */
     .bk-empty { text-align:center; padding:60px 24px; }
@@ -108,26 +120,11 @@
 
   <div class="bk-body" id="bk-body">
     <!-- Skeletons -->
-    <div id="bk-loading">
-      ${[1,2,3].map(() => `
-      <div class="bk-skel">
-        <div style="display:flex;gap:12px;margin-bottom:10px;">
-          <div class="bsk" style="width:46px;height:46px;border-radius:13px;flex-shrink:0;margin:0;"></div>
-          <div style="flex:1;">
-            <div class="bsk" style="width:55%;height:14px;"></div>
-            <div class="bsk" style="width:40%;height:11px;"></div>
-            <div class="bsk" style="width:70%;height:11px;"></div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-            <div class="bsk" style="width:60px;height:14px;margin:0;"></div>
-            <div class="bsk" style="width:70px;height:20px;border-radius:20px;margin:0;"></div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <div class="bsk" style="flex:1;height:36px;border-radius:10px;margin:0;"></div>
-          <div class="bsk" style="width:90px;height:36px;border-radius:10px;margin:0;"></div>
-        </div>
-      </div>`).join('')}
+    <div id="bk-loading" role="status" aria-live="polite">
+      <span class="bk-skel-sr">Loading bookings</span>
+      <div class="bk-skel" aria-hidden="true"><div class="bk-skel-top"><span class="ds-skel bk-skel-avatar"></span><span class="bk-skel-copy"><span class="ds-skel bk-skel-line service"></span><span class="ds-skel bk-skel-line customer"></span><span class="ds-skel bk-skel-line meta"></span></span><span class="bk-skel-side"><span class="ds-skel bk-skel-amount"></span><span class="ds-skel bk-skel-pill"></span></span></div><div class="bk-skel-actions"><span class="ds-skel bk-skel-action"></span><span class="ds-skel bk-skel-action short"></span></div></div>
+      <div class="bk-skel" aria-hidden="true"><div class="bk-skel-top"><span class="ds-skel bk-skel-avatar"></span><span class="bk-skel-copy"><span class="ds-skel bk-skel-line service" style="width:52%"></span><span class="ds-skel bk-skel-line customer" style="width:48%"></span><span class="ds-skel bk-skel-line meta" style="width:68%"></span></span><span class="bk-skel-side"><span class="ds-skel bk-skel-amount"></span><span class="ds-skel bk-skel-pill"></span></span></div><div class="bk-skel-actions"><span class="ds-skel bk-skel-action"></span><span class="ds-skel bk-skel-action short"></span></div></div>
+      <div class="bk-skel" aria-hidden="true"><div class="bk-skel-top"><span class="ds-skel bk-skel-avatar"></span><span class="bk-skel-copy"><span class="ds-skel bk-skel-line service" style="width:70%"></span><span class="ds-skel bk-skel-line customer" style="width:36%"></span><span class="ds-skel bk-skel-line meta" style="width:82%"></span></span><span class="bk-skel-side"><span class="ds-skel bk-skel-amount"></span><span class="ds-skel bk-skel-pill"></span></span></div><div class="bk-skel-actions"><span class="ds-skel bk-skel-action"></span><span class="ds-skel bk-skel-action short"></span></div></div>
     </div>
     <div id="bk-list" style="display:none;"></div>
     <div class="bk-empty" id="bk-empty" style="display:none;">

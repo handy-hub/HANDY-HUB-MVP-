@@ -141,30 +141,13 @@ async function creditWalletFromCharge({ uid, amountGHS, paystackRef, provider, p
         return { credited: false, duplicate: true };
     }
 
-    // ── Post-transaction: mark any pre-existing "pending" client record as upgraded ──
-    // This is cosmetic — the actual credit happened in the transaction above.
-    // We do this outside the transaction because Firestore doesn't allow collection
-    // group queries inside transactions.
-    try {
-        const pendingQuery = await customerRef
-            .collection('transactions')
-            .where('paystackRef', '==', paystackRef)
-            .where('status', '==', 'pending')
-            .limit(1)
-            .get();
-
-        if (!pendingQuery.empty) {
-            await pendingQuery.docs[0].ref.update({
-                status:    'successful',
-                source:    'webhook',
-                updatedAt: n,
-                note:      'upgraded from pending; credit was recorded atomically',
-            });
-        }
-    } catch (cleanupErr) {
-        // Non-critical: only a cosmetic update
-        console.warn(`[wallet] Could not upgrade pending tx for ref "${paystackRef}":`, cleanupErr.message);
-    }
+    // NOTE (CX-2): there used to be a post-transaction step here that looked for a
+    // client-created "pending" topup row and upgraded it to 'successful'. Clients no
+    // longer write to the ledger at all (firestore.rules: transactions create/update
+    // are now `false` — Cloud Functions/Admin SDK only), and no client code ever
+    // created that row, so the step was dead. Removing it also removes the last way
+    // a single charge could end up with two ledger entries. The row written inside
+    // the transaction above (source:'webhook') is the sole authoritative record.
 
     console.log(`[wallet] Wallet credited: uid=${uid} +GHS ${amount} ref=${paystackRef}`);
     return { credited: true };

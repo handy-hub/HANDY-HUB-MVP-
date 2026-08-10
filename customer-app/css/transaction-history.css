@@ -199,6 +199,29 @@ button {
   background: #fafafa;
 }
 
+.txn-item:focus-visible {
+  outline: 3px solid rgba(var(--ui-primary-rgb, 115, 2, 1), .28);
+  outline-offset: -3px;
+}
+
+/* Receipt content only. Overlay, surface, safe area, motion and lifecycle are
+   owned by the canonical shared .ui-sheet component. */
+.receipt-content { padding: 4px 20px 0; }
+.receipt-header { padding-bottom: 16px; border-bottom: 1px solid var(--ui-border, #eee); }
+.receipt-header h2 { color: var(--ui-text, #111); font-size: 19px; }
+.receipt-summary { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 24px 0; }
+.receipt-summary > span:first-child { color: var(--ui-muted, #666); font-size: 13px; }
+.receipt-summary strong { color: var(--ui-text, #111); font-size: 25px; }
+.receipt-status { color: #16a34a; font-size: 12px; font-weight: 700; text-transform: capitalize; }
+.receipt-status.pending { color: #b45309; }
+.receipt-status.failed { color: var(--ui-danger, #b22222); }
+.receipt-details { border-top: 1px dashed var(--ui-border, #ddd); border-bottom: 1px dashed var(--ui-border, #ddd); }
+.receipt-row { display: grid; grid-template-columns: minmax(110px, .8fr) minmax(0, 1.2fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ui-border, #eee); }
+.receipt-row:last-child { border-bottom: 0; }
+.receipt-row dt { color: var(--ui-muted, #777); font-size: 12px; }
+.receipt-row dd { color: var(--ui-text, #111); font-size: 12px; font-weight: 700; text-align: right; overflow-wrap: anywhere; text-transform: capitalize; }
+.receipt-done { width: 100%; height: var(--ui-btn-h, 48px); margin-top: 20px; border: 0; border-radius: var(--ui-radius-sm); background: var(--ui-primary); color: #fff; font: 700 14px 'DM Sans', sans-serif; }
+
 .txn-icon {
   width: 40px;
   height: 40px;

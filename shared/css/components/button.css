@@ -1,0 +1,251 @@
+/* ============================================================================
+   HandyHub — Canonical Button Component  (Phase 2 · Tier A)
+   ----------------------------------------------------------------------------
+   ONE button system for the whole customer app. Replaces the per-page CTAs that
+   each re-declared their own maroon fill, height, radius, and press feedback:
+     .login-btn · .btn-primary · .book-now · .enable-btn · .chat-btn ·
+     .view-more-btn · .uc-topup · .pc-book · .sv-empty-btn · .ln-btn · .fp-send …
+   (Those stay working; migrate each to `.ui-btn` when its page is next touched.)
+
+   This file is ADDITIVE: `.ui-btn` is a new class no current markup uses, so
+   importing it via ui-polish.css changes zero existing pixels.
+
+   Everything reads design tokens (ui-polish.css) — no page may hardcode a
+   button colour, height, radius, or timing again.
+
+   Usage:
+     <button class="ui-btn ui-btn--primary ui-btn--block">Book now</button>
+     <button class="ui-btn ui-btn--secondary">Cancel</button>
+     <button class="ui-btn ui-btn--ghost ui-btn--sm">Skip</button>
+     <button class="ui-btn ui-btn--tint">View more</button>
+     <button class="ui-btn ui-btn--danger ui-btn--block">Delete account</button>
+     <a class="ui-btn ui-btn--primary ui-btn--lg" href="…">Get started</a>
+
+   Loading (no markup change — spinner is a ::after):
+     <button class="ui-btn ui-btn--primary is-loading" aria-busy="true">Pay</button>
+
+   Icon + label: drop an <svg> inside; it is locked to 20px and spaced by `gap`.
+   Icon-only: add `.ui-btn--icon` (square, 44px tap target).
+   ============================================================================ */
+
+.ui-btn {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-2, 8px);
+  white-space: nowrap;
+  vertical-align: middle;
+
+  /* Geometry — default = md (matches --ui-btn-h / the modal CTA) */
+  height: var(--ui-btn-h, 48px);
+  padding: 0 var(--ui-5, 20px);
+  border: 1.5px solid transparent;   /* keeps outlined + filled the same box */
+  border-radius: var(--ui-radius-md, 14px);
+
+  /* Type */
+  font-family: var(--ui-font, inherit);
+  font-size: var(--ui-text-body, 14px);
+  font-weight: var(--ui-fw-bold, 700);
+  line-height: 1;
+  letter-spacing: 0.1px;
+  text-decoration: none;             /* for <a class="ui-btn"> */
+  color: inherit;
+
+  /* Interaction */
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;                  /* clips the press ripple / shimmer */
+  transition:
+    background-color var(--ui-dur-fast, 0.15s) var(--ui-ease-emphasis, ease),
+    border-color     var(--ui-dur-fast, 0.15s) var(--ui-ease-emphasis, ease),
+    color            var(--ui-dur-fast, 0.15s) var(--ui-ease-emphasis, ease),
+    box-shadow       var(--ui-dur-fast, 0.15s) var(--ui-ease-emphasis, ease),
+    transform        var(--ui-dur-instant, 0.12s) var(--ui-ease-spring, ease),
+    opacity          var(--ui-dur-fast, 0.15s) ease;
+}
+
+/* Locked icon size so a glyph can never collapse or dominate the label. */
+.ui-btn > svg {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.ui-btn:active:not(:disabled):not([aria-disabled="true"]) { transform: scale(0.97); }
+
+.ui-btn:focus-visible {
+  outline: 3px solid var(--ui-primary, #730201);
+  outline-offset: 2px;
+}
+
+/* ── Sizes ──────────────────────────────────────────────────────────────────
+   md is the default (48px). sm/lg cover the app's existing 40 / 54–56 heights. */
+.ui-btn--sm {
+  height: 40px;
+  padding: 0 var(--ui-4, 16px);
+  font-size: var(--ui-text-sub, 13px);
+  border-radius: var(--ui-radius-sm, 10px);
+}
+
+.ui-btn--lg {
+  height: 56px;
+  padding: 0 var(--ui-6, 24px);
+  font-size: var(--ui-text-heading, 15px);
+}
+
+.ui-btn--block { display: flex; width: 100%; }
+
+/* Icon-only — square, meets the 44px tap floor; overrides padding/gap. */
+.ui-btn--icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  gap: 0;
+  border-radius: var(--ui-radius-sm, 10px);
+}
+.ui-btn--icon.ui-btn--lg { width: 52px; height: 52px; }
+.ui-btn--icon.ui-btn--sm { width: 40px; height: 40px; }
+
+/* ── Variant: primary (brand maroon) ────────────────────────────────────────
+   Resting is flat (the app prefers spacing over shadow). Hover lifts with a
+   brand GLOW — a functional shadow, so it keeps its own rgba value per the
+   elevation contract. */
+.ui-btn--primary {
+  background: var(--ui-primary, #730201);
+  color: #ffffff;
+}
+.ui-btn--primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--ui-primary-dark, #5a0100);
+  box-shadow: 0 8px 24px rgba(var(--ui-primary-rgb, 115, 2, 1), 0.30);
+}
+.ui-btn--primary:active:not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: 0 2px 8px rgba(var(--ui-primary-rgb, 115, 2, 1), 0.22);
+}
+
+/* ── Variant: secondary (outlined surface) ──────────────────────────────────
+   For social / alternative actions sitting next to a primary. */
+.ui-btn--secondary {
+  background: var(--ui-surface, #ffffff);
+  border-color: var(--ui-border-2, #e8e8e8);
+  color: var(--ui-text, #111111);
+}
+.ui-btn--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--ui-surface-2, #f5f5f5);
+  border-color: #c8c8c8;
+}
+
+/* ── Variant: tint (soft-maroon fill) ───────────────────────────────────────
+   The recurring "View more" / quiet-brand button (.view-more-btn, .cat CTA). */
+.ui-btn--tint {
+  background: var(--ui-primary-soft, #fde8e8);
+  color: var(--ui-primary, #730201);
+}
+.ui-btn--tint:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: #fbdcdc;
+}
+
+/* ── Variant: ghost (bare / low-emphasis) ───────────────────────────────────
+   Matches the modal ghost button so cancels look identical everywhere. */
+.ui-btn--ghost {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--ui-text, #111111);
+}
+.ui-btn--ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* ── Variant: danger (destructive) ──────────────────────────────────────────
+   Uses --ui-danger, NEVER maroon — destructive must read as destructive.     */
+.ui-btn--danger {
+  background: var(--ui-danger, #b22222);
+  color: #ffffff;
+}
+.ui-btn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: 0 8px 24px rgba(var(--ui-danger-rgb, 178, 34, 34), 0.28);
+}
+
+/* ── State: disabled (attribute OR class) ───────────────────────────────────
+   [disabled] is native; [aria-disabled] / .is-disabled cover <a> and toggled
+   states. All render identically. */
+.ui-btn:disabled,
+.ui-btn[aria-disabled="true"],
+.ui-btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  pointer-events: none;
+}
+
+/* ── State: loading ─────────────────────────────────────────────────────────
+   Label fades out; a spinner appears centred. No markup change, no layout
+   shift (the button keeps its width). Pair with aria-busy="true". */
+.ui-btn.is-loading {
+  color: transparent !important;
+  cursor: progress;
+  pointer-events: none;
+}
+.ui-btn.is-loading > * { visibility: hidden; }
+.ui-btn.is-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2.5px solid currentColor;   /* invisible via transparent text… */
+  border-radius: 50%;
+  /* …so restate the ring colour explicitly for on-fill vs on-surface buttons */
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  animation: ui-btn-spin 0.65s linear infinite;
+}
+/* Spinner colour for light-fill variants (text/ghost/secondary/tint). */
+.ui-btn--secondary.is-loading::after,
+.ui-btn--ghost.is-loading::after,
+.ui-btn--tint.is-loading::after {
+  border-color: rgba(var(--ui-primary-rgb, 115, 2, 1), 0.25);
+  border-top-color: var(--ui-primary, #730201);
+}
+
+@keyframes ui-btn-spin { to { transform: rotate(360deg); } }
+
+/* ── Dark mode ──────────────────────────────────────────────────────────────
+   Customer app toggles `html.dark`; artisan toggles `[data-theme="dark"]`.
+   Both supported so the one button is correct in either context. */
+[data-theme="dark"] .ui-btn--secondary,
+html.dark .ui-btn--secondary {
+  background: var(--ui-dark-surface, #1e1e1e);
+  border-color: var(--ui-dark-border, #333333);
+  color: var(--ui-dark-text, #f0f0f0);
+}
+[data-theme="dark"] .ui-btn--secondary:hover:not(:disabled):not([aria-disabled="true"]),
+html.dark .ui-btn--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: #444;
+}
+[data-theme="dark"] .ui-btn--ghost,
+html.dark .ui-btn--ghost {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ui-dark-text, #f0f0f0);
+}
+[data-theme="dark"] .ui-btn--ghost:hover:not(:disabled):not([aria-disabled="true"]),
+html.dark .ui-btn--ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────────
+   Kill the press-scale + spinner spin; the global media query in ui-polish.css
+   also flattens transition/animation durations, this restates intent locally. */
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn { transition: background-color 0.01ms, color 0.01ms; }
+  .ui-btn:active:not(:disabled) { transform: none; }
+  .ui-btn.is-loading::after { animation-duration: 0.01ms; }
+}
