@@ -12,6 +12,12 @@ import { formatGHS } from '../../../shared/js/utils/currency.js';
 import { openSecurityPinSheet } from '../../../shared/js/components/securityPinSheet.js';
 import { openFinancialAuthorizationSheet } from '../../../shared/js/components/financialAuthorizationSheet.js';
 import { setSecurityPin, pinErrorMessage } from '../../../shared/js/services/securityPinService.js';
+import {
+    initiateTopupCharge,
+    verifyTopupNow,
+    topupErrorMessage,
+    newIdempotencyKey
+} from '../../../shared/js/services/topupService.js';
 
 // Minimum top-up the UI will allow (mirrors the server-side MIN_TOPUP enforcement).
 const MIN_TOPUP_GHS = PLATFORM_CONFIG?.minTopupGHS ?? 1;
@@ -278,14 +284,17 @@ addSaveBtn.addEventListener('click', async () => {
 // ── Confirm top up → Handy Hub Security PIN sheet ─────────────────────────────
 // The internal payment experience starts here: pressing Top Up opens the
 // Security PIN sheet (shared/js/components/securityPinSheet.js) on THIS page —
-// no redirect, no Paystack popup, no OS keyboard. This phase captures the PIN
-// UX only; the next phase sends { amount, paymentMethodId, pin } to the
-// initiateTopupCharge Cloud Function, which verifies the PIN server-side and
-// starts the Mobile Money charge. The popup checkout (launchPaystackPopup,
-// below) is retained until that server path ships — and is intentionally
-// unreachable meanwhile: with live Paystack keys and the wallet webhook not
-// yet deployed, a popup charge would take real money without crediting the
-// wallet.
+// no redirect, no OS keyboard. The PIN is then sent to the initiateTopupCharge
+// Cloud Function, which verifies it server-side, validates and clamps the
+// amount, generates the Paystack reference itself and records a pending intent
+// bound to the authenticated UID before opening the charge.
+//
+// The legacy popup below (launchPaystackPopup) stays OFF permanently. It let the
+// browser choose the amount, the reference and the metadata.userId that the
+// webhook credited — three client-controlled inputs on a money path — and it
+// showed a success receipt from Paystack's browser callback, before any webhook
+// had confirmed anything. It is retained only as a reference for the Paystack
+// SDK wiring. Do not re-enable it.
 const USE_LEGACY_PAYSTACK_POPUP = false;
 
 confirmBtn.addEventListener('click', async () => {
@@ -296,6 +305,16 @@ confirmBtn.addEventListener('click', async () => {
     }
 
     if (USE_LEGACY_PAYSTACK_POPUP) { launchPaystackPopup(amount); return; }
+
+    // Direct charge needs a destination handset. Previously the Paystack popup
+    // collected this itself, so a customer with no saved account could still
+    // pay; now the account IS the payment instrument. Say so plainly rather
+    // than letting the server reject it after the PIN step.
+    if (!selectedAccount) {
+        showToast('Add a mobile money account first to top up.', 'error');
+        document.getElementById('add-account-toggle')?.focus();
+        return;
+    }
 
     // ── Smart routing: the SYSTEM decides Enter vs Create from real backend
     // state — the customer is never asked to choose. pinConfigured mirrors the
@@ -322,19 +341,24 @@ confirmBtn.addEventListener('click', async () => {
 
 // ── Enter-PIN flow (PIN already configured) ───────────────────────────────────
 function openEnterPinFlow(amount) {
+    // One key per attempt, reused across PIN retries within this sheet. A wrong
+    // PIN never consumes it (the server claims the key only after the PIN
+    // verifies), so retrying cannot be mistaken for a second top-up.
+    const idempotencyKey = newIdempotencyKey();
+
     openSecurityPinSheet({
         mode:         'enter',
         title:        'Enter your PIN',
         message:      'Enter your 4-digit Handy Hub Security PIN to confirm this top-up. This is not your Mobile Money PIN.',
         context:      `Top-up · ${formatGHC(amount)}`,
         confirmLabel: 'Confirm Top Up',
-        onConfirm: (_pin, controls) => {
-            // Integration boundary — PIN verification is deliberately NOT a
-            // standalone endpoint (it would be a brute-force oracle); it runs
-            // inside the trusted initiateTopupCharge call in the next phase.
-            // No fake success, no charge, nothing stored or logged.
+        onConfirm: (pin, controls) => {
+            // The PIN goes straight to initiateTopupCharge, which verifies it
+            // server-side inside the trusted charge flow (never a standalone
+            // verify endpoint — that would be a brute-force oracle). It is not
+            // stored, logged or retained anywhere on this page.
             controls.setBusy(true);
-            proceedToPaymentBoundary(amount, controls);
+            runTopupCharge(amount, pin, controls, idempotencyKey);
         },
         onForgot: (controls) => {
             controls.close('forgot');
@@ -358,8 +382,9 @@ function openCreatePinFlow(amount) {
                 pinConfigured = true;
                 showToast('Security PIN created.', 'success');
                 // The PIN the customer just set authorises THIS top-up — never
-                // ask them to re-enter it immediately.
-                proceedToPaymentBoundary(amount, controls);
+                // ask them to re-enter it immediately. It is re-verified
+                // server-side inside initiateTopupCharge regardless.
+                runTopupCharge(amount, pin, controls, newIdempotencyKey());
             } catch (err) {
                 if (String(err?.code || '').includes('already-exists')) {
                     // Metadata lagged behind the protected record — heal locally
@@ -382,25 +407,165 @@ function openCreatePinFlow(amount) {
 // this reads as one continuous financial journey rather than two unrelated
 // modals. The entered amount and selected account sit untouched underneath.
 //
-// PHASE 3 wires the real charge here — initiateTopupCharge({ amount,
-// paymentMethodId, pin }), with PIN verification, lockout, amount limits and
-// dedupe all enforced server-side — then a payments/{id} subscription drives
-// api.setState('approved' | 'confirmed' | 'failed'). Until that Cloud Function
-// is deployed nothing resolves the authorization, so the timeout below settles
-// it honestly: no charge is made, and success is never faked.
-const AUTH_TIMEOUT_MS = 90_000;
+// AUTHORITY: this screen NEVER decides that money arrived. It reflects
+// topupIntents/{reference}.status, which only Cloud Functions can write and
+// which flips to 'successful' inside the same transaction that credits the
+// wallet. Paystack's browser callback is treated as a hint about the popup, not
+// as proof of payment — so closing the tab mid-payment still settles correctly.
+const AUTH_TIMEOUT_MS = 180_000;   // MoMo prompts can legitimately take minutes
 
-function proceedToPaymentBoundary(amount, controls) {
+// Guards against a second charge being opened while one is already in flight
+// (double-tap, or Confirm pressed again behind the sheet).
+let chargeInFlight = false;
+let unsubIntent    = null;
+
+function stopIntentWatch() {
+    if (unsubIntent) { try { unsubIntent(); } catch {} unsubIntent = null; }
+}
+
+/**
+ * Run the real top-up.
+ *
+ * Stays on the PIN sheet until the server has accepted the PIN and opened the
+ * charge, so a wrong PIN is corrected in place instead of dead-ending the
+ * customer in an authorization screen that can never succeed.
+ */
+async function runTopupCharge(amount, pin, controls, idempotencyKey) {
+    if (chargeInFlight) return;
+    chargeInFlight = true;
+
+    let init;
+    try {
+        // Direct charge: the server needs to know WHICH handset to prompt. The
+        // saved account is resolved server-side under the caller's own UID, so
+        // the browser never gets to name a destination it doesn't own.
+        init = await initiateTopupCharge({
+            amount,
+            pin,
+            paymentMethodId: selectedAccount || null,
+            idempotencyKey,
+        });
+    } catch (err) {
+        chargeInFlight = false;
+        // Recoverable, PIN-specific failures belong on the PIN step where the
+        // customer can simply try again.
+        controls.setBusy(false);
+        controls.showError(topupErrorMessage(err));
+        return;
+    }
+
+    // Charge is open upstream — hand the shell over to the authorization view.
+    openAuthorizationView(amount, controls, init);
+}
+
+// ── Active payment confirmation ───────────────────────────────────────────────
+// Polls verifyTopupNow while a charge is outstanding. The Firestore listener
+// remains the primary signal — this is the second, faster path to the same
+// truth, and both converge on one idempotent server-side settlement.
+//
+// Cadence: 2s for the first 30s (the window in which most MoMo approvals land),
+// then 5s, capped at AUTH_TIMEOUT_MS. Terminal states stop it immediately.
+let verifyPollTimer = null;
+
+function stopVerifyPolling() {
+    if (verifyPollTimer) { clearTimeout(verifyPollTimer); verifyPollTimer = null; }
+}
+
+function startVerifyPolling(reference, api, isSettled, markSettled, amount, init) {
+    stopVerifyPolling();
+    const startedAt = Date.now();
+    let inFlight = false;
+
+    const tick = async () => {
+        if (isSettled()) return stopVerifyPolling();
+        const elapsed = Date.now() - startedAt;
+        if (elapsed > AUTH_TIMEOUT_MS) return stopVerifyPolling();
+
+        // Never stack requests — a slow response must not queue another.
+        if (!inFlight) {
+            inFlight = true;
+            try {
+                const r = await verifyTopupNow(reference);
+
+                if (r.credited === true || r.status === 'successful') {
+                    // Terminal success. The listener may also fire; both are
+                    // guarded by isSettled so the receipt shows exactly once.
+                    if (!isSettled()) {
+                        markSettled(true);
+                        stopVerifyPolling();
+                        stopIntentWatch();
+                        chargeInFlight = false;
+                        api.setState('confirmed');
+                        setTimeout(() => {
+                            api.close('confirmed');
+                            showSuccess({
+                                amount,
+                                provider:    init?.provider,
+                                phone:       init?.phone,
+                                paystackRef: reference,
+                            });
+                            if (ssCreditStatus) {
+                                ssCreditStatus.textContent = 'Wallet credited!';
+                                ssCreditStatus.style.color = '#16a34a';
+                            }
+                            amountInput.value = '';
+                            document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+                            updateConfirmBtn();
+                        }, 900);
+                    }
+                    return;
+                }
+
+                if (r.status === 'failed' || r.status === 'abandoned' || r.status === 'initialization_failed') {
+                    if (!isSettled()) {
+                        markSettled(true);
+                        stopVerifyPolling();
+                        stopIntentWatch();
+                        chargeInFlight = false;
+                        api.setState('failed');
+                    }
+                    return;
+                }
+
+                // Still pending. Once the customer has approved, "waiting for
+                // authorisation" is no longer true — say what is actually
+                // happening instead of implying they still owe us an action.
+                if (!isSettled() && elapsed > 6000 && api.getState?.() === 'waiting') {
+                    api.setState('waiting', { hint: 'Confirming your payment…' });
+                }
+            } catch (err) {
+                // A failed check is NOT a failed payment. Stay pending and try
+                // again; the webhook is the backstop either way.
+                console.warn('[topup] verify poll error:', err?.message || err);
+            } finally {
+                inFlight = false;
+            }
+        }
+
+        const interval = (Date.now() - startedAt) < 30_000 ? 2_000 : 5_000;
+        verifyPollTimer = setTimeout(tick, interval);
+    };
+
+    // First check quickly — some networks approve almost instantly.
+    verifyPollTimer = setTimeout(tick, 1_500);
+}
+
+function openAuthorizationView(amount, controls, init) {
     const acc           = savedAccounts.find(a => a.id === selectedAccount) || null;
     const provider      = acc?.data?.provider || '';
     const providerLabel = PROVIDER_META[provider]?.label || provider || 'Mobile Money';
     const phone         = acc?.data?.phone ? maskPhone(acc.data.phone) : '';
 
+    // Snapshot for the legacy balance-rise detector (secondary signal only).
+    preTopupBalance = currentBalance;
+
     // The PIN step stops its idle timer, drops its listeners and wipes its
     // secrets, then gives up the shell — without closing it.
     controls.release();
 
-    let timer = null;
+    let timer    = null;
+    let settled  = false;
+
     openFinancialAuthorizationSheet({
         sheet:    controls.sheet,        // ← morph this shell, don't open a second sheet
         state:    'waiting',
@@ -408,20 +573,121 @@ function proceedToPaymentBoundary(amount, controls) {
         provider: providerLabel,
         phone,
         onCancel(api) {
+            // Cancelling only closes OUR screen. It cannot cancel a charge that
+            // is already with Paystack, so we never claim the payment stopped —
+            // if it lands, the webhook still credits and history still shows it.
             clearTimeout(timer);
+            stopVerifyPolling();
+            stopIntentWatch();
+            chargeInFlight = false;
             api.setState('cancelled');
             setTimeout(() => api.close('cancelled'), 650);
         },
         onRetry(api) {
             clearTimeout(timer);
+            stopVerifyPolling();
+            stopIntentWatch();
+            chargeInFlight = false;
             api.close('retry');
             openEnterPinFlow(amount);    // amount survives — page state is intact
         },
-        onClose() { clearTimeout(timer); },
-    }).then((api) => {
+        onClose() {
+            clearTimeout(timer);
+            stopVerifyPolling();
+            stopIntentWatch();
+            chargeInFlight = false;
+        },
+    }).then(async (api) => {
+        // ── The authoritative signal: the server's own payment record ────────
+        unsubIntent = databaseService.subscribeToDocument(
+            'topupIntents', init.reference,
+            (snap) => {
+                if (!snap.exists || settled) return;
+                const st = snap.data.status;
+
+                if (st === 'successful' && snap.data.credited === true) {
+                    settled = true;
+                    clearTimeout(timer);
+                    stopVerifyPolling();
+                    stopIntentWatch();
+                    chargeInFlight = false;
+                    api.setState('confirmed');
+                    setTimeout(() => {
+                        api.close('confirmed');
+                        showSuccess({
+                            amount:      Number(snap.data.amountPesewas || 0) / 100,
+                            provider:    snap.data.provider,
+                            phone:       snap.data.phone,
+                            paystackRef: init.reference,
+                        });
+                        if (ssCreditStatus) {
+                            ssCreditStatus.textContent = 'Wallet credited!';
+                            ssCreditStatus.style.color = '#16a34a';
+                        }
+                        amountInput.value = '';
+                        document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+                        updateConfirmBtn();
+                    }, 900);
+                } else if (st === 'failed' || st === 'initialization_failed' || st === 'abandoned') {
+                    settled = true;
+                    clearTimeout(timer);
+                    stopVerifyPolling();
+                    stopIntentWatch();
+                    chargeInFlight = false;
+                    api.setState('failed');
+                }
+            },
+            (err) => console.warn('[topup] intent listener error:', err?.message || err),
+        );
+
+        // ── No checkout to open ──────────────────────────────────────────────
+        // The server already pushed the charge to the customer's handset via
+        // Paystack's Charge API, so there is no Paystack window, no redirect and
+        // no browser callback. This screen is ours end to end.
+        //
+        // Paystack's charge status is a UI hint only — never a credit signal.
+        // The subscription above is the sole authority for success.
+        if (init.chargeStatus === 'failed') {
+            settled = true;
+            stopIntentWatch();
+            chargeInFlight = false;
+            api.setState('failed');
+            return;
+        }
+
+        // Surface the network's own wording when it sends any ("Dial *170#…").
+        if (init.displayText) api.setState('waiting', { hint: init.displayText });
+
+        if (init.chargeStatus === 'send_otp') {
+            api.setState('waiting', {
+                hint: init.displayText
+                    || 'Your network sent you a code. Enter it on your phone to approve this payment.',
+            });
+        }
+
+        // ── Active confirmation ──────────────────────────────────────────────
+        // The Firestore listener above only fires once the WEBHOOK has landed,
+        // and Paystack's mobile-money webhook routinely trails the customer's
+        // approval by 30s–2min. Relying on it alone is what left the spinner
+        // running long after the money had moved.
+        //
+        // So we also ASK. Each poll hands the server a reference; the server
+        // checks ownership, reads the real status from Paystack, and credits via
+        // the same idempotent path as the webhook. Whichever wins, money moves
+        // once. Polling stops the moment either path reaches a terminal state.
+        startVerifyPolling(init.reference, api, () => settled, (v) => { settled = v; }, amount, init);
+
         timer = setTimeout(() => {
-            if (api.getState() === 'waiting') api.setState('timed_out');
+            if (!settled && api.getState() !== 'confirmed') api.setState('timed_out');
         }, AUTH_TIMEOUT_MS);
+    }).catch((err) => {
+        // The sheet itself failed to open. Without this the in-flight guard
+        // would stay latched and the customer could never retry on this page.
+        console.error('[topup] authorization sheet failed:', err?.message || err);
+        clearTimeout(timer);
+        stopIntentWatch();
+        chargeInFlight = false;
+        showToast('Something went wrong showing the payment screen. Please try again.', 'error');
     });
 }
 
@@ -586,6 +852,66 @@ ssDownloadBtn.addEventListener('click', () => {
     URL.revokeObjectURL(url);
 });
 
+// ── Returning from the hosted Paystack page (redirect fallback) ───────────────
+// The inline checkout keeps the customer here, but when it can't resume we send
+// them to Paystack's hosted page and they come back via the Callback URL with
+// ?reference= / ?trxref= appended.
+//
+// Their sheet is gone and this page has forgotten everything, so pick the
+// payment back up from the SERVER's record. The query parameter is only a hint
+// about WHICH intent to read — it is never treated as proof of payment, and a
+// forged one resolves to an intent that either isn't theirs (rules deny the
+// read) or isn't credited.
+function resumeFromRedirect() {
+    let ref = null;
+    try {
+        const q = new URLSearchParams(window.location.search);
+        ref = q.get('reference') || q.get('trxref');
+    } catch { /* malformed query string — nothing to resume */ }
+    if (!ref) return;
+
+    // Drop the parameters so a refresh doesn't replay this.
+    try {
+        const clean = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, '', clean);
+    } catch { /* non-fatal */ }
+
+    showToast('Checking your payment…', 'info');
+
+    let done = false;
+    const finish = () => { done = true; stopIntentWatch(); };
+
+    unsubIntent = databaseService.subscribeToDocument(
+        'topupIntents', ref,
+        (snap) => {
+            if (!snap.exists || done) return;
+            const d = snap.data;
+            if (d.status === 'successful' && d.credited === true) {
+                finish();
+                showSuccess({
+                    amount:      Number(d.amountPesewas || 0) / 100,
+                    provider:    d.provider,
+                    phone:       d.phone,
+                    paystackRef: ref,
+                });
+                if (ssCreditStatus) {
+                    ssCreditStatus.textContent = 'Wallet credited!';
+                    ssCreditStatus.style.color = '#16a34a';
+                }
+            } else if (d.status === 'failed' || d.status === 'abandoned' || d.status === 'initialization_failed') {
+                finish();
+                showToast('That payment did not go through. No money was taken.', 'error');
+            }
+            // 'pending' → the webhook hasn't landed yet. Say nothing and keep
+            // listening; the live balance subscription also reflects the credit.
+        },
+        (err) => console.warn('[topup] resume listener error:', err?.message || err),
+    );
+
+    // Don't listen forever on a payment the customer abandoned.
+    setTimeout(() => { if (!done) stopIntentWatch(); }, 120_000);
+}
+
 // ── Auth + data bootstrap ─────────────────────────────────────────────────────
 let unsubAccounts = null;
 
@@ -643,6 +969,10 @@ authService.subscribeToAuthState(user => {
     }, (err) => {
         console.warn('[topupPage] wallet listener error:', err);
     });
+
+    // If we're back from Paystack's hosted page, pick the payment up from the
+    // server's record rather than leaving the customer with no confirmation.
+    resumeFromRedirect();
 
     // Live accounts
     if (unsubAccounts) unsubAccounts();

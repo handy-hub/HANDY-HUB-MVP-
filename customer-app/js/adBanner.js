@@ -267,8 +267,20 @@ function renderSlide(banner, index) {
 const BANNER_CACHE_KEY     = 'promotions';
 // v2 invalidates payloads written before the Firestore loader compatibility fix.
 const BANNER_CACHE_VERSION = 2;
-const BANNER_STALE_MS      = 60_000;        // < 60s old → skip the network entirely (0 reads)
-const BANNER_TTL_MS        = 10 * 60_000;   // usable-from-cache window; revalidate when older
+// Two different jobs — do not conflate them:
+//
+//   STALE_MS  how long a payload is considered FRESH. Past this we revalidate in
+//             the background (for the next visit). Keep it short.
+//   TTL_MS    how long a payload is still worth PAINTING. Past this readCache
+//             returns null, we fall to the cold path, and the shimmer appears.
+//
+// TTL was 10 minutes, which made the shimmer reappear on any visit more than ten
+// minutes after the last one — i.e. most real sessions (open the app, do
+// something else, come back). Painting a slightly old promo for one frame while
+// the fresh copy loads behind it is harmless: this is marketing content, not
+// financial or booking data, and revalidation still runs after 60s.
+const BANNER_STALE_MS      = 60_000;             // < 60s → skip the network entirely (0 reads)
+const BANNER_TTL_MS        = 24 * 60 * 60_000;   // still paintable for a day
 
 /** Scope the cache by the authenticated uid (promo targeting is per-user),
  *  resolved the same way the dashboard profile paint does. */
@@ -312,7 +324,14 @@ export async function mountAdBanner(containerEl, dotsEl, banners = null, userOrP
   // ── Warm path — instant paint from a navigation-surviving cache ──────────
   if (cached && Array.isArray(cached.data) && cached.data.length) {
     renderAndWire(containerEl, dotsEl, cached.data);   // no shimmer, single mount
-    if (cached.ageMs < BANNER_STALE_MS) return;        // fresh enough → 0 reads
+
+    // A cached payload containing only the hardcoded fallback means "no eligible
+    // promotion last time we asked". Paint it (the carousel must never be empty
+    // or shimmering) but never treat it as fresh — otherwise a promotion that
+    // becomes eligible would stay invisible for a whole day. Real promotion
+    // payloads keep the normal 60s freshness window.
+    const isFallbackOnly = !cached.data.some((banner) => banner?._isPromotion);
+    if (!isFallbackOnly && cached.ageMs < BANNER_STALE_MS) return;  // fresh → 0 reads
     // Stale-but-usable: revalidate for the NEXT visit only. We do NOT re-render
     // now — that would re-wire listeners and reintroduce a flash. Fresh promos
     // appear on the next dashboard load.
@@ -335,14 +354,18 @@ export async function mountAdBanner(containerEl, dotsEl, banners = null, userOrP
   const loaded = await loadBanners(user);
   const fresh = Array.isArray(loaded) && loaded.length ? loaded : BANNER_DATA;
   containerEl.classList.remove('ads-loading');
-  // Never persist the hardcoded fallback. Caching "no eligible promotions"
-  // made a newly activated Firestore promotion remain invisible until expiry.
-  // Real promotion payloads still retain the normal SWR performance path.
-  if (fresh.some((banner) => banner?._isPromotion)) {
-    writeCache(BANNER_CACHE_KEY, fresh, {
-      uid: resolveBannerUid(user), version: BANNER_CACHE_VERSION, storage: 'local',
-    });
-  }
+  // Persist BOTH real promotions and the hardcoded fallback.
+  //
+  // This previously skipped the fallback so that a newly activated promotion
+  // could not be masked by a cached "nothing eligible". The side effect was
+  // worse than the problem it solved: a customer with no eligible promotion had
+  // nothing cached, so EVERY dashboard load took this cold path and showed the
+  // shimmer — permanently. The warm path above now marks a fallback-only payload
+  // as always-stale, which preserves the original intent (a new promotion still
+  // appears on the next visit) without the endless shimmer.
+  writeCache(BANNER_CACHE_KEY, fresh, {
+    uid: resolveBannerUid(user), version: BANNER_CACHE_VERSION, storage: 'local',
+  });
   renderAndWire(containerEl, dotsEl, fresh);
 }
 

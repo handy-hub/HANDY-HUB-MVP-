@@ -290,6 +290,12 @@ body {
 .bk-active-btn--outline { color: var(--ui-muted); }
 .bk-active-btn--outline:active { background: var(--ui-surface-2); }
 
+/* Cancel — deliberately the quietest action on the card. It is destructive and
+   sits beside Track and Message, so it must be findable without competing with
+   the actions a customer takes far more often. Danger colour only on press. */
+.bk-active-btn--cancel { color: var(--ui-muted); }
+.bk-active-btn--cancel:active { background: var(--ui-danger-bg, #fdecea); color: var(--ui-danger, #b3260a); }
+
 /* ── Dark mode ── */
 html.dark body { background: #0a0a0a; }
 html.dark .bk-shell { background: #0a0a0a; }

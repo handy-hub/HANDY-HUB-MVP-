@@ -1,6 +1,7 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#730201" />
@@ -13,7 +14,7 @@
 <body>
   <div class="br-shell">
 
-    <!-- ── Header ─────────────────────────────────────────────── -->
+    <!-- â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <header class="br-header">
       <button class="br-back" id="br-back" aria-label="Go back">
         <svg viewBox="0 0 24 24" fill="none" width="20" height="20" aria-hidden="true">
@@ -38,7 +39,7 @@
 
     <main class="br-scroll" id="br-scroll">
 
-      <!-- ── VIEW 1 · THE REQUEST ─────────────────────────────── -->
+      <!-- â”€â”€ VIEW 1 Â· THE REQUEST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="br-view" id="view-request">
         <h2 class="br-q br-stagger">What needs fixing?</h2>
         <div class="br-cat-grid br-stagger" id="br-cat-grid" role="radiogroup" aria-label="Service category"></div>
@@ -46,14 +47,14 @@
         <h2 class="br-q br-stagger">Describe the problem</h2>
         <div class="br-field br-stagger">
           <textarea id="br-desc" maxlength="2000" rows="4"
-            placeholder="e.g. The kitchen tap has been dripping for a week and the cabinet below is getting wet…"></textarea>
+            placeholder="e.g. The kitchen tap has been dripping for a week and the cabinet below is getting wetâ€¦"></textarea>
           <div class="br-field-foot">
             <span class="br-field-hint">The more detail, the better the visit.</span>
             <span class="br-count" id="br-count">0/2000</span>
           </div>
         </div>
 
-        <h2 class="br-q br-stagger">Add photos <span class="br-opt">optional · up to 4</span></h2>
+        <h2 class="br-q br-stagger">Add photos <span class="br-opt">optional Â· up to 4</span></h2>
         <div class="br-photo-row br-stagger" id="br-photo-row">
           <button class="br-photo-add" id="br-photo-add" type="button" aria-label="Add photos">
             <svg viewBox="0 0 24 24" fill="none" width="22" height="22" aria-hidden="true">
@@ -69,7 +70,7 @@
         <div class="br-loc-card br-stagger">
           <div class="br-loc-beacon" aria-hidden="true"><span></span></div>
           <div class="br-loc-body">
-            <p class="br-loc-line" id="br-loc-line">Detecting your location…</p>
+            <p class="br-loc-line" id="br-loc-line">Detecting your locationâ€¦</p>
             <input id="br-address" type="text" maxlength="300" autocomplete="street-address"
               placeholder="House / street / landmark, area" />
           </div>
@@ -82,7 +83,7 @@
         </div>
       </section>
 
-      <!-- ── VIEW 2 · THE VISIT FEE (receipt) ─────────────────── -->
+      <!-- â”€â”€ VIEW 2 Â· THE VISIT FEE (receipt) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="br-view" id="view-fee" hidden>
         <div class="br-choice-line br-stagger" id="br-choice-line"></div>
 
@@ -92,7 +93,7 @@
           <div class="br-receipt-tear" aria-hidden="true"></div>
           <div class="br-receipt-total">
             <span>Callout fee</span>
-            <strong id="br-receipt-total">GHS —</strong>
+            <strong id="br-receipt-total">GHS â€”</strong>
           </div>
           <div class="br-credit-stamp" aria-label="This fee is credited toward your job">
             CREDITED TOWARD YOUR JOB
@@ -103,7 +104,7 @@
         <div class="br-hiw br-stagger">
           <p class="br-hiw-title">How it works</p>
           <ol class="br-hiw-list">
-            <li><strong>Your pro inspects</strong> the problem in person — no guesswork pricing.</li>
+            <li><strong>Your pro inspects</strong> the problem in person â€” no guesswork pricing.</li>
             <li><strong>You receive a fixed quote</strong> in the app. Approve it, ask for one revision, or decline.</li>
             <li><strong>Approve &amp; pay into escrow.</strong> This visit fee is subtracted from the quote.</li>
             <li><strong>Money moves only when the job is done</strong> and you confirm it.</li>
@@ -117,14 +118,14 @@
         </p>
       </section>
 
-      <!-- ── VIEW 3 · LIVE TRACKING ───────────────────────────── -->
+      <!-- â”€â”€ VIEW 3 Â· LIVE TRACKING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="br-view" id="view-track" hidden>
         <div id="br-track-body"></div>
       </section>
 
     </main>
 
-    <!-- ── Sticky footer CTA ──────────────────────────────────── -->
+    <!-- â”€â”€ Sticky footer CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <footer class="br-footer" id="br-footer">
       <div class="br-footer-meta" id="br-footer-meta" aria-live="polite"></div>
       <button class="br-cta" id="br-cta" type="button">See the visit fee</button>

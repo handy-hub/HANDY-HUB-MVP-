@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Pay | HandyHub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../shared/css/ui-polish.css" />
   <style>
@@ -194,12 +195,12 @@
     <div class="pay-progress" id="pay-progressbar"><span id="pay-progress"></span></div>
     <div class="pay-sim" id="pay-sim" hidden>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Simulation mode — no real charge is made.
+      Simulation mode â€” no real charge is made.
     </div>
 
     <div class="pay-body" id="pay-body">
 
-      <!-- ── VIEW 1: COMPOSE ──────────────────────────────────────── -->
+      <!-- â”€â”€ VIEW 1: COMPOSE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="pay-view" id="view-compose">
         <p class="pay-label">Amount</p>
         <div class="pay-amount-card">
@@ -224,10 +225,10 @@
         </button>
 
         <div class="pay-summary" id="pay-summary" hidden>
-          <div class="pay-sum-row"><span class="k">Top-up amount</span><span class="v" id="sum-amount">—</span></div>
+          <div class="pay-sum-row"><span class="k">Top-up amount</span><span class="v" id="sum-amount">â€”</span></div>
           <div class="pay-sum-row"><span class="k">Charges</span><span class="v">GHS 0.00</span></div>
-          <div class="pay-sum-row"><span class="k">Pay from</span><span class="v" id="sum-method">—</span></div>
-          <div class="pay-sum-row total"><span class="k">Total</span><span class="v" id="sum-total">—</span></div>
+          <div class="pay-sum-row"><span class="k">Pay from</span><span class="v" id="sum-method">â€”</span></div>
+          <div class="pay-sum-row total"><span class="k">Total</span><span class="v" id="sum-total">â€”</span></div>
           <div class="pay-sum-note">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="1.8"/><path d="M5 10h14v11H5z" stroke="currentColor" stroke-width="1.8"/></svg>
             You'll approve the Mobile Money request on your phone.
@@ -235,14 +236,14 @@
         </div>
       </section>
 
-      <!-- ── VIEW 2: PIN ──────────────────────────────────────────── -->
+      <!-- â”€â”€ VIEW 2: PIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="pay-view" id="view-pin" hidden>
         <div class="pin-wrap" id="pin-wrap">
           <div class="pin-lock">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="4" y="11" width="16" height="10" rx="2.5" stroke="var(--pay-primary)" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="var(--pay-primary)" stroke-width="2" stroke-linecap="round"/></svg>
           </div>
           <p class="pin-title" id="pin-title">Enter your security PIN</p>
-          <p class="pin-sub" id="pin-sub">This is your <strong>Handy Hub</strong> PIN — not your Mobile Money PIN. It authorises Handy Hub to start the payment.</p>
+          <p class="pin-sub" id="pin-sub">This is your <strong>Handy Hub</strong> PIN â€” not your Mobile Money PIN. It authorises Handy Hub to start the payment.</p>
           <div class="pin-dots" id="pin-dots">
             <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
           </div>
@@ -259,12 +260,12 @@
             <button class="pin-key" data-k="9">9</button>
             <button class="pin-key ghost" data-k="forgot">?</button>
             <button class="pin-key" data-k="0">0</button>
-            <button class="pin-key" data-k="del" aria-label="Delete">⌫</button>
+            <button class="pin-key" data-k="del" aria-label="Delete">âŒ«</button>
           </div>
         </div>
       </section>
 
-      <!-- ── VIEW 3: AUTHORIZE (approve on phone) ─────────────────── -->
+      <!-- â”€â”€ VIEW 3: AUTHORIZE (approve on phone) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="pay-view" id="view-authorize" hidden>
         <div class="auth-wrap">
           <div class="auth-phone">
@@ -280,11 +281,11 @@
             <div class="auth-step"><span class="n">2</span><span>Enter your <strong>Mobile Money PIN</strong> to approve.</span></div>
             <div class="auth-step"><span class="n">3</span><span>Your wallet is credited automatically.</span></div>
           </div>
-          <div class="auth-status" id="auth-status"><span class="auth-spin"></span> Waiting for approval…</div>
+          <div class="auth-status" id="auth-status"><span class="auth-spin"></span> Waiting for approvalâ€¦</div>
         </div>
       </section>
 
-      <!-- ── VIEW 3b: OTP (Paystack send_otp branch) ──────────────── -->
+      <!-- â”€â”€ VIEW 3b: OTP (Paystack send_otp branch) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="pay-view" id="view-otp" hidden>
         <div class="otp-wrap">
           <div class="otp-icon">
@@ -292,21 +293,21 @@
           </div>
           <p class="otp-title">Enter the code sent to your phone</p>
           <p class="otp-sub" id="otp-sub">Your provider sent a one-time code to <strong id="otp-num">your number</strong>. Enter it to approve this top-up.</p>
-          <input class="otp-input" id="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="––––––" />
+          <input class="otp-input" id="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="â€“â€“â€“â€“â€“â€“" />
           <p class="otp-err" id="otp-err"></p>
-          <p class="otp-note">This is a one-time transaction code — <strong>not</strong> your Mobile Money PIN.</p>
+          <p class="otp-note">This is a one-time transaction code â€” <strong>not</strong> your Mobile Money PIN.</p>
         </div>
       </section>
 
-      <!-- ── VIEW 4: RESULT ───────────────────────────────────────── -->
+      <!-- â”€â”€ VIEW 4: RESULT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="pay-view" id="view-result" hidden>
         <div class="res-wrap">
           <div class="res-icon ok" id="res-icon">
             <svg id="res-svg" width="38" height="38" viewBox="0 0 24 24" fill="none"><path d="M20 7L10.25 16.75L6 12.5" stroke="#16a34a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           <p class="res-title" id="res-title">Wallet credited!</p>
-          <p class="res-amt" id="res-amt" hidden>—</p>
-          <p class="res-ref" id="res-ref" hidden>—</p>
+          <p class="res-amt" id="res-amt" hidden>â€”</p>
+          <p class="res-ref" id="res-ref" hidden>â€”</p>
           <p class="res-sub" id="res-sub">Your top-up was successful.</p>
         </div>
       </section>

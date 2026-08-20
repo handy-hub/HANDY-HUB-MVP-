@@ -14,7 +14,27 @@ const { initializeApp }    = require('firebase-admin/app');
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const { onDocumentCreated }            = require('firebase-functions/v2/firestore');
 const { onSchedule }                   = require('firebase-functions/v2/scheduler');
-const { FUNCTIONS_REGION }             = require('./config');
+const { setGlobalOptions }             = require('firebase-functions/v2');
+const { FUNCTIONS_REGION, FIRESTORE_DB_ID } = require('./config');
+
+// Cap autoscaling for every function.
+//
+// The binding constraint is the Cloud Run **"Instances" quota: 100 per project
+// per region** (europe-west1). It is NOT the CPU quota — "Total CPU allocation"
+// is 20,000 here and was never close to exhausted. Cloud Run nevertheless
+// reports the failure as *"Quota exceeded for total allowable CPU per project
+// per region"*, which is thoroughly misleading: measure instances, not CPU.
+//
+// Budget: 47 functions. During a deploy an updating service briefly holds BOTH
+// its old and new revision, so the peak is 2x the steady state:
+//     maxInstances 1  →  47 steady, ~94 peak   (fits under 100)
+//     maxInstances 2  →  94 steady, ~188 peak  (fails mid-deploy)
+// Hence 1. With the default container concurrency of 80, a single instance
+// still serves ~80 simultaneous requests per function.
+//
+// TO RAISE THIS: request an increase to the Cloud Run "Instances" quota for
+// europe-west1, then raise this number. Do not raise it before the quota.
+setGlobalOptions({ maxInstances: 1 });
 
 initializeApp();
 
@@ -125,6 +145,85 @@ exports.setSecurityPin = onCall(
             if (err instanceof HttpsError) throw err;
             console.error('[setSecurityPin] Unexpected:', err.message);
             throw new HttpsError('internal', 'Unable to set up your PIN right now.');
+        }
+    },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WALLET TOP-UP — trusted charge initiation
+//
+// initiateTopupCharge (callable — authenticated)
+//   Verifies the Security PIN server-side, validates and clamps the amount,
+//   generates the Paystack reference itself, records a `pending` intent bound to
+//   the authenticated UID, then opens the Paystack charge. It NEVER credits a
+//   wallet: only the signature-verified webhook does that, after re-verifying
+//   the charge against Paystack's own API.
+//
+//   scrypt PIN verification is deliberately slow (~100ms+), so this gets a
+//   longer timeout and more memory than a plain CRUD callable.
+// ─────────────────────────────────────────────────────────────────────────────
+const topups = require('./topups');
+
+exports.initiateTopupCharge = onCall(
+    { region: FUNCTIONS_REGION, timeoutSeconds: 60, memory: '512MiB' },
+    async (request) => {
+        _requireAuth(request);
+        await checkRateLimit(request.auth.uid, 'initiateTopupCharge');
+        try {
+            return await topups.initiateTopupCharge(request.auth, request.data || {});
+        } catch (err) {
+            if (err instanceof HttpsError) throw err;
+            // Never leak stack traces, Paystack errors or internals to the client.
+            console.error('[initiateTopupCharge] Unexpected:', err.message);
+            throw new HttpsError('internal', 'Unable to start your top-up right now.');
+        }
+    },
+);
+
+/**
+ * submitTopupOtp (callable — authenticated)
+ *   Some Ghanaian networks answer a mobile-money charge with 'send_otp' instead
+ *   of prompting the handset directly. This forwards that code to Paystack and
+ *   reports the new charge status. It credits nothing — the webhook still owns
+ *   the wallet — and it refuses references that do not belong to the caller.
+ */
+/**
+ * verifyTopupNow (callable — authenticated)
+ *   Asks Paystack whether a charge has succeeded yet, instead of waiting for the
+ *   webhook (which for Ghanaian MoMo commonly lags 30s–2min behind the customer
+ *   approving on their handset). Ownership-checked, and it credits through the
+ *   same idempotent settleTopupByReference the webhook uses — so the two paths
+ *   race safely and the wallet moves exactly once.
+ *
+ *   Polled by the client while a charge is outstanding, hence the higher rate
+ *   limit and small footprint.
+ */
+exports.verifyTopupNow = onCall(
+    { region: FUNCTIONS_REGION, timeoutSeconds: 30, memory: '256MiB' },
+    async (request) => {
+        _requireAuth(request);
+        await checkRateLimit(request.auth.uid, 'verifyTopupNow');
+        try {
+            return await topups.verifyTopupNow(request.auth, request.data || {});
+        } catch (err) {
+            if (err instanceof HttpsError) throw err;
+            console.error('[verifyTopupNow] Unexpected:', err.message);
+            throw new HttpsError('internal', 'Unable to check that payment right now.');
+        }
+    },
+);
+
+exports.submitTopupOtp = onCall(
+    { region: FUNCTIONS_REGION, timeoutSeconds: 30, memory: '256MiB' },
+    async (request) => {
+        _requireAuth(request);
+        await checkRateLimit(request.auth.uid, 'submitTopupOtp');
+        try {
+            return await topups.submitTopupOtp(request.auth, request.data || {});
+        } catch (err) {
+            if (err instanceof HttpsError) throw err;
+            console.error('[submitTopupOtp] Unexpected:', err.message);
+            throw new HttpsError('internal', 'Unable to confirm that code right now.');
         }
     },
 );
@@ -447,7 +546,7 @@ exports.unbanArtisan = onCall({ region: FUNCTIONS_REGION }, async (request) => {
  * acknowledges receipt to the artisan.
  */
 exports.onVerificationSubmitted = onDocumentCreated(
-    { document: 'verification_requests/{artisanId}', region: FUNCTIONS_REGION },
+    { document: 'verification_requests/{artisanId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION },
     (event) => artisanVerif.onVerificationSubmitted(event),
 );
 
@@ -909,6 +1008,30 @@ exports.requestSignupOtp = onCall(
             if (err instanceof HttpsError) throw err;
             console.error('[requestSignupOtp]', err.message);
             throw new HttpsError('internal', err.message || 'Failed to initiate verification.');
+        }
+    }
+);
+
+/**
+ * signUpArtisanDirect (callable — PUBLIC, pre-auth by nature)
+ *   Artisan registration without email verification, used while no verified
+ *   sending domain exists. Reuses the same activation routine as the OTP path,
+ *   so the resulting profile is identical apart from emailVerified: false.
+ *   Rate-limited by IP because it is unauthenticated and creates accounts.
+ */
+exports.signUpArtisanDirect = onCall(
+    { region: FUNCTIONS_REGION, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
+    async (request) => {
+        const ip = request.rawRequest?.ip
+            || request.rawRequest?.headers?.['x-forwarded-for']
+            || 'unknown';
+        await checkRateLimit(`ip_${ip}`, 'signUpArtisanDirect');
+        try {
+            return await emailOtpModule.signUpArtisanDirect({ payload: request.data?.payload });
+        } catch (err) {
+            if (err instanceof HttpsError) throw err;
+            console.error('[signUpArtisanDirect]', err.message);
+            throw new HttpsError('internal', 'Could not create your account. Please try again.');
         }
     }
 );

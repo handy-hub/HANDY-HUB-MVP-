@@ -44,18 +44,27 @@ const fmt = (n) => parseFloat(Number(n).toFixed(2));
  * transaction — no double-credit race is possible.
  *
  * @param {object} params
- * @param {string} params.uid         Firebase user UID from metadata
+ * @param {string} params.uid         Firebase user UID (authoritative — resolved
+ *                                    from topupIntents/{ref} where available,
+ *                                    NOT from client-supplied Paystack metadata)
  * @param {number} params.amountGHS   Amount in GHS (already verified against Paystack API)
  * @param {string} params.paystackRef Paystack transaction reference
  * @param {string} [params.provider]  mtn | telecel | airteltigo
  * @param {string} [params.phone]     MoMo phone number
  * @param {string} [params.email]     Customer email
+ * @param {boolean} [params.hasIntent] True when a topupIntents/{paystackRef}
+ *                                    record exists. When set, that record is
+ *                                    transitioned to 'successful' INSIDE the
+ *                                    same transaction as the credit, so the
+ *                                    wallet can never move without the payment
+ *                                    record moving with it (and vice versa).
  *
  * @returns {{ credited: boolean, duplicate?: boolean }}
  */
-async function creditWalletFromCharge({ uid, amountGHS, paystackRef, provider, phone, email }) {
+async function creditWalletFromCharge({ uid, amountGHS, paystackRef, provider, phone, email, hasIntent = false }) {
     const firestore   = db();
     const customerRef = firestore.collection('customers').doc(uid);
+    const intentRef   = hasIntent ? firestore.collection('topupIntents').doc(paystackRef) : null;
     const n           = now();
     const amount      = fmt(amountGHS);
 
@@ -91,6 +100,18 @@ async function creditWalletFromCharge({ uid, amountGHS, paystackRef, provider, p
 
             // ── Step 4: Credit wallet ─────────────────────────────────────────
             txn.set(customerRef, { walletBalance: newBal, updatedAt: n }, { merge: true });
+
+            // ── Step 4b: Settle the payment intent in the SAME transaction ────
+            // Without this the intent could stay 'pending' forever after a
+            // successful credit (or, worse, be settled while the credit failed).
+            if (intentRef) {
+                txn.set(intentRef, {
+                    status:     'successful',
+                    credited:   true,
+                    creditedAt: n,
+                    updatedAt:  n,
+                }, { merge: true });
+            }
 
             // ── Step 5: Check for existing pending transaction to upgrade ─────
             // NOTE: We cannot do a collection query inside a Firestore transaction.

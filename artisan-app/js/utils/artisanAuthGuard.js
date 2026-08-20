@@ -37,6 +37,9 @@ import { getDevArtisanSession, endDevSession } from '../../../shared/dev/artisan
 const LOGIN_URL        = 'login.html';
 const RETURN_KEY       = 'hh_artisan_return_url';
 const SESSION_KEY      = 'hh_artisan_session';
+// Durable 'this device has signed in before' marker (localStorage, survives
+// tab close). Used ONLY to decide wait-vs-redirect on a slow auth restore.
+const LAST_UID_KEY     = 'hh_artisan_last_uid';
 const GUARD_TIMEOUT_MS = 6000; // 6s before fallback redirect to login
 const OVERLAY_ID       = 'artisan-auth-overlay';
 
@@ -194,6 +197,12 @@ function hideOverlay() {
 function cacheSession(uid, artisanData) {
   try {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ uid, ...artisanData, _ts: Date.now() }));
+    // Durable marker: sessionStorage dies with the tab, so it cannot answer
+    // "has this device ever signed in?" after an app restart. The guard needs
+    // that answer to decide whether a slow Firebase resolve means "still
+    // restoring" (wait) or "genuinely signed out" (go to login). Holds no
+    // credentials — only the fact that a session once existed here.
+    localStorage.setItem(LAST_UID_KEY, uid);
   } catch (_) {}
 }
 
@@ -237,12 +246,16 @@ window._agSignOut = async function () {
   if (isArtisanDevAccessEnabled()) {
     endDevSession();
     sessionStorage.removeItem(SESSION_KEY);
+    // Explicit sign-out is the one case where the device should forget it
+    // ever had a session, so a slow restore correctly falls back to login.
+    try { localStorage.removeItem(LAST_UID_KEY); } catch (_) {}
     window.location.replace(LOGIN_URL);
     return;
   }
   try {
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(RETURN_KEY);
+    try { localStorage.removeItem(LAST_UID_KEY); } catch (_) {}
     const { services: { authService } } = getAppContainer();
     await authService.signOut?.() || await getAppContainer().services.sessionService.logout();
   } catch (_) {}
@@ -288,10 +301,28 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
   showOverlay('loading');
 
   return new Promise((resolve) => {
+    // Slowness is NOT a logout. Firebase restores a session from local
+    // persistence without network, so a slow resolve means the SDK is still
+    // starting — not that this artisan signed out. Redirecting here threw away
+    // valid sessions on 2G, cold starts and backgrounded tabs, which is the
+    // "it logged me out on bad internet" complaint.
+    //
+    // On a device that has signed in before we keep waiting and say so. Only a
+    // device with no prior session falls back to login, because there is then
+    // genuinely nothing to restore.
+    const hadSession = (() => {
+      try { return Boolean(localStorage.getItem('hh_artisan_last_uid')
+                        || localStorage.getItem('hh_last_session_uid')); }
+      catch { return false; }
+    })();
+
     const timeout = setTimeout(() => {
-      // Hard timeout — Firebase took too long, safe fallback
-      saveReturnUrl();
-      window.location.replace(LOGIN_URL);
+      if (hadSession) {
+        showOverlay('loading');
+      } else {
+        saveReturnUrl();
+        window.location.replace(LOGIN_URL);
+      }
     }, GUARD_TIMEOUT_MS);
 
     const { services: { authService, databaseService } } = getAppContainer();

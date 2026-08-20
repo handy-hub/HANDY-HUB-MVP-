@@ -8,7 +8,7 @@ import '../../../shared/js/utils/global-app.js';
 import { getAppContainer } from '../../../shared/js/app/container.js';
 import { showToast } from '../../../shared/js/components/toast.js';
 import { requireAuth } from '../../../shared/js/utils/authGuard.js';
-import { SERVICE_CATEGORIES } from '../../../shared/js/data/serviceCatalog.js';
+import { SERVICE_CATEGORIES, resolveCategory } from '../../../shared/js/data/serviceCatalog.js';
 import { pricingService } from '../../../shared/js/services/pricingService.js';
 import { uploadImage, UPLOAD_PRESETS, cdnUrl } from '../../../shared/js/services/cloudinaryService.js';
 import { mapError } from '../../../shared/js/utils/errorCopy.js';
@@ -32,6 +32,10 @@ const S = {
     catId: null,
     photos: [],          // { publicId, version, url, uploading, el }
     lat: null, lng: null, locLabel: null,
+    // TRUE only when lat/lng came from a real GPS fix (or a cached one still
+    // inside its TTL). Never set by a display fallback. goToFee() refuses to
+    // price or book while this is false.
+    locPrecise: false,
     quote: null,         // server pricing quote
     feeTimer: null,
     bookingId: null,
@@ -45,7 +49,10 @@ const $ = (id) => document.getElementById(id);
 // ── View switching ────────────────────────────────────────────────────────────
 const VIEW_META = {
     request: { kicker: 'New request',   title: 'Book a visit',      progress: 33 },
-    fee:     { kicker: 'Step 2 of 2',   title: 'Your visit fee',    progress: 66 },
+    // "Step 2 of 2" implied the journey ended here, reinforcing the impression
+    // that this screen charges. It does not — finding a professional and paying
+    // both come after it.
+    fee:     { kicker: 'Before we search', title: 'Your visit fee', progress: 66 },
     track:   { kicker: 'Live status',   title: 'Your request',      progress: 100 },
 };
 
@@ -125,8 +132,12 @@ async function detectLocation(force = false) {
         try {
             const c = JSON.parse(localStorage.getItem(LOC_CACHE_KEY) || 'null');
             if (c && c.lat && (Date.now() - (c.ts || 0)) < LOC_TTL_MS) {
-                S.lat = c.lat; S.lng = c.lon ?? c.lng; S.locLabel = c.loc || 'Detected location';
+                // A cached fix was a real GPS reading when it was written, so it
+                // counts as precise within its TTL.
+                S.lat = c.lat; S.lng = c.lon ?? c.lng; S.locPrecise = true;
+                S.locLabel = c.loc || 'Detected location';
                 line.textContent = S.locLabel;
+                line.classList.remove('br-loc-failed');
                 return;
             }
         } catch { /* fall through to GPS */ }
@@ -141,11 +152,23 @@ async function detectLocation(force = false) {
         );
     });
     if (!pos) {
-        S.lat = ACCRA.lat; S.lng = ACCRA.lng; S.locLabel = ACCRA.label;
-        line.textContent = `${ACCRA.label} — type your address below`;
+        // DO NOT substitute Accra for the customer's position.
+        //
+        // This previously set S.lat/S.lng to the city centre on any GPS failure.
+        // Those coordinates pass the server's Ghana-bounds check (Accra is in
+        // Ghana), so a booking was created with a position that was not the
+        // customer's — dispatch then matched and ranked artisans around the city
+        // centre while the customer had typed their real address. A missing
+        // location must never be disguised as a valid one.
+        S.lat = null; S.lng = null; S.locPrecise = false;
+        S.locLabel = ACCRA.label;
+        line.textContent = 'We could not get your location — tap to try again';
+        line.classList.add('br-loc-failed');
         return;
     }
-    S.lat = pos.lat; S.lng = pos.lng; S.locLabel = 'Detected location';
+    S.lat = pos.lat; S.lng = pos.lng; S.locPrecise = true;
+    S.locLabel = 'Detected location';
+    line.classList.remove('br-loc-failed');
     try {
         const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.lat}&lon=${pos.lng}&format=json`);
         const j = await r.json();
@@ -213,11 +236,30 @@ function validateRequest() {
 // ── VIEW 2 — fee receipt ──────────────────────────────────────────────────────
 async function goToFee() {
     if (!validateRequest()) return;
+
+    // Refuse to price or book without a real position. Dispatch matches, ranks
+    // and charges travel on these coordinates — proceeding with a placeholder
+    // would send an artisan to the wrong part of the city while the customer
+    // saw their own address on screen.
+    if (!S.locPrecise || !Number.isFinite(S.lat) || !Number.isFinite(S.lng)) {
+        showToast('We need your location to find professionals near you.');
+        const line = $('br-loc-line');
+        line?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await detectLocation(true);          // one explicit retry
+        if (!S.locPrecise) return;           // still nothing — do not proceed
+    }
+
     const cat = activeCategory();
     S.quote = await pricingService.getPricingQuote({ category: cat.id, lat: S.lat, lng: S.lng });
     renderReceipt();
     switchView('fee');
-    setCta('Confirm & find my professional', confirmRequest);
+    // State plainly that this screen takes no money. It shows an itemised total
+    // with a locked-in price, which reads exactly like a checkout — so customers
+    // reasonably believe they have been charged before anyone was found. The
+    // sequencing is already correct (payCalloutFee refuses to run until a
+    // professional has accepted); only the screen was misleading.
+    setCta('Confirm & find my professional', confirmRequest,
+        { meta: 'No payment yet — you only pay once a professional accepts.' });
     startFeeLockTicker();
 }
 
@@ -523,9 +565,29 @@ async function init() {
     if (resume) {
         enterTrack(resume);
     } else {
-        const pre = params.get('cat') || sessionStorage.getItem('hh_service_preselect');
-        if (pre && SERVICE_CATEGORIES.some(c => c.id === pre)) selectCategory(pre);
+        // Category handoff. Accepts every token other surfaces actually write:
+        //   ?cat=                    dashboard service cards
+        //   hh_service_preselect     service-detail / search
+        //   hh_service               booking.html "Book again" (_rebook)
+        //
+        // hh_service was previously ignored entirely — a different key name — so
+        // Rebook wrote four keys, none of which were read, and landed the customer
+        // on an empty form. resolveCategory() is used rather than an id equality
+        // check because these sources write a mix of ids ("plumbing") and display
+        // labels ("Plumbing"); matching only ids silently dropped the label form.
+        const preToken = params.get('cat')
+            || sessionStorage.getItem('hh_service_preselect')
+            || sessionStorage.getItem('hh_service');
+        const preCat = preToken ? resolveCategory(preToken) : null;
+        if (preCat) selectCategory(preCat.id);
+
         sessionStorage.removeItem('hh_service_preselect');
+        sessionStorage.removeItem('hh_service');
+        // The inspection track dispatches to the best-matched artisan, so a
+        // pre-chosen professional cannot be honoured here. Clear the keys rather
+        // than leave them to be misread by a later flow.
+        sessionStorage.removeItem('hh_selected_artisan');
+        sessionStorage.removeItem('hh_booking_intent');
         switchView('request');
         setCta('See the visit fee', goToFee);
         detectLocation();

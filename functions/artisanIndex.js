@@ -25,6 +25,7 @@
 
 const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { FieldValue }        = require('firebase-admin/firestore');
+const { geohashForLocation } = require('geofire-common');
 const { FIRESTORE_DB_ID, FUNCTIONS_REGION } = require('./config');
 
 let _db;
@@ -64,9 +65,20 @@ function _buildSkills(data) {
 }
 
 function _buildIndexDoc(artisanId, d, lat, lng) {
+    // Compute the geohash HERE rather than trusting artisans/{id}.geohash.
+    //
+    // Nothing in any live write path ever set that field — the only writer was
+    // the manual backfillGeohash admin callable. So every artisan created through
+    // onboarding was indexed with geohash: null, and dispatch's geohash range
+    // query (dispatch.js findEligibleArtisans) could never match them. The
+    // proximity engine was well built and permanently starved.
+    //
+    // Deriving it from the coordinates we already validated above makes it
+    // impossible for the two to disagree, and repairs every existing artisan on
+    // their next profile write without a migration.
     return {
         artisanId,
-        geohash:            d.geohash            || null,
+        geohash:            geohashForLocation([lat, lng]),
         lat,
         lng,
         skills:             _buildSkills(d),
@@ -88,7 +100,7 @@ function _buildIndexDoc(artisanId, d, lat, lng) {
 
 // ── Trigger: artisans document written → sync artisan_index ──────────────────
 const syncArtisanIndex = onDocumentWritten(
-    { document: 'artisans/{artisanId}', region: FUNCTIONS_REGION },
+    { document: 'artisans/{artisanId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION },
     async (event) => {
         const artisanId = event.params.artisanId;
         const indexRef  = db().collection('artisan_index').doc(artisanId);

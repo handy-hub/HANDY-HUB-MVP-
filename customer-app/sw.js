@@ -5,7 +5,9 @@
 // Bump CACHE_VERSION when deploying new assets to force cache refresh.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION = 'handyhub-v5';
+// v6 — Firebase SDK modules are now cached (see isFirebaseSdkAsset). Bumping
+// forces the new worker to activate and retires the v5 cache.
+const CACHE_VERSION = 'handyhub-v6';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -35,6 +37,22 @@ const BYPASS_HOSTS = [
     'ui-avatars.com',
     'bigdatacloud.net',
 ];
+
+/**
+ * True only for immutable, version-pinned Firebase SDK library files.
+ *
+ * Matches:  https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js
+ * Rejects:  firestore.googleapis.com  (live data — must never be cached)
+ *           fonts.gstatic.com         (handled by the normal asset path)
+ *
+ * The /firebasejs/<version>/ segment is what makes this safe: the version is in
+ * the URL, so new SDK releases are simply different URLs and cannot be served
+ * stale from cache.
+ */
+function isFirebaseSdkAsset(url) {
+    return url.hostname === 'www.gstatic.com'
+        && /^\/firebasejs\/\d+\.\d+\.\d+\//.test(url.pathname);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Install — pre-cache key shell assets
@@ -78,6 +96,26 @@ self.addEventListener('fetch', (event) => {
     if (!request.url.startsWith('http')) return;
 
     const url = new URL(request.url);
+
+    // ── Firebase SDK modules — cache-first, ahead of the bypass below ────────
+    //
+    // This app is multi-page: every navigation is a full document load, and each
+    // one re-downloads 5 Firebase SDK modules from www.gstatic.com. That network
+    // cost is paid on EVERY navigation and is a large part of why returning to a
+    // screen feels slow — no amount of data caching removes it.
+    //
+    // Safe to cache aggressively because the version is pinned in the path
+    // (/firebasejs/10.8.0/firebase-app.js). These bytes are immutable: upgrading
+    // the SDK changes the URL, which is a cache miss, which fetches fresh. That
+    // is exactly the property cache-first requires.
+    //
+    // Deliberately placed BEFORE the BYPASS_HOSTS check — 'gstatic.com' is in
+    // that list, which is correct for live-data origins but was also, silently,
+    // preventing the SDK from ever being cached.
+    if (isFirebaseSdkAsset(url)) {
+        event.respondWith(cacheFirst(request));
+        return;
+    }
 
     // Bypass live-data origins — never cache Firebase, Paystack, CDN assets, etc.
     if (BYPASS_HOSTS.some((host) => url.hostname.endsWith(host))) return;

@@ -9,8 +9,28 @@ import { getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.j
 const FUNCTIONS_REGION = 'europe-west1';
 const SESSION_KEY      = 'hh_otp_session';
 
+// ── Email OTP verification switch ────────────────────────────────────────────
+// FALSE = sign up directly; no email verification step.
+//
+// Turned off because Resend rejects every send: EMAIL_FROM is noreply@handyhub.app
+// and that domain is not verified, so the OTP email never arrives and signup
+// dead-ends. The backend (functions/emailOtp.js) is sound and stays deployed —
+// this only stops the client from entering that flow.
+//
+// TO RE-ENABLE: verify a sending domain at https://resend.com/domains, point
+// EMAIL_FROM at it, then flip this to true. Nothing else needs changing; the
+// OTP path below is intact, as is verify-email.html.
+//
+// TRADE-OFF WHILE FALSE: email addresses are unverified, so a customer can
+// register with an address they do not own or simply mistype one. Such accounts
+// cannot receive password resets or booking mail. Firebase Auth's own
+// sendEmailVerification() is a zero-config alternative that needs no domain.
+const REQUIRE_EMAIL_OTP = false;
+
 const SIGNUP_BUTTON_TEXT = "Sign Up ->";
-const SIGNUP_BUTTON_LOADING_TEXT = "Sending Code...";
+// Loading copy must match what is actually happening — "Sending Code…" would be
+// a lie while REQUIRE_EMAIL_OTP is false.
+const SIGNUP_BUTTON_LOADING_TEXT = REQUIRE_EMAIL_OTP ? "Sending Code..." : "Creating Account...";
 const LOGIN_REDIRECT_URL = "login.html";
 const SOCIAL_REDIRECT_URL = "index.html";
 const OTP_VERIFY_URL     = "verify-email.html";
@@ -327,30 +347,52 @@ function setupEmailSignupForm() {
     setSubmitLoading(true);
 
     try {
-      const fn = httpsCallable(getFunctions(getApp(), FUNCTIONS_REGION), 'requestSignupOtp');
-      const result = await fn({
-        appType: 'customer',
-        payload: {
-          fullName: profileInput.fullName,
-          email:    profileInput.email,
-          phone:    profileInput.phone,
-          location: profileInput.location,
-          password,
-        },
+      if (REQUIRE_EMAIL_OTP) {
+        const fn = httpsCallable(getFunctions(getApp(), FUNCTIONS_REGION), 'requestSignupOtp');
+        const result = await fn({
+          appType: 'customer',
+          payload: {
+            fullName: profileInput.fullName,
+            email:    profileInput.email,
+            phone:    profileInput.phone,
+            location: profileInput.location,
+            password,
+          },
+        });
+
+        // Store session in sessionStorage only — never localStorage
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+          sessionId: result.data.sessionId,
+          email:     result.data.email,
+        }));
+
+        showToast("Verification code sent! Check your email.", "success");
+        signupForm.reset();
+        updateSubmitButtonState(false);
+        setTimeout(() => { window.location.href = OTP_VERIFY_URL; }, 1000);
+        return;
+      }
+
+      // ── Direct signup (no email verification) ──────────────────────────────
+      // Creates the Auth user and the customer profile together, including the
+      // artisan role-isolation check, so a UID can never hold both roles.
+      await customerAuthService.signUpWithEmail({
+        fullName: profileInput.fullName,
+        email:    profileInput.email,
+        phone:    profileInput.phone,
+        location: profileInput.location,
+        password,
       });
 
-      // Store session in sessionStorage only — never localStorage
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-        sessionId: result.data.sessionId,
-        email:     result.data.email,
-      }));
+      // Any half-finished OTP session from an earlier attempt is now meaningless.
+      sessionStorage.removeItem(SESSION_KEY);
 
-      showToast("Verification code sent! Check your email.", "success");
+      showToast("Account created! Welcome to HandyHub.", "success");
       signupForm.reset();
       updateSubmitButtonState(false);
-      setTimeout(() => { window.location.href = OTP_VERIFY_URL; }, 1000);
+      setTimeout(() => { window.location.href = SOCIAL_REDIRECT_URL; }, 800);
     } catch (error) {
-      console.error("Signup OTP request failed:", error);
+      console.error("Signup failed:", error);
       showToast(error?.message || signupErrorMessage(error), "error");
       setSubmitLoading(false);
       validateForm();

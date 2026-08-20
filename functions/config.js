@@ -45,6 +45,14 @@ const MIN_TOPUP_GHS = parseFloat(process.env.MIN_TOPUP_GHS || '1');
 /** Maximum job quote amount in GHS — rejects obviously fraudulent or erroneous quotes. */
 const MAX_QUOTE_GHS = parseFloat(process.env.MAX_QUOTE_GHS || '10000');
 
+/**
+ * Maximum single wallet top-up in GHS. Server-side ceiling enforced by
+ * initiateTopupCharge — without it a typo (or a hostile client) could open a
+ * Paystack charge for an arbitrary amount. Conservative by design; raise
+ * deliberately rather than by accident.
+ */
+const MAX_TOPUP_GHS = parseFloat(process.env.MAX_TOPUP_GHS || '10000');
+
 /** Maximum dispatch rounds before a booking is marked unfulfilled. */
 const MAX_DISPATCH_ROUNDS = parseInt(process.env.MAX_DISPATCH_ROUNDS || '10', 10);
 
@@ -72,6 +80,7 @@ module.exports = {
     COMMISSION_RATE,
     MIN_WITHDRAWAL,
     MIN_TOPUP_GHS,
+    MAX_TOPUP_GHS,
     MAX_QUOTE_GHS,
     MAX_DISPATCH_ROUNDS,
     ESCROW_AUTO_RELEASE_DAYS,

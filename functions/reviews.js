@@ -40,7 +40,7 @@ function db() {
 }
 
 const onBookingReviewed = onDocumentUpdated(
-    { document: 'bookings/{bookingId}', region: FUNCTIONS_REGION },
+    { document: 'bookings/{bookingId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION },
     async (event) => {
         const before    = event.data.before.data();
         const after     = event.data.after.data();

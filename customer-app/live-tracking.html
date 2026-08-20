@@ -1,6 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <script src="../shared/js/services/stateService.js"></script>
@@ -41,6 +42,14 @@
     .trk-eta-chip {
       background: var(--ui-primary); color: #fff; border-radius: 20px;
       padding: 6px 12px; font-size: 12px; font-weight: 800; white-space: nowrap;
+    }
+    /* Stale feed: drop the confident brand colour. A muted chip reads as
+       "remembered", the brand chip reads as "live" — the customer should be able
+       to tell at a glance which one they are looking at. */
+    .trk-eta-chip.tracking-stale {
+      background: var(--ui-surface-2, #efeaea);
+      color: var(--ui-muted, #6b6b6b);
+      font-weight: 700;
     }
 
     /* Bottom sheet */
@@ -640,6 +649,34 @@ window.showTrackingUnavailable = function showTrackingUnavailable() {
   }
 }
 
+/**
+ * Tell the customer whether the marker they are looking at is live or remembered.
+ *
+ * Showing a stale position as though it were current is the more damaging
+ * failure: the customer waits at the door for someone whose phone stopped
+ * reporting twenty minutes ago. Saying "last seen 4 min ago" is less reassuring
+ * and more useful.
+ */
+window.setTrackingFreshness = function setTrackingFreshness(isStale, ageMs) {
+  const chip = document.getElementById('eta-chip');
+  const dot  = document.getElementById('stage-dot');
+  if (!chip) return;
+
+  if (!isStale) {
+    chip.classList.remove('tracking-stale');
+    if (dot) dot.style.opacity = '';
+    return;
+  }
+
+  chip.classList.add('tracking-stale');
+  if (dot) dot.style.opacity = '.45';          // stop implying live movement
+
+  const mins = Number.isFinite(ageMs) ? Math.round(ageMs / 60000) : null;
+  chip.textContent = mins === null      ? 'Last known position'
+                   : mins < 1           ? 'Last seen just now'
+                   : `Last seen ${mins} min ago`;
+};
+
 window.updateArtisanMarker = function updateArtisanMarker(aLat, aLng) {
   // Guard: reject anything that is not a finite number within valid GPS bounds
   if (typeof aLat !== 'number' || typeof aLng !== 'number' ||
@@ -697,12 +734,66 @@ if (window._trkNoActiveBooking) {
   import { describe }        from '../shared/js/domain/bookingStatusMeta.js';
   import { bookingHref }     from '../shared/js/domain/bookingRouter.js';
 
-  await requireAuth();
+  const _authUser = await requireAuth();
   const { services: { databaseService } } = getAppContainer();
 
-  // ── Firestore status gate — definitive server-side check ──
-  const _bk        = window.HH_State ? window.HH_State.booking.get() : {};
-  const _bookingId = _bk.bookingId || _bk.id || null;
+  // ── Resolve WHICH booking to track ────────────────────────────────────────
+  //
+  // This used to read HH_State.booking (localStorage) and nothing else. That
+  // object is written in exactly one place — booking.html, when the customer taps
+  // "Track" — so the page only worked when arrived at from that one button. A
+  // refresh on another device, a push-notification deep link, a direct URL, or
+  // cleared storage all produced "tracking unavailable" while a booking was
+  // genuinely live. The page was disconnected from the booking lifecycle.
+  //
+  // Firestore is now the authority. HH_State is kept only as a synchronous hint
+  // so the shell can paint immediately (see CLAUDE.md §1), and is overruled the
+  // moment the server answers.
+  const _bk = window.HH_State ? window.HH_State.booking.get() : {};
+  let _bookingId = _bk.bookingId || _bk.id || null;
+
+  try {
+    const { repositories: { bookingRepository } } = getAppContainer();
+    const uid = _authUser?.uid || (window.HH_State && window.HH_State.currentUid());
+
+    if (uid && bookingRepository?.getByCustomerId) {
+      const records = await bookingRepository.getByCustomerId(uid);
+      // Statuses where a live tracking view is meaningful. Mirrors the ongoing
+      // group in bookingStatusMeta rather than inventing a second vocabulary.
+      const TRACKABLE = new Set([
+        'accepted', 'inspection_scheduled', 'inspection_done', 'quoted',
+        'en_route', 'in_progress', 'awaiting',
+      ]);
+      const live = (records || [])
+        .map(r => ({ id: r.id, ...(r.data || {}) }))
+        .filter(b => TRACKABLE.has(String(b.status || '').toLowerCase()))
+        .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+
+      if (live.length) {
+        // Server wins. If the cached hint pointed at a different (usually older)
+        // booking, tracking would otherwise have followed the wrong job.
+        if (live[0].id !== _bookingId) {
+          console.info('[tracking] Resolved active booking from server:', live[0].id);
+        }
+        _bookingId = live[0].id;
+        if (window.HH_State) {
+          window.HH_State.booking.patch({
+            bookingId: live[0].id,
+            id:        live[0].id,
+            status:    live[0].status,
+            artisanId: live[0].artisanId,
+            service:   live[0].serviceType || live[0].service,
+          });
+        }
+      } else if (!_bookingId) {
+        console.info('[tracking] No trackable booking for this customer');
+      }
+    }
+  } catch (err) {
+    // Fall back to the cached hint. A resolution failure must not blank a page
+    // that could still track the booking the customer arrived from.
+    console.warn('[tracking] Server booking resolution failed:', err?.message || err);
+  }
 
   // C1 FIX: use a flag instead of a top-level return (illegal in ES modules)
   let _setupAborted = false;
@@ -763,11 +854,31 @@ if (window._trkNoActiveBooking) {
           snap => {
             if (!snap || !snap.data) { window.showTrackingUnavailable?.(); return; }
             const d    = snap.data;
+
+            // Distinguish a LIVE position from a LAST KNOWN one.
+            //
+            // currentLat/currentLng are published by presenceService's
+            // watchPosition while the artisan is online. `lat`/`lng` are their
+            // registered working location, used for dispatch. Falling back from
+            // one to the other silently presented a base location as though it
+            // were live movement — the customer had no way to tell the artisan
+            // had stopped reporting.
+            const STALE_AFTER_MS = 90_000;   // ~3 heartbeats
+            const isLive   = d.currentLat != null && d.currentLng != null;
+            const updated  = d.lastLocationUpdate ? Date.parse(d.lastLocationUpdate) : NaN;
+            const ageMs    = Number.isFinite(updated) ? Date.now() - updated : Infinity;
+            const isStale  = !isLive || ageMs > STALE_AFTER_MS;
+
             const aLat = d.currentLat ?? d.lat ?? null;
             const aLng = d.currentLng ?? d.lng ?? null;
             if (aLat !== null && aLng !== null) {
               window.updateArtisanMarker(aLat, aLng);
-              if (userLat !== null && userLng !== null) {
+              window.setTrackingFreshness?.(isStale, ageMs);
+              // An ETA derived from a stale position is a guess presented as a
+              // fact, so only publish one while the feed is live. When stale,
+              // setTrackingFreshness has already put "Last seen N min ago" in
+              // this chip and must not be overwritten.
+              if (!isStale && userLat !== null && userLng !== null) {
                 const distKm = getHaversineDistanceKm(userLat, userLng, aLat, aLng);
                 if (distKm !== null) {
                   const etaMin = estimateEtaMinutes(distKm);

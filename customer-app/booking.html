@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -7,7 +7,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Bookings | HandyHub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -41,7 +42,7 @@
 
   <div class="bk-body">
 
-    <!-- ── UPCOMING ── -->
+    <!-- â”€â”€ UPCOMING â”€â”€ -->
     <div class="bk-panel active" id="panel-upcoming">
       <!-- Remains empty until the booking repository confirms zero bookings. -->
       <div id="booking-promo-slot"></div>
@@ -50,19 +51,19 @@
       <div id="list-upcoming"></div>
     </div>
 
-    <!-- ── ACTIVE ── -->
+    <!-- â”€â”€ ACTIVE â”€â”€ -->
     <div class="bk-panel" id="panel-ongoing">
       <h2 class="bk-section-title">Active Jobs</h2>
       <div id="list-ongoing"></div>
     </div>
 
-    <!-- ── COMPLETED ── -->
+    <!-- â”€â”€ COMPLETED â”€â”€ -->
     <div class="bk-panel" id="panel-completed">
       <h2 class="bk-section-title">Completed Bookings</h2>
       <div id="list-completed"></div>
     </div>
 
-    <!-- ── CANCELLED ── -->
+    <!-- â”€â”€ CANCELLED â”€â”€ -->
     <div class="bk-panel" id="panel-cancelled">
       <h2 class="bk-section-title">Cancelled Bookings</h2>
       <div id="list-cancelled"></div>
@@ -91,7 +92,7 @@ import { reportError }              from '../shared/js/utils/errorCopy.js';
 
 await requireAuth();
 
-// ── MODULE STATE ──────────────────────────────────────────────────────────────
+// â”€â”€ MODULE STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _allBookings = [];
 let _unsub       = null;
 let _firstPaint  = false;
@@ -99,7 +100,7 @@ let _bookingHistoryLoaded = false;
 let _hasAnyBooking        = false;
 let _bookingLoadId        = 0;
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
+// â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -124,8 +125,8 @@ function getMeta(booking) {
 }
 
 // Stage-aware money figure. Inspection-track bookings have no `total`/`price`
-// until a job quote is approved — before that the meaningful figure is the
-// callout fee (then the quote). This stops inspection cards showing "GHS —".
+// until a job quote is approved â€” before that the meaningful figure is the
+// callout fee (then the quote). This stops inspection cards showing "GHS â€”".
 function amountFor(b) {
   const jobTotal = b.total || b.price || b.jobQuote;
   if (jobTotal) return { label: 'Total', value: Number(jobTotal).toFixed(2) };
@@ -133,7 +134,7 @@ function amountFor(b) {
     if (b.jobQuote)   return { label: 'Quote',   value: Number(b.jobQuote).toFixed(2) };
     if (b.calloutFee) return { label: 'Callout', value: Number(b.calloutFee).toFixed(2) };
   }
-  return { label: 'Total', value: '—' };
+  return { label: 'Total', value: 'â€”' };
 }
 
 function avatarHtml(name, photo) {
@@ -142,7 +143,7 @@ function avatarHtml(name, photo) {
   return `<div class="bk-card-photo-grad" style="background:linear-gradient(135deg,#730201,#a03030);">${initials}</div>`;
 }
 
-// ── SKELETON ──────────────────────────────────────────────────────────────────
+// â”€â”€ SKELETON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function skeletonCard() {
   return `<div class="bk-card bk-skeleton-card" aria-hidden="true">
     <div class="bk-card-photo-wrap"><span class="bk-skeleton bk-skeleton-avatar"></span><span class="bk-skeleton bk-skeleton-service-badge"></span></div>
@@ -161,7 +162,7 @@ function showSkeletons(id, count = 3) {
   if (el) el.innerHTML = `<div class="bk-skeleton-list" role="status" aria-live="polite"><span class="bk-skeleton-sr">Loading bookings</span>${Array(count).fill(skeletonCard()).join('')}</div>`;
 }
 
-// ── EMPTY STATES ──────────────────────────────────────────────────────────────
+// â”€â”€ EMPTY STATES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function emptyState(icon, title, sub, btnText, href) {
   return `<div class="bk-empty">
     <div class="bk-empty-icon">${icon}</div>
@@ -202,10 +203,10 @@ const CLK_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><c
 const CHK_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 const CAN_ICO  = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 
-// ── CARD BUILDERS ─────────────────────────────────────────────────────────────
+// â”€â”€ CARD BUILDERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // buildUpcomingCard / buildCompletedCard / buildCancelledCard share the same
 // interaction model (a static info row you tap to view, with a status pill +
-// amount on the right) — they render through this one shell, varying only in
+// amount on the right) â€” they render through this one shell, varying only in
 // the meta-row content and whether the row can be swiped to cancel. This
 // mirrors the Notification page's single-card-shell approach rather than each
 // tab hand-rolling its own row markup.
@@ -237,7 +238,7 @@ function buildSimpleCard(b, { metaRows, amountLabel, amountValue, amountStyle = 
   if (!cancellable) return card;
 
   // Cancellable rows adopt the canonical swipe-to-action shell (shared/js/
-  // components/swipeAction.js) — same gesture, thresholds, and reveal
+  // components/swipeAction.js) â€” same gesture, thresholds, and reveal
   // animation as the Notification page's swipe-to-delete, wired to a
   // "Cancel" action instead since deleting a booking record is not a
   // supported (or safe) operation for a financial/escrow-backed entity.
@@ -305,6 +306,7 @@ function buildActiveCard(b) {
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#555" stroke-width="2" stroke-linecap="round"/></svg>Message
       </button>
       ${isAwaiting ? `<button class="bk-active-btn bk-active-btn--confirm" onclick="window._confirmJobDone('${escHtml(b.id)}','${escHtml(b.escrowId || '')}',this)">Confirm Done</button>` : ''}
+      ${isCancellable(b) ? `<button class="bk-active-btn bk-active-btn--cancel" onclick="window._cancelBooking('${escHtml(b.id)}')">Cancel</button>` : ''}
     </div>
   </div>`;
 }
@@ -338,14 +340,39 @@ function buildCancelledCard(b) {
   });
 }
 
-// ── Swipe-to-cancel (upcoming bookings only) ──────────────────────────────────
+// â”€â”€ Swipe-to-cancel (upcoming bookings only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Reuses the exact gesture mechanics extracted from the Notification page's
 // swipe-to-delete (shared/js/components/swipeAction.js): same thresholds,
-// same spring-back animation, same undo-toast pattern — wired to a "Cancel"
+// same spring-back animation, same undo-toast pattern â€” wired to a "Cancel"
 // action instead, since a booking's actual delete equivalent is a status
 // transition (cancelled), not row removal.
 const cancelUndoToast = createUndoToast({ message: 'Booking cancelled', icon: 'fa-solid fa-ban' });
 let getLastSwipeTime = () => 0;
+
+// ── Explicit cancel (Active tab) ─────────────────────────────────────────────
+// The swipe gesture only exists on Upcoming cards, but inspection-track bookings
+// sit in Active while still being cancellable (accepted / inspection_scheduled /
+// inspection_done / quoted). Without a visible control there was no way to
+// cancel them at all — the rules permitted it and the UI did not offer it.
+//
+// A confirm() rather than the silent swipe-with-undo: cancelling an accepted
+// booking can settle the callout fee to the artisan, so it deserves a decision
+// rather than a gesture that can be made by accident.
+window._cancelBooking = async function (bookingId) {
+  const booking = _allBookings.find(b => b.id === bookingId);
+  const isInspection = booking?.track === 'inspection';
+  const warning = isInspection
+    ? 'Cancel this booking?\n\nIf the professional has already been paid a callout fee, '
+      + 'part or all of it may not be refunded.'
+    : 'Cancel this booking?';
+  if (!window.confirm(warning)) return;
+
+  // commitCancel handles its own error reporting and returns whether the
+  // transition actually landed. Only claim success when it did — announcing a
+  // cancellation that failed is worse than showing nothing.
+  const ok = await commitCancel(bookingId);
+  if (ok) showToast('Booking cancelled', 'success');
+};
 
 async function commitCancel(bookingId) {
   const booking = _allBookings.find(b => b.id === bookingId);
@@ -363,14 +390,16 @@ async function commitCancel(bookingId) {
         status: 'cancelled', cancellationReason: 'Cancelled by customer', updatedAt: n,
       });
       // The onBookingStatusChanged Cloud Function trigger (functions/bookings.js)
-      // handles escrow refund + both-party notification automatically — this
+      // handles escrow refund + both-party notification automatically â€” this
       // page only needs to write the status transition.
     }
+    return true;                       // the transition actually landed
   } catch (e) {
     console.error('[booking] Cancel failed:', e);
-    // The undo toast already claimed success — put the row back and say so.
+    // The undo toast already claimed success â€” put the row back and say so.
     render(_allBookings);
     showToast(reportError(e, { context: 'booking', operation: 'cancel-booking', metadata: { bookingId } }).message, 'error');
+    return false;                      // caller must NOT report success
   }
 }
 
@@ -383,14 +412,14 @@ function initiateCancel(bookingId) {
     { booking },
     (committedId) => { commitCancel(committedId); },
     () => {
-      // Undo: nothing to restore server-side (no write happened yet) — just
+      // Undo: nothing to restore server-side (no write happened yet) â€” just
       // re-render so the row reappears from the still-live _allBookings state.
       render(_allBookings);
     }
   );
 }
 
-// ── RENDER ─────────────────────────────────────────────────────────────────────
+// â”€â”€ RENDER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function render(bookings) {
   const upcoming  = bookings.filter(b => TAB_STATUSES.upcoming.includes((b.status  || '').toLowerCase()));
   const ongoing   = bookings.filter(b => TAB_STATUSES.ongoing.includes((b.status   || '').toLowerCase()));
@@ -438,7 +467,34 @@ function render(bookings) {
   if (dot) dot.style.display = ongoing.length > 0 ? '' : 'none';
 }
 
-// ── GLOBAL ACTIONS ────────────────────────────────────────────────────────────
+// â”€â”€ GLOBAL ACTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Context-aware first tab ─────────────────────────────────────────────────
+// The page always opened on "Upcoming", even when a job was happening right now,
+// so a customer with a live booking had to know to switch tabs to find it. The
+// most relevant thing is whatever needs them, in this order:
+//   ongoing (a job is live) → upcoming (something is booked) → completed.
+//
+// Runs ONCE, on the first data arrival only. After that the customer's own tab
+// choice is theirs to keep — silently moving them on a later snapshot would be
+// worse than the original problem.
+let _autoTabApplied = false;
+function applyContextualTab(bookings) {
+  if (_autoTabApplied) return;
+  _autoTabApplied = true;
+
+  const has = (group) => bookings.some(b =>
+    TAB_STATUSES[group].includes(String(b.status || '').toLowerCase()));
+
+  const target = has('ongoing') ? 'ongoing'
+               : has('upcoming') ? 'upcoming'
+               : has('completed') ? 'completed'
+               : null;
+  if (!target || target === 'upcoming') return;   // 'upcoming' is already the default
+
+  const btn = document.querySelector(`.ui-tab[onclick*="'${target}'"]`);
+  if (btn) window.switchTab(target, btn);
+}
+
 window.switchTab = function(tab, btn) {
   document.querySelectorAll('.ui-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
   btn.classList.add('active');
@@ -448,7 +504,7 @@ window.switchTab = function(tab, btn) {
 };
 
 // Swipeable (cancellable) cards route through this guard so a swipe gesture's
-// trailing touchend doesn't also open the booking — same 300ms debounce the
+// trailing touchend doesn't also open the booking â€” same 300ms debounce the
 // Notification page uses between wireSwipeAction() and its card click handler.
 window._viewBookingGuarded = function(id) {
   if (Date.now() - getLastSwipeTime() < 300) return;
@@ -466,7 +522,7 @@ window._viewBooking = function(id) {
   // of silently doing nothing or dropping onto live-tracking with no payment UI.
   const href = bookingHref({ ...b, bookingId: b.id });
 
-  // live-tracking reads active-booking context from HH_State — seed it before we go.
+  // live-tracking reads active-booking context from HH_State â€” seed it before we go.
   if (href.startsWith('live-tracking')) {
     try {
       if (window.HH_State) {
@@ -494,9 +550,9 @@ window._openReview = function(bookingId) {
 };
 window.openReview = window._openReview;
 
-/* ── Rebook (I7): carry the previous booking's service + professional into the
+/* â”€â”€ Rebook (I7): carry the previous booking's service + professional into the
    booking flow so the returning customer doesn't re-enter everything. Converges
-   on the same professional-first path used from an artisan profile. ── */
+   on the same professional-first path used from an artisan profile. â”€â”€ */
 window._rebook = function(id) {
   const b = _allBookings.find(bk => bk.id === id);
   if (!b) { window.location.href = 'book-request.html'; return; }
@@ -527,7 +583,7 @@ window.rebook = window._rebook;
 
 window._confirmJobDone = async function(bookingId, escrowId, btn) {
   if (!confirm('Confirm the job is complete? This releases payment to the artisan.')) return;
-  if (btn) { btn.disabled = true; btn.textContent = 'Confirming…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Confirmingâ€¦'; }
 
   try {
     const { services: { databaseService } } = getAppContainer();
@@ -554,7 +610,7 @@ window._confirmJobDone = async function(bookingId, escrowId, btn) {
 };
 window.confirmJobDone = window._confirmJobDone;
 
-// ── BOOT ──────────────────────────────────────────────────────────────────────
+// â”€â”€ BOOT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // 1. Show skeletons immediately
 ['list-upcoming','list-ongoing','list-completed','list-cancelled'].forEach(id => showSkeletons(id));
 
@@ -597,6 +653,7 @@ authService.subscribeToAuthState(user => {
       if (_allBookings.length) _hasAnyBooking = true;
       try { localStorage.setItem(BK_CACHE_KEY, JSON.stringify(_allBookings.slice(0, 30))); } catch(_) {}
       render(_allBookings);
+      applyContextualTab(_allBookings);
     },
     err => {
       console.error('[booking] Firestore subscription error:', err);

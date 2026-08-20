@@ -39,8 +39,16 @@ const DEBOUNCE_MS   = 120;
 // refresh within the TTL renders from cache at ZERO Firestore reads. Radius /
 // category filtering already runs client-side off this pool, so nothing about
 // the UX changes. Tune ARTISAN_CACHE_TTL_MS to trade freshness against cost.
-const ARTISAN_CACHE_KEY    = 'hh_nearby_artisans_v1';
-const ARTISAN_CACHE_TTL_MS = 5 * 60 * 1000;   // 5 minutes
+// TTL and FRESHNESS are different questions, and conflating them is what made
+// this section flash. TTL is how long a pool is still worth PAINTING; staleness
+// is how soon we go and get a newer one. At five minutes for both, any visit
+// more than five minutes after the last one fell to the cold path and showed
+// skeletons — i.e. most real sessions. Painting a slightly old artisan list for
+// one frame is harmless: it is public marketplace listing data, corrected within
+// moments by the background refresh below.
+const ARTISAN_CACHE_KEY      = 'hh_nearby_artisans_v1';
+const ARTISAN_CACHE_TTL_MS   = 24 * 60 * 60 * 1000;   // paintable for a day
+const ARTISAN_CACHE_STALE_MS = 5 * 60 * 1000;         // refresh in background past this
 
 const RADIUS_OPTIONS = [
   { label: '2 km',  km: 2   },
@@ -144,12 +152,18 @@ async function getArtisanRepo() {
 }
 
 /* ── Pool cache (localStorage, TTL) ────────────────────────────────────── */
+/**
+ * @returns {{artisans: Array, stale: boolean}|null}
+ *   `stale` tells the caller to revalidate in the background — it does NOT mean
+ *   "unusable". Only an age beyond the TTL yields null.
+ */
 function readArtisanCache() {
   try {
     const obj = JSON.parse(localStorage.getItem(ARTISAN_CACHE_KEY) || 'null');
     if (!obj || !Array.isArray(obj.artisans)) return null;
-    if (Date.now() - Number(obj.ts || 0) > ARTISAN_CACHE_TTL_MS) return null;
-    return obj.artisans;
+    const age = Date.now() - Number(obj.ts || 0);
+    if (age > ARTISAN_CACHE_TTL_MS) return null;          // too old to paint
+    return { artisans: obj.artisans, stale: age > ARTISAN_CACHE_STALE_MS };
   } catch (_) { return null; }
 }
 
@@ -163,11 +177,37 @@ function writeArtisanCache(artisans) {
 async function fetchArtisans({ force = false } = {}) {
   if (_loading) return;
 
-  // Serve a fresh cached pool without touching Firestore. This is the whole
-  // point of the change: a refresh within the TTL costs zero reads.
+  // Paint the cached pool immediately — no skeleton, no Firestore read. When the
+  // pool is merely stale we still paint first, then refresh quietly underneath;
+  // the customer never waits for a list we could already show them.
   if (!force) {
     const cached = readArtisanCache();
-    if (cached) { _artisans = cached; _fetchError = null; render(); return; }
+    if (cached) {
+      _artisans   = cached.artisans;
+      _fetchError = null;
+      render();
+      if (!cached.stale) return;                 // fresh → zero reads, done
+
+      // Stale: revalidate in the background. Deliberately NOT re-rendering a
+      // skeleton — there is already good content on screen, and replacing it
+      // with a loading state would be the exact regression this guards against.
+      getArtisanRepo()
+        .then((repo) => repo ? repo.getTopRated(FETCH_LIMIT) : null)
+        .then((docs) => {
+          if (!docs) return;
+          const fresh = docs
+            .filter(d => d && d.exists !== false && d.data)
+            .map(d => ({ id: d.id, ...d.data }));
+          writeArtisanCache(fresh);
+          _artisans = fresh;
+          render();                              // silent swap, same layout
+        })
+        .catch((err) => {
+          // A failed background refresh must never disturb content already shown.
+          console.warn('[nearbyPros] background refresh failed:', err?.message || err);
+        });
+      return;
+    }
   }
 
   _loading    = true;

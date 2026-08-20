@@ -1,6 +1,7 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,9 +15,9 @@
 <body>
 <div class="ms-shell">
 
-  <!-- ══════════════════════════════════
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
        LIST VIEW
-  ══════════════════════════════════ -->
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div class="ms-list-view" id="ms-list-view">
 
     <!-- Header -->
@@ -39,11 +40,11 @@
           <circle cx="11" cy="11" r="7" stroke="#aaa" stroke-width="2"/>
           <path d="M16.5 16.5L21 21" stroke="#aaa" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <input id="ms-search-input" type="text" placeholder="Search messages…" oninput="searchConversations(this.value)" autocomplete="off" />
+        <input id="ms-search-input" type="text" placeholder="Search messagesâ€¦" oninput="searchConversations(this.value)" autocomplete="off" />
       </div>
     </div>
 
-    <!-- Filter tabs — canonical ui-tabs (pill variant) -->
+    <!-- Filter tabs â€” canonical ui-tabs (pill variant) -->
     <div class="ui-tabs ms-filter-bar" role="tablist">
       <button class="ui-tab active" role="tab" aria-selected="true"  onclick="filterTab('all', this)">All</button>
       <button class="ui-tab"        role="tab" aria-selected="false" onclick="filterTab('unread', this)">Unread</button>
@@ -64,9 +65,9 @@
   </div><!-- end ms-list-view -->
 
 
-  <!-- ══════════════════════════════════
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
        CHAT VIEW
-  ══════════════════════════════════ -->
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div class="ms-chat-view" id="ms-chat-view">
 
     <!-- Chat header -->
@@ -107,7 +108,7 @@
       </button>
       <input type="file" id="ms-attach-input" accept="image/*" style="display:none" onchange="handleAttachmentSelect(event)" />
       <div class="ms-input-wrap">
-        <textarea id="ms-msg-input" rows="1" placeholder="Type a message…"
+        <textarea id="ms-msg-input" rows="1" placeholder="Type a messageâ€¦"
           oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
       </div>
       <button class="ms-send-btn" onclick="sendMessage()" aria-label="Send">
@@ -140,8 +141,8 @@ const TOAST_ICONS = {
   info: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>'
 };
 
-/* ── State ── */
-let CHATS          = [];   // [{ id, data }] — live from chatRepository.subscribeByUser
+/* â”€â”€ State â”€â”€ */
+let CHATS          = [];   // [{ id, data }] â€” live from chatRepository.subscribeByUser
 const PARTICIPANT_CACHE = new Map(); // otherUid -> { name, avatarUrl, isOnline }
 let currentChatId  = null;
 let currentOtherUid = null;
@@ -155,7 +156,7 @@ function otherParticipant(chatData) {
 }
 
 /** Resolve display info (name/avatar/online) for the other participant.
- *  Tries artisanRepository first (the overwhelmingly common case — customer
+ *  Tries artisanRepository first (the overwhelmingly common case â€” customer
  *  messaging an artisan), falls back to customerRepository (artisan-initiated
  *  or support thread edge case), cached per session. */
 async function resolveParticipant(otherUid) {
@@ -175,7 +176,7 @@ async function resolveParticipant(otherUid) {
       PARTICIPANT_CACHE.set(otherUid, info);
       return info;
     }
-  } catch (e) { /* not an artisan — fall through */ }
+  } catch (e) { /* not an artisan â€” fall through */ }
 
   try {
     const c = await customerRepository.getById(otherUid);
@@ -188,7 +189,7 @@ async function resolveParticipant(otherUid) {
         phone: d.phone || null,
       };
     }
-  } catch (e) { /* neither — keep default */ }
+  } catch (e) { /* neither â€” keep default */ }
 
   PARTICIPANT_CACHE.set(otherUid, info);
   return info;
@@ -210,7 +211,7 @@ function gradientFor(otherUid) {
   return GRADIENTS[hash % GRADIENTS.length];
 }
 
-/* ── Render conversation list ── */
+/* â”€â”€ Render conversation list â”€â”€ */
 async function renderList(filter = 'all', searchQuery = '') {
   const list = document.getElementById('ms-conv-list');
 
@@ -269,7 +270,7 @@ async function renderList(filter = 'all', searchQuery = '') {
   }).join('');
 }
 
-/* ── Open chat ── */
+/* â”€â”€ Open chat â”€â”€ */
 window.openChat = async function(chatId) {
   const chat = CHATS.find(c => c.id === chatId);
   if (!chat) return;
@@ -348,7 +349,7 @@ function renderMessages(messages, info) {
   scrollToBottom();
 }
 
-/* ── Close chat ── */
+/* â”€â”€ Close chat â”€â”€ */
 window.closeChat = function() {
   document.getElementById('ms-list-view').classList.remove('slide-out');
   document.getElementById('ms-chat-view').classList.remove('slide-in');
@@ -360,14 +361,14 @@ window.closeChat = function() {
   pendingAttachment = null;
 };
 
-/* ── Attachments ── */
+/* â”€â”€ Attachments â”€â”€ */
 window.handleAttachmentSelect = async function(e) {
   const file = e.target.files?.[0];
   e.target.value = '';
   if (!file || !currentChatId) return;
   try {
-    showToast('Uploading photo…');
-    // Reuses the 'job' preset — the closest semantic match for user-uploaded
+    showToast('Uploading photoâ€¦');
+    // Reuses the 'job' preset â€” the closest semantic match for user-uploaded
     // photos exchanged during an active booking relationship. No dedicated
     // chat-attachment Cloudinary preset exists yet; if attachment volume
     // grows, create 'hh_chat_attachments' in the Cloudinary dashboard and
@@ -387,7 +388,7 @@ window.handleAttachmentSelect = async function(e) {
   }
 };
 
-/* ── Send message ── */
+/* â”€â”€ Send message â”€â”€ */
 window.sendMessage = async function() {
   const input = document.getElementById('ms-msg-input');
   const text = input.value.trim();
@@ -410,7 +411,7 @@ window.sendMessage = async function() {
   }
 };
 
-/* ── Filter tabs ── */
+/* â”€â”€ Filter tabs â”€â”€ */
 window.filterTab = function(tab, btn) {
   currentFilter = tab;
   document.querySelectorAll('.ms-filter-bar .ui-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
@@ -419,12 +420,12 @@ window.filterTab = function(tab, btn) {
   renderList(tab, document.getElementById('ms-search-input').value);
 };
 
-/* ── Search ── */
+/* â”€â”€ Search â”€â”€ */
 window.searchConversations = function(query) {
   renderList(currentFilter, query);
 };
 
-/* ── Helpers ── */
+/* â”€â”€ Helpers â”€â”€ */
 window.callConversation = async function() {
   if (!currentOtherUid) return;
   const info = await resolveParticipant(currentOtherUid);
@@ -500,8 +501,8 @@ function showToast(msg, type = 'info') {
   }, 3000);
 }
 
-/* ── Deep-link: opened from artisan-profile.html "Message" button ──────────
- * sessionStorage.hh_msg_artisan = { id, name } — get-or-create the real
+/* â”€â”€ Deep-link: opened from artisan-profile.html "Message" button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * sessionStorage.hh_msg_artisan = { id, name } â€” get-or-create the real
  * Firestore chat thread with that artisan and open it immediately. */
 async function handleDeepLink() {
   const raw = sessionStorage.getItem('hh_msg_artisan');
@@ -519,7 +520,7 @@ async function handleDeepLink() {
   }
 }
 
-/* ── Init ── */
+/* â”€â”€ Init â”€â”€ */
 unsubChats = chatRepository.subscribeByUser(
   uid,
   (chats) => { CHATS = chats; renderList(currentFilter, document.getElementById('ms-search-input').value); },

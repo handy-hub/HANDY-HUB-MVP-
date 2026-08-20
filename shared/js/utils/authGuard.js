@@ -58,6 +58,39 @@ function resolveLoginUrl() {
   return `/customer-app/${LOGIN_PAGE}`;
 }
 
+const AUTH_WAIT_ID = 'hh-auth-waiting';
+
+/**
+ * Shown when session restoration is taking a while on a device that HAS signed
+ * in before. Replaces the old behaviour of redirecting to login, which threw
+ * away a valid session because the network was slow.
+ *
+ * Deliberately non-blocking and self-removing: if Firebase answers a moment
+ * later the page continues normally and this disappears.
+ */
+function showAuthWaiting() {
+  if (document.getElementById(AUTH_WAIT_ID)) return;
+  try {
+    const el = document.createElement('div');
+    el.id = AUTH_WAIT_ID;
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.style.cssText = [
+      'position:fixed', 'left:50%', 'bottom:24px', 'transform:translateX(-50%)',
+      'z-index:99999', 'max-width:calc(100vw - 32px)',
+      'background:#1A1416', 'color:#fff', 'border-radius:10px',
+      'padding:10px 16px', 'font:500 13.5px system-ui,-apple-system,sans-serif',
+      'box-shadow:0 8px 24px -8px rgba(0,0,0,.45)', 'text-align:center',
+    ].join(';');
+    el.textContent = 'Reconnecting — your session is safe.';
+    document.body.appendChild(el);
+  } catch { /* pre-body or blocked DOM — non-fatal, the guard still resolves */ }
+}
+
+function hideAuthWaiting() {
+  try { document.getElementById(AUTH_WAIT_ID)?.remove(); } catch { /* non-fatal */ }
+}
+
 /**
  * Save the current URL so login.html can redirect back after authentication.
  */
@@ -152,10 +185,35 @@ function showRoleDenied({ title, message, buttonLabel, buttonHref }) {
  */
 export async function requireAuth() {
   return new Promise((resolve) => {
-    // Hard timeout — if Firebase takes too long (e.g., cold-start, no network)
-    // we redirect to login rather than leaving the page stuck.
+    // ── Slowness is NOT a logout ────────────────────────────────────────────
+    //
+    // This used to redirect to login when Firebase had not answered within N
+    // seconds. That is the bug behind "it logged me out on bad internet": a cold
+    // start on 2G, a backgrounded tab, or a slow gstatic fetch all tripped it
+    // while the session was perfectly valid. The threshold had already been
+    // raised 3s → 6s for exactly this reason, which treated the symptom.
+    //
+    // Firebase Auth restores a session from local persistence WITHOUT network —
+    // onAuthStateChanged fires with the cached user even offline. So a slow
+    // resolve means "the SDK is still starting", never "this person is signed
+    // out". Waiting is safe; redirecting is not.
+    //
+    // The only signal that legitimately ends a session is Firebase itself
+    // reporting a null user, which is handled below.
+    const hadSession = (() => {
+      try { return Boolean(localStorage.getItem('hh_last_session_uid')); }
+      catch { return false; }
+    })();
+
+    // Reassure rather than redirect. On a device that has signed in before we
+    // wait indefinitely; on a device with no prior session we still fall back to
+    // login, because there is genuinely nothing to restore.
     const timeout = setTimeout(() => {
-      redirectToLogin();
+      if (hadSession) {
+        showAuthWaiting();
+      } else {
+        redirectToLogin();
+      }
     }, AUTH_GUARD_TIMEOUT_MS);
 
     const container = getAppContainer();
@@ -163,6 +221,7 @@ export async function requireAuth() {
     container.services.authService.waitForUser()
       .then(async (user) => {
         clearTimeout(timeout);
+        hideAuthWaiting();
 
         // ── Step 1: authentication ────────────────────────────────
         if (!user) {

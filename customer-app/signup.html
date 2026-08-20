@@ -1,10 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Sign Up | HandyHub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://img.icons8.com">
     <link rel="preload" as="image" href="../shared/assets/images/handyhub-logo-text.png">
@@ -12,10 +13,10 @@
     <link rel='stylesheet' href='../shared/css/ui-polish.css' />
 
 <style>
-/* ════════════════════════════════════════════════════════════════
-   DESIGN SYSTEM — shared with login.html
-   HandyHub Sign Up — Immersive Hero + Floating Card
-   ════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   DESIGN SYSTEM â€” shared with login.html
+   HandyHub Sign Up â€” Immersive Hero + Floating Card
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -70,9 +71,9 @@ body {
     overflow-x: hidden;
 }
 
-/* ════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    PAGE SHELL
-   ════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .su-page {
     max-width: 430px;
     margin: 0 auto;
@@ -82,9 +83,9 @@ body {
     position: relative;
 }
 
-/* ════════════════════════════════════════════════════════════════
-   HERO  — same warm stone as login
-   ════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   HERO  â€” same warm stone as login
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .su-hero {
     position: relative;
     overflow: hidden;
@@ -114,7 +115,7 @@ body {
     pointer-events: none;
 }
 
-/* ── Nav ──────────────────────────────────────────────────── */
+/* â”€â”€ Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .su-nav {
     position: relative;
     z-index: 1;
@@ -140,10 +141,10 @@ body {
 }
 .su-back-btn:active { background: rgba(0,0,0,0.12); }
 
-/* Switch-flow action — the back button's mirror twin, top-right of .su-nav.
+/* Switch-flow action â€” the back button's mirror twin, top-right of .su-nav.
    Same fill, border, ink, transition and press state; only elongated into a
    pill (999px === the 40px circle's curvature) so it can carry its text label.
-   Neutral ink — never competes with the title or the maroon CTA. */
+   Neutral ink â€” never competes with the title or the maroon CTA. */
 .su-switch-btn {
     display: inline-flex;
     align-items: center;
@@ -165,12 +166,12 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 .su-switch-btn:active { background: rgba(0,0,0,0.12); }
-/* Shared keyboard-focus ring — keeps the back button + switch pill one family.
+/* Shared keyboard-focus ring â€” keeps the back button + switch pill one family.
    Only visible on keyboard focus, so normal touch/mouse appearance is unchanged. */
 .su-back-btn:focus-visible,
 .su-switch-btn:focus-visible { outline: 3px solid var(--ui-primary, #730201); outline-offset: 2px; }
 
-/* ── Brand ────────────────────────────────────────────────── */
+/* â”€â”€ Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .su-brand {
     position: relative;
     z-index: 2;
@@ -187,9 +188,9 @@ body {
     mix-blend-mode: multiply;
 }
 
-/* ════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    FORM CARD
-   ════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .su-card {
     flex: 1;
     background: var(--white);
@@ -232,9 +233,9 @@ body {
     flex-shrink: 0;
 }
 
-/* ════════════════════════════════════════════════════════════════
-   INPUTS  — identical to login
-   ════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   INPUTS  â€” identical to login
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .su-field { margin-bottom: 14px; }
 
 .su-label {
@@ -354,7 +355,7 @@ body {
 .su-pw-bar.good   { background: #22c55e; }
 .su-pw-bar.strong { background: #16a34a; }
 
-/* ── Terms row ──────────────────────────────────────────── */
+/* â”€â”€ Terms row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .su-terms {
     display: flex;
     align-items: flex-start;
@@ -386,9 +387,9 @@ body {
 }
 .su-terms-label a:hover { text-decoration: underline; }
 
-/* ════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SUBMIT BUTTON
-   ════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .su-btn {
     width: 100%;
     height: 56px;
@@ -467,9 +468,9 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ════════════════════════════════════════════════════════════════
-   DIVIDER + SOCIAL  — identical to login
-   ════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   DIVIDER + SOCIAL  â€” identical to login
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .su-divider {
     display: flex;
     align-items: center;
@@ -534,9 +535,9 @@ body {
     flex-shrink: 0;
 }
 
-/* ════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    LOGIN FOOTER
-   ════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .su-footer {
     margin-top: auto;
     padding-top: 24px;
@@ -561,9 +562,9 @@ body {
 }
 .su-footer-link:active { opacity: 0.65; }
 
-/* ════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ENTRANCE ANIMATIONS
-   ════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @keyframes hero-in  { from { opacity:0 } to { opacity:1 } }
 @keyframes card-in  {
     from { opacity:0; transform:translateY(44px) }
@@ -596,7 +597,7 @@ body {
     }
 }
 
-/* ── Desktop ──────────────────────────────────────────────── */
+/* â”€â”€ Desktop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (min-width: 431px) {
     body { background: #d8d0c8 !important; }
     .su-page {
@@ -617,7 +618,7 @@ body {
 
 <div class="su-page">
 
-    <!-- ══ HERO ═══════════════════════════════════════════════ -->
+    <!-- â•â• HERO â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="su-hero">
 
         <nav class="su-nav">
@@ -628,7 +629,7 @@ body {
                 </svg>
             </button>
 
-            <!-- Switch to Login — mirror of the back button, follows the same
+            <!-- Switch to Login â€” mirror of the back button, follows the same
                  <a href> navigation contract as the footer link (progress bar +
                  destination entrance animation). -->
             <a class="su-switch-btn" href="login.html">
@@ -640,7 +641,7 @@ body {
         <div class="su-brand">
             <img class="su-logo"
                  src="../shared/assets/images/handyhub-logo-text.png"
-                 alt="HandyHub — Trusted Professionals, Right Around You."
+                 alt="HandyHub â€” Trusted Professionals, Right Around You."
                  onerror="this.onerror=null;this.style.display='none';var fb=document.getElementById('su-logo-fb');if(fb)fb.removeAttribute('hidden');">
             <span id="su-logo-fb" class="su-logo" hidden style="font-weight:800;font-size:22px;color:var(--ui-primary,#730201);letter-spacing:-0.5px;">HandyHub</span>
         </div>
@@ -648,7 +649,7 @@ body {
     </div><!-- /.su-hero -->
 
 
-    <!-- ══ FORM CARD ══════════════════════════════════════════ -->
+    <!-- â•â• FORM CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="su-card">
 
         <h2 class="su-heading su-a1">Create Your Account</h2>
@@ -656,7 +657,7 @@ body {
 
         <form id="signup-form" action="#" method="POST" novalidate autocomplete="on">
 
-            <!-- Full Name ─────────────────────────────────── -->
+            <!-- Full Name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             <div class="su-field su-a2">
                 <label class="su-label" for="full-name">Full Name</label>
                 <div class="su-input-wrap">
@@ -672,7 +673,7 @@ body {
                 </div>
             </div>
 
-            <!-- Email ────────────────────────────────────── -->
+            <!-- Email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             <div class="su-field su-a3">
                 <label class="su-label" for="email">Email Address</label>
                 <div class="su-input-wrap">
@@ -688,7 +689,7 @@ body {
                 </div>
             </div>
 
-            <!-- Phone ────────────────────────────────────── -->
+            <!-- Phone â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             <div class="su-field su-a3">
                 <label class="su-label" for="tel-no">Phone Number</label>
                 <div class="su-input-wrap">
@@ -702,7 +703,7 @@ body {
                 </div>
             </div>
 
-            <!-- Location ─────────────────────────────────── -->
+            <!-- Location â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             <div class="su-field su-a4">
                 <label class="su-label" for="location">Location</label>
                 <div class="su-input-wrap">
@@ -728,7 +729,7 @@ body {
                 </div>
             </div>
 
-            <!-- Password ─────────────────────────────────── -->
+            <!-- Password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             <div class="su-field su-a4">
                 <label class="su-label" for="pass">Password</label>
                 <div class="su-input-wrap">
@@ -767,7 +768,7 @@ body {
                 </div>
             </div>
 
-            <!-- Confirm Password ─────────────────────────── -->
+            <!-- Confirm Password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             <div class="su-field su-a5">
                 <label class="su-label" for="confirm">Confirm Password</label>
                 <div class="su-input-wrap">
@@ -792,7 +793,7 @@ body {
                 </div>
             </div>
 
-            <!-- Terms ────────────────────────────────────── -->
+            <!-- Terms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             <div class="su-terms su-a6">
                 <input class="su-checkbox" type="checkbox" id="terms-check"
                        aria-label="Agree to terms">
@@ -804,22 +805,22 @@ body {
                 </label>
             </div>
 
-            <!-- Submit ───────────────────────────────────── -->
+            <!-- Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             <div class="su-a6">
                 <button type="submit" id="submit-btn" class="su-btn" disabled>
                     Sign Up
-                    <span class="su-btn-arrow" aria-hidden="true">→</span>
+                    <span class="su-btn-arrow" aria-hidden="true">â†’</span>
                 </button>
             </div>
 
         </form>
 
-        <!-- Divider ──────────────────────────────────────── -->
+        <!-- Divider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
         <div class="su-divider su-a7">
             <span>or continue with</span>
         </div>
 
-        <!-- Social ───────────────────────────────────────── -->
+        <!-- Social â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
         <div class="su-social-row su-a7">
             <button type="button" id="google-signup-btn" class="su-social-btn"
                     aria-label="Sign up with Google">
@@ -847,7 +848,7 @@ body {
             </button>
         </div>
 
-        <!-- Login footer ─────────────────────────────────── -->
+        <!-- Login footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
         <footer class="su-footer su-a8">
             <div class="su-footer-inner">
                 <p class="su-footer-text">
@@ -862,7 +863,7 @@ body {
 </div><!-- /.su-page -->
 
 
-<!-- ══ SCRIPTS ════════════════════════════════════════════════ -->
+<!-- â•â• SCRIPTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <script type="module" src="../shared/js/ui/customer/signupPageController.js"></script>
 <script src="../shared/js/utils/global-app.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
@@ -872,7 +873,7 @@ body {
 (function () {
     'use strict';
 
-    /* ── Eye icons ───────────────────────────────────────── */
+    /* â”€â”€ Eye icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     var ICON_OPEN   = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>';
     var ICON_CLOSED = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
 
@@ -892,7 +893,7 @@ body {
     wireEye('toggle-pw',      'pass',    'pw-eye');
     wireEye('toggle-confirm', 'confirm', 'confirm-eye');
 
-    /* ── Password strength bar ───────────────────────────── */
+    /* â”€â”€ Password strength bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     var pwInput = document.getElementById('pass');
     var bars    = [
         document.getElementById('pw-bar-1'),
@@ -923,7 +924,7 @@ body {
         });
     }
 
-    /* ── GPS location detect ─────────────────────────────── */
+    /* â”€â”€ GPS location detect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     var detectBtn  = document.getElementById('detect-loc-btn');
     var locationEl = document.getElementById('location');
 
@@ -962,7 +963,7 @@ body {
         });
     }
 
-    /* ── Fix: checkbox selector for signupPageController ── */
+    /* â”€â”€ Fix: checkbox selector for signupPageController â”€â”€ */
     // The controller queries ".terms-row input[type='checkbox']"
     // Our checkbox has class su-checkbox inside su-terms.
     // We add the terms-row class to the wrapper so the selector still works.

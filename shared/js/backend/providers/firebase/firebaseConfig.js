@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, setPersistence, browserLocalPersistence, indexedDBLocalPersistence }
+  from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 import { getMessaging } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
@@ -46,6 +47,21 @@ export const firebaseReady = Promise.resolve({
 
 // Firebase products are instantiated only after App Check.
 export const firebaseAuth = getAuth(firebaseApp);
+
+// Persist the session across app restarts, EXPLICITLY.
+//
+// The SDK default is already local persistence, but relying on a default for
+// something this consequential is how "it logged me out" bugs survive review.
+// indexedDB is preferred (survives more aggressive storage eviction on mobile
+// Safari/Android WebView); browserLocal is the fallback when indexedDB is
+// unavailable, e.g. private browsing.
+//
+// Fire-and-forget on purpose: setPersistence resolves before any auth call is
+// made in practice, and a failure here must not block app start-up — the SDK
+// falls back to its default rather than losing the session.
+setPersistence(firebaseAuth, indexedDBLocalPersistence)
+  .catch(() => setPersistence(firebaseAuth, browserLocalPersistence))
+  .catch((err) => console.warn("[firebase] persistence not set:", err?.message || err));
 export const firebaseDb = getFirestore(firebaseApp, firestoreDatabaseId);
 export const firebaseStorage = getStorage(firebaseApp);
 

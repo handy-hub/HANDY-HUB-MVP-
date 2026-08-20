@@ -62,8 +62,34 @@ function applyPrefsFilter(notifications) {
 
 // ─── Notification cache ──────────────────────────────────────────────────────
 const NOTIF_CACHE_BASE = 'hh_notifications_cache';
-// Scoped to uid in init() — defaults to bare base key as safety fallback
-let NOTIF_CACHE_KEY = NOTIF_CACHE_BASE;
+
+/**
+ * Resolve the signed-in uid WITHOUT waiting for Firebase Auth.
+ *
+ * This matters more than it looks. The cache key is uid-scoped, but auth resolves
+ * asynchronously — so the first read happens before the uid is known. Previously
+ * that read used the bare base key while every write used the uid-suffixed one,
+ * so the two never matched and the cache was a permanent miss: notifications
+ * re-fetched from Firestore on every single visit, with a full skeleton each
+ * time, even though a perfectly good copy was sitting in localStorage.
+ *
+ * hh_last_session_uid is written by HH_State.setUser() on every authenticated
+ * page load, so it is available synchronously — the same trick the dashboard and
+ * profile instant-paints rely on.
+ */
+function resolveCacheUid() {
+    try {
+        const w = (typeof window !== 'undefined') ? window : globalThis.window;
+        if (w?.HH_State?.currentUid?.()) return w.HH_State.currentUid();
+        return w?.localStorage?.getItem('hh_last_session_uid') || null;
+    } catch { return null; }
+}
+
+// Scoped up-front so the first read and every later write agree on the key.
+let NOTIF_CACHE_KEY = (() => {
+    const uid = resolveCacheUid();
+    return uid ? `${NOTIF_CACHE_BASE}_${uid}` : NOTIF_CACHE_BASE;
+})();
 
 function saveNotifCache(notifications) {
     try {
@@ -403,7 +429,21 @@ async function init() {
     const user = await waitForCurrentUser();
     if (!user) { showError("Sign in to see your notifications"); return; }
     currentUserId    = user.uid;
-    NOTIF_CACHE_KEY  = NOTIF_CACHE_BASE + '_' + user.uid; // uid-scope the cache key
+
+    // Re-scope from the authoritative uid. Normally identical to what
+    // resolveCacheUid() produced above; it differs only on a first-ever load or
+    // straight after switching accounts. If it DID change, the earlier paint came
+    // from the wrong key — drop that content so one account's notifications can
+    // never linger on screen under another's session.
+    const authoritativeKey = `${NOTIF_CACHE_BASE}_${user.uid}`;
+    if (NOTIF_CACHE_KEY !== authoritativeKey) {
+        NOTIF_CACHE_KEY = authoritativeKey;
+        if (allNotifications.length) {
+            allNotifications = [];
+            renderTabs([]);
+            showLoading();
+        }
+    }
 
     const { services: { databaseService } } = getAppContainer();
 

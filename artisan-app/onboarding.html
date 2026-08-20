@@ -112,6 +112,27 @@
         <span class="field-hint">Optional but recommended</span>
       </div>
 
+      <!-- Work location pin.
+           This is what actually decides whether jobs reach this artisan: dispatch
+           matches on coordinates, not on the typed address or the Ghana Post code.
+           Without it the artisan is never added to the search index at all. -->
+      <div class="field-group">
+        <label class="field-label">Your work location <span class="required">*</span></label>
+        <p style="font-size:12px;color:var(--text-mid);margin:0 0 10px;">
+          We use this to send you jobs nearby. Stand at or near your base when you set it.
+        </p>
+        <button type="button" class="field-input" id="pin-location-btn"
+                style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:600;">
+          <svg viewBox="0 0 24 24" fill="none" width="17" height="17" aria-hidden="true">
+            <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z" stroke="currentColor" stroke-width="1.8"/>
+            <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
+          <span id="pin-location-label">Use my current location</span>
+        </button>
+        <span class="field-hint" id="pin-location-hint">Required — jobs are matched by distance.</span>
+        <span class="field-error" id="err-location">Please set your work location</span>
+      </div>
+
       <div class="section-divider"><span>Emergency Contact</span></div>
 
       <div class="field-group">
@@ -777,9 +798,70 @@ function _reviewItem(label, value) {
   </div>`;
 }
 
+// ── Work location capture ──────────────────────────────
+// Coordinates are the ONLY location signal dispatch can use. The typed address
+// and the Ghana Post GPS code are labels for a human to read — neither can be
+// resolved to a position, because GhanaPostGPS has no open API.
+//
+// Browser geolocation is used rather than a maps provider: it needs no API key,
+// no billing, and is accurate enough for radius matching. The artisan is almost
+// always at or near their base while registering.
+const _workLocation = { lat: null, lng: null, setAt: null };
+
+(function wireLocationPin() {
+  const btn   = document.getElementById('pin-location-btn');
+  const label = document.getElementById('pin-location-label');
+  const hint  = document.getElementById('pin-location-hint');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      hint.textContent = 'This device cannot share its location. Try a different browser.';
+      return;
+    }
+    label.textContent = 'Finding you…';
+    btn.disabled = true;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        _workLocation.lat   = pos.coords.latitude;
+        _workLocation.lng   = pos.coords.longitude;
+        _workLocation.setAt = new Date().toISOString();
+        label.textContent = 'Location set ✓';
+        // Accuracy is worth showing: a 2 km fix means indoor wifi positioning and
+        // the artisan should retry outside rather than accept a bad pin.
+        const acc = Math.round(pos.coords.accuracy || 0);
+        hint.textContent = acc
+          ? `Accurate to about ${acc} m. Tap again to update.`
+          : 'Saved. Tap again to update.';
+        btn.disabled = false;
+        document.getElementById('err-location')?.classList.remove('show');
+      },
+      (err) => {
+        label.textContent = 'Use my current location';
+        btn.disabled = false;
+        hint.textContent = err.code === err.PERMISSION_DENIED
+          ? 'Location permission was blocked. Allow it in your browser settings — jobs are matched by distance.'
+          : 'Could not get your location. Move outside or try again.';
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
+  });
+})();
+
 // ── Submit ─────────────────────────────────────────────
 async function submitApplication() {
   if (!uid) { showToast('You must be signed in', true); return; }
+
+  // Refuse to submit without coordinates. An artisan saved without them is
+  // silently deleted from the dispatch index (syncArtisanIndex) and will never
+  // receive a single job — a failure they would have no way to diagnose.
+  if (typeof _workLocation.lat !== 'number' || typeof _workLocation.lng !== 'number') {
+    document.getElementById('err-location')?.classList.add('show');
+    document.getElementById('pin-location-btn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('Set your work location so we can send you nearby jobs.', true);
+    return;
+  }
   btnNext.disabled = true;
   btnNext.classList.add('loading');
   btnNext.textContent = 'Uploading…';
@@ -795,17 +877,64 @@ async function submitApplication() {
     }
 
     // 1b. KYC documents → Firebase Storage (private, admin-only access)
+    //
+    // These uploads previously swallowed their errors and carried on. The result
+    // was silent data loss with a convincing success screen: the artisan was told
+    // their application was submitted, while the admin received a
+    // verification_requests document whose `documents` map was empty. Nobody
+    // learned anything was wrong until a human wondered where the Ghana Card was.
+    //
+    // The Ghana Card is the whole point of this step, so a failure to store it
+    // must stop the submission rather than decorate it.
+    // Firebase Storage retries a failing upload for up to TEN MINUTES before it
+    // surfaces an error (maxUploadRetryTime). When the bucket is missing or the
+    // network is bad, that reads to the artisan as a permanently frozen spinner.
+    // Bound each file explicitly so a failure is reported in seconds.
+    const UPLOAD_TIMEOUT_MS = 25_000;
+    const withTimeout = (promise, label) => Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Upload timed out: ${label}`)), UPLOAD_TIMEOUT_MS)),
+    ]);
+
     const docUrls = {};
     const KYC_KEYS = ['idFront', 'idBack', 'bizReg', 'certs'];
+    // Front and back of the Ghana Card are mandatory — the form marks both
+    // required. bizReg and certs are genuinely optional and may be absent.
+    const REQUIRED_DOCS = ['idFront', 'idBack'];
+    const failedDocs = [];
+
     for (const key of KYC_KEYS) {
       const val = uploadedFiles[key];
       if (!val?.file) continue;
       const ext  = val.file.name.split('.').pop() || 'jpg';
       const path = `artisans/${uid}/documents/${key}.${ext}`;
       try {
-        await storageService.uploadFile(path, val.file, { contentType: val.file.type });
-        docUrls[key] = await storageService.getDownloadUrl(path);
-      } catch(e) { console.warn('Upload failed for', key, e); }
+        await withTimeout(
+          storageService.uploadFile(path, val.file, { contentType: val.file.type }), key);
+        docUrls[key] = await withTimeout(storageService.getDownloadUrl(path), key);
+      } catch (e) {
+        console.error('[onboarding] KYC upload failed for', key, e);
+        failedDocs.push(key);
+      }
+    }
+
+    // A required document that did not store is a hard stop. Throwing here lands
+    // in the existing catch below, which restores the button and surfaces the
+    // message — so the artisan can retry rather than being falsely reassured.
+    const missingRequired = REQUIRED_DOCS.filter(
+      (k) => uploadedFiles[k]?.file && !docUrls[k]
+    );
+    if (missingRequired.length) {
+      throw new Error(
+        'We could not upload your Ghana Card. Document storage is not available yet — '
+        + 'please contact HandyHub support.'
+      );
+    }
+    // Optional documents that failed are worth saying out loud, but must not
+    // discard an otherwise complete application.
+    if (failedDocs.length) {
+      showToast('Some optional documents did not upload. You can add them later.', true);
     }
 
     // 2. Build artisan profile
@@ -859,6 +988,15 @@ async function submitApplication() {
       gender,
       address,
       gpsAddress:       gps,
+      // Work-location coordinates. THIS is what dispatch matches on — the typed
+      // address and Ghana Post code are human-readable references only, and
+      // neither can be resolved to a position (there is no open GhanaPostGPS
+      // API). syncArtisanIndex derives the geohash from these and refuses to
+      // index an artisan without them, so an artisan with no coordinates is
+      // invisible to every booking.
+      lat:              _workLocation.lat,
+      lng:              _workLocation.lng,
+      locationSetAt:    _workLocation.setAt,
       emergencyContact: { name: emergName, phone: emergPhone },
       // Profile & skills
       // The profile photo is written authoritatively SERVER-side by the commit
@@ -930,7 +1068,14 @@ async function submitApplication() {
 
   } catch(err) {
     console.error('Submit error:', err);
-    showToast('Submission failed. Please try again.', true);
+    // Prefer the specific reason (e.g. the Ghana Card upload failing) over a
+    // generic "try again" — the artisan can only act on a message that tells
+    // them what actually went wrong. Falls back for unexpected errors, whose
+    // raw text would be meaningless or alarming to a customer.
+    const msg = (err && typeof err.message === 'string' && err.message.trim())
+      ? err.message
+      : 'Submission failed. Please try again.';
+    showToast(msg, true);
   } finally {
     btnNext.disabled = false;
     btnNext.classList.remove('loading');

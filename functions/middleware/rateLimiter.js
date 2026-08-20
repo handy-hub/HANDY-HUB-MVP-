@@ -43,6 +43,23 @@ const LIMITS = Object.freeze({
   releaseEscrow:            { maxRequests: 5,  windowMs:  60 * 60_000 },
   refundBooking:            { maxRequests: 5,  windowMs:  60 * 60_000 },
   raiseDispute:             { maxRequests: 3,  windowMs:  24 * 60 * 60_000 },
+  // Wallet top-up initiation. Each call verifies the Security PIN server-side,
+  // so this bucket also bounds PIN-guessing throughput at the charge entry
+  // point (the per-UID lockout in securityPin.js is the primary control).
+  initiateTopupCharge:      { maxRequests: 10, windowMs:  60 * 60_000 },
+  // OTP retries for a charge already bound to this UID. Higher than the charge
+  // bucket (mistyped codes are common) but still bounded.
+  submitTopupOtp:           { maxRequests: 20, windowMs:  60 * 60_000 },
+  // Polled every few seconds while a charge is outstanding. Generous by design:
+  // throttling this would reintroduce the very delay it exists to remove. It is
+  // read-only against Paystack and ownership-checked, so the blast radius of the
+  // higher ceiling is a few extra API reads on the caller's own payment.
+  verifyTopupNow:           { maxRequests: 240, windowMs: 60 * 60_000 },
+  // Unauthenticated and account-creating, so keyed by IP rather than uid.
+  // Tight on purpose: a handful of genuine registrations per network per hour is
+  // plenty, while scripted bulk signup is stopped early.
+  signUpArtisanDirect:      { maxRequests: 5,   windowMs: 60 * 60_000 },
+  setSecurityPin:           { maxRequests: 5,  windowMs:  60 * 60_000 },
   // Inspection-track pricing lifecycle
   getPricingQuote:          { maxRequests: 30, windowMs:  60 * 60_000 },
   createInspectionBooking:  { maxRequests: 5,  windowMs:  60 * 60_000 },

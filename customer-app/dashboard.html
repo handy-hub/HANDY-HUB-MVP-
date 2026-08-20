@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -7,7 +7,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home | HandyHub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://res.cloudinary.com">
   <link rel="preload" as="image" href="../shared/assets/icons/user-icon-white.png">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
@@ -20,7 +21,7 @@
 <body>
 <div class="app">
 
-  <!-- ════ APP HEADER ════ -->
+  <!-- â•â•â•â• APP HEADER â•â•â•â• -->
   <header class="hh-hdr">
     <button class="hh-menu-btn" id="open-sidebar-btn" aria-label="Menu">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -45,7 +46,7 @@
     </div>
   </header>
 
-  <!-- ════ SIDEBAR ════ -->
+  <!-- â•â•â•â• SIDEBAR â•â•â•â• -->
   <div id="sidebar" class="sidebar">
     <button id="close-sidebar" class="sidebar-close-btn">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -87,7 +88,7 @@
   </div>
   <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-  <!-- ════ USER CARD ════ -->
+  <!-- â•â•â•â• USER CARD â•â•â•â• -->
   <div class="user-card">
     <div class="user-card-info">
       <button class="uc-avatar-btn" onclick="window.location.href='profile.html'">
@@ -110,7 +111,7 @@
     </div>
   </div>
 
-  <!-- ════ SEARCH ════ -->
+  <!-- â•â•â•â• SEARCH â•â•â•â• -->
   <div class="hh-search">
     <div class="hh-search-icon-wrap">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -119,7 +120,7 @@
       </svg>
     </div>
     <input type="text" id="dynamic-search" class="hh-search-input" placeholder="What service do you need today?">
-    <button class="hh-search-ai" aria-label="AI search" id="ai-search-btn" title="AI Search — coming soon">
+    <button class="hh-search-ai" aria-label="AI search" id="ai-search-btn" title="AI Search â€” coming soon">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- Large centre spark -->
         <path d="M12 2L13.2 9.8L21 11L13.2 12.2L12 20L10.8 12.2L3 11L10.8 9.8L12 2Z" fill="#730201"/>
@@ -134,20 +135,20 @@
 
 
 
-  <!-- ════ RESUME CARD — in-flight inspection request (populated by resumeCard.js) ════
+  <!-- â•â•â•â• RESUME CARD â€” in-flight inspection request (populated by resumeCard.js) â•â•â•â•
        Closes the F2 dead-end: a customer who left the booking flow after
        requesting a visit is shown a persistent "you have a request in progress"
        card that routes back to the pay-callout / quote screen. Driven by a live
-       Firestore subscription (survives device changes — not sessionStorage). ══ -->
+       Firestore subscription (survives device changes â€” not sessionStorage). â•â• -->
   <div id="resume-card-mount" hidden></div>
 
-  <!-- ════ AD BANNER — populated by adBanner.js ════ -->
+  <!-- â•â•â•â• AD BANNER â€” populated by adBanner.js â•â•â•â• -->
   <section class="ads" id="ad-banner">
     <div class="slider" id="ad-slider"></div>
   </section>
   <div class="slider-dots" id="ad-dots"></div>
 
-  <!-- ════ POPULAR SERVICES ════ -->
+  <!-- â•â•â•â• POPULAR SERVICES â•â•â•â• -->
   <div class="section-row">
     <h2 class="section-title">Popular Services</h2>
     <button class="view-all-btn" id="view-all-svc">View all <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
@@ -156,7 +157,7 @@
     <!-- Populated by JS -->
   </div>
 
-  <!-- ════ NEARBY PROFESSIONALS ════ -->
+  <!-- â•â•â•â• NEARBY PROFESSIONALS â•â•â•â• -->
   <div class="section-row">
     <h2 class="section-title">Nearby Professionals</h2>
     <div class="nearby-actions">
@@ -180,7 +181,7 @@
 </div><!-- /.app -->
 
 
-<!-- ════ LOCATION PICKER MODAL ════ -->
+<!-- â•â•â•â• LOCATION PICKER MODAL â•â•â•â• -->
 <style>
   .loc-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:1200;align-items:flex-end;justify-content:center}
   .loc-overlay.loc-open{display:flex}
@@ -214,7 +215,7 @@
         My Location
       </button>
     </div>
-    <p class="loc-hint">Tap anywhere on the map · drag the pin to adjust</p>
+    <p class="loc-hint">Tap anywhere on the map Â· drag the pin to adjust</p>
     <div id="loc-map-el"></div>
     <div class="loc-footer">
       <div class="loc-name-row">
@@ -227,17 +228,17 @@
   </div>
 </div>
 
-<!-- ════ DEVICE LOCATION & MAP PICKER ════ -->
+<!-- â•â•â•â• DEVICE LOCATION & MAP PICKER â•â•â•â• -->
 <script>
 (function () {
   'use strict';
 
-  /* ── Constants ─────────────────────────────────────────────── */
+  /* â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   var CACHE_KEY  = 'hh_detected_location';
   var CACHE_TTL  = 10 * 60 * 1000;           // 10 min
   var DEFAULT_LAT = 5.6037, DEFAULT_LON = -0.1870; // Accra fallback
 
-  /* ── Tiny helpers ──────────────────────────────────────────── */
+  /* â”€â”€ Tiny helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   function updateLocationEl(text) {
     var el = document.getElementById('uc-loc-text');
     if (!el) return;
@@ -281,7 +282,7 @@
     return null;
   }
 
-  /* ── Auto-detect on every page load ───────────────────────── */
+  /* â”€â”€ Auto-detect on every page load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   (function autoDetect(){
     var cached = tryGetCache();
     if (cached) updateLocationEl(cached.loc);   // instant from cache
@@ -298,7 +299,7 @@
     );
   })();
 
-  /* ── Lazy-load Leaflet ─────────────────────────────────────── */
+  /* â”€â”€ Lazy-load Leaflet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   function loadLeaflet(cb) {
     if (window.L) { cb(); return; }
     var css = document.createElement('link');
@@ -311,7 +312,7 @@
     document.head.appendChild(js);
   }
 
-  /* ── Map state ─────────────────────────────────────────────── */
+  /* â”€â”€ Map state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   var _map = null, _marker = null, _pending = null;
 
   function makeIcon() {
@@ -324,7 +325,7 @@
   }
 
   function onMarkerMoved(latlng) {
-    document.getElementById('loc-selected-text').textContent = 'Looking up address…';
+    document.getElementById('loc-selected-text').textContent = 'Looking up addressâ€¦';
     document.getElementById('loc-confirm-btn').disabled = true;
     reverseGeocode(latlng.lat, latlng.lng, function(err, loc){
       if (!err && loc) {
@@ -351,7 +352,7 @@
     }).setView([lat, lon], 16);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+      attribution: 'Â© OpenStreetMap contributors',
       maxZoom: 19
     }).addTo(_map);
 
@@ -362,7 +363,7 @@
     onMarkerMoved({ lat: lat, lng: lon });
   }
 
-  /* ── Open / close modal ────────────────────────────────────── */
+  /* â”€â”€ Open / close modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   function openLocModal() {
     var overlay = document.getElementById('loc-overlay');
     if (!overlay) return;
@@ -389,7 +390,7 @@
     document.body.style.overflow = '';
   }
 
-  /* ── Overlay & buttons ─────────────────────────────────────── */
+  /* â”€â”€ Overlay & buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   document.getElementById('loc-overlay')?.addEventListener('click', function(e){
     if (e.target === this) closeLocModal();
   });
@@ -404,11 +405,11 @@
     closeLocModal();
   });
 
-  /* ── "My Location" button inside modal ─────────────────────── */
+  /* â”€â”€ "My Location" button inside modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   document.getElementById('loc-gps-btn')?.addEventListener('click', function(){
     var btn = this;
     btn.disabled = true;
-    btn.textContent = 'Detecting…';
+    btn.textContent = 'Detectingâ€¦';
 
     if (!navigator.geolocation) {
       btn.disabled = false;
@@ -434,20 +435,20 @@
     );
   });
 
-  /* ── Expose for location-changer button ────────────────────── */
+  /* â”€â”€ Expose for location-changer button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   window.openLocationPicker = openLocModal;
 
 })();
 </script>
 
-<!-- ════ SCRIPTS ════ -->
-<!-- Auth guard — redirects to login.html if no active session -->
+<!-- â•â•â•â• SCRIPTS â•â•â•â• -->
+<!-- Auth guard â€” redirects to login.html if no active session -->
 <script type="module" src="js/authInit.js"></script>
 
-<!-- Canonical service catalog → window.HH_CATALOG.
+<!-- Canonical service catalog â†’ window.HH_CATALOG.
      Binds the dashboard's popular-services + quick chips to the single source
      of truth (shared/js/data/serviceCatalog.js) instead of hardcoded arrays.
-     Pure data binding — no navigation or business logic changed. -->
+     Pure data binding â€” no navigation or business logic changed. -->
 <script type="module">
   import { SERVICE_CATEGORIES } from '../shared/js/data/serviceCatalog.js';
   // Expose the canonical categories for the classic dashboard scripts.
@@ -483,12 +484,12 @@
 <script type="module" src="js/dashboardBadge.js"></script>
 <script type="module">
   import { mountAdBanner } from './js/adBanner.js';
-  // User resolution for promo targeting is NOT time-boxed — no artificial
+  // User resolution for promo targeting is NOT time-boxed â€” no artificial
   // timeout/race. requireAuth() resolves from Firebase's already-cached auth
   // state (this script runs after authInit.js and other scripts have already
   // triggered that resolution elsewhere on the page), so in practice this
   // does not perceptibly delay the banner. If it ever fails for any reason,
-  // .catch(() => null) degrades to an untargeted mount — loadActivePromotions()/
+  // .catch(() => null) degrades to an untargeted mount â€” loadActivePromotions()/
   // resolvePromotions() already handle a null user gracefully.
   async function getDashboardUser() {
     const { requireAuth } = await import('../shared/js/utils/authGuard.js');
@@ -505,10 +506,10 @@
     const dotsEl       = document.getElementById('ad-dots');
 
     // Pass the resolver as a LAZY provider (not an awaited value): mountAdBanner
-    // invokes it — triggering requireAuth + the customer profile read — ONLY when
+    // invokes it â€” triggering requireAuth + the customer profile read â€” ONLY when
     // it actually needs to fetch fresh promotions. A warm banner cache therefore
     // paints instantly and does ZERO Firebase reads on a normal return visit.
-    // (Auth gating itself is unaffected — authInit.js still calls requireAuth.)
+    // (Auth gating itself is unaffected â€” authInit.js still calls requireAuth.)
     mountAdBanner(containerEl, dotsEl, null, () => getDashboardUser().catch(() => null));
   });
 </script>
@@ -558,7 +559,7 @@
   /* quick action sidebar buttons */
   document.querySelectorAll('.quick-action-btn').forEach((btn, i) => {
     if (i === 0) {
-      // Emergency Request → open service-type modal first
+      // Emergency Request â†’ open service-type modal first
       btn.addEventListener('click', () => {
         closeSidebar();
         setTimeout(() => {
@@ -567,7 +568,7 @@
         }, 200);
       });
     } else if (i === 1) {
-      // Rebook Last → start a fresh inspection request (the old multi-step
+      // Rebook Last â†’ start a fresh inspection request (the old multi-step
       // prefill flow was removed with the book-step pages)
       btn.addEventListener('click', () => {
         closeSidebar();
@@ -583,18 +584,18 @@
       e.preventDefault(); closeSidebar();
       switch (label) {
         case 'My Requests':    go('booking.html'); break;
-        case 'Reviews & Ratings': toast('Reviews & Ratings — coming soon'); break;
+        case 'Reviews & Ratings': toast('Reviews & Ratings â€” coming soon'); break;
         case 'My Addresses':   go('settings-location.html'); break;
         case 'Support Center': go('settings-help.html'); break;
       }
     });
   });
 
-  /* Quick chips — optional shortcuts into the booking flow. These elements are
+  /* Quick chips â€” optional shortcuts into the booking flow. These elements are
      not currently rendered in the dashboard markup (the handlers no-op via ?.);
      they remain as harmless hooks in case the chip row is reintroduced.
      They now carry only a real service CATEGORY (a backend-aligned value), never
-     a fabricated task string — the booking flow owns task selection. */
+     a fabricated task string â€” the booking flow owns task selection. */
   document.getElementById('chip-fixpipe')?.addEventListener('click',  () => go('book-request.html', { hh_service_preselect: 'plumbing' }));
   document.getElementById('chip-fan')?.addEventListener('click',      () => go('book-request.html', { hh_service_preselect: 'electrical' }));
   document.getElementById('chip-em-elec')?.addEventListener('click',  () => {
@@ -604,15 +605,15 @@
   document.getElementById('chip-more')?.addEventListener('click',     () => go('book-request.html'));
 
   /* section buttons */
-  /* "View all" services → the dedicated Popular Services page (services.html):
+  /* "View all" services â†’ the dedicated Popular Services page (services.html):
      the complete category catalogue. This is a DISCOVERY step, not the booking
-     flow — the customer browses categories there, drills into a category's
+     flow â€” the customer browses categories there, drills into a category's
      professionals, then chooses one before any booking begins. Journey:
-     dashboard → Popular Services → services.html → category → professionals.html
-     → profile → book. */
+     dashboard â†’ Popular Services â†’ services.html â†’ category â†’ professionals.html
+     â†’ profile â†’ book. */
   document.getElementById('view-all-svc')?.addEventListener('click', () => go('services.html'));
   document.getElementById('ai-search-btn')?.addEventListener('click', () => toast('AI Search coming soon', 'info'));
-  /* "View more professionals" is a BROWSE intent → the discovery surface,
+  /* "View more professionals" is a BROWSE intent â†’ the discovery surface,
      not a commitment page. */
   document.getElementById('view-more-pros')?.addEventListener('click', () => go('professionals.html'));
   document.getElementById('location-changer')?.addEventListener('click', () => {
@@ -623,12 +624,12 @@
     }
   });
 
-  /* ── Search bar → search-page.html ────────────────────────────────────────
+  /* â”€â”€ Search bar â†’ search-page.html â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
      The search input is a primary navigation entry point. Any interaction
      (focus, click, or Enter) should take the customer to the search page.
      If text is already present (browser autofill), carry it as ?q= so
      search-page.html can execute the search immediately on arrival.
-  ───────────────────────────────────────────────────────────────────────── */
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   (function wireSearchBar() {
     const dynSearch = document.getElementById('dynamic-search');
     if (!dynSearch) return;
@@ -641,20 +642,20 @@
     dynSearch.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); goToSearch(); } });
   })();
 
-  /* ── Popular service button handler ───────────────────────────────────────
+  /* â”€â”€ Popular service button handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
      Records the click for personalisation scoring AND navigates to the
      service discovery map with the matching category pre-selected.
-  ───────────────────────────────────────────────────────────────────────── */
-  /* Map the popular-services grid ids → service-detail catalog ids.
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* Map the popular-services grid ids â†’ service-detail catalog ids.
      Tapping a service category is a RESEARCH intent (the customer is
      exploring "what is this / what does it cost"), so it routes to the
-     Layer-2 service-detail page — not straight into a booking commitment. */
+     Layer-2 service-detail page â€” not straight into a booking commitment. */
   window.handleServiceClick = function (serviceId) {
     const scores = JSON.parse(localStorage.getItem('service_scores') || '{}');
     scores[serviceId] = (scores[serviceId] || 0) + 1;
     localStorage.setItem('service_scores', JSON.stringify(scores));
     // serviceId is the canonical catalog id (e.g. "ac-repair"), which is also
-    // the service-detail category key — route straight to research/detail.
+    // the service-detail category key â€” route straight to research/detail.
     const cats = (window.HH_CATALOG && window.HH_CATALOG.categories) || [];
     const known = cats.some(c => c.id === serviceId);
     if (known) {
@@ -701,7 +702,7 @@ function renderPopularServices() {
   }).join('');
 }
 // The catalog is provided by a deferred module, which runs before
-// DOMContentLoaded — so the catalog is ready by the time this fires.
+// DOMContentLoaded â€” so the catalog is ready by the time this fires.
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', renderPopularServices);
 } else {
@@ -712,7 +713,7 @@ if (document.readyState === 'loading') {
 <!-- Emergency modal + floating nav injected by floatingNav.js -->
 
 
-<!-- Profile cache paint — instant render before Firestore responds.
+<!-- Profile cache paint â€” instant render before Firestore responds.
      Uses hh_last_session_uid to read the correct uid-scoped cache key
      without waiting for auth to resolve. -->
 <script>
@@ -724,7 +725,7 @@ if (document.readyState === 'loading') {
         || (function(){ try { return localStorage.getItem('hh_last_session_uid'); } catch { return null; } }());
     var cacheKey = lastUid ? 'hh_profile_cache_' + lastUid : 'hh_profile_cache';
     var p = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-    if (!p || !p.name) return; // empty or no cache — wait for live subscription
+    if (!p || !p.name) return; // empty or no cache â€” wait for live subscription
 
     var nameEl    = document.getElementById('uc-name');
     var imgEl     = document.getElementById('uc-avatar');
@@ -742,7 +743,7 @@ if (document.readyState === 'loading') {
     if (allowInlineRemoteAvatar && p.profileImageId) {
       // TEMPORARY: on-the-fly transform delivery is currently 404-ing on this
       // Cloudinary account/plan for every derived request. Falling back to
-      // the untransformed original — the avatar <img>'s CSS (object-fit:
+      // the untransformed original â€” the avatar <img>'s CSS (object-fit:
       // cover; border-radius:50%) already does the crop/circle client-side.
       // Restore the w_80,h_80,c_fill,f_auto,q_auto,r_max transform segment
       // once Cloudinary on-the-fly delivery is confirmed working again.

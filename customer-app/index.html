@@ -1,14 +1,14 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Get Started | HandyHub</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#730201">
+    <meta name="theme-color" content="#FEFEFE">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="HandyHub">
     <link rel="apple-touch-icon" href="/shared/assets/images/handyhub-logo.png">
 
@@ -17,6 +17,7 @@
     <link rel="preload" as="image" href="../shared/assets/images/artisan-img.png">
     <link rel="preconnect" href="https://res.cloudinary.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
 
@@ -54,7 +55,7 @@ body {
     overflow-x: hidden;
 }
 
-/* ── Page shell ─────────────────────────────────────────── */
+/* â”€â”€ Page shell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gs-page {
     max-width: 430px;
     margin: 0 auto;
@@ -65,7 +66,7 @@ body {
     padding-bottom: max(32px, env(safe-area-inset-bottom));
 }
 
-/* ── Header ─────────────────────────────────────────────── */
+/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gs-header {
     padding-top: max(env(safe-area-inset-top, 0px), 20px);
     padding-bottom: 28px;
@@ -120,7 +121,7 @@ body {
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Cards container ────────────────────────────────────── */
+/* â”€â”€ Cards container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gs-cards {
     display: flex;
     flex-direction: column;
@@ -129,7 +130,7 @@ body {
     margin-bottom: 16px;
 }
 
-/* ── Card button ────────────────────────────────────────── */
+/* â”€â”€ Card button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gs-card {
     width: 100%;
     background: none;
@@ -138,7 +139,7 @@ body {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     text-align: left;
-    border-radius: var(--ui-radius-lg);
+    border-radius: var(--ui-radius-lg, 18px);
     display: block;
     animation: cardUp 0.6s var(--spring) both;
 }
@@ -153,11 +154,11 @@ body {
 
 .gs-card:active { transform: scale(0.972); }
 
-/* ── Card inner ─────────────────────────────────────────── */
+/* â”€â”€ Card inner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gs-card-inner {
     display: flex;
     align-items: center;
-    border-radius: var(--ui-radius-lg);
+    border-radius: var(--ui-radius-lg, 18px);
     overflow: hidden;
     height: 162px;
     box-shadow:
@@ -179,7 +180,7 @@ body {
 .gs-card--red .gs-card-inner { background: var(--red-bg); }
 .gs-card--amb .gs-card-inner { background: var(--amb-bg); }
 
-/* ── Photo section ──────────────────────────────────────── */
+/* â”€â”€ Photo section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gs-photo-section {
     position: relative;
     width: 140px;
@@ -200,7 +201,7 @@ body {
     background: var(--amb-circle);
 }
 
-/* Customer photo — image already contains circle, so we let it breathe */
+/* Customer photo â€” image already contains circle, so we let it breathe */
 .gs-person-photo {
     position: relative;
     width: 150px;
@@ -219,7 +220,7 @@ body {
 
 
 
-/* ── Content section ────────────────────────────────────── */
+/* â”€â”€ Content section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gs-card-content {
     flex: 1;
     display: flex;
@@ -275,7 +276,7 @@ body {
     padding-right: 6px;
 }
 
-/* ── Arrow button ───────────────────────────────────────── */
+/* â”€â”€ Arrow button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gs-arrow-btn {
     width: 44px;
     height: 44px;
@@ -305,13 +306,13 @@ body {
     color: #fff;
 }
 
-/* ── Trust badge ────────────────────────────────────────── */
+/* â”€â”€ Trust badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gs-trust {
     display: flex;
     align-items: center;
     margin-top: 45px;
     gap: 13px;
-    border-radius: var(--ui-radius-lg);
+    border-radius: var(--ui-radius-lg, 18px);
     padding: 15px 12px;
     border: 1px solid rgba(0,0,0,0.08);
     box-shadow: 0 1px 6px rgba(0,0,0,0.055);
@@ -346,12 +347,12 @@ body {
     font-weight: 400;
 }
 
-/* ── Reduced motion ─────────────────────────────────────── */
+/* â”€â”€ Reduced motion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
 }
 
-/* ── Desktop wrapper ────────────────────────────────────── */
+/* â”€â”€ Desktop wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (min-width: 431px) {
     body {
         background: linear-gradient(135deg, #ddd8d2 0%, #cac3bb 100%);
@@ -373,12 +374,12 @@ body {
 <body>
 <div class="gs-page">
 
-    <!-- â•â• HEADER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- Ã¢â€¢ÂÃ¢â€¢Â HEADER Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
     <header class="gs-header">
         <div class="gs-logo-wrap">
             <img class="gs-logo"
                  src="../shared/assets/images/handyhub-logo.png"
-                 alt="HandyHub — Trusted Professionals, Right Around You."
+                 alt="HandyHub â€” Trusted Professionals, Right Around You."
                  onerror="this.onerror=null;this.style.display='none';var fb=document.getElementById('gs-logo-fb');if(fb)fb.removeAttribute('hidden');">
             <span id="gs-logo-fb" hidden style="font-weight:800;font-size:26px;color:var(--ui-primary,#730201);letter-spacing:-0.5px;">HandyHub</span>
         </div>
@@ -387,10 +388,10 @@ body {
     </header>
 
 
-    <!-- â•â• ROLE CARDS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- Ã¢â€¢ÂÃ¢â€¢Â ROLE CARDS Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
     <main class="gs-cards">
 
-        <!-- Customer ──────────────────────────────────────────── -->
+        <!-- Customer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
         <button id="btn-customer" class="gs-card gs-card--red"
                 aria-label="Continue as a Customer">
             <div class="gs-card-inner">
@@ -429,7 +430,7 @@ body {
         </button>
 
 
-        <!-- Artisan ───────────────────────────────────────────── -->
+        <!-- Artisan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
         <button id="btn-artisan" class="gs-card gs-card--amb"
                 aria-label="Continue as an Artisan">
             <div class="gs-card-inner">
@@ -470,7 +471,7 @@ body {
     </main>
 
 
-    <!-- â•â• TRUST BADGE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- Ã¢â€¢ÂÃ¢â€¢Â TRUST BADGE Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
     <div class="gs-trust" role="complementary" aria-label="Security assurance">
         <div class="gs-trust-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -492,7 +493,7 @@ body {
 </div><!-- /.gs-page -->
 
 
-<!-- â•â• SCRIPTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- Ã¢â€¢ÂÃ¢â€¢Â SCRIPTS Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
 <script src="../shared/js/utils/logicGate.js"></script>
 <script src="../shared/js/utils/global-app.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
@@ -517,7 +518,7 @@ if ('serviceWorker' in navigator) {
     // Resolve artisan signup URL based on environment.
     // In development: both apps are siblings under the repo root, so a relative
     // path traverses up one directory (customer-app/../artisan-app).
-    // In production: apps are separate Firebase Hosting sites — relative paths
+    // In production: apps are separate Firebase Hosting sites â€” relative paths
     // would escape the build dir and 404. Detect production by hostname.
     function getArtisanSignupUrl() {
         var hostname = window.location.hostname;

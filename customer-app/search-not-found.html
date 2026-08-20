@@ -1,6 +1,7 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>No Results | HandyHub</title>
@@ -53,7 +54,7 @@ import { getAppContainer }       from '../shared/js/app/container.js';
 
 const historyService = new SearchHistoryService();
 
-// ── Read the ?q= param from the URL ──────────────────────────────────────────
+// â”€â”€ Read the ?q= param from the URL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const params  = new URLSearchParams(window.location.search);
 const failedQ = (params.get('q') || '').replace(/\s+/g, ' ').trim();
 
@@ -63,7 +64,7 @@ if (message && failedQ) {
     message.textContent = `No results found for "${failedQ}". Try a different search.`;
 }
 
-// ── Save the failed query to history (it was a real user intent) ─────────────
+// â”€â”€ Save the failed query to history (it was a real user intent) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // We save it here because the user may have navigated straight to this page
 // via a direct link (not through trackingPage.js which already saved it).
 // SearchHistoryService.add() is idempotent (deduplication) so double-saves
@@ -76,12 +77,12 @@ if (failedQ) {
         if (user?.uid) {
             await historyService.init(user.uid, customerRepository);
         }
-    } catch { /* non-fatal — service still works from localStorage */ }
+    } catch { /* non-fatal â€” service still works from localStorage */ }
 
     historyService.add(failedQ);
 }
 
-// ── Retry search form ─────────────────────────────────────────────────────────
+// â”€â”€ Retry search form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const input  = document.querySelector('#notfound-search-input');
 const button = document.querySelector('.search-submit');
 const icon   = document.querySelector('.click-to-search');

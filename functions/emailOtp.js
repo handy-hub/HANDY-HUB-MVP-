@@ -799,7 +799,14 @@ async function _activateCustomerAccount(uid, payload, correlationId) {
 }
 
 // ── Account activation: artisan ───────────────────────────────────────────────
-async function _activateArtisanAccount(uid, payload, correlationId) {
+/**
+ * @param {object}  opts
+ * @param {boolean} opts.emailVerified  Whether the address was actually proven.
+ *        TRUE only when an OTP was matched. The direct-signup path passes false —
+ *        recording an unproven address as verified would corrupt the one signal
+ *        support and recovery rely on to tell real inboxes from typos.
+ */
+async function _activateArtisanAccount(uid, payload, correlationId, { emailVerified = true } = {}) {
     const {
         email, name, phone, category,
         requestedService, otherDesc, otherBucket,
@@ -810,9 +817,9 @@ async function _activateArtisanAccount(uid, payload, correlationId) {
     const effectiveCategory = isOther && otherBucket ? otherBucket : category;
     const specialtyDesc     = isOther && (requestedService || otherDesc) ? (requestedService || otherDesc) : null;
 
-    // 1. Enable the Auth user + mark email as verified
-    await getAuth().updateUser(uid, { disabled: false, emailVerified: true });
-    console.log(`[OTP][${correlationId}] Firebase Auth artisan enabled uid=${uid}`);
+    // 1. Enable the Auth user; mark the address verified only if it truly was
+    await getAuth().updateUser(uid, { disabled: false, emailVerified });
+    console.log(`[OTP][${correlationId}] Firebase Auth artisan enabled uid=${uid} emailVerified=${emailVerified}`);
 
     // 2. Write Firestore artisan document (matches artisanAuthGuard required schema)
     const artisanDoc = {
@@ -827,7 +834,7 @@ async function _activateArtisanAccount(uid, payload, correlationId) {
         category:           effectiveCategory,
         specialty:          effectiveCategory,
         verificationStatus: 'draft',
-        emailVerified:      true,
+        emailVerified,
         isOnline:           false,
         isAvailable:        false,
         rating:             0,
@@ -885,10 +892,86 @@ async function _activateArtisanAccount(uid, payload, correlationId) {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// signUpArtisanDirect — artisan registration WITHOUT email verification.
+//
+// Payload: { payload: { name, email, password, category, phone?, ... } }
+// Returns: { success: true, uid }
+//
+// WHY THIS EXISTS: the OTP path cannot deliver mail — Resend rejects every send
+// because the configured sending domain is unverified — so artisan signup is
+// entirely blocked. Customers were unblocked by switching their OTP off; this is
+// the artisan equivalent.
+//
+// It deliberately reuses _activateArtisanAccount(), the same function the OTP
+// path calls, so profile shape, required-field schema, role isolation and the
+// welcome notification stay identical. Nothing is reimplemented, so the two
+// paths cannot drift.
+//
+// The account is created with emailVerified: FALSE, because it isn't. Support
+// and account recovery need to be able to tell a proven address from an unproven
+// one, and a convenient lie there is expensive later.
+//
+// TO RETIRE THIS: verify a sending domain, then stop calling it from the client.
+// Nothing else needs changing.
+// ─────────────────────────────────────────────────────────────────────────────
+async function signUpArtisanDirect({ payload }) {
+    const correlationId = cid();
+    const p = payload || {};
+    const email = normaliseEmail(p.email);
+
+    validateArtisanPayload({ ...p, email });
+
+    // Reject an existing ENABLED account; clear out a disabled leftover from an
+    // abandoned OTP attempt so the address is not permanently unusable.
+    try {
+        const existing = await getAuth().getUserByEmail(email);
+        if (existing.disabled === false) {
+            throw new HttpsError('already-exists', 'An account with this email already exists. Please sign in instead.');
+        }
+        await getAuth().deleteUser(existing.uid);
+        console.log(`[signup][${correlationId}] Removed stale disabled user uid=${existing.uid}`);
+    } catch (err) {
+        if (err instanceof HttpsError) throw err;
+        if (err.code !== 'auth/user-not-found') {
+            console.error(`[signup][${correlationId}] Auth lookup failed: ${err.message}`);
+            throw new HttpsError('internal', 'Could not validate that email. Please try again.');
+        }
+    }
+
+    const displayName = (p.name || '').trim();
+    const authUser = await getAuth().createUser({
+        email,
+        password: p.password,      // lives only in Firebase Auth, never Firestore
+        displayName,
+        emailVerified: false,
+        disabled: true,            // enabled by _activateArtisanAccount below
+    });
+
+    try {
+        await _activateArtisanAccount(
+            authUser.uid,
+            { ...p, email, name: displayName },
+            correlationId,
+            { emailVerified: false },
+        );
+    } catch (err) {
+        // Never strand a half-built account: without the Firestore profile the
+        // artisan guard would bounce them forever with no way to re-register.
+        await getAuth().deleteUser(authUser.uid).catch(() => {});
+        console.error(`[signup][${correlationId}] Activation failed, rolled back uid=${authUser.uid}: ${err.message}`);
+        throw new HttpsError('internal', 'Could not finish creating your account. Please try again.');
+    }
+
+    console.log(`[signup][${correlationId}] Artisan created uid=${authUser.uid} (unverified email)`);
+    return { success: true, uid: authUser.uid };
+}
+
 module.exports = {
     requestSignupOtp,
     resendSignupOtp,
     verifySignupOtp,
+    signUpArtisanDirect,
     COL_VERIF,
     OTP_TTL_S,
     MIN_RESEND_GAP_S,

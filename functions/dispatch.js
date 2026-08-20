@@ -29,10 +29,22 @@ const { FIRESTORE_DB_ID, FUNCTIONS_REGION, MAX_DISPATCH_ROUNDS } = require('./co
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const { geohashQueryBounds } = require('geofire-common');
 
-const STANDARD_TIMEOUT_S  = 3 * 60 * 60; // 3 hours
-// 65 s > 60 s scheduler period — guarantees the per-minute scheduler
-// always catches an expired emergency within one tick (no 90-second worst case).
-const EMERGENCY_TIMEOUT_S = 65;
+// How long ONE artisan holds a request before it moves to the next.
+//
+// Dispatch is sequential, so this value MULTIPLIES: with MAX_DISPATCH_ROUNDS at
+// 10, the customer's worst case is 10x this. It was 3 hours, which meant a
+// single unresponsive artisan could sit on a booking all afternoon and the
+// ceiling before 'unfulfilled' was thirty hours — while the request screen told
+// the customer it "usually takes a few minutes".
+//
+// 3 minutes is the balance: long enough for an artisan with their hands full to
+// notice a push notification, short enough that the customer gets a real answer
+// — including an honest "nobody is available" — in minutes rather than hours.
+//
+// Both values exceed the 60 s scheduler period, so checkExpiredDispatches always
+// catches an expired deadline within one tick (no 90-second worst case).
+const STANDARD_TIMEOUT_S  = 3 * 60;   // 3 minutes
+const EMERGENCY_TIMEOUT_S = 65;       // ~1 minute — someone needs help now
 
 // ── Firestore singleton ───────────────────────────────────────────────────────
 let _db;
@@ -285,7 +297,7 @@ async function dispatchRound(bookingId) {
 
 // ── Trigger: booking CREATED → initialise + first dispatch ───────────────────
 const onBookingCreated = onDocumentCreated(
-    { document: 'bookings/{bookingId}', region: FUNCTIONS_REGION },
+    { document: 'bookings/{bookingId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION },
     async (event) => {
         const bookingId = event.params.bookingId;
         const data      = event.data.data();

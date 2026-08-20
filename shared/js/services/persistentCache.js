@@ -92,3 +92,32 @@ export function invalidateCache(key, { uid = null, storage = 'local' } = {}) {
   if (!s) return;
   try { s.removeItem(fullKey(key, uid)); } catch { /* non-fatal */ }
 }
+
+/**
+ * Drop every hh_pc_* entry from both storages. Call on sign-out.
+ *
+ * Reading another user's cache is already impossible — the uid is part of the
+ * key AND re-checked in the envelope, so a mismatch returns null. This exists
+ * for a different reason: on a shared or borrowed device, one person's cached
+ * name, bookings and balances should not sit in localStorage after they log
+ * out, where the next person could read them straight out of devtools.
+ *
+ * Deliberately clears ALL users' entries, not just the departing uid: the uid
+ * is not always known at sign-out time, and leaving a stranger's data behind is
+ * the failure mode worth avoiding.
+ */
+export function clearAllCaches() {
+  for (const kind of ['local', 'session']) {
+    const s = store(kind);
+    if (!s) continue;
+    try {
+      // Collect first — removing while iterating skips entries.
+      const doomed = [];
+      for (let i = 0; i < s.length; i++) {
+        const k = s.key(i);
+        if (k && k.startsWith(PREFIX)) doomed.push(k);
+      }
+      for (const k of doomed) s.removeItem(k);
+    } catch { /* private mode / blocked — nothing cached anyway */ }
+  }
+}

@@ -898,6 +898,29 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // TOP-UP INTENTS  (payment state machine — Cloud Functions only)
+    //
+    // Written exclusively by initiateTopupCharge (creates 'pending') and by the
+    // Paystack webhook (settles to 'successful' / 'failed'). The `uid` field is
+    // the AUTHORITY that decides which wallet a verified charge credits, which
+    // is precisely why no client may ever write here — a client-writable uid or
+    // amountPesewas would be a direct route to crediting an arbitrary wallet.
+    //
+    // The owner may READ their own intent so the top-up screen can follow the
+    // real payment status instead of guessing from the balance.
+    // ═══════════════════════════════════════════════════════════════
+    match /topupIntents/{reference} {
+      allow read:   if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    // Idempotency claims for top-up initiation. Purely internal bookkeeping —
+    // readable by nobody, so a client cannot probe which keys are taken.
+    match /topupIdempotency/{claimId} {
+      allow read, write: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // ADMIN NOTIFICATIONS  (written by admin actions / Cloud Functions)
     // ═══════════════════════════════════════════════════════════════
     match /admin_notifications/{notifId} {

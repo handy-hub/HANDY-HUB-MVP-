@@ -65,7 +65,20 @@ const nowIso = () => new Date().toISOString();
 // Used when a pricing_config/{category} doc is missing a field (or entirely).
 // All values are GHS. Admin-editable per category in the pricing_config
 // collection — these are only the safety floor.
-const PRICING_DEFAULTS = Object.freeze({
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  TEMPORARY TEST PRICING — GHS 1 CALLOUT FEE                              ║
+// ║                                                                          ║
+// ║  Set deliberately so a real end-to-end booking can be paid for with one  ║
+// ║  cedi instead of fifty. Every component is zeroed rather than just the   ║
+// ║  inspection fee, because the formula is                                  ║
+// ║      calloutFee = ceil(min(inspectionFeeGHS + travelFee, maxCalloutGHS)) ║
+// ║  and any travel component would push the total above 1. maxCalloutGHS: 1 ║
+// ║  is the backstop that holds even if a travel value is reintroduced.      ║
+// ║                                                                          ║
+// ║  ⚠ REVERT BEFORE REAL CUSTOMERS. Production values are preserved below  ║
+// ║  in PRICING_PRODUCTION — swap the two assignments back.                  ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+const PRICING_PRODUCTION = Object.freeze({
     inspectionFeeGHS: 50,   // fixed component per category
     perKmGHS:         2.5,  // travel rate beyond the free radius
     freeRadiusKm:     3,    // no travel charge within this distance
@@ -74,16 +87,35 @@ const PRICING_DEFAULTS = Object.freeze({
     maxCalloutGHS:    150,  // absolute callout ceiling
 });
 
+const PRICING_TEST_1_CEDI = Object.freeze({
+    inspectionFeeGHS: 1,
+    perKmGHS:         0,
+    freeRadiusKm:     3,
+    maxTravelGHS:     0,
+    flatTravelGHS:    0,
+    maxCalloutGHS:    1,
+});
+
+// ⚠ TEST MODE ACTIVE — change to PRICING_PRODUCTION to restore real pricing.
+const PRICING_DEFAULTS = PRICING_TEST_1_CEDI;
+
 // Category ids — keep in sync with shared/js/data/serviceCatalog.js
 const CATALOG_CATEGORY_IDS = Object.freeze([
     'electrical', 'plumbing', 'carpentry', 'ac-repair',
     'welding', 'cleaning', 'painting', 'gardening',
 ]);
 
-// Per-category inspection fee seeds (admin-tunable after seeding)
+// Per-category inspection fee seeds (admin-tunable after seeding).
+//
+// ⚠ ALSO IN TEST MODE — all GHS 1. Left aligned with PRICING_DEFAULTS on
+// purpose: seeding pricing_config while the defaults say 1 but these said 50
+// would silently restore fifty-cedi fees and make the test fail confusingly.
+// Real values kept below for the revert.
+//   electrical 50, plumbing 50, carpentry 40, ac-repair 60,
+//   welding 60, cleaning 30, painting 40, gardening 30
 const SEED_INSPECTION_FEES = Object.freeze({
-    'electrical': 50, 'plumbing': 50, 'carpentry': 40, 'ac-repair': 60,
-    'welding': 60, 'cleaning': 30, 'painting': 40, 'gardening': 30,
+    'electrical': 1, 'plumbing': 1, 'carpentry': 1, 'ac-repair': 1,
+    'welding': 1, 'cleaning': 1, 'painting': 1, 'gardening': 1,
 });
 
 const QUOTE_TOKEN_TTL_MS   = 15 * 60_000;      // pricing quote valid for 15 min
