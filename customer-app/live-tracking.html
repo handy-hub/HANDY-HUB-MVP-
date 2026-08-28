@@ -8,7 +8,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live Tracking | HandyHub</title>
   <link rel="stylesheet" href="css/booking-flow.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     html, body { height: 100%; }
@@ -194,7 +193,10 @@
       <div class="trk-stage-dot" id="stage-dot"></div>
       <span class="trk-stage-label" id="stage-label">En Route</span>
     </div>
-    <div class="trk-eta-chip" id="eta-chip">~12 min</div>
+    <!-- No placeholder TIME here. "~12 min" sat in this markup and was
+         only replaced once JS ran, so any script failure left a
+         fabricated ETA on screen. -->
+    <div class="trk-eta-chip" id="eta-chip">&hellip;</div>
   </div>
 
   <!-- Map -->
@@ -218,7 +220,7 @@
         <button class="trk-action-btn" onclick="callArtisan()" title="Call">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" stroke-width="2"/></svg>
         </button>
-        <button class="trk-action-btn" onclick="window.location.href='messages.html'" title="Message" aria-label="Message artisan">
+        <button class="trk-action-btn" onclick="window.location.href='messages.html' + (window._trkBookingId ? '?bookingId=' + encodeURIComponent(window._trkBookingId) : '')" title="Message" aria-label="Message artisan">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
@@ -264,7 +266,6 @@
   </div><!-- /.trk-sheet -->
 </div><!-- /.phone-shell -->
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ── Stage definitions (SVG icons, no emoji) ──────────────────
 const STAGE_CHECK = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`;
@@ -378,6 +379,11 @@ function initSlide(actionId, fillId, labelId, thumbId, onComplete) {
     return p;
   }
 
+  // Exposed so a failed action can return the control to its rest position.
+  // Without this, a completion that legitimately refuses to proceed leaves the
+  // thumb pinned at the end of the track with no way back except a reload.
+  track._hhReset = function () { dragging = false; curX = 0; applyPos(0, true); };
+
   function onDown(e) {
     dragging = true;
     startX = (e.touches ? e.touches[0].clientX : e.clientX) - curX;
@@ -430,7 +436,10 @@ function cancelBooking() {
   if (_actionInProgress) return;
   _actionInProgress = true;
 
-  if (window.HH_State) window.HH_State.booking.patch({ status: 'cancelled' });
+  // No optimistic local status write. Cancellation is a backend transition;
+  // stamping status:'cancelled' into localStorage here created a second source
+  // of truth that other screens then rendered as fact, even when the Firestore
+  // write later failed.
 
   const bkId    = _getBookingId();
   const escrowId = _getEscrowId();
@@ -464,33 +473,54 @@ async function confirmCompletion() {
   const confirmLabel = document.getElementById('confirm-label');
   if (confirmLabel) confirmLabel.textContent = 'Releasing payment…';
 
-  if (window.HH_State) window.HH_State.booking.patch({ status: 'completed' });
+  // No optimistic local status write — completion releases escrow, so it must
+  // be asserted only by the backend transition, never by the slider gesture.
 
-  const bkId    = _getBookingId();
-  const escrowId = _getEscrowId();
+  // Every early exit below must undo the "Releasing payment…" state. The old
+  // code could not fail — it always navigated — so nothing here was ever reset.
+  function _abandon(message) {
+    _actionInProgress = false;
+    if (confirmLabel) confirmLabel.textContent = 'Slide to Confirm Completion';
+    const track = document.getElementById('slide-confirm');
+    if (track && track._hhReset) track._hhReset();
+    if (window.showToast) window.showToast(message, 'error');
+    else import('../shared/js/components/toast.js')
+          .then(function (t) { t.showToast(message, 'error'); })
+          .catch(function () { alert(message); });
+  }
 
-  // Write completed status to Firestore — triggers artisan jobsCompleted increment in bookings.js
-  if (bkId) {
-    import('../shared/js/app/container.js').then(function (mod) {
-      mod.getAppContainer().repositories.bookingRepository.updateStatus(bkId, 'completed')
-        .catch(function (err) { console.warn('[tracking] Complete Firestore write failed:', err); });
+  const bkId = _getBookingId();
+
+  if (!bkId) {
+    // Nothing to complete. Navigating anyway would show a receipt for a job the
+    // backend never closed.
+    _abandon('We could not identify this booking. Please reopen it from My Bookings.');
+    return;
+  }
+
+  // This write IS the payment instruction — onBookingStatusChanged releases the
+  // held escrow on this transition. It was previously launched fire-and-forget
+  // and never awaited, so a failed write still navigated the customer to a
+  // receipt for a job that was never completed, with the artisan unpaid until
+  // the auto-release window elapsed. Await it, and stay put if it fails.
+  //
+  // The direct releaseEscrow() call that used to follow it is gone: it was a
+  // second settlement path racing the server trigger. See
+  // shared/js/domain/completeBooking.js.
+  try {
+    const [{ confirmBookingComplete, receiptHref }, mod] = await Promise.all([
+      import('../shared/js/domain/completeBooking.js'),
+      import('../shared/js/app/container.js'),
+    ]);
+    await confirmBookingComplete({
+      bookingId:       bkId,
+      databaseService: mod.getAppContainer().services.databaseService,
     });
+    window.location.href = receiptHref(bkId);
+  } catch (err) {
+    console.error('[tracking] Completion failed:', err);
+    _abandon('We could not confirm completion. Please try again.');
   }
-
-  // Release escrow so artisan is paid — await this before navigation.
-  // The Cloud Function re-checks status inside a transaction so double-calls are safe.
-  if (escrowId) {
-    try {
-      const { releaseEscrow } = await import('../shared/js/services/walletService.js');
-      await releaseEscrow(escrowId);
-      console.log('[tracking] Escrow released — artisan wallet credited.');
-    } catch (err) {
-      // Log and continue: 7-day auto-release is the fallback, artisan will still be paid.
-      console.warn('[tracking] Escrow release failed (auto-release fallback active):', err.message);
-    }
-  }
-
-  window.location.href = 'review.html';
 }
 
 function callArtisan() {
@@ -511,28 +541,41 @@ function callArtisan() {
   }
 }
 
-// ── Booking status gate — show empty state if no active booking ──────────────
-// No redirects: customers stay on this page and see a clear "no active booking"
-// message. The definitive server-side check runs in the module script below.
-(function enforceTrackingGate() {
-  try {
-    const b = window.HH_State ? window.HH_State.booking.get() : {};
-    const st = (b.status || '').toLowerCase();
-    // This is a classic (non-module) script and cannot import the shared status
-    // vocabulary, so it must stay PERMISSIVE: it only suppresses the UI for
-    // statuses that are unambiguously not trackable. Anything else (quoted,
-    // disputed, inspection_*) is left alone for the authoritative module gate
-    // below, which uses bookingStatusMeta + the routing contract and will either
-    // render, redirect, or show the empty state. Previously this list was the
-    // same narrow allowlist as the module gate, so a live `quoted`/inspection
-    // booking flashed "no active booking" before the real check ran.
-    const notTrackable = ['', 'cancelled', 'rejected', 'unfulfilled', 'pending',
-                          'dispatching', 'searching', 'dispatched', 'assigned'];
-    window._trkNoActiveBooking = notTrackable.includes(st);
-  } catch (_) {
-    window._trkNoActiveBooking = true;
-  }
-})();
+// ── Booking load state ───────────────────────────────────────────
+// This page starts in LOADING and stays there until the authoritative booking
+// subscription answers. It deliberately does NOT consult HH_State/localStorage.
+//
+// It used to: a classic script read window.HH_State.booking.get() and, finding
+// no cached status, set _trkNoActiveBooking = true. A customer with a funded
+// escrow booking was therefore told "No Active Booking · No artisan assigned ·
+// Book a service to start tracking" for ~5 s before the real record arrived —
+// while their money sat in escrow, and with an invitation to book again on
+// screen. A missing local copy is not evidence that the backend booking is
+// absent. Only the backend can say a booking does not exist.
+window._trkNoActiveBooking = false;
+window._trkLoadState = 'loading';
+
+// Loading presenter — the honest state before the record resolves.
+function showBookingLoadingState() {
+  const pill = document.getElementById('stage-label');
+  const name = document.getElementById('trk-name');
+  const svc  = document.getElementById('trk-service');
+  if (pill) pill.textContent = 'Loading…';
+  if (name) name.textContent = 'Loading your booking…';
+  if (svc)  svc.textContent  = 'Fetching the latest status from your account.';
+}
+showBookingLoadingState();
+
+// Error presenter — distinct from "not found". A network failure must never be
+// reported to the customer as "you have no booking".
+function showBookingErrorState() {
+  const pill = document.getElementById('stage-label');
+  const name = document.getElementById('trk-name');
+  const svc  = document.getElementById('trk-service');
+  if (pill) pill.textContent = 'Not available';
+  if (name) name.textContent = 'Cannot reach your booking right now';
+  if (svc)  svc.textContent  = 'Your booking and payment are unaffected. Check your connection and try again.';
+}
 
 // Empty-state presenter — called when there is no active trackable booking.
 // Mutates the existing DOM without adding new elements.
@@ -554,19 +597,16 @@ function showNoBookingEmptyState() {
 }
 
 // ── Load booking data ────────────────────────────────────────
-const booking = window.HH_State ? window.HH_State.booking.get() : {};
-const _pro    = booking.artisan || booking.professional;
-if (_pro) {
-  document.getElementById('trk-name').textContent = _pro.name || 'Artisan';
-  document.getElementById('trk-initials').innerHTML =
-    (_pro.name || 'A').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() +
-    '<div class="trk-online-dot"></div>';
-  const _svc = booking.service
-    || (booking.services && booking.services[0] && booking.services[0].name)
-    || _pro.type || _pro.profession || '';
-  if (_svc) document.getElementById('trk-service').textContent = _svc;
-  if (_pro.eta) document.getElementById('eta-chip').textContent = `~${_pro.eta} min`;
-}
+// Deliberately empty. The professional's name, trade and ETA are rendered by
+// the module block below, from the booking document via bookingTruth.js.
+//
+// This block previously painted them from window.HH_State.booking.get() — a
+// localStorage copy — defaulting the name to the literal "Artisan". That is one
+// of the four competing identities that made the same professional read as
+// "Test Artisan", "Professional", "Artisan" and "Your Artisan" across screens,
+// two of which authorise payment. Local state may not name a party to a
+// financial transaction.
+const booking = {};
 
 // ── Leaflet map ──────────────────────────────────────────────
 // userLat/userLng stay null until we have a REAL position (GPS or a live
@@ -577,26 +617,84 @@ let userLat = null, userLng = null;
 const CITY_VIEW = [5.6037, -0.1870];   // Accra region — map framing only, NOT a user position
 const CITY_ZOOM = 12;                  // wider than a precise pin to signal "region, not you"
 
-const map = L.map('tracking-map', { zoomControl: false, attributionControl: false })
-  .setView(CITY_VIEW, CITY_ZOOM);
+// ── Google Maps ──────────────────────────────────────────────
+// Loaded on demand. The customer picks their address through Google Places and
+// the artisan navigates with a Google Maps link, so rendering the journey on an
+// OpenStreetMap basemap meant the one screen showing the journey disagreed with
+// both ends of it — OSM's Ghana road naming is materially thinner than Google's.
+//
+// The API is fetched asynchronously, so `map` does not exist yet. Everything
+// that touches it goes through mapReady, and every map operation below is
+// written to work whether it runs before or after the tiles arrive.
+let map = null;
+let mapFailed = false;
+const _mapQueue = [];
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+/** Run f once the map exists; queue it if the API is still loading. */
+function whenMap(f) {
+  if (map) { try { f(); } catch (_) {} return; }
+  if (mapFailed) return;
+  _mapQueue.push(f);
+}
 
-const userIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:36px;height:36px;border-radius:50%;background: var(--ui-primary);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#fff"/></svg>
-  </div>`,
-  iconSize: [36, 36], iconAnchor: [18, 18],
-});
+function showMapFailure(message) {
+  mapFailed = true;
+  _mapQueue.length = 0;
+  const el = document.getElementById('tracking-map');
+  if (!el) return;
+  // An explanation, never a blank grey rectangle. The rest of the page — stages,
+  // ETA, the confirm slider — keeps working; only the picture is missing.
+  el.innerHTML =
+    '<div style="height:100%;display:flex;align-items:center;justify-content:center;' +
+    'padding:24px;text-align:center;background:var(--ui-surface-2,#F2F4F7);">' +
+    '<p style="margin:0;font:500 13.5px/1.5 inherit;color:var(--ui-muted,#6A5D5B);max-width:30ch;">' +
+    String(message || 'Map could not load.').replace(/[<>&]/g, '') + '</p></div>';
+}
 
-const artisanIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:42px;height:42px;border-radius:50%;background:#1a1a2e;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </div>`,
-  iconSize: [42, 42], iconAnchor: [21, 21],
-});
+(function initGoogleMap() {
+  const host = document.getElementById('tracking-map');
+  if (!host) return;
+
+  import('../shared/js/services/mapsLoader.js')
+    .then(({ loadGoogleMaps, describeMapFailure }) =>
+      loadGoogleMaps()                       // no extra libraries: none are used here
+        .then((maps) => {
+          map = new maps.Map(host, {
+            center: { lat: CITY_VIEW[0], lng: CITY_VIEW[1] },
+            zoom: CITY_ZOOM,
+            // Chrome on a low-end Android renders the vector map poorly and it
+            // costs more CPU; the raster basemap is lighter and sufficient for
+            // two markers and a connector line.
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+            zoomControl: false,
+            clickableIcons: false,          // POI taps would navigate away mid-job
+            gestureHandling: 'greedy',      // one-finger pan on mobile
+          });
+          const q = _mapQueue.splice(0);
+          q.forEach(f => { try { f(); } catch (_) {} });
+        })
+        .catch((err) => showMapFailure(describeMapFailure(err)))
+    )
+    .catch(() => showMapFailure('Map could not load. Your booking details below are unaffected.'));
+})();
+
+// Marker styling. Google's vector symbols are used rather than image assets or
+// AdvancedMarkerElement: symbols need no Map ID to provision, no network round
+// trip for an image, and no extra library — all three matter on a metered
+// connection. The two parties stay visually distinct (maroon customer, dark
+// artisan) exactly as they were under Leaflet.
+function markerIcon(maps, fill, scale) {
+  return {
+    path: maps.SymbolPath.CIRCLE,
+    fillColor: fill,
+    fillOpacity: 1,
+    strokeColor: '#ffffff',
+    strokeWeight: 3,
+    scale,
+  };
+}
 
 // The user marker is created lazily, only once a real position is known.
 let userMarker = null;
@@ -607,12 +705,19 @@ let locationUnsub = null;
 // Place (or move) the "Your location" pin — only ever called with REAL coords.
 function setUserLocation(lat, lng, recenter = true) {
   userLat = lat; userLng = lng;
-  if (!userMarker) {
-    userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup('Your location');
-  } else {
-    userMarker.setLatLng([lat, lng]);
-  }
-  if (recenter) map.setView([lat, lng], 15);
+  whenMap(() => {
+    const maps = window.google.maps;
+    const pos = { lat, lng };
+    if (!userMarker) {
+      userMarker = new maps.Marker({
+        position: pos, map, title: 'Your location',
+        icon: markerIcon(maps, '#730201', 11), zIndex: 2,
+      });
+    } else {
+      userMarker.setPosition(pos);
+    }
+    if (recenter) { map.setCenter(pos); map.setZoom(15); }
+  });
 }
 
 // ── Real user GPS ────────────────────────────────────────────
@@ -637,14 +742,24 @@ window.showTrackingUnavailable = function showTrackingUnavailable() {
   if (chip) chip.textContent = 'Awaiting';
   const label = document.getElementById('stage-label');
   if (label && label.textContent === stages[0].label) {
-    // Show a non-intrusive note on the map only when no artisan marker yet.
-    // Anchor it to the real user position if known, else the city-region view.
-    if (!artisanMarker) {
-      const anchor = (userLat != null && userLng != null) ? [userLat, userLng] : CITY_VIEW;
-      L.popup({ closeButton: false, autoClose: false, closeOnClick: false })
-        .setLatLng(anchor)
-        .setContent('<div style="font-size:12px;font-weight:600;color:var(--ui-muted);text-align:center;padding:2px 4px;">Live tracking will appear<br>when artisan is en route</div>')
-        .openOn(map);
+    // A plain DOM overlay rather than a map popup. It carries no coordinates,
+    // so it does not imply a position the app does not have — and it still
+    // explains itself when the map failed to load entirely, which an
+    // InfoWindow anchored to a LatLng could not do.
+    if (!artisanMarker && !document.getElementById('trk-await-note')) {
+      const host = document.getElementById('tracking-map');
+      if (host) {
+        if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+        const note = document.createElement('div');
+        note.id = 'trk-await-note';
+        note.style.cssText =
+          'position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:5;' +
+          'background:rgba(255,255,255,.94);border-radius:10px;padding:8px 12px;' +
+          'box-shadow:0 2px 10px rgba(0,0,0,.16);font:600 12px/1.4 inherit;' +
+          'color:var(--ui-muted,#6A5D5B);text-align:center;pointer-events:none;max-width:82%;';
+        note.textContent = 'Live tracking will appear when your professional is on the way';
+        host.appendChild(note);
+      }
     }
   }
 }
@@ -686,53 +801,80 @@ window.updateArtisanMarker = function updateArtisanMarker(aLat, aLng) {
     return;
   }
   const haveUser = (userLat != null && userLng != null);
-  if (!artisanMarker) {
-    artisanMarker = L.marker([aLat, aLng], { icon: artisanIcon }).addTo(map).bindPopup('Artisan');
-    map.closePopup();
-    if (haveUser) {
-      // Draw the artisan→you route only when the user's real position is known.
-      routeLine = L.polyline([[aLat, aLng], [userLat, userLng]], {
-        color: '#730201', weight: 3, dashArray: '6 6', opacity: 0.7,
-      }).addTo(map);
-      map.fitBounds([[aLat, aLng], [userLat, userLng]], { padding: [40, 40] });
+  whenMap(() => {
+    const maps = window.google.maps;
+    const aPos = { lat: aLat, lng: aLng };
+
+    // A real position has arrived — retire the waiting note.
+    document.getElementById('trk-await-note')?.remove();
+
+    if (!artisanMarker) {
+      artisanMarker = new maps.Marker({
+        position: aPos, map, title: 'Your professional',
+        icon: markerIcon(maps, '#1a1a2e', 13), zIndex: 3,
+      });
+
+      if (haveUser) {
+        // A straight dashed connector, NOT a road route. Routes is asked only
+        // for duration and distanceMeters — requesting a polyline moves that
+        // call into a higher billing tier for a line this screen can draw
+        // itself. See routesService.js.
+        routeLine = new maps.Polyline({
+          path: [aPos, { lat: userLat, lng: userLng }],
+          map,
+          strokeColor: '#730201',
+          strokeOpacity: 0,      // opacity lives on the dash symbol below
+          icons: [{
+            icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, strokeWeight: 3, scale: 3 },
+            offset: '0', repeat: '12px',
+          }],
+        });
+        // Frame both parties ONCE, on first sighting.
+        const b = new maps.LatLngBounds();
+        b.extend(aPos); b.extend({ lat: userLat, lng: userLng });
+        map.fitBounds(b, 40);
+      } else {
+        map.setCenter(aPos); map.setZoom(15);
+      }
     } else {
-      map.setView([aLat, aLng], 15);
+      // MOVE the marker; never rebuild it, and never recentre. Chasing the
+      // artisan on every Firestore update makes the map impossible to read and
+      // fights the customer for control of the viewport.
+      artisanMarker.setPosition(aPos);
+      if (haveUser && routeLine) {
+        routeLine.setPath([aPos, { lat: userLat, lng: userLng }]);
+      }
     }
-  } else {
-    artisanMarker.setLatLng([aLat, aLng]);
-    if (haveUser && routeLine) {
-      routeLine.setLatLngs([[aLat, aLng], [userLat, userLng]]);
-    }
-  }
+  });
 };  // semicolon required — prevents IIFE on next line being parsed as a call argument (ASI bug)
 
-(function subscribeArtisanLocation() {
-  const artisanId = (_pro && _pro.id) || booking.proId || null;
-  if (!artisanId) { showTrackingUnavailable(); return; }
-
-  // Use Firebase SDK loaded by the module block below via the shared container
-  // The subscription is set up after auth resolves (see module script at bottom).
-  window._trkSubscribeArtisan = artisanId;
-})();
+// The artisan whose location we follow is named by the module block below, from
+// the booking document itself (window._trkSubscribeArtisan). A classic-script
+// IIFE used to compute it here from `_pro` — a variable that no longer exists
+// in this scope — and from `booking`, which is now an empty object. It could
+// only throw, and being a top-level statement it took renderStages(), BOTH
+// initSlide() calls and showTrackingUnavailable() down with it: the cancel and
+// confirm sliders on this screen were dead on arrival.
 
 renderStages();
 initSlide('slide-cancel',  'cancel-fill',  'cancel-label',  'cancel-thumb',  cancelBooking);
 initSlide('slide-confirm', 'confirm-fill', 'confirm-label', 'confirm-thumb', confirmCompletion);
 
-// If no active booking from the local gate, show empty state immediately.
-// Otherwise show the standard "live tracking will appear when artisan is en route" popup.
-if (window._trkNoActiveBooking) {
-  showNoBookingEmptyState();
-} else {
-  showTrackingUnavailable();
-}
+// Boot shows the map's "tracking will appear when your artisan is en route"
+// popup only. The no-booking empty state is NEVER shown at boot — it is now
+// reachable exclusively from the authoritative gate below, after the backend
+// has actually confirmed the booking does not exist.
+showTrackingUnavailable();
 </script>
 <script type="module">
   import { requireAuth }     from '../shared/js/utils/authGuard.js';
   import { getAppContainer } from '../shared/js/app/container.js';
-  import { getHaversineDistanceKm, estimateEtaMinutes } from '../shared/js/utils/geo.js';
+  import { getHaversineDistanceKm } from '../shared/js/utils/geo.js';
+  import { getRoadRoute, describeUnavailable } from '../shared/js/services/routesService.js';
   import { describe }        from '../shared/js/domain/bookingStatusMeta.js';
   import { bookingHref }     from '../shared/js/domain/bookingRouter.js';
+  import { LOAD_STATE, resolveArtisan, initialsOf }
+                             from '../shared/js/domain/bookingTruth.js';
 
   const _authUser = await requireAuth();
   const { services: { databaseService } } = getAppContainer();
@@ -749,14 +891,37 @@ if (window._trkNoActiveBooking) {
   // Firestore is now the authority. HH_State is kept only as a synchronous hint
   // so the shell can paint immediately (see CLAUDE.md §1), and is overruled the
   // moment the server answers.
+  // An explicit ?bookingId= is the CALLER'S ANSWER and outranks everything else.
+  //
+  // Without it this page had no way to be told which booking it was opened for:
+  // it queried the customer's trackable bookings, sorted by updatedAt and took
+  // [0] — so with two live jobs, tapping one could open the other, and whichever
+  // artisan moved last stole the screen. The routing contract could not fix it
+  // either, because bookingHref() had no id to hand over.
+  const _params     = new URLSearchParams(location.search);
+  const _explicitId = _params.get('bookingId') || _params.get('id') || null;
+
   const _bk = window.HH_State ? window.HH_State.booking.get() : {};
-  let _bookingId = _bk.bookingId || _bk.id || null;
+  let _bookingId = _explicitId || _bk.bookingId || _bk.id || null;
+  // Published for the classic-script controls in the header (Message), which
+  // cannot see this module's scope. Kept in step wherever _bookingId changes.
+  window._trkBookingId = _bookingId;
+
+  // Explicit load state. LOADING is the starting point and is never conflated
+  // with NOT_FOUND — that conflation is what told a paying customer they had no
+  // booking. Only an authoritative answer may move this to NOT_FOUND.
+  let _lookupState = LOAD_STATE.LOADING;
 
   try {
     const { repositories: { bookingRepository } } = getAppContainer();
     const uid = _authUser?.uid || (window.HH_State && window.HH_State.currentUid());
 
-    if (uid && bookingRepository?.getByCustomerId) {
+    // Inference runs ONLY when nobody told us which booking to show. When an id
+    // was supplied, the document subscription below is the authority — including
+    // for "this id does not resolve", which it reports honestly.
+    if (_explicitId) {
+      console.info('[tracking] Tracking the booking named by the caller:', _explicitId);
+    } else if (uid && bookingRepository?.getByCustomerId) {
       const records = await bookingRepository.getByCustomerId(uid);
       // Statuses where a live tracking view is meaningful. Mirrors the ongoing
       // group in bookingStatusMeta rather than inventing a second vocabulary.
@@ -776,6 +941,7 @@ if (window._trkNoActiveBooking) {
           console.info('[tracking] Resolved active booking from server:', live[0].id);
         }
         _bookingId = live[0].id;
+        window._trkBookingId = _bookingId;
         if (window.HH_State) {
           window.HH_State.booking.patch({
             bookingId: live[0].id,
@@ -786,13 +952,26 @@ if (window._trkNoActiveBooking) {
           });
         }
       } else if (!_bookingId) {
+        // AUTHORITATIVE absence: the server answered and this customer has no
+        // trackable booking. This is the ONLY path allowed to show "no active
+        // booking" — it is a backend fact, not a missing cache entry.
         console.info('[tracking] No trackable booking for this customer');
+        _lookupState = LOAD_STATE.NOT_FOUND;
       }
     }
   } catch (err) {
-    // Fall back to the cached hint. A resolution failure must not blank a page
-    // that could still track the booking the customer arrived from.
+    // A resolution failure is NOT evidence of absence. Fall back to the cached
+    // hint if we have one; otherwise say we cannot reach the record, never that
+    // the booking does not exist.
     console.warn('[tracking] Server booking resolution failed:', err?.message || err);
+    if (!_bookingId) _lookupState = LOAD_STATE.ERROR;
+  }
+
+  // ── Resolve the load state before anything is painted ─────────────────────
+  if (_lookupState === LOAD_STATE.NOT_FOUND) {
+    window.showNoBookingEmptyState?.();
+  } else if (_lookupState === LOAD_STATE.ERROR) {
+    window.showBookingErrorState?.();
   }
 
   // C1 FIX: use a flag instead of a top-level return (illegal in ES modules)
@@ -822,7 +1001,30 @@ if (window._trkNoActiveBooking) {
       //   • genuinely nothing to track (cancelled/unfulfilled/still matching) →
       //     show the empty state
       const _b = _snap?.data;
+
+      if (!_snap?.exists) {
+        // The backend answered and this booking id does not resolve.
+        window.showNoBookingEmptyState?.();
+      }
+
       if (_b) {
+        // ── Identity from the authoritative record ────────────────────────
+        // One resolver, shared with the bookings list, quote sheet and receipt,
+        // so the customer sees the same professional named the same way on
+        // every screen — including the two that authorise payment.
+        const _a  = resolveArtisan(_b);
+
+        // Hand the location subscription below the artisan the BOOKING names.
+        window._trkSubscribeArtisan = _a.id || _b.artisanId || _b.currentArtisanId || null;
+
+        const _nm = document.getElementById('trk-name');
+        const _sv = document.getElementById('trk-service');
+        const _in = document.getElementById('trk-initials');
+        if (_nm) _nm.textContent = _a.name
+          || (_a.isAssigned ? 'Your professional' : 'Finding your professional…');
+        if (_sv) _sv.textContent = _a.trade || _b.serviceType || _b.service || '';
+        if (_in) _in.innerHTML = (initialsOf(_a.name) || '·') + '<div class="trk-online-dot"></div>';
+
         const _meta = describe(_b, 'customer');
         const _href = bookingHref({ ..._b, id: _bookingId, bookingId: _bookingId });
         const _trackableHere = _href.startsWith('live-tracking') || _meta.key === 'completed';
@@ -879,12 +1081,38 @@ if (window._trkNoActiveBooking) {
               // setTrackingFreshness has already put "Last seen N min ago" in
               // this chip and must not be overwritten.
               if (!isStale && userLat !== null && userLng !== null) {
-                const distKm = getHaversineDistanceKm(userLat, userLng, aLat, aLng);
-                if (distKm !== null) {
-                  const etaMin = estimateEtaMinutes(distKm);
-                  const etaChip = document.getElementById('eta-chip');
-                  if (etaChip) etaChip.textContent = `~${etaMin} min`;
-                }
+                const etaChip = document.getElementById('eta-chip');
+
+                // ROAD time, not straight-line. The previous number was
+                // Haversine km x 2 min/km + 3 — which in Accra can be a third
+                // of the real drive once the Ring Road interchanges and the
+                // lagoon crossings are involved. A customer given that number
+                // waits at the door and concludes the artisan is lying.
+                //
+                // getRoadRoute throttles itself (one request per ~90s per
+                // route) so this does not bill a Routes request for every GPS
+                // ping the artisan's phone emits.
+                getRoadRoute({ lat: aLat, lng: aLng }, { lat: userLat, lng: userLng })
+                  .then(route => {
+                    if (!etaChip) return;
+                    if (route) {
+                      etaChip.textContent = `${route.durationMinutes} min`;
+                      etaChip.title = `${route.distanceKm} km by road, in current traffic`;
+                      return;
+                    }
+                    // No real answer available. Show the honest distance rather
+                    // than inventing a time — a straight-line figure dressed as
+                    // an ETA is the exact defect being removed here.
+                    const distKm = getHaversineDistanceKm(userLat, userLng, aLat, aLng);
+                    if (distKm !== null) {
+                      etaChip.textContent = `${distKm.toFixed(1)} km away`;
+                      etaChip.title = 'Straight-line distance — live travel time unavailable';
+                    } else {
+                      etaChip.textContent = describeUnavailable('no-position');
+                      etaChip.title = '';
+                    }
+                  })
+                  .catch(() => { /* handled above; never fabricate a time */ });
               }
             } else {
               window.showTrackingUnavailable?.();

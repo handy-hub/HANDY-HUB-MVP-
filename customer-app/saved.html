@@ -49,7 +49,7 @@
       min-width: 16px;
     }
 
-    /* â”€â”€ Skeleton loading â”€â”€ */
+    /* ── Skeleton loading ── */
     .sv-skel-card {
       display: flex;
       align-items: center;
@@ -111,13 +111,13 @@
 
   <!-- Search bar -->
   <div class="sv-search-bar" id="sv-search-bar">
-    <input type="text" class="sv-search-input" id="sv-search-input" placeholder="Search saved itemsâ€¦" autocomplete="off">
+    <input type="text" class="sv-search-input" id="sv-search-input" placeholder="Search saved items…" autocomplete="off">
   </div>
 
   <!-- Body -->
   <div class="sv-body">
 
-    <!-- Tabs â€” canonical ui-tabs (pill variant) -->
+    <!-- Tabs — canonical ui-tabs (pill variant) -->
     <div class="ui-tabs sv-tabs" role="tablist">
       <button class="ui-tab active" id="tab-professionals" aria-selected="true" onclick="switchTab('professionals', this)" role="tab">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round">
@@ -141,7 +141,7 @@
       </button>
     </div>
 
-    <!-- â”€â”€ PROFESSIONALS PANEL â”€â”€ -->
+    <!-- ── PROFESSIONALS PANEL ── -->
     <div class="sv-panel active" id="panel-professionals">
       <div class="sv-section">
         <div class="sv-section-head">
@@ -155,7 +155,7 @@
       </div>
     </div>
 
-    <!-- â”€â”€ SERVICES PANEL â”€â”€ -->
+    <!-- ── SERVICES PANEL ── -->
     <div class="sv-panel" id="panel-services">
       <div class="sv-section">
         <div class="sv-section-head">
@@ -168,7 +168,7 @@
       </div>
     </div>
 
-    <!-- â”€â”€ OFFERS PANEL â”€â”€ -->
+    <!-- ── OFFERS PANEL ── -->
     <div class="sv-panel" id="panel-offers">
       <div class="sv-empty">
         <div class="sv-empty-icon">
@@ -191,10 +191,10 @@
 (function () {
   'use strict';
 
-  /* â”€â”€ In-memory state (populated by Firestore subscription) â”€â”€ */
+  /* ── In-memory state (populated by Firestore subscription) ── */
   window._svPros   = [];   // array of saved professional objects
   window._svSvcs   = [];   // array of saved service objects
-  window._svUid    = null; // current user UID â€” set by module script
+  window._svUid    = null; // current user UID — set by module script
   window._svFilter = '';   // current search filter
 
   const TOAST_ICONS = {
@@ -203,14 +203,14 @@
     info:    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>',
   };
 
-  /* â”€â”€ Renderers â”€â”€ */
+  /* ── Renderers ── */
   function escHtml(str) {
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   // TEMPORARY: on-the-fly transform delivery is currently 404-ing on this
   // Cloudinary account/plan for every derived request. Falling back to the
-  // untransformed original â€” .sv-pro-photo's CSS (object-fit:cover;
+  // untransformed original — .sv-pro-photo's CSS (object-fit:cover;
   // border-radius:50%) already does the crop/circle client-side. Restore
   // the w_80,h_80,c_fill,f_auto,q_auto,r_max transform segment once
   // Cloudinary on-the-fly delivery is confirmed working again.
@@ -229,8 +229,11 @@
       ? `<img src="${escHtml(_svPhotoSrc)}" alt="${escHtml(pro.name)}" class="sv-pro-photo" style="object-fit:cover;">`
       : `<div class="sv-pro-photo" style="background:linear-gradient(135deg,#730201,#a03030);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;border-radius:50%;">${initials}</div>`;
 
-    const rating    = pro.rating != null ? Number(pro.rating).toFixed(1) : null;
-    const reviews   = pro.reviewCount || 0;
+    // Gate on reviewCount, not the score: rating:0 with no reviews is "no
+    // reviews yet", not a zero-star professional.
+    const reviews   = Number.isFinite(Number(pro.reviewCount)) ? Math.max(0, Number(pro.reviewCount)) : 0;
+    const rating    = reviews > 0 && Number.isFinite(Number(pro.rating)) && Number(pro.rating) > 0
+                        ? Number(pro.rating).toFixed(1) : null;
 
     return `
     <div class="sv-pro-card" data-id="${escHtml(pro.id)}">
@@ -309,7 +312,7 @@
     </div>`;
   }
 
-  /* â”€â”€ Main render (called by module script when Firestore data changes) â”€â”€ */
+  /* ── Main render (called by module script when Firestore data changes) ── */
   window.svRender = function(filter) {
     const q    = (filter || '').toLowerCase().trim();
     window._svFilter = q;
@@ -330,7 +333,7 @@
     document.getElementById('count-services').textContent      = (window._svSvcs || []).length;
   };
 
-  /* â”€â”€ Actions (use dynamic import so they work from this non-module script) â”€â”€ */
+  /* ── Actions (use dynamic import so they work from this non-module script) ── */
 
   window.unsavePro = function (id, btn) {
     const card = btn.closest('.sv-pro-card');
@@ -348,7 +351,7 @@
           updatedAt: new Date().toISOString(),
         }).catch(function (err) { console.warn('[saved] unsavePro error:', err); });
       });
-      // Optimistic update â€” subscription will confirm
+      // Optimistic update — subscription will confirm
       window._svPros = newPros;
       window.svRender(window._svFilter);
       showToast('Removed from saved', 'info');
@@ -378,7 +381,7 @@
   };
 
   /* Book a saved professional (I8): carry them straight into the booking flow
-     with the pro pre-selected â€” same contract used from an artisan profile.
+     with the pro pre-selected — same contract used from an artisan profile.
      Routes to book-step1, NOT the generic book-now picker. */
   window.bookPro = function (id) {
     const pro = (window._svPros || []).find(function (p) { return p.id === id; });
@@ -402,7 +405,7 @@
     window.location.href = 'book-request.html';
   };
 
-  /* â”€â”€ Tab switch â”€â”€ */
+  /* ── Tab switch ── */
   window.switchTab = function (panel, btn) {
     document.querySelectorAll('.sv-tabs .ui-tab').forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
     btn.classList.add('active');
@@ -411,7 +414,7 @@
     document.getElementById('panel-' + panel).classList.add('active');
   };
 
-  /* â”€â”€ Search â”€â”€ */
+  /* ── Search ── */
   document.getElementById('sv-search-toggle').addEventListener('click', function () {
     const bar = document.getElementById('sv-search-bar');
     bar.classList.toggle('open');
@@ -426,7 +429,7 @@
     window.svRender(this.value);
   });
 
-  /* â”€â”€ Toast â”€â”€ */
+  /* ── Toast ── */
   function showToast(msg, type) {
     document.querySelector('.toast.app-toast')?.remove();
     const t    = document.createElement('div');
@@ -451,11 +454,11 @@
 })();
 </script>
 
-<!-- â”€â”€ Module script: auth + Firestore real-time subscription â”€â”€ -->
+<!-- ── Module script: auth + Firestore real-time subscription ── -->
 <script type="module" src="js/pages/savedPage.js"></script>
 
-<!-- â”€â”€ Global helpers: called from book-step2.html and other pages â”€â”€
-     These write directly to Firestore so saves persist across sessions. â”€â”€ -->
+<!-- ── Global helpers: called from book-step2.html and other pages ──
+     These write directly to Firestore so saves persist across sessions. ── -->
 <script type="module" src="js/savedHelpers.js"></script>
 <script type="module" src="js/authInit.js"></script>
 </body>

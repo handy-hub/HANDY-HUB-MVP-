@@ -40,6 +40,51 @@
     .job-meta { display: flex; gap: var(--ds-2); flex-wrap: wrap; }
     .job-meta-item { display: flex; align-items: center; gap: 4px; font: 500 11px/1.3 var(--ds-font); color: var(--ds-ink-3); }
     .job-right { display: flex; flex-direction: column; align-items: flex-end; gap: var(--ds-2); flex-shrink: 0; }
+
+    /* ── Job brief: the customer's information, carried to the artisan ────── */
+    .job-muted { color: var(--ds-ink-3); font-style: italic; }
+    .job-phase { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;
+      font: 500 11.5px/1.4 var(--ds-font); color: var(--ds-ink-2);
+      margin: 0 0 var(--ds-3); padding-bottom: var(--ds-3); border-bottom: 1px solid var(--ds-line); }
+    .job-phase-cycle { font: 800 10px/1 var(--ds-font); letter-spacing: .08em; text-transform: uppercase;
+      color: var(--ds-brand-600); background: var(--ds-brand-50); border-radius: var(--ds-r-control); padding: 3px 6px; }
+    .job-brief-block { margin-bottom: var(--ds-3); }
+    .job-brief-label { font: 700 10.5px/1 var(--ds-font); letter-spacing: .07em; text-transform: uppercase;
+      color: var(--ds-ink-3); margin: 0 0 5px; }
+    .job-problem { font: 400 13px/1.5 var(--ds-font); color: var(--ds-ink); margin: 0;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .job-problem.is-open { -webkit-line-clamp: unset; overflow: visible; }
+    .job-address { font: 500 13px/1.45 var(--ds-font); color: var(--ds-ink); margin: 0; overflow-wrap: anywhere; }
+    .job-warn { font: 500 11px/1.4 var(--ds-font); color: #9a6b00; margin: 4px 0 0; }
+    .job-linkbtn { display: inline-block; background: none; border: 1px solid var(--ds-line);
+      border-radius: var(--ds-r-control); padding: 6px 12px; margin-top: 6px;
+      font: 700 12px/1 var(--ds-font); color: var(--ds-brand-600); cursor: pointer; text-decoration: none; }
+    .job-linkbtn--strong { background: var(--ds-brand-600); color: #fff; border-color: var(--ds-brand-600); }
+    .job-brief-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .job-photos { display: flex; gap: 8px; flex-wrap: wrap; }
+    .job-photo { width: 64px; height: 64px; border-radius: var(--ds-r-control); overflow: hidden;
+      border: 1px solid var(--ds-line); padding: 0; background: var(--ds-surface-2, #f4f4f4); cursor: pointer; }
+    .job-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* A broken image must not make the job unusable — the tile degrades to a label. */
+    .job-photo--broken { position: relative; }
+    .job-photo--broken img { display: none; }
+    .job-photo--broken::after { content: 'Photo unavailable'; position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      font: 500 9px/1.2 var(--ds-font); color: var(--ds-ink-3); padding: 4px; }
+    .job-brief-block--pay { background: var(--ds-brand-50); border-radius: var(--ds-r-control); padding: 10px 12px; }
+    .job-pay { font: 800 15px/1.2 var(--ds-font); color: var(--ds-ink); margin: 0;
+      font-variant-numeric: tabular-nums; }
+    .job-pay-cond { font: 700 9.5px/1 var(--ds-font); letter-spacing: .06em; text-transform: uppercase;
+      color: #9a6b00; background: #fff3d6; border-radius: var(--ds-r-control); padding: 3px 5px; vertical-align: middle; }
+    .job-paynote { font: 400 11px/1.45 var(--ds-font); color: var(--ds-ink-2); margin: 4px 0 0; }
+    /* Photo lightbox */
+    .job-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 950;
+      display: none; align-items: center; justify-content: center; padding: 16px; }
+    .job-lightbox.open { display: flex; }
+    .job-lightbox img { max-width: 100%; max-height: 88vh; border-radius: var(--ds-r-control); }
+    .job-lightbox-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px;
+      border-radius: 50%; border: none; background: rgba(255,255,255,.16); color: #fff;
+      font-size: 20px; cursor: pointer; }
     .job-amount { font: 800 15px/1 var(--ds-font); color: var(--ds-ink); font-variant-numeric: tabular-nums; }
     .job-status-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 var(--ds-2); border-radius: var(--ds-r-pill); font: 700 10px/1 var(--ds-font); text-transform: uppercase; letter-spacing: .4px; }
     .pill-pending     { background: var(--ds-brand-50);   color: var(--ds-brand-700); }
@@ -149,6 +194,11 @@
 
 <!-- ── Quote Sheet ────────────────────────────────────────────────────────── -->
 <div id="qs-overlay" class="qs-overlay" onclick="closeQuoteSheet()"></div>
+<div id="job-lightbox" class="job-lightbox" role="dialog" aria-modal="true" aria-label="Customer photo" onclick="closePhoto()">
+  <button type="button" class="job-lightbox-close" aria-label="Close photo">&times;</button>
+  <img id="job-lightbox-img" src="" alt="Photo from the customer" />
+</div>
+
 <div id="qs-sheet" class="qs-sheet" role="dialog" aria-modal="true" aria-label="Submit Job Quote">
   <div class="qs-handle"></div>
   <div class="qs-header">
@@ -201,11 +251,15 @@
 import { getAppContainer }                   from '../shared/js/app/container.js';
 import { createBookingRepository }           from '../shared/js/data/repositories/bookingRepository.js';
 import { describe as describeStatus }        from '../shared/js/domain/bookingStatusMeta.js';
+import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
+                                            from '../shared/js/domain/bookingTruth.js';
 import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
+import { performBookingAction, ACTION }      from '../shared/js/domain/bookingActions.js';
+import { pricingService }                    from '../shared/js/services/pricingService.js';
 import { startPresence, stopPresence }       from '../shared/js/services/presenceService.js';
 import { getFunctions, httpsCallable }
     from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
-import { firebaseApp }
+import { firebaseApp, firebaseFunctions }
     from '../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }
     from '../shared/js/config/appConfig.js';
@@ -237,12 +291,39 @@ let _allJobs         = [];
 let _unsub           = null;
 let _uid             = null;
 let _dbService       = null;
+let _pricingService  = null;
+// Artisan's own position, used ONLY to describe distance to the job. Null until
+// a real fix arrives — distance is then omitted rather than shown as 0.0 km.
+let _autoTabDone = false;   // the auto-focus below runs once, then the artisan is in control
+let _originLat = null;
+let _originLng = null;
+
+// Full problem text is always in the DOM; this only lifts the CSS line clamp.
+window.toggleProblem = function (id, btn) {
+  const el = document.getElementById('prob-' + id);
+  if (!el) return;
+  const open = el.classList.toggle('is-open');
+  btn.textContent = open ? 'Show less' : 'Show more';
+};
+
+window.openPhoto = function (url) {
+  const box = document.getElementById('job-lightbox');
+  const img = document.getElementById('job-lightbox-img');
+  if (!box || !img) return;
+  img.src = url;
+  box.classList.add('open');
+};
+window.closePhoto = function () {
+  const box = document.getElementById('job-lightbox');
+  if (box) { box.classList.remove('open'); document.getElementById('job-lightbox-img').src = ''; }
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closePhoto(); });
 let _quoteBookingId  = null;
 let _needsMaterials  = false;
 
 let _fnInstance = null;
 function _fn() {
-  if (!_fnInstance) _fnInstance = getFunctions(firebaseApp, FUNCTIONS_REGION);
+  if (!_fnInstance) _fnInstance = firebaseFunctions;
   return _fnInstance;
 }
 
@@ -291,10 +372,18 @@ function buildJobCard(b) {
   const isPending = grp === 'upcoming';
   const isActive  = grp === 'ongoing';
 
-  const name    = b.customerName || b.proName || 'Customer';
-  const initials= name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
-  const date    = b.dateDisplay || fmtDate(b.scheduledAt) || fmtDate(b.createdAt) || '—';
-  const amount  = b.jobQuote || b.total || b.price || 0;
+  // ── The information contract ─────────────────────────────────────────────
+  // Everything below already existed on the booking document this page's own
+  // query returns. It was being received and discarded by the renderer.
+  const brief   = resolveJobBrief(b, { originLat: _originLat, originLng: _originLng });
+  const name    = brief.customer.name;
+  const initials= name ? name.split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase() : '·';
+  // createdAt is when the request was RAISED, not when the visit is booked.
+  // Using it as a schedule fallback presented a creation timestamp as an
+  // appointment. If there is no real schedule, say so.
+  const date    = b.dateDisplay || fmtDate(b.scheduledAt) || 'Schedule not set';
+  const comp    = brief.compensation;
+  const distTxt = formatDistance(brief.distanceKm);
 
   let actionsHtml = '';
   if (isPending) {
@@ -350,29 +439,88 @@ function buildJobCard(b) {
     actionsHtml = `<button class="job-btn job-btn-outline" onclick="window.location.href='wallet.html'">View Earnings</button>`;
   }
 
+  // ── Problem description — the single most valuable field in the product ──
+  // Rendered in full into the DOM and clamped to 3 lines by CSS, with a
+  // Show more toggle. Never truncated in the string, so its meaning survives.
+  const problemHtml = brief.problem ? `
+    <div class="job-brief-block">
+      <p class="job-brief-label">What the customer reported</p>
+      <p class="job-problem" id="prob-${esc(b.id)}">${esc(brief.problem)}</p>
+      ${brief.problem.length > 120
+        ? `<button type="button" class="job-linkbtn" onclick="toggleProblem('${esc(b.id)}', this)">Show more</button>` : ''}
+    </div>` : `
+    <div class="job-brief-block">
+      <p class="job-brief-label">What the customer reported</p>
+      <p class="job-problem job-muted">No description provided.</p>
+    </div>`;
+
+  // ── Photos — announced, thumbnailed, viewable BEFORE accepting ───────────
+  const photosHtml = brief.photoCount ? `
+    <div class="job-brief-block">
+      <p class="job-brief-label">${brief.photoCount} photo${brief.photoCount > 1 ? 's' : ''} from the customer</p>
+      <div class="job-photos">
+        ${brief.photos.map((u, i) => `
+          <button type="button" class="job-photo" onclick="openPhoto('${esc(u)}')" aria-label="View photo ${i + 1}">
+            <img src="${esc(u)}" alt="Reported problem, photo ${i + 1}" loading="lazy"
+                 onerror="this.closest('.job-photo').classList.add('job-photo--broken')" />
+          </button>`).join('')}
+      </div>
+    </div>` : '';
+
+  // ── Location + navigation to the CUSTOMER's coordinates ─────────────────
+  const locHtml = brief.location.address || brief.location.hasCoords ? `
+    <div class="job-brief-block">
+      <p class="job-brief-label">Where</p>
+      <p class="job-address">${esc(brief.location.address || 'Address not provided')}</p>
+      ${brief.location.precision === 'address-only'
+        ? `<p class="job-warn">No GPS fix on this booking — navigation searches the address text.</p>` : ''}
+      <div class="job-brief-actions">
+        ${brief.location.mapUrl
+          ? `<a class="job-linkbtn job-linkbtn--strong" href="${esc(brief.location.mapUrl)}" target="_blank" rel="noopener noreferrer">Navigate</a>` : ''}
+        ${brief.customer.phone
+          ? `<a class="job-linkbtn" href="tel:${esc(brief.customer.phone)}">Call ${esc(name || 'customer')}</a>` : ''}
+      </div>
+    </div>` : '';
+
+  // ── Compensation — never "GHS 0" for an unquoted job ────────────────────
+  const compHtml = `
+    <div class="job-brief-block job-brief-block--pay">
+      <p class="job-brief-label">${esc(comp.label)}</p>
+      <p class="job-pay">${comp.amount === null ? 'Not available yet' : esc(formatMoney(comp.amount))}${
+        comp.conditional && comp.amount !== null ? ' <span class="job-pay-cond">conditional</span>' : ''}</p>
+      <p class="job-paynote">${esc(comp.note)}</p>
+    </div>`;
+
   return `
-  <div class="job-card" id="jcard-${esc(b.id)}">
+  <div class="job-card" id="jcard-${esc(b.id)}" data-open="${esc(b.id)}" style="cursor:pointer">
     <div class="job-card-top">
       <div class="job-av">${initials}</div>
       <div class="job-info">
-        <p class="job-service">${esc(b.serviceType || b.service || 'Service Request')}</p>
-        <p class="job-customer">${esc(b.customerName || 'Customer')}</p>
+        <p class="job-service">${esc(brief.service || 'Service Request')}</p>
+        <p class="job-customer">${name ? esc(name) : '<span class="job-muted">Name unavailable</span>'}</p>
         <div class="job-meta">
           <div class="job-meta-item">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/></svg>
             ${esc(date)}
           </div>
-          ${b.address ? `<div class="job-meta-item">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#9CA3AF"/></svg>
-            ${esc(b.address.slice(0, 28))}${b.address.length > 28 ? '…' : ''}
+          ${distTxt ? `<div class="job-meta-item">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            ${esc(distTxt)}
           </div>` : ''}
         </div>
       </div>
       <div class="job-right">
-        <span class="job-amount">GHS ${Number(amount).toFixed(0)}</span>
         <span class="job-status-pill ${pill.cls}">${pill.label}</span>
       </div>
     </div>
+
+    ${brief.cycle ? `<p class="job-phase"><span class="job-phase-cycle">${esc(brief.cycle)}</span>${esc(brief.phaseLabel)} &middot; ${esc(brief.phaseHint)}</p>` : ''}
+
+    ${problemHtml}
+    ${photosHtml}
+    ${locHtml}
+    ${compHtml}
+
     ${actionsHtml ? `<div class="job-actions">${actionsHtml}</div>` : ''}
   </div>`;
 }
@@ -408,6 +556,31 @@ function render(jobs) {
     if (active.length > 0) { badge.textContent = `${active.length} active`; badge.style.display = ''; }
     else { badge.style.display = 'none'; }
   }
+
+  // ── Land the artisan on the tab that actually needs them ────────────────
+  //
+  // The page opened on Pending unconditionally, so an artisan with a live job
+  // and no new requests saw "No pending requests" while a badge in the same
+  // header read "1 active". The work was one tab over and nothing said so.
+  //
+  // Runs once per page load only — after that the artisan's own tab choice
+  // stands, so a background snapshot never yanks the view out from under them.
+  if (!_autoTabDone) {
+    _autoTabDone = true;
+    // A new request is the most time-critical thing an artisan can see (it
+    // expires), so Pending still wins when one exists. Otherwise follow the work.
+    const target = pending.length ? 'pending'
+                 : active.length  ? 'active'
+                 : completed.length ? 'completed'
+                 : 'pending';
+    const idx = { pending: 0, active: 1, completed: 2, cancelled: 3 }[target];
+    const btn = document.querySelectorAll('.jobs-header .ui-tab')[idx];
+    if (btn && !btn.classList.contains('active')) window.switchJobTab(target, btn);
+  }
+
+  // If job.html sent the artisan here to price a specific job, open the
+  // composer on it now that the card exists.
+  openQuoteFromDeepLink();
 }
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
@@ -422,58 +595,76 @@ window.switchJobTab = function(tab, btn) {
   document.getElementById('jp-' + tab)?.classList.add('active');
 };
 
+/* ── Transitions ───────────────────────────────────────────────────────────
+   Every status change on this page goes through performBookingAction(), which
+   re-reads the booking, checks the transition against the state it is ACTUALLY
+   in, routes server-owned transitions to their Cloud Function, and hands back
+   the authoritative result. A booking taken by another surface now produces
+   "This request is no longer available" instead of a silent failed write. */
+async function runTransition(action, bookingId, btn, { busyLabel, okLabel, confirmMsg, removeCard } = {}) {
+  if (confirmMsg && !confirm(confirmMsg)) return;
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = busyLabel || 'Working…'; }
+  try {
+    const res = await performBookingAction(action, {
+      bookingId, actor: 'artisan', uid: _currentArtisan?.uid || _currentArtisan?.id || null,
+      databaseService: _dbService, pricingService: _pricingService,
+      reason: 'Cancelled by artisan',
+    });
+    if (!res.ok) {
+      showToast(res.message);
+      if (btn) { btn.disabled = false; btn.textContent = orig; }
+      return;
+    }
+    showToast(okLabel || 'Updated.');
+    if (removeCard) {
+      const card = document.getElementById(`jcard-${bookingId}`);
+      if (card) { card.style.opacity = '0'; card.style.transition = 'opacity .25s'; setTimeout(() => card.remove(), 260); }
+    }
+  } catch (e) {
+    showToast('That did not go through. Nothing was changed.');
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
 window.acceptJob = async function(bookingId, btn) {
   if (!canAcceptJobs(_currentArtisan)) {
     showToast('Complete your KYC verification before accepting jobs.');
     window.location.href = 'onboarding.html';
     return;
   }
-  if (btn) { btn.disabled = true; btn.textContent = 'Accepting…'; }
-  try {
-    const n = new Date().toISOString();
-    await _dbService.updateDocument('bookings', bookingId, {
-      status:      'accepted',
-      acceptedAt:  n,
-      updatedAt:   n,
-      artisanName: _currentArtisan.name || null,
-    });
-    showToast('Job accepted. Customer notified.');
-    const card = document.getElementById(`jcard-${bookingId}`);
-    if (card) { card.style.opacity = '0'; card.style.transition = 'opacity .25s'; setTimeout(() => card.remove(), 260); }
-  } catch(e) {
-    showToast('Could not accept. Try again.');
-    if (btn) { btn.disabled = false; btn.textContent = 'Accept'; }
-  }
+  await runTransition(ACTION.ACCEPT, bookingId, btn, {
+    busyLabel: 'Accepting…', okLabel: 'Job accepted. Customer notified.', removeCard: true });
 };
 
 window.declineJob = async function(bookingId, btn) {
-  if (!confirm('Decline this job request?')) return;
-  if (btn) { btn.disabled = true; btn.textContent = 'Declining…'; }
-  try {
-    const n = new Date().toISOString();
-    await _dbService.updateDocument('bookings', bookingId, { status: 'rejected', rejectedAt: n, updatedAt: n });
-    showToast('Job declined.');
-    const card = document.getElementById(`jcard-${bookingId}`);
-    if (card) { card.style.opacity = '0'; card.style.transition = 'opacity .25s'; setTimeout(() => card.remove(), 260); }
-  } catch(e) {
-    showToast('Could not decline. Try again.');
-    if (btn) { btn.disabled = false; btn.textContent = 'Decline'; }
-  }
+  await runTransition(ACTION.DECLINE, bookingId, btn, {
+    busyLabel: 'Declining…', okLabel: 'Job declined.',
+    confirmMsg: 'Decline this job request?', removeCard: true });
+};
+
+// The status/field arguments are now advisory only — kept so existing card
+// markup keeps working — and are mapped onto a named action the layer validates.
+const ADVANCE_ACTION = {
+  en_route:    ACTION.EN_ROUTE,
+  in_progress: ACTION.START,
+  awaiting:    ACTION.JOB_DONE,
+  cancelled:   ACTION.CANCEL,
+};
+const ADVANCE_OK = {
+  en_route:    'On your way! Customer notified.',
+  in_progress: 'Job started.',
+  awaiting:    'Marked done. Waiting for the customer to confirm.',
+  cancelled:   'Booking cancelled.',
 };
 
 window.advanceJob = async function(bookingId, nextStatus, timestampField, btn) {
-  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
-  try {
-    const n = new Date().toISOString();
-    const update = { status: nextStatus, updatedAt: n };
-    if (timestampField) update[timestampField] = n;
-    await _dbService.updateDocument('bookings', bookingId, update);
-    showToast('Status updated.');
-  } catch(e) {
-    showToast('Could not update status. Try again.');
-    if (btn) { btn.disabled = false; }
-  }
+  const action = ADVANCE_ACTION[String(nextStatus || '').toLowerCase()];
+  if (!action) { showToast('That action is not available.'); return; }
+  return runTransition(action, bookingId, btn, {
+    busyLabel: 'Updating…', okLabel: ADVANCE_OK[nextStatus] || 'Status updated.' });
 };
+
 
 // ── QUOTE SHEET ───────────────────────────────────────────────────────────────
 window.completeInspectionJob = async function(bookingId, btn) {
@@ -486,6 +677,25 @@ window.completeInspectionJob = async function(bookingId, btn) {
     showToast(e?.message || 'Could not complete inspection. Try again.');
   }
 };
+
+/* job.html owns the job lifecycle, but the quote composer (labour, materials
+   rows, commission preview) still lives here. It sends the artisan over with
+   ?quote=<id> so the sheet opens on the right job rather than making them find
+   it in the list again. REMAINING WORK: extract this sheet into a shared
+   component so job.html can mount it directly. */
+function openQuoteFromDeepLink() {
+  const id = new URLSearchParams(location.search).get('quote');
+  if (!id) return;
+  let tries = 0;
+  const tick = () => {
+    if (document.getElementById(`jcard-${id}`) || tries > 20) {
+      try { window.openQuoteSheet(id); } catch (_) {}
+      return;
+    }
+    tries++; setTimeout(tick, 150);
+  };
+  tick();
+}
 
 window.openQuoteSheet = function(bookingId) {
   _quoteBookingId = bookingId;
@@ -597,10 +807,36 @@ window.submitQuote = async function() {
 };
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+/* ── Opening a single job ──────────────────────────────────────────────────
+   Tapping a card opens THAT job's own screen. Clicks landing on a control
+   inside the card are left alone, so Accept/Decline still work in place.
+
+   artisan-app/bookings.html linked to `jobs.html?id=...` and this page never
+   read the parameter — a tap on a specific booking silently opened an
+   unfiltered list. job.html is that missing screen; the id now travels. */
+document.addEventListener('click', (e) => {
+  if (e.target.closest('button, a, input, select, textarea')) return;
+  const card = e.target.closest('[data-open]');
+  if (!card) return;
+  const id = card.getAttribute('data-open');
+  if (id) window.location.href = `job.html?id=${encodeURIComponent(id)}`;
+});
+
+/* Legacy deep link: bookings.html and older notifications pointed at
+   jobs.html?id=... Forward to the screen that can actually show one booking
+   instead of dropping the id on the floor. */
+(() => {
+  const legacyId = new URLSearchParams(location.search).get('id');
+  if (legacyId) window.location.replace(`job.html?id=${encodeURIComponent(legacyId)}`);
+})();
+
 ['list-pending','list-active','list-completed','list-cancelled'].forEach(showSkeletons);
 
 const { services: { authService, databaseService } } = getAppContainer();
-_dbService = databaseService;
+_dbService      = databaseService;
+// Needed by the transition layer: an inspection-track cancel must settle the
+// callout escrow through its Cloud Function, never a raw status write.
+_pricingService = pricingService;
 
 const bookingRepo = createBookingRepository({ databaseService });
 
@@ -626,10 +862,22 @@ subscribeToArtisanAuthState(async user => {
   // keeps updating while the artisan is on this page advancing job status.
   try {
     const snap = await databaseService.getDocument('artisans', user.uid);
-    if (snap?.exists && snap.data.isAvailable !== false) {
-      startPresence(user.uid, databaseService, true, {
-        onLocationError: err => console.warn('[jobs] GPS:', err.message),
-      });
+    if (snap?.exists) {
+      // Distance origin. Only a REAL stored fix is used; when the artisan has no
+      // position the job card omits distance entirely rather than printing
+      // "0.0 km", which reads as a factual zero.
+      const a  = snap.data || {};
+      const la = Number(a.currentLat ?? a.lat);
+      const ln = Number(a.currentLng ?? a.lng);
+      if (Number.isFinite(la) && Number.isFinite(ln) && !(la === 0 && ln === 0)) {
+        _originLat = la; _originLng = ln;
+        if (_allJobs.length) render(_allJobs);   // repaint with distances
+      }
+      if (a.isAvailable !== false) {
+        startPresence(user.uid, databaseService, true, {
+          onLocationError: err => console.warn('[jobs] GPS:', err.message),
+        });
+      }
     }
   } catch (e) {
     console.warn('[jobs] Could not resume presence:', e);

@@ -1,3 +1,4 @@
+import { firebaseFunctions } from '../../../shared/js/backend/providers/firebase/firebaseConfig.js';
 import '../../../shared/js/utils/global-app.js';
 import { getAppContainer } from '../../../shared/js/app/container.js';
 import { showToast } from '../../../shared/js/components/toast.js';
@@ -85,6 +86,6 @@ async function deleteAccountOnServer() {
         import('../../../shared/js/backend/providers/firebase/firebaseConfig.js'),
         import('../../../shared/js/config/appConfig.js'),
     ]);
-    const fn = httpsCallable(getFunctions(firebaseApp, FUNCTIONS_REGION), 'requestAccountDeletion');
+    const fn = httpsCallable(firebaseFunctions, 'requestAccountDeletion');
     await fn({});
 }

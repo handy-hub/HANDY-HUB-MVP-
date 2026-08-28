@@ -4,90 +4,322 @@
       "target": "customer",
       "public": "build-customer-app",
       "predeploy": "node scripts/stage-hosting.cjs customer-app",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
       "headers": [
         {
           "source": "**/*.@(js|css|woff2|woff|ttf|otf)",
-          "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, must-revalidate"
+            }
+          ]
         },
         {
           "source": "**/*.@(png|jpg|jpeg|gif|webp|svg|ico)",
-          "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400, stale-while-revalidate=604800"
+            }
+          ]
         },
         {
           "source": "**/*.html",
-          "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
         },
         {
           "source": "**",
           "headers": [
-            { "key": "X-Content-Type-Options",  "value": "nosniff" },
-            { "key": "X-Frame-Options",          "value": "DENY" },
-            { "key": "Referrer-Policy",          "value": "strict-origin-when-cross-origin" }
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            }
           ]
         }
       ],
       "redirects": [
-        { "source": "/", "destination": "/customer-app/index.html", "type": 302 }
+        {
+          "source": "/",
+          "destination": "/customer-app/index.html",
+          "type": 302
+        }
       ],
       "rewrites": [
-        { "source": "/dashboard",     "destination": "/customer-app/dashboard.html" },
-        { "source": "/login",         "destination": "/customer-app/login.html" },
-        { "source": "/signup",        "destination": "/customer-app/signup.html" },
-        { "source": "/booking",       "destination": "/customer-app/booking.html" },
-        { "source": "/profile",       "destination": "/customer-app/profile.html" },
-        { "source": "/messages",      "destination": "/customer-app/messages.html" },
-        { "source": "/settings",      "destination": "/customer-app/settings.html" },
-        { "source": "/topup",         "destination": "/customer-app/topup.html" },
-        { "source": "/saved",         "destination": "/customer-app/saved.html" },
-        { "source": "/notifications", "destination": "/customer-app/notification.html" },
-        { "source": "/professionals", "destination": "/customer-app/professionals.html" },
-        { "source": "/services",      "destination": "/customer-app/book-request.html" },
-        { "source": "/book",          "destination": "/customer-app/book-request.html" },
-        { "source": "/emergency",     "destination": "/customer-app/book-emergency.html" },
-        { "source": "**",             "destination": "/customer-app/login.html" }
+        {
+          "source": "/dashboard",
+          "destination": "/customer-app/dashboard.html"
+        },
+        {
+          "source": "/login",
+          "destination": "/customer-app/login.html"
+        },
+        {
+          "source": "/signup",
+          "destination": "/customer-app/signup.html"
+        },
+        {
+          "source": "/booking",
+          "destination": "/customer-app/booking.html"
+        },
+        {
+          "source": "/profile",
+          "destination": "/customer-app/profile.html"
+        },
+        {
+          "source": "/messages",
+          "destination": "/customer-app/messages.html"
+        },
+        {
+          "source": "/settings",
+          "destination": "/customer-app/settings.html"
+        },
+        {
+          "source": "/topup",
+          "destination": "/customer-app/topup.html"
+        },
+        {
+          "source": "/saved",
+          "destination": "/customer-app/saved.html"
+        },
+        {
+          "source": "/notifications",
+          "destination": "/customer-app/notification.html"
+        },
+        {
+          "source": "/professionals",
+          "destination": "/customer-app/professionals.html"
+        },
+        {
+          "source": "/services",
+          "destination": "/customer-app/book-request.html"
+        },
+        {
+          "source": "/book",
+          "destination": "/customer-app/book-request.html"
+        },
+        {
+          "source": "/emergency",
+          "destination": "/customer-app/book-emergency.html"
+        },
+        {
+          "source": "**",
+          "destination": "/customer-app/login.html"
+        }
       ]
     },
     {
       "target": "artisan",
       "public": "build-artisan-app",
       "predeploy": "node scripts/stage-hosting.cjs artisan-app",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
       "headers": [
         {
           "source": "**/*.@(js|css|woff2|woff|ttf|otf)",
-          "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, must-revalidate"
+            }
+          ]
         },
         {
           "source": "**/*.@(png|jpg|jpeg|gif|webp|svg|ico)",
-          "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400, stale-while-revalidate=604800"
+            }
+          ]
         },
         {
           "source": "**/*.html",
-          "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
         },
         {
           "source": "**",
           "headers": [
-            { "key": "X-Content-Type-Options",  "value": "nosniff" },
-            { "key": "X-Frame-Options",          "value": "DENY" },
-            { "key": "Referrer-Policy",          "value": "strict-origin-when-cross-origin" }
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            }
           ]
         }
       ],
       "redirects": [
-        { "source": "/", "destination": "/artisan-app/index.html", "type": 302 }
+        {
+          "source": "/",
+          "destination": "/artisan-app/index.html",
+          "type": 302
+        }
       ],
       "rewrites": [
-        { "source": "/dashboard", "destination": "/artisan-app/dashboard.html" },
-        { "source": "/login",     "destination": "/artisan-app/login.html" },
-        { "source": "/signup",    "destination": "/artisan-app/signup.html" },
-        { "source": "/jobs",      "destination": "/artisan-app/jobs.html" },
-        { "source": "/wallet",    "destination": "/artisan-app/wallet.html" },
-        { "source": "/bookings",  "destination": "/artisan-app/bookings.html" },
-        { "source": "/profile",   "destination": "/artisan-app/profile.html" },
-        { "source": "/settings",  "destination": "/artisan-app/settings.html" },
-        { "source": "**",         "destination": "/artisan-app/login.html" }
+        {
+          "source": "/dashboard",
+          "destination": "/artisan-app/dashboard.html"
+        },
+        {
+          "source": "/login",
+          "destination": "/artisan-app/login.html"
+        },
+        {
+          "source": "/signup",
+          "destination": "/artisan-app/signup.html"
+        },
+        {
+          "source": "/jobs",
+          "destination": "/artisan-app/jobs.html"
+        },
+        {
+          "source": "/wallet",
+          "destination": "/artisan-app/wallet.html"
+        },
+        {
+          "source": "/bookings",
+          "destination": "/artisan-app/bookings.html"
+        },
+        {
+          "source": "/profile",
+          "destination": "/artisan-app/profile.html"
+        },
+        {
+          "source": "/settings",
+          "destination": "/artisan-app/settings.html"
+        },
+        {
+          "source": "**",
+          "destination": "/artisan-app/login.html"
+        }
+      ]
+    },
+    {
+      "target": "admin",
+      "public": "build-admin-dashboard",
+      "predeploy": "node scripts/stage-hosting.cjs admin-dashboard",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "**/*.@(js|css|woff2|woff|ttf|otf)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow, noarchive"
+            }
+          ]
+        }
+      ],
+      "redirects": [
+        {
+          "source": "/",
+          "destination": "/admin-dashboard/index.html",
+          "type": 302
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "/login",
+          "destination": "/admin-dashboard/login.html"
+        },
+        {
+          "source": "/artisans",
+          "destination": "/admin-dashboard/artisans.html"
+        },
+        {
+          "source": "/bookings",
+          "destination": "/admin-dashboard/bookings.html"
+        },
+        {
+          "source": "/customers",
+          "destination": "/admin-dashboard/customers.html"
+        },
+        {
+          "source": "/disputes",
+          "destination": "/admin-dashboard/disputes.html"
+        },
+        {
+          "source": "/finance",
+          "destination": "/admin-dashboard/finance.html"
+        },
+        {
+          "source": "/verifications",
+          "destination": "/admin-dashboard/verifications.html"
+        },
+        {
+          "source": "/promotions",
+          "destination": "/admin-dashboard/promotions.html"
+        },
+        {
+          "source": "**",
+          "destination": "/admin-dashboard/login.html"
+        }
       ]
     }
   ],
@@ -103,5 +335,21 @@
   },
   "functions": {
     "source": "functions"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": true,
+    "functions": {
+      "port": 5001
+    }
   }
 }

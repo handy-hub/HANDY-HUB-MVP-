@@ -209,9 +209,10 @@
       proPhone:    pro.phone   || null,
       proRating:   pro.rating  || null,
       proId:       pro.id      || null,
-      dateDisplay: now.toLocaleDateString('en-GH', { weekday:'short', day:'numeric', month:'short', year:'numeric' }),
-      date:        now.toISOString().slice(0, 10),
-      time:        now.toLocaleTimeString('en-GH', { hour:'2-digit', minute:'2-digit' }),
+      // Deliberately no dateDisplay/date/time: this is the EMERGENCY creator and
+      // no appointment was ever agreed. These fields previously carried the
+      // moment of creation, which every consumer rendered as a booked slot.
+      requestedAt: now.toISOString(),
       total:       opts.total  || 0,
       payment:     'Pay on completion',
       status:      STATUS.EMERGENCY,

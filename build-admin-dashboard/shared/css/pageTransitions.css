@@ -1,0 +1,44 @@
+:root {
+    --transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html, body {
+    overflow-x: hidden;
+}
+
+body.page-slide-in-right {
+    animation: pageSlideInRight 0.24s var(--transition-ease) forwards;
+}
+
+body.page-slide-in-left {
+    animation: pageSlideInLeft 0.24s var(--transition-ease) forwards;
+}
+
+@keyframes pageSlideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0.96;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.page-slide-in-right,
+    body.page-slide-in-left {
+        animation: none !important;
+    }
+}
+
+@keyframes pageSlideInLeft {
+    from {
+        transform: translateX(-100%);
+        opacity: 0.96;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

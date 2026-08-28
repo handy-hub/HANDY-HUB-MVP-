@@ -93,10 +93,24 @@ const onBookingReviewed = onDocumentUpdated(
                     return;
                 }
 
-                const { rating = 0, reviewCount = 0 } = artisanSnap.data();
-                const nextCount  = reviewCount + 1;
-                const rawAvg     = ((rating * reviewCount) + newScore) / nextCount;
+                // Existing artisan documents carry `reviewCount: null` — the field
+                // was never initialised at signup. A destructuring default only
+                // applies to `undefined`, NOT to `null`, so `reviewCount = 0`
+                // silently did not apply and the arithmetic survived only because
+                // JS coerces null to 0. Normalise explicitly: a NaN here would
+                // write NaN into a public rating.
+                const a        = artisanSnap.data();
+                const prevCount  = Number.isFinite(Number(a.reviewCount)) ? Math.max(0, Number(a.reviewCount)) : 0;
+                const prevRating = Number.isFinite(Number(a.rating))      ? Math.max(0, Number(a.rating))      : 0;
+
+                const nextCount  = prevCount + 1;
+                const rawAvg     = ((prevRating * prevCount) + newScore) / nextCount;
                 const nextRating = Math.round(rawAvg * 10) / 10;  // 1 decimal place
+
+                if (!Number.isFinite(nextRating)) {
+                    console.error(`[reviews] Refusing to write non-finite rating for artisan=${artisanId}`);
+                    return;
+                }
 
                 txn.update(artisanRef, {
                     rating:      nextRating,

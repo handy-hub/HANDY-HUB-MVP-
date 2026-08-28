@@ -731,8 +731,10 @@ body {
 
 <script type="module">
 import { getAppContainer } from '../shared/js/app/container.js';
-import { getFunctions, httpsCallable }
+import { httpsCallable }
     from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+import { firebaseFunctions }
+    from '../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 
 const FUNCTIONS_REGION = 'europe-west1';
@@ -860,7 +862,7 @@ form.addEventListener('submit', async (e) => {
         };
 
         if (REQUIRE_EMAIL_OTP) {
-            const fn = httpsCallable(getFunctions(getApp(), FUNCTIONS_REGION), 'requestSignupOtp');
+            const fn = httpsCallable(firebaseFunctions, 'requestSignupOtp');
             const result = await fn({ appType: 'artisan', payload });
 
             // Store session in sessionStorage only — never localStorage
@@ -879,7 +881,7 @@ form.addEventListener('submit', async (e) => {
         // Direct signup — no verification code. The server builds the artisan
         // profile with the same routine the OTP path uses, so the account is
         // identical apart from the email being unverified.
-        const fn = httpsCallable(getFunctions(getApp(), FUNCTIONS_REGION), 'signUpArtisanDirect');
+        const fn = httpsCallable(firebaseFunctions, 'signUpArtisanDirect');
         await fn({ payload });
 
         sessionStorage.removeItem(SESSION_KEY);

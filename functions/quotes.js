@@ -47,6 +47,39 @@ function db() {
 const fmt = (n) => parseFloat(Number(n).toFixed(2));
 
 // ─────────────────────────────────────────────────────────────────────────────
+// computeQuoteSettlement — THE settlement formula. One definition, two callers.
+//
+// submitJobQuote writes the result as a PREVIEW so the customer's approval
+// screen can state the real additional amount due without doing arithmetic of
+// its own; approveJobQuote recomputes it at the moment money actually moves and
+// writes the settled values. Both go through here, so the number the customer
+// approves is the number that is charged — previously the client rendered the
+// gross quote as the amount payable while the ledger correctly charged the
+// difference, and the two disagreed by the whole value of the callout credit.
+//
+// Pure and side-effect free so the same function can be unit-tested directly.
+// ─────────────────────────────────────────────────────────────────────────────
+function computeQuoteSettlement(booking, jobQuoteOverride) {
+    const jobQuote = fmt(Number(
+        jobQuoteOverride !== undefined ? jobQuoteOverride : (booking.jobQuote || 0),
+    ));
+
+    const isInspection = booking.track === 'inspection';
+
+    // The callout fee is only a credit once it has actually been paid. An
+    // unpaid callout must never reduce what the customer owes.
+    const calloutCredit = (isInspection && booking.calloutPaid)
+        ? fmt(Number(booking.calloutFee || 0))
+        : 0;
+
+    // The credit can cover the quote entirely, but never produces a negative
+    // charge — surplus credit is not refunded here, it is simply not re-charged.
+    const amountDue = fmt(Math.max(jobQuote - calloutCredit, 0));
+
+    return { jobQuote, calloutCredit, amountDue };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // submitJobQuote
 //
 // Called by: artisan app
@@ -107,6 +140,12 @@ async function submitJobQuote(auth, { bookingId, labourCost, materials = [], not
     const artisanEarns   = fmt(jobQuote * (1 - COMMISSION_RATE));
     const platformFee    = fmt(jobQuote * COMMISSION_RATE);
 
+    // Settlement preview, computed server-side from the SAME formula approval
+    // will use. The customer's approval screen renders these verbatim; it must
+    // never derive "amount due" from calloutFee/calloutPaid itself, or a second
+    // source of truth is born.
+    const preview = computeQuoteSettlement(preBooking, jobQuote);
+
     // ── Claim <quotableFrom> → quoted atomically with the quote payload (F4) ──
     // Serializes a double-submit and a submit racing a customer cancel: whoever
     // claims first moves the booking to 'quoted'; the loser aborts.
@@ -127,6 +166,9 @@ async function submitJobQuote(auth, { bookingId, labourCost, materials = [], not
             commissionRate:      COMMISSION_RATE,   // locked at quote time
             artisanEarns,
             platformFee,
+            // Authoritative preview of what approval will actually charge.
+            calloutCreditPreview: preview.calloutCredit,
+            amountDuePreview:     preview.amountDue,
             quoteSubmittedAt:    new Date().toISOString(),
         },
     });
@@ -182,11 +224,11 @@ async function approveJobQuote(auth, { bookingId }) {
         }
     }
 
-    const isInspection  = preBooking.track === 'inspection';
-    const calloutCredit = (isInspection && preBooking.calloutPaid)
-        ? fmt(Number(preBooking.calloutFee || 0))
-        : 0;
-    const escrowAmount  = fmt(Math.max(jobQuote - calloutCredit, 0));
+    // Same formula the quote-submit preview used, so what the customer approved
+    // on screen is exactly what moves here.
+    const settlement    = computeQuoteSettlement(preBooking, jobQuote);
+    const calloutCredit = settlement.calloutCredit;
+    const escrowAmount  = settlement.amountDue;
 
     // ── Claim quoted → accepted atomically BEFORE moving money (F4) ───────────
     // This is the compare-and-set that serializes a concurrent approve/reject
@@ -349,4 +391,8 @@ async function rejectJobQuote(auth, { bookingId, reason = '' }) {
     return { success: true, final: false };
 }
 
-module.exports = { submitJobQuote, approveJobQuote, rejectJobQuote };
+// computeQuoteSettlement is exported for the regression suite: the settlement
+// formula is the one piece of arithmetic the customer's approval screen and the
+// ledger must agree on, so it is tested directly rather than only through a
+// deployed callable.
+module.exports = { submitJobQuote, approveJobQuote, rejectJobQuote, computeQuoteSettlement };

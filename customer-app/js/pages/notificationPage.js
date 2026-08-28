@@ -6,6 +6,7 @@
     deleteNotification,
 } from "../../../shared/js/services/notificationRepository.js";
 import { getAppContainer } from "../../../shared/js/app/container.js";
+import { notificationHref } from "../../../shared/js/domain/bookingRouter.js";
 import { wireSwipeAction, createUndoToast } from "../../../shared/js/components/swipeAction.js";
 
 // ─── Icon map ───────────────────────────────────────────────────────────────
@@ -378,7 +379,16 @@ async function handleCardClick(id) {
         }
     }
 
-    if (notif.actionUrl) window.location.href = notif.actionUrl;
+    // Resolve where this notification actually goes. A booking notification
+    // knows its bookingId — routing it to the generic list and making the
+    // customer find the booking again is the single most common dead-end in the
+    // app. bookingHref() sends them to the screen that can act on it.
+    const href = await notificationHref(notif, async (bookingId) => {
+        const { services: { databaseService } } = getAppContainer();
+        return databaseService.getDocument('bookings', bookingId);
+    });
+
+    if (href) window.location.href = href;
 }
 
 // ─── Loading / error states ───────────────────────────────────────────────────

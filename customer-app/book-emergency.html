@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Emergency Booking | HandyHub</title>
 
-  <!-- Leaflet â€” no SRI hash so the library loads reliably across CDN versions -->
+  <!-- Leaflet — no SRI hash so the library loads reliably across CDN versions -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,7 +19,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
   <style>
-/* â”€â”€ Reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Reset ───────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
 
@@ -30,7 +30,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* â”€â”€ Shell: full-height, map + sheet stacked â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Shell: full-height, map + sheet stacked ─────────── */
 .em-shell {
   max-width: 430px;
   margin: 0 auto;
@@ -41,7 +41,7 @@ body {
   overflow: hidden;
 }
 
-/* â”€â”€ MAP (fills space above sheet) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── MAP (fills space above sheet) ───────────────────── */
 #em-map {
   flex: 1;
   min-height: 0;
@@ -49,7 +49,7 @@ body {
   background: #e5e0d8;
 }
 
-/* â”€â”€ Map overlay header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Map overlay header ──────────────────────────────── */
 .em-map-hdr {
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -92,7 +92,7 @@ body {
 
 .em-hdr-end { width: 38px; flex-shrink: 0; }
 
-/* â”€â”€ User location pin (pulsing, brand color) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── User location pin (pulsing, brand color) ────────── */
 .em-user-pin-wrap {
   position: relative;
   width: 44px; height: 44px;
@@ -121,7 +121,7 @@ body {
   100% { opacity: 0;   transform: scale(1.1); }
 }
 
-/* â”€â”€ BOTTOM SHEET â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── BOTTOM SHEET ────────────────────────────────────── */
 .em-sheet {
   flex-shrink: 0;
   height: 56vh;
@@ -145,7 +145,7 @@ body {
   flex-shrink: 0;
 }
 
-/* â”€â”€ Progress strip (inside sheet, minimal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Progress strip (inside sheet, minimal) ──────────── */
 .em-strip {
   display: flex;
   align-items: center;
@@ -184,7 +184,7 @@ body {
 }
 .em-strip-line.done { background: #22c55e; }
 
-/* â”€â”€ Sheet scrollable content area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Sheet scrollable content area ──────────────────── */
 .em-sheet-scroll {
   flex: 1;
   overflow-y: auto;
@@ -194,11 +194,11 @@ body {
   flex-direction: column;
 }
 
-/* â”€â”€ States (only sheet content changes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── States (only sheet content changes) ─────────────── */
 .em-state { display: none; flex: 1; flex-direction: column; }
 .em-state.active { display: flex; }
 
-/* â”€â”€ Shared: section label â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Shared: section label ───────────────────────────── */
 .em-label {
   font-size: 11px; font-weight: 700;
   color: #aaa;
@@ -207,7 +207,7 @@ body {
   margin-bottom: 8px;
 }
 
-/* â”€â”€ Shared: artisan card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Shared: artisan card ────────────────────────────── */
 .em-artisan-card {
   background: #f9f9f9;
   border: 1px solid #f0f0f0;
@@ -254,7 +254,7 @@ body {
 }
 .em-artisan-eta-lbl { font-size: 10px; color: #aaa; margin-top: 2px; }
 
-/* â”€â”€ Shared: skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Shared: skeleton ────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -400px 0; }
   100% { background-position:  400px 0; }
@@ -280,7 +280,7 @@ body {
 .em-skel-num { width: 36px; height: 20px; border-radius: 4px; }
 .em-skel-cap { width: 20px; height: 10px; }
 
-/* â”€â”€ Shared: trust pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Shared: trust pills ─────────────────────────────── */
 .em-trust-row {
   display: flex; gap: 6px; flex-wrap: wrap;
   margin-bottom: 10px;
@@ -295,7 +295,7 @@ body {
 }
 .em-trust-pill.green { background: #f0fdf4; color: #2e7d32; border-color: rgba(34,197,94,0.2); }
 
-/* â”€â”€ Shared: location strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Shared: location strip ──────────────────────────── */
 .em-loc {
   display: flex; align-items: center; gap: 10px;
   background: #f9f9f9;
@@ -320,7 +320,7 @@ body {
 }
 .em-loc-edit { font-size: 12px; font-weight: 700; color: var(--ui-primary); flex-shrink: 0; }
 
-/* â”€â”€ Shared: primary CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Shared: primary CTA ─────────────────────────────── */
 .em-cta {
   width: 100%; height: 52px;
   background: var(--ui-primary); color: #fff;
@@ -350,9 +350,9 @@ body {
 }
 .em-cancel-link:hover { color: #666; }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   STATE 1 â€” SEARCHING
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══════════════════════════════════════════
+   STATE 1 — SEARCHING
+══════════════════════════════════════════ */
 .em-s1-headline {
   font-size: 20px; font-weight: 800; color: #111;
   letter-spacing: -0.3px;
@@ -373,12 +373,12 @@ body {
 @keyframes em-dot-pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 .em-searching-text { font-size: 13px; font-weight: 500; color: var(--ui-faint); }
 
-/* Service chips */
-.em-chips {
+/* Service context tags (read-only indicator, not a filter bar) */
+.em-svc-tags {
   display: flex; flex-wrap: wrap; gap: 7px;
   margin-bottom: 14px;
 }
-.em-chip {
+.em-svc-tag {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 12px;
   border: 1px solid #e8e8e8;
@@ -386,13 +386,13 @@ body {
   background: #fff;
   font-size: 12.5px; font-weight: 600; color: var(--ui-faint);
 }
-.em-chip.active {
+.em-svc-tag.is-selected {
   background: var(--ui-primary); border-color: var(--ui-primary); color: #fff;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   STATE 2 â€” MATCH FOUND
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══════════════════════════════════════════
+   STATE 2 — MATCH FOUND
+══════════════════════════════════════════ */
 .em-match-pill {
   display: inline-flex; align-items: center; gap: 5px;
   background: #f0fdf4; color: #2e7d32;
@@ -408,9 +408,9 @@ body {
 }
 .em-s2-headline em { font-style: normal; color: var(--ui-primary); }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   STATE 3 â€” WAITING
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══════════════════════════════════════════
+   STATE 3 — WAITING
+══════════════════════════════════════════ */
 .em-wait-center {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; text-align: center;
@@ -457,9 +457,9 @@ body {
 .em-wait-status { font-size: 13.5px; color: var(--ui-muted); line-height: 1.55; margin-bottom: 4px; }
 .em-wait-timer { font-size: 12px; color: #bbb; margin-bottom: 14px; }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   STATE 4 â€” CONFIRMED
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══════════════════════════════════════════
+   STATE 4 — CONFIRMED
+══════════════════════════════════════════ */
 .em-con-hero {
   display: flex; align-items: center; gap: 10px;
   background: #f0fdf4;
@@ -562,9 +562,9 @@ body {
   padding: 10px 0 0; text-align: center; flex-shrink: 0;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   STATE 5 â€” NO MATCH
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══════════════════════════════════════════
+   STATE 5 — NO MATCH
+══════════════════════════════════════════ */
 .em-s5-icon {
   width: 60px; height: 60px; border-radius: 50%;
   background: var(--ui-surface-2); border: 1px solid #e8e8e8;
@@ -587,7 +587,7 @@ body {
 <body>
 <div class="em-shell">
 
-  <!-- â”€â”€ Map overlay header (absolute, above the map) â”€â”€ -->
+  <!-- ── Map overlay header (absolute, above the map) ── -->
   <div class="em-map-hdr">
     <button class="em-hdr-back" id="em-hdr-back-btn" onclick="safeBack()" aria-label="Go back">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
@@ -596,16 +596,16 @@ body {
     <div class="em-hdr-end"></div>
   </div>
 
-  <!-- â”€â”€ Leaflet map â”€â”€ -->
+  <!-- ── Leaflet map ── -->
   <div id="em-map"></div>
 
-  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-       BOTTOM SHEET â€” states live here
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  <!-- ══════════════════════════════════════════
+       BOTTOM SHEET — states live here
+  ══════════════════════════════════════════ -->
   <div class="em-sheet">
     <div class="em-sheet-handle"></div>
 
-    <!-- â”€â”€ Progress strip (shared, updated per state) â”€â”€ -->
+    <!-- ── Progress strip (shared, updated per state) ── -->
     <div class="em-strip" id="em-strip">
       <div class="em-step active" id="ps-1">
         <div class="em-step-dot"></div>
@@ -625,30 +625,30 @@ body {
 
     <div class="em-sheet-scroll">
 
-      <!-- â•â•â•â•â•â•â•â•â•â•â•â• STATE 1: SEARCHING â•â•â•â•â•â•â•â•â•â•â•â• -->
+      <!-- ════════════ STATE 1: SEARCHING ════════════ -->
       <div class="em-state active" id="state-searching">
 
         <p class="em-s1-headline" id="em-s1-headline">Finding your professional</p>
         <p class="em-s1-sub">Scanning nearby specialists in real time</p>
 
-        <!-- Service type context chips -->
-        <div class="em-chips" id="em-svc-chips">
-          <div class="em-chip" data-svc="Plumbing">
+        <!-- Service type context tags (read-only) -->
+        <div class="em-svc-tags" id="em-svc-chips" role="list" aria-label="Service requested">
+          <div class="em-svc-tag" role="listitem" data-svc="Plumbing">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.24 2 7 4.24 7 7c0 2.85 2.92 6.21 4.53 8.02.26.3.68.3.94 0C14.08 13.21 17 9.85 17 7c0-2.76-2.24-5-5-5z" stroke="currentColor" stroke-width="2"/></svg>Plumbing
           </div>
-          <div class="em-chip" data-svc="Electrical">
+          <div class="em-svc-tag" role="listitem" data-svc="Electrical">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Electrical
           </div>
-          <div class="em-chip" data-svc="Locksmith">
+          <div class="em-svc-tag" role="listitem" data-svc="Locksmith">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Locksmith
           </div>
-          <div class="em-chip" data-svc="AC Repair">
+          <div class="em-svc-tag" role="listitem" data-svc="AC Repair">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>AC Repair
           </div>
-          <div class="em-chip" data-svc="Carpentry">
+          <div class="em-svc-tag" role="listitem" data-svc="Carpentry">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 4v16M3 8h12M3 16h8M3 4v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Carpentry
           </div>
-          <div class="em-chip" data-svc="Cleaning">
+          <div class="em-svc-tag" role="listitem" data-svc="Cleaning">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="2"/></svg>Cleaning
           </div>
         </div>
@@ -656,7 +656,7 @@ body {
         <!-- Skeleton matching artisan card shape -->
         <div class="em-searching-row">
           <div class="em-searching-dot"></div>
-          <div class="em-searching-text">Scanning nearby professionalsâ€¦</div>
+          <div class="em-searching-text">Scanning nearby professionals…</div>
         </div>
         <div class="em-skel-card">
           <div class="em-skel-av skel"></div>
@@ -683,7 +683,7 @@ body {
       </div>
 
 
-      <!-- â•â•â•â•â•â•â•â•â•â•â•â• STATE 2: MATCH FOUND â•â•â•â•â•â•â•â•â•â•â•â• -->
+      <!-- ════════════ STATE 2: MATCH FOUND ════════════ -->
       <div class="em-state" id="state-matched">
 
         <div class="em-match-pill">
@@ -706,7 +706,7 @@ body {
             <div class="em-artisan-role" id="em-match-role">Specialist</div>
             <div class="em-artisan-stars" id="em-match-stars">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <span>â€”</span>
+              <span>—</span>
             </div>
           </div>
           <div class="em-artisan-eta">
@@ -723,7 +723,7 @@ body {
           </div>
           <div class="em-trust-pill" id="em-trust-jobs">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="#666" stroke-width="1.8" stroke-linecap="round"/></svg>
-            â€” jobs
+            — jobs
           </div>
           <div class="em-trust-pill" id="em-trust-resp">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#666" stroke-width="1.8"/><path d="M12 6v6l4 2" stroke="#666" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -752,7 +752,7 @@ body {
       </div>
 
 
-      <!-- â•â•â•â•â•â•â•â•â•â•â•â• STATE 3: WAITING â•â•â•â•â•â•â•â•â•â•â•â• -->
+      <!-- ════════════ STATE 3: WAITING ════════════ -->
       <div class="em-state" id="state-waiting">
         <div class="em-wait-center">
           <div class="em-wait-av-wrap">
@@ -767,15 +767,15 @@ body {
           <div class="em-wait-name" id="em-wait-name">Professional</div>
           <div class="em-wait-role" id="em-wait-role">Specialist</div>
           <div class="em-wait-status" id="em-wait-status" style="margin-top:10px;">
-            Waiting for the professional to acceptâ€¦
+            Waiting for the professional to accept…
           </div>
-          <div class="em-wait-timer" id="em-wait-timer">Contacting artisanâ€¦</div>
+          <div class="em-wait-timer" id="em-wait-timer">Contacting artisan…</div>
         </div>
         <button class="em-cancel-link" onclick="cancelWaiting()" style="color:#e53e3e;">Cancel request</button>
       </div>
 
 
-      <!-- â•â•â•â•â•â•â•â•â•â•â•â• STATE 4: CONFIRMED â•â•â•â•â•â•â•â•â•â•â•â• -->
+      <!-- ════════════ STATE 4: CONFIRMED ════════════ -->
       <div class="em-state" id="state-confirmed">
 
         <!-- Confirmed banner -->
@@ -830,12 +830,12 @@ body {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#fff" stroke-width="2"/></svg>
             Call
           </button>
-          <button class="em-action-btn em-action-ghost" onclick="window.location.href='messages.html'">
+          <button class="em-action-btn em-action-ghost" onclick="window.location.href='messages.html' + (window._emBookingId ? '?bookingId=' + encodeURIComponent(window._emBookingId) : '')">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             Message
           </button>
         </div>
-        <button class="em-track-btn" onclick="window.location.href='live-tracking.html'">
+        <button class="em-track-btn" onclick="trackThisBooking()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           Track live location
         </button>
@@ -843,7 +843,7 @@ body {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#bbb" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
           <div class="em-ref-body">
             <div class="em-ref-caption">Booking ref</div>
-            <div class="em-ref-val" id="em-book-ref">â€”</div>
+            <div class="em-ref-val" id="em-book-ref">—</div>
           </div>
           <button class="em-share-btn" onclick="shareRef()">Share</button>
         </div>
@@ -851,7 +851,7 @@ body {
       </div>
 
 
-      <!-- â•â•â•â•â•â•â•â•â•â•â•â• STATE 5: NO MATCH â•â•â•â•â•â•â•â•â•â•â•â• -->
+      <!-- ════════════ STATE 5: NO MATCH ════════════ -->
       <div class="em-state" id="state-no-match">
         <div class="em-s5-icon">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#bbb" stroke-width="1.8"/><path d="M12 8v5" stroke="#bbb" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="0.5" fill="#bbb" stroke="#bbb" stroke-width="1.5"/></svg>
@@ -871,7 +871,7 @@ body {
 (function () {
   'use strict';
 
-  /* â”€â”€ Service from sessionStorage â”€â”€ */
+  /* ── Service from sessionStorage ── */
   let svcName = 'Professional';
   const rawSvc = sessionStorage.getItem('em_service') || sessionStorage.getItem('hh_service') || '';
   if (rawSvc) {
@@ -881,7 +881,7 @@ body {
     } catch (_) { svcName = rawSvc; }
   }
 
-  /* â”€â”€ Crypto booking reference â”€â”€ */
+  /* ── Crypto booking reference ── */
   const _now = new Date();
   const _pad = n => String(n).padStart(2, '0');
   let _rnd;
@@ -893,11 +893,11 @@ body {
   }
   const bookRef = `HHB-${String(_now.getFullYear()).slice(2)}${_pad(_now.getMonth()+1)}${_pad(_now.getDate())}-${_pad(_now.getHours())}${_pad(_now.getMinutes())}-${_rnd}`;
 
-  /* â”€â”€ Auth bridge â”€â”€ */
+  /* ── Auth bridge ── */
   let _authResolve;
   const _authReady = new Promise(r => { _authResolve = r; window.__emergencyResolveAuth = r; });
 
-  /* â”€â”€ Dynamic Geospatial Helper Imports â”€â”€ */
+  /* ── Dynamic Geospatial Helper Imports ── */
   let getHaversineDistanceKm = null;
   let estimateEtaMinutes = null;
   import('../shared/js/utils/geo.js')
@@ -907,11 +907,11 @@ body {
     })
     .catch(err => console.warn('[emergency] Failed to load geo helper:', err));
 
-  /* â”€â”€ Location cache â”€â”€ */
+  /* ── Location cache ── */
   let _detectedAddress = '';
   try { const l = JSON.parse(localStorage.getItem('hh_detected_location')||'null'); if (l&&l.loc) _detectedAddress = l.loc; } catch(_){}
 
-  /* â”€â”€ State vars â”€â”€ */
+  /* ── State vars ── */
   let foundArtisan     = null;
   let artisanPhone     = null;
   let artisanQueryDone = false;
@@ -922,7 +922,7 @@ body {
   let _waitingTimerInt = null;
   let _bookingCreated  = false;
 
-  /* â”€â”€ Leaflet map â”€â”€ */
+  /* ── Leaflet map ── */
   let _map, _userMarker, _artisanMarker;
   // TRUE only after a real GPS fix. The marker is created at the Accra default
   // for map framing, so marker position alone cannot tell us whether we know
@@ -990,7 +990,7 @@ body {
     _map.fitBounds([[aLat, aLng], _userMarker.getLatLng()], { padding: [50, 50] });
   }
 
-  /* â”€â”€ Progress strip updater â”€â”€ */
+  /* ── Progress strip updater ── */
   function setProgress(step) {
     // step: 1 = searching, 2 = matched/waiting, 3 = confirmed
     const steps = [
@@ -1015,7 +1015,7 @@ body {
     });
   }
 
-  /* â”€â”€ State machine â”€â”€ */
+  /* ── State machine ── */
   function showState(id) {
     document.querySelectorAll('.em-state').forEach(s => s.classList.remove('active'));
     const el = document.getElementById(id);
@@ -1025,7 +1025,7 @@ body {
     if (scroll) scroll.scrollTop = 0;
   }
 
-  /* â”€â”€ Cleanup â”€â”€ */
+  /* ── Cleanup ── */
   function cleanupSubs() {
     if (_bookingUnsub) { try { _bookingUnsub(); } catch (_) {} _bookingUnsub = null; }
     clearTimeout(_waitingTimeout);
@@ -1033,10 +1033,10 @@ body {
   }
   window.addEventListener('pagehide', cleanupSubs);
 
-  /* â”€â”€ Resolve artisan photo â€” handles Cloudinary (profileImageId) and legacy (profileImage) â”€â”€
+  /* ── Resolve artisan photo — handles Cloudinary (profileImageId) and legacy (profileImage) ──
      TEMPORARY: on-the-fly transform delivery is currently 404-ing on this
      Cloudinary account/plan for every derived request. Falling back to the
-     untransformed original â€” the <img> is styled with object-fit:cover;
+     untransformed original — the <img> is styled with object-fit:cover;
      border-radius:50% inline (see renderAv below), which already does the
      crop/circle client-side. Restore the w_80,h_80,c_fill,f_auto,q_auto,r_max
      transform segment once Cloudinary on-the-fly delivery is confirmed
@@ -1053,7 +1053,7 @@ body {
     return d.profileImage || null;
   }
 
-  /* â”€â”€ Avatar renderer â”€â”€ */
+  /* ── Avatar renderer ── */
   function renderAv(el, d) {
     if (!el) return;
     const photoSrc = _emPhoto(d);
@@ -1066,7 +1066,7 @@ body {
     }
   }
 
-  /* â”€â”€ Init labels â”€â”€ */
+  /* ── Init labels ── */
   const s1HeadEl = document.getElementById('em-s1-headline');
   if (s1HeadEl) s1HeadEl.textContent = `Finding your ${svcName.toLowerCase()}`;
 
@@ -1074,22 +1074,25 @@ body {
   const matchLocEl = document.getElementById('em-match-loc');
   if (matchLocEl) matchLocEl.textContent = _detectedAddress || 'Your current location';
 
-  document.querySelectorAll('.em-chip').forEach(chip => {
-    if ((chip.dataset.svc || '').toLowerCase() === svcName.toLowerCase()) chip.classList.add('active');
+  document.querySelectorAll('.em-svc-tag').forEach(chip => {
+    if ((chip.dataset.svc || '').toLowerCase() === svcName.toLowerCase()) { chip.classList.add('is-selected'); chip.setAttribute('aria-current', 'true'); };
   });
 
-  /* â”€â”€ Populate STATE 2 â”€â”€ */
+  /* ── Populate STATE 2 ── */
   function populateMatchedState(artisan) {
     const d    = artisan ? (artisan.data || {}) : {};
     const name = d.name      || 'Professional';
     const role = d.specialty || d.category || svcName;
     const exp  = d.yearsExperience;
-    const rating = d.rating != null ? Number(d.rating).toFixed(1) : null;
-    const revs   = d.reviewCount || 0;
+    // Gate on reviewCount: rating:0 with no reviews means "no reviews yet",
+    // not a zero-star professional (see resolveRating in bookingTruth.js).
+    const revs   = Number.isFinite(Number(d.reviewCount)) ? Math.max(0, Number(d.reviewCount)) : 0;
+    const rating = revs > 0 && Number.isFinite(Number(d.rating)) && Number(d.rating) > 0
+                     ? Number(d.rating).toFixed(1) : null;
     const jobs   = d.jobsCompleted;
 
     document.getElementById('em-match-name').textContent = name;
-    document.getElementById('em-match-role').textContent = role + (exp ? ` Â· ${exp} yr exp` : '');
+    document.getElementById('em-match-role').textContent = role + (exp ? ` · ${exp} yr exp` : '');
     document.getElementById('em-match-headline').innerHTML = `Your <em>${role.toLowerCase()}</em><br>is nearby`;
     document.getElementById('em-match-svc').textContent = role.toLowerCase();
 
@@ -1101,7 +1104,7 @@ body {
     renderAv(document.getElementById('em-match-av'), d);
 
     // Calculate distance and ETA dynamically
-    let etaVal = 'â€”';
+    let etaVal = '—';
     const userLatLng = _userMarker ? _userMarker.getLatLng() : { lat: ACC_LAT, lng: ACC_LNG };
     const aLat = d.latitude ?? d.lat;
     const aLng = d.longitude ?? d.lng;
@@ -1133,7 +1136,7 @@ body {
     showArtisanOnMap(artisan);
   }
 
-  /* â”€â”€ Populate STATE 3 â”€â”€ */
+  /* ── Populate STATE 3 ── */
   function populateWaitingState(artisan) {
     const d    = artisan ? (artisan.data || {}) : {};
     const name = d.name || 'Professional';
@@ -1141,18 +1144,21 @@ body {
     document.getElementById('em-wait-name').textContent = name;
     document.getElementById('em-wait-role').textContent = role;
     document.getElementById('em-wait-status').innerHTML =
-      `Waiting for <strong>${name.split(' ')[0]}</strong> to acceptâ€¦`;
+      `Waiting for <strong>${name.split(' ')[0]}</strong> to accept…`;
     renderAv(document.getElementById('em-wait-av'), d);
     showArtisanOnMap(artisan);
   }
 
-  /* â”€â”€ Populate STATE 4 â”€â”€ */
+  /* ── Populate STATE 4 ── */
   function populateConfirmedState(artisan) {
     const d      = artisan ? (artisan.data || {}) : {};
     const name   = d.name     || 'Professional';
     const role   = d.specialty || d.category || svcName;
-    const rating = d.rating != null ? Number(d.rating).toFixed(1) : null;
-    const revs   = d.reviewCount || 0;
+    // Gate on reviewCount: rating:0 with no reviews means "no reviews yet",
+    // not a zero-star professional (see resolveRating in bookingTruth.js).
+    const revs   = Number.isFinite(Number(d.reviewCount)) ? Math.max(0, Number(d.reviewCount)) : 0;
+    const rating = revs > 0 && Number.isFinite(Number(d.rating)) && Number(d.rating) > 0
+                     ? Number(d.rating).toFixed(1) : null;
     artisanPhone = d.phone ? `tel:${d.phone}` : null;
 
     document.getElementById('em-con-name').textContent  = name;
@@ -1179,8 +1185,8 @@ body {
     startEtaCountdown();
     saveEmergencyBookingLocally(artisan);
 
-    // â”€â”€ Escrow: hold funds once artisan has confirmed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    // Emergency bookings have a call-out fee (currently 0 for MVP â€” wire is in
+    // ── Escrow: hold funds once artisan has confirmed ────────────────────────
+    // Emergency bookings have a call-out fee (currently 0 for MVP — wire is in
     // place for when pricing is added). artisanId is required for release.
     const emergencyAmount = parseFloat(d.callOutFee || 0);
     const artisanId = artisan ? artisan.id : null;
@@ -1219,7 +1225,7 @@ body {
     }
   }
 
-  /* â”€â”€ ETA countdown â”€â”€ */
+  /* ── ETA countdown ── */
   function startEtaCountdown() {
     const el = document.getElementById('em-eta-countdown');
     const tick = () => { if (!el) return; el.textContent = `${Math.floor(etaSeconds/60)}:${_pad(etaSeconds%60)}`; };
@@ -1230,17 +1236,21 @@ body {
     }, 1000);
   }
 
-  /* â”€â”€ Save booking locally â”€â”€ */
+  /* ── Save booking locally ── */
   function saveEmergencyBookingLocally(artisan) {
     const d = artisan ? (artisan.data || {}) : {};
     const proName   = d.name || 'Professional';
     const proType   = d.specialty || d.category || svcName;
     const artisanId = artisan ? artisan.id : null;
+    // Published so the header's Message button can name this booking.
+    window._emBookingId = bookRef;
     const record = {
       id: bookRef, service: svcName + ' (Emergency)', proName, proType,
       proPhoto: _emPhoto(d), artisanId,
-      dateDisplay: _now.toDateString(),
-      time: _now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+      // No dateDisplay/time. An emergency booking has no agreed appointment —
+      // stamping today's date here made the artisan's card read as a scheduled
+      // visit the customer never chose. requestedAt is the honest fact.
+      requestedAt: _now.toISOString(),
       total: 0, status: 'pending', type: 'emergency', isEmergency: true, ts: _now.toISOString(),
     };
     try {
@@ -1259,12 +1269,12 @@ body {
     } catch (_) {}
   }
 
-  /* â”€â”€ Create Firestore booking + subscription â”€â”€ */
+  /* ── Create Firestore booking + subscription ── */
   async function createFirestoreBookingAndSubscribe(artisan) {
     if (_bookingCreated) return;
     _bookingCreated = true;
     const btn = document.getElementById('em-cta-btn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Sending requestâ€¦'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending request…'; }
 
     let uid = null, db = null;
     try {
@@ -1314,7 +1324,7 @@ body {
     import('../shared/js/utils/bookingConfirmNotify.js')
       .then(m => m.onBookingConfirmed({
         id: bookRef, service: svcName, proName: d.name || 'Professional',
-        artisanId, dateDisplay: _now.toDateString(),
+        artisanId, requestedAt: _now.toISOString(),
         time: _now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
         total: 0, status: 'pending', type: 'emergency',
         ts: nowISO, eta: '10 min', refCode: bookRef, notes: '', address: _detectedAddress,
@@ -1329,7 +1339,7 @@ body {
     _waitingTimerInt = setInterval(() => {
       elapsed++;
       const t = document.getElementById('em-wait-timer');
-      if (t) t.textContent = `Waiting ${elapsed}sâ€¦`;
+      if (t) t.textContent = `Waiting ${elapsed}s…`;
     }, 1000);
 
     _waitingTimeout = setTimeout(() => { cleanupSubs(); showNoMatchState('timeout'); }, 60000);
@@ -1353,7 +1363,7 @@ body {
     );
   }
 
-  /* â”€â”€ No-match state â”€â”€ */
+  /* ── No-match state ── */
   function showNoMatchState(reason) {
     const t = document.getElementById('em-s5-title');
     const s = document.getElementById('em-s5-sub');
@@ -1377,7 +1387,7 @@ body {
     setProgress(1);
   }
 
-  /* â”€â”€ Artisan query â”€â”€ */
+  /* ── Artisan query ── */
   function findNearestArtisan() {
     return import('../shared/js/app/container.js')
       .then(mod => {
@@ -1434,13 +1444,13 @@ body {
     setProgress(2);
   }
 
-  /* â”€â”€ CTA: user explicitly books â”€â”€ */
+  /* ── CTA: user explicitly books ── */
   window.confirmEmergencyBooking = function () {
     if (!foundArtisan) return;
     createFirestoreBookingAndSubscribe(foundArtisan);
   };
 
-  /* â”€â”€ Launch query + searching animation in parallel â”€â”€ */
+  /* ── Launch query + searching animation in parallel ── */
   findNearestArtisan()
     .then(a => { foundArtisan = a; artisanQueryDone = true; })
     .catch(() => { artisanQueryDone = true; });
@@ -1453,7 +1463,7 @@ body {
     setTimeout(() => { clearInterval(poll); if (!artisanQueryDone) { artisanQueryDone = true; proceedAfterQuery(); } }, 8000);
   }, 3500);
 
-  /* â”€â”€ Actions â”€â”€ */
+  /* ── Actions ── */
   window.callPro = function () {
     if (artisanPhone) { window.location.href = artisanPhone; return; }
     const btn = document.getElementById('em-call-btn');
@@ -1468,7 +1478,7 @@ body {
   };
   window.safeBack = window.cancelSearch;
 
-  /* Emergency â†’ standard fallback (fixes the old context-losing loop).
+  /* Emergency → standard fallback (fixes the old context-losing loop).
      Carries the emergency service category into the standard booking flow so
      the customer does NOT have to re-pick everything after a failed match. */
   window.emergencyFallbackToStandard = function () {
@@ -1526,6 +1536,19 @@ body {
     }
   };
 
+  // Track this booking — by name, not by "whatever is most recent".
+  //
+  // The button used to navigate to a bare live-tracking.html, which then chose
+  // its own booking from the customer's live set. An emergency call-out is the
+  // worst possible place to show someone a different job.
+  window.trackThisBooking = function () {
+    const el  = document.getElementById('em-book-ref');
+    const ref = el ? String(el.textContent || '').trim() : '';
+    window.location.href = (ref && ref !== '\u2014')
+      ? 'live-tracking.html?bookingId=' + encodeURIComponent(ref)
+      : 'live-tracking.html';
+  };
+
   window.shareRef = function () {
     const ref = document.getElementById('em-book-ref').textContent;
     if (navigator.share) { navigator.share({ title: 'HandyHub Emergency', text: `Booking ref: ${ref}` }).catch(()=>{}); }
@@ -1537,12 +1560,12 @@ body {
     }
   };
 
-  /* â”€â”€ Init map when DOM is ready â”€â”€ */
+  /* ── Init map when DOM is ready ── */
   function _tryInitMap() {
     if (typeof L !== 'undefined') {
       initMap();
     } else {
-      // Leaflet failed to load â€” show a safe fallback so the booking flow stays usable
+      // Leaflet failed to load — show a safe fallback so the booking flow stays usable
       const mapEl = document.getElementById('em-map');
       if (mapEl) {
         mapEl.style.cssText = 'display:flex;align-items:center;justify-content:center;' +
@@ -1552,7 +1575,7 @@ body {
           '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"' +
           ' fill="#9CA3AF"/><circle cx="12" cy="9" r="2.5" fill="#fff"/></svg>' +
           '<p style="font-size:12px;color:#6B7280;margin:0;text-align:center">' +
-          'Map unavailable â€” your request will still be sent</p>';
+          'Map unavailable — your request will still be sent</p>';
       }
     }
   }

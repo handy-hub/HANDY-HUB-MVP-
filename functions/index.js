@@ -594,6 +594,37 @@ exports.cancelBookingAsAdmin = onCall({ region: FUNCTIONS_REGION, timeoutSeconds
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.onBookingReviewed = reviewsModule.onBookingReviewed;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// REVIEW CORRECTION (admin)
+//
+// `rating`/`ratingProcessed` are server-only and onBookingReviewed refuses to
+// re-aggregate, so there was previously no supported way to remove a review
+// after it was written — a real dispute could only be settled by hand-editing
+// production. These are that path. Both recompute the artisan aggregate from the
+// surviving reviews rather than subtracting, and every reversal is audited.
+// ─────────────────────────────────────────────────────────────────────────────
+const reviewAdmin = require('./reviewAdmin');
+
+/** Remove one review and recompute the artisan's rating.  await fn({ bookingId, reason }); */
+exports.reverseReview = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120 }, async (request) => {
+    _requireAuth(request);
+    try {
+        return await reviewAdmin.reverseReview(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+/** Repair a drifted aggregate without removing a review.  await fn({ artisanId }); */
+exports.recomputeArtisanAggregate = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120 }, async (request) => {
+    _requireAuth(request);
+    try {
+        return await reviewAdmin.recomputeArtisanAggregate(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // DISPATCH ENGINE â€” Uber/Bolt-style sequential artisan matching
 //

@@ -151,16 +151,6 @@
   overflow-x: auto; scrollbar-width: none;
 }
 .bk-cat-row::-webkit-scrollbar { display: none; }
-.bk-cat-tab {
-  padding: 7px 14px; border-radius: var(--ui-radius-lg); font-size: 13px;
-  font-weight: 600; white-space: nowrap; cursor: pointer;
-  border: 1.5px solid var(--bf-border);
-  background: var(--bf-surface); color: var(--bf-text);
-  transition: background .15s, border-color .15s, color .15s;
-}
-.bk-cat-tab.active {
-  background: var(--bf-red); border-color: var(--bf-red); color: #fff;
-}
 
 /* ── Artisan card (step 2) ───────────────────────────────── */
 .bk-pro-card {
@@ -197,16 +187,6 @@
   overflow-x: auto; scrollbar-width: none;
 }
 .bk-schedule-row::-webkit-scrollbar { display: none; }
-.bk-date-chip, .bk-time-chip {
-  padding: 10px 18px; border-radius: var(--bf-radius-sm);
-  border: 1.5px solid var(--bf-border);
-  background: var(--bf-surface); font-size: 13px;
-  font-weight: 600; cursor: pointer; white-space: nowrap;
-  transition: border-color .15s, background .15s;
-}
-.bk-date-chip.active, .bk-time-chip.active {
-  border-color: var(--bf-red); background: var(--bf-red-light); color: var(--bf-red);
-}
 
 /* ── Summary card (step 3 & 4) ──────────────────────────── */
 .bk-summary-card {

@@ -15,9 +15,9 @@
 <body>
 <div class="ms-shell">
 
-  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  <!-- ══════════════════════════════════
        LIST VIEW
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  ══════════════════════════════════ -->
   <div class="ms-list-view" id="ms-list-view">
 
     <!-- Header -->
@@ -40,11 +40,11 @@
           <circle cx="11" cy="11" r="7" stroke="#aaa" stroke-width="2"/>
           <path d="M16.5 16.5L21 21" stroke="#aaa" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <input id="ms-search-input" type="text" placeholder="Search messagesâ€¦" oninput="searchConversations(this.value)" autocomplete="off" />
+        <input id="ms-search-input" type="text" placeholder="Search messages…" oninput="searchConversations(this.value)" autocomplete="off" />
       </div>
     </div>
 
-    <!-- Filter tabs â€” canonical ui-tabs (pill variant) -->
+    <!-- Filter tabs — canonical ui-tabs (pill variant) -->
     <div class="ui-tabs ms-filter-bar" role="tablist">
       <button class="ui-tab active" role="tab" aria-selected="true"  onclick="filterTab('all', this)">All</button>
       <button class="ui-tab"        role="tab" aria-selected="false" onclick="filterTab('unread', this)">Unread</button>
@@ -65,12 +65,25 @@
   </div><!-- end ms-list-view -->
 
 
-  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  <!-- ══════════════════════════════════
        CHAT VIEW
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  ══════════════════════════════════ -->
   <div class="ms-chat-view" id="ms-chat-view">
 
     <!-- Chat header -->
+    <style>
+      .ms-booking-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        margin-left: 8px; padding: 5px 10px;
+        border-radius: 999px; background: var(--ui-surface-2, #F2F4F7);
+        border: 1px solid var(--ui-border, #E2E5EA);
+        font: 600 11.5px/1 var(--ui-font, inherit); color: var(--ui-primary, #730201);
+        text-decoration: none; white-space: nowrap; max-width: 48vw; overflow: hidden;
+        text-overflow: ellipsis; flex-shrink: 0;
+      }
+      .ms-booking-chip[hidden] { display: none; }
+      .ms-booking-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    </style>
     <div class="ms-chat-header">
       <button class="ms-chat-back" onclick="closeChat()" aria-label="Back">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -87,6 +100,10 @@
         <p class="ms-chat-pro-name" id="chat-name">Name</p>
         <p class="ms-chat-pro-status" id="chat-status">Online</p>
       </div>
+      <!-- Which booking this conversation is about RIGHT NOW. Driven by
+           ?bookingId= in the URL, not by the chat document, because one thread
+           serves every job this pair has ever had. -->
+      <a class="ms-booking-chip" id="chat-booking-chip" href="#" hidden></a>
       <div class="ms-chat-actions">
         <button class="ms-icon-btn" aria-label="Call" onclick="callConversation()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -108,7 +125,7 @@
       </button>
       <input type="file" id="ms-attach-input" accept="image/*" style="display:none" onchange="handleAttachmentSelect(event)" />
       <div class="ms-input-wrap">
-        <textarea id="ms-msg-input" rows="1" placeholder="Type a messageâ€¦"
+        <textarea id="ms-msg-input" rows="1" placeholder="Type a message…"
           oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
       </div>
       <button class="ms-send-btn" onclick="sendMessage()" aria-label="Send">
@@ -141,10 +158,57 @@ const TOAST_ICONS = {
   info: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 10V16" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/><path d="M12 7.6V7.65" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>'
 };
 
-/* â”€â”€ State â”€â”€ */
-let CHATS          = [];   // [{ id, data }] â€” live from chatRepository.subscribeByUser
+/* ── State ── */
+let CHATS          = [];   // [{ id, data }] — live from chatRepository.subscribeByUser
 const PARTICIPANT_CACHE = new Map(); // otherUid -> { name, avatarUrl, isOnline }
 let currentChatId  = null;
+
+/* ── Booking context ──────────────────────────────────────────────────────
+   Which booking is this conversation about? The URL says, and only the URL.
+
+   Not the chat document: `directChatId` gives ONE thread per customer-artisan
+   pair, so a pair with two live jobs shares a thread, and the document's
+   `bookingId` latches to whichever came first. Reading it as current context
+   is how booking B's conversation ends up labelled booking A.
+
+   Not sessionStorage either: it does not survive a refresh or a shared link,
+   which is the same reason the review screen stopped using it. */
+const MSG_BOOKING_ID = new URLSearchParams(location.search).get('bookingId') || null;
+let _bookingCtx = null;
+
+async function loadBookingContext() {
+  if (!MSG_BOOKING_ID) return null;
+  try {
+    const { services: { databaseService } } = getAppContainer();
+    const snap = await databaseService.getDocument('bookings', MSG_BOOKING_ID);
+    if (!snap?.exists) return null;              // denied or gone: show nothing
+    return { id: MSG_BOOKING_ID, ...snap.data };
+  } catch (_) {
+    // A read failure must not fabricate a context. No chip is honest; a wrong
+    // chip is not.
+    return null;
+  }
+}
+
+function renderBookingChip() {
+  const el = document.getElementById('chat-booking-chip');
+  if (!el) return;
+  if (!_bookingCtx) { el.hidden = true; return; }
+  const svc = _bookingCtx.serviceType || _bookingCtx.service || _bookingCtx.category || 'this booking';
+  el.innerHTML = '<span class="dot"></span>' + String(svc).replace(/[&<>"]/g,
+    c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  el.title = `About your ${svc} booking — tap to open it`;
+  el.hidden = false;
+  // The chip is a way BACK into the booking, resolved through the one routing
+  // contract so it lands on whatever screen that booking's state calls for.
+  el.onclick = async (e) => {
+    e.preventDefault();
+    try {
+      const { bookingHref } = await import('../shared/js/domain/bookingRouter.js');
+      window.location.href = bookingHref(_bookingCtx);
+    } catch (_) { window.location.href = 'booking.html'; }
+  };
+}
 let currentOtherUid = null;
 let currentFilter  = 'all';
 let unsubChats     = null;
@@ -156,7 +220,7 @@ function otherParticipant(chatData) {
 }
 
 /** Resolve display info (name/avatar/online) for the other participant.
- *  Tries artisanRepository first (the overwhelmingly common case â€” customer
+ *  Tries artisanRepository first (the overwhelmingly common case — customer
  *  messaging an artisan), falls back to customerRepository (artisan-initiated
  *  or support thread edge case), cached per session. */
 async function resolveParticipant(otherUid) {
@@ -176,7 +240,7 @@ async function resolveParticipant(otherUid) {
       PARTICIPANT_CACHE.set(otherUid, info);
       return info;
     }
-  } catch (e) { /* not an artisan â€” fall through */ }
+  } catch (e) { /* not an artisan — fall through */ }
 
   try {
     const c = await customerRepository.getById(otherUid);
@@ -189,7 +253,7 @@ async function resolveParticipant(otherUid) {
         phone: d.phone || null,
       };
     }
-  } catch (e) { /* neither â€” keep default */ }
+  } catch (e) { /* neither — keep default */ }
 
   PARTICIPANT_CACHE.set(otherUid, info);
   return info;
@@ -211,7 +275,7 @@ function gradientFor(otherUid) {
   return GRADIENTS[hash % GRADIENTS.length];
 }
 
-/* â”€â”€ Render conversation list â”€â”€ */
+/* ── Render conversation list ── */
 async function renderList(filter = 'all', searchQuery = '') {
   const list = document.getElementById('ms-conv-list');
 
@@ -270,7 +334,7 @@ async function renderList(filter = 'all', searchQuery = '') {
   }).join('');
 }
 
-/* â”€â”€ Open chat â”€â”€ */
+/* ── Open chat ── */
 window.openChat = async function(chatId) {
   const chat = CHATS.find(c => c.id === chatId);
   if (!chat) return;
@@ -298,6 +362,7 @@ window.openChat = async function(chatId) {
     grad.textContent = initialsOf(info.name);
   }
   document.getElementById('chat-name').textContent = info.name;
+  renderBookingChip();
   const statusEl = document.getElementById('chat-status');
   statusEl.textContent = info.isOnline ? 'Online' : 'Offline';
   statusEl.className = 'ms-chat-pro-status' + (info.isOnline ? '' : ' offline');
@@ -349,7 +414,7 @@ function renderMessages(messages, info) {
   scrollToBottom();
 }
 
-/* â”€â”€ Close chat â”€â”€ */
+/* ── Close chat ── */
 window.closeChat = function() {
   document.getElementById('ms-list-view').classList.remove('slide-out');
   document.getElementById('ms-chat-view').classList.remove('slide-in');
@@ -361,14 +426,14 @@ window.closeChat = function() {
   pendingAttachment = null;
 };
 
-/* â”€â”€ Attachments â”€â”€ */
+/* ── Attachments ── */
 window.handleAttachmentSelect = async function(e) {
   const file = e.target.files?.[0];
   e.target.value = '';
   if (!file || !currentChatId) return;
   try {
-    showToast('Uploading photoâ€¦');
-    // Reuses the 'job' preset â€” the closest semantic match for user-uploaded
+    showToast('Uploading photo…');
+    // Reuses the 'job' preset — the closest semantic match for user-uploaded
     // photos exchanged during an active booking relationship. No dedicated
     // chat-attachment Cloudinary preset exists yet; if attachment volume
     // grows, create 'hh_chat_attachments' in the Cloudinary dashboard and
@@ -388,7 +453,7 @@ window.handleAttachmentSelect = async function(e) {
   }
 };
 
-/* â”€â”€ Send message â”€â”€ */
+/* ── Send message ── */
 window.sendMessage = async function() {
   const input = document.getElementById('ms-msg-input');
   const text = input.value.trim();
@@ -411,7 +476,7 @@ window.sendMessage = async function() {
   }
 };
 
-/* â”€â”€ Filter tabs â”€â”€ */
+/* ── Filter tabs ── */
 window.filterTab = function(tab, btn) {
   currentFilter = tab;
   document.querySelectorAll('.ms-filter-bar .ui-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
@@ -420,12 +485,12 @@ window.filterTab = function(tab, btn) {
   renderList(tab, document.getElementById('ms-search-input').value);
 };
 
-/* â”€â”€ Search â”€â”€ */
+/* ── Search ── */
 window.searchConversations = function(query) {
   renderList(currentFilter, query);
 };
 
-/* â”€â”€ Helpers â”€â”€ */
+/* ── Helpers ── */
 window.callConversation = async function() {
   if (!currentOtherUid) return;
   const info = await resolveParticipant(currentOtherUid);
@@ -501,10 +566,44 @@ function showToast(msg, type = 'info') {
   }, 3000);
 }
 
-/* â”€â”€ Deep-link: opened from artisan-profile.html "Message" button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
- * sessionStorage.hh_msg_artisan = { id, name } â€” get-or-create the real
+/* ── Deep-link: opened from artisan-profile.html "Message" button ──────────
+ * sessionStorage.hh_msg_artisan = { id, name } — get-or-create the real
  * Firestore chat thread with that artisan and open it immediately. */
 async function handleDeepLink() {
+  // A ?bookingId= in the URL is the strongest signal available: it names the
+  // job AND, through the booking document, the artisan to open the thread with.
+  // It outranks the sessionStorage hand-off, which cannot survive a refresh.
+  _bookingCtx = await loadBookingContext();
+
+  // Render the chip NOW, before any attempt to open a thread. The chip
+  // describes the booking named in the URL, which is knowable immediately —
+  // it must not depend on openChat(), which bails early whenever the thread
+  // has not yet arrived through the live subscription. That coupling is why
+  // the context was invisible on a first visit.
+  renderBookingChip();
+
+  if (_bookingCtx) {
+    const artisanFromBooking = _bookingCtx.artisanId || _bookingCtx.currentArtisanId || null;
+    if (artisanFromBooking) {
+      try {
+        const chatId = await chatRepository.getOrCreateDirectChat(uid, artisanFromBooking, {
+          bookingId: MSG_BOOKING_ID,
+        });
+        // Give the live subscription a chance to include the thread; openChat
+        // needs it present locally. If it has not arrived yet the chip still
+        // stands on its own — context does not depend on the thread rendering.
+        for (let i = 0; i < 12 && !CHATS.find(c => c.id === chatId); i++) {
+          await new Promise(r => setTimeout(r, 250));
+        }
+        await openChat(chatId);
+        renderBookingChip();
+        return;
+      } catch (e) {
+        console.warn('[messages] booking-context open failed:', e.message);
+      }
+    }
+  }
+
   const raw = sessionStorage.getItem('hh_msg_artisan');
   if (!raw) return;
   sessionStorage.removeItem('hh_msg_artisan');
@@ -520,7 +619,7 @@ async function handleDeepLink() {
   }
 }
 
-/* â”€â”€ Init â”€â”€ */
+/* ── Init ── */
 unsubChats = chatRepository.subscribeByUser(
   uid,
   (chats) => { CHATS = chats; renderList(currentFilter, document.getElementById('ms-search-input').value); },

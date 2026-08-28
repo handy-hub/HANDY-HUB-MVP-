@@ -380,8 +380,9 @@
   <!-- Body -->
   <div class="rv-body">
 
-    <!-- Receipt -->
-    <div class="rv-receipt">
+    <!-- Receipt — hidden until the booking record resolves, so no partially
+         populated financial document is ever on screen. -->
+    <div class="rv-receipt" id="rv-receipt" hidden>
       <p class="rv-receipt-title">Payment Receipt</p>
       <div class="rv-receipt-row">
         <span class="rv-receipt-label">Booking ID</span>
@@ -395,17 +396,29 @@
         <span class="rv-receipt-label">Date &amp; Time</span>
         <span class="rv-receipt-val" id="rv-date">—</span>
       </div>
+      <!-- Status was previously a hardcoded "Paid" badge in markup — it asserted
+           settlement regardless of what the ledger said. It is now written by
+           the authoritative renderer from the booking's escrow state. -->
       <div class="rv-receipt-row">
         <span class="rv-receipt-label">Status</span>
-        <span class="rv-paid-badge">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/></svg>
-          Paid
-        </span>
+        <span class="rv-receipt-val" id="rv-status">—</span>
       </div>
+      <!-- Itemised breakdown: callout fee, quote, credit and additional amount
+           are distinct facts and are never collapsed into one figure. -->
+      <div id="rv-lines"></div>
       <div class="rv-receipt-row">
-        <span class="rv-receipt-label">Amount Paid</span>
-        <span class="rv-receipt-val rv-total" id="rv-total">GHS —</span>
+        <span class="rv-receipt-label">Total Charged</span>
+        <span class="rv-receipt-val rv-total" id="rv-total">—</span>
       </div>
+    </div>
+
+    <!-- Shown instead of receipt values when the booking cannot be resolved.
+         An unresolved receipt shows nothing; it never invents a figure. -->
+    <div class="rv-receipt" id="rv-unresolved" hidden style="text-align:center">
+      <p class="rv-receipt-title" id="rv-unresolved-title">Loading your receipt…</p>
+      <p style="margin:8px 0 0;font-size:14px;opacity:.75" id="rv-unresolved-msg">
+        Fetching this booking from your account.
+      </p>
     </div>
 
     <!-- Pro card -->
@@ -517,10 +530,120 @@
         if (!bookingId) return;
         await databaseService.updateDocument('bookings', bookingId, fields);
       };
+
+      // ── AUTHORITATIVE RECEIPT ────────────────────────────────────────────
+      // Everything on the receipt is projected from the booking document via
+      // bookingTruth.js. No value is read from localStorage, and no value is
+      // invented: an unresolved figure renders as "—" and an unresolved booking
+      // renders an explicit message instead of a receipt.
+      const T = await import('../shared/js/domain/bookingTruth.js');
+
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) => String(s == null ? '' : s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+      function showUnresolved(title, msg) {
+        const box = $('rv-unresolved');
+        if (box) { box.hidden = false; }
+        if ($('rv-unresolved-title')) $('rv-unresolved-title').textContent = title;
+        if ($('rv-unresolved-msg'))   $('rv-unresolved-msg').textContent   = msg;
+        if ($('rv-receipt')) $('rv-receipt').hidden = true;
+      }
+
+      function renderReceipt(r) {
+        if (!r.resolved) {
+          showUnresolved(
+            'Receipt unavailable',
+            'We could not load this booking. Your payment and rating are unaffected — open it from My Bookings to see the details.',
+          );
+          return;
+        }
+
+        $('rv-unresolved').hidden = true;
+        $('rv-receipt').hidden    = false;
+
+        // Real persisted id — never regenerated from the clock.
+        $('rv-booking-id').textContent = r.bookingId;
+        $('rv-service').textContent    = r.service || '—';
+
+        const when = r.completedAt ? new Date(r.completedAt) : null;
+        $('rv-date').textContent = when && !isNaN(when)
+          ? when.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
+          : '—';
+
+        // Derived from escrow/booking state, not asserted by the markup.
+        $('rv-status').textContent = r.paymentLabel;
+
+        $('rv-lines').innerHTML = r.lines.map(l => `
+          <div class="rv-receipt-row">
+            <span class="rv-receipt-label">${esc(l.label)}</span>
+            <span class="rv-receipt-val">${l.amount < 0 ? '−' : ''}${esc(T.formatMoney(Math.abs(l.amount)))}</span>
+          </div>`).join('');
+
+        // totalCharged is null when any component is unknown — a partially
+        // known total is a false total, so it stays an em-dash.
+        $('rv-total').textContent = T.formatMoney(r.totalCharged);
+
+        const a = r.artisan;
+        $('rv-pro-name').textContent = a.name || (a.isAssigned ? 'Name unavailable' : 'No professional assigned');
+        $('rv-pro-type').textContent = a.trade || r.service || '';
+        const av = $('rv-pro-avatar');
+        const ini = T.initialsOf(a.name);
+        if (a.photo)      av.innerHTML   = `<img src="${esc(a.photo)}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
+        else if (ini)     av.textContent = ini;
+        else              av.textContent = '·';
+      }
+
+      // Booking id arrives as an IDENTIFIER (not as data) from booking.html or
+      // the URL. The record itself is always fetched fresh.
+      const params    = new URLSearchParams(location.search);
+      const bookingId = params.get('bookingId')
+                     || sessionStorage.getItem('hh_review_booking_id');
+      sessionStorage.removeItem('hh_review_booking_id');
+
+      if (!bookingId) {
+        showUnresolved('No booking selected',
+          'Open a completed booking from My Bookings to see its receipt.');
+      } else {
+        // Exposed for submitReview() — the REAL id, so onBookingReviewed
+        // updates the right artisan's rating.
+        window._rvBookingId = bookingId;
+        try {
+          const snap = await databaseService.getDocument('bookings', bookingId);
+          const b    = snap?.exists ? snap.data : null;
+
+          // The job escrow's held/released/refunded state lives on
+          // escrow/{escrowId}, not on the booking — releaseEscrow writes it
+          // there and writes no flag back. Without this document we cannot
+          // honestly say whether the money moved, so we fetch it and let
+          // resolvePaymentState report "Not available" if it is unreachable.
+          // Firestore rules let a party to the escrow read it; nobody can write it.
+          let escrow = null;
+          if (b?.escrowId) {
+            try {
+              const e = await databaseService.getDocument('escrow', b.escrowId);
+              if (e?.exists) escrow = e.data;
+            } catch (e) {
+              console.warn('[review] escrow state unavailable:', e?.message);
+            }
+          }
+          renderReceipt(T.resolveReceipt(b, bookingId, escrow));
+        } catch (err) {
+          console.warn('[review] receipt load failed:', err?.message);
+          showUnresolved('Receipt unavailable',
+            'We could not reach your booking record just now. Nothing about your payment has changed.');
+        }
+      }
     } catch (err) {
-      // Non-fatal — review still saved to localStorage. CF won't fire but that
-      // is acceptable; the artisan rating will be stale until the next review.
-      console.warn('[review] Firestore init failed — review saved locally only:', err?.message);
+      // The receipt cannot be rendered without authoritative data, so say so
+      // rather than falling back to a fabricated one.
+      console.warn('[review] Firestore init failed:', err?.message);
+      const box = document.getElementById('rv-unresolved');
+      if (box) box.hidden = false;
+      const t = document.getElementById('rv-unresolved-title');
+      const m = document.getElementById('rv-unresolved-msg');
+      if (t) t.textContent = 'Receipt unavailable';
+      if (m) m.textContent = 'We could not load your booking record. Your payment is unaffected.';
     }
   })();
 </script>
@@ -529,52 +652,35 @@
   'use strict';
 
   function _bkKey()   { return window.HH_State ? window.HH_State.scopedKey('hh_booking')         : 'hh_booking'; }
-  function _histKey() { return window.HH_State ? window.HH_State.scopedKey('hh_booking_history') : 'hh_booking_history'; }
 
   /* ── Read state ── */
   function getState() {
     try { return JSON.parse(localStorage.getItem(_bkKey()) || '{}'); } catch { return {}; }
   }
 
-  /* ── Populate receipt & pro card ── */
+  /* ── Populate receipt & pro card ──────────────────────────────────────────
+     The receipt is rendered by the AUTHORITATIVE renderer in the module block
+     below (window._rvRenderReceipt), which reads the booking document from
+     Firestore through shared/js/domain/bookingTruth.js.
+
+     This function previously reconstructed the receipt from the legacy
+     `hh_booking_history` localStorage array — which the inspection booking flow
+     never writes — so in production every field fell through to a placeholder:
+     a booking ID built from the current clock, the service string "Service",
+     the professional "Artisan", and a hardcoded numeric fallback that printed
+     GHS 65.00 under a hardcoded "Paid" badge for a GHS 1.00 job.
+
+     Local storage is no longer consulted for any receipt value. It cannot be:
+     a completed financial transaction lives in the booking record, and nowhere
+     else. What remains here is the non-financial pro-card distance hint, which
+     is cosmetic and safe to lose.
+  ─────────────────────────────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
-    const state = getState();
-    const now   = new Date();
-    const pad   = n => String(n).padStart(2, '0');
-    const hist  = JSON.parse(localStorage.getItem(_histKey()) || '[]');
-
-    // Prefer the specific booking passed from booking.html (via sessionStorage ID)
-    const targetId     = sessionStorage.getItem('hh_review_booking_id');
-    if (targetId) sessionStorage.removeItem('hh_review_booking_id');
-    const targetRecord = targetId ? (hist.find(h => String(h.id) === String(targetId)) || null) : null;
-    const last         = targetRecord || hist[0] || {};
-
-    // Expose to submitReview() so it can persist the rating to Firestore.
-    // The onBookingReviewed Cloud Function reads this and atomically updates the artisan's rating.
-    window._rvBookingId = last.id || null;
-
-    const id = last.id || ('HHB-' + String(now.getFullYear()).slice(2) + pad(now.getMonth()+1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()));
-    document.getElementById('rv-booking-id').textContent = id;
-    document.getElementById('rv-service').textContent    = (state.services && state.services[0] && state.services[0].name) || last.service || 'Service';
-    const dateStr = (state.schedule && state.schedule.dateDisplay) || last.dateDisplay || now.toDateString();
-    const timeStr = (state.schedule && state.schedule.time) || last.time || '';
-    document.getElementById('rv-date').textContent = timeStr ? dateStr + ', ' + timeStr : dateStr;
-    document.getElementById('rv-total').textContent = 'GHS ' + ((state.total || last.total || 65) + '.00');
-
-    // Pro card
-    const pro = state.professional || state.artisan || {};
-    const proName = pro.name || last.proName || 'Professional';
-    const proType = pro.type || last.proType || 'Artisan';
-    document.getElementById('rv-pro-name').textContent = proName;
-    document.getElementById('rv-pro-type').textContent = proType;
+    const pro = getState().professional || {};
     if (pro.dist) document.getElementById('rv-pro-dist').textContent = pro.dist + ' away';
-
-    const avatarEl = document.getElementById('rv-pro-avatar');
-    if (pro.photo || last.proPhoto) {
-      avatarEl.innerHTML = `<img src="${pro.photo || last.proPhoto}" alt="${proName}" style="width:100%;height:100%;object-fit:cover;">`;
-    } else {
-      avatarEl.textContent = proName.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
-    }
+    // Name, trade and avatar are set by the authoritative renderer — never from
+    // local state, which is how the professional came to read "Artisan" here
+    // while the tracking screen showed their real name.
   });
 
   /* ── Stars ── */
@@ -643,67 +749,93 @@
   };
 
   /* ── Submit ── */
-  window.submitReview = function () {
+  //
+  // A review is a permanent, public trust signal about a real person. Two things
+  // this handler previously did are therefore not acceptable:
+  //
+  //   1. `rating: currentRating || 5` — submitting with no star selected sent a
+  //      FIVE-STAR review. The product invented a customer's opinion.
+  //   2. The Firestore write was fire-and-forget and the success overlay was
+  //      shown "regardless". A rejected write (rules, offline, already reviewed)
+  //      still told the customer their review was submitted, and the artisan's
+  //      rating silently never moved.
+  //
+  // Now: a star is required, the write is awaited, and success is claimed only
+  // once the backend has accepted it.
+  window.submitReview = async function () {
     const btn = document.getElementById('rv-submit-btn');
+    if (btn.disabled) return;                       // no double-submit
+
+    if (!currentRating) {
+      showReviewError('Choose a star rating first — we will not guess how it went.');
+      document.querySelector('.rv-stars')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!window._rvBookingId) {
+      showReviewError('We could not tell which booking this review is for. Open it from your bookings and try again.');
+      return;
+    }
+
+    clearReviewError();
+    const restore = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="spin"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2" stroke-dasharray="32" stroke-dashoffset="10"/></svg> Submitting…';
 
-    const state = getState();
-    const tags  = [...document.querySelectorAll('.rv-tag.selected')].map(t => t.textContent.trim());
-    const reviewData = {
-      rating   : currentRating || 5,
-      tags     : tags,
-      text     : textarea.value.trim(),
-      tip      : selectedTip,
-      ts       : new Date().toISOString(),
-      proId    : (state.professional || {}).id || null,
-    };
+    const ts = new Date().toISOString();
 
-    // Update last booking record with review
+    // The legacy `hh_booking_history` mirror is deliberately no longer written.
+    // It had no remaining readers once the receipt moved to the booking record,
+    // and stamping status:'Completed' into local storage was exactly the kind of
+    // shadow financial state that let a fabricated receipt look authoritative.
+    // Firestore is the only place a completed booking is recorded.
     try {
-      const hist = JSON.parse(localStorage.getItem(_histKey()) || '[]');
-      if (hist.length) {
-        hist[0].review  = reviewData;
-        hist[0].status  = 'Completed';
-        localStorage.setItem(_histKey(), JSON.stringify(hist));
-      }
-    } catch(_) {}
-
-    // Persist rating to Firestore so the onBookingReviewed Cloud Function can
-    // atomically update the artisan's rolling average rating + reviewCount.
-    // Fire-and-forget — success overlay is shown regardless.
-    if (window._rvBookingId) {
-      window._persistReviewToFirestore?.(window._rvBookingId, {
-        rating:     reviewData.rating,
-        review:     reviewData.text || null,
-        reviewedAt: reviewData.ts,
-        updatedAt:  reviewData.ts,
-      }).catch(err => console.warn('[review] Firestore write failed (local-only fallback):', err?.message));
+      // Field set matches the Firestore review transition exactly
+      // (rating/review/reviewedAt/updatedAt); onBookingReviewed then updates the
+      // artisan aggregate atomically. The write must succeed before we say so.
+      await window._persistReviewToFirestore(window._rvBookingId, {
+        rating:     currentRating,
+        review:     textarea.value.trim() || null,
+        reviewedAt: ts,
+        updatedAt:  ts,
+      });
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = restore;
+      const msg = /already|permission|insufficient/i.test(err?.message || '')
+        ? 'This booking has already been reviewed.'
+        : 'Your review could not be saved. Check your connection and try again.';
+      showReviewError(msg);
+      console.warn('[review] submit failed:', err?.message);
+      return;
     }
 
-    // Clear active booking
-    try { localStorage.removeItem(BK_KEY); } catch(_) {}
+    try { localStorage.removeItem(_bkKey()); } catch(_) {}
 
-    // Show success after short delay and hide it after 3 seconds
-    setTimeout(() => {
-      const overlay = document.getElementById('rv-success-overlay');
-      overlay.classList.add('visible');
-      setTimeout(() => {
-        overlay.classList.remove('visible');
-      }, 3000);
-    }, 800);
+    const overlay = document.getElementById('rv-success-overlay');
+    overlay.classList.add('visible');
+    setTimeout(() => overlay.classList.remove('visible'), 3000);
   };
 
+  function showReviewError(msg) {
+    let el = document.getElementById('rv-error');
+    if (!el) {
+      el = document.createElement('p');
+      el.id = 'rv-error';
+      el.setAttribute('role', 'alert');
+      el.style.cssText = 'margin:10px 16px 0;color:#A3121B;font-size:13px;font-weight:600;text-align:center;';
+      document.getElementById('rv-submit-btn')?.insertAdjacentElement('beforebegin', el);
+    }
+    el.textContent = msg;
+  }
+  function clearReviewError() {
+    const el = document.getElementById('rv-error');
+    if (el) el.textContent = '';
+  }
+
   window.skipReview = function () {
-    // Mark completed even without review
-    try {
-      const hist = JSON.parse(localStorage.getItem(_histKey()) || '[]');
-      if (hist.length && hist[0].status !== 'Completed') {
-        hist[0].status = 'Completed';
-        localStorage.setItem(_histKey(), JSON.stringify(hist));
-      }
-      localStorage.removeItem(BK_KEY);
-    } catch(_) {}
+    // Completion is a backend transition, not a local flag — skipping a review
+    // must not write any status anywhere. Only the draft key is cleared.
+    try { localStorage.removeItem(_bkKey()); } catch(_) {}
     window.location.href = 'booking.html';
   };
 

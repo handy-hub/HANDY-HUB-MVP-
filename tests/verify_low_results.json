@@ -1,8 +1,8 @@
 {
-  "verdict": "LOW ISSUES RESOLVED -- SYSTEM POLISHED",
+  "verdict": "NOT RESOLVED -- LOW SEVERITY ISSUES REMAIN",
   "total": 26,
-  "passed": 26,
-  "failed": 0,
+  "passed": 23,
+  "failed": 3,
   "tests": [
     {
       "id": "L1-T1",
@@ -63,8 +63,8 @@
     {
       "id": "L2-T1",
       "name": "All sampled page titles use HandyHub branding with | separator",
-      "passed": true,
-      "detail": "[]",
+      "passed": false,
+      "detail": "[\"customer-app/book-step1.html: error [Errno 2] No such file or directory: 'customer-app/book-step1.html'\"]",
       "screenshot": ""
     },
     {
@@ -84,8 +84,8 @@
     {
       "id": "L2-T4",
       "name": "Book Step 1 title uses pipe separator",
-      "passed": true,
-      "detail": "Got: 'Book a Service | HandyHub'",
+      "passed": false,
+      "detail": "Got: 'Error response'",
       "screenshot": ""
     },
     {
@@ -104,9 +104,9 @@
     },
     {
       "id": "L3-T3",
-      "name": "Stale history.js comment removed from tracking.html",
-      "passed": true,
-      "detail": "Comment still present",
+      "name": "tracking.html readable",
+      "passed": false,
+      "detail": "[Errno 2] No such file or directory: 'customer-app/tracking.html'",
       "screenshot": ""
     },
     {
@@ -120,7 +120,7 @@
       "id": "L4-T1",
       "name": "package.json has a 'dev' script",
       "passed": true,
-      "detail": "scripts: {'dev': 'npx serve . -p 8766 --no-clipboard', 'start': 'npx serve . -p 8766 --no-clipboard', 'serve:ca': 'npx serve customer-app -p 8765 --no-clipboard', 'test': 'python tests/verify_low_fixes.py'}",
+      "detail": "scripts: {'test:rules': 'firebase emulators:exec --only firestore --project lamax-rules-test \"node tests/firestore-rules.test.mjs\"', 'dev': 'npx serve . -p 8766 --no-clipboard', 'start': 'npx serve . -p 8766 --no-clipboard', 'serve:ca': 'npx serve customer-app -p 8765 --no-clipboard', 'stage': 'node scripts/stage-hosting.cjs customer-app && node scripts/stage-hosting.cjs artisan-app', 'deploy': 'npm run lint:filters && npm run stage && firebase deploy --only hosting', 'deploy:ca': 'npm run lint:filters && node scripts/stage-hosting.cjs customer-app && firebase deploy --only hosting:customer', 'deploy:aa': 'npm run lint:filters && node scripts/stage-hosting.cjs artisan-app && firebase deploy --only hosting:artisan', 'deploy:admin': 'npm run lint:filters && node scripts/stage-hosting.cjs admin-dashboard && firebase deploy --only hosting:admin', 'deploy:rules': 'firebase deploy --only firestore:rules,storage', 'deploy:all': 'npm run lint:filters && npm run stage && firebase deploy', 'lint:filters': 'node scripts/check-filter-tabs.cjs', 'lint:tokens': 'node scripts/design-token-lint.cjs', 'lint:tokens:strict': 'node scripts/design-token-lint.cjs --strict', 'lint:status': 'node scripts/check-status-vocab.cjs', 'lint:instant': 'node scripts/check-instant-ux.cjs', 'lint:syntax': 'node scripts/check-syntax.cjs', 'lint': 'npm run lint:syntax && npm run lint:filters && npm run lint:tokens && npm run lint:status && npm run lint:instant', 'test:settings-overlays': 'node tests/settings-overlay-architecture.test.cjs', 'test:transaction-receipt': 'node tests/transaction-receipt-modal.test.cjs', 'test:topup-charge': 'node tests/topup-charge.test.cjs', 'test:booking-truth': 'node tests/booking-truth.test.cjs', 'test': 'npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:booking-truth && python tests/verify_low_fixes.py'}",
       "screenshot": ""
     },
     {

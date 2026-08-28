@@ -1,0 +1,230 @@
+{
+  "entities": {
+    "Admin": {
+      "title": "Admin",
+      "description": "System administrator with role-based access",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["super_admin", "operations_admin", "finance_admin", "support_admin"] },
+        "status": { "type": "string", "enum": ["active", "suspended", "pending"] },
+        "phone": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "inviteId": { "type": "string" },
+        "userType": { "type": "string", "enum": ["admin"] },
+        "lastLogin": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email", "role", "status", "userType"]
+    },
+    "Artisan": {
+      "title": "Artisan",
+      "description": "Service provider on the platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "category": { "type": "string" },
+        "rating": { "type": "number" },
+        "jobs_completed": { "type": "integer" },
+        "status": { "type": "string", "enum": ["active", "pending", "suspended", "banned"] },
+        "userType": { "type": "string", "enum": ["artisan"] },
+        "earnings": { "type": "number" },
+        "joined": { "type": "string", "format": "date-time" },
+        "region": { "type": "string" },
+        "avatar": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "category", "status", "userType"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "End user of the platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "location": { "type": "string" },
+        "bookings": { "type": "integer" },
+        "spent": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "userType": { "type": "string", "enum": ["customer"] },
+        "joined": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email", "status", "userType"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "Service request or task",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "category": { "type": "string" },
+        "customerId": { "type": "string" },
+        "artisanId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "In Progress", "En Route", "Awaiting Confirmation", "Completed", "Cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "region": { "type": "string" }
+      },
+      "required": ["id", "category", "customerId", "status", "createdAt"]
+    },
+    "Dispute": {
+      "title": "Dispute",
+      "description": "Conflict between customer and artisan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "jobId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "artisanId": { "type": "string" },
+        "amount": { "type": "number" },
+        "reason": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "resolved", "dismissed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "jobId", "customerId", "artisanId", "status", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "Record of system activity",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "adminId": { "type": "string" },
+        "adminName": { "type": "string" },
+        "action": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetType": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "ipAddress": { "type": "string" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] }
+      },
+      "required": ["adminId", "action", "timestamp"]
+    },
+    "Settings": {
+      "title": "Platform Settings",
+      "description": "Global system configuration",
+      "type": "object",
+      "properties": {
+        "commission_rate": { "type": "number" },
+        "auto_release_hours": { "type": "integer" },
+        "call_out_fee": { "type": "number" },
+        "maintenance_mode": { "type": "boolean" },
+        "security": {
+          "type": "object",
+          "properties": {
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "name": { "type": "string" },
+                  "permissions": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Payout": {
+      "title": "Payout",
+      "description": "Artisan payout request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "artisanId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "method": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "processedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["artisanId", "amount", "status", "createdAt"]
+    },
+    "Region": {
+      "title": "Region",
+      "description": "Operational region for the platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "code", "active"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "System or user notification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["success", "info", "warning", "error"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "link": { "type": "string" },
+        "category": { "type": "string", "enum": ["security", "payment", "system", "job"] }
+      },
+      "required": ["userId", "title", "message", "type", "read", "createdAt"]
+    },
+    "AdminChat": {
+      "title": "Admin Chat",
+      "description": "A conversation between administrators",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "lastMessageAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "nicknames": { "type": "object" },
+        "activeCall": { "type": "object" }
+      },
+      "required": ["participants", "updatedAt"]
+    },
+    "AdminMessage": {
+      "title": "Admin Message",
+      "description": "A message within an admin chat",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["chatId", "senderId", "text", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": { "schema": "Admin", "description": "Administrator accounts" },
+    "/artisans/{artisanId}": { "schema": "Artisan", "description": "Artisan profiles" },
+    "/customers/{customerId}": { "schema": "Customer", "description": "Customer profiles" },
+    "/jobs/{jobId}": { "schema": "Job", "description": "Platform jobs" },
+    "/disputes/{disputeId}": { "schema": "Dispute", "description": "Job disputes" },
+    "/audit_logs/{logId}": { "schema": "AuditLog", "description": "System audit trail" },
+    "/settings/platform": { "schema": "Settings", "description": "Global platform settings" },
+    "/regions/{regionId}": { "schema": "Region", "description": "Operational regions" },
+    "/payouts/{payoutId}": { "schema": "Payout", "description": "Artisan payout requests" },
+    "/notifications/{notificationId}": { "schema": "Notification", "description": "User and system notifications" },
+    "/admin_chats/{chatId}": { "schema": "AdminChat", "description": "Admin conversations" },
+    "/admin_chats/{chatId}/messages/{messageId}": { "schema": "AdminMessage", "description": "Messages in admin chats" }
+  }
+}

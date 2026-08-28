@@ -8,23 +8,28 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { getFunctions, httpsCallable }
     from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
-import { firebaseDb, firebaseApp }
+import { firebaseDb, firebaseApp, firebaseFunctions }
     from '../../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }
     from '../../shared/js/config/appConfig.js';
+import { resolveMoney, resolveArtisan, initialsOf, formatMoney, resolveQuoteDecision }
+    from '../../shared/js/domain/bookingTruth.js';
 
 // ── Module state ──────────────────────────────────────────────────────────────
 let _uid      = null;
 let _unsub    = null;
 let _isOpen   = false;
 let _activeId = null;
+// The loaded booking, so the decline sheet can say whether this decline asks
+// for a revision or ends the job.
+let _activeBooking = null;
 let _fnInst   = null;
 
 // bookingIds the user explicitly dismissed this session — won't re-open until refresh
 const _dismissed = new Set();
 
 function _fn() {
-    if (!_fnInst) _fnInst = getFunctions(firebaseApp, FUNCTIONS_REGION);
+    if (!_fnInst) _fnInst = firebaseFunctions;
     return _fnInst;
 }
 
@@ -64,10 +69,10 @@ function _ensureDOM() {
         <div id="hh-qm-rj-overlay" role="presentation" aria-hidden="true">
             <div id="hh-qm-rj-sheet">
                 <span class="hh-qm-rj-drag" aria-hidden="true"></span>
-                <p class="hh-qm-rj-title">Reject this quote?</p>
-                <p class="hh-qm-rj-sub">The artisan will be notified and can send a revised quote.</p>
-                <textarea id="hh-qm-rj-reason" class="hh-qm-rj-ta" placeholder="Optional: reason for rejection…" maxlength="300"></textarea>
-                <button class="hh-qm-rj-confirm" id="hh-qm-rj-confirm">Reject Quote</button>
+                <p class="hh-qm-rj-title" id="hh-qm-rj-title">Ask for a different price?</p>
+                <p class="hh-qm-rj-sub" id="hh-qm-rj-sub"></p>
+                <textarea id="hh-qm-rj-reason" class="hh-qm-rj-ta" placeholder="What would you like changed? (optional)" maxlength="300"></textarea>
+                <button class="hh-qm-rj-confirm" id="hh-qm-rj-confirm">Send back for one revision</button>
                 <button class="hh-qm-rj-cancel"  id="hh-qm-rj-cancel">Cancel</button>
             </div>
         </div>`;
@@ -126,7 +131,8 @@ async function _loadAndRender(bookingId) {
     try {
         const snap = await getDoc(doc(firebaseDb, 'bookings', bookingId));
         if (!snap.exists()) throw new Error('Booking not found.');
-        _renderQuote({ id: bookingId, ...snap.data() });
+        _activeBooking = { id: bookingId, ...snap.data() };
+        _renderQuote(_activeBooking);
     } catch (err) {
         const body = document.getElementById('hh-qm-body');
         if (!body) return;
@@ -138,16 +144,45 @@ async function _loadAndRender(bookingId) {
     }
 }
 
+/**
+ * The approve button must state the amount that will actually leave the wallet.
+ *
+ * Previously this always read "Approve & Pay GHS <gross quote>", so a customer
+ * whose callout fee fully covered the quote was told they owed the full amount
+ * again. A customer with less than that in their wallet would reasonably abandon
+ * a job they in fact owed nothing more for.
+ */
+function _approveLabel(due, dueKnown) {
+    if (!dueKnown)   return 'Approve quote';           // never name an unknown figure
+    if (due === 0)   return 'Approve &mdash; nothing more to pay';
+    return `Approve &amp; Pay ${formatMoney(due)}`;
+}
+
 function _renderQuote(b) {
     const body = document.getElementById('hh-qm-body');
     if (!body) return;
 
-    const name     = b.artisanName || 'Your Artisan';
-    const initials = name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+    // Identity and money both come from the one projection, so this sheet cannot
+    // disagree with the tracking screen, the bookings list or the receipt.
+    const artisan  = resolveArtisan(b);
+    const m        = resolveMoney(b);
+
+    const name     = artisan.name || 'Your professional';
+    const initials = initialsOf(artisan.name) || '·';
     const service  = b.serviceType || b.service || 'Service Job';
-    const labour   = Number(b.labourCost    || 0);
-    const matsCost = Number(b.materialsCost || 0);
-    const total    = Number(b.jobQuote      || labour + matsCost);
+    const labour   = m.labourCost;
+    const matsCost = m.materialsCost;
+    const total    = m.jobQuote;
+
+    // What the customer will ACTUALLY be charged now. Server-computed at quote
+    // submission (amountDuePreview) using the same formula approval applies, so
+    // the button can never promise a different number from the ledger.
+    const credit   = m.calloutCredit;
+    const due      = m.amountDue;
+    // If the server has not supplied a settlement, we do not compute one —
+    // the sheet degrades to "Approve quote" rather than naming a wrong figure.
+    const dueKnown = due !== null;
+
     const hasMats  = b.hasMaterials && Array.isArray(b.materials) && b.materials.length > 0;
 
     const matRows = hasMats
@@ -183,47 +218,74 @@ function _renderQuote(b) {
         <div class="hh-qm-badge"><i class="fa-solid fa-sack-dollar"></i> New quote — review before your artisan heads over</div>
         <div class="hh-qm-card">
             <div class="hh-qm-clbl">Quote Breakdown</div>
-            <div class="hh-qm-row"><span class="hh-qm-rl">Labour</span><span class="hh-qm-rv">GHS ${_fmt(labour)}</span></div>
+            <div class="hh-qm-row"><span class="hh-qm-rl">Labour</span><span class="hh-qm-rv">${formatMoney(labour)}</span></div>
             ${matSection}
             <hr class="hh-qm-div" />
-            <div class="hh-qm-tot"><span class="hh-qm-tl">Total</span><span class="hh-qm-tv">GHS ${_fmt(total)}</span></div>
+            <div class="hh-qm-tot"><span class="hh-qm-tl">Quote total</span><span class="hh-qm-tv">${formatMoney(total)}</span></div>
+            ${credit !== null && credit > 0 ? `
+            <div class="hh-qm-row"><span class="hh-qm-rl">Callout fee already paid</span><span class="hh-qm-rv">− ${formatMoney(credit)}</span></div>
+            <hr class="hh-qm-div" />
+            <div class="hh-qm-tot"><span class="hh-qm-tl">Due now</span><span class="hh-qm-tv">${formatMoney(due)}</span></div>` : ''}
         </div>
         ${noteHTML}
         <div class="hh-qm-escrow">
             <span style="font-size:16px;flex-shrink:0"><i class="fa-solid fa-lock"></i></span>
-            <span>Payment is held in escrow and only released after you confirm the job is complete.</span>
+            <span>${dueKnown && due === 0
+                ? 'Your callout fee covers this quote in full — nothing more will be taken. Funds stay in escrow until you confirm the job is complete.'
+                : 'Payment is held in escrow and only released after you confirm the job is complete.'}</span>
         </div>
-        <button class="hh-qm-approve" id="hh-qm-approve-btn">Approve &amp; Pay GHS ${_fmt(total)}</button>
-        <button class="hh-qm-reject"  id="hh-qm-reject-btn">Reject Quote</button>`;
+        <button class="hh-qm-approve" id="hh-qm-approve-btn">${_approveLabel(due, dueKnown)}</button>
+        <button class="hh-qm-reject"  id="hh-qm-reject-btn">${_esc(resolveQuoteDecision(b).label)}</button>`;
 
     document.getElementById('hh-qm-x-btn').addEventListener('click', _dismiss);
-    document.getElementById('hh-qm-approve-btn').addEventListener('click', () => _approve(b.id, total));
+    document.getElementById('hh-qm-approve-btn').addEventListener('click', () => _approve(b.id, due, dueKnown));
     document.getElementById('hh-qm-reject-btn').addEventListener('click', _openReject);
 }
 
 // ── Approve ───────────────────────────────────────────────────────────────────
-async function _approve(bookingId, total) {
+async function _approve(bookingId, due, dueKnown) {
     const btn = document.getElementById('hh-qm-approve-btn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Securing your payment…'; }
 
     try {
         await httpsCallable(_fn(), 'approveJobQuote')({ bookingId });
+        // Only navigate once the backend has confirmed. The callable is the
+        // authority on whether escrow moved — a resolved promise is the
+        // confirmation, never the click itself.
         _closeModal();
         window.location.href = 'booking.html';
     } catch (err) {
-        _showInlineError(err.message || 'Payment failed. Please try again.');
-        if (btn) { btn.disabled = false; btn.textContent = `Approve & Pay GHS ${Number(total).toFixed(2)}`; }
+        // A failed call is NOT proof that no money moved — the request may have
+        // succeeded with the response lost. approveJobQuote is idempotent via
+        // the quoted→accepted compare-and-set and the _escrow_locks entry, so a
+        // retry is safe; say what we actually know rather than "Payment failed".
+        _showInlineError(err?.message
+            || 'We could not confirm this approval. Check My Bookings before retrying — your money has not been taken twice.');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = _approveLabel(due, dueKnown);
+        }
     }
 }
 
 // ── Reject ────────────────────────────────────────────────────────────────────
 function _openReject() {
+    // Wording follows the single-revision rule: the first decline requests a
+    // revision, the second ends the job. The customer is told which one this is
+    // BEFORE they commit, not after.
+    const d = resolveQuoteDecision(_activeBooking || {});
+    const t = document.getElementById('hh-qm-rj-title');
+    const sub = document.getElementById('hh-qm-rj-sub');
+    const cf = document.getElementById('hh-qm-rj-confirm');
+    if (t)   t.textContent = d.title;
+    if (sub) sub.textContent = d.body;
+    if (cf)  cf.textContent = d.confirm;
     const ta = document.getElementById('hh-qm-rj-reason');
     if (ta) ta.value = '';
     const rj = document.getElementById('hh-qm-rj-overlay');
     if (rj) { rj.setAttribute('aria-hidden', 'false'); rj.classList.add('open'); }
-    const btn = document.getElementById('hh-qm-rj-confirm');
-    if (btn) { btn.disabled = false; btn.textContent = 'Reject Quote'; }
+    // Re-enable without overwriting the state-specific wording set above.
+    if (cf) cf.disabled = false;
 }
 
 function _closeReject() {
@@ -247,7 +309,11 @@ async function _confirmReject() {
     } catch (err) {
         _showInlineError(err.message || 'Could not reject. Try again.');
         _closeReject();
-        if (btn) { btn.disabled = false; btn.textContent = 'Reject Quote'; }
+        // Restore the wording that matches this booking's revision state.
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = resolveQuoteDecision(_activeBooking || {}).confirm;
+        }
     }
 }
 

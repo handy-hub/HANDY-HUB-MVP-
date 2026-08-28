@@ -1,3 +1,4 @@
+import { firebaseFunctions } from '../backend/providers/firebase/firebaseConfig.js';
 /**
  * shared/js/ui/otpVerifyController.js
  *
@@ -31,7 +32,7 @@ const RESEND_COOLDOWN_S = 60;
 
 let _functions = null;
 function getFn() {
-    if (!_functions) _functions = getFunctions(getApp(), FUNCTIONS_REGION);
+    if (!_functions) _functions = firebaseFunctions;
     return _functions;
 }
 

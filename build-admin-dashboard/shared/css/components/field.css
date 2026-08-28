@@ -1,0 +1,202 @@
+/* ============================================================================
+   HandyHub — Canonical Form Field Component  (Phase 2 · Tier A)
+   ----------------------------------------------------------------------------
+   ONE text-field system. Replaces the per-page inputs that each set their own
+   height (50/52/54px), radius (8/12/14px), icon inset, label style, and focus
+   treatment:  .input-group · .input-signup · .search · .ln-input / .ln-label ·
+   .fp-input · .ui-modal-input (modal keeps its own compact variant) …
+   (Those keep working; migrate each to `.ui-field` when its page is touched.)
+
+   ADDITIVE: `.ui-field*` are new classes no current markup uses, so importing
+   this via ui-polish.css changes zero existing pixels.
+
+   Every value reads a design token (ui-polish.css). Input font-size is 16px so
+   iOS never zooms on focus (ui-polish.css also floors inputs at max(16px,1em)).
+
+   Structure:
+     <div class="ui-field">
+       <label class="ui-field-label" for="email">Email</label>
+       <div class="ui-field-control">
+         <svg class="ui-field-icon" …></svg>            <!-- optional leading icon -->
+         <input class="ui-field-input" id="email" type="email" placeholder="…">
+         <button class="ui-field-trail" type="button">…</button>  <!-- optional (eye/clear) -->
+       </div>
+       <p class="ui-field-hint">We'll never share it.</p>          <!-- optional -->
+       <p class="ui-field-error" role="alert" hidden>Enter a valid email.</p>
+     </div>
+
+   Modifiers on `.ui-field`:
+     .ui-field--icon    reserve left room for .ui-field-icon
+     .ui-field--trail   reserve right room for .ui-field-trail
+     .ui-field--filled  quiet grey fill (brightens to white on focus)
+     .has-error         red border + ring, reveals .ui-field-error
+   ============================================================================ */
+
+.ui-field {
+  display: block;
+  margin-bottom: var(--ui-4, 16px);
+}
+.ui-field:last-child { margin-bottom: 0; }
+
+/* ── Label ──────────────────────────────────────────────────────────────── */
+.ui-field-label {
+  display: block;
+  font-family: var(--ui-font, inherit);
+  font-size: var(--ui-text-sub, 13px);
+  font-weight: var(--ui-fw-semibold, 600);
+  color: var(--ui-muted, #666666);
+  margin-bottom: var(--ui-2, 8px);
+  letter-spacing: 0.1px;
+}
+
+/* ── Control (holds icon + input + trailing action) ─────────────────────── */
+.ui-field-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Input ──────────────────────────────────────────────────────────────── */
+.ui-field-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 var(--ui-4, 16px);
+  border: 1.5px solid var(--ui-border-2, #e8e8e8);
+  border-radius: var(--ui-radius-md, 14px);
+  background: var(--ui-surface, #ffffff);
+  font-family: var(--ui-font, inherit);
+  font-size: 16px;                 /* iOS zoom-safe */
+  font-weight: var(--ui-fw-regular, 400);
+  color: var(--ui-text, #111111);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition:
+    background-color var(--ui-dur-fast, 0.15s) var(--ui-ease-emphasis, ease),
+    border-color     var(--ui-dur-fast, 0.15s) var(--ui-ease-emphasis, ease),
+    box-shadow       var(--ui-dur-fast, 0.15s) var(--ui-ease-emphasis, ease);
+}
+
+.ui-field-input::placeholder { color: var(--ui-faint, #888888); }
+
+/* textarea variant — same skin, taller, vertically resizable */
+textarea.ui-field-input {
+  height: auto;
+  min-height: 96px;
+  padding: 12px var(--ui-4, 16px);
+  line-height: var(--ui-lh-base, 1.55);
+  resize: vertical;
+}
+
+/* select variant — same skin */
+select.ui-field-input {
+  padding-right: 40px;   /* room for the native chevron */
+  cursor: pointer;
+}
+
+/* ── Leading icon ───────────────────────────────────────────────────────── */
+.ui-field-icon {
+  position: absolute;
+  left: var(--ui-4, 16px);
+  width: 18px;
+  height: 18px;
+  color: var(--ui-primary, #730201);
+  pointer-events: none;
+  flex-shrink: 0;
+  transition: color var(--ui-dur-fast, 0.15s) var(--ui-ease-emphasis, ease);
+}
+.ui-field--icon .ui-field-input { padding-left: 46px; }
+
+/* ── Trailing action (eye toggle, clear, unit, etc.) ────────────────────── */
+.ui-field-trail {
+  position: absolute;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  color: var(--ui-faint, #888888);
+  border-radius: var(--ui-radius-sm, 10px);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ui-dur-fast, 0.15s) ease, background var(--ui-dur-fast, 0.15s) ease;
+}
+.ui-field-trail > svg { width: 18px; height: 18px; display: block; }
+.ui-field-trail:hover { color: var(--ui-muted, #666); background: var(--ui-surface-2, #f5f5f5); }
+.ui-field-trail:focus-visible { outline: 3px solid var(--ui-primary, #730201); outline-offset: 2px; }
+.ui-field--trail .ui-field-input { padding-right: 48px; }
+
+/* ── Focus ──────────────────────────────────────────────────────────────── */
+.ui-field-control:focus-within .ui-field-input {
+  border-color: var(--ui-primary, #730201);
+  box-shadow: var(--ui-ring, 0 0 0 3.5px rgba(115, 2, 1, 0.14));
+}
+.ui-field-control:focus-within .ui-field-icon { color: var(--ui-primary, #730201); }
+
+/* ── Filled variant (quiet grey → white on focus, the login/auth treatment) ─ */
+.ui-field--filled .ui-field-input {
+  background: var(--ui-surface-2, #f5f5f5);
+  border-color: transparent;
+}
+.ui-field--filled .ui-field-control:focus-within .ui-field-input {
+  background: var(--ui-surface, #ffffff);
+  border-color: var(--ui-primary, #730201);
+}
+
+/* ── Error state ────────────────────────────────────────────────────────── */
+.ui-field.has-error .ui-field-input {
+  border-color: var(--ui-danger, #b22222);
+}
+.ui-field.has-error .ui-field-control:focus-within .ui-field-input {
+  box-shadow: var(--ui-ring-danger, 0 0 0 3.5px rgba(178, 34, 34, 0.14));
+}
+.ui-field.has-error .ui-field-icon { color: var(--ui-danger, #b22222); }
+
+/* ── Hint + error text ──────────────────────────────────────────────────────
+   Reserve a line of vertical space so revealing an error never reflows the
+   form. Consumers toggle [hidden] on .ui-field-error (keep role="alert").    */
+.ui-field-hint,
+.ui-field-error {
+  font-family: var(--ui-font, inherit);
+  font-size: var(--ui-text-label, 12px);
+  line-height: var(--ui-lh-snug, 1.4);
+  margin: var(--ui-1, 4px) 0 0;
+}
+.ui-field-hint  { color: var(--ui-faint, #888888); font-weight: var(--ui-fw-regular, 400); }
+.ui-field-error { color: var(--ui-danger, #b22222); font-weight: var(--ui-fw-semibold, 600); }
+.ui-field-error[hidden] { display: none; }
+
+/* ── Disabled ───────────────────────────────────────────────────────────── */
+.ui-field-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--ui-surface-2, #f5f5f5);
+}
+
+/* ── Dark mode (customer html.dark + artisan [data-theme=dark]) ─────────── */
+[data-theme="dark"] .ui-field-label,
+html.dark .ui-field-label { color: var(--ui-dark-muted, #999999); }
+
+[data-theme="dark"] .ui-field-input,
+html.dark .ui-field-input {
+  background: var(--ui-dark-surface, #1e1e1e);
+  border-color: var(--ui-dark-border, #333333);
+  color: var(--ui-dark-text, #f0f0f0);
+}
+[data-theme="dark"] .ui-field--filled .ui-field-input,
+html.dark .ui-field--filled .ui-field-input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: transparent;
+}
+[data-theme="dark"] .ui-field-input::placeholder,
+html.dark .ui-field-input::placeholder { color: #666; }
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ui-field-input,
+  .ui-field-icon,
+  .ui-field-trail { transition-duration: 0.01ms; }
+}

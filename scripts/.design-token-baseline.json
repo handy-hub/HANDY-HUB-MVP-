@@ -1,9 +1,10 @@
 {
-  "total": 300,
+  "total": 322,
   "byRule": {
-    "radius": 90,
-    "font-size": 124,
-    "shadow": 86
+    "radius": 94,
+    "font-size": 139,
+    "shadow": 87,
+    "neutral-color": 2
   },
-  "updatedAt": "2026-07-09T00:01:41.448Z"
+  "updatedAt": "2026-08-20T17:45:40.056Z"
 }

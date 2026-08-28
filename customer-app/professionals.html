@@ -31,7 +31,7 @@
 <body>
 <div class="bn2-shell">
 
-  <!-- â”€â”€ Header â”€â”€ -->
+  <!-- ── Header ── -->
   <div class="bn2-header">
     <button class="bn2-back-btn" onclick="goBack()" aria-label="Go back">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg>
@@ -42,7 +42,7 @@
     </div>
   </div>
 
-  <!-- â”€â”€ Scrollable body â”€â”€ -->
+  <!-- ── Scrollable body ── -->
   <div class="bn2-scroll">
 
     <!-- Category filter chips (data-driven from the shared catalog) -->
@@ -67,7 +67,7 @@
     <div style="height:90px"></div>
   </div>
 
-  <!-- â”€â”€ Sort bottom sheet (canonical ui-sheet) â”€â”€ -->
+  <!-- ── Sort bottom sheet (canonical ui-sheet) ── -->
   <div class="ui-sheet-overlay" id="pf-sort-overlay" role="presentation">
     <div class="ui-sheet" role="dialog" aria-modal="true" aria-label="Sort professionals">
       <div class="ui-sheet-handle" aria-hidden="true"></div>
@@ -93,11 +93,11 @@
 <script src="../shared/js/components/floatingNav.js"></script>
 
 <script type="module">
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-//  professionals.html â€” Layer 3: professional discovery (browse)
+// ════════════════════════════════════════════════════════════════
+//  professionals.html — Layer 3: professional discovery (browse)
 //  Real Firestore artisans. Routes to profile (evaluate) or booking
 //  (commit, via the professional-first contract). NEVER a dead-end.
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ════════════════════════════════════════════════════════════════
 import { requireAuth } from '../shared/js/utils/authGuard.js';
 import { avatarUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.js';
 import { SERVICE_CATEGORIES, getCategoryById } from '../shared/js/data/serviceCatalog.js';
@@ -118,7 +118,7 @@ const subEl   = document.getElementById('pf-sub');
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-/* â”€â”€ Category chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Category chips ──────────────────────────────────────────── */
 function renderCats() {
   const cats = [{ id:'', name:'All' }, ...SERVICE_CATEGORIES.map(c => ({ id:c.id, name:c.name }))];
   document.getElementById('pf-cats').innerHTML = cats.map(c =>
@@ -138,7 +138,7 @@ window._pfSelectCat = function(catId, btn) {
   load();
 };
 
-/* â”€â”€ Sort sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Sort sheet ──────────────────────────────────────────────── */
 window.openSort  = () => document.getElementById('pf-sort-overlay').classList.add('open');
 window.closeSort = () => document.getElementById('pf-sort-overlay').classList.remove('open');
 document.getElementById('pf-sort-overlay').addEventListener('click', e => {
@@ -154,7 +154,7 @@ window.setSort = function(sort) {
   applySortAndRender();
 };
 
-/* â”€â”€ Card (mirrors book-now's proven card markup) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Card (mirrors book-now's proven card markup) ─────────────── */
 function buildCard(artisan) {
   const d = artisan.data || {};
   const id = artisan.id;
@@ -185,10 +185,10 @@ function buildCard(artisan) {
       </div>
       <div class="bn2-pro-body">
         <p class="bn2-pro-name">${esc(name)}</p>
-        <p class="bn2-pro-spec">${esc(specialty)}${location ? ' Â· ' + esc(location) : ''}</p>
+        <p class="bn2-pro-spec">${esc(specialty)}${location ? ' · ' + esc(location) : ''}</p>
         <div class="bn2-pro-meta-row">
           ${ratingHtml}
-          <span class="bn2-pro-dot-sep">Â·</span>
+          <span class="bn2-pro-dot-sep">·</span>
           <span class="bn2-pro-jobs">${esc(jobs)} jobs</span>
         </div>
       </div>
@@ -200,7 +200,7 @@ function buildCard(artisan) {
     </div>`;
 }
 
-/* â”€â”€ View profile (evaluate) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── View profile (evaluate) ─────────────────────────────────── */
 window._pfView = function(id) {
   const a = loaded.find(x => x.id === id);
   if (!a) return;
@@ -216,7 +216,7 @@ window._pfView = function(id) {
   window.location.href = 'artisan-profile.html';
 };
 
-/* â”€â”€ Book directly (commit, professional-first contract) â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Book directly (commit, professional-first contract) ─────── */
 window._pfBook = function(id) {
   const a = loaded.find(x => x.id === id);
   if (!a) { window.location.href = 'book-request.html'; return; }
@@ -237,7 +237,7 @@ window._pfBook = function(id) {
   window.location.href = 'book-request.html';
 };
 
-/* â”€â”€ Sort + render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Sort + render ───────────────────────────────────────────── */
 function applySortAndRender() {
   let arr = [...loaded];
   if (currentSort === 'rating') {
@@ -259,7 +259,7 @@ function applySortAndRender() {
   countEl.textContent = `${n} professional${n!==1?'s':''}`;
 }
 
-/* â”€â”€ Load from Firestore â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Load from Firestore ─────────────────────────────────────── */
 function showSkeletons() {
   loadState = 'loading';
   listEl.dataset.state = loadState;
@@ -348,13 +348,13 @@ async function load() {
   }
 }
 
-/* â”€â”€ Back: respect where the user came from â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Back: respect where the user came from ──────────────────── */
 window.goBack = function() {
   if (document.referrer && document.referrer.indexOf(location.host) !== -1) { history.back(); }
   else { window.location.href = 'dashboard.html'; }
 };
 
-/* â”€â”€ Init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Init ────────────────────────────────────────────────────── */
 function init() {
   // Honour an incoming category from a service-detail page or dashboard.
   const params = new URLSearchParams(location.search);

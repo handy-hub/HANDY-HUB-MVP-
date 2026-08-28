@@ -470,6 +470,14 @@ service cloud.firestore {
         // Callout escrow lifecycle
         'calloutPaid', 'calloutPaidAt', 'calloutEscrowId',
         'calloutSettled', 'calloutSettledAt', 'calloutSettlePending', 'calloutSettleReason',
+        // Party identity resolved server-side: the customer's from
+        // customers/{uid} at booking creation, the artisan's from artisans/{uid}
+        // on the pending→accepted transition (onBookingStatusChanged).
+        // Server-only so neither party can present a fabricated identity — the
+        // artisan app previously wrote artisanName itself on accept.
+        'customerFirstName', 'customerPhone',
+        'artisanName', 'artisanPhoto', 'artisanRating', 'artisanCategory',
+        'artisanVerified', 'artisanJobsCompleted',
         // Job quote lifecycle
         'jobQuote', 'labourCost', 'materials', 'materialsCost', 'hasMaterials',
         'quoteNote', 'quoteSubmittedAt', 'quoteApproved', 'quoteApprovedAt',
@@ -477,6 +485,11 @@ service cloud.firestore {
         'commissionRate', 'artisanEarns', 'platformFee',
         // Escrow / payment settlement
         'escrowId', 'disputeId',
+        // Review aggregation idempotency flag — written by onBookingReviewed via
+        // the Admin SDK. No client transition lists it, so this is belt-and-braces
+        // against a future branch forgetting its hasOnly() constraint and letting
+        // a customer pre-set it to suppress their own rating's aggregation.
+        'ratingProcessed',
         // Dispatch engine authority
         'dispatchStatus', 'currentArtisanId', 'currentArtisanName',
         'currentArtisanPhoto', 'currentArtisanRating', 'currentArtisanCategory',
@@ -545,9 +558,18 @@ service cloud.firestore {
            (!('track' in existing()) || existing().track != 'inspection')) ||
           // Leave a review — only after job is completed, no status change.
           // Rating must be a valid integer 1–5.
+          //
+          // ONE REVIEW PER BOOKING, enforced here rather than in the client.
+          // Without the !('rating' in existing()) guard a customer could rewrite
+          // their score any number of times, while onBookingReviewed's
+          // (before.rating == null) idempotency guard correctly refused to
+          // re-aggregate — so the booking would show one score and the artisan's
+          // public average would reflect a different one, permanently. The
+          // aggregate was safe; the per-booking record was not.
           (!keys.hasAny(['status']) &&
            keys.hasOnly(['rating', 'review', 'reviewedAt', 'updatedAt']) &&
            prev in ['completed'] &&
+           !('rating' in existing()) &&
            incoming().rating is int &&
            incoming().rating >= 1 &&
            incoming().rating <= 5) ||

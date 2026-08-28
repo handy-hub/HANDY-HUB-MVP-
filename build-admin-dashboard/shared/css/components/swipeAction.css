@@ -1,0 +1,179 @@
+/* ============================================================================
+   HandyHub — Canonical Swipe-to-Action Component
+   ----------------------------------------------------------------------------
+   Extracted from the Notification page's swipe-to-delete implementation.
+   Structural rules only — pages theme `.swipe-card`'s content with their own
+   modifier class (e.g. `.notif-card`, `.bk-card`).
+
+   Markup:
+     <div class="swipe-row">
+       <div class="swipe-action" aria-hidden="true"> ...icon + label... </div>
+       <div class="swipe-card" data-id="...">        ...content...      </div>
+     </div>
+
+   Paired JS: shared/js/components/swipeAction.js
+   ============================================================================ */
+
+/* Outer row clips the card as it slides left, revealing the action panel */
+.swipe-row {
+    position: relative;
+    overflow: hidden;
+}
+
+/* The card sits ON TOP of the action panel at all times (position:relative +
+   z-index:2 + opaque background) so the panel is invisible until the card
+   slides away from under it. */
+.swipe-row .swipe-card {
+    position: relative;
+    z-index: 2;
+    background: var(--ui-surface, #fff);
+}
+
+/* Action panel — always present, revealed as the card slides left */
+.swipe-action {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 90px;
+    z-index: 1;                     /* behind the card */
+    background: var(--swipe-action-bg, #d32f2f);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: #fff;
+    pointer-events: none;
+    user-select: none;
+    transform-origin: right center; /* scale grows from the right edge */
+    will-change: transform, background;
+}
+.swipe-action i {
+    font-size: 22px;
+}
+.swipe-action span {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Armed state — swiped past the commit threshold, about to release into it */
+.swipe-action--armed {
+    background: var(--swipe-action-bg-armed, #b71c1c);
+}
+
+/* ── Undo-delete toast ─────────────────────────────────────────────────────
+   Host: fixed, centred above the bottom nav. pointer-events:none lets taps
+   pass through to content beneath, while .undo-toast re-enables them. */
+.undo-toast-host {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(calc(100% - 32px), 398px);
+    z-index: var(--ui-z-toast, 2000);
+    pointer-events: none;
+}
+
+.undo-toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 4px 8px 8px;
+    background: #1c1c1e;
+    border-radius: var(--ui-radius-lg, 18px);
+    pointer-events: all;
+    overflow: hidden;
+    position: relative;
+
+    transform: translateY(110%) scale(0.92);
+    opacity: 0;
+    will-change: transform, opacity;
+    transition:
+        transform 0.44s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity   0.26s ease;
+}
+
+.undo-toast.is-visible {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+.undo-toast.is-hiding {
+    transform: translateY(110%) scale(0.94);
+    opacity: 0;
+    transition:
+        transform 0.30s cubic-bezier(0.4, 0, 1, 1),
+        opacity   0.22s ease;
+}
+
+.undo-toast__icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.undo-toast__msg {
+    flex: 1;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.90);
+    line-height: 1.3;
+    letter-spacing: -0.1px;
+    min-width: 0;
+}
+
+.undo-toast__undo {
+    padding: 9px 16px;
+    background: rgba(var(--ui-primary-rgb), 0.15);
+    border: 1.5px solid rgba(var(--ui-primary-rgb), 0.40);
+    border-radius: var(--ui-radius-sm, 10px);
+    color: #ff7070;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.1px;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.14s, transform 0.1s;
+    margin-right: 8px;
+}
+
+.undo-toast__undo:active {
+    background: rgba(var(--ui-primary-rgb), 0.28);
+    transform: scale(0.94);
+}
+
+/* Timer bar — drains left-to-right showing remaining undo window */
+.undo-toast__progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+}
+
+.undo-toast__progress-fill {
+    height: 100%;
+    background: var(--ui-primary);
+    transform-origin: left center;
+    animation: undo-drain var(--toast-duration, 6s) linear forwards;
+}
+
+@keyframes undo-drain {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+}

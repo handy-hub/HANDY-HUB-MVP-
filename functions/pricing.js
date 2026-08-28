@@ -317,6 +317,35 @@ async function createInspectionBooking(auth, {
     const bookingId  = generateBookingId();
     const bookingRef = db().collection('bookings').doc(bookingId);
 
+    // ── Customer identity for the artisan's decision surface ─────────────────
+    //
+    // The booking IS the information contract between the two parties, and it
+    // carried no customer identity at all — which is why an artisan was asked to
+    // accept a job from "Customer" and travel to a stranger's home.
+    //
+    // PRIVACY: first name only. A full name is not needed to decide or to greet
+    // someone at a door, and the booking is readable by the dispatched artisan
+    // before they have committed to anything. The phone number is stored because
+    // an artisan who is en route genuinely cannot do the job without it; the
+    // artisan UI reveals it only once the job is accepted and the callout fee is
+    // secured (see resolveJobBrief.contact in shared/js/domain/bookingTruth.js).
+    let customerFirstName = null;
+    let customerPhone     = null;
+    try {
+        const custSnap = await db().collection('customers').doc(auth.uid).get();
+        if (custSnap.exists) {
+            const c = custSnap.data();
+            const full = String(c.fullName || c.name || '').trim();
+            customerFirstName = full ? full.split(/\s+/)[0].slice(0, 40) : null;
+            customerPhone     = String(c.phone || '').trim().slice(0, 20) || null;
+        }
+    } catch (err) {
+        // Non-fatal: a booking without a resolved name still works, and the
+        // artisan UI renders an honest "Name unavailable" rather than a
+        // placeholder that reads like a real identity.
+        console.warn(`[pricing] Could not resolve customer identity for ${auth.uid}: ${err.message}`);
+    }
+
     // ── Atomically consume the token and create the booking ──────────────────
     const quote = await db().runTransaction(async (txn) => {
         const tokenSnap = await txn.get(tokenRef);
@@ -332,6 +361,8 @@ async function createInspectionBooking(auth, {
         txn.set(bookingRef, {
             bookingId,
             customerId:   auth.uid,
+            customerFirstName,
+            customerPhone,
             artisanId:    q.artisanId || null,
             track:        'inspection',
             priceType:    'callout_only',

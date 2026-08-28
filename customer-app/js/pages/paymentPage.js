@@ -1,3 +1,4 @@
+import { firebaseFunctions } from '../../../shared/js/backend/providers/firebase/firebaseConfig.js';
 // paymentPage.js — Handy Hub's internal Mobile Money payment experience.
 //
 // Replaces the Paystack popup for wallet top-ups. The customer stays inside Handy
@@ -196,7 +197,7 @@ async function _fn(name) {
         await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
     const { firebaseApp } =
         await import('../../../shared/js/backend/providers/firebase/firebaseConfig.js');
-    return httpsCallable(getFunctions(firebaseApp, FUNCTIONS_REGION), name);
+    return httpsCallable(firebaseFunctions, name);
 }
 
 async function submitPin() {

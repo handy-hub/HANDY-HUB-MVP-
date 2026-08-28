@@ -11,7 +11,7 @@ import { getFunctions, httpsCallable }
     from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
 import { getAuth }
     from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-import { firebaseApp }
+import { firebaseApp, firebaseFunctions }
     from '../backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }
     from '../config/appConfig.js';
@@ -21,7 +21,7 @@ import { checkAndRecord, showRateLimitToast }
 let _functions = null;
 
 function fn() {
-    if (!_functions) _functions = getFunctions(firebaseApp, FUNCTIONS_REGION);
+    if (!_functions) _functions = firebaseFunctions;
     return _functions;
 }
 

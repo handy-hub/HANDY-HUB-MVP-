@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Job | HandyHub Artisan</title>
+<link rel="stylesheet" href="css/design-system.css">
+<style>
+  /* ── This screen is ONE booking, from request to closed. ────────────────────
+     Everything below is phase-driven: the same DOM re-renders as the booking
+     moves, so the artisan never loses their place by "finishing" a stage. */
+  body { margin:0; background:var(--ds-bg); font-family:var(--ds-font); color:var(--ds-ink);
+         padding-bottom:calc(var(--ds-9) + env(safe-area-inset-bottom)); }
+  .jb-shell { max-width:var(--ds-shell); margin:0 auto; padding:0 var(--ds-gutter); }
+
+  .jb-top { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-4) 0 var(--ds-3); }
+  .jb-back { width:40px; height:40px; border:none; border-radius:var(--ds-r-pill); background:var(--ds-surface-2);
+             display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ds-ink); flex-shrink:0; }
+  .jb-top-title { font:800 17px/1.2 var(--ds-font); letter-spacing:-.3px; flex:1; }
+  .jb-ref { font:500 11px/1 var(--ds-font); color:var(--ds-ink-3); font-variant-numeric:tabular-nums; }
+
+  /* ── Phase banner: the dominant element. Where am I, what happens next. ── */
+  .jb-phase { background:var(--ds-surface); border-radius:var(--ds-r-card); padding:var(--ds-5);
+              margin-bottom:var(--ds-4); border:1px solid var(--ds-line); }
+  .jb-cycle { font:700 10.5px/1 var(--ds-font); letter-spacing:.7px; text-transform:uppercase;
+              color:var(--ds-brand-600); margin-bottom:var(--ds-2); }
+  .jb-phase-label { font:800 22px/1.2 var(--ds-font); letter-spacing:-.5px; margin:0 0 var(--ds-2); }
+  .jb-phase-hint { font:500 14px/1.5 var(--ds-font); color:var(--ds-ink-2); margin:0; }
+  .jb-waiting { display:flex; align-items:center; gap:var(--ds-2); margin-top:var(--ds-3);
+                padding-top:var(--ds-3); border-top:1px solid var(--ds-line);
+                font:600 13px/1.4 var(--ds-font); color:var(--ds-ink-2); }
+  .jb-waiting .dot { width:7px; height:7px; border-radius:50%; background:var(--ds-warning); flex-shrink:0; }
+  .jb-waiting.you .dot { background:var(--ds-brand-500); }
+
+  .jb-countdown { font:700 13px/1 var(--ds-font); color:var(--ds-danger); font-variant-numeric:tabular-nums; }
+
+  /* ── Content blocks ── */
+  .jb-card { background:var(--ds-surface); border-radius:var(--ds-r-card); padding:var(--ds-4);
+             margin-bottom:var(--ds-3); border:1px solid var(--ds-line); }
+  .jb-card-title { font:700 12px/1 var(--ds-font); letter-spacing:.5px; text-transform:uppercase;
+                   color:var(--ds-ink-3); margin:0 0 var(--ds-3); }
+  .jb-row { display:flex; justify-content:space-between; gap:var(--ds-4); padding:var(--ds-2) 0; }
+  .jb-row dt { font:500 13.5px/1.45 var(--ds-font); color:var(--ds-ink-2); flex-shrink:0; }
+  .jb-row dd { font:600 13.5px/1.45 var(--ds-font); color:var(--ds-ink); margin:0; text-align:right; }
+  .jb-unknown { color:var(--ds-ink-4); font-weight:500; font-style:italic; }
+
+  .jb-problem { font:500 15px/1.6 var(--ds-font); color:var(--ds-ink); margin:0; white-space:pre-wrap; }
+  .jb-photos { display:flex; gap:var(--ds-2); overflow-x:auto; padding-bottom:var(--ds-1); }
+  .jb-photos img { width:96px; height:96px; border-radius:var(--ds-r-control); object-fit:cover; flex-shrink:0;
+                   border:1px solid var(--ds-line); }
+
+  .jb-money { font:800 26px/1.1 var(--ds-font); letter-spacing:-.6px; font-variant-numeric:tabular-nums; }
+  .jb-money-note { font:500 12.5px/1.45 var(--ds-font); color:var(--ds-ink-3); margin:var(--ds-2) 0 0; }
+  .jb-cond { display:inline-block; font:700 10px/1 var(--ds-font); letter-spacing:.4px; text-transform:uppercase;
+             color:var(--ds-warning); background:var(--ds-warning-bg); border-radius:var(--ds-r-pill);
+             padding:4px 7px; margin-left:6px; vertical-align:2px; }
+
+  .jb-maplink { display:inline-flex; align-items:center; gap:6px; font:700 13px/1 var(--ds-font);
+                color:var(--ds-brand-600); text-decoration:none; margin-top:var(--ds-2); }
+  .jb-precision { font:500 12px/1.4 var(--ds-font); color:var(--ds-ink-3); margin:var(--ds-1) 0 0; }
+
+  /* ── Actions: exactly one dominant, the rest subordinate ── */
+  .jb-actions { position:sticky; bottom:0; background:linear-gradient(to top, var(--ds-bg) 62%, transparent);
+                padding:var(--ds-4) 0 calc(var(--ds-4) + env(safe-area-inset-bottom)); margin-top:var(--ds-5); }
+  .jb-primary { width:100%; height:54px; border:none; border-radius:var(--ds-r-control);
+                background:var(--ds-brand-500); color:#fff; font:800 16px/1 var(--ds-font); cursor:pointer;
+                display:flex; align-items:center; justify-content:center; gap:8px; }
+  .jb-primary:disabled { opacity:.55; cursor:default; }
+  .jb-primary.danger { background:var(--ds-danger); }
+  .jb-secondary { display:flex; gap:var(--ds-2); margin-top:var(--ds-2); }
+  .jb-sec-btn { flex:1; height:46px; border:1px solid var(--ds-line-strong); border-radius:var(--ds-r-control);
+                background:var(--ds-surface); color:var(--ds-ink-2); font:700 14px/1 var(--ds-font); cursor:pointer; }
+  .jb-sec-btn.danger { color:var(--ds-danger); border-color:var(--ds-danger-bg); }
+
+  .jb-nothing { text-align:center; font:500 14px/1.5 var(--ds-font); color:var(--ds-ink-3);
+                padding:var(--ds-4); background:var(--ds-surface-2); border-radius:var(--ds-r-control); }
+
+  /* ── States ── */
+  .jb-skel { background:var(--ds-surface-2); border-radius:var(--ds-r-card); height:120px; margin-bottom:var(--ds-3);
+             animation:jbpulse 1.4s ease-in-out infinite; }
+  @keyframes jbpulse { 0%,100%{opacity:1} 50%{opacity:.55} }
+  .jb-msg { text-align:center; padding:var(--ds-9) var(--ds-4); }
+  .jb-msg h2 { font:800 19px/1.3 var(--ds-font); margin:0 0 var(--ds-2); }
+  .jb-msg p { font:500 14px/1.55 var(--ds-font); color:var(--ds-ink-2); margin:0 0 var(--ds-5); }
+
+  .jb-toast { position:fixed; left:50%; bottom:calc(var(--ds-8) + env(safe-area-inset-bottom));
+              transform:translateX(-50%) translateY(16px); background:var(--ds-ink); color:var(--ds-surface);
+              padding:12px 18px; border-radius:var(--ds-r-pill); font:600 13.5px/1 var(--ds-font);
+              opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:999; max-width:88vw;
+              text-align:center; }
+  .jb-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* The quote composer is mounted INSIDE this screen — the artisan prices the
+     job they are looking at, without being sent to a list to find it again. */
+  .jb-quote { background:var(--ds-surface); border-radius:var(--ds-r-card); padding:var(--ds-4);
+              margin-bottom:var(--ds-3); border:1px solid var(--ds-brand-500); }
+</style>
+</head>
+<body>
+
+<div class="jb-shell">
+  <div class="jb-top">
+    <button class="jb-back" id="jb-back" aria-label="Back to jobs">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="jb-top-title">Job</span>
+    <span class="jb-ref" id="jb-ref"></span>
+  </div>
+
+  <div id="jb-body">
+    <div class="jb-skel"></div>
+    <div class="jb-skel" style="height:200px"></div>
+  </div>
+</div>
+
+<div class="jb-toast" id="jb-toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+import { getAppContainer }  from '../shared/js/app/container.js';
+import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
+                            from '../shared/js/domain/bookingTruth.js';
+import { performBookingAction, ACTION }
+                            from '../shared/js/domain/bookingActions.js';
+import { pricingService }   from '../shared/js/services/pricingService.js';
+import { mountQuoteComposer, quoteComposerStyles }
+                            from '../shared/js/ui/quoteComposer.js';
+
+const $ = (id) => document.getElementById(id);
+
+// ── Booking identity comes from the URL and nowhere else ─────────────────────
+// artisan-app/bookings.html linked to `jobs.html?id=…` for months and jobs.html
+// never read the parameter, so tapping a specific job opened an unfiltered
+// list. This screen exists to make that impossible: no id, no screen.
+const BOOKING_ID = new URLSearchParams(location.search).get('id');
+
+let _uid = null, _booking = null, _busy = false, _unsub = null, _originLat = null, _originLng = null;
+
+function toast(msg) {
+  const t = $('jb-toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3400);
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g,
+    c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+/* ── What the artisan can do right now ────────────────────────────────────────
+   One dominant action per phase. Everything else is subordinate or absent.
+   Phases where the ball is in the customer's court have NO primary action —
+   an enabled button that does nothing is worse than an honest wait state. */
+function actionsFor(brief, b) {
+  const st = String(b.status || '').toLowerCase();
+
+  switch (brief.phase) {
+    case JOB_PHASE.REQUEST:
+      return {
+        waiting: 'you',
+        waitLabel: 'Your decision',
+        primary:   { label: 'Accept this job', action: ACTION.ACCEPT },
+        secondary: [{ label: 'Decline', action: ACTION.DECLINE, danger: true, confirm: 'Decline this request?' }],
+      };
+
+    case JOB_PHASE.AWAITING_CALLOUT:
+      return {
+        waiting: 'customer',
+        waitLabel: 'Waiting for the customer to pay the callout fee',
+        note: 'You will be notified the moment it is paid. Nothing to do until then.',
+      };
+
+    case JOB_PHASE.INSPECTION:
+      if (st === 'inspection_scheduled')
+        return { waiting:'you', waitLabel:'Head to the customer',
+                 primary:{ label:"I'm on my way", action: ACTION.EN_ROUTE },
+                 secondary:[{ label:'Cancel job', action: ACTION.CANCEL, danger:true, confirm:'Cancel this job?' }] };
+      if (st === 'en_route')
+        return { waiting:'you', waitLabel:'Travelling to the job',
+                 primary:{ label:"I've arrived", action: ACTION.START } };
+      if (st === 'in_progress')
+        return { waiting:'you', waitLabel:'Inspecting the problem',
+                 primary:{ label:'Complete inspection', action:'complete_inspection' } };
+      return { waiting:'you', waitLabel:'Inspection visit' };
+
+    case JOB_PHASE.QUOTING:
+      // The composer mounts into this screen (see render()). No primary button:
+      // the form itself IS the action, and a button that merely scrolls to a
+      // form below it is ceremony.
+      return {
+        waiting: 'you',
+        waitLabel: 'The customer is waiting for your price',
+        mountQuote: true,
+      };
+
+    case JOB_PHASE.AWAITING_QUOTE:
+      return { waiting:'customer', waitLabel:'Quote sent — waiting for approval',
+               note:'If the customer asks for a different price you can send one revision.' };
+
+    case JOB_PHASE.WORK:
+      if (st === 'accepted' || st === 'quoted')
+        return { waiting:'you', waitLabel:'Ready to start the work',
+                 primary:{ label:"I'm on my way", action: ACTION.EN_ROUTE },
+                 secondary:[{ label:'Cancel job', action: ACTION.CANCEL, danger:true, confirm:'Cancel this job?' }] };
+      if (st === 'en_route')
+        return { waiting:'you', waitLabel:'Travelling to the job',
+                 primary:{ label:"I've arrived", action: ACTION.START } };
+      if (st === 'in_progress')
+        return { waiting:'you', waitLabel:'Work in progress',
+                 primary:{ label:'Mark job done', action: ACTION.JOB_DONE } };
+      return { waiting:'you', waitLabel:'Work visit' };
+
+    case JOB_PHASE.AWAITING_CONFIRM:
+      return { waiting:'customer', waitLabel:'Waiting for the customer to confirm and release payment',
+               note:'Payment lands in your wallet as soon as they confirm. If they do not, it releases automatically.' };
+
+    default: { // CLOSED
+      const why = st === 'completed'   ? 'This job is complete.'
+                : st === 'cancelled'   ? 'This job was cancelled.'
+                : st === 'rejected'    ? 'You declined this request.'
+                : st === 'unfulfilled' ? 'This request expired before it was accepted.'
+                : 'This job is closed.';
+      return {
+        waiting: null, waitLabel: why,
+        secondary: st === 'completed' ? [{ label:'View earnings', action:'earnings' }] : [],
+      };
+    }
+  }
+}
+
+/* ── Render ──────────────────────────────────────────────────────────────── */
+function render(b) {
+  _booking = b;
+  const brief = resolveJobBrief(b, { originLat: _originLat, originLng: _originLng });
+  const acts  = actionsFor(brief, b);
+  const dist  = formatDistance(brief.distanceKm);
+  const comp  = brief.compensation;
+
+  $('jb-ref').textContent = brief.bookingId || '';
+
+  // Schedule is shown ONLY when a real one exists. book-emergency writes
+  // scheduledAt:null while the UI used to fall back to today's date, which told
+  // the artisan an appointment had been agreed when none had.
+  const schedule = brief.scheduledFor;
+
+  const money = comp && comp.amount !== null && comp.amount !== undefined
+    ? `<div class="jb-money">${esc(formatMoney(comp.amount))}${comp.conditional ? '<span class="jb-cond">Not yet confirmed</span>' : ''}</div>
+       ${comp.note ? `<p class="jb-money-note">${esc(comp.note)}</p>` : ''}`
+    : `<div class="jb-money jb-unknown" style="font-size:16px">Not set yet</div>
+       ${comp && comp.note ? `<p class="jb-money-note">${esc(comp.note)}</p>` : ''}`;
+
+  $('jb-body').innerHTML = `
+    <div class="jb-phase">
+      ${brief.cycle ? `<div class="jb-cycle">${esc(brief.cycle)}</div>` : ''}
+      <h1 class="jb-phase-label">${esc(brief.phaseLabel)}</h1>
+      <p class="jb-phase-hint">${esc(brief.phaseHint || '')}</p>
+      ${acts.waitLabel ? `
+        <div class="jb-waiting ${acts.waiting === 'you' ? 'you' : ''}">
+          ${acts.waiting ? '<span class="dot"></span>' : ''}
+          <span>${esc(acts.waitLabel)}</span>
+        </div>` : ''}
+    </div>
+
+    <div class="jb-card">
+      <p class="jb-card-title">The job</p>
+      <dl style="margin:0">
+        <div class="jb-row"><dt>Service</dt><dd>${brief.service ? esc(brief.service) : '<span class="jb-unknown">Not specified</span>'}</dd></div>
+        <div class="jb-row"><dt>Customer</dt><dd>${brief.customer.name ? esc(brief.customer.name) : '<span class="jb-unknown">Not shared</span>'}</dd></div>
+        ${schedule ? `<div class="jb-row"><dt>Scheduled</dt><dd>${esc(schedule)}</dd></div>` : ''}
+      </dl>
+      ${brief.problem ? `
+        <div style="margin-top:var(--ds-3);padding-top:var(--ds-3);border-top:1px solid var(--ds-line)">
+          <p class="jb-card-title">What they described</p>
+          <p class="jb-problem">${esc(brief.problem)}</p>
+        </div>` : ''}
+      ${brief.notes ? `
+        <div style="margin-top:var(--ds-3)">
+          <p class="jb-card-title">Extra notes</p>
+          <p class="jb-problem">${esc(brief.notes)}</p>
+        </div>` : ''}
+    </div>
+
+    ${brief.photoCount ? `
+      <div class="jb-card">
+        <p class="jb-card-title">Photos from the customer (${brief.photoCount})</p>
+        <div class="jb-photos">
+          ${brief.photos.map(u => `<img src="${esc(u)}" alt="Customer photo" loading="lazy">`).join('')}
+        </div>
+      </div>` : ''}
+
+    <div class="jb-card">
+      <p class="jb-card-title">${brief.phase === JOB_PHASE.REQUEST ? 'What you earn for this' : 'Your payment'}</p>
+      ${money}
+    </div>
+
+    <div class="jb-card">
+      <p class="jb-card-title">Where</p>
+      ${brief.location.address
+        ? `<p class="jb-problem" style="font-size:14px">${esc(brief.location.address)}</p>`
+        : `<p class="jb-problem jb-unknown" style="font-size:14px">No address on this booking</p>`}
+      ${dist ? `<p class="jb-precision">${esc(dist)}</p>` : ''}
+      ${brief.location.precision === 'address-only'
+        ? '<p class="jb-precision">Address only — no exact GPS fix from the customer.</p>' : ''}
+      ${brief.location.mapUrl
+        ? `<a class="jb-maplink" href="${esc(brief.location.mapUrl)}" target="_blank" rel="noopener">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="2"/></svg>
+             Open in Maps</a>` : ''}
+      ${brief.customer.phone
+        ? `<div style="margin-top:var(--ds-3);padding-top:var(--ds-3);border-top:1px solid var(--ds-line)">
+             <a class="jb-maplink" href="tel:${esc(brief.customer.phone)}">Call the customer</a>
+           </div>`
+        : (brief.customer.contactUnlocked ? '' :
+           '<p class="jb-precision" style="margin-top:var(--ds-3)">The customer\'s number unlocks once the visit is funded.</p>')}
+    </div>
+
+    ${acts.mountQuote ? '<div class="jb-card jb-quote"><p class="jb-card-title">Send your quote</p><div id="jb-quote-mount"></div></div>' : ''}
+
+    <div class="jb-actions">
+      ${acts.primary
+        ? `<button class="jb-primary ${acts.primary.danger ? 'danger' : ''}" id="jb-primary">${esc(acts.primary.label)}</button>`
+        : (acts.note ? `<p class="jb-nothing">${esc(acts.note)}</p>` : '')}
+      ${acts.secondary && acts.secondary.length
+        ? `<div class="jb-secondary">${acts.secondary.map((s, i) =>
+            `<button class="jb-sec-btn ${s.danger ? 'danger' : ''}" data-sec="${i}">${esc(s.label)}</button>`).join('')}</div>`
+        : ''}
+    </div>`;
+
+  if (acts.mountQuote) {
+    const host = $('jb-quote-mount');
+    if (host) {
+      try {
+        mountQuoteComposer({
+          bookingId: BOOKING_ID,              // this screen's booking, explicitly
+          mount: host,
+          serviceLabel: brief.service,
+          toast,
+          onSubmitted: () => {
+            // The live subscription will re-render this screen from the new
+            // authoritative state; no local guess about what comes next.
+            toast('Quote sent. Waiting for the customer to approve.');
+          },
+        });
+      } catch (e) {
+        host.innerHTML = '<p class="jb-nothing">The quote form could not be opened. Reload and try again.</p>';
+      }
+    }
+  }
+
+  if (acts.primary) $('jb-primary').addEventListener('click', () => run(acts.primary));
+  (acts.secondary || []).forEach((s, i) => {
+    document.querySelector(`[data-sec="${i}"]`)?.addEventListener('click', () => run(s));
+  });
+}
+
+/* ── Act ─────────────────────────────────────────────────────────────────── */
+async function run(spec) {
+  if (_busy) return;                       // duplicate taps do nothing
+  if (spec.confirm && !confirm(spec.confirm)) return;
+
+  // Non-transition destinations
+  if (spec.action === 'earnings')    { location.href = 'wallet.html'; return; }
+  if (spec.action === 'open_quote')  {
+    // The quote composer (materials rows, labour, commission preview) lives in
+    // the jobs.html sheet and works. Duplicating it here would be a second
+    // implementation of the thing this screen exists to consolidate — so the
+    // booking id travels with the link and the sheet opens on this job.
+    // REMAINING WORK: extract that sheet into a shared component and mount it here.
+    location.href = `jobs.html?quote=${encodeURIComponent(BOOKING_ID)}`;
+    return;
+  }
+
+  _busy = true;
+  const btn = $('jb-primary');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Working…'; }
+
+  try {
+    if (spec.action === 'complete_inspection') {
+      await pricingService.completeInspection(BOOKING_ID);
+      toast('Inspection complete. Send your quote next.');
+    } else {
+      const { services: { databaseService } } = getAppContainer();
+      const res = await performBookingAction(spec.action, {
+        bookingId: BOOKING_ID, actor: 'artisan', uid: _uid,
+        databaseService, pricingService, reason: 'Cancelled by artisan',
+      });
+
+      if (!res.ok) {
+        // A booking that moved under us is explained with the state it is
+        // ACTUALLY in — never "try again" at someone whose job was taken.
+        toast(res.message);
+        if (res.booking) render(res.booking);
+        return;
+      }
+      toast(
+        spec.action === ACTION.ACCEPT   ? 'Job accepted. The customer has been notified.' :
+        spec.action === ACTION.DECLINE  ? 'Request declined.' :
+        spec.action === ACTION.JOB_DONE ? 'Marked done. Waiting for the customer to confirm.' :
+        'Updated.');
+      render(res.booking);
+    }
+  } catch (e) {
+    toast(e?.message || 'That did not go through. Nothing was changed.');
+  } finally {
+    _busy = false;
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+
+/* ── Boot ────────────────────────────────────────────────────────────────── */
+function showMessage(title, body, cta) {
+  $('jb-body').innerHTML = `
+    <div class="jb-msg">
+      <h2>${esc(title)}</h2>
+      <p>${esc(body)}</p>
+      <button class="jb-primary" onclick="location.href='jobs.html'">${esc(cta || 'Back to my jobs')}</button>
+    </div>`;
+}
+
+// One stylesheet for the composer, injected once.
+(() => {
+  const st = document.createElement('style');
+  st.textContent = quoteComposerStyles();
+  document.head.appendChild(st);
+})();
+
+$('jb-back').addEventListener('click', () => { location.href = 'jobs.html'; });
+
+(async () => {
+  if (!BOOKING_ID) {
+    showMessage('No job selected', 'Open a job from your jobs list to see it here.');
+    return;
+  }
+
+  // requireArtisanAuth — not the customer guard. It sends a real artisan to the
+  // ARTISAN login and, locally, honours the dev-access session (unless the
+  // emulators are in use, where a real sign-in is available and better).
+  //
+  // It resolves to { artisan, ... }, NOT a Firebase user. Reading `.uid` off
+  // the wrapper yields undefined, and this screen used to bail on that — a
+  // silent early return that rendered nothing but the skeleton forever.
+  const { artisan } = await requireArtisanAuth({ allowPending: true });
+  _uid = artisan?.uid || artisan?.id || null;
+  if (!_uid) return;   // the guard has already redirected
+
+  const { services: { databaseService } } = getAppContainer();
+
+  // The artisan's own position, for the distance line. Absent is fine — the
+  // distance is simply omitted rather than shown as 0 km.
+  try {
+    const me = await databaseService.getDocument('artisans', _uid);
+    if (me?.exists) {
+      const lat = Number(me.data.lat), lng = Number(me.data.lng);
+      if (Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0)) {
+        _originLat = lat; _originLng = lng;
+      }
+    }
+  } catch (_) { /* distance is optional */ }
+
+  // Live authoritative state. The screen follows the booking rather than a
+  // snapshot taken when the card was drawn — so a customer cancelling, or a
+  // callout fee landing, updates this screen while the artisan is looking at it.
+  _unsub = databaseService.subscribeToDocument('bookings', BOOKING_ID,
+    (snap) => {
+      if (!snap?.exists) {
+        showMessage('Job not found', 'This job no longer exists, or it is not yours.');
+        return;
+      }
+      const b = { id: BOOKING_ID, ...snap.data };
+      if (_uid && b.artisanId !== _uid) {
+        showMessage('Not your job', 'This booking belongs to another professional.');
+        return;
+      }
+      if (!_busy) render(b);
+    },
+    () => showMessage('Could not load this job', 'Check your connection and try again.')
+  );
+})();
+
+window.addEventListener('pagehide', () => { try { _unsub?.(); } catch (_) {} });
+</script>
+</body>
+</html>

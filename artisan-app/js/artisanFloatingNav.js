@@ -65,7 +65,8 @@
     ''                  : 'home',
     'jobs.html'         : 'jobs',
     'wallet.html'       : 'wallet',
-    'bookings.html'     : 'bookings',
+    'bookings.html'     : 'jobs',   // retired -> redirects to jobs.html
+    'job.html'          : 'jobs',   // single-booking detail screen
     'profile.html'      : 'profile',
     'performance.html'  : 'profile',   // secondary screens map to nearest tab
     'reviews.html'      : 'profile',
@@ -133,7 +134,6 @@
         mkItem('home',     'Home',     'dashboard.html') +
         mkItem('jobs',     'Jobs',     'jobs.html', 'hh-fnav-jobs-badge') +
         ONLINE_ITEM +
-        mkItem('bookings', 'Bookings', 'bookings.html') +
         mkItem('profile',  'Profile',  'profile.html') +
       '</div>' +
     '</nav>';

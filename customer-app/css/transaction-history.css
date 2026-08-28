@@ -213,6 +213,7 @@ button {
 .receipt-summary > span:first-child { color: var(--ui-muted, #666); font-size: 13px; }
 .receipt-summary strong { color: var(--ui-text, #111); font-size: 25px; }
 .receipt-status { color: #16a34a; font-size: 12px; font-weight: 700; text-transform: capitalize; }
+.receipt-status.unknown { color: var(--ui-text-muted, #6b7280); }
 .receipt-status.pending { color: #b45309; }
 .receipt-status.failed { color: var(--ui-danger, #b22222); }
 .receipt-details { border-top: 1px dashed var(--ui-border, #ddd); border-bottom: 1px dashed var(--ui-border, #ddd); }
@@ -296,6 +297,12 @@ button {
 .txn-status {
   font-size: 12px;
   font-weight: 600;
+}
+
+/* Unknown is not success. The base colour is green, so an unrecognised status
+   must override it explicitly or it inherits the success styling. */
+.txn-status.unknown {
+  color: var(--ui-text-muted, #6b7280);
 }
 
 .txn-status.paid {

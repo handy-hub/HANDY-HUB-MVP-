@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/css/components/tabs.css" />
   <link rel="stylesheet" href="../shared/css/ui-polish.css" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
@@ -32,11 +33,9 @@
     .rv-bar-fill  { height:100%; background:#F97316; border-radius:3px; transition:width .6s ease; }
     .rv-bar-ct { font-size:11px; color:var(--text-light); width:20px; text-align:right; flex-shrink:0; }
 
-    /* Filter tabs */
-    .rv-tabs { display:flex; overflow-x:auto; scrollbar-width:none; background:var(--surface); border-radius:var(--radius-md); margin-bottom:12px; padding:4px; gap:4px; box-shadow:var(--shadow-sm); }
-    .rv-tabs::-webkit-scrollbar { display:none; }
-    .rv-tab  { flex:1; min-width:44px; padding:8px 10px; font-size:12px; font-weight:700; color:var(--text-light); border:none; background:none; cursor:pointer; border-radius:10px; white-space:nowrap; transition:all .15s; }
-    .rv-tab.active { background:var(--primary); color:#fff; }
+    /* Filter tabs use the canonical shared component (shared/css/components/tabs.css).
+       The hand-rolled .rv-tabs/.rv-tab rules were a third parallel tab
+       implementation in the artisan app; jobs.html already uses .ui-tabs. */
 
     /* Review card */
     .rv-card { background:var(--surface); border-radius:var(--radius-md); padding:14px; margin-bottom:10px; box-shadow:var(--shadow-sm); }
@@ -94,12 +93,12 @@
     </div>
 
     <!-- Filter tabs -->
-    <div class="rv-tabs">
-      <button class="rv-tab active" onclick="setFilter('all',this)">All</button>
-      <button class="rv-tab" onclick="setFilter(5,this)"><i class="fa-solid fa-star"></i> 5</button>
-      <button class="rv-tab" onclick="setFilter(4,this)"><i class="fa-solid fa-star"></i> 4</button>
-      <button class="rv-tab" onclick="setFilter(3,this)"><i class="fa-solid fa-star"></i> 3</button>
-      <button class="rv-tab" onclick="setFilter(2,this)">≤ 2</button>
+    <div class="ui-tabs ui-tabs--artisan" role="tablist">
+      <button class="ui-tab active" role="tab" aria-selected="true"  onclick="setFilter('all',this)">All</button>
+      <button class="ui-tab" role="tab" aria-selected="false" onclick="setFilter(5,this)"><i class="fa-solid fa-star"></i> 5</button>
+      <button class="ui-tab" role="tab" aria-selected="false" onclick="setFilter(4,this)"><i class="fa-solid fa-star"></i> 4</button>
+      <button class="ui-tab" role="tab" aria-selected="false" onclick="setFilter(3,this)"><i class="fa-solid fa-star"></i> 3</button>
+      <button class="ui-tab" role="tab" aria-selected="false" onclick="setFilter(2,this)">≤ 2</button>
     </div>
 
     <!-- Loading -->
@@ -230,7 +229,9 @@ function renderList(reviews) {
           <p class="rv-service">${esc(d.serviceType || d.service || 'Service')}</p>
         </div>
         <div class="rv-card-right">
-          <div class="rv-card-stars">${stars(d.rating||0, 13)}</div>
+          <div class="rv-card-stars">${Number.isFinite(Number(d.rating)) && Number(d.rating) > 0
+            ? stars(Number(d.rating), 13)
+            : '<span class="rv-card-time">No rating</span>'}</div>
           <span class="rv-card-time">${timeAgo(d.createdAt)}</span>
         </div>
       </div>
@@ -241,8 +242,12 @@ function renderList(reviews) {
 
 window.setFilter = function(f, btn) {
   _filter = f;
-  document.querySelectorAll('.rv-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ui-tab').forEach(t => {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
   btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
   renderList(_all);
 };
 

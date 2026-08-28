@@ -1,0 +1,5 @@
+{
+  "name": "Handy Hub Administrator",
+  "description": "Professional control tower for the HandyHub on-demand artisan marketplace, managing artisans, jobs, escrow, and disputes.",
+  "requestFramePermissions": []
+}

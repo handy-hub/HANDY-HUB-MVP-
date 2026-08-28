@@ -39,8 +39,18 @@ export const FIREBASE_CONFIG = {
     appId:             '1:1034220501833:web:bba9ad6f78881029a0f898',
 };
 
+export const ENVIRONMENT   = 'production';
+export const IS_PRODUCTION = true;
+
 // ── Custom Firestore database ID ───────────────────────────────────────────────
 export const FIRESTORE_DB_ID = 'ai-studio-5589039d-72c4-40d8-ae39-f35c6c321eb6';
+
+// ── Google Maps ───────────────────────────────────────────────────────────────
+// Browser key. NOT a secret — it ships in the bundle and anyone can read it from
+// the deployed site. What makes it safe is the HTTP-referrer and API
+// restrictions set on it in the Cloud Console. If those are ever removed, this
+// key WILL be scraped and billed.
+export const MAPS_API_KEY = 'AIzaSyD09ZJGRxkeRIneys_5CBJLJuiUUiV49R8';
 
 // ── Paystack configuration ────────────────────────────────────────────────────
 // Public key only — safe in frontend bundles.
@@ -125,7 +135,7 @@ export const MOMO_PROVIDERS = {
 // Get your site key:
 //   Firebase Console → Project Settings → App Check → Web → Register → reCAPTCHA v3
 //   (also register the reCAPTCHA v3 key at https://www.google.com/recaptcha/admin)
-export const APP_CHECK_SITE_KEY = '6LfivBctAAAAAMKNFt5TNiIi5j712EdpfaDJOWfb'; // FILL IN before deploying
+export const APP_CHECK_SITE_KEY = '6LfivBctAAAAAMKNFt5TNiIi5j712EdpfaDJOWfb';
 
 // ── FCM Web Push VAPID Key ─────────────────────────────────────────────────────
 // Required for browser push notifications via Firebase Cloud Messaging.

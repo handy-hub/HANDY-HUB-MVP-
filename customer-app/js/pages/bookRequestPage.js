@@ -12,11 +12,28 @@ import { SERVICE_CATEGORIES, resolveCategory } from '../../../shared/js/data/ser
 import { pricingService } from '../../../shared/js/services/pricingService.js';
 import { uploadImage, UPLOAD_PRESETS, cdnUrl } from '../../../shared/js/services/cloudinaryService.js';
 import { mapError } from '../../../shared/js/utils/errorCopy.js';
+import { resolveArtisan, initialsOf, resolveJourney, journeyStages } from '../../../shared/js/domain/bookingTruth.js';
 
 const MAX_PHOTOS   = 4;
 const LOC_CACHE_KEY = 'hh_detected_location';
+
+// Address autocomplete. Optional by design: if the key, the network or the API
+// is unavailable, attach() reports unavailable and the field stays exactly the
+// free-text input it has always been.
+import { attachAddressAutocomplete } from '../../../shared/js/services/placesService.js';
 const LOC_TTL_MS    = 10 * 60_000;
 const ACCRA         = { lat: 5.6037, lng: -0.1870, label: 'Accra (approximate)' };
+
+// A half-written request is the customer's work, and this page used to throw it
+// away. Refreshing, backgrounding the tab on a phone, or following any link out
+// of the form wiped the category, the description, the address and every photo
+// — photos that had already been uploaded to Cloudinary, so the loss cost
+// bandwidth as well as typing.
+//
+// A draft is the one thing localStorage is legitimately for: non-authoritative
+// intake state, never a settled financial artefact (CLAUDE.md §2).
+const DRAFT_KEY_BASE = 'hh_booking_draft';
+const DRAFT_TTL_MS   = 24 * 60 * 60_000;
 
 function esc(s) {
     return String(s == null ? '' : s)
@@ -36,6 +53,8 @@ const S = {
     // inside its TTL). Never set by a display fallback. goToFee() refuses to
     // price or book while this is false.
     locPrecise: false,
+    artisanId: null,     // the professional the customer chose, if any
+    artisanName: null,
     quote: null,         // server pricing quote
     feeTimer: null,
     bookingId: null,
@@ -48,18 +67,26 @@ const $ = (id) => document.getElementById(id);
 
 // ── View switching ────────────────────────────────────────────────────────────
 const VIEW_META = {
+    boot:    { kicker: 'Loading',       title: 'One moment…',       progress: 5 },
     request: { kicker: 'New request',   title: 'Book a visit',      progress: 33 },
     // "Step 2 of 2" implied the journey ended here, reinforcing the impression
     // that this screen charges. It does not — finding a professional and paying
     // both come after it.
     fee:     { kicker: 'Before we search', title: 'Your visit fee', progress: 66 },
-    track:   { kicker: 'Live status',   title: 'Your request',      progress: 100 },
+    // 100% the instant a request was sent — a full bar over a job that has not
+    // been accepted, paid for, inspected, quoted or done. renderTrack() now
+    // drives this from the real stage; 20 is only what the loading state shows
+    // before the first snapshot arrives.
+    track:   { kicker: 'Live status',   title: 'Your request',      progress: 20 },
 };
 
 function switchView(name) {
     S.view = name;
-    ['request', 'fee', 'track'].forEach(v => {
+    // 'boot' is the neutral state the page opens in. Including it here means no
+    // other view is ever painted before init() has decided which one is correct.
+    ['boot', 'request', 'fee', 'track'].forEach(v => {
         const el = $(`view-${v}`);
+        if (!el) return;
         el.hidden = v !== name;
         el.classList.remove('enter');
     });
@@ -119,6 +146,7 @@ function selectCategory(id) {
     S.catId = id;
     document.querySelectorAll('.br-cat-tile').forEach(t =>
         t.setAttribute('aria-checked', t.dataset.cat === id ? 'true' : 'false'));
+    scheduleDraftSave();
 }
 
 function activeCategory() {
@@ -208,14 +236,8 @@ async function addPhoto(file) {
         entry.url = cdnUrl(publicId, '', version);
         entry.uploading = false;
         thumb.classList.remove('uploading');
-        const x = document.createElement('button');
-        x.className = 'br-photo-x'; x.type = 'button'; x.textContent = '×';
-        x.setAttribute('aria-label', 'Remove photo');
-        x.addEventListener('click', () => {
-            S.photos = S.photos.filter(p => p !== entry);
-            thumb.remove();
-        });
-        thumb.appendChild(x);
+        attachPhotoRemove(entry, thumb);
+        scheduleDraftSave();
     } catch (err) {
         S.photos = S.photos.filter(p => p !== entry);
         thumb.remove();
@@ -223,13 +245,174 @@ async function addPhoto(file) {
     }
 }
 
+function attachPhotoRemove(entry, thumb) {
+    const x = document.createElement('button');
+    x.className = 'br-photo-x'; x.type = 'button'; x.textContent = '×';
+    x.setAttribute('aria-label', 'Remove photo');
+    x.addEventListener('click', () => {
+        S.photos = S.photos.filter(p => p !== entry);
+        thumb.remove();
+        scheduleDraftSave();
+    });
+    thumb.appendChild(x);
+}
+
+// ── Draft persistence ────────────────────────────────────────────────────────
+//
+// Read and written through ONE key builder, and never called before
+// requireAuth() has resolved — so the uid is known at both ends and the two
+// keys cannot diverge the way the notification cache's did (CLAUDE.md §1).
+// This is not a first-paint cache of remote data, so mountInstantView does not
+// apply: there is no subscription behind it, only the customer's own unsent
+// typing.
+const draftKey = () => `${DRAFT_KEY_BASE}:${S.uid}`;
+let draftTimer = null;
+
+function scheduleDraftSave() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(saveDraft, 400);
+}
+
+function saveDraft() {
+    draftTimer = null;
+    if (!S.uid || S.view !== 'request') return;
+    const draft = {
+        v: 1,
+        ts: Date.now(),
+        catId:   S.catId,
+        desc:    $('br-desc')?.value    || '',
+        address: $('br-address')?.value || '',
+        // Committed uploads only — an in-flight photo has no URL to come back to.
+        photos: S.photos.filter(p => p.url && !p.uploading)
+                        .map(p => ({ publicId: p.publicId, version: p.version, url: p.url })),
+        artisanId:   S.artisanId,
+        artisanName: S.artisanName,
+    };
+    // Nothing worth keeping — don't leave a husk that "restores" an empty form.
+    if (!draft.catId && !draft.desc.trim() && !draft.address.trim() && !draft.photos.length) {
+        clearDraft(); return;
+    }
+    try { localStorage.setItem(draftKey(), JSON.stringify(draft)); }
+    catch { /* storage full or blocked — non-fatal, the form still works */ }
+}
+
+function clearDraft() {
+    clearTimeout(draftTimer);
+    draftTimer = null;
+    try { localStorage.removeItem(draftKey()); } catch { /* non-fatal */ }
+}
+
+/**
+ * Paint the customer's own words back before anything is fetched.
+ *
+ * Coordinates are deliberately NOT restored. lat/lng carry a precision claim
+ * (S.locPrecise) that dispatch matches and charges travel on; a fix from
+ * yesterday is not where the customer is standing today, and reviving one would
+ * be the old Accra fallback wearing a different hat. detectLocation()
+ * re-establishes position, and until it does validateRequest() refuses to
+ * price. The address TEXT is the customer's own and comes back.
+ */
+function restoreDraft() {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(draftKey()) || 'null'); }
+    catch { /* corrupt — treat as absent */ }
+    if (!d || d.v !== 1) return false;
+    if ((Date.now() - (d.ts || 0)) > DRAFT_TTL_MS) { clearDraft(); return false; }
+
+    if (d.catId && resolveCategory(d.catId)) selectCategory(d.catId);
+    if (d.desc) {
+        $('br-desc').value = d.desc;
+        $('br-count').textContent = `${d.desc.length}/2000`;
+    }
+    if (d.address) $('br-address').value = d.address;
+    if (d.artisanId) { S.artisanId = String(d.artisanId); S.artisanName = d.artisanName || null; }
+
+    for (const p of (d.photos || [])) {
+        if (!p.url || S.photos.length >= MAX_PHOTOS) continue;
+        const thumb = document.createElement('div');
+        thumb.className = 'br-photo-thumb';
+        thumb.innerHTML = `<img alt="Problem photo" src="${esc(p.url)}"/>`;
+        $('br-photo-row').insertBefore(thumb, $('br-photo-add'));
+        const entry = { publicId: p.publicId || null, version: p.version || null, url: p.url, uploading: false, el: thumb };
+        S.photos.push(entry);
+        attachPhotoRemove(entry, thumb);
+    }
+
+    return !!(String(d.desc || '').trim() || String(d.address || '').trim() || (d.photos || []).length);
+}
+
+// ── Inline validation ────────────────────────────────────────────────────────
+// A toast was the only signal that a tap had been rejected: it named no field,
+// moved no focus, and vanished. On a scrolled form the customer could tap and
+// see nothing happen at all. Errors now attach to the field, persist until
+// fixed, and pull the field into view — the input is never touched.
+function clearFieldError(id) {
+    const el = $(id);
+    if (!el) return;
+    el.classList.remove('br-invalid');
+    el.removeAttribute('aria-invalid');
+    const msg = document.getElementById(`${id}-err`);
+    if (msg) msg.remove();
+}
+
+function setFieldError(id, message) {
+    const el = $(id);
+    if (!el) { showToast(message); return; }
+    clearFieldError(id);
+    el.classList.add('br-invalid');
+    el.setAttribute('aria-invalid', 'true');
+    const msg = document.createElement('p');
+    msg.className = 'br-err';
+    msg.id = `${id}-err`;
+    msg.setAttribute('role', 'alert');
+    msg.textContent = message;
+    // Insert AFTER the field wrapper, never inside it. Appending into
+    // .br-loc-card — which is display:flex — made the message a flex-row sibling
+    // of the beacon and the input, which collapsed the input's hit area so the
+    // customer could not tap the very field they had just been told to fix.
+    const wrapper = el.closest('.br-field, .br-loc-card') || el;
+    wrapper.insertAdjacentElement('afterend', msg);
+
+    // Focus scrolls the field into view natively and raises the keyboard on it.
+    // A separate smooth scrollIntoView was animating the input for ~300 ms, during
+    // which it could not be typed into — the customer taps the field the app just
+    // told them to fix and the first keystrokes go nowhere. Focus alone is instant.
+    try { el.focus(); }
+    catch { el.scrollIntoView({ block: 'center' }); }
+}
+
 function validateRequest() {
-    if (!S.catId) { showToast('Choose a service category.'); return false; }
+    ['br-desc', 'br-address'].forEach(clearFieldError);
+
+    if (!S.catId) {
+        showToast('Choose what needs fixing.');
+        $('br-cat-grid')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+    }
     const desc = $('br-desc').value.trim();
-    if (desc.length < 10) { showToast('Describe the problem in a little more detail.'); return false; }
-    if (!$('br-address').value.trim()) { showToast('Add your address so the professional can find you.'); return false; }
-    if (S.lat == null || S.lng == null) { showToast('Still detecting your location — one second.'); return false; }
-    if (S.photos.some(p => p.uploading)) { showToast('Photos are still uploading…'); return false; }
+    if (desc.length < 10) {
+        setFieldError('br-desc', desc.length
+            ? 'A little more detail helps your professional arrive prepared.'
+            : 'Tell us what is wrong so the right professional comes.');
+        return false;
+    }
+    if (!$('br-address').value.trim()) {
+        setFieldError('br-address', 'Add your address so the professional can find your door.');
+        return false;
+    }
+    if (S.lat == null || S.lng == null) {
+        // Not the customer's mistake — say what the app is doing about it.
+        // Picking an address from the suggestions also satisfies this, which is
+        // why the copy offers it: a customer indoors with no GPS fix used to be
+        // unable to book at all.
+        setFieldError('br-address',
+            'Pick your address from the suggestions, or tap the target icon to locate you.');
+        return false;
+    }
+    if (S.photos.some(p => p.uploading)) {
+        showToast('Your photos are still uploading — one moment.');
+        return false;
+    }
     return true;
 }
 
@@ -250,7 +433,11 @@ async function goToFee() {
     }
 
     const cat = activeCategory();
-    S.quote = await pricingService.getPricingQuote({ category: cat.id, lat: S.lat, lng: S.lng });
+    // Passing artisanId prices REAL travel distance to that professional instead
+    // of an estimate, and routes the request straight to them.
+    S.quote = await pricingService.getPricingQuote({
+        category: cat.id, lat: S.lat, lng: S.lng, artisanId: S.artisanId,
+    });
     renderReceipt();
     switchView('fee');
     // State plainly that this screen takes no money. It shows an itemised total
@@ -280,24 +467,39 @@ function renderReceipt() {
     $('br-receipt-total').textContent = ghs(q.calloutFee);
 }
 
+// The visible countdown is gone.
+//
+// It ran a ticking mm:ss lock on a screen whose own footer says "No payment
+// yet". A ticking clock on a screen that takes no money reads as a financial
+// deadline the customer is losing, and there is no action they can take to beat
+// it — the fee simply reprices. That is manufactured urgency standing in for
+// clarity, and HandyHub should read as reliable, not desperate.
+//
+// The token still expires server-side; that is a real pricing constraint. It is
+// now handled silently: when the quote goes stale we refetch it, and the only
+// time the customer hears about it is if the price actually changed, at which
+// point they genuinely need to know before confirming.
 function startFeeLockTicker() {
-    clearInterval(S.feeTimer);
-    const tick = async () => {
-        const left = Date.parse(S.quote.expiresAt) - Date.now();
-        if (left <= 0) {
-            clearInterval(S.feeTimer);
-            try {
-                S.quote = await pricingService.getPricingQuote({ category: S.catId, lat: S.lat, lng: S.lng });
-                renderReceipt(); startFeeLockTicker();
-                showToast('Fee refreshed.');
-            } catch { $('br-fee-lock').textContent = 'Fee expired — go back and retry.'; }
-            return;
+    clearTimeout(S.feeTimer);
+    const left = Date.parse(S.quote.expiresAt) - Date.now();
+    $('br-fee-lock').textContent = '';
+    S.feeTimer = setTimeout(async () => {
+        const previous = S.quote?.calloutFee;
+        try {
+            S.quote = await pricingService.getPricingQuote({
+                category: S.catId, lat: S.lat, lng: S.lng, artisanId: S.artisanId,
+            });
+            renderReceipt();
+            startFeeLockTicker();
+            if (previous != null && Number(previous) !== Number(S.quote.calloutFee)) {
+                showToast(`The visit fee is now ${ghs(S.quote.calloutFee)}.`);
+            }
+        } catch {
+            // Refresh failed — say what it means for the customer, not what
+            // failed internally. Confirming will re-price server-side anyway.
+            $('br-fee-lock').textContent = 'Tap confirm to refresh this price.';
         }
-        const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
-        $('br-fee-lock').textContent = `Fee locked for ${m}:${String(s).padStart(2, '0')}`;
-    };
-    tick();
-    S.feeTimer = setInterval(tick, 1000);
+    }, Math.max(left, 1000));
 }
 
 async function confirmRequest() {
@@ -310,12 +512,15 @@ async function confirmRequest() {
             photos:       S.photos.map(p => p.url).filter(Boolean),
             serviceLabel: cat.categoryLabel,
         });
-        clearInterval(S.feeTimer);
+        clearTimeout(S.feeTimer);
+        clearDraft();                    // it is a booking now, not a draft
         sessionStorage.setItem('hh_active_request', bookingId);
         enterTrack(bookingId);
     } catch (err) {
         if (/expired|not found/i.test(err?.message || '')) {
-            S.quote = await pricingService.getPricingQuote({ category: cat.id, lat: S.lat, lng: S.lng });
+            S.quote = await pricingService.getPricingQuote({
+                category: cat.id, lat: S.lat, lng: S.lng, artisanId: S.artisanId,
+            });
             renderReceipt(); startFeeLockTicker();
             showToast('The fee was refreshed — please confirm again.');
             return;
@@ -328,6 +533,15 @@ async function confirmRequest() {
 function enterTrack(bookingId) {
     S.bookingId = bookingId;
     switchView('track');
+    // Paint an honest loading state immediately. Previously the track body was
+    // blank until the first snapshot, so a resumed booking showed an empty
+    // screen; combined with view-request being the page's default, that read as
+    // "your booking is gone".
+    $('br-track-body').innerHTML = `
+        <div class="br-search-hero br-stagger" style="padding-top:24px">
+            <p class="br-search-title">Loading your booking…</p>
+            <p class="br-search-sub">Fetching the latest status from your account.</p>
+        </div>`;
     setCta('Loading…', null, { disabled: true });
     let firstSnap = true;
     if (S.unsub) S.unsub();
@@ -359,67 +573,109 @@ function renderTrackNotFound() {
     });
 }
 
-function timeline(stages, doneIdx, liveIdx) {
-    return `<div class="br-timeline">` + stages.map((st, i) => {
-        const cls = i < doneIdx ? 'done' : i === liveIdx ? 'live' : i < liveIdx ? 'done' : 'todo';
-        const dot = i < Math.max(doneIdx, liveIdx)
-            ? `<svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`
-            : String(i + 1);
-        return `
-        <div class="br-tl-node ${cls}">
-            <span class="br-tl-dot">${dot}</span>
-            <p class="br-tl-title">${esc(st.t)}</p>
-            <p class="br-tl-sub">${st.s}</p>
-        </div>`;
-    }).join('') + `</div>`;
+/**
+ * The six-stage rail, rendered from the ONE lifecycle projection both apps read
+ * (journeyStages → resolveJourney → resolveJobPhase in bookingTruth.js).
+ *
+ * What stood here was a four-stage list with done/live indices hand-written per
+ * branch, and it was wrong in three ways at once. It stopped at the inspection,
+ * so from `quoted` onwards — the half of the journey holding the money — the
+ * customer saw no rail at all. `inspection_done` passed indices past the end of
+ * the array, which painted every stage complete on a job barely half done. And
+ * its copy was a second, drifting statement of a lifecycle the shared module
+ * already owns.
+ */
+function journeyRail(stages) {
+    const tick = `<svg viewBox="0 0 24 24" fill="none" width="11" height="11" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    return `<ol class="br-rail" aria-label="Where this booking is">` + stages.map(st => `
+        <li class="br-rail-node ${st.state}"${st.state === 'current' ? ' aria-current="step"' : ''}>
+            <span class="br-rail-dot">${st.state === 'done' ? tick : ''}</span>
+            <span class="br-rail-lbl">${esc(st.label)}</span>
+        </li>`).join('') + `</ol>`;
 }
 
 function proCard(b) {
-    const name   = b.artisanName || b.currentArtisanName || 'Your professional';
-    const photo  = b.currentArtisanPhoto || null;
-    const rating = b.currentArtisanRating || null;
-    const initials = name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+    // One identity resolver across every surface — see bookingTruth.js.
+    const a      = resolveArtisan(b);
+    const name   = a.name || (a.isAssigned ? 'Your professional' : 'Finding your professional…');
+    const photo  = a.photo;
+    const rating = a.rating;
+    const initials = initialsOf(a.name) || '·';
+    // "Who is coming to my home?" — the customer needs more than a name before
+    // they pay. Every field here is stamped server-side at acceptance; anything
+    // unavailable is simply omitted rather than filled in with a guess.
+    const bits = [];
+    if (a.verified === true)      bits.push('<span class="br-pro-verified">✓ Verified</span>');
+    if (rating !== null)          bits.push(`<span class="star">★ ${esc(rating.toFixed(1))}</span>`);
+    if (a.jobsCompleted !== null) bits.push(`<span>${esc(String(a.jobsCompleted))} job${a.jobsCompleted === 1 ? '' : 's'} done</span>`);
+    if (a.trade || b.serviceType) bits.push(`<span>${esc(a.trade || b.serviceType)}</span>`);
+
     return `
     <div class="br-pro-card">
         <div class="br-pro-av">${photo ? `<img src="${esc(photo)}" alt=""/>` : esc(initials)}</div>
         <div class="br-pro-body">
             <p class="br-pro-name">${esc(name)}</p>
-            <p class="br-pro-meta">${rating ? `<span class="star">★ ${esc(String(rating))}</span>` : ''}<span>${esc(b.serviceType || '')}</span></p>
+            <p class="br-pro-meta">${bits.join('')}</p>
         </div>
     </div>`;
 }
-
-const STAGES = [
-    { t: 'Request sent',        s: 'Your problem, photos and location are in.' },
-    { t: 'Professional matched', s: 'A verified pro accepts your inspection visit.' },
-    { t: 'Callout fee secured',  s: 'Held in escrow — credited toward your final job price.' },
-    { t: 'Inspection',           s: 'They assess the problem, then send you a fixed quote.' },
-];
 
 async function renderTrack(b) {
     const body = $('br-track-body');
     const st = (b.status || '').toLowerCase();
 
+    // Where am I, in the whole journey — the same question the artisan's screen
+    // answers from the same projection, so the two sides never disagree.
+    const stages = journeyStages(b, 'customer');
+    const cur    = stages.findIndex(s => s.state === 'current');
+    const pct    = cur === -1 ? 100 : Math.round(((cur + 1) / stages.length) * 100);
+    $('br-progress').style.width = `${pct}%`;
+    $('br-progressbar').setAttribute('aria-valuenow', String(pct));
+    const rail = journeyRail(stages);
+
     if (['pending', 'dispatching', 'searching', 'dispatched', 'assigned'].includes(st)) {
+        // Waiting, told truthfully. No countdown and no progress bar: the app
+        // genuinely does not know when a professional will accept, and inventing
+        // "2 minutes remaining" would be a lie the customer would catch.
+        //
+        // The old copy promised "a few minutes" while the artisan side is given a
+        // 3-hour response window — a mismatch the customer had no way to see.
+        const j       = resolveJourney(b, 'customer');
+        const direct  = !!b.artisanId && (b.currentArtisanName || b.artisanName);
+        const waited  = Date.parse(b.createdAt || '') || null;
+        const mins    = waited ? Math.floor((Date.now() - waited) / 60000) : null;
+
+        // Escalates in honesty as time passes rather than repeating one promise.
+        const patience = mins == null || mins < 2
+            ? 'Sending your request to professionals nearby.'
+            : mins < 15
+                ? 'Waiting for a professional to accept.'
+                : `Still looking — we've been searching for ${mins} minutes. Professionals have up to 3 hours to respond, and we'll notify you the moment one accepts.`;
+
         body.innerHTML = `
+            ${rail}
             <div class="br-search-hero br-stagger">
                 <div class="br-search-rings">
                     <span class="ring"></span><span class="ring"></span><span class="ring"></span>
                     <span class="core"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
                 </div>
-                <p class="br-search-title">Finding your professional…</p>
-                <p class="br-search-sub">We're checking verified ${esc(b.serviceType || '')} pros near ${esc((b.address || '').split(',')[0])}. This usually takes a few minutes.</p>
-            </div>
-            ${timeline(STAGES, 1, 1)}`;
-        setCta('Cancel request', cancelRequest, { ghost: true });
+                <p class="br-search-title">${direct
+                    ? `Waiting for ${esc(b.currentArtisanName || b.artisanName)}`
+                    : 'Finding your professional'}</p>
+                <p class="br-search-sub">${direct
+                    ? `Your request went straight to ${esc(b.currentArtisanName || b.artisanName)}. ${esc(patience)}`
+                    : `We're checking verified ${esc(b.serviceType || '')} professionals near ${esc((b.address || '').split(',')[0])}. ${esc(patience)}`}</p>
+                <p class="br-search-note">You can close the app — we'll notify you.</p>
+            </div>`;
+        setCta('Cancel request', cancelRequest, { ghost: true, meta: j.next || '' });
 
     } else if (st === 'accepted' && !b.calloutPaid) {
         await loadWallet();
         const fee   = Number(b.calloutFee || 0);
         const short = S.walletBalance != null && S.walletBalance < fee;
         body.innerHTML = `
+            ${rail}
             <div class="br-stagger">${proCard(b)}</div>
-            ${timeline(STAGES, 2, 2)}
             <div class="br-wallet-strip ${short ? 'short' : ''} br-stagger">
                 <span>Wallet balance</span>
                 <strong>${S.walletBalance == null ? '—' : ghs(S.walletBalance)}</strong>
@@ -433,32 +689,32 @@ async function renderTrack(b) {
         }
 
     } else if (['inspection_scheduled', 'en_route', 'in_progress'].includes(st) && !b.quoteApproved) {
-        const live = st === 'inspection_scheduled' ? 3 : 3;
         const sub  = st === 'inspection_scheduled'
             ? 'Your callout fee is secured. The professional will head over to assess the problem.'
             : st === 'en_route' ? 'Your professional is on the way.' : 'Inspection happening now.';
         body.innerHTML = `
+            ${rail}
             <div class="br-search-hero br-stagger" style="padding-top:24px">
                 <div class="br-state-ico ok"><svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
                 <p class="br-search-title">Inspection booked</p>
                 <p class="br-search-sub">${sub}</p>
             </div>
-            <div class="br-stagger">${proCard(b)}</div>
-            ${timeline(STAGES, 3, live)}`;
+            <div class="br-stagger">${proCard(b)}</div>`;
         setCta('View my bookings', () => { location.href = 'booking.html'; });
 
     } else if (st === 'inspection_done') {
         body.innerHTML = `
+            ${rail}
             <div class="br-search-hero br-stagger" style="padding-top:24px">
                 <div class="br-state-ico ok"><svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg></div>
                 <p class="br-search-title">Inspection complete</p>
                 <p class="br-search-sub">${esc(b.artisanName || 'Your professional')} has assessed the problem. Your fixed quote is on its way — we'll notify you.</p>
-            </div>
-            ${timeline(STAGES, 4, 4)}`;
+            </div>`;
         setCta('View my bookings', () => { location.href = 'booking.html'; });
 
     } else if (st === 'quoted') {
         body.innerHTML = `
+            ${rail}
             <div class="br-search-hero br-stagger" style="padding-top:24px">
                 <div class="br-state-ico ok"><svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
                 <p class="br-search-title">Your quote is ready</p>
@@ -487,6 +743,7 @@ async function renderTrack(b) {
     } else {
         // quote approved / job executing — hand over to the bookings screen
         body.innerHTML = `
+            ${rail}
             <div class="br-search-hero br-stagger" style="padding-top:24px">
                 <div class="br-state-ico ok"><svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
                 <p class="br-search-title">Job confirmed</p>
@@ -541,12 +798,50 @@ async function init() {
 
     $('br-desc').addEventListener('input', (e) => {
         $('br-count').textContent = `${e.target.value.length}/2000`;
+        clearFieldError('br-desc');      // the error goes the moment they fix it
+        scheduleDraftSave();
+    });
+    $('br-address').addEventListener('input', () => {
+        clearFieldError('br-address');
+        scheduleDraftSave();
     });
     $('br-loc-refresh').addEventListener('click', () => detectLocation(true));
+
+    // ── Address autocomplete ─────────────────────────────────────────────────
+    // Picking a suggestion resolves BOTH the address text and its coordinates,
+    // which matters twice over: the artisan navigates to a place the customer
+    // actually chose rather than to wherever they were standing, and a customer
+    // whose GPS never resolves can still book — that path used to dead-end at
+    // "we need your location".
+    //
+    // Entirely optional. If the key or the API is unavailable the field behaves
+    // exactly as it does today.
+    attachAddressAutocomplete($('br-address'), {
+        onResolved: ({ address, lat, lng }) => {
+            S.lat = lat;
+            S.lng = lng;
+            S.locPrecise = true;
+            S.locLabel = address;
+            const line = $('br-loc-line');
+            if (line) line.textContent = address;
+            clearFieldError('br-address');
+            saveDraft();
+        },
+        onCleared: () => {
+            // They edited the box after choosing. Those coordinates described
+            // the place they picked, not what is in the field now — keeping
+            // them is how an artisan ends up at the previous suggestion.
+            if (S.locLabel && $('br-address').value.trim() !== S.locLabel.trim()) {
+                S.lat = null; S.lng = null; S.locPrecise = false;
+            }
+        },
+    }).then(a => {
+        if (a.available) console.info('[book-request] address autocomplete active');
+    }).catch(() => {});
     $('br-cta').addEventListener('click', runCta);
     $('br-back').addEventListener('click', () => {
         if (S.view === 'fee') {
-            clearInterval(S.feeTimer);
+            clearTimeout(S.feeTimer);
             switchView('request');
             setCta('See the visit fee', goToFee);
         } else if (S.view === 'track') {
@@ -575,6 +870,11 @@ async function init() {
         // on an empty form. resolveCategory() is used rather than an id equality
         // check because these sources write a mix of ids ("plumbing") and display
         // labels ("Plumbing"); matching only ids silently dropped the label form.
+        // Bring back whatever they had already written. Restoring FIRST means a
+        // deep-linked ?cat= or a chosen professional below still wins — those
+        // are a fresh, explicit intent and should override a stale draft.
+        const restored = restoreDraft();
+
         const preToken = params.get('cat')
             || sessionStorage.getItem('hh_service_preselect')
             || sessionStorage.getItem('hh_service');
@@ -583,20 +883,44 @@ async function init() {
 
         sessionStorage.removeItem('hh_service_preselect');
         sessionStorage.removeItem('hh_service');
-        // The inspection track dispatches to the best-matched artisan, so a
-        // pre-chosen professional cannot be honoured here. Clear the keys rather
-        // than leave them to be misread by a later flow.
+
+        // ── Honour the professional the customer chose ───────────────────────
+        //
+        // This used to delete hh_selected_artisan without reading it, so every
+        // "Book Now" on a specific professional — from their profile, the
+        // directory, Saved, the dashboard rail or Rebook — silently became
+        // "book anyone", with no notice that the choice had been dropped.
+        //
+        // The backend supported the choice all along: getPricingQuote takes an
+        // artisanId (and prices REAL travel distance from it instead of an
+        // estimate), createInspectionBooking carries it onto the booking, and
+        // dispatch.js skips dispatch entirely for a pre-matched booking. Only
+        // this hand-off was missing.
+        try {
+            const raw = sessionStorage.getItem('hh_selected_artisan');
+            if (raw) {
+                const chosen = JSON.parse(raw);
+                const id = chosen?.id || chosen?.uid || null;
+                if (id) { S.artisanId = String(id); S.artisanName = chosen.name || null; }
+            }
+        } catch { /* malformed hand-off — fall back to dispatch */ }
         sessionStorage.removeItem('hh_selected_artisan');
         sessionStorage.removeItem('hh_booking_intent');
         switchView('request');
         setCta('See the visit fee', goToFee);
+        // Say why the form is already filled in, or it reads as someone else's
+        // data. Position is deliberately re-detected rather than restored.
+        if (restored) showToast('We kept your unfinished request.');
         detectLocation();
     }
 }
 
 window.addEventListener('pagehide', () => {
     if (S.unsub) S.unsub();
-    clearInterval(S.feeTimer);
+    clearTimeout(S.feeTimer);
+    // A 400 ms debounce is exactly long enough to lose the last thing they typed
+    // before navigating. Flush it.
+    if (draftTimer) { clearTimeout(draftTimer); saveDraft(); }
 });
 
 init();

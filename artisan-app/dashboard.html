@@ -100,8 +100,10 @@
           </svg>
         </div>
         <div>
-          <p class="status-title" id="status-title">You are online</p>
-          <p class="status-sub" id="status-sub">You're visible to customers</p>
+          <!-- Neutral until the artisan document is read. This markup asserted
+               "You are online" before anything had loaded. -->
+          <p class="status-title" id="status-title">Checking your status…</p>
+          <p class="status-sub" id="status-sub">Loading whether customers can see you.</p>
         </div>
       </div>
       <button class="toggle-status-btn" id="toggle-status-btn" onclick="toggleOnlineStatus()">Go Offline</button>
@@ -254,7 +256,7 @@
       <span class="section-title">Quick Access</span>
     </div>
     <div class="quick-access-row">
-      <a class="quick-item" href="bookings.html">
+      <a class="quick-item" href="jobs.html">
         <div class="quick-icon">
           <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         </div>
@@ -307,6 +309,7 @@ import { getDevStateKey }            from '../shared/dev/artisanDevSession.js';
 import { resolveAvatar, TRANSFORMS }                   from '../shared/js/services/cloudinaryService.js';
 import { pricingService }                              from '../shared/js/services/pricingService.js';
 import { describe as describeStatus }                  from '../shared/js/domain/bookingStatusMeta.js';
+import { performBookingAction, ACTION }                from '../shared/js/domain/bookingActions.js';
 
 // ── BLOCKING AUTH GUARD ───────────────────────────────────────────────────────
 // Verifies: authenticated + role=artisan + not suspended.
@@ -321,7 +324,16 @@ let _currentArtisan = _guardArtisan || {};
 
 // ── State ──────────────────────────────────────────────
 let uid           = null;
-let isOnline      = true;
+// Availability is UNKNOWN until the artisan document says otherwise.
+//
+// This defaulted to `true`, so the dashboard painted "You are online — You're
+// visible to customers" before it had read anything. A live probe of the
+// production database found the only artisan stored as isAvailable:false while
+// their own dashboard claimed they were online — and the customer app was
+// correctly showing "No professionals available". The artisan app was the one
+// telling the untruth, and an artisan who believes they are visible has no
+// reason to go online.
+let isOnline      = null;
 let unsubs        = [];
 
 // ── DOM ────────────────────────────────────────────────
@@ -440,13 +452,32 @@ function applyProfile(data) {
 
 function updateStatusUI(online) {
   isOnline = online;
+
+  // `null` = not yet loaded. Claiming either state here would be a guess about
+  // whether customers can see this artisan at all.
+  if (online === null) {
+    onlineDot.classList.add('offline');
+    statusCard.classList.add('offline');
+    statusIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><path d="M12 7v5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
+    statusTitle.textContent = 'Checking your status…';
+    statusSub.textContent   = 'Loading whether customers can see you.';
+    toggleBtn.textContent   = '…';
+    toggleBtn.disabled      = true;
+    return;
+  }
+
+  toggleBtn.disabled = false;
   onlineDot.classList.toggle('offline', !online);
   statusCard.classList.toggle('offline', !online);
   statusIcon.innerHTML = online
     ? `<svg viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`
     : `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><path d="M4.93 4.93l14.14 14.14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
   statusTitle.textContent = online ? 'You are online' : 'You are offline';
-  statusSub.textContent   = online ? 'You\'re visible to customers' : 'Go online to receive job requests';
+  // Says what being offline actually costs, so it reads as a consequence
+  // rather than a setting.
+  statusSub.textContent   = online
+    ? 'Customers can find you and send you jobs'
+    : 'Customers cannot find you — no new jobs will reach you';
   toggleBtn.textContent   = online ? 'Go Offline' : 'Go Online';
 }
 
@@ -545,6 +576,9 @@ function renderJobCard(booking) {
   const card = document.createElement('div');
   card.className = 'job-request-card';
   card.id = `job-${id}`;
+  // The whole card is a way into this one job's screen.
+  card.dataset.open = id;
+  card.style.cursor = 'pointer';
 
   card.innerHTML = `
     <div class="job-badge-row">
@@ -573,11 +607,19 @@ function renderJobCard(booking) {
       ${d.dateDisplay || d.scheduledAt ? `
       <p style="margin:0;font-size:11.5px;color:#777;display:flex;align-items:center;gap:4px">
         <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        ${d.dateDisplay || new Date(d.scheduledAt).toLocaleDateString('en-GH')}
+        ${d.dateDisplay || (d.scheduledAt ? new Date(d.scheduledAt).toLocaleDateString('en-GH') : 'Schedule not set')}
       </p>` : ''}
     </div>
 
-    <p class="job-budget">Budget: <strong>GHS ${Number(d.total || d.price || 0).toFixed(0)}</strong></p>
+    <p class="job-budget">${(function(){
+      // "GHS 0" told the artisan the job paid nothing when it only meant "no
+      // quote yet". Name the callout fee they actually earn for the visit, and
+      // say plainly when the amount is not yet known.
+      var q = Number(d.jobQuote), c = Number(d.calloutFee);
+      if (Number.isFinite(q) && q > 0)  return 'Quote: <strong>GHS ' + q.toFixed(2) + '</strong>';
+      if (Number.isFinite(c) && c > 0)  return 'Callout fee: <strong>GHS ' + c.toFixed(2) + '</strong>';
+      return 'Fee confirmed on acceptance';
+    })()}</p>
 
     <div class="job-actions">
       <button class="btn-accept" onclick="acceptJob('${id}')">
@@ -595,6 +637,40 @@ function renderJobCard(booking) {
   return card;
 }
 
+/* ── Transitions ──────────────────────────────────────────────────────────
+   This dashboard used to carry its own copy of the lifecycle — five separate
+   status writes, subtly different from the two copies in jobs.html and
+   bookings.html. They all now call the one layer, which re-reads the booking,
+   validates the transition against the state it is ACTUALLY in, and explains a
+   lost race instead of failing silently. */
+async function dashTransition(action, bookingId, btn, { busyLabel, okLabel, restore, removeSel } = {}) {
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.textContent = busyLabel || 'Working…'; }
+  try {
+    const res = await performBookingAction(action, {
+      bookingId, actor: 'artisan',
+      uid: _currentArtisan?.uid || _currentArtisan?.id || null,
+      databaseService, pricingService,
+      reason: 'Cancelled by artisan',
+    });
+    if (!res.ok) {
+      showToast(res.message);
+      if (btn) { btn.disabled = false; btn.innerHTML = restore || orig; }
+      return false;
+    }
+    showToast(okLabel || 'Updated.');
+    if (removeSel) {
+      const el = document.getElementById(removeSel);
+      if (el) { el.style.transition = 'opacity .25s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 260); }
+    }
+    return true;
+  } catch (e) {
+    showToast('That did not go through. Nothing was changed.');
+    if (btn) { btn.disabled = false; btn.innerHTML = restore || orig; }
+    return false;
+  }
+}
+
 window.acceptJob = async function(bookingId) {
   // KYC enforcement — only approved artisans may accept jobs
   if (!canAcceptJobs(_currentArtisan)) {
@@ -602,50 +678,22 @@ window.acceptJob = async function(bookingId) {
     window.location.href = 'onboarding.html';
     return;
   }
-  const btn = document.querySelector(`#job-${bookingId} .btn-accept`);
-  if (btn) { btn.disabled = true; btn.textContent = 'Accepting…'; }
-  try {
-    await databaseService.updateDocument('bookings', bookingId, {
-      status:     'accepted',
-      acceptedAt: new Date().toISOString(),
-      updatedAt:  new Date().toISOString()
+  await dashTransition(ACTION.ACCEPT, bookingId,
+    document.querySelector(`#job-${bookingId} .btn-accept`), {
+      busyLabel: 'Accepting…',
+      okLabel:   'Job accepted. The customer will be notified.',
+      removeSel: `job-${bookingId}`,
+      restore:   '<svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Accept Job',
     });
-    const el = document.getElementById(`job-${bookingId}`);
-    if (el) {
-      el.style.transition = 'opacity .25s';
-      el.style.opacity    = '0';
-      setTimeout(() => el.remove(), 260);
-    }
-    showToast('Job accepted. The customer will be notified.');
-  } catch(e) {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Accept Job'; }
-    showToast('Could not accept job. Try again.');
-  }
 };
 
 window.declineJob = async function(bookingId) {
-  const btn = document.querySelector(`#job-${bookingId} .btn-decline`);
-  if (btn) { btn.disabled = true; btn.textContent = 'Declining…'; }
-  try {
-    const now = new Date().toISOString();
-    await databaseService.updateDocument('bookings', bookingId, {
-      status:     'rejected',
-      rejectedAt: now,
-      updatedAt:  now,
+  if (!confirm('Decline this job request?')) return;
+  await dashTransition(ACTION.DECLINE, bookingId,
+    document.querySelector(`#job-${bookingId} .btn-decline`), {
+      busyLabel: 'Declining…', okLabel: 'Request declined.',
+      removeSel: `job-${bookingId}`, restore: 'Decline',
     });
-    // Clear countdown and remove card — dispatch engine will re-assign immediately
-    if (_activeCountdowns[bookingId]) clearInterval(_activeCountdowns[bookingId]);
-    const el = document.getElementById(`job-${bookingId}`);
-    if (el) {
-      el.style.transition = 'opacity .25s';
-      el.style.opacity    = '0';
-      setTimeout(() => el.remove(), 260);
-    }
-    showToast('Job declined — customer will be matched with another professional.');
-  } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Decline'; }
-    showToast('Could not decline. Try again.');
-  }
 };
 
 // ── Status label / pill helpers ────────────────────────
@@ -765,35 +813,15 @@ function renderActiveJobCard(booking) {
 
 // ── Job progression actions ────────────────────────────
 window.markEnRoute = async function(bookingId) {
-  const btn = document.querySelector(`#active-job-${bookingId} .btn-progress`);
-  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
-  try {
-    await databaseService.updateDocument('bookings', bookingId, {
-      status:    'en_route',
-      enRouteAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-    showToast('Marked as en route. Customer notified.');
-  } catch (e) {
-    if (btn) { btn.disabled = false; }
-    showToast('Could not update status. Try again.');
-  }
+  await dashTransition(ACTION.EN_ROUTE, bookingId,
+    document.querySelector(`#active-job-${bookingId} .btn-progress`),
+    { busyLabel: 'Updating…', okLabel: 'Marked as en route. Customer notified.' });
 };
 
 window.markArrived = async function(bookingId) {
-  const btn = document.querySelector(`#active-job-${bookingId} .btn-progress`);
-  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
-  try {
-    await databaseService.updateDocument('bookings', bookingId, {
-      status:    'in_progress',
-      arrivedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-    showToast('Job started. Customer notified.');
-  } catch (e) {
-    if (btn) { btn.disabled = false; }
-    showToast('Could not update status. Try again.');
-  }
+  await dashTransition(ACTION.START, bookingId,
+    document.querySelector(`#active-job-${bookingId} .btn-progress`),
+    { busyLabel: 'Updating…', okLabel: 'Job started. Customer notified.' });
 };
 
 window.completeInspectionAction = async function(bookingId) {
@@ -809,20 +837,11 @@ window.completeInspectionAction = async function(bookingId) {
 };
 
 window.markJobDone = async function(bookingId) {
-  const btn = document.querySelector(`#active-job-${bookingId} .btn-progress`);
-  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
-  try {
-    await databaseService.updateDocument('bookings', bookingId, {
-      status:    'awaiting',
-      jobDoneAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-    showToast('Marked done. Waiting for customer to confirm.');
-  } catch (e) {
-    if (btn) { btn.disabled = false; }
-    showToast('Could not update status. Try again.');
-  }
+  await dashTransition(ACTION.JOB_DONE, bookingId,
+    document.querySelector(`#active-job-${bookingId} .btn-progress`),
+    { busyLabel: 'Updating…', okLabel: 'Marked done. Waiting for customer to confirm.' });
 };
+
 
 // ── Render schedule item ───────────────────────────────
 function renderScheduleItem(booking) {
@@ -1049,3 +1068,15 @@ window.addEventListener('pagehide', () => {
 <script src="js/artisanFloatingNav.js"></script>
 </body>
 </html>
+
+<script type="module">
+  /* Tapping an offer or active-job card opens THAT booking. Controls inside the
+     card keep their own handlers. */
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('button, a, input, select, textarea')) return;
+    const card = e.target.closest('[data-open]');
+    if (!card) return;
+    const id = card.dataset.open;
+    if (id) window.location.href = `job.html?id=${encodeURIComponent(id)}`;
+  });
+</script>

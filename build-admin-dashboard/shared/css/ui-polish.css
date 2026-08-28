@@ -1,0 +1,1010 @@
+﻿/* Canonical shared components — imported so every page that links ui-polish.css
+   (all customer pages) inherits the ONE back-button treatment automatically.
+   @import must precede all rulesets, so these stay at the very top of the file.
+
+   Phase 2 · Tier A primitives (2026-07-17): button + field are additive —
+   they define NEW `.ui-btn` / `.ui-field` classes that no existing markup uses
+   yet, so importing them here changes zero current pixels while making the ONE
+   button and ONE input available on every page that links ui-polish.css. */
+@import url("components/back-btn.css");
+@import url("components/button.css");
+@import url("components/field.css");
+
+/* ============================================================================
+   HandyHub Customer App — CANONICAL DESIGN TOKENS  (single source of truth)
+   ----------------------------------------------------------------------------
+   This :root is THE design system for the customer app. All shared token files
+   (variables.css, global.css) now alias into these values rather than declaring
+   their own. Legacy token names are kept as aliases so existing CSS keeps
+   working with IDENTICAL values — no visual change, just one source.
+
+   RULES (see Design System Contract):
+     • New tokens are added HERE only.
+     • Do not add :root blocks in page CSS or inline <style>.
+     • Components reference var(--…) tokens, not raw hex/px.
+   ========================================================================== */
+:root {
+  /* ── Canonical: surfaces & ink ─────────────────────────────────────────── */
+  --ui-bg:            #fefefe;   /* L0 — app canvas (lowest) */
+  --ui-surface:       #ffffff;   /* L2 — raised surface (cards, sheets) */
+  --ui-surface-2:     #f5f5f5;   /* L1 — inset/quiet fill (chips, secondary buttons, wells) */
+  --ui-text:          #111111;   /* primary text */
+  --ui-muted:         #666666;   /* secondary text */
+  --ui-faint:         #888888;   /* tertiary text / labels */
+  --ui-border:        rgba(0, 0, 0, 0.08);
+  --ui-border-2:      #e8e8e8;   /* solid hairline (chip/well borders) */
+
+  /* Customer dark-theme surfaces. Components use these instead of reaching
+     into the artisan-only --ds-* namespace. */
+  --ui-dark-surface:  #1e1e1e;
+  --ui-dark-surface-2:#252525;
+  --ui-dark-text:     #f0f0f0;
+  --ui-dark-muted:    #999999;
+  --ui-dark-border:   #333333;
+
+  /* ── Canonical: semantic functional colors ──────────────────────────────── */
+  --ui-danger:        #b22222;   /* destructive actions — used in modal danger btn */
+  --ui-danger-rgb:    178, 34, 34;
+  --ui-success:       #15904b;   /* success / completion state */
+  --ui-success-bg:    #e9f7ef;   /* success tint background */
+  --ui-warning:       #b45309;   /* caution / warning state */
+  --ui-warning-bg:    #fef3e2;
+  --ui-overlay:       rgba(0, 0, 0, 0.5);   /* modal / drawer backdrop */
+
+  /* ── Canonical: primary pressed / dark variant ──────────────────────────── */
+  --ui-primary-dark:  #5a0100;   /* hover / pressed state for maroon primary */
+
+  /* ── Canonical: component dimensions ───────────────────────────────────── */
+  --ui-btn-h:         48px;   /* primary CTA height — ONE rule, everywhere */
+
+  /* ── Canonical: sheet component token ──────────────────────────────────── */
+  --ui-sheet-radius:  var(--ui-radius-lg);  /* 18px customer; artisan overrides to 16px */
+
+  /* ── Canonical: spacing scale (4px grid) ───────────────────────────────── */
+  --ui-1:   4px;   --ui-2:   8px;   --ui-3:  12px;  --ui-4:  16px;
+  --ui-5:  20px;   --ui-6:  24px;   --ui-8:  32px;  --ui-10: 40px;
+  --ui-gutter: 16px;  /* standard horizontal page gutter */
+
+  /* ── Canonical: brand (maroon) ─────────────────────────────────────────── */
+  --ui-primary:       #730201;   /* brand maroon */
+  --ui-primary-rgb:   115, 2, 1; /* for rgba(var(--ui-primary-rgb), alpha) */
+  --ui-primary-soft:  #fde8e8;   /* maroon tint */
+
+  /* ── Navigation bridge tokens (Customer App context) ──────────────────────
+     These are the ONLY tokens the shared floating nav reads for brand colour.
+     Override these in artisan context — never touch --ui-primary inside the nav.
+  */
+  --nav-brand:        var(--ui-primary);       /* active item colour */
+  --nav-brand-rgb:    115, 2, 1;               /* for rgba() glow effects */
+  --nav-brand-dark:   #e05050;                 /* dark-mode active (warm, readable) */
+
+  /* ── Canonical: radius scale ───────────────────────────────────────────── */
+  --ui-radius-sm:     10px;   /* controls, chips, tiles, small badges */
+  --ui-radius-md:     14px;   /* cards, inputs, list rows */
+  --ui-radius-lg:     18px;   /* sheets, modals, hero surfaces */
+  --ui-radius-pill:   999px;  /* pills, toggles, avatars */
+
+  /* ── Canonical: elevation scale ────────────────────────────────────────────
+     Four levels only. Every "elevation" shadow maps to one of these. Functional
+     shadows (focus rings, brand glows, status rings) are NOT elevation and keep
+     their own values — they communicate state, not depth.
+       elev-0  flat (no shadow)
+       elev-1  resting cards
+       elev-2  floating UI (popovers, raised controls)
+       elev-3  modals / sticky bars / nav / drawers
+  */
+  --ui-elev-0:        none;
+  --ui-elev-1:        0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.07);
+  --ui-elev-2:        0 2px 8px rgba(16, 24, 40, 0.08), 0 8px 24px rgba(16, 24, 40, 0.10);
+  --ui-elev-3:        0 24px 64px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  /* Back-compat: existing names map onto the scale (no value change for sm). */
+  --ui-shadow-sm:     0 1px 4px rgba(0, 0, 0, 0.06);   /* ≈ elev-1 lite */
+  --ui-shadow-md:     var(--ui-elev-2);
+
+  /* ── Canonical: z-index scale ─────────────────────────────────────────────
+     All z-index values in the codebase must map to one of these layers.
+       base      content flow
+       sticky    sticky headers, fixed labels
+       dropdown  dropdowns, tooltips, popovers
+       nav       floating navigation bar
+       drawer    side drawers, bottom sheets
+       modal     dialogs, full-screen overlays
+       toast     toast notifications (always on top)
+  */
+  --ui-z-base:     0;
+  --ui-z-sticky:   100;
+  --ui-z-dropdown: 200;
+  --ui-z-nav:      500;
+  --ui-z-drawer:   800;
+  --ui-z-modal:    1000;
+  --ui-z-toast:    2000;
+
+  /* ── Canonical: layout ─────────────────────────────────────────────────── */
+  --ui-shell-max:     430px;
+  --ui-shell-max-wide:480px;
+
+  /* ── Canonical: motion ─────────────────────────────────────────────────────
+     The app's real curves + durations, previously hardcoded in five different
+     places. Overlays/sheets/dialogs MUST use these — never invent a timing.
+     See docs/design-system/MODAL_DESIGN_SYSTEM.md.                          */
+  --ui-ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1);    /* signature enter/settle */
+  --ui-ease-exit:     cubic-bezier(0.32, 0.72, 0, 1);    /* fast-out — swipe dismiss */
+  --ui-ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1); /* snap-back overshoot */
+  --ui-dur-instant:   0.12s;   /* tap/press feedback */
+  --ui-dur-fast:      0.15s;   /* hover, colour, opacity */
+  --ui-dur-backdrop:  0.22s;   /* overlay scrim fade */
+  --ui-dur-dialog:    0.28s;   /* centred dialog enter */
+  --ui-dur-sheet:     0.32s;   /* bottom sheet slide */
+
+  /* ── Canonical: modal type scale ───────────────────────────────────────────
+     Measured from .ui-modal — the approved dialog. Every modal title/body
+     (including sheets) uses these so type never drifts per-feature.         */
+  --ui-modal-title-size:   18px;
+  --ui-modal-title-weight: 800;
+  --ui-modal-title-lh:     1.25;
+  --ui-modal-body-size:    13.5px;
+  --ui-modal-body-lh:      1.55;
+  --ui-modal-pad-inline:   24px;   /* dialog side padding */
+  --ui-modal-pad-block:    28px;   /* dialog top padding */
+
+  /* ── Canonical: typography (Phase 2 · Tier A) ──────────────────────────────
+     ONE type ramp for the whole customer app. The page CSS today carries ~590
+     ad-hoc font-sizes clustered at 9–22px; this scale is the target those
+     collapse onto. Sizes are the app's existing dominant values, de-duplicated.
+     `--ui-modal-title-size` (18) and `--ui-modal-body-size` (13.5) still exist
+     for the modal contract; they line up with `title` / `sub` here.            */
+  --ui-font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --ui-text-display: 22px;   /* screen hero / large numeric */
+  --ui-text-title:   18px;   /* page + section-page titles */
+  --ui-text-heading: 15px;   /* card / section headings */
+  --ui-text-body:    14px;   /* default body + primary button label */
+  --ui-text-sub:     13px;   /* secondary body, subtitles, field labels */
+  --ui-text-label:   12px;   /* small labels, helper + error text */
+  --ui-text-caption: 11px;   /* captions, metadata, timestamps */
+  --ui-text-micro:   10px;   /* nav labels, overlines, badges */
+
+  --ui-lh-tight: 1.25;   /* headings / titles */
+  --ui-lh-snug:  1.4;    /* subtitles, dense rows */
+  --ui-lh-base:  1.55;   /* body copy */
+
+  --ui-fw-regular:  400;
+  --ui-fw-medium:   500;
+  --ui-fw-semibold: 600;
+  --ui-fw-bold:     700;
+  --ui-fw-heavy:    800;
+
+  /* ── Canonical: focus / state rings (functional, not elevation) ────────────
+     Brand + danger focus rings, previously hand-rolled per page as
+     `0 0 0 3.5px rgba(115,2,1,0.10)`. These encode STATE, so — like the
+     elevation contract for glows — they keep their own values.               */
+  --ui-ring:        0 0 0 3.5px rgba(var(--ui-primary-rgb, 115, 2, 1), 0.14);
+  --ui-ring-danger: 0 0 0 3.5px rgba(var(--ui-danger-rgb, 178, 34, 34), 0.14);
+
+  /* ════════════════════════════════════════════════════════════════════════
+     LEGACY ALIASES — map every historical token name onto the canonical
+     values above so older CSS keeps rendering identically. Do NOT add new
+     aliases; migrate code to the --ui-* names over time, then delete these.
+     ════════════════════════════════════════════════════════════════════════ */
+  --maroon:        var(--ui-primary);
+  --primary-red:   var(--ui-primary);
+  --secondary-bg:  var(--ui-primary);
+  --light-red:     var(--ui-primary-soft);
+  --bg-white:      var(--ui-surface);
+  --bg-page:       var(--ui-bg);
+  --text-dark:     var(--ui-text);
+  --text-main:     var(--ui-text);
+  --text-grey:     var(--ui-muted);
+  --text-sub:      var(--ui-muted);
+  --unread-bg:     #fffafa;
+}
+
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100dvh;
+  line-height: 1.45;
+  text-rendering: optimizeLegibility;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+}
+
+img,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+/* SVGs excluded from height:auto — inline icon SVGs with explicit CSS dimensions
+   must not be reset, as height:auto collapses them inside flex containers.
+   Individual component CSS controls SVG sizing explicitly. */
+svg { max-width: 100%; }
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* ── Prevent iOS Safari from zooming on input focus ──────────────────
+   Safari auto-zooms any input whose computed font-size is < 16px.
+   max(16px, 1em) keeps the inherited size when it's already ≥ 16px,
+   and floors it at 16px when it isn't — no visual change on most
+   inputs, no more page resize, no accessibility harm (user pinch-zoom
+   is still allowed, unlike the user-scalable=no hack).
+─────────────────────────────────────────────────────────────────── */
+input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+input[type="search"],
+input[type="url"],
+textarea,
+select {
+  font-size: max(16px, 1em) !important;
+}
+
+a,
+button,
+[role="button"],
+input,
+textarea,
+select {
+  touch-action: manipulation;
+}
+
+a,
+button,
+[class*="btn"],
+.nav-item,
+.chip,
+.sv-tab,
+.service-item,
+.pro-card,
+.bk-card {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.14s ease, box-shadow 0.2s ease;
+}
+
+
+
+/* Generic .app shell — max-width applied only when the page does not have
+   its own explicit shell class, so the dashboard's 430px is not inflated. */
+.app {
+  width: 100%;
+  max-width: var(--ui-shell-max-wide);
+  margin-inline: auto;
+}
+/* Dashboard overrides its own max-width in dashboard.css; other app shells
+   (book-now, emergency, etc.) use their own shell classes and also override. */
+
+.phone-shell,
+.bn-shell,
+.bk-shell,
+.ms-shell,
+.sv-shell,
+.em-shell,
+.notif-page {
+  width: 100%;
+  max-width: var(--ui-shell-max);
+  margin-inline: auto;
+}
+
+.phone-shell,
+.bn-shell,
+.bk-shell,
+.ms-shell,
+.sv-shell,
+.em-shell {
+  min-height: 100dvh;
+  height: 100dvh;
+}
+
+.app,
+.phone-shell,
+.bn-shell,
+.bk-shell,
+.ms-shell,
+.sv-shell,
+.em-shell,
+.notif-page,
+.scroll-area,
+.bk-scroll,
+.bk-body,
+.sv-body,
+.ms-conv-list,
+.ms-chat-messages,
+.notif-main {
+  overflow-x: hidden;
+}
+
+.scroll-area,
+.bk-scroll,
+.bk-body,
+.sv-body,
+.ms-conv-list,
+.ms-chat-messages,
+.notif-main {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.page-title,
+.bk-header-title,
+.sv-title,
+.ms-title,
+.hh-logo,
+.user-name,
+.uc-name,
+.pc-name,
+.service-name,
+.bk-card-service,
+.sv-svc-name,
+.sv-section-title,
+.sv-promo-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  width: 100%;
+  max-width: 100%;
+  min-height: 44px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* ── Text/action buttons: consistent tap-target sizing ───────────────── */
+.uc-topup,
+.pc-book,
+.book-now-btn,
+.promo-btn,
+.sv-promo-btn,
+.btn-continue,
+.bk-banner-btn,
+.wd-confirm-btn,
+.wd-cancel-btn,
+.modal-save,
+.modal-btn-danger,
+.modal-btn-cancel,
+.pmo-save-btn,
+.pmo-cancel-btn {
+  min-height: fit-content;
+  padding: 10px 16px;
+  border-radius: 12px;
+}
+
+/* ── Icon-only buttons: zero padding, locked SVG size ─────────────────── */
+/* INVARIANT: Never apply padding to icon-only buttons.                     */
+/* These have explicit fixed dimensions (34–44 px). padding + box-sizing:  */
+/* border-box collapses the content area; svg { max-width:100% } then       */
+/* shrinks the icon to match — making icons near-invisible.                  */
+/* Back-button classes (.back-btn/.bk-back-btn/.bn-back-btn) are intentionally
+   EXCLUDED here — they are owned by the canonical circular back-btn component
+   (components/back-btn.css, @imported at the top of this file). This group is
+   only for non-back icon buttons (menu, bell, generic icon actions). */
+.hh-menu-btn,
+.hh-icon-btn,
+.bk-bell-btn,
+.icon-btn,
+.sv-icon-btn,
+.ms-icon-btn,
+.bn-icon-btn {
+  padding: 0;
+  border-radius: 12px;
+}
+
+/* Lock direct-child SVGs to 24 px so they can never be compressed.
+   Note: .filter-btn intentionally excluded — it is a text+icon button, not icon-only. */
+.hh-menu-btn > svg,
+.hh-icon-btn > svg,
+.bk-bell-btn > svg,
+.icon-btn > svg,
+.sv-icon-btn > svg,
+.ms-icon-btn > svg,
+.bn-icon-btn > svg {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  display: block;
+  flex-shrink: 0;
+}
+
+/* ── Global bottom-nav: enforce proper fixed centering on ALL pages ───── */
+.bottom-nav {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  width: min(100%, var(--ui-shell-max-wide)) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  min-height: 72px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  z-index: 200 !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.bottom-nav .nav-item {
+  min-height: 52px;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px;
+}
+
+.bottom-nav .nav-item span {
+  line-height: 1.1;
+}
+
+[data-theme="dark"] .bottom-nav {
+  background: rgba(18, 18, 18, 0.97) !important;
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.sidebar,
+.ms-chat-view,
+.ms-list-view,
+.sched-modal,
+.em-modal-sheet,
+.am-sheet,
+.wd-sheet,
+#pmo-sheet {
+  will-change: transform;
+}
+
+/* Sidebar sheets use right-edge radius for the slide-in effect.
+   Cards (.pro-card, etc.) are excluded — they use their own uniform
+   border-radius set in component CSS.
+   .bk-card, .sv-svc-card, .sv-pro-card removed from this list: those three
+   converged onto the Notification page's flat divided-row card architecture
+   (no radius at all, on any edge — shared/css/notification.css's .notif-card
+   is the canonical reference). Leaving them here left a rounded right-edge
+   clip on an otherwise-flat row, which cut a visible gap into the row's
+   opaque background and let a sibling .swipe-action panel show through. */
+.sidebar,
+.sched-modal,
+.em-modal-sheet,
+.am-sheet,
+.wd-sheet,
+#pmo-sheet,
+.modal,
+.modal-card,
+.pmo-account,
+.service-item,
+.account-card,
+.wallet-card,
+.transactions-card,
+.sv-promo {
+  border-top-right-radius: var(--ui-radius-lg);
+  border-bottom-right-radius: var(--ui-radius-lg);
+}
+
+.loader-overlay,
+#search-loader {
+  z-index: 2600 !important;
+}
+
+.loader-overlay p,
+#search-loader p {
+  color: #303030;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.sidebar {
+  z-index: 1500;
+}
+
+.sidebar-overlay {
+  z-index: 1490;
+}
+
+.modal-overlay,
+.sched-overlay,
+.em-modal-overlay,
+.am-overlay,
+.wd-overlay,
+#pmo-overlay,
+#wd-overlay,
+#delete-modal,
+#sched-overlay,
+#em-type-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  z-index: 1900 !important;
+}
+
+/* Standalone backdrops belong immediately below drawer/sheet surfaces.
+   This must not share the modal-overlay elevation: Settings loads this file
+   after its page CSS, and the former 1900 !important value painted the dark
+   backdrop above every 800-level bottom sheet. */
+.overlay-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  z-index: calc(var(--ui-z-drawer, 800) - 1) !important;
+}
+
+.wd-overlay.open {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+}
+
+.modal-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal,
+.modal-card {
+  width: min(100%, 420px) !important;
+  max-height: min(86dvh, 760px) !important;
+  overflow-y: auto !important;
+}
+
+.sched-modal,
+.em-modal-sheet,
+.am-sheet,
+.wd-sheet,
+#pmo-sheet {
+  width: min(100%, 430px) !important;
+  max-height: min(92dvh, 820px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+
+.sched-modal,
+.em-modal-sheet,
+.am-sheet,
+.wd-sheet,
+.modal,
+.modal-card,
+#pmo-sheet {
+  z-index: 1910 !important;
+}
+
+.sv-shell {
+  display: flex;
+  flex-direction: column;
+  background: #fefefe;
+}
+
+.sv-header {
+  position: sticky;
+  top: 0;
+  z-index: 24;
+  background: rgba(254, 254, 254, 0.96);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #ededed;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px 10px;
+}
+
+.sv-header-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sv-icon-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.sv-body {
+  flex: 1;
+  padding: 14px 16px 90px;
+}
+
+/* .sv-tabs / .sv-tab (pre-canonicalization segmented tab implementation)
+   deleted from here — dead CSS. saved.html's markup now uses the canonical
+   shared/css/components/tabs.css contract (.ui-tabs / .ui-tab); this bare
+   `.sv-tabs` class survives only as a spacing hook in customer-app/css/
+   saved.css (margin-bottom), with no border/background/grid of its own. */
+
+.sv-panel {
+  display: none;
+}
+
+.sv-panel.active {
+  display: block;
+}
+
+/* .sv-section/.sv-section-head/.sv-section-title styling removed from here —
+   Saved converged onto Notification's flat, wrapper-less list layout (no
+   bordered/shadowed panel around each group); the section header is now
+   just a text label sitting directly on the page background, matching
+   Notification's .group-header exactly. Full rules live in
+   customer-app/css/saved.css (loaded after this file), not duplicated here. */
+
+.sv-view-all {
+  text-decoration: none;
+  color: var(--ui-primary);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.sv-svc-card,
+.sv-pro-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #f0f0f0;
+  border-radius: 14px;
+  background: #fff;
+  padding: 10px;
+}
+
+.sv-svc-card + .sv-svc-card,
+.sv-pro-card + .sv-pro-card {
+  margin-top: 9px;
+}
+
+.sv-svc-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  background: #fff5f5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sv-svc-info,
+.sv-promo-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.sv-svc-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #121212;
+  margin: 0 0 2px;
+}
+
+.sv-svc-desc,
+.sv-promo-sub {
+  font-size: 12px;
+  color: #7a7a7a;
+  line-height: 1.4;
+}
+
+.sv-bookmark-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #f1d8db;
+  border-radius: 10px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sv-promo {
+  border: 1px solid #f6dfe2;
+  background: linear-gradient(135deg, #fff4f6 0%, #fffafc 100%);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.sv-promo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffe8ec;
+  color: #b3121f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sv-promo-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #181818;
+  margin-bottom: 2px;
+}
+
+.sv-promo-btn {
+  border: 1px solid #b91624;
+  border-radius: 10px;
+  background: #fff;
+  color: #b91624;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.sv-empty {
+  text-align: center;
+  padding: 42px 18px 90px;
+}
+
+.sv-empty-icon {
+  width: 66px;
+  height: 66px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #fff5f5;
+  color: var(--ui-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sv-empty-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #202020;
+  margin-bottom: 6px;
+}
+
+.sv-empty-sub {
+  font-size: 13px;
+  color: #868686;
+  max-width: 270px;
+  margin: 0 auto 14px;
+  line-height: 1.55;
+}
+
+.sv-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--ui-primary);
+  background: #fff;
+  color: var(--ui-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Toast system v2 — styles injected by shared/js/components/toast.js */
+
+.sv-toast {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: calc(100% - 24px);
+  max-width: 430px;
+}
+
+[data-theme="dark"] body {
+  background: #111;
+  color: #ececec;
+}
+
+[data-theme="dark"] .app,
+[data-theme="dark"] .phone-shell,
+[data-theme="dark"] .bn-shell,
+[data-theme="dark"] .bk-shell,
+[data-theme="dark"] .ms-shell,
+[data-theme="dark"] .sv-shell,
+[data-theme="dark"] .em-shell,
+[data-theme="dark"] .notif-page {
+  background: #141414;
+}
+
+[data-theme="dark"] .sv-header {
+  background: rgba(20, 20, 20, 0.95);
+  border-color: #2a2a2a;
+}
+
+[data-theme="dark"] .sv-title,
+[data-theme="dark"] .sv-section-title,
+[data-theme="dark"] .sv-svc-name,
+[data-theme="dark"] .sv-promo-title,
+[data-theme="dark"] .sv-empty-title {
+  color: #f0f0f0;
+}
+
+[data-theme="dark"] .sv-svc-card,
+[data-theme="dark"] .sv-pro-card,
+[data-theme="dark"] .sv-promo,
+[data-theme="dark"] .sv-icon-btn,
+[data-theme="dark"] .sv-bookmark-btn {
+  background: #1e1e1e;
+  border-color: #2d2d2d;
+  box-shadow: none;
+}
+
+/* .sv-svc-card / .sv-pro-card no longer carry a background/border in light
+   mode (flat divided-row cards, per the Notification convergence) — override
+   to transparent in dark mode too so no card "box" reappears at night. */
+[data-theme="dark"] .sv-svc-card,
+[data-theme="dark"] .sv-pro-card {
+  background: transparent;
+  border-bottom-color: #2a2a2a;
+}
+
+/* .sv-tab / .sv-tab.active dark-mode rules deleted — dead CSS for the
+   pre-canonicalization tab implementation (see the light-mode removal above).
+   The canonical .ui-tab's dark-mode styling lives in
+   shared/css/components/tabs.css. */
+
+[data-theme="dark"] .sv-svc-icon,
+[data-theme="dark"] .sv-empty-icon {
+  background: #2a1010;
+}
+
+[data-theme="dark"] .sv-svc-desc,
+[data-theme="dark"] .sv-promo-sub,
+[data-theme="dark"] .sv-empty-sub {
+  color: #9a9a9a;
+}
+
+[data-theme="dark"] .sv-view-all,
+[data-theme="dark"] .sv-promo-btn,
+[data-theme="dark"] .sv-empty-btn {
+  color: #ff7a7a;
+  border-color: var(--ui-primary);
+}
+
+[data-theme="dark"] .loader-overlay,
+[data-theme="dark"] #search-loader {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+[data-theme="dark"] .loader-overlay p,
+[data-theme="dark"] #search-loader p {
+  color: #f0f0f0;
+}
+
+@media (min-width: 768px) {
+  body {
+    padding: 16px !important;
+    background: #eceff4;
+  }
+
+  .app,
+  .phone-shell,
+  .bn-shell,
+  .bk-shell,
+  .ms-shell,
+  .sv-shell,
+  .em-shell,
+  .notif-page {
+    border-radius: 28px !important;
+    box-shadow: 0 16px 46px rgba(18, 28, 45, 0.14) !important;
+    overflow: hidden;
+  }
+
+  .phone-shell,
+  .bn-shell,
+  .bk-shell,
+  .ms-shell,
+  .sv-shell,
+  .em-shell {
+    height: calc(100dvh - 32px);
+    min-height: calc(100dvh - 32px);
+  }
+}
+
+@media (max-width: 767px) {
+  body {
+    padding: 0 !important;
+  }
+
+  .app,
+  .phone-shell,
+  .bn-shell,
+  .bk-shell,
+  .ms-shell,
+  .sv-shell,
+  .em-shell,
+  .notif-page {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    max-height: none !important;
+  }
+
+  .sv-promo {
+    grid-template-columns: auto 1fr;
+  }
+
+  .sv-promo-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   TAP-TARGET FLOOR  (accessibility — mobile usability standard: 44×44px min)
+   ----------------------------------------------------------------------------
+   Enforces the 44px minimum hit area on the interactive class families the
+   design audit found below spec, WITHOUT changing their visual glyph size
+   (min-width/height grows the hit box; the icon child keeps its own size).
+   Applied here in the canonical layer so every page that links ui-polish.css
+   inherits compliance. New interactive components should meet 44px on their own.
+   ════════════════════════════════════════════════════════════════════════════ */
+.hh-menu-btn,
+.hh-icon-btn,
+.hh-search-ai,
+.sidebar-close-btn,
+.np-panel-close,
+.su-trail-btn,
+.dist-pill,
+.filter-btn,
+.np-radius-chip,
+.np-cat-chip,
+.np-reset-btn,
+.pf-sort,
+.view-all-btn,
+.bn2-inline-retry {
+  min-width:  44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Checkbox keeps its small visual box (18px) by design; the accessible target
+   is the surrounding label row (which is already tall enough). We do NOT inflate
+   the box itself — that would visually break the control. Left as-is intentionally. */
+

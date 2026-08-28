@@ -182,6 +182,141 @@ await it('victim wallet is still exactly 100 after every attack', async () => {
     });
 });
 
+console.log('\nReview integrity (rating is a public trust signal)');
+
+const ARTISAN  = 'artisan_reviewed';
+const REVIEWED = 'HHB-RULES-REVIEW-1';
+
+// A completed booking belonging to VICTIM, carried out by ARTISAN.
+await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'artisans', ARTISAN), {
+        name: 'Reviewed Artisan', status: 'active',
+        verificationStatus: 'approved', rating: 0, reviewCount: null,
+    });
+    await setDoc(doc(db, 'bookings', REVIEWED), {
+        customerId: VICTIM, artisanId: ARTISAN,
+        status: 'completed', serviceType: 'Plumbing',
+        createdAt: new Date().toISOString(),
+    });
+});
+
+// victimDb / attackerDb are already declared above; only the artisan context is new.
+const artisanDb  = testEnv.authenticatedContext(ARTISAN).firestore();
+
+await it('the customer CAN review their own completed booking', async () => {
+    await assertSucceeds(updateDoc(doc(victimDb, 'bookings', REVIEWED), {
+        rating: 5, review: 'Excellent work', reviewedAt: 'now', updatedAt: 'now',
+    }));
+});
+
+await it('the same booking cannot be reviewed twice', async () => {
+    // Without this the booking would show one score while the artisan's public
+    // average kept the first — the trigger correctly refuses to re-aggregate.
+    await assertFails(updateDoc(doc(victimDb, 'bookings', REVIEWED), {
+        rating: 1, review: 'Changed my mind', reviewedAt: 'now', updatedAt: 'now',
+    }));
+});
+
+await it('an artisan cannot review their own job', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), 'bookings', 'HHB-SELF-REVIEW'), {
+            customerId: VICTIM, artisanId: ARTISAN, status: 'completed',
+            serviceType: 'Plumbing', createdAt: new Date().toISOString(),
+        });
+    });
+    await assertFails(updateDoc(doc(artisanDb, 'bookings', 'HHB-SELF-REVIEW'), {
+        rating: 5, review: 'I was great', reviewedAt: 'now', updatedAt: 'now',
+    }));
+});
+
+await it('a stranger cannot review someone else\'s booking', async () => {
+    await assertFails(updateDoc(doc(attackerDb, 'bookings', 'HHB-SELF-REVIEW'), {
+        rating: 5, review: 'Never used them', reviewedAt: 'now', updatedAt: 'now',
+    }));
+});
+
+await it('a cancelled booking cannot be reviewed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), 'bookings', 'HHB-CANCELLED'), {
+            customerId: VICTIM, artisanId: ARTISAN, status: 'cancelled',
+            serviceType: 'Plumbing', createdAt: new Date().toISOString(),
+        });
+    });
+    await assertFails(updateDoc(doc(victimDb, 'bookings', 'HHB-CANCELLED'), {
+        rating: 5, review: 'x', reviewedAt: 'now', updatedAt: 'now',
+    }));
+});
+
+await it('an out-of-range rating is rejected', async () => {
+    await assertFails(updateDoc(doc(victimDb, 'bookings', 'HHB-SELF-REVIEW'), {
+        rating: 99, review: 'x', reviewedAt: 'now', updatedAt: 'now',
+    }));
+});
+
+await it('a customer cannot pre-set ratingProcessed to suppress aggregation', async () => {
+    await assertFails(updateDoc(doc(victimDb, 'bookings', 'HHB-SELF-REVIEW'), {
+        rating: 5, ratingProcessed: true, reviewedAt: 'now', updatedAt: 'now',
+    }));
+});
+
+await it('a customer cannot write the artisan aggregate directly', async () => {
+    await assertFails(updateDoc(doc(victimDb, 'artisans', ARTISAN), {
+        rating: 5, reviewCount: 999,
+    }));
+});
+
+await it('an artisan cannot inflate their own aggregate', async () => {
+    await assertFails(updateDoc(doc(artisanDb, 'artisans', ARTISAN), {
+        rating: 5, reviewCount: 999,
+    }));
+});
+
+console.log('\nArtisan acceptance (outage guard after artisanName was locked)');
+
+const ACC_ARTISAN = 'artisan_accepter';
+
+await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'artisans', ACC_ARTISAN), {
+        name: 'Accepting Artisan', status: 'active',
+        verificationStatus: 'approved', rating: 0, reviewCount: 0,
+    });
+    for (const id of ['HHB-ACC-OK', 'HHB-ACC-OLDCLIENT']) {
+        await setDoc(doc(db, 'bookings', id), {
+            customerId: VICTIM, artisanId: ACC_ARTISAN,
+            status: 'pending', serviceType: 'Plumbing',
+            createdAt: new Date().toISOString(),
+        });
+    }
+});
+
+const accDb = testEnv.authenticatedContext(ACC_ARTISAN).firestore();
+
+await it('CURRENT artisan client CAN accept a pending booking', async () => {
+    // Exactly the payload artisan-app/jobs.html sends today.
+    const n = new Date().toISOString();
+    await assertSucceeds(updateDoc(doc(accDb, 'bookings', 'HHB-ACC-OK'), {
+        status: 'accepted', acceptedAt: n, updatedAt: n,
+    }));
+});
+
+await it('OLD artisan client (sending artisanName) is now rejected', async () => {
+    // Confirms the ordering hazard was real: had rules shipped before the app,
+    // every acceptance in production would have failed.
+    const n = new Date().toISOString();
+    await assertFails(updateDoc(doc(accDb, 'bookings', 'HHB-ACC-OLDCLIENT'), {
+        status: 'accepted', acceptedAt: n, updatedAt: n, artisanName: 'Spoofed Name',
+    }));
+});
+
+await it('artisan CAN still decline a pending booking', async () => {
+    const n = new Date().toISOString();
+    await assertSucceeds(updateDoc(doc(accDb, 'bookings', 'HHB-ACC-OLDCLIENT'), {
+        status: 'rejected', rejectedAt: n, updatedAt: n,
+    }));
+});
+
 console.log('\n' + '─'.repeat(52));
 console.log(`  ${passed} passed, ${failed} failed`);
 console.log('─'.repeat(52) + '\n');

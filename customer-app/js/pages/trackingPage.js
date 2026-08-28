@@ -494,7 +494,10 @@ function wireBackButton() {
 function wireChatButton() {
     if (!chatBtn) return;
     chatBtn.addEventListener('click', () => {
-        window.location.href = 'messages.html';
+        // Carry the booking being tracked so the conversation knows which job
+        // it is about — one thread serves every job with this artisan.
+        window.location.href = 'messages.html'
+            + (window._trkBookingId ? '?bookingId=' + encodeURIComponent(window._trkBookingId) : '');
     });
 }
 

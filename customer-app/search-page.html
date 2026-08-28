@@ -16,9 +16,14 @@
           var b  = st ? st.booking.get() : null;
           var trackable = ['accepted','en_route','in_progress'];
           if (b && trackable.indexOf((b.status || '').toLowerCase()) !== -1) {
-            window.location.replace('live-tracking.html');
+            // Name the booking. A bare redirect let the tracking screen pick its
+            // own, which is how a customer with two live jobs got the wrong one.
+            var id = b.bookingId || b.id || null;
+            window.location.replace(id
+              ? 'live-tracking.html?bookingId=' + encodeURIComponent(id)
+              : 'live-tracking.html');
           }
-        } catch (_) { /* no booking state â€” stay on search page */ }
+        } catch (_) { /* no booking state — stay on search page */ }
       })();
     </script>
     <link rel="stylesheet" href="css/tracking.css">
@@ -91,7 +96,7 @@
                     <p class="title">Not sure what you need?</p>
                     <p class="sub">Describe the issue and we'll help you find the right professional.</p>
                 </div>
-                <button style="display: flex;" class="ai-action">Try AI Search <span style="margin-left: 10px;">â¯</span></button>
+                <button style="display: flex;" class="ai-action">Try AI Search <span style="margin-left: 10px;">❯</span></button>
             </div>
 
             <!-- Recent History -->

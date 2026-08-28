@@ -151,6 +151,34 @@ async function getArtisanRepo() {
   return null; // shared/ not accessible — skip Firestore fetch
 }
 
+/* ── Reputation projection ─────────────────────────────────────────────── */
+// resolveRating is the ONE place that decides how a rating is worded, shared
+// with every other surface. Loaded through the same resilient dynamic import as
+// the repository above (this module has no static imports by design) and cached.
+// Until it resolves, cards render the honest "New" state rather than a score —
+// they must never fall back to "0.0", which is the bug being fixed.
+let _rateFn = null;
+(async () => {
+  const paths = [
+    '../../shared/js/domain/bookingTruth.js',
+    '../shared/js/domain/bookingTruth.js',
+  ];
+  for (const p of paths) {
+    try { const m = await import(p); if (m.resolveRating) { _rateFn = m.resolveRating; break; } }
+    catch (_) { /* try next path */ }
+  }
+  try { if (_rateFn) render(); } catch (_) {}   // repaint once wording is available
+})();
+
+function ratingOf(a) {
+  if (_rateFn) return _rateFn(a);
+  const c = Number(a && a.reviewCount);
+  const score = Number(a && a.rating);
+  return (Number.isFinite(c) && c > 0 && Number.isFinite(score) && score > 0)
+    ? { hasReviews: true,  short: score.toFixed(1), reviewCount: c }
+    : { hasReviews: false, short: 'New', reviewCount: Number.isFinite(c) ? c : 0 };
+}
+
 /* ── Pool cache (localStorage, TTL) ────────────────────────────────────── */
 /**
  * @returns {{artisans: Array, stale: boolean}|null}
@@ -289,8 +317,9 @@ function renderSkeleton() {
 function buildCard(a) {
   const d        = distKm(a);
   const distTxt  = d !== null ? d.toFixed(1) + ' km' : 'Nearby';
-  const rating   = Number(a.rating || 0).toFixed(1);
-  const reviews  = a.reviewCount  || 0;
+  // "0.0" was being shown for artisans who have never been rated — it reads as
+  // a rock-bottom score rather than an absence of one.
+  const rep      = ratingOf(a);
   const jobs     = a.jobsCompleted || 0;
   const role     = a.specialty    || a.category || '';
   const online   = a.isOnline === true || a.isAvailable === true;
@@ -325,9 +354,9 @@ function buildCard(a) {
       </div>
       ${role ? `<p class="pc-role">${esc(role)}</p>` : ''}
       <div class="pc-rating">
-        ${STAR}
-        <span class="pc-score">${rating}</span>
-        <span class="pc-rcount">(${reviews})</span>
+        ${rep.hasReviews
+          ? `${STAR}<span class="pc-score">${rep.short}</span><span class="pc-rcount">(${rep.reviewCount})</span>`
+          : `<span class="pc-rcount">No reviews yet</span>`}
       </div>
       <div class="pc-meta-row">
         <span class="pc-meta-item">${BRIEFCASE}&nbsp;${esc(String(jobs))} jobs</span>

@@ -1,0 +1,2191 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+/* NOTE: Canonical tokens live in shared/css/ui-polish.css (single source of
+   truth). This file is not loaded by customer pages; its former :root token
+   block was removed to prevent a competing token layer. Do not re-add tokens
+   here — add them to ui-polish.css. */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* WCAG 2.2 AA — keyboard focus indicator visible on all interactive elements.
+   Using :focus-visible so mouse users are unaffected. */
+:focus-visible {
+    outline: 3px solid var(--ui-primary, #B22222);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* Remove default :focus outline only when :focus-visible is supported,
+   to avoid removing it for browsers that don't support :focus-visible. */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    color: #111;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.app {
+    width: 100%;
+    max-width: 420px;
+    padding: 0 6px;
+    margin-bottom: 60px;
+}
+
+
+/* PROFILE CARD (FIXED ALIGNMENT ONLY) */
+.profile-card {
+    position: sticky;
+    top: 10px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Pushes content to edges */
+    padding: 0 15px;
+    border-radius: 16px; /* Capsule shape */
+    z-index: 1000;
+    
+    /* GLASS EFFECT */
+    background: #b8040400; 
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(218, 17, 17, 0.050);
+}
+
+.menu-wrapper {
+    width: 35px;
+    height: 50px;
+ border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+
+.menu-icon {
+    width: 30px;
+    height: 25px;
+    color: var(--secondary-bg); /* Matches your "Good Evening" greeting color */
+}
+
+/* SIDEBAR STYLES */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 300px;
+    max-width: 88vw;
+    height: 100%;
+    background: #fff;
+    box-shadow: 2px 0 25px rgba(0, 0, 0, 0.12);
+    z-index: 1001;
+    transform: translateX(-100%);
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar.active {
+    transform: translateX(0);
+}
+
+.sidebar-close-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: #f5f5f5;
+    border: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #555;
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+.sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding-bottom: 30px;
+}
+.sidebar-scroll::-webkit-scrollbar { display: none; }
+
+.sidebar-profile {
+    padding: 44px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(to bottom, #fff9f9, #ffffff);
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.sidebar-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #fde8e8;
+    margin-bottom: 10px;
+}
+
+.sidebar-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sidebar-user-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 4px;
+}
+
+.sidebar-user-location {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #555;
+    margin: 0 0 6px;
+}
+
+.sidebar-user-rating {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #444;
+    margin-bottom: 8px;
+}
+
+.sidebar-star-icon { color: #f5a623; font-size: 14px; }
+.sidebar-divider-text { color: #ccc; }
+
+.sidebar-verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #fde8e8;
+    color: var(--ui-primary);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.sidebar-active-booking {
+    margin: 14px 14px 0;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 14px;
+    padding: 12px;
+}
+
+.active-booking-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.active-dot-green {
+    width: 8px;
+    height: 8px;
+    background: #2ecc71;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.active-booking-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #555;
+    letter-spacing: 0.5px;
+}
+
+.active-booking-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.active-booking-img {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.active-booking-info { flex: 1; min-width: 0; }
+
+.active-booking-info h4 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 3px;
+    color: #1a1a1a;
+}
+
+.arriving-soon-text {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--ui-primary);
+    font-weight: 600;
+    margin: 0 0 2px;
+}
+
+.active-booking-service { font-size: 11px; color: #777; margin: 0; }
+
+.active-booking-btn {
+    background: #fde8e8;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.sidebar-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #999;
+    letter-spacing: 0.8px;
+    padding: 16px 18px 8px;
+    margin: 0;
+}
+
+.sidebar-quick-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 14px;
+}
+
+.quick-action-btn {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.3;
+    transition: background 0.2s;
+}
+
+.quick-action-btn:active { background: #fde8e8; }
+
+.quick-action-icon {
+    width: 40px;
+    height: 40px;
+    background: #fde8e8;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-menu-list {
+    list-style: none;
+    padding: 0 14px;
+    margin: 0;
+}
+
+.sidebar-menu-list li { border-bottom: 1px solid #f5f5f5; }
+.sidebar-menu-list-last li:last-child { border-bottom: none; }
+
+.sidebar-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 0;
+    text-decoration: none;
+    color: #1a1a1a;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.sidebar-menu-icon {
+    width: 36px;
+    height: 36px;
+    background: #fde8e8;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sidebar-menu-label { flex: 1; }
+.sidebar-menu-chevron { flex-shrink: 0; }
+
+.sidebar-menu-badge {
+    background: var(--ui-primary);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    flex-shrink: 0;
+}
+
+.promo-badge { background: #e8f5e9; color: #2e7d32; }
+.invite-badge { background: #fff3e0; color: #e65100; }
+
+.sidebar-grow-card {
+    margin: 0 14px;
+    background: #fffbf0;
+    border: 1px solid #fcebd0;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.grow-card-icon {
+    width: 44px;
+    height: 44px;
+    background: #fff8e6;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.grow-card-info { flex: 1; min-width: 0; }
+
+.grow-card-info h4 {
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0 0 2px;
+    color: #1a1a1a;
+}
+
+.grow-card-info p { font-size: 10px; color: #777; margin: 0; line-height: 1.4; }
+
+.grow-earn-badge {
+    background: #fff3cd;
+    color: #a0620a;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.sidebar-logout .sidebar-menu-label { color: #e53e3e; font-weight: 600; }
+.sidebar-logout .sidebar-menu-icon { background: #fff5f5; }
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 1000;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+
+.profile-info {
+    text-align: center;
+}
+
+.name {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--ui-primary);
+    letter-spacing: 1px;
+    margin: 0;
+}
+
+.location {
+    font-size: 9px;
+    font-weight: 700;
+    color: #000000;
+    opacity: 0.8;
+    margin: 0;
+}
+
+.notification-wrapper {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.notification-wrapper-button{
+    background-color: transparent; /* Makes it see-through */
+  background-image: none;      /* Removes any gradients */
+  border: none;                /* Often needed to remove the default 3D effect */
+  cursor: pointer;             /* Keeps it feeling like a button */
+  outline: none;
+}
+
+.notification-icon {
+    width: 90%;
+    height: 90%;
+    color: var(--ui-primary);
+    cursor: pointer;
+}
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    background: var(--ui-primary);
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    border-radius: 999px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+
+/* SEARCH BAR FIXED ALIGNMENT */
+.search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    background: #ffffff !important;
+    padding: 5px 6px;
+    border-radius: 16px;
+    border: 1.5px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+/* ICON FIX */
+.search-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+/* INPUT FIX */
+.search input {
+    flex: 1;
+    height: 50px;
+    border: none;
+    outline: none;
+    transition: opacity 0.4s ease;
+    border-radius: 12px;
+    padding-left:12px;
+    background-color: white !important;
+    font-size: 14px;
+}
+
+/* remove default weird spacing */
+.search input::placeholder {
+    color: #888;
+}
+/* CATEGORIES */
+.categories {
+     padding-top: 10px;
+}
+
+.categories ul {
+    display: flex;
+    flex-wrap: nowrap; /* Forces items onto a single line */
+    gap: 15px;
+    width: 100%;       /* Ensures it stays within the parent width */
+}
+
+.categories ul li {
+    flex-shrink: 1;    /* Allows items to shrink on small screens */
+    min-width: 0;      /* Prevents text from forcing a larger width */
+    list-style: none;
+}
+
+
+.cat-btn {
+    display: flex;
+    align-items: center;
+    padding: 8px 7px;
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+    background-color: #fae9e8;
+    color: var(--ui-primary);
+    height: fit-content;
+}
+.cat-btn span{
+    font-size: 10px;
+    font-weight: 600;
+}
+.cat-btn img {
+    width: 18px;
+    height: 18px;
+}
+
+.cat-btn:active {
+    transform: scale(0.95);
+}
+
+/* ADS */
+.ads {
+    position: relative;
+    margin-top: 10px;
+    height: 175px; /* You can now change this to 100px and it will auto-adjust */
+    border-radius: 20px;
+    overflow: hidden;
+    background: linear-gradient(to right, black,#000000,rgba(0, 0, 0, 0.267), white);
+    container-type: size;
+}
+
+.slider {
+    display: flex;
+    width: 300%;
+    height: 100%;
+    position: absolute;
+    z-index: 1;
+    animation: slide 12s infinite;
+}
+
+.slide { 
+    width: 100%; 
+    height: 100%; 
+    position: relative;
+}
+
+.ad-content {
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+    z-index: 2;
+    color: white;
+    max-height: 95%; 
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.6;
+}
+
+.ad-tag {
+    background: #f5e7e757;
+    font-size: clamp(8px, 1.5vh, 10px);
+    padding: 0.3em 1.2em;
+    border-radius: 10px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 0.5em;
+    width: fit-content;
+}
+
+.ad-content h1 {
+    font-size: clamp(16px, 4.5vh, 26px); 
+    line-height: 1;
+    margin-bottom: 0.2em;
+}
+
+.ad-content h3 {
+    font-size: clamp(10px, 2.5vh, 15px);
+    font-weight: 400;
+    margin-bottom: 0.4em;
+}
+
+.ad-content p {
+    font-size: clamp(9px, 2vh, 12px);
+    line-height: 1.2;
+    opacity: 0.9;
+    margin-bottom: 1em;
+}
+
+.book-now {
+    background: var(--ui-primary);
+    color: white;
+    border: none;
+    /* Padding scales with text size */
+    padding: 0.4em 1em; 
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 6.5cqh;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    width: fit-content;
+}
+
+.arrow-icon {
+    background: white;
+    color: var(--ui-primary);
+    width: 1.8em;
+    height: 1.8em;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.8em;
+}
+
+.slider-dots {
+    position: absolute;
+    bottom: 5%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    z-index: 3;
+}
+
+.dot {
+    width: clamp(4px, 1vh, 6px);
+    height: clamp(4px, 1vh, 6px);
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.dot.active {
+    background: rgb(255, 255, 255);
+    width: clamp(10px, 2.5vh, 15px);
+    border-radius: 10px;
+}
+
+@keyframes slide {
+    0% { left: 0%; }
+    30% { left: 0%; }
+    33% { left: -100%; }
+    63% { left: -100%; }
+    66% { left: -200%; }
+    96% { left: -200%; }
+    100% { left: 0%; }
+}
+
+
+/* ANIMATION */
+@keyframes slide {
+    0%, 30% { transform: translateX(0); }
+    35%, 65% { transform: translateX(-33.33%); }
+    70%, 95% { transform: translateX(-66.66%); }
+    100% { transform: translateX(0); }
+}
+.cards {
+    display: flex;
+    margin-top: 9px;
+    gap: 15px; /* Slightly wider gap for better sliding feel */
+    padding: 10px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+    
+    /* These 3 lines enable the horizontal slide */
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none; /* Hides scrollbar on Firefox */
+}
+
+/* Hides scrollbar on Chrome/Safari */
+#service-slider {
+    display: flex;
+    overflow-x: auto; /* Enables sliding */
+    gap: 15px;
+    padding: 10px 5px;
+    scrollbar-width: none;
+}
+#service-slider::-webkit-scrollbar { display: none; }
+
+.c-one {
+    background-color: var(--light-red);
+    height: 55px;
+    width: 55px;
+    border-radius: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.c-one img { 
+    width: 50px; 
+    height: 50px;
+ }
+
+.cards::-webkit-scrollbar {
+    display: none;
+}
+
+
+
+.cards button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    flex: 0 0 auto; /* Crucial: stops buttons from shrinking */
+    padding: 0;
+}
+
+.cards button img {
+    width: 30px;
+    height: 30px;
+}
+
+.cards p {
+    font-size: 11px;
+    color: #333;
+    text-align: center;
+    margin-top: 7px;
+    font-weight: 500;
+}
+
+/* View More Styled like the image */
+.view-more-btn {
+    width: 100%;
+    height: 50px;
+    background: #fde8e8; /* Light pink/red tint */
+    color: var(--ui-primary);
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+.book{
+    background: var(--secondary-bg);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* View More Styled like the image */
+/* Geometry, background, radius come from the canonical back-btn component
+   (shared/css/components/back-btn.css, imported by ui-polish.css). This legacy
+   rule keeps only the font-weight/cursor defaults for any bare .back-btn. */
+.back-btn {
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+}
+.nav-top {
+margin-top: 10px;
+    width: 100%;
+
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    z-index: var(--ui-z-modal);
+}
+.view-more-btn {
+    width: 100%;
+    background: #fde8e8; /* Light pink/red tint */
+    color: var(--ui-primary);
+    border: none;
+    padding: 6px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+/* --- BOTTOM NAVIGATION CONTAINER --- */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background-color: white;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    justify-self: center;
+    /* Prevents layout shifts on mobile */
+    padding-bottom: env(safe-area-inset-bottom); 
+      background: #b8040400; 
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(218, 17, 17, 0.050);
+}
+
+/* --- INDIVIDUAL NAV ITEMS --- */
+.nav-item {
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: #888888; /* Soft gray for inactive state */
+    transition: all 0.3s ease;
+    flex: 1; /* Distributes space evenly */
+}
+
+.nav-item img {
+    width: 24px;
+    height: 24px;
+    transition: transform 0.2s ease, filter 0.3s ease;
+}
+
+.nav-item span {
+    font-size: 10px; /* Slightly smaller for professional app look */
+    font-weight: 500;
+}
+
+/* --- THE ACTIVE STATE (var(--ui-primary)) --- */
+
+/* Changes the text color to your brand red */
+.nav-item.active {
+    color: var(--ui-primary);
+}
+
+.nav-item.active span {
+    color: var(--ui-primary);
+    font-weight: bold;
+}
+
+/* 1. Scale Effect: Makes the icon "pop" when active */
+/* 2. Color Filter: This turns the black filled icon into var(--ui-primary) */
+.nav-item.active img {
+    transform: scale(1.15); 
+    filter: invert(10%) sepia(87%) saturate(5415%) hue-rotate(352deg) brightness(88%) contrast(110%);
+}
+
+/* Optional: Subtle tap effect for mobile */
+.nav-item:active {
+    opacity: 0.7;
+    transform: scale(0.95);
+}
+
+/* SVG-based nav active state (pages using inline SVG icons) */
+.nav-item.active svg path,
+.nav-item.active svg circle,
+.nav-item.active svg polyline,
+.nav-item.active svg line,
+.nav-item.active svg rect,
+.nav-item.active svg polygon {
+    stroke: var(--ui-primary);
+}
+
+.nav-item.active .active-label,
+.nav-item .active-label {
+    color: var(--ui-primary);
+    font-weight: 700;
+}
+
+
+/* Login Page Styles */
+.lang-dropdown {
+    width: fit-content;
+    padding: 0;
+}
+
+.lang-btn {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(20, 19, 19, 0.438);
+    color: rgb(190, 13, 13);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.lang-list {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    width: 160px;
+    background: rgba(30, 30, 45, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    list-style: none;
+    padding: 10px 0;
+    margin: 0;
+    display: none; /* Hidden by default */
+    z-index: var(--ui-z-modal);
+}
+
+/* Show menu when active class is added */
+.lang-list.active {
+    display: block;
+}
+
+.lang-list li {
+    padding: 10px 15px;
+    font-size: 13px;
+    color: rgb(168, 10, 10);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.globe-icon img {
+    width: 11px;
+    height: 11px;
+}
+.lang-list li:hover {
+    background: rgba(115, 2, 1, 0.4); /* Maroon hover */
+}
+.handyhub-icon {
+    justify-self: center; /* Centers horizontally */
+    align-self: center;     /* Centers vertically */
+    height: 150px;           /* Standard logo container height */
+    width: 200px;
+}
+
+.handyhub-icon img {
+    width: 100%;             /* Let the container control the size */
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.branding {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.branding h2{
+    font-size: 20px;
+    font-family: Noto Sans, sans-serif;
+    font-weight: 800;
+}
+.branding p{
+    font-size: 11px;
+    color: #000000;
+    font-weight: 400;
+    margin: 0;
+    padding-top: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+
+}
+.login-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 12px;
+    position: relative; /* REQUIRED to anchor the absolute image */
+}
+
+.input-group input {
+    height: 50px;
+    padding-left: 50px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.input-group img {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    /* Adjusted these values to center within the input box specifically */
+    left: 15px; 
+    top: 42px; /* Pushes icon down past the label into the input */
+    pointer-events: none;
+}
+.input-group label {
+    font-size: 12px;
+    color: #000000bd;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.form-actions {
+     /* Pushes the button to the right */
+    background: none;
+    border: none;
+    color: var(--primary-red);
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;             /* Makes the container a flexbox */
+    justify-content: flex-end; /* Pushes all content inside to the right */
+    width: 100%;  
+
+}
+.form-actions a {
+    color: var(--primary-red);
+    text-decoration: none;
+    font-weight: 600;
+    text-align: right;
+}
+.login-btn {
+    background: var(--ui-primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    height: 50px;
+    margin-top: 20px;
+}
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0;
+    color: #888; /* Grey color to match your image */
+    font-size: 12px;
+}
+
+/* This creates the lines on the left and right */
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e0e0e0; /* The line color */
+}
+
+/* Adds space around the text */
+.divider:not(:empty)::before {
+    margin-right: 15px;
+}
+
+.divider:not(:empty)::after {
+    margin-left: 15px;
+}
+.social-login {
+    display: flex;          /* Changed from inline-block to flex */
+    flex-direction: row;    /* Ensures they stay in a horizontal line */
+    justify-content: space-between; /* Adds even spacing between buttons */
+    gap: 10px;              /* Space between the buttons */
+    margin-top: 15px;
+    width: 100%;            /* Container takes full width */
+}
+
+.social-btn {
+    background-color: #ffffff;
+    color: #333;
+    border: 1px solid #acabab33;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 13px;        /* Slightly smaller to fit 3 in a row */
+    cursor: pointer;
+    flex: 1;                /* Makes all buttons the same width */
+    display: flex;
+    align-items: center;    /* Centers icon and text vertically */
+    justify-content: center; /* Centers icon and text horizontally */
+}
+
+.social-btn img {
+    width: 18px;            /* Slightly smaller for better fit */
+    height: 18px;
+    margin-right: 8px;
+}
+#signup{
+    color: var(--primary-red);
+    text-decoration: none; 
+    font-weight: 600;
+    text-align: center;
+    font-size: 13px;
+    
+}
+.signup-prompt{
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    background-color: #6b040b21;
+      backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    height: 100px;
+    width: 100%;
+    margin-top: 1.4em;
+    
+}
+.sign{
+    margin-top: 1.6em;
+}
+.signup-prompt center{
+    color: #000000bd;
+    font-weight: 600;
+    font-size: 12px;
+    margin-top:1em;
+}
+/* start of branch css*/
+.header-text p{
+    font-size: 12px;
+    padding-top: 4px;
+    color: #333333a9;
+}
+.header-image{
+    margin-bottom: 25px;
+}
+
+/* Essential button wrapper reset */
+.continue-customer {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    width: 100%;
+    cursor: pointer;
+    text-align: left;
+}
+
+.banner {
+    background-color: #fdf6f7;
+    border-radius: 24px;
+    height: 180px;
+    margin: 20px auto;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    max-width: 550px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+}
+
+.banner-left {
+    width: 30%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Your exact image styling restored */
+.circle-bg img {
+    width: 4cm;
+    height: 50%;
+    margin-top: 20px;
+    margin-left: 10px;
+}
+
+.banner-mid {
+    width: 55%;
+    padding-left: 20px;
+}
+
+.title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.user-icon {
+    background-color: var(--ui-primary);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.user-icon img {
+    width: 50%;
+    filter: brightness(0) invert(1);
+}
+
+.title-row h3 {
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0;
+    color: #000;
+}
+
+.banner-mid p {
+    font-size: 0.8rem;
+    color: #555;
+    line-height: 1.5;
+    margin-left: 10px;
+}
+
+.banner-right {
+    width: 15%;
+    display: flex;
+    justify-content: flex-end;
+    align-content: center;
+}
+
+.arrow-btn {
+    background-color: var(--ui-primary);
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center; /* Centers horizontally */
+    align-items: center;     /* Centers vertically */
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    border: none;            /* Removes default button border */
+    line-height: 0;          /* Prevents text baseline interference */
+}
+
+/* This makes the movement smooth */
+.banner {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* This triggers the effect when hovering over the button */
+.continue-customer:hover .banner {
+    transform: translateY(-5px); /* Moves it up 5 pixels */
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1); /* Makes the shadow deeper */
+}
+/* Button Wrapper */
+.continue-artisan {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    width: 100%;
+    cursor: pointer;
+    text-align: left;
+}
+
+/* Background color is slightly warmer for Artisan */
+.banner-artisan {
+    background-color: #fff9f2; 
+    border-radius: 24px;
+    height: 180px;
+    margin: 20px auto;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    max-width: 550px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.banner-left {
+    width: 30%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Restored your exact image styling */
+.circle-bg-artisan img {
+     width: 4cm;
+    height: 50%;
+    margin-top: 20px;
+    margin-left: 10px;
+}
+
+.banner-mid {
+    width: 55%;
+    padding-left: 20px;
+}
+
+.title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+/* Artisan specific Gold color */
+.user-icon-artisan, .arrow-btn-artisan {
+    background-color: #e39a0e; 
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    cursor: pointer;
+    
+    /* Center the specific character ❯ */
+    line-height: 0;           /* Removes extra space below text */
+    padding-top: 0;           /* Removed the 6px push-down */
+    transform: translateY(1px); /* Micro-adjustment for visual balance */
+    padding-left: 1px;        /* Centers the arrow's point */
+}
+
+
+  
+
+.user-icon-artisan img {
+    width: 50%;
+    filter: brightness(0) invert(1);
+}
+
+.title-row h3 {
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0;
+    color: #000;
+}
+
+.banner-mid p {
+    font-size: 0.8rem;
+    color: #555;
+    line-height: 1.5;
+    margin-left: 10px;
+}
+
+.banner-right {
+    width: 15%;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Hover Effect */
+.continue-artisan:hover .banner-artisan {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+.security-banner {
+    background-color: #ffffff;
+    border: 1px solid #eeeeee;
+    border-radius: 16px;
+    padding: 20px 25px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    max-width: 550px;
+    margin: 20px auto;
+    margin-top: 2cm;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.security-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px; /* Slightly squared like a shield */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.security-icon img {
+    width: 70%;
+    height: 70%;
+    margin-left: 20px;
+}
+
+.security-text h4 {
+    font-size: 10px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    color: #1a1a1a;
+}
+
+.security-text p {
+    font-size: 10px;
+    color: #666666;
+    margin: 0;
+    line-height: 1.4;
+}
+/*start of splash screen css*/
+/* --- 1. CORE LAYOUT --- */
+.search-view {
+    background: #ffffff;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.search-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid #f8f8f8;
+    gap: 10px;
+}
+
+.search-bar-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.search-bar-wrapper input {
+    width: 100%;
+    padding: 12px 40px 12px 15px;
+    border-radius: 25px;
+    border: 1px solid #f0f0f0;
+    background: #fafafa;
+    font-size: 14px;
+    outline: none;
+}
+
+.spark-icon {
+    position: absolute;
+    right: 15px;
+    top: 12px;
+    width: 18px;
+}
+
+/* --- 2. SCROLLABLE CONTENT --- */
+.search-content {
+    overflow-y: auto;
+    flex: 1;
+    padding: 15px;
+}
+
+.search-group h3, 
+.recent-head h3 {
+    font-size: 12px;
+    color: #333333;
+    margin-bottom: 15px;
+}
+
+/* --- 3. POPULAR SEARCH TAGS --- */
+.tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 25px;
+
+}
+
+.search-tag {
+    padding: 3px 10px;
+    background: #fff5f5;
+    border: 1px solid #ffebeb;
+    color: var(--ui-primary);
+    border-radius: 20px;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* --- 4. CATEGORY GRID --- */
+.cat-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 30px;
+    overflow: scroll;  
+    overflow-x: auto; /* Enables sliding */
+}
+
+.cat-box {
+    text-align: center;
+}
+
+.cat-box .circle {
+    width: 55px;
+    height: 55px;
+    background: #fff5f5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 8px;
+}
+.circle img{
+    height: 35px;
+    align-self: center;
+    justify-self: center;
+    display: flex;
+}
+.cat-box span {
+    font-size: 11px;
+    font-weight: 500;
+    color: #555555;
+}
+
+/* --- 5. AI BANNER --- */
+.ai-box {
+    background: #ffffff;
+    border: 1px solid #f0f0f0;
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.ai-logo {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #ffebeb;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ui-primary);
+    font-weight: bold;
+}
+
+.ai-info .title {
+    font-size: 13px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.ai-info .sub {
+    font-size: 11px;
+    color: #888888;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.ai-action {
+    margin-left: auto;
+    background: #f9f9f9;
+    border: 1px solid #eeeeee;
+    padding: 15px 12px;
+    border-radius: 10px;
+    color: black;
+    font-size: 10px;
+    font-weight: bold;
+    white-space: nowrap;
+    background-color: transparent; /* Makes it see-through */
+  background-image: none;      /* Removes any gradients */               /* Often needed to remove the default 3D effect */
+  cursor: pointer;             /* Keeps it feeling like a button */
+}
+
+/* --- 6. RECENT SEARCHES LIST --- */
+.recent-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.clear-btn {
+    background: none;
+    border: none;
+    color: var(--ui-primary);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.history-list {
+    list-style: none;
+    padding: 0;
+}
+
+.history-list li {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid #f8f8f8;
+    font-size: 13px;
+    color: #444444;
+}
+
+.history-list li img {
+    margin-right: 12px;
+    opacity: 0.5;
+    height: 18px;
+}
+
+.history-list li .remove {
+    margin-left: auto;
+    color: #cccccc;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+/* --- 7. CHAT FOOTER --- */
+.chat-footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-bottom: 40px;
+}
+
+.chat-footer p {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.chat-footer span {
+    font-size: 12px;
+    color: #888888;
+}
+
+.chat-btn {
+    display: flex;
+    width: 80%;
+    margin: 20px auto;
+    padding: 12px;
+    border: 1.5px solid var(--ui-primary);
+    background: none;
+    border-radius: 30px;
+    color: var(--ui-primary);
+    font-weight: bold;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+}
+.chat-btn img{
+    height: 30px;
+}
+
+
+
+
+
+.notifications-page {
+    max-width: 450px;
+    margin: 0 auto;
+    background: var(--bg-page);
+    min-height: 100vh;
+    padding-bottom: 100px;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+}
+.header h1 { font-size: 18px; font-weight: 700; margin: 0; }
+
+/* Tabs */
+.tabs-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 10px 20px;
+    scrollbar-width: none;
+}
+.settings-link {
+    background: none;      /* Removes the grey box */
+    border: none;          /* Removes the border */
+    font-size: 20px;       /* Controls the size of the icon */
+    color: #333;           /* Sets the icon color */
+    cursor: pointer;       /* Makes it look clickable */
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Optional: change color on hover */
+.settings-link:hover {
+    color: var(--ui-primary);        /* Your maroon theme color */
+}
+
+.tab-item {
+    background: #f5f5f5;
+    padding: 8px 16px;
+    border-radius: 25px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+.tab-item.active { background: var(--maroon); color: #fff; }
+.badge { background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 10px; font-size: 10px; }
+.tab-item.active .badge { background: rgba(255,255,255,0.2); }
+
+/* Notifications */
+.group-title { font-size: 14px; font-weight: 700; padding: 20px 20px 10px; margin: 0; }
+
+.notification {
+    display: flex;
+    padding: 15px 20px;
+    gap: 15px;
+    align-items: flex-start;
+    position: relative;
+}
+.notification.unread { background: var(--unread-bg); }
+
+.icon-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+/* Color Palette */
+.bg-red-light { background: #fdf2f2; }
+.bg-blue-light { background: #f0f4ff; }
+.bg-grey-light { background: #f5f5f5; }
+.color-maroon { color: var(--maroon); }
+.color-blue { color: #3b82f6; }
+
+.notif-info { flex: 1; }
+.top-row { display: flex; justify-content: space-between; align-items: baseline; }
+.notif-title { font-size: 14px; font-weight: 700; color: var(--text-main); }
+.timestamp { font-size: 11px; color: #999; }
+.notif-desc { font-size: 12px; color: var(--text-sub); margin: 4px 0 0; line-height: 1.4; }
+
+.unread-indicator {
+    width: 8px;
+    height: 8px;
+    background: #ff4d4d;
+    border-radius: 50%;
+    margin-top: 20px;
+}
+
+/* Push Alert Box */
+.push-alert {
+    position: fixed;
+    bottom: 90px;
+    left: 15px;
+    right: 15px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    padding: 20px;
+    border: 1px solid #f0f0f0;
+    z-index: 100;
+}
+.alert-body { display: flex; align-items: center; gap: 15px; }
+.alert-icon-box img { width: 50px; height: 50px; }
+.alert-text { flex: 1; }
+.alert-h { font-size: 14px; font-weight: 800; margin: 0; }
+.alert-p { font-size: 11px; color: var(--text-sub); margin: 4px 0 0; }
+.enable-btn { background: var(--maroon); color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 12px; }
+.close-alert { position: absolute; top: 10px; right: 15px; border: none; background: none; font-size: 18px; color: #ccc; cursor: pointer; }
+
+
+/*CUSTOMER-SIGNUP-PAGE*/
+
+/* Former competing :root override removed (it redefined --text-dark globally,
+   a fragmentation bug). The two tokens still referenced by signup-page rules
+   below are kept, mapped to canonical values from ui-polish.css. */
+:root {
+    --handy-red:    var(--ui-primary);
+    --border-light: var(--ui-border);
+}
+
+
+
+/* Header & Nav */
+.signup-page .nav-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 10px 10px 0;
+}
+
+.signup-page .back-btn {
+    margin: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+}
+
+.lang-btn {
+    border: 1px solid var(--border-light);
+    border-radius: 20px; background: none;
+    padding: 5px; display: flex; align-items: center;
+    gap: 5px; font-size: 13px; cursor: pointer;
+}
+
+
+/* Content Headings */
+.intro-text h2 { font-size: 22px; margin: 0; font-weight: 700; }
+.intro-text p { font-size: 13px; color: #666; margin-top: 5px; }
+
+/* Your Provided Logic with Spacing Fixes */
+.signup-container {
+    display: flex;
+    flex-direction: column;
+    margin-top: 15px;
+}
+
+.input-signup {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.input-signup label {
+    font-size: 12px;
+    color: var(--text-dark);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.input-signup input {
+    height: 52px;
+    padding-left: 50px;
+    border: 1px solid #EAEAEA; /* Softer border like image */
+    border-radius: 12px; /* Rounder like image */
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+}
+
+.input-signup .in-input {
+    width: 18px;
+    height: 18px;
+    position: absolute;
+    left: 18px;
+    top: 40px; /* Aligned with your 42px but adjusted for 12px radius */
+    pointer-events: none;
+}
+
+.eye-icon {
+    width: 18px;
+    position: absolute;
+    right: 18px;
+    top: 40px;
+    opacity: 0.4;
+    cursor: pointer;
+}
+
+.pass-hint {
+    display: flex; align-items: center;
+    gap: 5px; font-size: 11px; color: #777; margin-top: 6px;
+}
+
+/* Checkbox & Button */
+.terms-row {
+    display: flex; gap: 8px; font-size: 12px;
+    align-items: center; margin: 10px 0;
+}
+.terms-row span a {
+     color: var(--handy-red);
+      font-weight: 600; 
+      text-decoration: none;
+
+}
+
+.btn-primary {
+    background: var(--handy-red);
+    color: white; border: none;
+    padding: 16px; border-radius: 12px;
+    font-size: 16px; font-weight: 700;
+    cursor: pointer; display: flex;
+    justify-content: center; align-items: center; gap: 8px;
+}
+#submit-btn:disabled { 
+    background-color: #ccc !important;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+#submit-btn {
+    transition: all 0.3s ease; /* Makes the color change smooth */
+}
+
+
+
+
+.social-row { display: flex; gap: 10px; }
+.social-btn {
+    flex: 1; border: 1px solid #eee; background: #fff;
+    padding: 10px; border-radius: 10px; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    font-weight: 600;
+}
+.social-btn img { width: 18px; }
+
+.login-footer { text-align: center; margin-top: 25px; font-size: 13px; }
+.login-footer a { color: var(--handy-red); font-weight: 700; text-decoration: none; }
+
+/*TOAST NOTIFFICATION*/
+/* Toast Notification Styles */
+.toast {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px 10px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.12));
+    color: #112236;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.35;
+    z-index: var(--ui-z-toast);
+    animation: slideIn 0.36s cubic-bezier(0.2, 0.7, 0.2, 1);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(14px) saturate(170%);
+    -webkit-backdrop-filter: blur(14px) saturate(170%);
+    max-width: min(92vw, 430px);
+    overflow: hidden;
+    isolation: isolate;
+    --toast-accent: 23, 162, 184;
+}
+
+.toast::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    background: radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.1) 48%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.toast::after {
+    content: "";
+    position: absolute;
+    width: 150%;
+    height: 210%;
+    left: -26%;
+    top: 24%;
+    background: radial-gradient(circle at center, rgba(var(--toast-accent), 0.18), rgba(var(--toast-accent), 0) 64%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.toast-icon,
+.toast-message {
+    position: relative;
+    z-index: 1;
+}
+
+.toast-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: rgb(var(--toast-accent));
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.24));
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 7px 14px rgba(0, 0, 0, 0.14);
+}
+
+.toast-icon svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.toast-message {
+    word-break: break-word;
+}
+
+.toast.error {
+    --toast-accent: 220, 53, 69;
+    color: #3f0e16;
+}
+
+.toast.success {
+    --toast-accent: 40, 167, 69;
+    color: #14381f;
+}
+
+.toast.info {
+    --toast-accent: 23, 162, 184;
+    color: #123544;
+}
+
+.toast.toast-exit {
+    animation: slideOut 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translate3d(18px, -8px, 0) scale(0.97);
+        opacity: 0;
+    }
+    to {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: translate3d(18px, 0, 0) scale(0.985);
+        opacity: 0;
+    }
+}
+
+/* =============================================
+   DARK MODE — html.dark overrides
+   Applied globally via themeManager.js
+============================================= */
+html.dark body {
+    background: #121212;
+    color: #e0e0e0;
+}
+
+html.dark .app { background: #121212; }
+
+/* Top nav / profile card */
+html.dark .profile-card {
+    background: rgba(20, 20, 20, 0.85);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+html.dark .name { color: #ff6060; }
+html.dark .location { color: #999; }
+
+/* Search bar */
+html.dark .search { background: #1e1e1e !important; border-color: rgba(255,255,255,0.08); box-shadow: none; }
+html.dark .search input {
+    background-color: #1e1e1e !important;
+    color: #e0e0e0;
+}
+html.dark .search input::placeholder { color: #666; }
+
+/* Category buttons */
+html.dark .cat-btn { background-color: #2a1a1a; color: #ff9999; }
+
+/* Service card slider */
+html.dark .cards { background-color: #1e1e1e; box-shadow: none; }
+html.dark .cards p { color: #ccc; }
+html.dark .c-one { background-color: #2a1a1a; }
+
+
+/* View more */
+html.dark .view-more-btn { background: #2a1a1a; color: #ff9999; }
+
+/* Bottom nav */
+html.dark .bottom-nav {
+    background: rgba(18, 18, 18, 0.92);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+html.dark .nav-item { color: #555; }
+html.dark .nav-item span { color: #555; }
+
+/* Section headings */
+html.dark p[style*="color: black"] { color: #ccc !important; }
+
+/* Sidebar */
+html.dark .sidebar { background: #1a1a1a; }
+html.dark .sidebar-close-btn { background: #2a2a2a; color: #ccc; }
+html.dark .sidebar-profile {
+    background: linear-gradient(to bottom, #2a1818, #1a1a1a);
+    border-bottom-color: #2a2a2a;
+}
+html.dark .sidebar-user-name { color: #f0f0f0; }
+html.dark .sidebar-user-location { color: #999; }
+html.dark .sidebar-section-title { color: #555; }
+
+html.dark .sidebar-active-booking { background: #242424; border-color: #2e2e2e; }
+html.dark .active-booking-info h4 { color: #f0f0f0; }
+html.dark .active-booking-service { color: #888; }
+html.dark .active-booking-btn { background: #2a1a1a; }
+
+html.dark .quick-action-btn { background: #242424; border-color: #2e2e2e; color: #ddd; }
+html.dark .quick-action-icon { background: #2a1a1a; }
+
+html.dark .sidebar-menu-list li { border-bottom-color: #242424; }
+html.dark .sidebar-menu-item { color: #e0e0e0; }
+html.dark .sidebar-menu-icon { background: #2a1a1a; }
+
+html.dark .sidebar-grow-card { background: #231e14; border-color: #332b1a; }
+html.dark .grow-card-icon { background: #2a2010; }
+html.dark .grow-card-info h4 { color: #f0f0f0; }
+html.dark .grow-card-info p { color: #888; }
+
+/* Overlay */
+html.dark .sidebar-overlay { background: rgba(0, 0, 0, 0.7); }
+
+/* Notification page */
+html.dark .notifications-page { background: #121212; }
+html.dark .header h1 { color: #f0f0f0; }
+html.dark .tab-item { background: #242424; color: #ccc; }
+html.dark .tab-item.active { background: var(--maroon); color: #fff; }
+html.dark .group-title { color: #ccc; }
+html.dark .notification { border-bottom: 1px solid #242424; }
+html.dark .notification.unread { background: #1e1414; }
+html.dark .notif-title { color: #f0f0f0; }
+html.dark .notif-desc { color: #888; }
+html.dark .push-alert { background: #1e1e1e; border-color: #2a2a2a; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+html.dark .alert-h { color: #f0f0f0; }
+
+/* Search view */
+html.dark .search-view { background: #121212; }
+html.dark .search-header { border-bottom-color: #242424; }
+html.dark .search-bar-wrapper input { background: #1e1e1e; border-color: #2a2a2a; color: #e0e0e0; }
+html.dark .search-tag { background: #2a1a1a; border-color: #3a2020; color: #ff9999; }
+html.dark .cat-box span { color: #aaa; }
+html.dark .cat-box .circle { background: #2a1a1a; }
+html.dark .ai-box { background: #1e1e1e; border-color: #2a2a2a; }
+html.dark .ai-info .title { color: #f0f0f0; }
+html.dark .ai-info .sub { color: #777; }
+html.dark .history-list li { color: #ccc; border-bottom-color: #242424; }
+html.dark .recent-head h3, html.dark .search-group h3 { color: #ccc; }
+html.dark .chat-footer p { color: #f0f0f0; }
+html.dark .chat-footer span { color: #666; }
+html.dark .chat-btn { border-color: var(--ui-primary); color: #ff6060; }
+
+

@@ -11,7 +11,7 @@
   <link rel="icon" href="../shared/assets/icons/favicon.ico">
   <link rel="stylesheet" href="../shared/css/ui-polish.css">
 
-  <!-- Firebase init â€” use the CANONICAL config from appConfig.js (single source
+  <!-- Firebase init — use the CANONICAL config from appConfig.js (single source
        of truth). The previous inline config was stale (wrong apiKey / appId /
        messagingSenderId / storageBucket), pointing the page at the wrong project
        credentials and breaking the Cloud Function calls. -->
@@ -72,7 +72,7 @@ body {
   overflow-x: hidden;
 }
 
-/* â”€â”€ Page shell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Page shell ─────────────────────────────────────────────── */
 .su-page {
   max-width: 430px;
   margin: 0 auto;
@@ -82,7 +82,7 @@ body {
   position: relative;
 }
 
-/* â”€â”€ Hero (same dot-grid as signup) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Hero (same dot-grid as signup) ────────────────────────── */
 .su-hero {
   position: relative;
   overflow: hidden;
@@ -111,7 +111,7 @@ body {
   pointer-events: none;
 }
 
-/* â”€â”€ Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Nav ────────────────────────────────────────────────────── */
 .su-nav {
   position: relative;
   z-index: 1;
@@ -138,7 +138,7 @@ body {
 }
 .su-back-btn:active { background: rgba(0,0,0,0.12); }
 
-/* â”€â”€ Brand logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Brand logo ─────────────────────────────────────────────── */
 .su-brand {
   position: relative;
   z-index: 2;
@@ -155,7 +155,7 @@ body {
   mix-blend-mode: multiply;
 }
 
-/* â”€â”€ Hero body (email icon + text) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Hero body (email icon + text) ─────────────────────────── */
 .hero-body {
   position: relative;
   z-index: 2;
@@ -199,7 +199,7 @@ body {
   font-weight: 700;
 }
 
-/* â”€â”€ Floating card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Floating card ──────────────────────────────────────────── */
 .su-card {
   flex: 1;
   background: var(--white);
@@ -221,7 +221,7 @@ body {
   flex-shrink: 0;
 }
 
-/* â”€â”€ OTP digit boxes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── OTP digit boxes ─────────────────────────────────────────── */
 .otp-label {
   font-size: 13px;
   font-weight: 600;
@@ -266,7 +266,7 @@ body {
   color: var(--red-700);
 }
 
-/* â”€â”€ Error message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Error message ──────────────────────────────────────────── */
 .otp-error {
   font-size: 13px;
   color: #dc2626;
@@ -277,7 +277,7 @@ body {
   font-weight: 500;
 }
 
-/* â”€â”€ Submit button (identical to signup .su-btn) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Submit button (identical to signup .su-btn) ─────────────── */
 .su-btn {
   width: 100%;
   height: 56px;
@@ -325,7 +325,7 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* â”€â”€ Resend area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Resend area ────────────────────────────────────────────── */
 .resend-row {
   display: flex;
   flex-direction: column;
@@ -362,7 +362,7 @@ body {
 .resend-btn:hover:not(:disabled) { background: var(--red-100); }
 .resend-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* â”€â”€ Divider + restart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Divider + restart ──────────────────────────────────────── */
 .divider {
   display: flex;
   align-items: center;
@@ -403,7 +403,7 @@ body {
 }
 .restart-btn:hover { background: var(--grey-100); border-color: var(--grey-300); }
 
-/* â”€â”€ Expire notice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Expire notice ──────────────────────────────────────────── */
 .expire-notice {
   display: flex;
   align-items: center;
@@ -415,7 +415,7 @@ body {
   font-weight: 400;
 }
 
-/* â”€â”€ Focus ring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Focus ring ─────────────────────────────────────────────── */
 :focus-visible { outline: 3px solid var(--red-700); outline-offset: 3px; border-radius: 4px; }
 :focus:not(:focus-visible) { outline: none; }
 
@@ -429,7 +429,7 @@ body {
 
 <main class="su-page" role="main">
 
-  <!-- â”€â”€ Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <!-- ── Hero ─────────────────────────────────────────────────── -->
   <section class="su-hero">
     <nav class="su-nav">
       <a href="signup.html" class="su-back-btn" id="otp-restart-link" aria-label="Back to signup">
@@ -459,7 +459,7 @@ body {
     </div>
   </section>
 
-  <!-- â”€â”€ Floating card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <!-- ── Floating card ─────────────────────────────────────────── -->
   <div class="su-card">
     <div class="su-handle" aria-hidden="true"></div>
 
@@ -467,17 +467,17 @@ body {
     <p class="otp-label">Enter verification code</p>
     <div class="otp-row" role="group" aria-label="6-digit verification code">
       <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
-             data-otp-input="1" placeholder="â€”" autocomplete="one-time-code" aria-label="Digit 1">
+             data-otp-input="1" placeholder="—" autocomplete="one-time-code" aria-label="Digit 1">
       <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
-             data-otp-input="2" placeholder="â€”" autocomplete="off" aria-label="Digit 2">
+             data-otp-input="2" placeholder="—" autocomplete="off" aria-label="Digit 2">
       <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
-             data-otp-input="3" placeholder="â€”" autocomplete="off" aria-label="Digit 3">
+             data-otp-input="3" placeholder="—" autocomplete="off" aria-label="Digit 3">
       <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
-             data-otp-input="4" placeholder="â€”" autocomplete="off" aria-label="Digit 4">
+             data-otp-input="4" placeholder="—" autocomplete="off" aria-label="Digit 4">
       <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
-             data-otp-input="5" placeholder="â€”" autocomplete="off" aria-label="Digit 5">
+             data-otp-input="5" placeholder="—" autocomplete="off" aria-label="Digit 5">
       <input class="otp-input" type="tel" inputmode="numeric" maxlength="1"
-             data-otp-input="6" placeholder="â€”" autocomplete="off" aria-label="Digit 6">
+             data-otp-input="6" placeholder="—" autocomplete="off" aria-label="Digit 6">
     </div>
 
     <!-- Error -->
@@ -529,7 +529,7 @@ body {
 
   bootstrapOtpVerifyPage({
     appType:         'customer',
-    successRedirect: 'dashboard.html',   // signed in via custom token â†’ land authenticated
+    successRedirect: 'dashboard.html',   // signed in via custom token → land authenticated
     loginRedirect:   'login.html',       // fallback if client sign-in couldn't complete
     restartRedirect: 'signup.html',
   });

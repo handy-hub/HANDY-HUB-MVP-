@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Flat brand-monochrome gardening icon (trowel + sprout) — normalised to
+       match the maroon line-icon family. Previous asset was a green/brown
+       full-colour illustration (design drift). -->
+  <g stroke="#730201" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Trowel handle -->
+    <line x1="40" y1="14" x2="30" y2="34"/>
+    <!-- Trowel blade -->
+    <path d="M24 44c-3-3-3-8 1-10l7 7c-2 4-5 6-8 3z"/>
+    <!-- Sprout stem -->
+    <path d="M40 50V36"/>
+    <!-- Sprout leaves -->
+    <path d="M40 40c-5 0-8-3-8-8 5 0 8 3 8 8z"/>
+    <path d="M40 44c5 0 8-3 8-8-5 0-8 3-8 8z"/>
+  </g>
+</svg>

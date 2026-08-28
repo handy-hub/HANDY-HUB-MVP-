@@ -99,7 +99,8 @@ const TRANSITIONS = [
         title:  'Job Complete — Confirm?',
         body:   (b) => `${b.artisanName || 'Your artisan'} has marked the ${b.serviceType || 'service'} job as done. Please confirm to release payment.`,
         type:   'booking_awaiting',
-        // Deep-link the customer straight to the confirm/release control.
+        // Deep-link the customer straight to the confirm/release control. The id
+        // is appended below — tracking no longer guesses which booking is meant.
         customerActionUrl: 'live-tracking.html',
     },
     {
@@ -340,6 +341,39 @@ const onBookingStatusChanged = onDocumentUpdated(
         const artisanId         = after.artisanId  || null;
         const isSystemCancelled = after.cancelledBy === 'system_escrow_failure';
 
+        // ── Stamp the assigned professional's identity, server-side ──────────
+        //
+        // The artisan app writes artisanName itself when it accepts, which means
+        // (a) it is client-asserted and therefore spoofable, and (b) it is the
+        // ONLY identity field written — so the customer got a name and nothing
+        // else: no photo, no rating, no verification badge, no job count. The
+        // customer could not answer "who is coming to my home?".
+        //
+        // Resolved once here, from artisans/{uid}, at the moment of acceptance.
+        // Every customer surface then reads these fields through
+        // resolveArtisan() in shared/js/domain/bookingTruth.js.
+        if (prevStatus === 'pending' && nextStatus === 'accepted' && artisanId) {
+            try {
+                const aSnap = await db().collection('artisans').doc(artisanId).get();
+                if (aSnap.exists) {
+                    const a = aSnap.data();
+                    await db().collection('bookings').doc(bookingId).update({
+                        artisanName:     a.fullName || a.name || null,
+                        artisanPhoto:    a.profileImage || null,
+                        artisanRating:   typeof a.rating === 'number' ? a.rating : null,
+                        artisanCategory: a.specialty || a.category || null,
+                        artisanVerified: a.verificationStatus === 'approved',
+                        artisanJobsCompleted: typeof a.jobsCompleted === 'number' ? a.jobsCompleted : null,
+                        updatedAt: new Date().toISOString(),
+                    });
+                }
+            } catch (err) {
+                // Non-fatal: the customer UI renders an honest "Your professional"
+                // rather than a fabricated identity if this could not be stamped.
+                console.warn(`[bookings] Could not stamp artisan identity on ${bookingId}: ${err.message}`);
+            }
+        }
+
         const ctx = {
             bookingId,
             serviceType:  after.serviceType  || after.service || 'Service',
@@ -370,8 +404,23 @@ const onBookingStatusChanged = onDocumentUpdated(
                 // fix every generic transition notification (en_route, in_progress,
                 // awaiting, completed, cancelled, disputed) was written with an EMPTY
                 // message body, no working deep-link, and no bookingId in metadata.
-                const custAction = rule.customerActionUrl || 'booking.html';
-                const artAction  = rule.artisanActionUrl  || 'dashboard.html';
+                // A push notification is opened by the service worker, which
+                // navigates straight to actionUrl and never runs the in-app
+                // resolver — so any booking-specific destination has to carry the
+                // booking id here or it arrives ambiguous. (In-app taps resolve
+                // through notificationHref() in shared/js/domain/bookingRouter.js,
+                // which reads metadata.bookingId and picks the right screen.)
+                const withBooking = (url) => {
+                    if (!url || !bookingId) return url;
+                    // List/home destinations are deliberately generic — leave them.
+                    if (url === 'booking.html' || url === 'dashboard.html' || url === 'jobs.html') return url;
+                    if (url.includes('?')) return url;
+                    const param = url.startsWith('book-request.html') ? 'resume' : 'bookingId';
+                    return `${url}?${param}=${encodeURIComponent(bookingId)}`;
+                };
+
+                const custAction = withBooking(rule.customerActionUrl) || 'booking.html';
+                const artAction  = withBooking(rule.artisanActionUrl)  || 'dashboard.html';
 
                 if ((rule.notify === 'customer' || rule.notify === 'both') && customerId) {
                     promises.push(

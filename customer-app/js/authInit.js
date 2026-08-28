@@ -2,6 +2,7 @@ import { requireAuth }                  from '../../shared/js/utils/authGuard.js
 import { flushPendingBookingWrites }     from '../../shared/js/utils/bookingConfirmNotify.js';
 import { initializePushNotifications }  from '../../shared/js/services/pushNotificationService.js';
 import { initQuoteModal, destroyQuoteModal } from './quoteModalService.js';
+import { totalCharged }                  from '../../shared/js/domain/bookingTruth.js';
 
 const user = await requireAuth();
 
@@ -43,29 +44,45 @@ if (user && user.uid) {
                 .then(function (records) {
                     if (!Array.isArray(records) || records.length === 0) return;
 
-                    // Map Firestore booking documents to the shape bookingService.js expects
+                    // SHAPE: queryWithOptions returns toRecord() = { id, data }.
+                    // This mapper previously read flat fields straight off that
+                    // wrapper, so EVERY field except `id` resolved to undefined and
+                    // fell to its default — the seeded cache looked populated while
+                    // carrying `total: 0`, `status: 'pending'`, `service: ''` for
+                    // every booking. `total: 0` is what fed the receipt's
+                    // `(state.total || last.total || 65)`: zero is falsy, so the
+                    // hardcoded literal won. Read from `r.data`.
                     var mapped = records.map(function (r) {
+                        var d = (r && r.data) ? r.data : (r || {});
+                        // Money lives in calloutFee/jobQuote on the inspection track;
+                        // `total`/`price` do not exist there. totalCharged() is the one
+                        // projection that knows the difference, and returns null — not
+                        // zero — when the amount is genuinely unresolved.
+                        var charged = totalCharged(d);
                         return {
                             id:          r.id,
-                            service:     r.serviceType  || r.service     || '',
-                            category:    r.category     || '',
-                            proName:     r.proName      || '',
-                            proType:     r.proType      || '',
-                            proPhoto:    r.proPhoto     || null,
-                            proPhone:    r.proPhone     || null,
-                            proRating:   r.proRating    || null,
-                            artisanId:   r.artisanId    || null,
-                            dateDisplay: r.dateDisplay  || '',
-                            date:        r.date         || (r.createdAt ? r.createdAt.slice(0, 10) : ''),
-                            time:        r.time         || '',
-                            total:       Number(r.total || r.price || 0),
-                            payment:     r.payment      || 'Wallet',
-                            notes:       r.notes        || '',
-                            address:     r.address      || '',
-                            status:      r.status       || 'pending',
-                            type:        r.type         || 'standard',
-                            ts:          r.createdAt    || '',
-                            reviewLeft:  r.reviewLeft   || false,
+                            service:     d.serviceType  || d.service     || '',
+                            category:    d.category     || '',
+                            proName:     d.artisanName  || d.proName     || '',
+                            proType:     d.artisanCategory || d.proType  || '',
+                            proPhoto:    d.artisanPhoto || d.proPhoto    || null,
+                            proPhone:    d.proPhone     || null,
+                            proRating:   d.artisanRating ?? d.proRating  ?? null,
+                            artisanId:   d.artisanId    || null,
+                            dateDisplay: d.dateDisplay  || '',
+                            date:        d.date         || (d.createdAt ? String(d.createdAt).slice(0, 10) : ''),
+                            time:        d.time         || '',
+                            // null means UNRESOLVED and must render as an absent
+                            // state. It must never be coerced to 0, which reads as
+                            // "free" and previously collapsed into an invented 65.
+                            total:       charged,
+                            payment:     d.payment      || 'Wallet',
+                            notes:       d.notes        || '',
+                            address:     d.address      || '',
+                            status:      d.status       || null,
+                            type:        d.type         || 'standard',
+                            ts:          d.createdAt    || '',
+                            reviewLeft:  d.rating != null,
                         };
                     });
 

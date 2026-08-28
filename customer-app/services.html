@@ -95,7 +95,25 @@
   <!-- ── Scrollable content ── -->
   <div class="bn2-scroll">
     <div id="svc-notice"></div>
-    <div id="svc-list" class="bn2-pros-list" style="padding-top:12px;" aria-live="polite"></div>
+    <!-- ── First-paint skeleton ────────────────────────────────────────────
+         These live in the MARKUP, not in JavaScript, and that is the point.
+         This page's script is a module, so it is deferred and then pulls
+         serviceCatalog.js behind it — on a slow connection that is a visibly
+         empty panel for a second or more, because showSkeletons() below cannot
+         run until the very code we are waiting for has already arrived.
+
+         Rendered by the browser's first pass, so something is on screen the
+         moment the HTML lands. render() replaces the whole container on its
+         first call, so there is nothing to tear down. aria-busy marks these as
+         placeholder furniture rather than content. -->
+    <div id="svc-list" class="bn2-pros-list" style="padding-top:12px;" aria-live="polite" aria-busy="true">
+      <div class="bn2-pro-skeleton"></div>
+      <div class="bn2-pro-skeleton"></div>
+      <div class="bn2-pro-skeleton"></div>
+      <div class="bn2-pro-skeleton"></div>
+      <div class="bn2-pro-skeleton"></div>
+      <div class="bn2-pro-skeleton"></div>
+    </div>
     <div style="height:90px"></div>
   </div>
 </div>
@@ -177,10 +195,14 @@
 
   // ── States (reuse the app's skeleton / empty / error markup) ────────────────
   function showSkeletons() {
-    listEl.innerHTML = '<div class="bn2-pro-skeleton"></div>'.repeat(4);
+    // Still needed for the retry path — the markup skeleton is consumed by the
+    // first render() and cannot come back on its own.
+    listEl.setAttribute('aria-busy', 'true');
+    listEl.innerHTML = '<div class="bn2-pro-skeleton"></div>'.repeat(6);
     noticeEl.innerHTML = '';
   }
   function showEmpty(msg) {
+    listEl.removeAttribute('aria-busy');
     listEl.innerHTML = `
       <div class="bn2-pros-empty">
         <div class="bn2-pros-empty-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#bbb" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></div>
@@ -189,6 +211,7 @@
       </div>`;
   }
   function showError() {
+    listEl.removeAttribute('aria-busy');
     listEl.innerHTML = `
       <div class="bn2-pros-empty">
         <div class="bn2-pros-empty-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#bbb" stroke-width="2"/><path d="M12 8v5M12 16v1" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg></div>
@@ -208,6 +231,7 @@
     if (!cats.length) { showEmpty(term ? `No services match “${_term.trim()}”` : 'No services found'); return; }
 
     listEl.innerHTML = cats.map(cardHtml).join('');
+    listEl.removeAttribute('aria-busy');   // real content now, not placeholders
     listEl.querySelectorAll('.bn2-pro-card').forEach((card) => {
       const go = () => {
         const id = card.getAttribute('data-cat');

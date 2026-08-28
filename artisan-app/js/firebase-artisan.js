@@ -1,33 +1,49 @@
 /**
  * firebase-artisan.js
  *
- * Single source of truth for all artisan app Firebase services.
- * Uses the SAME config and DEFAULT app name as the shared DI container
- * (shared/js/backend/providers/firebase/firebaseConfig.js) so that auth
- * sessions written on the login page are readable on every other page.
+ * The artisan app's Firebase handles — now DELEGATED to the one shared
+ * initialisation rather than built alongside it.
  *
- * Usage in any artisan page:
- *   import { auth, db, storage } from './js/firebase-artisan.js';
+ * WHY THIS CHANGED
+ * ────────────────
+ * This module used to call getAuth()/getFirestore()/getStorage() itself. Those
+ * are cached per app, so it got the same objects the customer app uses — but
+ * only ever the *objects*. Everything firebaseConfig.js DOES around them at
+ * import time was skipped on any page that never imported it, and no artisan
+ * page did:
+ *
+ *   • App Check is initialised there, deliberately BEFORE any product requests
+ *     credentials. Creating auth/db first inverts that documented ordering.
+ *   • Emulator wiring lives there. Because this module bypassed it, the entire
+ *     artisan app kept talking to the REAL project during local emulator runs —
+ *     artisan sign-in returned HTTP 400 while the customer app worked fine, and
+ *     the page reported it as "Incorrect email or password", which was a lie.
+ *   • Auth persistence is configured there with an indexedDB→localStorage
+ *     fallback; here it was localStorage only.
+ *
+ * Two initialisation paths for one Firebase app is the same split-brain the
+ * booking rebuild removed from routing, transitions and Cloud Functions
+ * instances. This is that fix applied to the foundation.
+ *
+ * The exported names are unchanged, so every existing
+ * `import { auth, db } from './js/firebase-artisan.js'` keeps working.
  */
 
-import { initializeApp, getApps, getApp }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getAuth, setPersistence, browserLocalPersistence }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-import { getFirestore }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { getStorage }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
-import { FIREBASE_CONFIG as ARTISAN_CONFIG, FIRESTORE_DB_ID } from '../../shared/js/config/appConfig.js';
+import {
+  firebaseApp,
+  firebaseAuth,
+  firebaseDb,
+  firebaseStorage,
+  firestoreDatabaseId,
+  usingEmulators,
+} from '../../shared/js/backend/providers/firebase/firebaseConfig.js';
 
-export const ARTISAN_DB_ID = FIRESTORE_DB_ID;
+export const ARTISAN_DB_ID = firestoreDatabaseId;
 
-/* ── Singleton — reuse [DEFAULT] app if DI container already created it ── */
-const artisanApp = getApps().length > 0 ? getApp() : initializeApp(ARTISAN_CONFIG);
+export const app     = firebaseApp;
+export const auth    = firebaseAuth;
+export const db      = firebaseDb;
+export const storage = firebaseStorage;
 
-export const auth    = getAuth(artisanApp);
-export const db      = getFirestore(artisanApp, ARTISAN_DB_ID);
-export const storage = getStorage(artisanApp);
-
-/* ── Persist sessions across page reloads / browser restarts ─────────── */
-setPersistence(auth, browserLocalPersistence).catch(() => {});
+/** Exposed so artisan screens can tell a local emulator run from the real thing. */
+export { usingEmulators };

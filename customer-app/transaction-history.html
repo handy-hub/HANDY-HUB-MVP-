@@ -545,7 +545,10 @@
     };
 
     function statusClass(s) {
-        return { successful: 'successful', paid: 'paid', credited: 'credited', pending: 'pending', failed: 'failed' }[s] || 'successful';
+        // An unrecognised status previously fell through to 'successful', so any
+        // state this client does not know about was painted green. Unknown is its
+        // own state and must look like one.
+        return { successful: 'successful', paid: 'paid', credited: 'credited', pending: 'pending', failed: 'failed' }[s] || 'unknown';
     }
 
     function buildTxnHTML(t) {
@@ -570,7 +573,7 @@
             </div>
             <div class="txn-amount-wrap">
               <p class="txn-amount ${amtClass}">${sign}GHS ${fmtGHC(d.amount)}</p>
-              <p class="txn-status ${statusClass(d.status)}">${d.status ? esc(d.status.charAt(0).toUpperCase() + d.status.slice(1)) : 'Done'}</p>
+              <p class="txn-status ${statusClass(d.status)}">${d.status ? esc(d.status.charAt(0).toUpperCase() + d.status.slice(1)) : 'Status unknown'}</p>
             </div>
             <svg class="txn-chevron" width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>`;
@@ -627,7 +630,12 @@
           <button class="receipt-done" type="button">Done</button>`;
 
         content.querySelector('.receipt-description').textContent = d.description || 'Transaction';
-        content.querySelector('.receipt-amount').textContent = `${isCredit ? '+' : '-'} GHS ${fmtGHC(d.amount || 0)}`;
+        // An unknown amount renders as unresolved. "GHS 0.00" on a receipt is a
+        // false financial statement, not a neutral placeholder.
+        const _amt = (d.amount === null || d.amount === undefined || d.amount === '' || isNaN(Number(d.amount)))
+            ? null : Number(d.amount);
+        content.querySelector('.receipt-amount').textContent =
+            _amt === null ? 'Amount unavailable' : `${isCredit ? '+' : '-'} GHS ${fmtGHC(_amt)}`;
         const statusEl = content.querySelector('.receipt-status');
         statusEl.textContent = status;
         statusEl.className = `receipt-status ${statusClass(d.status)}`;
@@ -675,7 +683,9 @@
                 new Date(d.createdAt).toLocaleDateString('en-GB'),
                 d.type || '',
                 (d.description || '').replace(/"/g, '""'),
-                Number(d.amount || 0).toFixed(2),
+                // Blank, not 0.00 — an exported ledger must not invent a figure.
+                (d.amount === null || d.amount === undefined || isNaN(Number(d.amount)))
+                    ? '' : Number(d.amount).toFixed(2),
                 d.status || '',
                 d.ref    || '',
                 d.phone  || ''

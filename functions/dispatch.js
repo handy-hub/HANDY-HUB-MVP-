@@ -179,7 +179,10 @@ async function findEligibleArtisans(booking, excludeIds) {
 // ── Core dispatch round (transaction-safe) ────────────────────────────────────
 async function dispatchRound(bookingId) {
     const bookingRef = db().collection('bookings').doc(bookingId);
-    let chosen, isEmergency, round, customerId, serviceType;
+    // Hoisted out of the transaction so the post-transaction notification can
+    // use them. customerFirstName lets the artisan tell one simultaneous
+    // request from another.
+    let chosen, isEmergency, round, customerId, serviceType, customerFirstName;
 
     const result = await db().runTransaction(async (txn) => {
         const snap    = await txn.get(bookingRef);
@@ -200,6 +203,7 @@ async function dispatchRound(bookingId) {
         isEmergency  = booking.bookingType === 'emergency' || booking.type === 'emergency';
         customerId   = booking.customerId;
         serviceType  = booking.serviceType || booking.service || 'Service';
+        customerFirstName = booking.customerFirstName || null;
         const timeout = isEmergency ? EMERGENCY_TIMEOUT_S : STANDARD_TIMEOUT_S;
 
         const alreadyTried = booking.artisanCandidates || [];
@@ -260,13 +264,22 @@ async function dispatchRound(bookingId) {
 
     // Post-transaction: send notification (outside txn to keep txn small)
     if (result.dispatched && chosen) {
-        const distText   = chosen._distKm != null ? ` · ${chosen._distKm.toFixed(1)} km` : '';
+        // Distance wording. A real sub-100 m match is described rather than
+        // printed as "0.0 km", which reads as "unknown" even when it is true.
+        // A null distance is omitted — proximity is never fabricated.
+        const distText = chosen._distKm == null ? ''
+            : chosen._distKm < 0.1 ? ' · under 100 m away'
+            : ` · ${chosen._distKm.toFixed(1)} km away`;
         const timeoutTxt = isEmergency ? 'about 1 minute' : '3 hours';
+
+        // Name the customer so the artisan can tell one simultaneous request
+        // from another. First name only — the same field the job card shows.
+        const who = customerFirstName ? ` from ${String(customerFirstName).slice(0, 40)}` : '';
 
         await sendArtisanNotification(chosen.id, {
             type:      'Bookings',
             title:     isEmergency ? 'Emergency Job Request' : 'New Booking Request',
-            message:   `${serviceType} request${distText}. You have ${timeoutTxt} to respond.`,
+            message:   `${serviceType} request${who}${distText}. You have ${timeoutTxt} to respond.`,
             actionUrl: 'dashboard.html',
             metadata:  {
                 bookingId,
@@ -301,6 +314,37 @@ const onBookingCreated = onDocumentCreated(
     async (event) => {
         const bookingId = event.params.bookingId;
         const data      = event.data.data();
+
+        // ── Make `track` explicit, server-side, on every booking ──────────────
+        //
+        // The lifecycle resolver keys off `track`, and when it is absent a
+        // booking falls through to the WORK phase — telling a customer the job
+        // is underway before anyone has visited. Downstream code was inferring
+        // the track from symptoms (which statuses had appeared) to paper over it.
+        //
+        // The client CANNOT write this field: bookingHasNoSystemFields() in
+        // firestore.rules rejects `track` on any client create, which is what
+        // stops a fabricated inspection booking. So the stamp belongs here, on
+        // the trigger that already runs for every new booking.
+        //
+        // 'emergency' is NOT a separate commercial lifecycle. It holds escrow
+        // through the same holdBookingFunds path as everything else; it simply
+        // skips the inspection/callout/quote sub-cycle because the customer has
+        // already chosen an artisan and an amount. It is the work track without
+        // a preceding inspection — and naming it explicitly is what keeps the
+        // resolver from having to guess.
+        if (!data.track) {
+            const isEmergency = data.type === 'emergency' || data.bookingType === 'emergency'
+                             || data.isEmergency === true;
+            try {
+                await db().collection('bookings').doc(bookingId).update({
+                    track:     isEmergency ? 'emergency' : 'standard',
+                    updatedAt: new Date().toISOString(),
+                });
+            } catch (err) {
+                console.error(`[dispatch] Could not stamp track on ${bookingId}: ${err?.message}`);
+            }
+        }
 
         if ((data.status || '').toLowerCase() !== 'pending') return;
 

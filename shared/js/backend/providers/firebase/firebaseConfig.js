@@ -1,14 +1,16 @@
 import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, setPersistence, browserLocalPersistence, indexedDBLocalPersistence }
+import { getAuth, setPersistence, browserLocalPersistence, indexedDBLocalPersistence, connectAuthEmulator }
   from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { getFunctions, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
 import { getMessaging } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 import {
   APP_CHECK_SITE_KEY,
   FIREBASE_CONFIG as firebaseConfig,
   FIRESTORE_DB_ID,
+  FUNCTIONS_REGION,
 } from "../../../config/appConfig.js";
 
 export const firestoreDatabaseId = FIRESTORE_DB_ID;
@@ -26,13 +28,48 @@ function appCheckDebugWasExplicitlyEnabled() {
 
 const localDebugEnabled = appCheckDebugWasExplicitlyEnabled();
 
+/**
+ * LOCAL EMULATOR MODE — opt-in, localhost-only, fail-closed.
+ *
+ * App Check refuses Firestore from localhost against the real project, which
+ * meant the booking lifecycle could not be exercised end-to-end anywhere except
+ * production. That is the precise condition CLAUDE.md §5 warns about: this
+ * project has repeatedly shipped green commands over broken systems because
+ * nothing could actually be run before deploying.
+ *
+ * Pointing the apps at the Firestore + Auth emulators removes App Check from
+ * the path entirely and gives a real, seedable, throwaway backend.
+ *
+ * Two independent conditions, both required — same shape as the App Check debug
+ * gate above, so a stray flag can never reach a real user:
+ *   1. hostname is localhost or 127.0.0.1
+ *   2. explicit opt-in: ?emulator=1 in the URL, or localStorage hh_use_emulator="1"
+ *
+ * The URL form sets the localStorage flag so it survives in-app navigation
+ * (this is a multi-page app — every link is a fresh document load).
+ */
+function emulatorModeEnabled() {
+  if (typeof location === "undefined") return false;
+  if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return false;
+  try {
+    const q = new URLSearchParams(location.search).get("emulator");
+    if (q === "1") { localStorage.setItem("hh_use_emulator", "1"); return true; }
+    if (q === "0") { localStorage.removeItem("hh_use_emulator"); return false; }
+    return localStorage.getItem("hh_use_emulator") === "1";
+  } catch { return false; }
+}
+
+export const usingEmulators = emulatorModeEnabled();
+
 // App Check must be created before any Firebase product requests credentials.
 // Debug mode is opt-in, localhost-only, and generates its token at runtime.
 if (APP_CHECK_SITE_KEY && localDebugEnabled) {
   self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 }
 
-export const firebaseAppCheck = APP_CHECK_SITE_KEY
+// The emulators do not enforce App Check, and initialising the reCAPTCHA
+// provider against a local origin only produces noise.
+export const firebaseAppCheck = (APP_CHECK_SITE_KEY && !usingEmulators)
   ? initializeAppCheck(firebaseApp, {
       provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
       isTokenAutoRefreshEnabled: true,
@@ -47,6 +84,14 @@ export const firebaseReady = Promise.resolve({
 
 // Firebase products are instantiated only after App Check.
 export const firebaseAuth = getAuth(firebaseApp);
+
+if (usingEmulators) {
+  try {
+    connectAuthEmulator(firebaseAuth, "http://127.0.0.1:9099", { disableWarnings: true });
+  } catch (e) {
+    console.warn("[firebase:emulator] auth connect failed:", e?.message || e);
+  }
+}
 
 // Persist the session across app restarts, EXPLICITLY.
 //
@@ -63,7 +108,40 @@ setPersistence(firebaseAuth, indexedDBLocalPersistence)
   .catch(() => setPersistence(firebaseAuth, browserLocalPersistence))
   .catch((err) => console.warn("[firebase] persistence not set:", err?.message || err));
 export const firebaseDb = getFirestore(firebaseApp, firestoreDatabaseId);
+
+if (usingEmulators) {
+  try {
+    // The named database is preserved — the emulator serves arbitrary database
+    // ids, and using the real one keeps trigger/config parity with production.
+    connectFirestoreEmulator(firebaseDb, "127.0.0.1", 8080);
+    console.warn("[firebase:emulator] ACTIVE — Firestore 8080, Auth 9099, db=" + firestoreDatabaseId +
+                 ". No production data is being touched.");
+  } catch (e) {
+    console.warn("[firebase:emulator] firestore connect failed:", e?.message || e);
+  }
+}
 export const firebaseStorage = getStorage(firebaseApp);
+
+/**
+ * THE Cloud Functions instance.
+ *
+ * Twelve modules each built their own with getFunctions(firebaseApp, REGION).
+ * Twelve instances is not a correctness bug in production — they resolve to the
+ * same endpoint — but it means there are twelve places that must each be told
+ * about the emulator, and any one of them missed silently calls PRODUCTION from
+ * a local test. That is precisely the kind of split-brain the booking rebuild
+ * has been removing everywhere else, so it gets the same treatment: one
+ * instance, connected once, imported by everyone.
+ */
+export const firebaseFunctions = getFunctions(firebaseApp, FUNCTIONS_REGION);
+
+if (usingEmulators) {
+  try {
+    connectFunctionsEmulator(firebaseFunctions, "127.0.0.1", 5001);
+  } catch (e) {
+    console.warn("[firebase:emulator] functions connect failed:", e?.message || e);
+  }
+}
 
 export let firebaseMessaging = null;
 try {
