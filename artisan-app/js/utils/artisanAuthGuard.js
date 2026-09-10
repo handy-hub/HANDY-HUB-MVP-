@@ -40,7 +40,8 @@ const SESSION_KEY      = 'hh_artisan_session';
 // Durable 'this device has signed in before' marker (localStorage, survives
 // tab close). Used ONLY to decide wait-vs-redirect on a slow auth restore.
 const LAST_UID_KEY     = 'hh_artisan_last_uid';
-const GUARD_TIMEOUT_MS = 6000; // 6s before fallback redirect to login
+// A MESSAGE timer, not an auth decision. It can never redirect or sign out.
+const GUARD_NOTICE_MS = 6000;
 const OVERLAY_ID       = 'artisan-auth-overlay';
 
 // ── Overlay CSS (injected once) ───────────────────────────────────────────────
@@ -149,6 +150,22 @@ const SCREENS = {
       <button class="ag-btn ag-btn-secondary" onclick="_agSignOut()">Sign Out</button>
     </div>`,
 
+  // A NETWORK failure, kept strictly separate from `unauthorized`. It offers a
+  // retry and NEVER a sign-out: the session is valid, and destroying it is the
+  // opposite of what this artisan needs.
+  offline: () => `
+    <div class="ag-center">
+      <div class="ag-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <path d="M1 1l22 22M8.5 16.5a5 5 0 0 1 7 0M5 12.5a10 10 0 0 1 4-2.4M2 8.8a15 15 0 0 1 5-3M22 8.8a15 15 0 0 0-9-3.6" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="20" r="1" fill="#9CA3AF"/>
+        </svg>
+      </div>
+      <p class="ag-title">Can't reach the server</p>
+      <p class="ag-sub">You're still signed in. We couldn't load your profile because the connection dropped.</p>
+      <button class="ag-btn" onclick="_agRetry()">Try again</button>
+    </div>`,
+
   unauthorized: () => `
     <div class="ag-center">
       <div class="ag-icon unauth">
@@ -240,6 +257,16 @@ export function consumeReturnUrl() {
 }
 
 // ── Exposed helpers (called from overlay buttons) ─────────────────────────────
+/**
+ * Retry after a connection failure. Deliberately a plain reload: it re-runs the
+ * guard from the top with the session still intact. It does NOT sign out, and
+ * it does NOT clear any auth state — the whole point of the offline overlay is
+ * that nothing about the session was wrong.
+ */
+window._agRetry = function () {
+  try { window.location.reload(); } catch (_) {}
+};
+
 window._agSignOut = async function () {
   // Dev mode: there is no real Firebase user to sign out. End the mock session
   // and return to login. (Guarded so it only ever short-circuits in dev.)
@@ -310,20 +337,13 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
     // On a device that has signed in before we keep waiting and say so. Only a
     // device with no prior session falls back to login, because there is then
     // genuinely nothing to restore.
-    const hadSession = (() => {
-      try { return Boolean(localStorage.getItem('hh_artisan_last_uid')
-                        || localStorage.getItem('hh_last_session_uid')); }
-      catch { return false; }
-    })();
-
-    const timeout = setTimeout(() => {
-      if (hadSession) {
-        showOverlay('loading');
-      } else {
-        saveReturnUrl();
-        window.location.replace(LOGIN_URL);
-      }
-    }, GUARD_TIMEOUT_MS);
+    // The previous version branched on a localStorage marker to decide whether
+    // to wait or redirect. That marker is only written AFTER a successful
+    // authenticated session on this device, so it is necessarily absent on a
+    // NEW DEVICE — and a legitimately signed-in artisan was redirected to login
+    // on their first slow page load. Elapsed time is not evidence about
+    // authentication; only Firebase resolving a null user is.
+    const timeout = setTimeout(() => showOverlay('loading'), GUARD_NOTICE_MS);
 
     const { services: { authService, databaseService } } = getAppContainer();
 
@@ -332,6 +352,9 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
         clearTimeout(timeout);
 
         // ── Step 1: authentication ────────────────────────────────
+        // Reached only once Firebase has RESOLVED its initial state (restored
+        // from local persistence, no network required), so a null user here is
+        // a real answer rather than a slow one.
         if (!user) {
           saveReturnUrl();
           window.location.replace(LOGIN_URL);
@@ -343,8 +366,11 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
         try {
           artisanSnap = await databaseService.getDocument('artisans', user.uid);
         } catch (err) {
-          console.warn('[artisanGuard] Firestore read error:', err.message);
-          showOverlay('unauthorized');
+          // A read failure is a NETWORK condition, not an authorization one.
+          // Showing 'Access Denied' here told a valid artisan they were not an
+          // artisan, and offered signing out as the remedy.
+          console.warn('[artisanGuard] Firestore read error (session kept):', err.message);
+          showOverlay('offline');
           return;
         }
 

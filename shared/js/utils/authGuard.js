@@ -36,9 +36,14 @@ const LOGIN_PAGE           = 'login.html';
 // Absolute path to the artisan app so a mis-routed artisan can be bounced to
 // the application they actually belong to.
 const ARTISAN_APP_URL      = '/artisan-app/login.html';
-// 6 s allows Firebase to initialise on Ghana mobile networks (2G/3G cold-start).
-// 3 s was too aggressive and caused false logout redirects on slow connections.
-const AUTH_GUARD_TIMEOUT_MS = 6000;
+// How long before we TELL the user things are slow. This is a message timer and
+// nothing else — it can never redirect, sign out, or change auth state. The
+// value was previously raised 3 s → 6 s chasing false logouts; the threshold was
+// never the problem, the redirect on expiry was.
+const AUTH_NOTICE_MS = 6000;
+// Far later, offer a MANUAL way out so a genuinely broken SDK does not trap the
+// user on a spinner. Still never automatic — the user chooses.
+const AUTH_ESCAPE_MS = 30000;
 const DENY_OVERLAY_ID       = 'hh-role-deny-overlay';
 
 /**
@@ -82,11 +87,40 @@ function showAuthWaiting() {
       'padding:10px 16px', 'font:500 13.5px system-ui,-apple-system,sans-serif',
       'box-shadow:0 8px 24px -8px rgba(0,0,0,.45)', 'text-align:center',
     ].join(';');
-    el.textContent = 'Reconnecting — your session is safe.';
+    // Say what is actually true. "Session expired" would be a lie here: the
+    // session is intact and only the network or the SDK is slow.
+    const offline = (typeof navigator !== 'undefined' && navigator.onLine === false);
+    el.textContent = offline
+      ? "You're offline. Your session is safe — we'll reconnect automatically."
+      : 'Connection is slow. Your session is still active.';
     document.body.appendChild(el);
   } catch { /* pre-body or blocked DOM — non-fatal, the guard still resolves */ }
 }
 
+/**
+ * A MANUAL way out, offered only after a very long wait.
+ *
+ * If the SDK genuinely failed to load, waiting forever is its own kind of bug —
+ * the user is stuck on a page that will never resolve. This offers a link they
+ * can choose to take. It is deliberately not automatic and does not sign anyone
+ * out: a valid persisted session survives, and if Firebase resolves while this
+ * is on screen the guard proceeds normally and removes it.
+ */
+function showAuthEscape() {
+  const el = document.getElementById(AUTH_WAIT_ID);
+  if (!el || el.dataset.escape === '1') return;
+  try {
+    el.dataset.escape = '1';
+    el.textContent = 'Still connecting. ';
+    const a = document.createElement('a');
+    a.href = resolveLoginUrl();
+    a.textContent = 'Sign in again';
+    a.style.cssText = 'color:#FFB4A8;text-decoration:underline;font-weight:600';
+    // saveReturnUrl so choosing this still returns them where they were going.
+    a.addEventListener('click', () => { try { saveReturnUrl(); } catch (_) {} });
+    el.appendChild(a);
+  } catch { /* non-fatal */ }
+}
 function hideAuthWaiting() {
   try { document.getElementById(AUTH_WAIT_ID)?.remove(); } catch { /* non-fatal */ }
 }
@@ -200,30 +234,33 @@ export async function requireAuth() {
     //
     // The only signal that legitimately ends a session is Firebase itself
     // reporting a null user, which is handled below.
-    const hadSession = (() => {
-      try { return Boolean(localStorage.getItem('hh_last_session_uid')); }
-      catch { return false; }
-    })();
-
-    // Reassure rather than redirect. On a device that has signed in before we
-    // wait indefinitely; on a device with no prior session we still fall back to
-    // login, because there is genuinely nothing to restore.
-    const timeout = setTimeout(() => {
-      if (hadSession) {
-        showAuthWaiting();
-      } else {
-        redirectToLogin();
-      }
-    }, AUTH_GUARD_TIMEOUT_MS);
+    // NO REDIRECT ON A TIMER, EVER.
+    //
+    // This previously branched on a localStorage marker to decide whether a slow
+    // resolve meant "still restoring" (wait) or "signed out" (redirect). The
+    // marker is written by HH_State.setUser() only AFTER auth resolves and a
+    // page initialises, so it is necessarily absent on a device that has not yet
+    // completed that cycle — i.e. exactly on a NEW DEVICE, where a legitimately
+    // signed-in customer was then bounced back to login.
+    //
+    // Elapsed time is not evidence about authentication. These timers only
+    // change what the user is told.
+    const notice = setTimeout(showAuthWaiting, AUTH_NOTICE_MS);
+    const escape = setTimeout(showAuthEscape, AUTH_ESCAPE_MS);
+    const clearTimers = () => { clearTimeout(notice); clearTimeout(escape); };
 
     const container = getAppContainer();
 
     container.services.authService.waitForUser()
       .then(async (user) => {
-        clearTimeout(timeout);
+        clearTimers();
         hideAuthWaiting();
 
         // ── Step 1: authentication ────────────────────────────────
+        // Reached only once Firebase has RESOLVED its initial state, which it
+        // does from local persistence without the network. A null user here is
+        // therefore a real answer, not a slow one — the only condition that may
+        // send an authenticated-looking visitor to login.
         if (!user) {
           redirectToLogin();
           return;

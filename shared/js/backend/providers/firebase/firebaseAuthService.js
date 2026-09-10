@@ -14,7 +14,7 @@ import {
   signInWithRedirect,
   signOut,
   updatePassword
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+} from "../../../../vendor/firebase/firebase-auth.js";
 import { firebaseAuth } from "./firebaseConfig.js";
 
 function buildSocialProvider(providerName) {
@@ -105,7 +105,22 @@ export function createFirebaseAuthService(authInstance = firebaseAuth) {
       return onAuthStateChanged(authInstance, callback);
     },
 
+    /**
+     * Resolve the INITIAL auth state, definitively.
+     *
+     * authStateReady() settles once the SDK has finished restoring from local
+     * persistence. That restore does NOT require the network, so its resolution
+     * is authoritative: currentUser is either a genuinely restored session or
+     * genuinely null. Callers may therefore treat a null result as "signed out"
+     * — and must never infer that from elapsed time instead.
+     *
+     * onAuthStateChanged is retained as a fallback for SDKs without
+     * authStateReady; its first emission carries the same guarantee.
+     */
     waitForUser() {
+      if (typeof authInstance.authStateReady === 'function') {
+        return authInstance.authStateReady().then(() => authInstance.currentUser || null);
+      }
       return new Promise((resolve) => {
         const stop = onAuthStateChanged(authInstance, (user) => {
           stop();
