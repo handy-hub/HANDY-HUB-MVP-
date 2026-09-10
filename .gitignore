@@ -10,3 +10,8 @@ build-artisan-app/
 # per-environment function secrets
 functions/.env.*
 .env.*
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/public/

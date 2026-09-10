@@ -369,6 +369,8 @@ body {
     .gs-header { padding-top: 56px; }
 }
 </style>
+  <script src="js/navContext.js"></script>
+  <script src="js/navBridge.js"></script>
 </head>
 
 <body>
@@ -521,11 +523,26 @@ if ('serviceWorker' in navigator) {
     // In production: apps are separate Firebase Hosting sites — relative paths
     // would escape the build dir and 404. Detect production by hostname.
     function getArtisanSignupUrl() {
+        // A packaged app serves from localhost, so a hostname test alone would
+        // pick the relative branch below — and the Capacitor bundle contains no
+        // artisan-app/ directory, so that path cannot resolve. Detect the native
+        // shell explicitly (mirrors shared/js/config/runtimeEnv.js, inlined here
+        // because this is a classic script and cannot import).
+        var native = false;
+        try {
+            native = !!window.Capacitor || window.location.protocol === 'capacitor:';
+        } catch (_) {}
+
         var hostname = window.location.hostname;
-        var isProduction = hostname.includes('web.app') || hostname.includes('firebaseapp.com') || hostname.includes('handyhub');
+        var isProduction = native
+            || hostname.includes('web.app')
+            || hostname.includes('firebaseapp.com')
+            || hostname.includes('handyhub');
+
         if (isProduction) {
             return 'https://lamax-artisan.web.app/artisan-app/signup.html';
         }
+        // Local developer checkout only, where artisan-app/ IS a sibling.
         return '../artisan-app/signup.html';
     }
 
