@@ -24,6 +24,21 @@ const STATE_COPY = {
         live: 'Waiting for payment authorization on your phone.',
         action: 'Cancel Top Up',
     },
+    // Paystack answered the charge with 'send_otp'. The network expects the code
+    // to be submitted BACK to Paystack through /charge/submit_otp — it is not a
+    // prompt the customer can answer on their handset. Before this state existed
+    // the sheet told them to "enter it on your phone", there was nowhere to do
+    // so, and the charge sat until it timed out.
+    //
+    // The wording deliberately names the NETWORK as the sender. This code is not
+    // a HandyHub credential and must never look like one: the HandyHub Security
+    // PIN protects the wallet, this authorises a single payment at the provider.
+    otp: {
+        title: 'Enter Your Mobile Money Code',
+        message: 'Your mobile money provider sent a code to your phone to authorise this payment. This is NOT your HandyHub PIN.',
+        live: 'Enter the authorization code sent by your mobile money provider.',
+        action: '',
+    },
     approved: {
         title: 'Authorization Received',
         message: 'Your approval was received. We are confirming your top-up.',
@@ -96,6 +111,15 @@ function ensureStyles() {
 .hh-fin-auth__action:active { background: rgba(var(--ui-primary-rgb,115,2,1),.05); }
 .hh-fin-auth__action:focus-visible { outline: 3px solid rgba(var(--ui-primary-rgb,115,2,1),.25); outline-offset: 2px; }
 .hh-fin-auth__action[hidden] { display: none; }
+.hh-fin-auth__otp { margin-top: var(--ui-5,20px); text-align: left; }
+.hh-fin-auth__otp[hidden] { display: none; }
+.hh-fin-auth__otp-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--ui-muted,#6A5D5B); margin-bottom: 8px; }
+.hh-fin-auth__otp-input { width: 100%; height: 54px; border: 1.5px solid var(--ui-border,#E2E5EA); border-radius: var(--ui-radius-sm,10px); background: var(--ui-surface-2,#F7F3F2); padding: 0 16px; font-family: inherit; font-size: 22px; font-weight: 700; letter-spacing: .3em; text-align: center; color: inherit; box-sizing: border-box; }
+.hh-fin-auth__otp-input:focus { outline: none; border-color: var(--ui-primary,#730201); background: #fff; }
+.hh-fin-auth__otp-error { margin: 8px 0 0; font-size: 12.5px; font-weight: 600; color: var(--ui-danger,#C0392B); }
+.hh-fin-auth__otp-error[hidden] { display: none; }
+.hh-fin-auth__otp-submit { width: 100%; min-height: var(--ui-btn-h,48px); margin-top: var(--ui-4,16px); border: none; border-radius: var(--ui-radius-sm,10px); background: var(--ui-primary,#730201); color: #fff; font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+.hh-fin-auth__otp-submit:disabled { opacity: .55; cursor: default; }
 .hh-fin-auth__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 [data-theme="dark"] .hh-fin-auth { color: #f0f0f0; }
 [data-theme="dark"] .hh-fin-auth__message, [data-theme="dark"] .hh-fin-auth__item { color: #aaa; }
@@ -112,6 +136,7 @@ const CLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circ
 export async function openFinancialAuthorizationSheet({
     state = 'waiting', amount = '', provider = '', phone = '',
     onCancel = null, onRetry = null, onClose = null,
+    onSubmitOtp = null,   // (code) => Promise — forwards to the server, stores nothing
     sheet = null,   // existing handle to morph — keeps the journey continuous
 } = {}) {
     ensureStyles();
@@ -135,6 +160,14 @@ export async function openFinancialAuthorizationSheet({
         <div class="hh-fin-auth__item">${SIGNAL_SVG}<span>Keep Handy Hub open and stay connected while authorization is pending.</span></div>
         <div class="hh-fin-auth__item">${CLOCK_SVG}<span>This usually takes only a few moments.</span></div>
       </section>
+      <form class="hh-fin-auth__otp" hidden>
+        <label class="hh-fin-auth__otp-label" for="hh-fin-otp-${iid}">Authorization code from your provider</label>
+        <input class="hh-fin-auth__otp-input" id="hh-fin-otp-${iid}" type="text"
+               inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*"
+               maxlength="8" placeholder="000000" aria-describedby="${messageId}">
+        <p class="hh-fin-auth__otp-error" role="alert" hidden></p>
+        <button class="hh-fin-auth__otp-submit" type="submit">Authorise Payment</button>
+      </form>
       <button class="hh-fin-auth__action" type="button"></button>`;
 
     const title = root.querySelector('.hh-fin-auth__title');
@@ -142,6 +175,10 @@ export async function openFinancialAuthorizationSheet({
     const live = root.querySelector('.hh-fin-auth__sr');
     const action = root.querySelector('.hh-fin-auth__action');
     const progress = root.querySelector('.hh-fin-auth__progress');
+    const otpForm   = root.querySelector('.hh-fin-auth__otp');
+    const otpInput  = root.querySelector('.hh-fin-auth__otp-input');
+    const otpError  = root.querySelector('.hh-fin-auth__otp-error');
+    const otpSubmit = root.querySelector('.hh-fin-auth__otp-submit');
     let currentState = '';
     let handle;
 
@@ -155,6 +192,15 @@ export async function openFinancialAuthorizationSheet({
         action.hidden = !copy.action;
         progress.hidden = next !== 'waiting' && next !== 'approved';
         progress.setAttribute('aria-label', copy.live);
+
+        // The code field belongs to exactly one state.
+        otpForm.hidden = next !== 'otp';
+        if (next === 'otp') {
+            otpError.hidden = true;
+            otpSubmit.disabled = false;
+            otpSubmit.textContent = 'Authorise Payment';
+            setTimeout(() => { try { otpInput.focus(); } catch (_) {} }, 80);
+        }
     }
     setState(state);
 
@@ -191,6 +237,33 @@ export async function openFinancialAuthorizationSheet({
             initialFocus: '.hh-fin-auth__action',
         });
     }
+
+    // The OTP never touches this module's state, never reaches Firestore and is
+    // never logged — it is handed straight to the caller, which forwards it to
+    // Paystack through the server and keeps nothing.
+    otpForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = String(otpInput.value || '').replace(/\D/g, '');
+        if (!/^\d{4,8}$/.test(code)) {
+            otpError.textContent = 'Enter the code exactly as your provider sent it.';
+            otpError.hidden = false;
+            return;
+        }
+        if (typeof onSubmitOtp !== 'function') return;
+        otpSubmit.disabled = true;
+        otpSubmit.textContent = 'Authorising…';
+        otpError.hidden = true;
+        try {
+            await onSubmitOtp(code);
+        } catch (err) {
+            otpError.textContent = err?.message || 'That code was not accepted. Please try again.';
+            otpError.hidden = false;
+            otpSubmit.disabled = false;
+            otpSubmit.textContent = 'Authorise Payment';
+        } finally {
+            otpInput.value = '';       // do not leave it sitting in the DOM
+        }
+    });
 
     const api = { ...handle, setState, getState: () => currentState };
     return api;

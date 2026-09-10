@@ -15,6 +15,7 @@ import { setSecurityPin, pinErrorMessage } from '../../../shared/js/services/sec
 import {
     initiateTopupCharge,
     verifyTopupNow,
+    submitTopupOtp,
     topupErrorMessage,
     newIdempotencyKey
 } from '../../../shared/js/services/topupService.js';
@@ -565,6 +566,10 @@ function openAuthorizationView(amount, controls, init) {
 
     let timer    = null;
     let settled  = false;
+    // The reference of the charge actually in flight. Assigned once Paystack
+    // answers; the OTP handler below is defined before that happens and needs a
+    // mutable binding rather than a closure over `init`.
+    let activeReference = null;
 
     openFinancialAuthorizationSheet({
         sheet:    controls.sheet,        // ← morph this shell, don't open a second sheet
@@ -572,6 +577,31 @@ function openAuthorizationView(amount, controls, init) {
         amount:   formatGHC(amount),
         provider: providerLabel,
         phone,
+        // Paystack answered with 'send_otp': the network expects the code to be
+        // POSTed back through /charge/submit_otp. This forwards it to the server
+        // and keeps nothing — the code is not stored, not logged, and never
+        // written to Firestore. It is NOT the HandyHub Security PIN.
+        async onSubmitOtp(code) {
+            if (!activeReference) throw new Error('This payment is no longer active.');
+            const res = await submitTopupOtp({ reference: activeReference, otp: code });
+            const st = String(res?.chargeStatus || 'pending');
+
+            if (st === 'send_otp') {
+                // Paystack asked again — the code was wrong or expired.
+                throw new Error(res?.displayText || 'That code was not accepted. Check it and try again.');
+            }
+            if (st === 'failed') {
+                controls.sheet && controls.sheet.setState('failed');
+                return;
+            }
+            // success | pending | pay_offline — the charge has moved on. The
+            // wallet is still NOT credited here; the webhook and the verify
+            // poller remain the only things that may credit it.
+            controls.sheet && controls.sheet.setState('waiting', {
+                message: res?.displayText
+                    || 'Code accepted. We are confirming your payment with your provider.',
+            });
+        },
         onCancel(api) {
             // Cancelling only closes OUR screen. It cannot cancel a charge that
             // is already with Paystack, so we never claim the payment stopped —
@@ -647,6 +677,8 @@ function openAuthorizationView(amount, controls, init) {
         //
         // Paystack's charge status is a UI hint only — never a credit signal.
         // The subscription above is the sole authority for success.
+        activeReference = init.reference || null;
+
         if (init.chargeStatus === 'failed') {
             settled = true;
             stopIntentWatch();
@@ -659,10 +691,12 @@ function openAuthorizationView(amount, controls, init) {
         if (init.displayText) api.setState('waiting', { hint: init.displayText });
 
         if (init.chargeStatus === 'send_otp') {
-            api.setState('waiting', {
-                hint: init.displayText
-                    || 'Your network sent you a code. Enter it on your phone to approve this payment.',
-            });
+            // This used to tell the customer to "enter it on your phone". For
+            // this status there is nowhere on the phone to enter it — Paystack
+            // is waiting for HandyHub to submit the code through
+            // /charge/submit_otp. The charge simply sat there until it timed
+            // out, which is what made a brand-new MoMo number look broken.
+            api.setState('otp', init.displayText ? { message: init.displayText } : {});
         }
 
         // ── Active confirmation ──────────────────────────────────────────────

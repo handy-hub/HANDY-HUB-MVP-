@@ -18,11 +18,11 @@ import { firebaseFunctions } from '../backend/providers/firebase/firebaseConfig.
  */
 
 import { getFunctions, httpsCallable }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+    from '../../vendor/firebase/firebase-functions.js';
 import { getApp }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    from '../../vendor/firebase/firebase-app.js';
 import { getAuth, signInWithCustomToken }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+    from '../../vendor/firebase/firebase-auth.js';
 import { showToast }
     from '../components/toast.js';
 
