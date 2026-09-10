@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Messages | HandyHub Artisan</title>
+<link rel="stylesheet" href="css/design-system.css">
+<style>
+  /* ── The other half of a conversation that already existed ──────────────────
+     chatRepository, the Firestore rules and the realtime listeners were all
+     built and participant-based from the start — `participants.hasAny(uid)`
+     never cared which side you were on. Only the artisan had no screen, so a
+     customer could write into a thread nobody could read. This is that screen. */
+  body { margin:0; background:var(--ds-bg); font-family:var(--ds-font); color:var(--ds-ink);
+         padding-bottom:calc(var(--ds-9) + env(safe-area-inset-bottom)); }
+  .ms-shell { max-width:var(--ds-shell); margin:0 auto; }
+
+  .ms-top { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-4) var(--ds-gutter) var(--ds-3);
+            position:sticky; top:0; background:var(--ds-bg); z-index:10; }
+  .ms-back { width:40px; height:40px; border:none; border-radius:var(--ds-r-pill); background:var(--ds-surface-2);
+             display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ds-ink); flex-shrink:0; }
+  .ms-title { font:800 20px/1.2 var(--ds-font); letter-spacing:-.4px; flex:1; }
+
+  /* ── Thread list ── */
+  .ms-list { padding:0 var(--ds-gutter); }
+  .ms-row { display:flex; gap:var(--ds-3); align-items:center; padding:var(--ds-3) 0;
+            border-bottom:1px solid var(--ds-line); cursor:pointer; }
+  .ms-av { width:48px; height:48px; border-radius:var(--ds-r-pill); flex-shrink:0; object-fit:cover;
+           background:var(--ds-surface-2); }
+  .ms-av-grad { width:48px; height:48px; border-radius:var(--ds-r-pill); flex-shrink:0;
+                display:flex; align-items:center; justify-content:center; color:#fff;
+                font:800 16px/1 var(--ds-font); }
+  .ms-row-body { flex:1; min-width:0; }
+  .ms-row-name { font:700 15px/1.3 var(--ds-font); color:var(--ds-ink); }
+  .ms-row-last { font:500 13px/1.4 var(--ds-font); color:var(--ds-ink-3);
+                 overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px; }
+  .ms-row-meta { display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0; }
+  .ms-row-time { font:500 11px/1 var(--ds-font); color:var(--ds-ink-4); }
+  .ms-badge { min-width:20px; height:20px; border-radius:var(--ds-r-pill); background:var(--ds-brand-500);
+              color:#fff; font:800 11px/20px var(--ds-font); text-align:center; padding:0 6px; }
+
+  /* ── Chat view ── */
+  .ms-chat { position:fixed; inset:0; background:var(--ds-bg); display:none; flex-direction:column;
+             max-width:var(--ds-shell); margin:0 auto; }
+  .ms-chat.open { display:flex; }
+  .ms-chat-head { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-4) var(--ds-gutter);
+                  border-bottom:1px solid var(--ds-line); background:var(--ds-surface); }
+  .ms-chat-name { font:700 15px/1.2 var(--ds-font); }
+  .ms-chat-sub { font:500 12px/1.3 var(--ds-font); color:var(--ds-ink-3); margin-top:2px; }
+  .ms-job-chip { display:inline-flex; align-items:center; gap:6px; margin-left:auto; padding:5px 10px;
+                 border-radius:var(--ds-r-pill); background:var(--ds-surface-2); border:1px solid var(--ds-line);
+                 font:700 11.5px/1 var(--ds-font); color:var(--ds-brand-600); text-decoration:none;
+                 white-space:nowrap; max-width:44vw; overflow:hidden; text-overflow:ellipsis; }
+  .ms-job-chip[hidden] { display:none; }
+
+  .ms-msgs { flex:1; overflow-y:auto; padding:var(--ds-4) var(--ds-gutter); display:flex;
+             flex-direction:column; gap:var(--ds-2); }
+  .ms-bubble { max-width:76%; padding:10px 14px; border-radius:16px; font:500 14.5px/1.45 var(--ds-font);
+               word-wrap:break-word; }
+  .ms-bubble.them { align-self:flex-start; background:var(--ds-surface-2); color:var(--ds-ink);
+                    border-bottom-left-radius:5px; }
+  .ms-bubble.me { align-self:flex-end; background:var(--ds-brand-500); color:#fff;
+                  border-bottom-right-radius:5px; }
+  .ms-bubble-time { display:block; font:500 10.5px/1 var(--ds-font); opacity:.65; margin-top:5px; }
+
+  .ms-compose { display:flex; gap:var(--ds-2); padding:var(--ds-3) var(--ds-gutter);
+                padding-bottom:calc(var(--ds-3) + env(safe-area-inset-bottom));
+                border-top:1px solid var(--ds-line); background:var(--ds-surface); align-items:flex-end; }
+  .ms-input { flex:1; min-height:44px; max-height:120px; border:1.5px solid transparent; border-radius:22px;
+              padding:11px 16px; font:500 14.5px/1.4 var(--ds-font); background:var(--ds-surface-2);
+              color:var(--ds-ink); resize:none; outline:none; box-sizing:border-box; }
+  .ms-input:focus { background:var(--ds-surface); border-color:var(--ds-brand-500); }
+  .ms-send { width:44px; height:44px; border:none; border-radius:var(--ds-r-pill); background:var(--ds-brand-500);
+             color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .ms-send:disabled { opacity:.5; cursor:default; }
+
+  .ms-state { text-align:center; padding:var(--ds-9) var(--ds-gutter); }
+  .ms-state h2 { font:800 17px/1.3 var(--ds-font); margin:0 0 var(--ds-2); }
+  .ms-state p  { font:500 14px/1.55 var(--ds-font); color:var(--ds-ink-2); margin:0; }
+  .ms-skel { height:68px; border-radius:var(--ds-r-card); background:var(--ds-surface-2);
+             margin-bottom:var(--ds-2); animation:mspulse 1.4s ease-in-out infinite; }
+  @keyframes mspulse { 0%,100%{opacity:1} 50%{opacity:.55} }
+</style>
+</head>
+<body>
+
+<div class="ms-shell">
+  <div class="ms-top">
+    <button class="ms-back" id="ms-back" aria-label="Back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="ms-title">Messages</span>
+  </div>
+  <div class="ms-list" id="ms-list">
+    <div class="ms-skel"></div><div class="ms-skel"></div><div class="ms-skel"></div>
+  </div>
+</div>
+
+<div class="ms-chat" id="ms-chat">
+  <div class="ms-chat-head">
+    <button class="ms-back" id="ms-chat-back" aria-label="Back to messages">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div>
+      <div class="ms-chat-name" id="ms-chat-name">Customer</div>
+      <div class="ms-chat-sub" id="ms-chat-sub"></div>
+    </div>
+    <a class="ms-job-chip" id="ms-job-chip" href="#" hidden></a>
+  </div>
+  <div class="ms-msgs" id="ms-msgs"></div>
+  <div class="ms-compose">
+    <textarea class="ms-input" id="ms-input" rows="1" placeholder="Message the customer…" maxlength="1000"></textarea>
+    <button class="ms-send" id="ms-send" aria-label="Send">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</div>
+
+<script type="module">
+import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+import { getAppContainer }    from '../shared/js/app/container.js';
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+// Booking context comes from the URL, exactly as it does on the customer side.
+// One thread serves every job with this customer, so the thread itself cannot
+// say which job is being discussed — only the link that opened it can.
+const CTX_BOOKING_ID = new URLSearchParams(location.search).get('bookingId') || null;
+const OPEN_WITH      = new URLSearchParams(location.search).get('with') || null;
+// Message notifications deep-link with ?chatId= (see chatRepository's
+// notification writer). Without this, tapping "New message from …" opened the
+// list instead of the conversation it was announcing.
+const OPEN_CHAT_ID   = new URLSearchParams(location.search).get('chatId') || null;
+
+const { repositories, services } = getAppContainer();
+const { chatRepository, customerRepository } = repositories;
+const { databaseService } = services;
+
+let uid = null;
+let CHATS = [];
+let currentChatId = null;
+let currentOtherUid = null;
+let unsubChats = null;
+let unsubMessages = null;
+let bookingCtx = null;
+const NAME_CACHE = new Map();
+
+const gradientFor = (id) => {
+  let h = 0; for (let i = 0; i < String(id).length; i++) h = String(id).charCodeAt(i) + ((h << 5) - h);
+  return `linear-gradient(135deg, hsl(${h % 360},62%,52%), hsl(${(h + 42) % 360},62%,42%))`;
+};
+const initialsOf = (n) => String(n || '?').trim().split(/\s+/).map(w => w[0] || '').join('').slice(0,2).toUpperCase();
+
+function timeOf(iso) {
+  if (!iso) return '';
+  const d = new Date(iso); if (isNaN(d)) return '';
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  return sameDay
+    ? d.toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('en-GH', { day: 'numeric', month: 'short' });
+}
+
+const otherOf = (c) => (c.participants || []).find(p => p !== uid) || null;
+
+/** Who is on the other end. Artisans talk to customers, so that repository is
+ *  tried first — the mirror of the customer screen, which tries artisans first. */
+async function resolveOther(otherUid) {
+  if (!otherUid) return { name: 'Customer', photo: null };
+  if (NAME_CACHE.has(otherUid)) return NAME_CACHE.get(otherUid);
+  let info = { name: 'Customer', photo: null };
+  try {
+    const c = await customerRepository.getById(otherUid);
+    if (c?.exists) {
+      info = { name: c.data.fullName || c.data.name || 'Customer', photo: c.data.profileImage || null };
+    }
+  } catch (_) { /* name is cosmetic — never block the thread on it */ }
+  NAME_CACHE.set(otherUid, info);
+  return info;
+}
+
+async function loadBookingContext() {
+  if (!CTX_BOOKING_ID) return null;
+  try {
+    const s = await databaseService.getDocument('bookings', CTX_BOOKING_ID);
+    return s?.exists ? { id: CTX_BOOKING_ID, ...s.data } : null;
+  } catch (_) { return null; }   // denied or gone — show nothing, invent nothing
+}
+
+function renderJobChip() {
+  const el = $('ms-job-chip');
+  if (!el) return;
+  if (!bookingCtx) { el.hidden = true; return; }
+  const svc = bookingCtx.serviceType || bookingCtx.service || 'this job';
+  el.textContent = svc;
+  el.hidden = false;
+  el.onclick = (e) => { e.preventDefault(); location.href = `job.html?id=${encodeURIComponent(bookingCtx.id)}`; };
+}
+
+/* ── Thread list ─────────────────────────────────────────────────────────── */
+async function renderList() {
+  const el = $('ms-list');
+  if (!CHATS.length) {
+    el.innerHTML = `
+      <div class="ms-state">
+        <h2>No messages yet</h2>
+        <p>When a customer messages you about a job, the conversation appears here.</p>
+      </div>`;
+    return;
+  }
+  const rows = await Promise.all(CHATS.map(async (c) => {
+    const o = otherOf(c.data);
+    const info = await resolveOther(o);
+    const unread = Number((c.data.unreadCount || {})[uid] || 0);
+    const avatar = info.photo
+      ? `<img class="ms-av" src="${esc(info.photo)}" alt="">`
+      : `<div class="ms-av-grad" style="background:${gradientFor(o || c.id)}">${esc(initialsOf(info.name))}</div>`;
+    return `
+      <div class="ms-row" data-chat="${esc(c.id)}">
+        ${avatar}
+        <div class="ms-row-body">
+          <div class="ms-row-name">${esc(info.name)}</div>
+          <div class="ms-row-last">${esc(c.data.lastMessage || 'No messages yet')}</div>
+        </div>
+        <div class="ms-row-meta">
+          <span class="ms-row-time">${esc(timeOf(c.data.lastMessageAt))}</span>
+          ${unread > 0 ? `<span class="ms-badge">${unread > 99 ? '99+' : unread}</span>` : ''}
+        </div>
+      </div>`;
+  }));
+  el.innerHTML = rows.join('');
+  el.querySelectorAll('[data-chat]').forEach(r =>
+    r.addEventListener('click', () => openChat(r.getAttribute('data-chat'))));
+}
+
+/* ── Chat view ───────────────────────────────────────────────────────────── */
+function renderMessages(messages) {
+  const box = $('ms-msgs');
+  box.innerHTML = (messages || []).map(m => {
+    const d = m.data || m;
+    const mine = d.senderId === uid;
+    return `<div class="ms-bubble ${mine ? 'me' : 'them'}">${esc(d.text || '')}
+      <span class="ms-bubble-time">${esc(timeOf(d.createdAt))}</span></div>`;
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+async function openChat(chatId) {
+  const chat = CHATS.find(c => c.id === chatId);
+  currentChatId = chatId;
+  currentOtherUid = chat ? otherOf(chat.data) : currentOtherUid;
+
+  const info = await resolveOther(currentOtherUid);
+  $('ms-chat-name').textContent = info.name;
+  $('ms-chat-sub').textContent  = 'Customer';
+  renderJobChip();
+
+  if (unsubMessages) unsubMessages();
+  // Realtime. onSnapshot under the hood — the same listener the customer screen
+  // uses, so a message typed on either side appears on the other without a reload.
+  unsubMessages = chatRepository.subscribeToMessages(
+    chatId,
+    (messages) => renderMessages(messages),
+    (err) => console.warn('[messages] subscribe error:', err?.message || err),
+  );
+
+  chatRepository.markChatRead(chatId, uid).catch(() => {});
+  $('ms-chat').classList.add('open');
+}
+
+function closeChat() {
+  $('ms-chat').classList.remove('open');
+  if (unsubMessages) { unsubMessages(); unsubMessages = null; }
+  currentChatId = null;
+}
+
+async function send() {
+  const input = $('ms-input');
+  const text = input.value.trim();
+  if (!currentChatId || !text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  try {
+    await chatRepository.sendMessage(currentChatId, { senderId: uid, text });
+  } catch (err) {
+    input.value = text;          // give it back rather than losing what they typed
+    console.error('[messages] send failed:', err?.message || err);
+  }
+}
+
+/* ── Boot ────────────────────────────────────────────────────────────────── */
+$('ms-back').addEventListener('click', () => { location.href = 'dashboard.html'; });
+$('ms-chat-back').addEventListener('click', closeChat);
+$('ms-send').addEventListener('click', send);
+$('ms-input').addEventListener('input', (e) => {
+  e.target.style.height = 'auto';
+  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+});
+$('ms-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+(async () => {
+  const { artisan } = await requireArtisanAuth({ allowPending: true });
+  uid = artisan?.uid || artisan?.id || null;
+  if (!uid) return;                     // the guard has already redirected
+
+  bookingCtx = await loadBookingContext();
+
+  unsubChats = chatRepository.subscribeByUser(
+    uid,
+    (chats) => { CHATS = chats || []; renderList(); if (currentChatId) renderJobChip(); },
+    (err) => {
+      console.warn('[messages] chats error:', err?.message || err);
+      $('ms-list').innerHTML =
+        '<div class="ms-state"><h2>Couldn\'t load messages</h2><p>Check your connection and try again.</p></div>';
+    },
+  );
+
+  // Opened straight from a message notification.
+  if (OPEN_CHAT_ID) {
+    for (let i = 0; i < 12 && !CHATS.find(c => c.id === OPEN_CHAT_ID); i++) {
+      await new Promise(r => setTimeout(r, 250));
+    }
+    try { await openChat(OPEN_CHAT_ID); } catch (_) {}
+    return;
+  }
+
+  // Opened from a job: get (or create) the thread with that customer and go
+  // straight in, so the artisan never has to hunt for the right conversation.
+  const openWith = OPEN_WITH || (bookingCtx ? bookingCtx.customerId : null);
+  if (openWith) {
+    try {
+      const chatId = await chatRepository.getOrCreateDirectChat(uid, openWith, {
+        bookingId: CTX_BOOKING_ID || undefined,
+      });
+      currentOtherUid = openWith;
+      for (let i = 0; i < 12 && !CHATS.find(c => c.id === chatId); i++) {
+        await new Promise(r => setTimeout(r, 250));
+      }
+      await openChat(chatId);
+    } catch (err) {
+      console.warn('[messages] could not open thread:', err?.message || err);
+    }
+  }
+})();
+
+window.addEventListener('pagehide', () => {
+  try { unsubChats?.(); unsubMessages?.(); } catch (_) {}
+});
+</script>
+</body>
+</html>

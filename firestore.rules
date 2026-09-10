@@ -1020,8 +1020,18 @@ service cloud.firestore {
     // ═══════════════════════════════════════════════════════════════
     match /chats/{chatId} {
       // Either participant may read the chat thread.
+      //
+      // `resource == null` is REQUIRED, not defensive padding. Chat ids are
+      // deterministic (directChatId sorts the two uids), so getOrCreateDirectChat
+      // must read the id first to decide whether to create it. On a thread that
+      // does not exist yet `resource` is null, `resource.data.participants`
+      // raises "Null value error", and the rule DENIES — which meant two users
+      // who had never messaged before could never start a conversation at all.
+      // Reading a non-existent document returns nothing, so permitting it leaks
+      // nothing; the participant check still guards every real thread.
       allow read: if isSignedIn() &&
-                     resource.data.participants.hasAny([request.auth.uid]);
+                     (resource == null ||
+                      resource.data.participants.hasAny([request.auth.uid]));
 
       // Any signed-in user can start a new chat, provided they include themselves
       // and at least one other participant. bookingId is optional (null for a

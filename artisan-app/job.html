@@ -306,8 +306,9 @@ function render(b) {
              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="2"/></svg>
              Open in Maps</a>` : ''}
       ${brief.customer.phone
-        ? `<div style="margin-top:var(--ds-3);padding-top:var(--ds-3);border-top:1px solid var(--ds-line)">
+        ? `<div style="margin-top:var(--ds-3);padding-top:var(--ds-3);border-top:1px solid var(--ds-line);display:flex;gap:var(--ds-4);flex-wrap:wrap">
              <a class="jb-maplink" href="tel:${esc(brief.customer.phone)}">Call the customer</a>
+             <a class="jb-maplink" href="messages.html?bookingId=${encodeURIComponent(BOOKING_ID)}">Message the customer</a>
            </div>`
         : (brief.customer.contactUnlocked ? '' :
            '<p class="jb-precision" style="margin-top:var(--ds-3)">The customer\'s number unlocks once the visit is funded.</p>')}
