@@ -29,6 +29,8 @@
     <link rel="stylesheet" href="css/tracking.css">
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
+  <script src="js/navContext.js"></script>
+  <script src="js/navBridge.js"></script>
 </head>
 <body>
     <!-- 1. FULL SCREEN LOADER OVERLAY -->
@@ -40,7 +42,7 @@
     <div class="app">
         <!-- Top Fixed Header -->
         <header class="search-header">
-            <button class="back-btn" onclick="window.location.href='dashboard.html'">
+            <button class="back-btn" onclick="HH_Nav.back()">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
             <div class="search-bar-wrapper">

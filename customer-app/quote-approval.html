@@ -85,6 +85,8 @@
     /* ── Toast ── */
     .qa-toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#111; color:#fff; font-size:13px; font-weight:600; padding:10px 18px; border-radius:12px; display:none; z-index:9999; white-space:nowrap; }
   </style>
+  <script src="js/navContext.js"></script>
+  <script src="js/navBridge.js"></script>
 </head>
 <body>
 
@@ -131,7 +133,7 @@ import { requireAuth }        from '../shared/js/utils/authGuard.js';
 import { resolveMoney, resolveArtisan, initialsOf, formatMoney, resolveQuoteDecision }
                               from '../shared/js/domain/bookingTruth.js';
 import { getFunctions, httpsCallable }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+    from '../shared/vendor/firebase/firebase-functions.js';
 import { firebaseApp, firebaseFunctions }
     from '../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }

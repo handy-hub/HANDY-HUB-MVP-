@@ -27,6 +27,8 @@
     .pf-count { font-size:12px; color:var(--ui-muted,#666); padding: 6px 16px 0; }
     /* Sort sheet reuses the canonical bottom-sheet component */
   </style>
+  <script src="js/navContext.js"></script>
+  <script src="js/navBridge.js"></script>
 </head>
 <body>
 <div class="bn2-shell">
@@ -393,6 +395,13 @@ window.addEventListener('pageshow', event => {
   disposed = false;
   load();
 });
+</script>
+
+<script type="module">
+  // Return the customer to where they left this screen. See scrollMemory.js —
+  // this is a number in sessionStorage, nothing more.
+  import { rememberScroll } from '../shared/js/utils/scrollMemory.js';
+  rememberScroll();
 </script>
 </body>
 </html>

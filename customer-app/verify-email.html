@@ -16,7 +16,7 @@
        messagingSenderId / storageBucket), pointing the page at the wrong project
        credentials and breaking the Cloud Function calls. -->
   <script type="module">
-    import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { initializeApp, getApps } from '../shared/vendor/firebase/firebase-app.js';
     import { FIREBASE_CONFIG } from '../shared/js/config/appConfig.js';
     if (!getApps().length) initializeApp(FIREBASE_CONFIG);
   </script>
@@ -424,6 +424,8 @@ body {
   .otp-row   { gap: 7px; }
 }
 </style>
+  <script src="js/navContext.js"></script>
+  <script src="js/navBridge.js"></script>
 </head>
 <body>
 

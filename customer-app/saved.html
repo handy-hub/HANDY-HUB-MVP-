@@ -89,13 +89,15 @@
       animation: sv-shimmer 1.4s infinite;
     }
   </style>
+  <script src="js/navContext.js"></script>
+  <script src="js/navBridge.js"></script>
 </head>
 <body>
 <div class="sv-shell">
 
   <!-- Header -->
   <div class="sv-header">
-    <button class="sv-icon-btn" onclick="window.location.href='dashboard.html'" aria-label="Go back">
+    <button class="sv-icon-btn" onclick="HH_Nav.back()" aria-label="Go back">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <h1 class="sv-title">Saved</h1>
@@ -461,5 +463,12 @@
      These write directly to Firestore so saves persist across sessions. ── -->
 <script type="module" src="js/savedHelpers.js"></script>
 <script type="module" src="js/authInit.js"></script>
+
+<script type="module">
+  // Return the customer to where they left this screen. See scrollMemory.js —
+  // this is a number in sessionStorage, nothing more.
+  import { rememberScroll } from '../shared/js/utils/scrollMemory.js';
+  rememberScroll();
+</script>
 </body>
 </html>

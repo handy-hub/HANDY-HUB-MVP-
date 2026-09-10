@@ -354,6 +354,8 @@
     [data-theme="dark"] .rv-success-card { background: #1e1e1e; }
     [data-theme="dark"] .rv-success-title { color: #f0f0f0; }
   </style>
+  <script src="js/navContext.js"></script>
+  <script src="js/navBridge.js"></script>
 </head>
 <body>
 <div class="rv-shell">
@@ -361,7 +363,7 @@
   <!-- Header -->
   <div class="rv-header">
     <div class="rv-header-row">
-      <button class="rv-back-btn" onclick="window.location.href='booking.html'" aria-label="Back">
+      <button class="rv-back-btn" onclick="HH_Nav.back()" aria-label="Back">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#fff" stroke-width="2.0" stroke-linecap="round"/></svg>
       </button>
       <span class="rv-header-title">Rate Your Experience</span>

@@ -17,6 +17,8 @@
        so sheet.js never waits on a stylesheet inside the tap that opens the
        sheet — that wait is what costs the instant system keyboard on iOS. -->
   <link rel="stylesheet" href="../shared/css/components/sheet.css" />
+  <script src="js/navContext.js"></script>
+  <script src="js/navBridge.js"></script>
 </head>
 <body>
 
@@ -25,7 +27,7 @@
 
       <!-- Header -->
       <div class="page-header">
-        <button class="icon-btn" aria-label="Go back" onclick="window.location.href='profile.html'">
+        <button class="icon-btn" aria-label="Go back" onclick="HH_Nav.back()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>

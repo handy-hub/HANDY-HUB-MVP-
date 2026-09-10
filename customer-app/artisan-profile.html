@@ -635,6 +635,8 @@
       background-size: 200% 100%;
     }
   </style>
+  <script src="js/navContext.js"></script>
+  <script src="js/navBridge.js"></script>
 </head>
 <body>
 
@@ -1016,7 +1018,7 @@
           </div>
           <p class="nf-title">Professional Not Found</p>
           <p class="nf-sub">We couldn't load this professional's profile.<br>Go back and try again.</p>
-          <button class="nf-btn" onclick="window.location.href='dashboard.html'">Go Back</button>
+          <button class="nf-btn" onclick="HH_Nav.back()">Go Back</button>
         </div>`;
     }
   }

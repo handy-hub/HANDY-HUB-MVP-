@@ -747,6 +747,8 @@ body {
 
 
 </style>
+  <script src="js/navContext.js"></script>
+  <script src="js/navBridge.js"></script>
 </head>
 <body>
 
@@ -757,7 +759,7 @@ body {
 
         <!-- Nav -->
         <nav class="ln-nav">
-            <button class="ln-back-btn" aria-label="Go back" onclick="window.location.href='signup.html'">
+            <button class="ln-back-btn" aria-label="Go back" onclick="HH_Nav.back()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                     <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.0"
                           stroke-linecap="round" stroke-linejoin="round"/>
@@ -967,9 +969,9 @@ body {
 <!-- Forgot password (module — needs Firebase) -->
 <script type="module">
 import { getAuth, sendPasswordResetEmail }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+    from '../shared/vendor/firebase/firebase-auth.js';
 import { getApp }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    from '../shared/vendor/firebase/firebase-app.js';
 
 /* ── Helpers ─────────────────────────────────────────────── */
 function openFpModal() {
