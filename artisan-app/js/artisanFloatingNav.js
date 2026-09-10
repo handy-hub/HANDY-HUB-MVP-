@@ -67,6 +67,7 @@
     'wallet.html'       : 'wallet',
     'bookings.html'     : 'jobs',   // retired -> redirects to jobs.html
     'job.html'          : 'jobs',   // single-booking detail screen
+    'messages.html'     : 'jobs',   // conversations belong to job work
     'profile.html'      : 'profile',
     'performance.html'  : 'profile',   // secondary screens map to nearest tab
     'reviews.html'      : 'profile',

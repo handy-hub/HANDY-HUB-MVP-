@@ -7,7 +7,7 @@
 
 // v6 — Firebase SDK modules are now cached (see isFirebaseSdkAsset). Bumping
 // forces the new worker to activate and retires the v5 cache.
-const CACHE_VERSION = 'handyhub-v6';
+const CACHE_VERSION = 'handyhub-v7';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [

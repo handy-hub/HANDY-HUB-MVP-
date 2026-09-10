@@ -66,8 +66,18 @@
       }
     };
 
+    // `pagehide` ONLY — deliberately not `beforeunload`.
+    //
+    // Registering a beforeunload listener makes the page ineligible for the
+    // back/forward cache in Firefox and in many Chrome versions. global-app.js
+    // is imported by effectively every screen, so this one line was opting the
+    // entire application out of bfcache — which is why pressing back rebuilt
+    // the whole document instead of restoring it.
+    //
+    // pagehide fires in every case beforeunload did, plus when the page enters
+    // bfcache, so nothing is lost. Blurring the focused element is cosmetic
+    // cleanup; it was never worth the cost of a full reload on every back.
     window.addEventListener('pagehide', clearActiveFocusState);
-    window.addEventListener('beforeunload', clearActiveFocusState);
   }
 
   // Boot dependencies immediately on script connection evaluation
