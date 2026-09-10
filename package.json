@@ -9,11 +9,11 @@
     "dev": "npx serve . -p 8766 --no-clipboard",
     "start": "npx serve . -p 8766 --no-clipboard",
     "serve:ca": "npx serve customer-app -p 8765 --no-clipboard",
-    "stage": "node scripts/stage-hosting.cjs customer-app && node scripts/stage-hosting.cjs artisan-app",
-    "deploy": "npm run lint:filters && npm run stage && firebase deploy --only hosting",
-    "deploy:ca": "npm run lint:filters && node scripts/stage-hosting.cjs customer-app && firebase deploy --only hosting:customer --project production",
-    "deploy:aa": "npm run lint:filters && node scripts/stage-hosting.cjs artisan-app && firebase deploy --only hosting:artisan",
-    "deploy:admin": "npm run lint:filters && node scripts/stage-hosting.cjs admin-dashboard && firebase deploy --only hosting:admin",
+    "stage": "npm run build:vendor && node scripts/stage-hosting.cjs customer-app && node scripts/stage-hosting.cjs artisan-app",
+    "deploy": "npm run build:vendor && npm run lint:filters && npm run stage && firebase deploy --only hosting",
+    "deploy:ca": "npm run build:vendor && npm run lint:filters && node scripts/stage-hosting.cjs customer-app && firebase deploy --only hosting:customer --project production",
+    "deploy:aa": "npm run build:vendor && npm run lint:filters && node scripts/stage-hosting.cjs artisan-app && firebase deploy --only hosting:artisan",
+    "deploy:admin": "npm run build:vendor && npm run lint:filters && node scripts/stage-hosting.cjs admin-dashboard && firebase deploy --only hosting:admin",
     "deploy:rules": "firebase deploy --only firestore:rules,storage",
     "deploy:all": "npm run lint:filters && npm run stage && firebase deploy",
     "lint:filters": "node scripts/check-filter-tabs.cjs",
@@ -41,10 +41,26 @@
     "test:messaging-e2e": "python tests/e2e/messaging_context.py",
     "test:authz": "node tests/e2e/booking-authorization.cjs",
     "test:quote-e2e": "python tests/e2e/quote_context.py",
-    "test:signup-e2e": "python tests/e2e/signup_autologin.py"
+    "test:signup-e2e": "python tests/e2e/signup_autologin.py",
+    "test:messaging-realtime": "python tests/e2e/messaging_realtime.py",
+    "test:scroll-memory": "python tests/e2e/scroll_memory.py",
+    "test:navigation": "python tests/e2e/navigation_contract.py",
+    "build:vendor": "node scripts/build-vendor.cjs",
+    "cap:build": "node scripts/build-capacitor.cjs && npx cap sync android",
+    "cap:apk": "npm run cap:build && cd android && gradlew.bat assembleDebug",
+    "cap:open": "npx cap open android",
+    "test:auth-e2e": "python tests/e2e/auth_resilience.py"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.1",
     "@firebase/rules-unit-testing": "^5.0.1",
+    "esbuild": "0.28.2",
     "serve": "^14.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.1",
+    "@capacitor/core": "8.5.1",
+    "@capacitor/push-notifications": "8.1.2",
+    "firebase": "10.8.0"
   }
 }
