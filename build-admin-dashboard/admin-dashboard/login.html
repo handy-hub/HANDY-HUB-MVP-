@@ -225,9 +225,9 @@ import { auth, db } from './js/firebase-admin.js';
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+} from '../shared/vendor/firebase/firebase-auth.js';
 import { doc, getDoc, setDoc, serverTimestamp }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+  from '../shared/vendor/firebase/firebase-firestore.js';
 import { SUPER_ADMIN_EMAILS } from './js/auth-guard.js';
 
 /* ── If already logged in as admin, skip to dashboard ───────────────────── */

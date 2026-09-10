@@ -121,6 +121,7 @@
   /* ── 6. Alerts centre item (every other page, with unread badge) */
   var ALERTS_ITEM = mkItem('alerts', 'Alerts', 'notification.html', 'hh-fnav-alerts-badge');
 
+
   /* ── 7. Build full nav HTML ───────────────────────────────── */
   var CENTRE = IS_DASHBOARD ? EM_ITEM : ALERTS_ITEM;
 

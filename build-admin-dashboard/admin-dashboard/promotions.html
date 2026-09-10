@@ -462,7 +462,7 @@ import { initAdminPage, signOutAdmin, SUPER_ADMIN_EMAILS } from './js/auth-guard
 import { showToast, esc, fmtNum, setDateHeader } from './js/ui-utils.js';
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, serverTimestamp,
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+} from '../shared/vendor/firebase/firebase-firestore.js';
 import { cdnUrl, uploadImage, UPLOAD_PRESETS } from '../shared/js/services/cloudinaryService.js';
 import { SERVICE_CATEGORIES }                  from '../shared/js/data/serviceCatalog.js';
 import { PROMO_ACTION_TYPES, CUSTOMER_ROUTES, isValidPromotionActionValue,

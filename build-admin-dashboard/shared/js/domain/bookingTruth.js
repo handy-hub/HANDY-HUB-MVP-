@@ -402,7 +402,19 @@ const PHASE_COPY = {
 export function resolveJobPhase(booking) {
     const b = booking || {};
     const st = norm(b.status);
-    const isInspection = norm(b.track) === 'inspection';
+    // `track` is the discriminator, but it is a single field on a document
+    // written by one Cloud Function — and if it is ever absent, the fallthrough
+    // at the bottom of this function reports WORK. That failure is loud and
+    // wrong in the customer's face: "Work in progress" on a job where nobody has
+    // been to the house yet, and a progress rail five stages further along than
+    // the truth.
+    //
+    // These two statuses are produced ONLY by the inspection lifecycle
+    // (payCalloutFee and completeInspection in functions/pricing.js, both of
+    // which already refuse to run unless track === 'inspection'), so inferring
+    // the track from them cannot be wrong where it fires.
+    const isInspection = norm(b.track) === 'inspection'
+                      || ['inspection_scheduled', 'inspection_done'].includes(st);
 
     if (['completed', 'cancelled', 'rejected', 'unfulfilled'].includes(st)) return JOB_PHASE.CLOSED;
     if (['pending', 'dispatching', 'searching', 'dispatched'].includes(st))  return JOB_PHASE.REQUEST;
@@ -415,6 +427,18 @@ export function resolveJobPhase(booking) {
         return JOB_PHASE.INSPECTION;
     }
     if (st === 'quoted') return JOB_PHASE.AWAITING_QUOTE;
+
+    // ── The emergency track, named rather than fallen into ────────────────────
+    // Emergency bookings ARE the work lifecycle: the customer picked an artisan
+    // and an amount, the money is escrowed through the same holdBookingFunds
+    // path, and no inspection or quote ever occurs. Reaching WORK is correct for
+    // them — but reaching it *by falling off the end of this function* is how an
+    // untracked booking silently claimed the job was underway. Saying so
+    // explicitly means the fallthrough below now only ever catches the standard
+    // track, and a future status that belongs nowhere is visible instead of
+    // absorbed.
+    if (norm(b.track) === 'emergency') return JOB_PHASE.WORK;
+
     return JOB_PHASE.WORK;
 }
 

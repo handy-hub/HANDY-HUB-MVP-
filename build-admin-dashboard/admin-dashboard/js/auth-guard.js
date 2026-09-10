@@ -21,9 +21,9 @@ import {
   signOut,
   setPersistence,
   browserLocalPersistence,
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+} from '../../shared/vendor/firebase/firebase-auth.js';
 import { doc, getDoc }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+  from '../../shared/vendor/firebase/firebase-firestore.js';
 import { SUPER_ADMIN_EMAILS }
   from '../../shared/js/config/appConfig.js';
 

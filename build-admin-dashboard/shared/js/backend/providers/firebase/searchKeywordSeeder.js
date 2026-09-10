@@ -5,7 +5,7 @@ import {
   query,
   updateDoc,
   writeBatch
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+} from "../../../../vendor/firebase/firebase-firestore.js";
 import { firebaseDb } from "./firebaseConfig.js";
 
 const TOKEN_SEPARATOR = /[^a-z0-9]+/gi;

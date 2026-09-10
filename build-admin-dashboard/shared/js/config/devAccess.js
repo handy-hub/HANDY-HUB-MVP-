@@ -18,8 +18,15 @@
  * See docs/ARTISAN_DEV_ACCESS.md.
  */
 
+import { isNativeShell } from './runtimeEnv.js';
+
 // ── THE FLAG ────────────────────────────────────────────────────────────────
-export const ARTISAN_DEV_ACCESS = true;
+// OFF. The bypass hands out a mock session whose uid matches no Firestore
+// document, which is strictly worse for testing than signing in for real
+// against the emulator suite (see isArtisanDevAccessEnabled below). Turn it on
+// only for a local shell-navigation session, and turn it off again before
+// committing.
+export const ARTISAN_DEV_ACCESS = false;
 
 // Hosts where the bypass is NEVER permitted, regardless of the flag.
 const PRODUCTION_HOSTS = [
@@ -52,13 +59,47 @@ export function hostIsProduction(host = '', protocol = '') {
 
 export function isProductionEnvironment() {
     try {
+        // A packaged app is ALWAYS production, whatever its origin claims.
+        // Capacitor serves from capacitor://localhost (iOS) and
+        // http://localhost (Android), so the hostname check below would
+        // otherwise classify every real user's phone as a developer machine
+        // and enable the bypass in a shipped binary.
+        if (isNativeShell()) return true;
         return hostIsProduction(location.hostname, location.protocol);
     } catch {
         return true;   // no location / sandboxed → assume production
     }
 }
 
-/** The ONE predicate every consumer uses. */
+/**
+ * Is the emulator suite in use? Read directly from the same storage key
+ * firebaseConfig.js sets, rather than importing it — devAccess is consumed by
+ * modules that must not pull in the whole Firebase stack.
+ */
+function emulatorModeActive() {
+    try {
+        if (typeof location === 'undefined') return false;
+        if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return false;
+        if (new URLSearchParams(location.search).get('emulator') === '1') return true;
+        return localStorage.getItem('hh_use_emulator') === '1';
+    } catch { return false; }
+}
+
+/**
+ * The ONE predicate every consumer uses.
+ *
+ * EMULATOR MODE WINS. The dev bypass exists because there was no way to sign in
+ * locally — App Check refused Firestore from localhost, so the artisan app
+ * handed out a mock session instead. The emulators removed that constraint, and
+ * a mock session is now strictly worse than the real thing: its uid matches no
+ * Firestore document and leaves Firebase Auth with no user at all, so every
+ * read is denied by rules and screens sit on their skeletons forever.
+ *
+ * Both flags are localhost-only, so this cannot change production behaviour —
+ * it only decides which of two local modes is in force, and a real signed-in
+ * user against real rules is always the better test.
+ */
 export function isArtisanDevAccessEnabled() {
+    if (emulatorModeActive()) return false;
     return ARTISAN_DEV_ACCESS === true && !isProductionEnvironment();
 }

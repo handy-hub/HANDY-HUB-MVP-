@@ -934,9 +934,9 @@ import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
 import { showToast, setDateHeader }    from './js/ui-utils.js';
 import { collection, doc, getDoc, getDocs, onSnapshot,
          query, where, orderBy }
-                               from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+                               from '../shared/vendor/firebase/firebase-firestore.js';
 import { ref as storageRef, getDownloadURL }
-                               from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
+                               from '../shared/vendor/firebase/firebase-storage.js';
 
 let currentAdmin = null;
 setDateHeader();

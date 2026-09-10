@@ -31,7 +31,7 @@
     import { db, auth } from './js/firebase-admin.js';
     import { initAdminPage } from './js/auth-guard.js';
     import { doc, writeBatch, serverTimestamp, collection, getDocs }
-      from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+      from '../shared/vendor/firebase/firebase-firestore.js';
 
     const btn    = document.getElementById('seed-btn');
     const status = document.getElementById('status');

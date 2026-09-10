@@ -1,0 +1,267 @@
+/**
+ * bookingActions.js — THE booking transition layer for both apps.
+ *
+ * Before this module, six screens each owned a private copy of the lifecycle:
+ * artisan dashboard.html, jobs.html and bookings.html all wrote booking status
+ * directly, and they did not agree. Only bookings.html routed an
+ * inspection-track cancel to the Cloud Function that settles the callout fee;
+ * jobs.html's generic `advanceJob(id, nextStatus)` wrote a raw status that
+ * firestore.rules rejects on that track, surfacing as "Could not update status.
+ * Try again." forever. The customer app had two more.
+ *
+ * Every legitimate transition now goes through performBookingAction(). One
+ * table, matched line-for-line against firestore.rules, so a rejected write
+ * means the rules changed — not that a screen guessed wrong.
+ *
+ * WHAT THIS LAYER GUARANTEES
+ * ──────────────────────────
+ * 1. The booking is re-read before acting. A card rendered 20 minutes ago does
+ *    not get to assert what state the booking is in.
+ * 2. The actor is checked against the booking's own customerId/artisanId.
+ * 3. The transition is checked against the CURRENT status, not the rendered one.
+ * 4. Server-owned transitions are dispatched to their Cloud Function, never
+ *    written raw. (Inspection cancel settles the callout escrow; inspection
+ *    completion and quote submission are server-only by construction.)
+ * 5. The caller gets the authoritative post-action booking back, so it can route
+ *    with bookingHref() instead of guessing where to go next.
+ *
+ * WHAT IT DOES NOT DO
+ * ───────────────────
+ * It does not touch money. Escrow release, refund and callout settlement are
+ * driven by onBookingStatusChanged and the pricing CFs — see completeBooking.js
+ * for why a client must never run its own settlement path.
+ */
+
+/** Actions a client may legitimately request. */
+export const ACTION = Object.freeze({
+    ACCEPT:              'accept',
+    DECLINE:             'decline',
+    EN_ROUTE:            'en_route',
+    START:               'start',
+    JOB_DONE:            'job_done',
+    CONFIRM_COMPLETE:    'confirm_complete',
+    CANCEL:              'cancel',
+    COMPLETE_INSPECTION: 'complete_inspection',
+});
+
+/** Result codes. Callers should branch on these, never on message text. */
+export const RESULT = Object.freeze({
+    OK:          'ok',
+    CONFLICT:    'conflict',     // someone else moved the booking first
+    NOT_ALLOWED: 'not_allowed',  // wrong party, or not a legal transition here
+    NOT_FOUND:   'not_found',
+    FAILED:      'failed',       // the write itself failed (network/rules)
+});
+
+const norm = (v) => String(v == null ? '' : v).toLowerCase();
+
+/**
+ * The transition table. Each entry mirrors one clause of isValidBookingUpdate()
+ * in firestore.rules — `from` is what the rule's `prev in [...]` allows, `keys`
+ * is its hasOnly() set. Keep them in sync; a mismatch here shows up as a
+ * permission-denied at runtime rather than a caught, explained conflict.
+ */
+const TRANSITIONS = {
+    [ACTION.ACCEPT]: {
+        actor: 'artisan',
+        from:  ['pending'],
+        to:    'accepted',
+        stamp: 'acceptedAt',
+        // artisanName is deliberately NOT written. onBookingStatusChanged stamps
+        // the customer-visible identity from artisans/{uid} — name, photo,
+        // rating, verification, job count. A client-asserted name is spoofable
+        // and incomplete.
+    },
+    [ACTION.DECLINE]: {
+        actor: 'artisan',
+        from:  ['pending'],
+        to:    'rejected',
+        stamp: 'rejectedAt',
+    },
+    [ACTION.EN_ROUTE]: {
+        actor: 'artisan',
+        // Two distinct routes converge here. On the inspection track the artisan
+        // travels BEFORE quoting (the callout fee is already escrowed), so
+        // inspection_scheduled → en_route needs no approved quote. On the work
+        // track, accepted → en_route requires one.
+        from:  ['accepted', 'inspection_scheduled'],
+        to:    'en_route',
+        stamp: 'enRouteAt',
+        requires: (b) => norm(b.status) === 'inspection_scheduled' || b.quoteApproved === true,
+        requiresWhy: 'The customer has not approved your quote yet.',
+    },
+    [ACTION.START]: {
+        actor: 'artisan',
+        from:  ['en_route'],
+        to:    'in_progress',
+        stamp: 'arrivedAt',
+    },
+    [ACTION.JOB_DONE]: {
+        actor: 'artisan',
+        from:  ['in_progress'],
+        to:    'awaiting',
+        stamp: 'jobDoneAt',
+    },
+    [ACTION.CONFIRM_COMPLETE]: {
+        actor: 'customer',
+        from:  ['awaiting'],
+        to:    'completed',
+        stamp: 'completedAt',
+    },
+    [ACTION.CANCEL]: {
+        actor: 'either',
+        // The rules give the customer one more cancellable state than the
+        // artisan: a customer may still cancel while the booking is pending.
+        from:  ['pending', 'accepted', 'quoted'],
+        to:    'cancelled',
+        stamp: null,
+        extra: (opts) => ({ cancellationReason: opts.reason || 'Cancelled' }),
+        actorFrom: { artisan: ['accepted', 'quoted'] },
+    },
+};
+
+/** Statuses that mean the booking is over — nothing further can be requested. */
+const TERMINAL = ['completed', 'cancelled', 'rejected', 'unfulfilled'];
+
+/**
+ * Explain, in the customer's or artisan's own terms, why an action no longer
+ * applies — using the state the booking is ACTUALLY in.
+ */
+function conflictMessage(current, action, actor) {
+    const s = norm(current);
+    if (s === 'cancelled')  return 'This booking was cancelled.';
+    if (s === 'rejected')   return actor === 'artisan'
+        ? 'This request was already declined.'
+        : 'The professional declined this request.';
+    if (s === 'completed')  return 'This job is already complete.';
+    if (s === 'unfulfilled') return 'This request expired before anyone accepted it.';
+    if (s === 'disputed')   return 'This booking is under dispute — support will be in touch.';
+
+    if (action === ACTION.ACCEPT || action === ACTION.DECLINE) {
+        return 'This request is no longer available.';
+    }
+    if (action === ACTION.CONFIRM_COMPLETE) {
+        return 'This job is not waiting for your confirmation yet.';
+    }
+    return 'This booking has moved on — reopen it to see where it stands.';
+}
+
+/**
+ * Perform a booking transition.
+ *
+ * @param {string} action  one of ACTION
+ * @param {object} opts
+ * @param {string} opts.bookingId
+ * @param {'customer'|'artisan'} opts.actor      which side is acting
+ * @param {string} opts.uid                      the acting user
+ * @param {object} opts.databaseService
+ * @param {object} [opts.pricingService]         required for inspection-track cancel
+ * @param {string} [opts.reason]                 cancellation reason
+ * @returns {Promise<{ok:boolean, code:string, message?:string, booking?:object, from?:string, to?:string}>}
+ */
+export async function performBookingAction(action, opts = {}) {
+    const { bookingId, actor, uid, databaseService, pricingService, reason } = opts;
+    const spec = TRANSITIONS[action];
+
+    if (!spec)                 return { ok: false, code: RESULT.NOT_ALLOWED, message: `Unknown action "${action}".` };
+    if (!bookingId)            return { ok: false, code: RESULT.NOT_FOUND,   message: 'No booking specified.' };
+    if (!databaseService)      return { ok: false, code: RESULT.FAILED,      message: 'Database unavailable.' };
+
+    // ── 1. Authoritative read ────────────────────────────────────────────────
+    let booking;
+    try {
+        const snap = await databaseService.getDocument('bookings', bookingId);
+        if (!snap?.exists) {
+            return { ok: false, code: RESULT.NOT_FOUND, message: 'This booking no longer exists.' };
+        }
+        booking = { id: bookingId, ...snap.data };
+    } catch (e) {
+        return { ok: false, code: RESULT.FAILED, message: 'Could not reach the booking. Check your connection.' };
+    }
+
+    const current = norm(booking.status);
+
+    // ── 2. Is this actor a party to this booking? ────────────────────────────
+    const isCustomer = uid && booking.customerId === uid;
+    const isArtisan  = uid && booking.artisanId  === uid;
+    if (uid && !isCustomer && !isArtisan) {
+        return { ok: false, code: RESULT.NOT_ALLOWED, message: 'This booking is not yours.', booking };
+    }
+    if (spec.actor !== 'either' && spec.actor !== actor) {
+        return { ok: false, code: RESULT.NOT_ALLOWED, message: 'That action belongs to the other party.', booking };
+    }
+
+    // ── 3. Is the transition legal FROM WHERE THE BOOKING ACTUALLY IS? ───────
+    const allowedFrom = (spec.actorFrom && spec.actorFrom[actor]) || spec.from;
+    if (!allowedFrom.includes(current)) {
+        const code = TERMINAL.includes(current) || current !== '' ? RESULT.CONFLICT : RESULT.NOT_ALLOWED;
+        return { ok: false, code, message: conflictMessage(current, action, actor), booking, from: current };
+    }
+    if (spec.requires && !spec.requires(booking)) {
+        return { ok: false, code: RESULT.NOT_ALLOWED, message: spec.requiresWhy, booking, from: current };
+    }
+
+    // ── 4. Execute ───────────────────────────────────────────────────────────
+    const n = new Date().toISOString();
+
+    // Inspection-track cancellation is server-owned: settleCallout decides
+    // refund vs release, and firestore.rules rejects a raw status write here.
+    if (action === ACTION.CANCEL && norm(booking.track) === 'inspection') {
+        if (!pricingService?.cancelInspectionBooking) {
+            return { ok: false, code: RESULT.FAILED, message: 'Cancellation is unavailable right now.', booking };
+        }
+        try {
+            await pricingService.cancelInspectionBooking(bookingId, reason || 'Cancelled');
+        } catch (e) {
+            return { ok: false, code: RESULT.FAILED, message: friendly(e), booking, from: current };
+        }
+        return after(databaseService, bookingId, booking, current, spec.to);
+    }
+
+    const payload = { status: spec.to, updatedAt: n };
+    if (spec.stamp) payload[spec.stamp] = n;
+    if (spec.extra) Object.assign(payload, spec.extra({ reason }));
+
+    try {
+        await databaseService.updateDocument('bookings', bookingId, payload);
+    } catch (e) {
+        // A rules rejection here almost always means the booking moved between
+        // our read and our write — re-read and explain rather than saying
+        // "try again" at someone whose request was taken 3 seconds ago.
+        const fresh = await safeRead(databaseService, bookingId);
+        if (fresh && norm(fresh.status) !== current) {
+            return {
+                ok: false, code: RESULT.CONFLICT,
+                message: conflictMessage(norm(fresh.status), action, actor),
+                booking: fresh, from: current,
+            };
+        }
+        return { ok: false, code: RESULT.FAILED, message: friendly(e), booking, from: current };
+    }
+
+    return after(databaseService, bookingId, booking, current, spec.to);
+}
+
+/** Re-read so the caller routes from authoritative state, not from an assumption. */
+async function after(databaseService, bookingId, before, from, to) {
+    const fresh = await safeRead(databaseService, bookingId);
+    return {
+        ok: true, code: RESULT.OK,
+        booking: fresh || { ...before, status: to },
+        from, to,
+    };
+}
+
+async function safeRead(databaseService, bookingId) {
+    try {
+        const snap = await databaseService.getDocument('bookings', bookingId);
+        return snap?.exists ? { id: bookingId, ...snap.data } : null;
+    } catch { return null; }
+}
+
+function friendly(e) {
+    const m = String(e?.message || '');
+    if (/permission|insufficient/i.test(m)) return 'You are not able to do that right now.';
+    if (/network|unavailable|offline/i.test(m)) return 'Connection problem — nothing was changed.';
+    return m || 'Something went wrong. Nothing was changed.';
+}

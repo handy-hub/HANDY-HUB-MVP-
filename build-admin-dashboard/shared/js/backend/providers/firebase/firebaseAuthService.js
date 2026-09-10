@@ -14,7 +14,7 @@ import {
   signInWithRedirect,
   signOut,
   updatePassword
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+} from "../../../../vendor/firebase/firebase-auth.js";
 import { firebaseAuth } from "./firebaseConfig.js";
 
 function buildSocialProvider(providerName) {

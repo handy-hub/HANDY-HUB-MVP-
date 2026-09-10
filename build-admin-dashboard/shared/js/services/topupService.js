@@ -19,14 +19,14 @@
  */
 
 import { getFunctions, httpsCallable }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
-import { firebaseApp }
+    from '../../vendor/firebase/firebase-functions.js';
+import { firebaseApp, firebaseFunctions }
     from '../backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION, PAYSTACK_CONFIG } from '../config/appConfig.js';
 
 let _functions = null;
 function fn() {
-    if (!_functions) _functions = getFunctions(firebaseApp, FUNCTIONS_REGION);
+    if (!_functions) _functions = firebaseFunctions;
     return _functions;
 }
 

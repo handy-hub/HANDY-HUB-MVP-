@@ -1,10 +1,12 @@
+import { firebaseFunctions, firebaseAuth } from '../../backend/providers/firebase/firebaseConfig.js';
+import { consumeReturnUrl } from "../../utils/authGuard.js";
 import "../../utils/global-app.js";
 import { getAppContainer } from "../../app/container.js";
 import { showToast } from "../../components/toast.js";
 import { checkAndRecord, showRateLimitToast } from "../../services/rateLimitService.js";
 import { getFunctions, httpsCallable }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
-import { getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    from '../../../vendor/firebase/firebase-functions.js';
+import { getApp } from '../../../vendor/firebase/firebase-app.js';
 
 const FUNCTIONS_REGION = 'europe-west1';
 const SESSION_KEY      = 'hh_otp_session';
@@ -32,7 +34,14 @@ const SIGNUP_BUTTON_TEXT = "Sign Up ->";
 // a lie while REQUIRE_EMAIL_OTP is false.
 const SIGNUP_BUTTON_LOADING_TEXT = REQUIRE_EMAIL_OTP ? "Sending Code..." : "Creating Account...";
 const LOGIN_REDIRECT_URL = "login.html";
-const SOCIAL_REDIRECT_URL = "index.html";
+
+// Where a successful signup lands. Signing up already signs you in, so sending
+// people to index.html — a static landing page with no auth handling — made a
+// freshly authenticated customer look at a "Log In" button and log in again.
+// This matches loginPage.js, which uses consumeReturnUrl() || dashboard.html,
+// so a customer who was bounced to signup from a deep link returns to whatever
+// they were originally trying to reach.
+const POST_SIGNUP_URL = "dashboard.html";
 const OTP_VERIFY_URL     = "verify-email.html";
 
 const {
@@ -165,10 +174,41 @@ function socialErrorMessage(error, providerName) {
   }
 }
 
-async function redirectAfterSuccess(url, delayMs = 1200) {
-  setTimeout(() => {
-    window.location.href = url;
-  }, delayMs);
+/**
+ * Navigate into the app once the session is actually durable.
+ *
+ * The previous version fired on a timer. createUserWithEmailAndPassword resolves
+ * when the credential exists, but the session is persisted to IndexedDB
+ * asynchronously after that — so a timed redirect can reach a guarded page
+ * before the session is readable there, and requireAuth() sends the customer
+ * straight back to login. Waiting on authStateReady() waits for the real thing.
+ *
+ * @param {string} [fallbackUrl]  where to go when no return URL was stashed
+ * @param {number} [toastMs]      let the success toast be seen before leaving
+ */
+async function redirectAfterSuccess(fallbackUrl = POST_SIGNUP_URL, toastMs = 900) {
+  try {
+    if (typeof firebaseAuth?.authStateReady === "function") {
+      await firebaseAuth.authStateReady();
+    } else {
+      // Older SDK: settle for observing a user, still better than a bare timer.
+      const started = Date.now();
+      while (!firebaseAuth?.currentUser && Date.now() - started < 4000) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
+  } catch (_) {
+    // Never block the redirect on this check — a signed-up customer stuck on
+    // the signup form is worse than one who has to sign in once.
+  }
+
+  // Honour a deep link the customer was originally trying to reach, exactly as
+  // login does. Falls back to the app's home screen.
+  let target = fallbackUrl;
+  try { target = consumeReturnUrl() || fallbackUrl; } catch (_) {}
+
+  await new Promise(r => setTimeout(r, toastMs));
+  window.location.href = target;
 }
 
 async function startSocialSignup(providerName, triggerButton) {
@@ -191,7 +231,7 @@ async function startSocialSignup(providerName, triggerButton) {
       : `${providerName} sign-in successful! Redirecting...`;
 
     showToast(successMessage, "success");
-    await redirectAfterSuccess(SOCIAL_REDIRECT_URL);
+    await redirectAfterSuccess();
   } catch (error) {
     if (
       error.code === "auth/popup-blocked" ||
@@ -227,7 +267,7 @@ async function handleRedirectSocialSignup() {
       : `${providerName} sign-in successful! Redirecting...`;
 
     showToast(successMessage, "success");
-    await redirectAfterSuccess(SOCIAL_REDIRECT_URL);
+    await redirectAfterSuccess();
   } catch (error) {
     console.error("Redirect signup failed:", error);
     showToast(socialErrorMessage(error, "Social"), "error");
@@ -348,7 +388,7 @@ function setupEmailSignupForm() {
 
     try {
       if (REQUIRE_EMAIL_OTP) {
-        const fn = httpsCallable(getFunctions(getApp(), FUNCTIONS_REGION), 'requestSignupOtp');
+        const fn = httpsCallable(firebaseFunctions, 'requestSignupOtp');
         const result = await fn({
           appType: 'customer',
           payload: {
@@ -390,7 +430,9 @@ function setupEmailSignupForm() {
       showToast("Account created! Welcome to HandyHub.", "success");
       signupForm.reset();
       updateSubmitButtonState(false);
-      setTimeout(() => { window.location.href = SOCIAL_REDIRECT_URL; }, 800);
+      // Straight into the app. The account is created AND signed in at this
+      // point; there is nothing left for the customer to authenticate.
+      await redirectAfterSuccess();
     } catch (error) {
       console.error("Signup failed:", error);
       showToast(error?.message || signupErrorMessage(error), "error");

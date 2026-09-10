@@ -13,8 +13,8 @@
  *   - fcmToken field allowed in Firestore rules for both customers and artisans
  */
 
-import { getToken, onMessage }   from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js';
-import { doc, updateDoc }        from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { getToken, onMessage }   from '../../vendor/firebase/firebase-messaging.js';
+import { doc, updateDoc }        from '../../vendor/firebase/firebase-firestore.js';
 // Keep push optional during rolling deployments. An older cached config module
 // may not expose firebaseMessaging yet; that must not stop the dashboard graph.
 import * as firebaseConfig from '../backend/providers/firebase/firebaseConfig.js';

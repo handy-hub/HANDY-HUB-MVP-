@@ -9,15 +9,22 @@
  */
 
 import { initializeApp, getApps }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+  from '../../shared/vendor/firebase/firebase-app.js';
 import { getAuth, setPersistence, browserLocalPersistence }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+  from '../../shared/vendor/firebase/firebase-auth.js';
 import { getFirestore }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+  from '../../shared/vendor/firebase/firebase-firestore.js';
 import { getStorage }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
+  from '../../shared/vendor/firebase/firebase-storage.js';
 import { getFunctions, httpsCallable }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+  from '../../shared/vendor/firebase/firebase-functions.js';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider }
+  from '../../shared/vendor/firebase/firebase-app-check.js';
+
+// The ONE definition of the site key, shared with the customer and artisan
+// apps. Not copied — a second copy is how the key and the App Check
+// registration drifted apart in the first place.
+import { APP_CHECK_SITE_KEY } from '../../shared/js/config/appConfig.js';
 
 /* ── Cloud Functions region — must match functions/config.js FUNCTIONS_REGION ── */
 const FUNCTIONS_REGION = 'europe-west1';
@@ -44,9 +51,40 @@ export const ADMIN_DB_ID = 'ai-studio-5589039d-72c4-40d8-ae39-f35c6c321eb6';
 const ADMIN_APP_NAME = 'handy-hub-admin';
 
 /* ── Singleton: reuse existing named app on hot-module reloads ───────────── */
-const adminApp =
-  getApps().find(a => a.name === ADMIN_APP_NAME) ??
-  initializeApp(FIREBASE_CONFIG, ADMIN_APP_NAME);
+const existingAdminApp = getApps().find(a => a.name === ADMIN_APP_NAME);
+const adminApp = existingAdminApp ?? initializeApp(FIREBASE_CONFIG, ADMIN_APP_NAME);
+
+/* -- App Check ------------------------------------------------------------
+ * MUST run before getAuth/getFirestore/getStorage/getFunctions below --
+ * products created first would request credentials with no attestation.
+ *
+ * This app instance previously had no App Check at all, which meant enforcing
+ * App Check on Firestore would have locked admins out of the dashboard while
+ * the customer and artisan apps kept working.
+ *
+ * Guarded on existingAdminApp because initializeAppCheck throws if called
+ * twice for the same app, which the singleton above makes possible.
+ * ---------------------------------------------------------------------- */
+if (!existingAdminApp && APP_CHECK_SITE_KEY) {
+  // Local dev cannot solve a reCAPTCHA for a production domain, so the SDK
+  // issues a debug token instead. Register it under
+  // App Check -> Apps -> Manage debug tokens. Admin is a web-only surface, so
+  // this hostname check is not the Capacitor origin hazard the same pattern
+  // creates in the customer/artisan config.
+  if (typeof location !== 'undefined' &&
+      (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
+  try {
+    initializeAppCheck(adminApp, {
+      provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
+      isTokenAutoRefreshEnabled: true,
+    });
+  } catch (err) {
+    // Never let attestation setup break the dashboard.
+    console.warn('[firebase-admin] App Check init failed:', err && err.message);
+  }
+}
 
 /* ── Exported service instances ──────────────────────────────────────────── */
 export const auth    = getAuth(adminApp);

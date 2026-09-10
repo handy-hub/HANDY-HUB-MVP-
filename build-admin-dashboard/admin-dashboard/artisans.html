@@ -416,7 +416,7 @@ import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
 import { showToast, subscribeVerifBadge, setDateHeader } from './js/ui-utils.js';
 import { collection, doc, getDoc, getDocs, onSnapshot,
          updateDoc, query, where, orderBy, limit }
-                            from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+                            from '../shared/vendor/firebase/firebase-firestore.js';
 
 let currentAdmin = null;
 setDateHeader();

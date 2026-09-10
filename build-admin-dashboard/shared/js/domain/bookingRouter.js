@@ -19,7 +19,7 @@
  *                                   → book-request.html?resume=ID   (live console)
  *   any track, status 'quoted'      → quote-approval.html?bookingId=ID
  *   execution (en_route/in_progress/awaiting, or accepted AFTER quote approval)
- *                                   → live-tracking.html            (job stages)
+ *                                   → live-tracking.html?bookingId=ID (job stages)
  *   terminal (completed/cancelled/…)→ booking.html                 (detail/list)
  *
  * `accepted` is the fork: on the inspection track before the callout is paid it
@@ -65,7 +65,7 @@ export function bookingHref(b) {
         }
         // Quote approved → the job executes on the normal tracking screen.
         if (EXECUTION.includes(status) || (status === 'accepted' && b?.quoteApproved)) {
-            return 'live-tracking.html';
+            return `live-tracking.html?bookingId=${enc}`;
         }
         if (TERMINAL.includes(status)) return 'booking.html';
         // Fallback for any inspection state not enumerated: the console can
@@ -74,7 +74,9 @@ export function bookingHref(b) {
     }
 
     // ── Legacy / emergency track ──────────────────────────────────────────────
-    if (EXECUTION.includes(status) || status === 'accepted') return 'live-tracking.html';
+    if (EXECUTION.includes(status) || status === 'accepted') {
+        return `live-tracking.html?bookingId=${enc}`;
+    }
     return 'booking.html';
 }
 
@@ -116,6 +118,50 @@ export function resumeSummary(b) {
     }
     // pending / dispatching / searching / dispatched / assigned
     return { label: `Finding a professional for ${service}…`, cta: 'View request', urgent: false };
+}
+
+/**
+ * Where a notification tap should land.
+ *
+ * Every booking notification is written with `metadata.bookingId`
+ * (functions/bookings.js), but its `actionUrl` is a generic page —
+ * 'booking.html' for the customer, 'dashboard.html' for the artisan — because
+ * the backend cannot know which screen will be able to act on the booking by
+ * the time somebody taps. Exactly one rule in the whole file overrides it.
+ *
+ * So "your professional accepted" opened a LIST, and the customer had to find
+ * the booking the notification was already about. The id was in hand the entire
+ * time; nothing read it.
+ *
+ * Reading the booking is what makes the destination correct, so it is worth one
+ * round trip — but never worth a hang. If the read is slow or fails, we fall
+ * back to the notification's own actionUrl, which is exactly today's behaviour.
+ *
+ * @param {object}   notif      the notification record
+ * @param {function} getBooking async (id) => ({ exists, data }) | null
+ * @param {object}  [opts]
+ * @param {number}  [opts.timeoutMs=1200] give up and use actionUrl after this
+ * @returns {Promise<string|null>} href to navigate to, or null for "do nothing"
+ */
+export async function notificationHref(notif, getBooking, { timeoutMs = 1200 } = {}) {
+    const fallback  = notif?.actionUrl || null;
+    const bookingId = notif?.metadata?.bookingId || null;
+
+    if (!bookingId || typeof getBooking !== 'function') return fallback;
+
+    try {
+        const timeout = new Promise((resolve) => setTimeout(() => resolve('__timeout__'), timeoutMs));
+        const snap    = await Promise.race([getBooking(bookingId), timeout]);
+
+        if (snap === '__timeout__') return fallback;
+        if (!snap || snap.exists === false) return fallback;
+
+        const data = snap.data || snap;
+        return bookingHref({ ...data, id: data.id || bookingId });
+    } catch {
+        // A failed read is not a reason to strand the tap.
+        return fallback;
+    }
 }
 
 /** Navigate the browser to a booking's destination. */
