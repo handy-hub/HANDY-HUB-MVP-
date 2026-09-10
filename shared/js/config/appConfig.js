@@ -78,10 +78,18 @@ export const PLATFORM_CONFIG = {
 // europe-west1 (Belgium) — ~90 ms from Ghana vs ~270 ms for us-central1.
 export const FUNCTIONS_REGION = 'europe-west1';
 
-// ── Auth guard timeout ────────────────────────────────────────────────────────
-// 6 s covers Ghana mobile cold-starts on 2G/3G networks.
-// Shared by authGuard.js (customer) and artisanAuthGuard.js (artisan).
-export const AUTH_GUARD_TIMEOUT_MS = 6000;
+// ── Auth guard timers ─────────────────────────────────────────────────────────
+// Deliberately NOT exported from here any more.
+//
+// This used to export AUTH_GUARD_TIMEOUT_MS and claim it was "shared by
+// authGuard.js and artisanAuthGuard.js". Neither ever imported it — both
+// hardcoded their own 6000, so the value drifted in three places at once and
+// the comment was simply untrue.
+//
+// The guards now own their own timers, and those timers are MESSAGE timers: they
+// decide when to tell the user the connection is slow. They can never redirect,
+// sign out, or change auth state. A network failure is not an authentication
+// failure, so no timeout may ever end a session. See shared/js/utils/authGuard.js.
 
 // ── Super admin emails ────────────────────────────────────────────────────────
 // Used in auth-guard.js and ui utils. Matches firestore.rules and Cloud Functions.
@@ -135,7 +143,7 @@ export const MOMO_PROVIDERS = {
 // Get your site key:
 //   Firebase Console → Project Settings → App Check → Web → Register → reCAPTCHA v3
 //   (also register the reCAPTCHA v3 key at https://www.google.com/recaptcha/admin)
-export const APP_CHECK_SITE_KEY = '6LfivBctAAAAAMKNFt5TNiIi5j712EdpfaDJOWfb';
+export const APP_CHECK_SITE_KEY = '6LeLgJ4tAAAAADTsgsRkqR4rfcniVvHn73tlKexZ';
 
 // ── FCM Web Push VAPID Key ─────────────────────────────────────────────────────
 // Required for browser push notifications via Firebase Cloud Messaging.
