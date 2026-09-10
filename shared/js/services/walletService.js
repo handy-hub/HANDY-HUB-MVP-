@@ -72,6 +72,23 @@ export async function holdBookingFunds({ bookingId, artisanId, amount }) {
 }
 
 /**
+ * Escrow the emergency callout fee for a booking.
+ *
+ * Takes ONLY a bookingId — there is deliberately no amount parameter. The fee
+ * was computed by the server pricing engine and stamped onto the booking, and
+ * payEmergencyCallout reads it from there, so nothing the browser holds can
+ * change what the customer is charged.
+ *
+ * @param   {string} bookingId
+ * @returns {Promise<{ escrowId: string, amount: number, alreadyPaid?: boolean }>}
+ */
+export async function payEmergencyCallout(bookingId) {
+    _enforceLimit('HOLD_BOOKING_FUNDS', 'booking');
+    const result = await call('payEmergencyCallout')({ bookingId });
+    return result.data;
+}
+
+/**
  * @deprecated Server-driven. bookings.js automatically releases funds when a
  * booking transitions * → completed. Client calls are idempotent but redundant —
  * remove from call sites.

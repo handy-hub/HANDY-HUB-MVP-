@@ -333,9 +333,10 @@ const onBookingCreated = onDocumentCreated(
         // already chosen an artisan and an amount. It is the work track without
         // a preceding inspection — and naming it explicitly is what keeps the
         // resolver from having to guess.
+        const isEmergency = data.type === 'emergency' || data.bookingType === 'emergency'
+                         || data.isEmergency === true;
+
         if (!data.track) {
-            const isEmergency = data.type === 'emergency' || data.bookingType === 'emergency'
-                             || data.isEmergency === true;
             try {
                 await db().collection('bookings').doc(bookingId).update({
                     track:     isEmergency ? 'emergency' : 'standard',
@@ -343,6 +344,48 @@ const onBookingCreated = onDocumentCreated(
                 });
             } catch (err) {
                 console.error(`[dispatch] Could not stamp track on ${bookingId}: ${err?.message}`);
+            }
+        }
+
+        // ── Emergency callout fee — SERVER-COMPUTED, stamped here ─────────────
+        //
+        // The emergency page used to read a fee off the ARTISAN document
+        // (`d.callOutFee`). No such field exists on artisans — they carry
+        // baseRate — so the amount was always undefined, the escrow branch was
+        // never entered, and no emergency booking ever charged anyone.
+        //
+        // Correcting the spelling would not have helped. The fee has to come
+        // from the pricing engine, and it belongs on the BOOKING, where
+        // firestore.rules already forbids client writes (bookingSystemFields).
+        // payEmergencyCallout then escrows exactly this number, so the client
+        // never names an amount.
+        //
+        // Guarded on a missing/zero fee so a re-run cannot re-price a booking
+        // whose fee is already set — including one already paid.
+        if (isEmergency && !(Number(data.calloutFee) > 0)) {
+            try {
+                // Lazily required: keeps the module graph flat in the Functions
+                // runtime, matching the existing lazy require below.
+                const pricingModule = require('./pricing');
+                const price = await pricingModule.computeEmergencyCallout({
+                    category:  data.serviceType || data.category || '',
+                    lat:       data.lat,
+                    lng:       data.lng,
+                    artisanId: data.artisanId,
+                });
+                await db().collection('bookings').doc(bookingId).update({
+                    priceType:       'emergency',
+                    calloutFee:      price.calloutFee,
+                    travelFee:       price.travelFee,
+                    travelEstimated: price.travelEstimated,
+                    updatedAt:       new Date().toISOString(),
+                });
+                console.log(`[dispatch] Emergency priced ${bookingId}: callout=GHS${price.calloutFee} travel=GHS${price.travelFee}`);
+            } catch (err) {
+                // Leave calloutFee unset rather than writing a guessed number.
+                // payEmergencyCallout refuses to charge without it, so the
+                // failure surfaces as "not ready yet" instead of a wrong charge.
+                console.error(`[dispatch] Could not price emergency booking ${bookingId}: ${err?.message}`);
             }
         }
 

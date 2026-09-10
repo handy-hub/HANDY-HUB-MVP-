@@ -1187,13 +1187,20 @@ body {
     startEtaCountdown();
     saveEmergencyBookingLocally(artisan);
 
-    // ── Escrow: hold funds once artisan has confirmed ────────────────────────
-    // Emergency bookings have a call-out fee (currently 0 for MVP — wire is in
-    // place for when pricing is added). artisanId is required for release.
-    const emergencyAmount = parseFloat(d.callOutFee || 0);
+    // ── Escrow the emergency callout fee, once the artisan has confirmed ─────
+    //
+    // The amount is NOT decided here. It is computed by the pricing engine and
+    // stamped onto the booking by onBookingCreated; payEmergencyCallout reads it
+    // from that document, which firestore.rules forbids clients from writing.
+    //
+    // This previously read `d.callOutFee` off the ARTISAN document. Artisans
+    // have no such field — they carry baseRate — so the value was always
+    // undefined, the guard below was never satisfied, and every emergency
+    // booking completed without charging anyone. Correcting the spelling alone
+    // would not have helped; the fee had to come from the server.
     const artisanId = artisan ? artisan.id : null;
 
-    if (emergencyAmount > 0 && artisanId) {
+    if (artisanId) {
       _authReady.then(function (auth) {
         if (!auth || !auth.uid) return;
 
@@ -1204,13 +1211,7 @@ body {
         } catch (_) {}
 
         import('../shared/js/services/walletService.js')
-          .then(function (m) {
-            return m.holdBookingFunds({
-              bookingId: bookRef,
-              artisanId,
-              amount:    emergencyAmount,
-            });
-          })
+          .then(function (m) { return m.payEmergencyCallout(bookRef); })
           .then(function (result) {
             // Persist escrowId so live-tracking.html can release on completion
             try {
@@ -1218,10 +1219,12 @@ body {
               bk.escrowId = result.escrowId;
               localStorage.setItem('hh_booking', JSON.stringify(bk));
             } catch (_) {}
-            console.log('[emergency] Escrow held:', result.escrowId);
+            console.log('[emergency] Callout escrowed:', result.escrowId, 'GHS' + result.amount);
           })
           .catch(function (err) {
-            console.warn('[emergency] Escrow hold failed:', err.message);
+            // Never a silent pass. If the fee is not stamped yet the server says
+            // so explicitly, and the booking stays unpaid rather than free.
+            console.warn('[emergency] Callout escrow failed:', err && err.message);
           });
       }).catch(function (_) {});
     }

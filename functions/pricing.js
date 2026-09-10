@@ -79,6 +79,13 @@ const nowIso = () => new Date().toISOString();
 // ║  in PRICING_PRODUCTION — swap the two assignments back.                  ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 const PRICING_PRODUCTION = Object.freeze({
+    // ⚠ AWAITING BUSINESS APPROVAL — provisional.
+    // The urgency base for an emergency callout, used in place of
+    // inspectionFeeGHS. GHS 80 = the standard GHS 50 inspection fee plus a
+    // GHS 30 urgency premium. Nobody has signed this off; it is isolated here
+    // as a single tunable so approving a different number is a one-line change
+    // (or a pricing_config write, with no deploy at all).
+    emergencyCalloutGHS: 80,
     inspectionFeeGHS: 50,   // fixed component per category
     perKmGHS:         2.5,  // travel rate beyond the free radius
     freeRadiusKm:     3,    // no travel charge within this distance
@@ -88,6 +95,7 @@ const PRICING_PRODUCTION = Object.freeze({
 });
 
 const PRICING_TEST_1_CEDI = Object.freeze({
+    emergencyCalloutGHS: 1,
     inspectionFeeGHS: 1,
     perKmGHS:         0,
     freeRadiusKm:     3,
@@ -213,6 +221,130 @@ async function loadPricingConfig(category) {
     return merged;
 }
 
+/**
+ * The travel component — ONE implementation, shared by standard and emergency.
+ *
+ * Falls back to cfg.flatTravelGHS (a configured value, never 0) when the
+ * artisan is unknown or their indexed position is unusable. That mirrors the
+ * dispatch track, where no artisan has been chosen yet.
+ *
+ * @returns {Promise<{travelFee:number, distanceKm:number|null, travelEstimated:boolean}>}
+ */
+async function computeTravelFee(cfg, lat, lng, artisanId) {
+    let travelFee       = cfg.flatTravelGHS;
+    let distanceKm      = null;
+    let travelEstimated = true;
+
+    if (artisanId && isPlausibleGhanaCoord(Number(lat), Number(lng))) {
+        const idxSnap = await db().collection('artisan_index').doc(String(artisanId)).get();
+        const idx = idxSnap.exists ? idxSnap.data() : null;
+        if (idx && Number.isFinite(idx.lat) && Number.isFinite(idx.lng)) {
+            distanceKm      = fmt(haversineKm(Number(lat), Number(lng), idx.lat, idx.lng));
+            travelEstimated = false;
+            travelFee = distanceKm <= cfg.freeRadiusKm
+                ? 0
+                : Math.min((distanceKm - cfg.freeRadiusKm) * cfg.perKmGHS, cfg.maxTravelGHS);
+        }
+    }
+    return { travelFee: fmt(travelFee), distanceKm, travelEstimated };
+}
+
+/**
+ * THE callout formula: additive, capped, rounded up to a whole cedi.
+ *
+ * Standard passes inspectionFeeGHS as the base; emergency passes
+ * emergencyCalloutGHS. Keeping one implementation is what stops the two tracks
+ * drifting apart — an emergency booking that priced itself would be exactly the
+ * class of bug this phase exists to remove.
+ */
+function applyCalloutFormula(cfg, baseFeeGHS, travelFee) {
+    return Math.ceil(Math.min(fmt(baseFeeGHS) + fmt(travelFee), cfg.maxCalloutGHS));
+}
+
+/**
+ * Authoritative emergency callout price. Server-only — no client input.
+ *
+ * Throws rather than returning a fallback when the fee is not configured: a
+ * silent 0 here is precisely how emergency bookings came to be free.
+ *
+ * @returns {Promise<{calloutFee:number, travelFee:number, emergencyFee:number,
+ *                    distanceKm:number|null, travelEstimated:boolean}>}
+ */
+async function computeEmergencyCallout({ category, lat, lng, artisanId }) {
+    const cfg  = await loadPricingConfig(String(category || '').toLowerCase());
+    const base = Number(cfg.emergencyCalloutGHS);
+
+    if (!Number.isFinite(base) || base <= 0) {
+        throw new Error('Emergency callout fee is not configured for this category.');
+    }
+
+    const { travelFee, distanceKm, travelEstimated } =
+        await computeTravelFee(cfg, lat, lng, artisanId);
+
+    const calloutFee = applyCalloutFormula(cfg, base, travelFee);
+    if (!Number.isFinite(calloutFee) || calloutFee <= 0) {
+        throw new Error('Emergency callout fee resolved to an invalid amount.');
+    }
+
+    return { calloutFee, travelFee, emergencyFee: fmt(base), distanceKm, travelEstimated };
+}
+
+/**
+ * payEmergencyCallout — escrow the emergency callout fee.
+ *
+ * Deliberately the same shape as payCalloutFee: the amount is read from the
+ * BOOKING DOCUMENT, which firestore.rules lists in bookingSystemFields() so no
+ * client can write it. The caller supplies a bookingId and nothing else — there
+ * is no amount parameter to tamper with.
+ *
+ * Idempotent through escrow's _escrow_locks/{bookingId}_callout, so a retry or
+ * a double-tap reaches the same escrowId instead of holding twice.
+ */
+async function payEmergencyCallout(auth, { bookingId }) {
+    if (!bookingId) throw new Error('bookingId is required.');
+
+    const bookingRef  = db().collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new Error('Booking not found.');
+    const booking = bookingSnap.data();
+
+    if (booking.customerId !== auth.uid) throw new Error('Not authorised for this booking.');
+    if (booking.track !== 'emergency')   throw new Error('This booking is not an emergency booking.');
+
+    // Already settled — return the existing escrow rather than holding again.
+    if (booking.calloutPaid === true) {
+        return { escrowId: booking.calloutEscrowId || null, amount: Number(booking.calloutFee || 0), alreadyPaid: true };
+    }
+
+    // Stamped by onBookingCreated. Absent means the trigger has not run yet;
+    // say so instead of charging a guessed amount.
+    const fee = Number(booking.calloutFee || 0);
+    if (!Number.isFinite(fee) || fee <= 0) {
+        throw new Error('Emergency callout fee is not ready yet. Please try again in a moment.');
+    }
+
+    const { escrowId } = await escrow.holdFundsForBooking({
+        bookingId,
+        customerId: booking.customerId,
+        artisanId:  booking.artisanId || null,
+        amount:     fee,
+        callerAuth: auth,
+        kind:       'callout',
+    });
+
+    // Recorded only AFTER the hold succeeds. Stamping first would mark a
+    // booking paid whose money never actually moved.
+    await bookingRef.update({
+        calloutPaid:     true,
+        calloutPaidAt:   nowIso(),
+        calloutEscrowId: escrowId,
+        updatedAt:       nowIso(),
+    });
+
+    console.log(`[pricing] Emergency callout escrowed: ${bookingId} GHS${fee} escrow=${escrowId}`);
+    return { escrowId, amount: fee };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // getPricingQuote
 //
@@ -233,27 +365,13 @@ async function getPricingQuote(auth, { category, lat, lng, artisanId = null }) {
 
     const cfg = await loadPricingConfig(category);
 
-    // ── Travel component ─────────────────────────────────────────────────────
-    let travelFee       = cfg.flatTravelGHS;
-    let distanceKm      = null;
-    let travelEstimated = true;
-
-    if (artisanId) {
-        const idxSnap = await db().collection('artisan_index').doc(String(artisanId)).get();
-        const idx = idxSnap.exists ? idxSnap.data() : null;
-        if (idx && Number.isFinite(idx.lat) && Number.isFinite(idx.lng)) {
-            distanceKm      = fmt(haversineKm(lat, lng, idx.lat, idx.lng));
-            travelEstimated = false;
-            travelFee = distanceKm <= cfg.freeRadiusKm
-                ? 0
-                : Math.min((distanceKm - cfg.freeRadiusKm) * cfg.perKmGHS, cfg.maxTravelGHS);
-        }
-    }
-    travelFee = fmt(travelFee);
+    // ── Travel component (shared with emergency pricing) ─────────────────────
+    const { travelFee, distanceKm, travelEstimated } =
+        await computeTravelFee(cfg, lat, lng, artisanId);
 
     // ── Additive, capped, rounded up to a whole cedi ─────────────────────────
     const inspectionFee = fmt(cfg.inspectionFeeGHS);
-    const calloutFee    = Math.ceil(Math.min(inspectionFee + travelFee, cfg.maxCalloutGHS));
+    const calloutFee    = applyCalloutFormula(cfg, inspectionFee, travelFee);
 
     // ── Single-use server-side token — the client never writes a price ──────
     const quoteToken = crypto.randomBytes(16).toString('hex');
@@ -843,6 +961,10 @@ async function seedPricingConfig() {
 }
 
 module.exports = {
+    computeEmergencyCallout,
+    payEmergencyCallout,
+    // Exported for tests: the formula must be provable in isolation.
+    applyCalloutFormula,
     getPricingQuote,
     createInspectionBooking,
     payCalloutFee,

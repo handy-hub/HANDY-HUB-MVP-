@@ -721,6 +721,24 @@ exports.payCalloutFee = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, 
     }
 });
 
+/**
+ * payEmergencyCallout — escrow the SERVER-COMPUTED emergency callout fee.
+ *
+ * Takes only a bookingId. There is deliberately no amount parameter: the fee is
+ * read from the booking document, which onBookingCreated stamped and
+ * firestore.rules forbids clients from writing. Shares the financial-hold rate
+ * limit bucket with holdBookingFunds and payCalloutFee.
+ */
+exports.payEmergencyCallout = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+    _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'holdBookingFunds');
+    try {
+        return await pricingModule.payEmergencyCallout(request.auth, request.data);
+    } catch (err) {
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
 exports.completeInspection = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'completeInspection');

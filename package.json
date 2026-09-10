@@ -29,7 +29,7 @@
     "test:booking-truth": "node tests/booking-truth.test.cjs",
     "test:complete-booking": "node tests/complete-booking.test.cjs",
     "test:booking-router": "node tests/booking-router.test.cjs",
-    "test": "npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:booking-truth && npm run test:complete-booking && npm run test:booking-router && npm run test:booking-actions && npm run test:booking-tracks && python tests/verify_low_fixes.py",
+    "test": "npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:emergency-pricing && npm run test:booking-truth && npm run test:complete-booking && npm run test:booking-router && npm run test:booking-actions && npm run test:booking-tracks && python tests/verify_low_fixes.py",
     "test:booking-actions": "node tests/booking-actions.test.cjs",
     "emulators": "firebase emulators:start --only firestore,auth,functions --project lamax-4fd82",
     "seed:e2e": "node tests/e2e/seed-emulator.cjs",
@@ -49,7 +49,8 @@
     "cap:build": "node scripts/build-capacitor.cjs && npx cap sync android",
     "cap:apk": "npm run cap:build && cd android && gradlew.bat assembleDebug",
     "cap:open": "npx cap open android",
-    "test:auth-e2e": "python tests/e2e/auth_resilience.py"
+    "test:auth-e2e": "python tests/e2e/auth_resilience.py",
+    "test:emergency-pricing": "node tests/emergency-pricing.test.cjs"
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.1",
