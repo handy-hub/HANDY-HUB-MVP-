@@ -111,7 +111,7 @@ export function clearUserSession(uid) {
     // Fire-and-forget: failure is non-fatal (token will expire on its own).
     try {
         if (window._hhFcmMessaging && typeof window._hhFcmGetToken === 'function') {
-            import('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js')
+            import('../../vendor/firebase/firebase-messaging.js')
                 .then(({ deleteToken }) => deleteToken(window._hhFcmMessaging))
                 .catch(() => {});
         }

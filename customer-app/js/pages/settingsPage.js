@@ -82,7 +82,7 @@ window.confirmDeleteAccount = async function () {
 /** Call the guarded server-side deletion Cloud Function. */
 async function deleteAccountOnServer() {
     const [{ getFunctions, httpsCallable }, { firebaseApp }, { FUNCTIONS_REGION }] = await Promise.all([
-        import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js'),
+        import('../../../shared/vendor/firebase/firebase-functions.js'),
         import('../../../shared/js/backend/providers/firebase/firebaseConfig.js'),
         import('../../../shared/js/config/appConfig.js'),
     ]);

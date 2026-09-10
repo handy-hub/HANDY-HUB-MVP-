@@ -311,7 +311,7 @@ import { showToast, fmtGHS, fmtNum, ageStr, subscribeVerifBadge, setDateHeader }
 import {
   collection, doc, getDoc, getDocs, onSnapshot,
   query, where, orderBy, limit, serverTimestamp,
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+} from '../shared/vendor/firebase/firebase-firestore.js';
 
 let currentAdmin = null;
 setDateHeader();

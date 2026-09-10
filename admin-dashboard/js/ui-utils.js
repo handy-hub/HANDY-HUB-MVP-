@@ -51,7 +51,7 @@ export function fmtNum(n) {
 /* ── Verif badge updater — called from every page ────────────────────────── */
 import { db } from './firebase-admin.js';
 import { collection, query, where, onSnapshot }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+  from '../../shared/vendor/firebase/firebase-firestore.js';
 
 export function subscribeVerifBadge() {
   const q = query(

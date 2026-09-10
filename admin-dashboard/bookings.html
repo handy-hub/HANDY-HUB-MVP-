@@ -203,7 +203,7 @@ import { showToast, subscribeVerifBadge, setDateHeader } from './js/ui-utils.js'
 import { describe, TAB_STATUSES } from '../shared/js/domain/bookingStatusMeta.js';
 import { collection, doc, getDoc, getDocs, onSnapshot,
          query, where, orderBy }
-                          from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+                          from '../shared/vendor/firebase/firebase-firestore.js';
 
 let currentAdmin=null;
 setDateHeader();

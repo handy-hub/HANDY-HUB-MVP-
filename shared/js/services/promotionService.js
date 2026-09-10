@@ -32,7 +32,7 @@
 import { getAppContainer } from '../app/container.js';
 import { cdnUrl } from './cloudinaryService.js';
 import { doc, getDoc, setDoc, increment, serverTimestamp }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+    from '../../vendor/firebase/firebase-firestore.js';
 import { firebaseDb }
     from '../backend/providers/firebase/firebaseConfig.js';
 

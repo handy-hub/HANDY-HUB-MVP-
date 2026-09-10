@@ -5,9 +5,9 @@
 
 import {
     collection, query, where, onSnapshot, doc, getDoc,
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+} from '../../shared/vendor/firebase/firebase-firestore.js';
 import { getFunctions, httpsCallable }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+    from '../../shared/vendor/firebase/firebase-functions.js';
 import { firebaseDb, firebaseApp, firebaseFunctions }
     from '../../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }

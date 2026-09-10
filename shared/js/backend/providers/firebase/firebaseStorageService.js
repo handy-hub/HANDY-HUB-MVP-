@@ -2,7 +2,7 @@ import {
   getDownloadURL,
   ref,
   uploadBytes
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+} from "../../../../vendor/firebase/firebase-storage.js";
 import { firebaseStorage } from "./firebaseConfig.js";
 
 export function createFirebaseStorageService(storageInstance = firebaseStorage) {

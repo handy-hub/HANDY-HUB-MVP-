@@ -19,7 +19,7 @@
  */
 
 import { getFunctions, httpsCallable }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+    from '../../vendor/firebase/firebase-functions.js';
 import { firebaseApp, firebaseFunctions }
     from '../backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION, PAYSTACK_CONFIG } from '../config/appConfig.js';

@@ -13,7 +13,7 @@ import {
     limit,
     startAfter,
     onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+} from "../../../../vendor/firebase/firebase-firestore.js";
 import { firebaseDb, firestoreDatabaseId } from "./firebaseConfig.js";
 
 /**

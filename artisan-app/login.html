@@ -280,9 +280,9 @@ import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword,
   updateProfile, sendPasswordResetEmail, signOut,
   GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+} from '../shared/vendor/firebase/firebase-auth.js';
 import { doc, getDoc, setDoc, serverTimestamp }
-  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+  from '../shared/vendor/firebase/firebase-firestore.js';
 
 /* isRegistering prevents onAuthStateChanged from racing ahead
    before the artisan document is created in Firestore */

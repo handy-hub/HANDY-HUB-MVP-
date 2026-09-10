@@ -35,7 +35,7 @@
  */
 
 import { writeBatch, doc, collection, addDoc, increment, getDocs, query, where, limit as fsLimit }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+    from '../../../vendor/firebase/firebase-firestore.js';
 import { firebaseDb }
     from '../../backend/providers/firebase/firebaseConfig.js';
 

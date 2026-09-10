@@ -194,7 +194,7 @@ function wirePin() {
 // Lazy-load a callable (the real charge path only runs once functions are deployed).
 async function _fn(name) {
     const { getFunctions, httpsCallable } =
-        await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
+        await import('../../../shared/vendor/firebase/firebase-functions.js');
     const { firebaseApp } =
         await import('../../../shared/js/backend/providers/firebase/firebaseConfig.js');
     return httpsCallable(firebaseFunctions, name);

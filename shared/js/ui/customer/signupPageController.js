@@ -5,8 +5,8 @@ import { getAppContainer } from "../../app/container.js";
 import { showToast } from "../../components/toast.js";
 import { checkAndRecord, showRateLimitToast } from "../../services/rateLimitService.js";
 import { getFunctions, httpsCallable }
-    from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
-import { getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    from '../../../vendor/firebase/firebase-functions.js';
+import { getApp } from '../../../vendor/firebase/firebase-app.js';
 
 const FUNCTIONS_REGION = 'europe-west1';
 const SESSION_KEY      = 'hh_otp_session';
