@@ -96,8 +96,13 @@ const PRICING_TEST_1_CEDI = Object.freeze({
     maxCalloutGHS:    1,
 });
 
-// ⚠ TEST MODE ACTIVE — change to PRICING_PRODUCTION to restore real pricing.
-const PRICING_DEFAULTS = PRICING_TEST_1_CEDI;
+// PRODUCTION PRICING ACTIVE (restored 2026-09-09).
+//
+// Was PRICING_TEST_1_CEDI, which charged every customer a one-cedi callout.
+// pricing_config in Firestore was empty, so nothing overrode it and the test
+// value reached real bookings. Swap to PRICING_TEST_1_CEDI again only for a
+// deliberate end-to-end payment test, and revert immediately afterwards.
+const PRICING_DEFAULTS = PRICING_PRODUCTION;
 
 // Category ids — keep in sync with shared/js/data/serviceCatalog.js
 const CATALOG_CATEGORY_IDS = Object.freeze([
@@ -107,15 +112,12 @@ const CATALOG_CATEGORY_IDS = Object.freeze([
 
 // Per-category inspection fee seeds (admin-tunable after seeding).
 //
-// ⚠ ALSO IN TEST MODE — all GHS 1. Left aligned with PRICING_DEFAULTS on
-// purpose: seeding pricing_config while the defaults say 1 but these said 50
-// would silently restore fifty-cedi fees and make the test fail confusingly.
-// Real values kept below for the revert.
-//   electrical 50, plumbing 50, carpentry 40, ac-repair 60,
-//   welding 60, cleaning 30, painting 40, gardening 30
+// Real per-category seeds, restored 2026-09-09 alongside PRICING_DEFAULTS.
+// These two must always agree: seeding pricing_config from one while the other
+// says something different produces a half-state that is hard to diagnose.
 const SEED_INSPECTION_FEES = Object.freeze({
-    'electrical': 1, 'plumbing': 1, 'carpentry': 1, 'ac-repair': 1,
-    'welding': 1, 'cleaning': 1, 'painting': 1, 'gardening': 1,
+    'electrical': 50, 'plumbing': 50, 'carpentry': 40, 'ac-repair': 60,
+    'welding': 60, 'cleaning': 30, 'painting': 40, 'gardening': 30,
 });
 
 const QUOTE_TOKEN_TTL_MS   = 15 * 60_000;      // pricing quote valid for 15 min
