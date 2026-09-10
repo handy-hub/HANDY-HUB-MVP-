@@ -1,23 +1,26 @@
-import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getApp, getApps, initializeApp } from "../../../../vendor/firebase/firebase-app.js";
 import { getAuth, setPersistence, browserLocalPersistence, indexedDBLocalPersistence, connectAuthEmulator }
-  from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
-import { getFunctions, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
-import { getMessaging } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
-import {
+  from "../../../../vendor/firebase/firebase-auth.js";
+import { getFirestore, connectFirestoreEmulator } from "../../../../vendor/firebase/firebase-firestore.js";
+import { getStorage } from "../../../../vendor/firebase/firebase-storage.js";
+import { getFunctions, connectFunctionsEmulator } from "../../../../vendor/firebase/firebase-functions.js";
+import { getMessaging } from "../../../../vendor/firebase/firebase-messaging.js";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "../../../../vendor/firebase/firebase-app-check.js";import {
   APP_CHECK_SITE_KEY,
   FIREBASE_CONFIG as firebaseConfig,
   FIRESTORE_DB_ID,
   FUNCTIONS_REGION,
 } from "../../../config/appConfig.js";
+import { isNativeShell } from "../../../config/runtimeEnv.js";
 
 export const firestoreDatabaseId = FIRESTORE_DB_ID;
 export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 function appCheckDebugWasExplicitlyEnabled() {
   if (typeof location === "undefined") return false;
+  // A packaged app serves from localhost, so the hostname test below would put
+  // a shipped binary into App Check debug mode.
+  if (isNativeShell()) return false;
   if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return false;
   // Hostname is the explicit development boundary. Production/custom/Firebase
   // Hosting domains can never enter debug mode through client storage.
@@ -50,6 +53,9 @@ const localDebugEnabled = appCheckDebugWasExplicitlyEnabled();
  */
 function emulatorModeEnabled() {
   if (typeof location === "undefined") return false;
+  // Same hazard: a packaged app must never try to reach Firestore/Auth
+  // emulators on the handset itself.
+  if (isNativeShell()) return false;
   if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return false;
   try {
     const q = new URLSearchParams(location.search).get("emulator");
@@ -71,7 +77,7 @@ if (APP_CHECK_SITE_KEY && localDebugEnabled) {
 // provider against a local origin only produces noise.
 export const firebaseAppCheck = (APP_CHECK_SITE_KEY && !usingEmulators)
   ? initializeAppCheck(firebaseApp, {
-      provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+       provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
       isTokenAutoRefreshEnabled: true,
     })
   : null;

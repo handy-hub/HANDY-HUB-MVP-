@@ -18,8 +18,15 @@
  * See docs/ARTISAN_DEV_ACCESS.md.
  */
 
+import { isNativeShell } from './runtimeEnv.js';
+
 // ── THE FLAG ────────────────────────────────────────────────────────────────
-export const ARTISAN_DEV_ACCESS = true;
+// OFF. The bypass hands out a mock session whose uid matches no Firestore
+// document, which is strictly worse for testing than signing in for real
+// against the emulator suite (see isArtisanDevAccessEnabled below). Turn it on
+// only for a local shell-navigation session, and turn it off again before
+// committing.
+export const ARTISAN_DEV_ACCESS = false;
 
 // Hosts where the bypass is NEVER permitted, regardless of the flag.
 const PRODUCTION_HOSTS = [
@@ -52,6 +59,12 @@ export function hostIsProduction(host = '', protocol = '') {
 
 export function isProductionEnvironment() {
     try {
+        // A packaged app is ALWAYS production, whatever its origin claims.
+        // Capacitor serves from capacitor://localhost (iOS) and
+        // http://localhost (Android), so the hostname check below would
+        // otherwise classify every real user's phone as a developer machine
+        // and enable the bypass in a shipped binary.
+        if (isNativeShell()) return true;
         return hostIsProduction(location.hostname, location.protocol);
     } catch {
         return true;   // no location / sandboxed → assume production
