@@ -141,8 +141,14 @@ npm run lint:instant    # the instant-UX guard specifically
 npm run test            # full suite
 npm run test:rules      # Firestore rules against the emulator
 npm run test:topup-charge   # 52 money-invariant tests
-npm run deploy:ca       # stage + deploy customer app
+npm run deploy:ca       # stage + deploy customer app (bypasses the release gate)
+npm run release:check -- --project <alias>   # gate: clean, pushed, tagged, named project
+npm run release:status  # what each live site says it was built from
 ```
+
+**Releases come from a clean checkout of a pushed tag, every surface from the
+same tag.** Production was found built from ten different uncommitted states
+(2026-10-19). Procedure and verification: `docs/RELEASE.md`.
 
 Full system map: `ARCHITECTURE.md`. Performance history:
 `docs/CUSTOMER_APP_PERFORMANCE_AUDIT.md`.

@@ -16,7 +16,9 @@
  * so `../shared/...` resolves identically to local, with ZERO page edits.
  *
  * Usage:  node scripts/stage-hosting.js <app-dir>   e.g. customer-app
- * Output: build-<app-dir>/  (gitignored)
+ * Output: build-<app-dir>/  (customer and artisan are gitignored; admin is
+ *         currently tracked — see docs/RELEASE.md) plus
+ *         build-<app-dir>/release-manifest.json (source provenance, gitignored)
  */
 'use strict';
 
@@ -52,6 +54,18 @@ function copyDir(src, dest) {
   }
 }
 
+// Record what source this build comes from BEFORE touching anything:
+// build-admin-dashboard/ is tracked in Git, so staging itself changes tracked
+// files and would otherwise make a clean source look dirty. Never blocks the
+// deploy — an unreadable tree is stamped 'unknown', a dirty one 'dirty'.
+// See scripts/release-provenance.cjs and docs/RELEASE.md.
+let provenance = null;
+try {
+  provenance = require('./release-provenance.cjs').readProvenance(root);
+} catch (err) {
+  provenance = { provenance: 'unknown', reason: `provenance read failed: ${err.message}`, commit: null };
+}
+
 // Clean previous build for a deterministic result.
 fs.rmSync(outDir, { recursive: true, force: true });
 
@@ -82,3 +96,24 @@ if (htmlCount === 0) {
 }
 
 console.log(`[stage-hosting] Staged ${appDir} + shared -> build-${appDir}/ (${fileCount} files, ${htmlCount} HTML pages)`);
+
+// Publish provenance at the site root: https://<site>/release-manifest.json
+// Never blocks: if the manifest cannot be written the site ships without one,
+// and `npm run release:status` reports it as UNKNOWN rather than guessing.
+let m;
+try {
+  m = require('./release-provenance.cjs').stamp(outDir, appDir, { record: provenance });
+} catch (err) {
+  console.warn(`[stage-hosting] Provenance NOT stamped (${err.message}) — site will report UNKNOWN.`);
+  m = null;
+}
+if (!m) {
+  // already reported
+} else if (m.provenance === 'clean') {
+  console.log(`[stage-hosting] Provenance: clean @ ${m.commit.slice(0, 12)}${m.tags && m.tags.length ? ` [${m.tags.join(', ')}]` : ''}`);
+} else {
+  console.warn(`[stage-hosting] Provenance: ${String(m.provenance).toUpperCase()}` +
+    (m.provenance === 'dirty' ? ` — ${m.dirtyFiles} uncommitted change(s) on ${m.commit.slice(0, 12)}. ` +
+      'This build is NOT reproducible from Git. Releases go through `npm run release:check`.'
+      : m.reason ? ` — ${m.reason}` : ''));
+}

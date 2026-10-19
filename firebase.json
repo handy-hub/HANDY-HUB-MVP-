@@ -38,6 +38,15 @@
           ]
         },
         {
+          "source": "/release-manifest.json",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, must-revalidate"
+            }
+          ]
+        },
+        {
           "source": "**",
           "headers": [
             {
@@ -172,6 +181,15 @@
           ]
         },
         {
+          "source": "/release-manifest.json",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, must-revalidate"
+            }
+          ]
+        },
+        {
           "source": "**",
           "headers": [
             {
@@ -265,6 +283,15 @@
         },
         {
           "source": "**/*.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "/release-manifest.json",
           "headers": [
             {
               "key": "Cache-Control",
