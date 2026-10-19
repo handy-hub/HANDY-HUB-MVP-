@@ -256,25 +256,30 @@ await it('the onboarding private write (exact shape) is accepted', async () => {
     }, { merge: true }));
 });
 
-await it('the onboarding public-profile write, now free of KYC fields, is accepted', async () => {
-    // Mirrors artisan-app/onboarding.html step 2b after the private fields moved
-    // out — MINUS `locationSetAt`. That field has been written since 44aae2f
-    // (2026-08-20) but is not in isSafeArtisanProfileUpdate(), so the real
-    // write is denied by the deployed rules both before and after this change.
-    // That is a separate, pre-existing onboarding bug (reported, not fixed
-    // here). This test proves the privacy change itself breaks nothing.
+await it('the onboarding public-profile write (exact shape, incl. locationSetAt) is accepted', async () => {
+    // Mirrors artisan-app/onboarding.html step 2b exactly, including the work-
+    // location timestamp and an "Other" trade description. From 44aae2f
+    // (2026-08-20) until this fix, `locationSetAt` was missing from
+    // isSafeArtisanProfileUpdate(), so EVERY onboarding submission was denied.
     const uid = 'artisan_onboard';
     const ctx = newArtisan(uid);
     const n = new Date().toISOString();
     await assertSucceeds(setDoc(doc(ctx.firestore(), 'artisans', uid), {
         id: uid, name: 'Kofi Boateng', email: `${uid}@example.com`, userType: 'artisan', status: 'pending',
         phone: '0201234567', gender: 'male',
-        lat: 5.6037, lng: -0.187,
+        lat: 5.6037, lng: -0.187, locationSetAt: n,
         category: 'plumbing', specialty: 'plumbing', skills: ['leaks'],
+        requestedService: 'Borehole pump repair',
         bio: 'Plumber', yearsExperience: 5, workRadius: 10, baseRate: 50,
         availability: ['mon'], isAvailable: false,
         verificationStatus: 'pending_review', createdAt: n, updatedAt: n,
     }, { merge: true }));
+});
+
+await it('the onboarding fix does not let an artisan promote their own status', async () => {
+    const ctx = newArtisan('artisan_onboard');
+    await assertFails(setDoc(doc(ctx.firestore(), 'artisans', 'artisan_onboard'),
+        { status: 'active', updatedAt: new Date().toISOString() }, { merge: true }));
 });
 
 console.log('\nARTISAN PRIVACY — Firestore: the payout account is frozen once approved\n');

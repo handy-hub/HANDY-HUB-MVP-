@@ -378,6 +378,10 @@ service cloud.firestore {
         // Location coordinates (written by presenceService → updatePresenceAndLocation)
         'latitude', 'longitude', 'lat', 'lng', 'currentLat', 'currentLng',
         'geohash', 'locationAccuracy', 'locationSource', 'lastLocationUpdate',
+        // Written by onboarding.html with the work-location pin and the "Other"
+        // trade description. Missing from this list since 44aae2f (2026-08-20),
+        // which made every onboarding submission fail with permission-denied.
+        'locationSetAt', 'requestedService',
         // Onboarding workflow state artisan may set (status excluded — admin/CF only)
         'verificationStatus', 'onboarded',
         // Presence / heartbeat fields (written by presenceService.js)
