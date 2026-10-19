@@ -32,6 +32,8 @@
  * for why a client must never run its own settlement path.
  */
 
+import { canStartWork } from './bookingSchedule.js';
+
 /** Actions a client may legitimately request. */
 export const ACTION = Object.freeze({
     ACCEPT:              'accept',
@@ -87,8 +89,19 @@ const TRANSITIONS = {
         from:  ['accepted', 'inspection_scheduled'],
         to:    'en_route',
         stamp: 'enRouteAt',
+        // ── ACCEPTANCE IS NOT COMMENCEMENT ───────────────────────────────────
+        // Two independent conditions, and they fail for different reasons, so
+        // they are checked separately and explained separately. A quote that is
+        // not approved is a commercial blocker; an appointment that has not
+        // arrived is a calendar one, and telling an artisan the wrong one of
+        // those sends them to fix the wrong thing.
+        //
+        // Mirrored by scheduleWindowOpen() in firestore.rules, which is what
+        // actually enforces it — this check exists so the artisan gets a
+        // sentence instead of a permission-denied.
         requires: (b) => norm(b.status) === 'inspection_scheduled' || b.quoteApproved === true,
         requiresWhy: 'The customer has not approved your quote yet.',
+        scheduleGated: true,
     },
     [ACTION.START]: {
         actor: 'artisan',
@@ -199,6 +212,20 @@ export async function performBookingAction(action, opts = {}) {
     }
     if (spec.requires && !spec.requires(booking)) {
         return { ok: false, code: RESULT.NOT_ALLOWED, message: spec.requiresWhy, booking, from: current };
+    }
+
+    // ── 3b. Has the appointment arrived? ─────────────────────────────────────
+    // A booking with no appointment answers `allowed` unconditionally, so the
+    // immediate flow and every emergency booking pass straight through.
+    if (spec.scheduleGated) {
+        const gate = canStartWork(booking);
+        if (!gate.allowed) {
+            return {
+                ok: false, code: RESULT.NOT_ALLOWED,
+                message: gate.reason, booking, from: current,
+                opensAtMs: gate.opensAtMs,
+            };
+        }
     }
 
     // ── 4. Execute ───────────────────────────────────────────────────────────

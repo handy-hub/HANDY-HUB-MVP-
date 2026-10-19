@@ -494,7 +494,18 @@ service cloud.firestore {
         'dispatchStatus', 'currentArtisanId', 'currentArtisanName',
         'currentArtisanPhoto', 'currentArtisanRating', 'currentArtisanCategory',
         'responseDeadline', 'currentDispatchRound', 'lastDispatchAt',
-        'artisanCandidates', 'dispatchHistory'
+        'artisanCandidates', 'dispatchHistory',
+        // ── Appointment authority ─────────────────────────────────────────
+        // The appointment is a promise between two parties and a gate on when
+        // work may begin (see scheduleWindowOpen() below), so it cannot be a
+        // client-asserted value. A customer who could write scheduledForMs
+        // could move their own gate into the past; an artisan who could write
+        // it could rewrite the slot they committed to. Both are decided by
+        // createInspectionBooking / rescheduleBooking, server-side, from a
+        // validated wall clock. Everything downstream — dispatch urgency,
+        // reminder sweeps, the en_route gate — reads these.
+        'scheduledFor', 'scheduledForMs', 'scheduleWindowMins',
+        'scheduleReminderSentAt'
       ];
     }
 
@@ -506,6 +517,29 @@ service cloud.firestore {
     // UPDATE guard: the diff may not touch any system field.
     function bookingUpdateTouchesNoSystemFields() {
       return !incoming().diff(existing()).affectedKeys().hasAny(bookingSystemFields());
+    }
+
+    // ── ACCEPTANCE IS NOT COMMENCEMENT ────────────────────────────────────────
+    //
+    // A booking can carry an appointment (scheduledForMs, epoch milliseconds,
+    // written only by the server). Accepting such a booking commits the artisan
+    // to that window — it does not start the job. Without this gate, `accepted`
+    // flowed straight into `en_route`, so an artisan who took a Saturday slot on
+    // Monday could mark themselves travelling on Monday, and the customer was
+    // told "your professional is on the way" five days early.
+    //
+    // Open from 90 minutes before the window starts — EARLY_START_GRACE_MS in
+    // shared/js/domain/bookingSchedule.js, which owns this number and whose
+    // canStartWork() gives the client the same answer with an explanation.
+    // Keep the two in step: 90 * 60 * 1000 = 5400000.
+    //
+    // A booking with no appointment (the immediate flow, every emergency, and
+    // every booking written before scheduling existed) has no scheduledForMs and
+    // passes unconditionally — absence means "now", exactly as before.
+    function scheduleWindowOpen() {
+      return !('scheduledForMs' in existing()) ||
+             existing().scheduledForMs == null ||
+             request.time.toMillis() >= existing().scheduledForMs - 5400000;
     }
 
     // Strict booking state machine.
@@ -622,18 +656,23 @@ service cloud.firestore {
             // artisan app calls that CF (artisan-app/jobs.html), never a direct
             // Firestore write. There is deliberately NO client transition here —
             // all of those fields are locked by bookingSystemFields().
-            // En route: accepted → en_route (only after quote approved)
+            // En route: accepted → en_route (only after quote approved, and
+            // never before a booked appointment's window opens).
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'enRouteAt', 'updatedAt']) &&
              prev == 'accepted' && next == 'en_route' &&
-             existing().quoteApproved == true) ||
+             existing().quoteApproved == true &&
+             scheduleWindowOpen()) ||
             // En route to an INSPECTION: inspection_scheduled → en_route.
             // No quoteApproved requirement — on the inspection track the
             // artisan travels BEFORE quoting; the callout fee is already
             // escrowed (payCalloutFee CF is the only writer of that status).
+            // The appointment gate still applies: a paid callout for Saturday
+            // does not authorise a Monday visit.
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'enRouteAt', 'updatedAt']) &&
-             prev == 'inspection_scheduled' && next == 'en_route') ||
+             prev == 'inspection_scheduled' && next == 'en_route' &&
+             scheduleWindowOpen()) ||
             // Arrived / in progress: en_route → in_progress
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'arrivedAt', 'updatedAt']) &&

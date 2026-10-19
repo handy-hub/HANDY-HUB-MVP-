@@ -204,6 +204,95 @@ body {
   display: flex; align-items: center; justify-content: center;
 }
 
+/* ── When: ASAP vs a booked slot ────────────────────────────── */
+/* Two stacked choices rather than a toggle: "as soon as possible" and "a
+   booked appointment" are different products with different promises, and a
+   switch would imply one is a variation of the other. Reuses the category
+   tile's selected-state language (brand border + tinted fill) so the form has
+   one way of saying "this is your choice", not two. */
+.br-when { display: grid; gap: 10px; }
+.br-when-opt {
+  display: flex; align-items: flex-start; gap: 12px; text-align: left;
+  padding: 13px 14px;
+  border: 1.5px solid var(--br-line); border-radius: var(--ui-radius-md, 14px);
+  background: var(--br-surface); color: var(--br-ink);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: border-color .18s ease, background .18s ease, transform .12s ease;
+}
+.br-when-opt:active { transform: scale(.99); }
+.br-when-ico {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--br-brand-soft); color: var(--br-brand);
+  display: flex; align-items: center; justify-content: center;
+}
+.br-when-txt { display: block; min-width: 0; }
+.br-when-txt strong {
+  display: block; font: 600 13.5px/1.3 var(--br-font); color: var(--br-ink);
+}
+.br-when-txt small {
+  display: block; margin-top: 2px;
+  font: 400 11.5px/1.4 var(--br-font); color: var(--br-sub);
+}
+.br-when-opt[aria-checked="true"] {
+  border-color: var(--br-brand); background: var(--br-brand-soft);
+}
+.br-when-opt[aria-checked="true"] .br-when-txt strong { color: var(--br-brand-ink); font-weight: 700; }
+
+/* ── Date + arrival window ──────────────────────────────────── */
+.br-sched {
+  margin-top: 12px; padding: 14px;
+  border: 1.5px solid var(--br-line); border-radius: var(--ui-radius-md, 14px);
+  background: var(--br-surface);
+}
+.br-sched-lbl {
+  margin: 0 0 7px;
+  font: 600 11.5px/1 var(--br-font); color: var(--br-sub);
+  letter-spacing: .02em; text-transform: uppercase;
+}
+.br-sched-date {
+  width: 100%; padding: 11px 12px;
+  border: 1.5px solid var(--br-line); border-radius: var(--ui-radius-sm, 10px);
+  background: var(--br-canvas); color: var(--br-ink);
+  font: 500 14px/1.2 var(--br-font);
+  /* 44px tap floor — the design-system minimum, and a date input is one of the
+     easiest controls to mis-tap on a phone. */
+  min-height: 44px;
+}
+.br-sched-date:focus { outline: 0; border-color: var(--br-brand); }
+.br-sched .br-sched-lbl + .br-slot-grid,
+.br-sched-date + .br-sched-lbl { margin-top: 14px; }
+
+.br-slot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.br-slot {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  padding: 10px 11px; min-height: 44px;
+  border: 1.5px solid var(--br-line); border-radius: var(--ui-radius-sm, 10px);
+  background: var(--br-canvas); color: var(--br-ink);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: border-color .18s ease, background .18s ease;
+}
+.br-slot-name { font: 600 12.5px/1.2 var(--br-font); }
+.br-slot-time { font: 400 11px/1.2 var(--br-font); color: var(--br-sub); font-variant-numeric: tabular-nums; }
+.br-slot[aria-checked="true"] {
+  border-color: var(--br-brand); background: var(--br-brand-soft);
+}
+.br-slot[aria-checked="true"] .br-slot-name { color: var(--br-brand-ink); font-weight: 700; }
+/* A window that has passed, or is too soon to staff, is shown and disabled
+   rather than hidden — a customer who can see that the morning slot exists but
+   is gone today understands the system; one who sees three slots where there
+   were four assumes it is broken. */
+.br-slot[disabled] { opacity: .42; cursor: not-allowed; }
+.br-sched-note {
+  margin: 10px 0 0; font: 400 11.5px/1.45 var(--br-font); color: var(--br-sub);
+}
+.br-sched-note.is-error { color: var(--ui-danger, #b3261e); }
+
+/* Appointment restated on the receipt, immediately under the choice line. */
+.br-when-summary {
+  margin: -4px 0 4px; padding: 0 2px;
+  font: 500 12px/1.4 var(--br-font); color: var(--br-brand-ink);
+}
+
 /* ── Location card ──────────────────────────────────────────── */
 .br-loc-card {
   display: flex; align-items: flex-start; gap: 12px;

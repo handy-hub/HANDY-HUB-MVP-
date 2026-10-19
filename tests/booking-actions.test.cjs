@@ -19,13 +19,25 @@ const fs     = require('fs');
 
 const ROOT = path.join(__dirname, '..');
 
-function loadActions() {
-    const src = fs.readFileSync(
-        path.join(ROOT, 'shared', 'js', 'domain', 'bookingActions.js'), 'utf8');
-    const body = src
+/** Strip ES module syntax so the module body can be evaluated in CommonJS. */
+function stripEsm(src) {
+    return src
+        .replace(/^\s*import\s[^\n]*\n/gm, '')
         .replace(/^\s*export\s+async\s+function\s+/gm, 'async function ')
         .replace(/^\s*export\s+function\s+/gm, 'function ')
         .replace(/^\s*export\s+const\s+/gm, 'const ');
+}
+
+function readDomain(name) {
+    return fs.readFileSync(path.join(ROOT, 'shared', 'js', 'domain', name), 'utf8');
+}
+
+function loadActions() {
+    // bookingActions imports canStartWork from bookingSchedule. Concatenating the
+    // dependency ahead of it evaluates the REAL module rather than a stub, so the
+    // appointment gate these tests assert on is the one that ships.
+    const body = stripEsm(readDomain('bookingSchedule.js')) + '\n' +
+                 stripEsm(readDomain('bookingActions.js'));
     // eslint-disable-next-line no-new-func
     return new Function(`${body}\nreturn { performBookingAction, ACTION, RESULT };`)();
 }
@@ -287,6 +299,100 @@ await t('every successful action returns the authoritative booking', async () =>
     assert.ok(r.booking && r.booking.status === 'in_progress');
     assert.strictEqual(r.from, 'en_route');
     assert.strictEqual(r.to, 'in_progress');
+});
+
+// ── ACCEPTANCE IS NOT COMMENCEMENT ───────────────────────────────────────────
+//
+// The transition layer mirrors firestore.rules clause for clause. When the rules
+// gained scheduleWindowOpen(), this layer had to gain the same gate — otherwise
+// the artisan app would send a write the server refuses and the artisan would
+// see a permission error instead of "your appointment is on Saturday".
+
+const FUTURE_MS = Date.now() + 7 * 86400000;   // a week out
+const SOON_MS   = Date.now() + 20 * 60000;     // inside the 90-minute grace
+
+await t('en_route is refused before a booked appointment opens', async () => {
+    const db = makeDb(base({
+        status: 'accepted', quoteApproved: true,
+        scheduledForMs: FUTURE_MS, scheduleWindowMins: 180,
+    }));
+    const r = await performBookingAction(ACTION.EN_ROUTE, {
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(r.code, RESULT.NOT_ALLOWED);
+    // The artisan is told when, not merely no.
+    assert.match(r.message, /booked for/i);
+    assert.ok(typeof r.opensAtMs === 'number');
+    // Nothing was written — the refusal happens before the write, not after it.
+    assert.strictEqual(db.writes.length, 0);
+});
+
+await t('en_route is allowed once the window has opened', async () => {
+    const db = makeDb(base({
+        status: 'accepted', quoteApproved: true,
+        scheduledForMs: SOON_MS, scheduleWindowMins: 180,
+    }));
+    const r = await performBookingAction(ACTION.EN_ROUTE, {
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
+    assert.strictEqual(r.ok, true);
+    assert.strictEqual(db.writes[0].status, 'en_route');
+});
+
+await t('the inspection track is gated the same way', async () => {
+    const db = makeDb(base({
+        status: 'inspection_scheduled', track: 'inspection', calloutPaid: true,
+        scheduledForMs: FUTURE_MS,
+    }));
+    const r = await performBookingAction(ACTION.EN_ROUTE, {
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(db.writes.length, 0);
+});
+
+await t('an UNSCHEDULED booking is never gated — the old behaviour, unchanged', async () => {
+    const db = makeDb(base({ status: 'accepted', quoteApproved: true }));
+    const r = await performBookingAction(ACTION.EN_ROUTE, {
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
+    assert.strictEqual(r.ok, true);
+});
+
+await t('the quote gate and the clock gate are reported separately', async () => {
+    // Both blocked. The artisan must be told about the quote — the thing they
+    // can act on — not about a date they cannot change.
+    const db = makeDb(base({
+        status: 'accepted', quoteApproved: false, scheduledForMs: FUTURE_MS }));
+    const r = await performBookingAction(ACTION.EN_ROUTE, {
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
+    assert.strictEqual(r.ok, false);
+    assert.match(r.message, /quote/i);
+});
+
+await t('arriving and finishing are never blocked by the appointment', async () => {
+    for (const [status, action, next] of [
+        ['en_route', ACTION.START, 'in_progress'],
+        ['in_progress', ACTION.JOB_DONE, 'awaiting'],
+    ]) {
+        const db = makeDb(base({ status, quoteApproved: true, scheduledForMs: FUTURE_MS }));
+        const r = await performBookingAction(action, {
+            bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
+        assert.strictEqual(r.ok, true, `${status} must not be clock-gated`);
+        assert.strictEqual(db.writes[0].status, next);
+    }
+});
+
+await t('accepting a future appointment is always allowed — that IS the commitment', async () => {
+    const db = makeDb(base({ status: 'pending', scheduledForMs: FUTURE_MS }));
+    const r = await performBookingAction(ACTION.ACCEPT, {
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
+    assert.strictEqual(r.ok, true);
+    assert.strictEqual(db.writes[0].status, 'accepted');
+});
+
+await t('either party may still cancel a future appointment', async () => {
+    const db = makeDb(base({ status: 'accepted', scheduledForMs: FUTURE_MS }));
+    const r = await performBookingAction(ACTION.CANCEL, {
+        bookingId: 'B1', actor: 'customer', uid: CUST, databaseService: db, reason: 'plans changed' });
+    assert.strictEqual(r.ok, true);
 });
 
 console.log(`booking-actions: ${passed} passed, ${failed} failed`);

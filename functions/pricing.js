@@ -48,6 +48,10 @@ const crypto = require('crypto');
 const { FIRESTORE_DB_ID } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const escrow = require('./financial/escrow');
+// Generated mirror of shared/js/domain/bookingSchedule.js — see
+// scripts/build-functions-shared.cjs. The browser's picker, this validator and
+// firestore.rules all decide appointments from the same numbers.
+const bookingSchedule = require('./shared/bookingSchedule');
 
 let _db;
 function db() {
@@ -199,6 +203,31 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 function isPlausibleGhanaCoord(lat, lng) {
     return Number.isFinite(lat) && Number.isFinite(lng) &&
            lat >= 4 && lat <= 12 && lng >= -4 && lng <= 2;
+}
+
+/**
+ * Map a bare ISO instant back onto the wall clock + window it must have come
+ * from, so the legacy `scheduledFor` parameter is validated by the same rules
+ * as a picker selection instead of being trusted as an arbitrary instant.
+ *
+ * An instant that does not land exactly on the start of a real arrival window
+ * is rejected by validateScheduleRequest (no windowId), which is the correct
+ * answer: HandyHub sells windows, not minutes, and a caller asking for 14:37 is
+ * asking for something the product cannot promise.
+ *
+ * Ghana is UTC+0, so the UTC hour IS the Accra wall-clock hour — see
+ * ACCRA_UTC_OFFSET_MINUTES in the schedule module for why that is a constant.
+ */
+function isoToScheduleRequest(iso) {
+    const t = Date.parse(iso);
+    if (Number.isNaN(t)) throw new Error('scheduledFor must be a valid date.');
+    const d   = new Date(t);
+    const win = bookingSchedule.TIME_WINDOWS.find(
+        w => w.startHour === d.getUTCHours() && d.getUTCMinutes() === 0);
+    return {
+        dateStr:  bookingSchedule.accraDateString(t),
+        windowId: win ? win.id : null,
+    };
 }
 
 /** HHB-YYMMDD-HHMM-XXXX — same format as stateService.generateBookingId (Ghana = UTC). */
@@ -403,14 +432,27 @@ async function getPricingQuote(auth, { category, lat, lng, artisanId = null }) {
 // createInspectionBooking
 //
 // Called by: customer app, after reviewing the callout fee.
-// Payload:  { quoteToken, address, description, notes?, photos?, serviceLabel?, scheduledFor? }
+// Payload:  { quoteToken, address, description, notes?, photos?, serviceLabel?,
+//             schedule? }
 // The booking document is written server-side with the token's locked fee.
 // If the token carries an artisanId the booking is pre-matched; otherwise the
 // dispatch engine (onBookingCreated) takes over via radius matching.
+//
+// ── WHEN, not just what and where ────────────────────────────────────────────
+// `schedule` is { dateStr: 'YYYY-MM-DD', windowId } — a WALL CLOCK in Ghana, not
+// an instant. The client sends what the customer picked; this function decides
+// what that means, using the same bookingSchedule module the picker used, so a
+// slot the browser offered is a slot the server accepts. Omit it (or send null)
+// for the immediate flow — the default, and what every booking before
+// scheduling existed effectively was.
+//
+// `scheduledFor` (a bare ISO string) is still accepted for backward
+// compatibility with the parameter this function has always declared, but it is
+// re-validated through the same rules rather than trusted as written.
 // ─────────────────────────────────────────────────────────────────────────────
 async function createInspectionBooking(auth, {
     quoteToken, address, description, notes = '', photos = [],
-    serviceLabel = '', scheduledFor = null,
+    serviceLabel = '', scheduledFor = null, schedule = null,
 }) {
     if (!quoteToken || typeof quoteToken !== 'string') throw new Error('quoteToken is required.');
     address     = String(address || '').trim();
@@ -427,10 +469,33 @@ async function createInspectionBooking(auth, {
         }
     }
 
-    if (scheduledFor !== null) {
-        const t = Date.parse(scheduledFor);
-        if (Number.isNaN(t)) throw new Error('scheduledFor must be a valid date.');
-        scheduledFor = new Date(t).toISOString();
+    // ── Appointment — validated here, never taken on trust ───────────────────
+    //
+    // This used to be `Date.parse(scheduledFor)` and nothing else: any parseable
+    // string was accepted, including one in the past. It did not matter, because
+    // no caller ever passed one. Now that the appointment gates when work may
+    // begin (scheduleWindowOpen in firestore.rules), a client-chosen instant is
+    // a client-chosen gate — so the wall clock the customer picked is re-derived
+    // here through the shared rules rather than believed.
+    //
+    // Both fields are written together or not at all: scheduledForMs is what
+    // Rules compare, the ISO string is what humans and logs read. A booking that
+    // carried one without the other could pass a gate it should not.
+    let scheduleStartMs  = null;
+    let scheduleWindowMins = null;
+
+    const scheduleReq = schedule && typeof schedule === 'object'
+        ? { dateStr: schedule.dateStr, windowId: schedule.windowId }
+        : (scheduledFor !== null ? isoToScheduleRequest(scheduledFor) : null);
+
+    if (scheduleReq) {
+        const v = bookingSchedule.validateScheduleRequest(scheduleReq, Date.now());
+        if (!v.ok) throw new Error(v.reason);
+        scheduleStartMs    = v.startMs;
+        scheduleWindowMins = v.windowMins;
+        scheduledFor       = v.iso;
+    } else {
+        scheduledFor = null;
     }
 
     const tokenRef   = db().collection('pricing_quotes').doc(quoteToken);
@@ -496,7 +561,14 @@ async function createInspectionBooking(auth, {
             address:      address.slice(0, 300),
             lat:          q.lat,
             lng:          q.lng,
+            // ── The appointment ──────────────────────────────────────────────
+            // null on both fields = the immediate flow. Written as an explicit
+            // null rather than omitted so every booking document answers the
+            // question "when?" rather than leaving readers to infer it from an
+            // absent key — the same reason `track` is stamped on every booking.
             scheduledFor,
+            scheduledForMs:     scheduleStartMs,
+            scheduleWindowMins: scheduleWindowMins,
             // ── Server-locked pricing — the client never writes these ────────
             calloutFee:       q.calloutFee,
             travelFee:        q.travelFee,
@@ -512,18 +584,28 @@ async function createInspectionBooking(auth, {
     });
 
     // ── Notify pre-matched artisan (dispatch handles the rest otherwise) ─────
+    //
+    // The message names the appointment when there is one. An artisan deciding
+    // whether to take a job needs to know WHEN before they can answer, and a
+    // request that reads the same whether it is for this afternoon or for a week
+    // on Tuesday is not a decidable request.
     if (quote.artisanId) {
+        const when = scheduleStartMs === null
+            ? 'as soon as you can take it'
+            : bookingSchedule.formatAppointment(scheduleStartMs, scheduleWindowMins);
         await sendArtisanNotification(quote.artisanId, {
             type:      'Bookings',
-            title:     'New Inspection Request',
-            message:   `A customer has requested an inspection visit for a ${quote.category} issue. Accept to schedule it.`,
+            title:     scheduleStartMs === null ? 'New Inspection Request' : 'New Scheduled Inspection',
+            message:   scheduleStartMs === null
+                ? `A customer has requested an inspection visit for a ${quote.category} issue. Accept to schedule it.`
+                : `A customer has booked a ${quote.category} inspection for ${when}. Accept to hold the slot.`,
             actionUrl: 'dashboard.html',
             bookingId,
         }).catch(() => {});
     }
 
-    console.log(`[pricing] Inspection booking created: ${bookingId} cat=${quote.category} callout=GHS${quote.calloutFee} artisan=${quote.artisanId || 'DISPATCH'}`);
-    return { bookingId, calloutFee: quote.calloutFee };
+    console.log(`[pricing] Inspection booking created: ${bookingId} cat=${quote.category} callout=GHS${quote.calloutFee} artisan=${quote.artisanId || 'DISPATCH'} when=${scheduledFor || 'ASAP'}`);
+    return { bookingId, calloutFee: quote.calloutFee, scheduledFor };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -801,6 +883,16 @@ async function cancelInspectionBooking(auth, { bookingId, reason = '' }) {
 //                              → callout refunded to customer, booking cancelled
 //   calloutSettlePending     → previous settlement failed → retried
 //
+// It also carries the appointment reminder sweep (sendAppointmentReminders),
+// which rides this scheduler rather than adding a second deployed function —
+// the maxInstances:1 binding makes an extra Cloud Run service expensive, and
+// the cadence is already right.
+//
+// NOTE on the two calloutPaidAt-based sweeps: their clock starts at the
+// APPOINTMENT when the booking has one (afterAppointment). Measuring 72 hours
+// from payment would auto-cancel and refund any visit booked more than three
+// days out, before it ever happened.
+//
 // All timestamp fields compared are ISO-8601 strings (lexicographic-safe).
 // Composite indexes required — see firestore.indexes.json.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -824,7 +916,7 @@ async function checkBookingTimeouts() {
             artisanMsg:  'You did not submit a quote within 24 hours of the inspection. The booking was closed and the callout fee refunded to the customer.',
         },
         {
-            label: 'inspection_not_completed', settleTo: 'customer',
+            label: 'inspection_not_completed', settleTo: 'customer', afterAppointment: true,
             query: bookings.where('status', '==', 'inspection_scheduled')
                            .where('calloutPaidAt', '<=', cutoffIso(STALE_INSPECTION_HRS)).limit(50),
             customerMsg: 'The inspection was not carried out in time. Your callout fee has been refunded.',
@@ -848,6 +940,7 @@ async function checkBookingTimeouts() {
             // it — the booking left 'inspection_scheduled' so the 72h stale-inspection
             // sweep above no longer catches it. Same fairness: refund the customer.
             label: 'inspection_started_stale', settleTo: 'customer', onlyInspection: true,
+            afterAppointment: true,
             query: bookings.where('status', 'in', ['en_route', 'in_progress'])
                            .where('calloutPaidAt', '<=', cutoffIso(STALE_INSPECTION_HRS)).limit(50),
             customerMsg: 'The inspection was started but not completed in time. Your callout fee has been refunded.',
@@ -872,6 +965,28 @@ async function checkBookingTimeouts() {
                 // so callout_unpaid only fires while the callout is genuinely unpaid.
                 if (sweep.onlyInspection && booking.track !== 'inspection') continue;
                 if (sweep.requireUnpaid && booking.calloutPaid) continue;
+
+                // ── The stale clock starts at the APPOINTMENT, not at payment ─
+                //
+                // These two sweeps ask "has the artisan had long enough to do
+                // this inspection?" and measured it from calloutPaidAt, because
+                // before scheduling existed the visit always followed payment
+                // immediately. It no longer does. A customer who books a slot
+                // ten days out and secures it today would otherwise have their
+                // booking auto-cancelled and refunded on day three — punishing
+                // an artisan for honouring the appointment they were given, and
+                // silently deleting the customer's booking before it happened.
+                //
+                // For a scheduled booking the artisan's clock starts when the
+                // window closes. Unscheduled bookings are untouched: no
+                // appointment means the old behaviour, exactly.
+                if (sweep.afterAppointment) {
+                    const appt = bookingSchedule.resolveSchedule(booking);
+                    if (appt.scheduled &&
+                        Date.now() < appt.endMs + STALE_INSPECTION_HRS * 3600000) {
+                        continue;
+                    }
+                }
 
                 // Claim the cancellation atomically (F4/F6): re-check the status
                 // inside a transaction so we never cancel a booking a customer
@@ -917,6 +1032,22 @@ async function checkBookingTimeouts() {
         }
     }
 
+    // ── Appointment reminders ────────────────────────────────────────────────
+    //
+    // A scheduled booking that nobody is reminded about is a booking both sides
+    // forget. This rides the existing scheduler rather than adding a second
+    // deployed function: the sweep below already runs on the same cadence, and
+    // one more indexed query is cheaper than another Cloud Run service against
+    // the maxInstances:1 binding.
+    //
+    // Idempotency is scheduleReminderSentAt, set in the SAME update that would
+    // let a second run fire — so a retry, an overlapping invocation or a
+    // redeploy cannot double-notify. It is a server-only field
+    // (bookingSystemFields in firestore.rules), so a client cannot clear it to
+    // farm notifications.
+    await sendAppointmentReminders(bookings).catch(err =>
+        console.error('[pricing] Appointment reminder sweep failed:', err.message));
+
     // ── Retry previously failed callout settlements ──────────────────────────
     const retrySnap = await bookings.where('calloutSettlePending', 'in', ['artisan', 'customer'])
         .limit(25).get().catch(() => null);
@@ -931,6 +1062,79 @@ async function checkBookingTimeouts() {
                 }).catch(() => {});
             }
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sendAppointmentReminders
+//
+// Notifies both parties ~2 hours before a booked arrival window (REMINDER_LEAD_MS
+// in the schedule module). Only for bookings that are actually going to happen:
+// a cancelled or completed booking is not an appointment, and a booking still
+// waiting on an artisan or a callout fee has nothing to remind anyone about yet.
+//
+// No composite index needed: this is a range on ONE field, which Firestore
+// serves from the automatic single-field index. Status is filtered in code
+// deliberately — adding it to the query would force a composite index AND, more
+// importantly, a booking whose scheduledForMs is null never matches the range at
+// all, so immediate bookings are excluded by the data rather than by a filter.
+// ─────────────────────────────────────────────────────────────────────────────
+const REMINDABLE_STATUSES = ['accepted', 'inspection_scheduled', 'quoted'];
+
+async function sendAppointmentReminders(bookings) {
+    const now = Date.now();
+
+    const snap = await bookings
+        .where('scheduledForMs', '>',  now)
+        .where('scheduledForMs', '<=', now + bookingSchedule.REMINDER_LEAD_MS)
+        .limit(100)
+        .get();
+
+    if (snap.empty) return;
+
+    for (const doc of snap.docs) {
+        const b = doc.data();
+        if (b.scheduleReminderSentAt) continue;
+        if (!REMINDABLE_STATUSES.includes(String(b.status || '').toLowerCase())) continue;
+
+        const when = bookingSchedule.formatAppointment(b.scheduledForMs, b.scheduleWindowMins, now);
+        const svc  = b.serviceType || b.category || 'service';
+
+        // Claim first. If this write loses a race the other invocation already
+        // sent it, and the customer hears about their appointment once.
+        let claimed = false;
+        try {
+            await db().runTransaction(async (txn) => {
+                const live = await txn.get(doc.ref);
+                if (!live.exists || live.data().scheduleReminderSentAt) return;
+                txn.update(doc.ref, { scheduleReminderSentAt: nowIso() });
+                claimed = true;
+            });
+        } catch (err) {
+            console.error(`[pricing] Reminder claim failed booking=${doc.id}: ${err.message}`);
+            continue;
+        }
+        if (!claimed) continue;
+
+        if (b.customerId) {
+            await sendNotification(b.customerId, {
+                type:      'Bookings',
+                title:     'Your visit is coming up',
+                message:   `Your ${svc} visit is booked for ${when}. Please make sure someone can let the professional in.`,
+                actionUrl: `book-request.html?resume=${doc.id}`,
+                metadata:  { bookingId: doc.id },
+            }).catch(() => {});
+        }
+        if (b.artisanId) {
+            await sendArtisanNotification(b.artisanId, {
+                type:      'Bookings',
+                title:     'Appointment coming up',
+                message:   `You committed to a ${svc} visit for ${when}. ${b.address ? `Address: ${String(b.address).slice(0, 120)}` : ''}`.trim(),
+                actionUrl: `job.html?id=${doc.id}`,
+                metadata:  { bookingId: doc.id },
+            }).catch(() => {});
+        }
+        console.log(`[pricing] Appointment reminder sent: booking=${doc.id} when=${when}`);
     }
 }
 
@@ -974,4 +1178,8 @@ module.exports = {
     seedPricingConfig,
     settleCallout,
     claimBookingTransition,
+    // Exported for tests: reminder idempotency has to be provable without
+    // waiting two hours for a real appointment.
+    sendAppointmentReminders,
+    isoToScheduleRequest,
 };

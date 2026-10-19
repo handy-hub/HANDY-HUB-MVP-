@@ -582,8 +582,14 @@ export function resolveJobBrief(booking, { originLat = null, originLng = null } 
         photos,
         photoCount: photos.length,
 
-        scheduledFor: text(b.scheduledFor),
-        createdAt:    text(b.createdAt),
+        // The raw appointment as stored. Turning it into a sentence is
+        // bookingSchedule.resolveSchedule's job — this module deliberately owns
+        // money and identity, not time, and importing a formatter here would
+        // break its no-dependencies contract. Callers that render a schedule
+        // call resolveSchedule(booking) directly.
+        scheduledFor:   text(b.scheduledFor),
+        scheduledForMs: Number.isFinite(Number(b.scheduledForMs)) ? Number(b.scheduledForMs) : null,
+        createdAt:      text(b.createdAt),
     };
 }
 
@@ -662,7 +668,7 @@ const PHASE_TO_STAGE = {
  * `action: null` means "nothing to do", which is itself an answer and is far
  * calmer than an enabled button that does nothing.
  */
-export function resolveJourney(booking, audience = 'customer') {
+export function resolveJourney(booking, audience = 'customer', opts = {}) {
     const b     = booking || {};
     const phase = resolveJobPhase(b);
     const st    = norm(b.status);
@@ -670,6 +676,22 @@ export function resolveJourney(booking, audience = 'customer') {
     const a     = resolveArtisan(b);
     const who   = a.name || 'your professional';
     const isCustomer = audience !== 'artisan';
+
+    // ── The appointment, if the caller resolved one ──────────────────────────
+    //
+    // `opts.schedule` is a resolveSchedule() result from
+    // shared/js/domain/bookingSchedule.js. It arrives as an argument rather than
+    // an import because this module answers ONLY from the booking record and
+    // takes no dependencies (see the header) — and because a caller that does
+    // not care about time should get today's copy unchanged.
+    //
+    // Omitted, or unscheduled, means "as soon as possible", which is what every
+    // booking HandyHub had ever written before appointments existed. The
+    // sentences below only diverge when a real slot is waiting.
+    const appt     = opts.schedule || null;
+    const booked   = !!(appt && appt.scheduled);
+    const notYet   = booked && appt.isDue === false;
+    const apptWhen = booked ? appt.label : null;
 
     const stageIndex = PHASE_TO_STAGE[phase] ?? 0;
     const terminal   = ['completed', 'cancelled', 'rejected', 'unfulfilled'].includes(st);
@@ -698,17 +720,25 @@ export function resolveJourney(booking, audience = 'customer') {
     const S = {};
 
     S[JOB_PHASE.REQUEST] = isCustomer ? {
-        here: 'Finding your professional',
-        just: 'Your problem, photos and location have been sent to verified professionals nearby.',
+        here: booked ? `Holding ${apptWhen}` : 'Finding your professional',
+        just: booked
+            ? `Your booking for ${apptWhen} has been sent to verified professionals nearby.`
+            : 'Your problem, photos and location have been sent to verified professionals nearby.',
         // Truthful, not a countdown: the app does not know when someone will accept.
         next: 'We will notify you the moment one accepts. You can close the app.',
         action: { label: 'Cancel request', kind: 'ghost', op: 'cancel' },
         tone: 'waiting',
     } : {
-        here: 'New request',
-        just: 'A customer nearby needs this job.',
-        next: 'Accept to take it, or decline so it goes to someone else.',
-        action: { label: 'Accept', kind: 'primary', op: 'accept' },
+        here: booked ? `New booking · ${apptWhen}` : 'New request',
+        just: booked
+            ? 'A customer has booked this slot and is waiting for a professional to commit to it.'
+            : 'A customer nearby needs this job.',
+        // Accepting an appointment is a promise about a future day, and the
+        // artisan has to be told that BEFORE they tap, not after.
+        next: booked
+            ? `Accepting commits you to arriving ${apptWhen}. Decline if you cannot make it.`
+            : 'Accept to take it, or decline so it goes to someone else.',
+        action: { label: booked ? 'Accept this slot' : 'Accept', kind: 'primary', op: 'accept' },
         tone: 'action',
     };
 
@@ -731,17 +761,31 @@ export function resolveJourney(booking, audience = 'customer') {
     S[JOB_PHASE.INSPECTION] = isCustomer ? {
         here: st === 'en_route' ? `${who} is on the way` : 'Inspection booked',
         just: 'Your visit fee is secured in escrow.',
-        next: `${who} will assess the problem, then send you a fixed price.`,
+        // A booked slot is the single most useful thing to say here: it answers
+        // "when will somebody actually come?", which is the question the
+        // customer is holding while they read this.
+        next: notYet
+            ? `${who} will arrive ${apptWhen}, assess the problem, then send you a fixed price.`
+            : `${who} will assess the problem, then send you a fixed price.`,
         action: { label: 'Track', kind: 'secondary', op: 'track' },
-        tone: 'live',
+        tone: notYet ? 'waiting' : 'live',
     } : {
-        here: st === 'en_route' ? 'On your way' : 'Inspection visit',
+        here: st === 'en_route' ? 'On your way'
+            : notYet            ? 'Booked'
+            :                     'Inspection visit',
         just: 'The visit fee is secured — you are paid for this trip.',
-        next: 'Assess the problem on site, then complete the inspection.',
-        action: st === 'inspection_scheduled'
-            ? { label: 'Mark en route', kind: 'primary', op: 'enRoute' }
-            : { label: 'Complete inspection', kind: 'primary', op: 'completeInspection' },
-        tone: 'action',
+        next: notYet
+            ? `You committed to arriving ${apptWhen}. Nothing to do until then.`
+            : 'Assess the problem on site, then complete the inspection.',
+        // Acceptance is not commencement. Offering "Mark en route" days before
+        // the slot proposes an action firestore.rules (scheduleWindowOpen) will
+        // refuse — so the action is withheld rather than made to fail.
+        action: notYet
+            ? null
+            : st === 'inspection_scheduled'
+                ? { label: 'Mark en route', kind: 'primary', op: 'enRoute' }
+                : { label: 'Complete inspection', kind: 'primary', op: 'completeInspection' },
+        tone: notYet ? 'waiting' : 'action',
     };
 
     S[JOB_PHASE.QUOTING] = isCustomer ? {
@@ -781,13 +825,19 @@ export function resolveJourney(booking, audience = 'customer') {
         action: { label: 'Track', kind: 'secondary', op: 'track' },
         tone: 'live',
     } : {
-        here: st === 'in_progress' ? 'Working' : 'Work approved',
+        here: st === 'in_progress' ? 'Working'
+            : (st === 'accepted' && notYet) ? 'Booked'
+            : 'Work approved',
         just: 'The customer approved your quote and the money is in escrow.',
-        next: 'Do the job, then mark it done so the customer can release payment.',
-        action: st === 'accepted'    ? { label: 'Mark en route',  kind: 'primary', op: 'enRoute' }
+        next: (st === 'accepted' && notYet)
+            ? `You committed to arriving ${apptWhen}. Nothing to do until then.`
+            : 'Do the job, then mark it done so the customer can release payment.',
+        // Same gate as the inspection cycle: only SETTING OUT waits for the
+        // slot. Arriving and finishing record things that already happened.
+        action: st === 'accepted'    ? (notYet ? null : { label: 'Mark en route',  kind: 'primary', op: 'enRoute' })
               : st === 'en_route'    ? { label: 'Mark arrived',   kind: 'primary', op: 'arrived' }
               :                        { label: 'Mark job done',  kind: 'primary', op: 'markDone' },
-        tone: 'action',
+        tone: (st === 'accepted' && notYet) ? 'waiting' : 'action',
     };
 
     S[JOB_PHASE.AWAITING_CONFIRM] = isCustomer ? {
@@ -822,8 +872,8 @@ export function resolveJourney(booking, audience = 'customer') {
 }
 
 /** Stage list with per-stage state, for a progress rail. */
-export function journeyStages(booking, audience = 'customer') {
-    const { stageIndex, terminal } = resolveJourney(booking, audience);
+export function journeyStages(booking, audience = 'customer', opts = {}) {
+    const { stageIndex, terminal } = resolveJourney(booking, audience, opts);
     return JOURNEY_STAGES.map((s, i) => ({
         key:   s.key,
         label: audience === 'artisan' ? s.artisan : s.customer,

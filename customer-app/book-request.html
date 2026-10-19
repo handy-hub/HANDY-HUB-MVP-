@@ -85,6 +85,51 @@
           <input type="file" id="br-photo-input" accept="image/jpeg,image/png,image/webp" multiple hidden />
         </div>
 
+        <!-- ── WHEN ──────────────────────────────────────────────────────────
+             The question HandyHub could not previously ask.
+
+             Every booking was created with status 'pending' and no time, so
+             onBookingCreated dispatched it immediately and the artisan was given
+             three minutes to respond — correct for "my kitchen is flooding",
+             wrong for "next Saturday", and the app had no way to tell them
+             apart. ASAP stays the default, so this adds a choice without
+             changing what happens when nobody makes one.
+        ─────────────────────────────────────────────────────────────────────── -->
+        <h2 class="br-q br-stagger">When should we come?</h2>
+        <div class="br-when br-stagger" id="br-when" role="radiogroup" aria-label="When should we come?">
+          <button type="button" class="br-when-opt" role="radio" aria-checked="true" data-when="asap">
+            <span class="br-when-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+                <path d="M13 2L4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="br-when-txt">
+              <strong>As soon as possible</strong>
+              <small>We start looking for a professional right away.</small>
+            </span>
+          </button>
+          <button type="button" class="br-when-opt" role="radio" aria-checked="false" data-when="scheduled">
+            <span class="br-when-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+                <rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="br-when-txt">
+              <strong>Pick a date and time</strong>
+              <small>Book a slot and your professional commits to it.</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="br-sched br-stagger" id="br-sched" hidden>
+          <label class="br-sched-lbl" for="br-date">Date</label>
+          <input type="date" id="br-date" class="br-sched-date" />
+          <p class="br-sched-lbl" id="br-slot-lbl">Arrival window</p>
+          <div class="br-slot-grid" id="br-slot-grid" role="radiogroup" aria-labelledby="br-slot-lbl"></div>
+          <p class="br-sched-note" id="br-sched-note" aria-live="polite"></p>
+        </div>
+
         <h2 class="br-q br-stagger">Where should we come?</h2>
         <div class="br-loc-card br-stagger">
           <div class="br-loc-beacon" aria-hidden="true"><span></span></div>
@@ -105,6 +150,7 @@
       <!-- ── VIEW 2 · THE VISIT FEE (receipt) ─────────────────── -->
       <section class="br-view" id="view-fee" hidden>
         <div class="br-choice-line br-stagger" id="br-choice-line"></div>
+        <p class="br-when-summary br-stagger" id="br-when-summary"></p>
 
         <div class="br-receipt br-stagger" id="br-receipt" aria-live="polite">
           <p class="br-receipt-brand">HANDYHUB &middot; VISIT FEE</p>

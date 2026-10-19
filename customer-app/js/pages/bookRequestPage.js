@@ -13,6 +13,10 @@ import { pricingService } from '../../../shared/js/services/pricingService.js';
 import { uploadImage, UPLOAD_PRESETS, cdnUrl } from '../../../shared/js/services/cloudinaryService.js';
 import { mapError } from '../../../shared/js/utils/errorCopy.js';
 import { resolveArtisan, initialsOf, resolveJourney, journeyStages } from '../../../shared/js/domain/bookingTruth.js';
+import {
+    TIME_WINDOWS, availableWindowsFor, validateScheduleRequest,
+    earliestSelectableDate, latestSelectableDate, resolveSchedule,
+} from '../../../shared/js/domain/bookingSchedule.js';
 
 const MAX_PHOTOS   = 4;
 const LOC_CACHE_KEY = 'hh_detected_location';
@@ -55,6 +59,13 @@ const S = {
     locPrecise: false,
     artisanId: null,     // the professional the customer chose, if any
     artisanName: null,
+    // ── When ─────────────────────────────────────────────────────────────────
+    // 'asap' is the default and reproduces the behaviour every HandyHub booking
+    // has ever had: dispatch starts the moment the booking is written. 'scheduled'
+    // is the new choice, and only then do date/window carry meaning.
+    when: 'asap',        // 'asap' | 'scheduled'
+    schedDate: null,     // 'YYYY-MM-DD' wall clock, Africa/Accra
+    schedWindow: null,   // a TIME_WINDOWS id
     quote: null,         // server pricing quote
     feeTimer: null,
     bookingId: null,
@@ -287,9 +298,16 @@ function saveDraft() {
                         .map(p => ({ publicId: p.publicId, version: p.version, url: p.url })),
         artisanId:   S.artisanId,
         artisanName: S.artisanName,
+        // A chosen appointment is the customer's work too. Losing it on a
+        // refresh means re-deciding when to be home, which is the most
+        // effortful choice on this form.
+        when:        S.when,
+        schedDate:   S.schedDate,
+        schedWindow: S.schedWindow,
     };
     // Nothing worth keeping — don't leave a husk that "restores" an empty form.
-    if (!draft.catId && !draft.desc.trim() && !draft.address.trim() && !draft.photos.length) {
+    if (!draft.catId && !draft.desc.trim() && !draft.address.trim() &&
+        !draft.photos.length && draft.when === 'asap') {
         clearDraft(); return;
     }
     try { localStorage.setItem(draftKey(), JSON.stringify(draft)); }
@@ -326,6 +344,16 @@ function restoreDraft() {
     }
     if (d.address) $('br-address').value = d.address;
     if (d.artisanId) { S.artisanId = String(d.artisanId); S.artisanName = d.artisanName || null; }
+
+    // A saved slot is re-validated, never trusted: a draft written yesterday may
+    // name a window that has since passed. renderSchedule() disables anything
+    // unbookable, so restoring an expired choice would silently clear it —
+    // setWhen() runs the same validation the picker does.
+    if (d.when === 'scheduled') {
+        S.schedDate   = d.schedDate   || null;
+        S.schedWindow = d.schedWindow || null;
+        setWhen('scheduled', { silent: true });
+    }
 
     for (const p of (d.photos || [])) {
         if (!p.url || S.photos.length >= MAX_PHOTOS) continue;
@@ -381,6 +409,126 @@ function setFieldError(id, message) {
     catch { el.scrollIntoView({ block: 'center' }); }
 }
 
+// ── WHEN — as soon as possible, or a booked slot ─────────────────────────────
+//
+// The booking engine could previously express exactly one moment: now. Every
+// booking was written with status 'pending' and no time, onBookingCreated
+// dispatched it immediately, and the artisan was given three minutes to answer.
+// That is the right behaviour for a burst pipe and the wrong behaviour for a
+// repaint next Tuesday, and nothing in the system could tell the two apart.
+//
+// ASAP remains the default, so a customer who does not engage with this section
+// gets precisely the behaviour they got before. Choosing a slot is an opt-in
+// into a different promise: the professional commits to a window, and
+// firestore.rules will not let them mark themselves en route before it opens.
+//
+// The rules live in shared/js/domain/bookingSchedule.js and are the SAME rules
+// createInspectionBooking applies. This picker cannot offer a slot the server
+// would refuse, because it asks the server's own validator which slots exist.
+
+function setWhen(mode, { silent = false } = {}) {
+    S.when = mode === 'scheduled' ? 'scheduled' : 'asap';
+
+    document.querySelectorAll('#br-when .br-when-opt').forEach((btn) => {
+        btn.setAttribute('aria-checked', String(btn.dataset.when === S.when));
+    });
+    $('br-sched').hidden = S.when !== 'scheduled';
+
+    if (S.when === 'asap') {
+        // Clear rather than remember. A stale slot silently re-applying on a
+        // later visit is how a customer ends up booked for a day they did not
+        // choose — and "as soon as possible" has to mean it.
+        S.schedDate = null;
+        S.schedWindow = null;
+    } else {
+        const dateEl = $('br-date');
+        dateEl.min = earliestSelectableDate();
+        dateEl.max = latestSelectableDate();
+        if (!S.schedDate || S.schedDate < dateEl.min || S.schedDate > dateEl.max) {
+            S.schedDate = dateEl.min;
+        }
+        dateEl.value = S.schedDate;
+        renderSlots();
+    }
+    if (!silent) scheduleDraftSave();
+}
+
+function renderSlots() {
+    const grid = $('br-slot-grid');
+    const windows = availableWindowsFor(S.schedDate);
+
+    // A slot the customer had chosen that is no longer bookable (they left the
+    // tab open past midday) is dropped here rather than carried into a request
+    // the server will reject.
+    if (S.schedWindow && !windows.find(w => w.id === S.schedWindow && w.available)) {
+        S.schedWindow = null;
+    }
+
+    grid.innerHTML = '';
+    for (const w of windows) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'br-slot';
+        btn.setAttribute('role', 'radio');
+        btn.setAttribute('aria-checked', String(S.schedWindow === w.id));
+        btn.dataset.slot = w.id;
+        if (!w.available) {
+            btn.disabled = true;
+            // The reason travels with the control. "Unavailable" alone makes the
+            // customer guess whether the problem is the day, the hour or the app.
+            btn.title = w.reason || 'Not available';
+        }
+        btn.innerHTML =
+            `<span class="br-slot-name">${esc(w.label)}</span>` +
+            `<span class="br-slot-time">${esc(w.clock)}</span>`;
+        grid.appendChild(btn);
+    }
+
+    const note = $('br-sched-note');
+    note.classList.remove('is-error');
+    if (S.schedWindow) {
+        const v = validateScheduleRequest({ dateStr: S.schedDate, windowId: S.schedWindow });
+        note.textContent = v.ok
+            ? `Your professional will arrive ${v.label}.`
+            : v.reason;
+        note.classList.toggle('is-error', !v.ok);
+    } else if (!windows.some(w => w.available)) {
+        note.textContent = 'No windows left on this day — pick a later date.';
+    } else {
+        note.textContent = 'Pick the window that suits you.';
+    }
+}
+
+function initWhen() {
+    $('br-when')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.br-when-opt');
+        if (btn) setWhen(btn.dataset.when);
+    });
+    $('br-date')?.addEventListener('change', (e) => {
+        S.schedDate = e.target.value || earliestSelectableDate();
+        renderSlots();
+        scheduleDraftSave();
+    });
+    $('br-slot-grid')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.br-slot');
+        if (!btn || btn.disabled) return;
+        S.schedWindow = btn.dataset.slot;
+        renderSlots();
+        scheduleDraftSave();
+    });
+}
+
+/**
+ * The appointment as the server wants it, or null for the immediate flow.
+ * Returns the wall clock the customer picked — never an instant — so the server
+ * decides what "Saturday 2pm" means rather than inheriting this device's
+ * timezone. See ACCRA_UTC_OFFSET_MINUTES in bookingSchedule.js.
+ */
+function schedulePayload() {
+    if (S.when !== 'scheduled' || !S.schedDate || !S.schedWindow) return null;
+    return { dateStr: S.schedDate, windowId: S.schedWindow };
+}
+
 function validateRequest() {
     ['br-desc', 'br-address'].forEach(clearFieldError);
 
@@ -412,6 +560,19 @@ function validateRequest() {
     if (S.photos.some(p => p.uploading)) {
         showToast('Your photos are still uploading — one moment.');
         return false;
+    }
+    // A half-chosen appointment is worse than none: "scheduled" with no window
+    // would fall through to the immediate flow and dispatch a professional the
+    // customer expected on Saturday. Ask for the missing half instead.
+    if (S.when === 'scheduled') {
+        const v = validateScheduleRequest({ dateStr: S.schedDate, windowId: S.schedWindow });
+        if (!v.ok) {
+            const note = $('br-sched-note');
+            note.textContent = S.schedWindow ? v.reason : 'Choose an arrival window for your visit.';
+            note.classList.add('is-error');
+            $('br-sched')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
     }
     return true;
 }
@@ -452,9 +613,20 @@ async function goToFee() {
 
 function renderReceipt() {
     const q = S.quote, cat = activeCategory();
+    // The receipt is the last screen before a commitment, so it repeats WHEN as
+    // well as what. A customer who picked Saturday and then sees only a fee is
+    // being asked to confirm on trust that the app remembered.
+    const sched = schedulePayload();
+    const when  = sched ? validateScheduleRequest(sched) : null;
     $('br-choice-line').innerHTML = `
         <span class="br-cat-ico">${cat.icon}</span>
         <span><strong>${esc(cat.categoryLabel)}</strong> visit &middot; ${esc($('br-desc').value.trim().slice(0, 60))}…</span>`;
+    const whenRow = $('br-when-summary');
+    if (whenRow) {
+        whenRow.textContent = when && when.ok
+            ? `Arriving ${when.label}`
+            : 'Arriving as soon as a professional accepts';
+    }
     $('br-receipt-rows').innerHTML = `
         <div class="br-receipt-row">
             <span class="lbl">Inspection &amp; diagnosis<small>${esc(cat.categoryLabel)} professional, on site</small></span>
@@ -511,6 +683,10 @@ async function confirmRequest() {
             description:  $('br-desc').value.trim(),
             photos:       S.photos.map(p => p.url).filter(Boolean),
             serviceLabel: cat.categoryLabel,
+            // The wall clock, not an instant — the server canonicalises it in
+            // Africa/Accra so a device with the wrong timezone cannot book the
+            // customer into a slot they did not choose.
+            schedule:     schedulePayload(),
         });
         clearTimeout(S.feeTimer);
         clearDraft();                    // it is a booking now, not a draft
@@ -626,7 +802,10 @@ async function renderTrack(b) {
 
     // Where am I, in the whole journey — the same question the artisan's screen
     // answers from the same projection, so the two sides never disagree.
-    const stages = journeyStages(b, 'customer');
+    // The lifecycle projection is given the appointment so its copy can say
+    // "arriving Saturday" instead of implying someone is already on their way.
+    const sched  = resolveSchedule(b);
+    const stages = journeyStages(b, 'customer', { schedule: sched });
     const cur    = stages.findIndex(s => s.state === 'current');
     const pct    = cur === -1 ? 100 : Math.round(((cur + 1) / stages.length) * 100);
     $('br-progress').style.width = `${pct}%`;
@@ -640,17 +819,20 @@ async function renderTrack(b) {
         //
         // The old copy promised "a few minutes" while the artisan side is given a
         // 3-hour response window — a mismatch the customer had no way to see.
-        const j       = resolveJourney(b, 'customer');
+        const j       = resolveJourney(b, 'customer', { schedule: sched });
         const direct  = !!b.artisanId && (b.currentArtisanName || b.artisanName);
         const waited  = Date.parse(b.createdAt || '') || null;
         const mins    = waited ? Math.floor((Date.now() - waited) / 60000) : null;
 
         // Escalates in honesty as time passes rather than repeating one promise.
+        // The stated response ceiling was "3 hours" long after the dispatch
+        // timeout became 3 minutes per round — a number that told a waiting
+        // customer to expect an afternoon of silence that was never coming.
         const patience = mins == null || mins < 2
             ? 'Sending your request to professionals nearby.'
             : mins < 15
                 ? 'Waiting for a professional to accept.'
-                : `Still looking — we've been searching for ${mins} minutes. Professionals have up to 3 hours to respond, and we'll notify you the moment one accepts.`;
+                : `Still looking — we've been searching for ${mins} minutes. Each professional gets a few minutes to respond before we move to the next, and we'll notify you the moment one accepts.`;
 
         body.innerHTML = `
             ${rail}
@@ -673,9 +855,15 @@ async function renderTrack(b) {
         await loadWallet();
         const fee   = Number(b.calloutFee || 0);
         const short = S.walletBalance != null && S.walletBalance < fee;
+        // When the visit is booked for a specific window, say so here. This is
+        // the screen where the customer parts with money, and "pay to lock in
+        // the inspection" is a weaker promise than naming the slot they are
+        // locking in.
+        const apptAccepted = resolveSchedule(b);
         body.innerHTML = `
             ${rail}
             <div class="br-stagger">${proCard(b)}</div>
+            ${apptAccepted.scheduled ? `<p class="br-when-summary br-stagger">Arriving ${esc(apptAccepted.label)}</p>` : ''}
             <div class="br-wallet-strip ${short ? 'short' : ''} br-stagger">
                 <span>Wallet balance</span>
                 <strong>${S.walletBalance == null ? '—' : ghs(S.walletBalance)}</strong>
@@ -689,8 +877,14 @@ async function renderTrack(b) {
         }
 
     } else if (['inspection_scheduled', 'en_route', 'in_progress'].includes(st) && !b.quoteApproved) {
+        // "The professional will head over" is true of an immediate booking and
+        // misleading about an appointment: it invites the customer to expect
+        // someone today when the slot they chose is on Saturday.
+        const apptBooked = resolveSchedule(b);
         const sub  = st === 'inspection_scheduled'
-            ? 'Your callout fee is secured. The professional will head over to assess the problem.'
+            ? (apptBooked.scheduled
+                ? `Your callout fee is secured and your slot is held for ${apptBooked.label}.`
+                : 'Your callout fee is secured. The professional will head over to assess the problem.')
             : st === 'en_route' ? 'Your professional is on the way.' : 'Inspection happening now.';
         body.innerHTML = `
             ${rail}
@@ -795,6 +989,11 @@ async function init() {
 
     renderCategories();
     wirePhotos();
+    initWhen();
+    // Paint the default explicitly rather than relying on the markup's initial
+    // aria-checked. restoreDraft() may override it a moment later; this makes
+    // sure S.when and the DOM agree either way.
+    setWhen('asap', { silent: true });
 
     $('br-desc').addEventListener('input', (e) => {
         $('br-count').textContent = `${e.target.value.length}/2000`;

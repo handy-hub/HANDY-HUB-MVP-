@@ -317,6 +317,131 @@ await it('artisan CAN still decline a pending booking', async () => {
     }));
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('\nAppointments: acceptance is not commencement');
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// A booking may carry an arrival window (scheduledForMs, epoch millis). Two
+// invariants have to hold at the RULES layer, because the client cannot be
+// trusted to hold them:
+//
+//   1. Neither party may write the appointment. A customer who could move
+//      scheduledForMs into the past would unlock the gate below on their own
+//      booking; an artisan who could write it could rewrite the slot they
+//      committed to. Only the server (createInspectionBooking) sets it.
+//   2. An artisan may not mark themselves en route before the window opens.
+//      Accepting a Saturday appointment on Monday is a commitment, not a
+//      starting gun — and before this gate existed, `accepted` flowed straight
+//      into `en_route` with nothing to stop it.
+
+const SCHED_ARTISAN = 'artisan_scheduled';
+const HOUR = 3600000;
+
+await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'artisans', SCHED_ARTISAN), {
+        name: 'Scheduled Artisan', status: 'active',
+        verificationStatus: 'approved', rating: 0, reviewCount: 0,
+    });
+    const common = {
+        customerId: VICTIM, artisanId: SCHED_ARTISAN,
+        serviceType: 'Plumbing', createdAt: new Date().toISOString(),
+        quoteApproved: true,
+    };
+    // A week out — comfortably outside the 90-minute grace period.
+    await setDoc(doc(db, 'bookings', 'HHB-SCHED-FUTURE'), {
+        ...common, status: 'accepted',
+        scheduledForMs: Date.now() + 7 * 24 * HOUR, scheduleWindowMins: 180,
+    });
+    // Starting in 20 minutes — inside the grace, so work may begin.
+    await setDoc(doc(db, 'bookings', 'HHB-SCHED-NOW'), {
+        ...common, status: 'accepted',
+        scheduledForMs: Date.now() + 20 * 60000, scheduleWindowMins: 180,
+    });
+    // The inspection track reaches en_route by a DIFFERENT rules clause.
+    await setDoc(doc(db, 'bookings', 'HHB-SCHED-INSP'), {
+        ...common, status: 'inspection_scheduled', track: 'inspection',
+        calloutPaid: true, quoteApproved: false,
+        scheduledForMs: Date.now() + 7 * 24 * HOUR, scheduleWindowMins: 180,
+    });
+    // No appointment at all — must behave exactly as it always has.
+    await setDoc(doc(db, 'bookings', 'HHB-SCHED-NONE'), { ...common, status: 'accepted' });
+    // For the field-authority checks.
+    await setDoc(doc(db, 'bookings', 'HHB-SCHED-FIELDS'), {
+        ...common, status: 'pending',
+        scheduledForMs: Date.now() + 7 * 24 * HOUR, scheduleWindowMins: 180,
+    });
+});
+
+const schedArtDb = testEnv.authenticatedContext(SCHED_ARTISAN).firestore();
+
+await it('artisan CANNOT go en route a week before the appointment', async () => {
+    const n = new Date().toISOString();
+    await assertFails(updateDoc(doc(schedArtDb, 'bookings', 'HHB-SCHED-FUTURE'), {
+        status: 'en_route', enRouteAt: n, updatedAt: n,
+    }));
+});
+
+await it('artisan CAN go en route once the window has opened', async () => {
+    const n = new Date().toISOString();
+    await assertSucceeds(updateDoc(doc(schedArtDb, 'bookings', 'HHB-SCHED-NOW'), {
+        status: 'en_route', enRouteAt: n, updatedAt: n,
+    }));
+});
+
+await it('the inspection-track en_route clause is gated too', async () => {
+    // Both clauses must carry the gate; one without it is a hole.
+    const n = new Date().toISOString();
+    await assertFails(updateDoc(doc(schedArtDb, 'bookings', 'HHB-SCHED-INSP'), {
+        status: 'en_route', enRouteAt: n, updatedAt: n,
+    }));
+});
+
+await it('a booking with NO appointment is never gated (regression guard)', async () => {
+    // Every booking written before appointments existed, and every emergency
+    // booking, lands here. Absence must keep meaning "now".
+    const n = new Date().toISOString();
+    await assertSucceeds(updateDoc(doc(schedArtDb, 'bookings', 'HHB-SCHED-NONE'), {
+        status: 'en_route', enRouteAt: n, updatedAt: n,
+    }));
+});
+
+await it('artisan cannot move the appointment to unlock the gate', async () => {
+    const n = new Date().toISOString();
+    await assertFails(updateDoc(doc(schedArtDb, 'bookings', 'HHB-SCHED-FIELDS'), {
+        scheduledForMs: Date.now() - HOUR, updatedAt: n,
+    }));
+});
+
+await it('customer cannot write or move the appointment either', async () => {
+    const n = new Date().toISOString();
+    await assertFails(updateDoc(doc(victimDb, 'bookings', 'HHB-SCHED-FIELDS'), {
+        scheduledForMs: Date.now() - HOUR, updatedAt: n,
+    }));
+    await assertFails(updateDoc(doc(victimDb, 'bookings', 'HHB-SCHED-FIELDS'), {
+        scheduleWindowMins: 9999, updatedAt: n,
+    }));
+});
+
+await it('customer cannot fabricate an appointment on a NEW booking', async () => {
+    // bookingHasNoSystemFields() must reject it at create, the same way it
+    // rejects a fabricated inspection track.
+    const n = new Date().toISOString();
+    await assertFails(setDoc(doc(victimDb, 'bookings', 'HHB-SCHED-FORGED'), {
+        customerId: VICTIM, artisanId: SCHED_ARTISAN, status: 'pending',
+        serviceType: 'Plumbing', createdAt: n,
+        scheduledForMs: Date.now() + 3 * HOUR,
+    }));
+});
+
+await it('customer cannot clear the reminder flag to farm notifications', async () => {
+    const n = new Date().toISOString();
+    await assertFails(updateDoc(doc(victimDb, 'bookings', 'HHB-SCHED-FIELDS'), {
+        scheduleReminderSentAt: null, updatedAt: n,
+    }));
+});
+
+
 console.log('\n' + '─'.repeat(52));
 console.log(`  ${passed} passed, ${failed} failed`);
 console.log('─'.repeat(52) + '\n');

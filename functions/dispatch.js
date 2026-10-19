@@ -46,6 +46,26 @@ const { geohashQueryBounds } = require('geofire-common');
 const STANDARD_TIMEOUT_S  = 3 * 60;   // 3 minutes
 const EMERGENCY_TIMEOUT_S = 65;       // ~1 minute — someone needs help now
 
+// A BOOKED APPOINTMENT IS NOT A SUMMONS.
+//
+// The three-minute deadline above exists because a customer waiting for help
+// now deserves a fast answer — an unanswered request must move on to the next
+// professional quickly. None of that reasoning applies to a request for next
+// Saturday. Holding an artisan to three minutes on a booking eight days out
+// simply loses good matches: the artisan is up a ladder, the round expires, and
+// the customer ends up with the fourth-best professional for no reason at all.
+//
+// Twenty minutes is the balance. It is still far inside the customer's tolerance
+// (they are not waiting by the phone — they have booked a slot and closed the
+// app), and it is long enough for a working artisan to reach a stopping point,
+// check their calendar, and decide properly.
+const SCHEDULED_TIMEOUT_S = 20 * 60;  // 20 minutes
+
+// Generated mirror of shared/js/domain/bookingSchedule.js — see
+// scripts/build-functions-shared.cjs. Dispatch asks it one question: does this
+// booking have an appointment, and when?
+const bookingSchedule = require('./shared/bookingSchedule');
+
 // ── Firestore singleton ───────────────────────────────────────────────────────
 let _db;
 function db() {
@@ -182,7 +202,7 @@ async function dispatchRound(bookingId) {
     // Hoisted out of the transaction so the post-transaction notification can
     // use them. customerFirstName lets the artisan tell one simultaneous
     // request from another.
-    let chosen, isEmergency, round, customerId, serviceType, customerFirstName;
+    let chosen, isEmergency, round, customerId, serviceType, customerFirstName, appointment;
 
     const result = await db().runTransaction(async (txn) => {
         const snap    = await txn.get(bookingRef);
@@ -204,7 +224,15 @@ async function dispatchRound(bookingId) {
         customerId   = booking.customerId;
         serviceType  = booking.serviceType || booking.service || 'Service';
         customerFirstName = booking.customerFirstName || null;
-        const timeout = isEmergency ? EMERGENCY_TIMEOUT_S : STANDARD_TIMEOUT_S;
+
+        // THREE urgency tiers, not two. Emergency and immediate-standard are
+        // both "someone is waiting"; a booked appointment is not, and holding it
+        // to the same clock was the mechanism by which a scheduled request
+        // behaved like an emergency one.
+        appointment = bookingSchedule.resolveSchedule(booking);
+        const timeout = isEmergency          ? EMERGENCY_TIMEOUT_S
+                      : appointment.scheduled ? SCHEDULED_TIMEOUT_S
+                      :                         STANDARD_TIMEOUT_S;
 
         const alreadyTried = booking.artisanCandidates || [];
         round = (booking.currentDispatchRound || 0) + 1;
@@ -270,21 +298,40 @@ async function dispatchRound(bookingId) {
         const distText = chosen._distKm == null ? ''
             : chosen._distKm < 0.1 ? ' · under 100 m away'
             : ` · ${chosen._distKm.toFixed(1)} km away`;
-        const timeoutTxt = isEmergency ? 'about 1 minute' : '3 hours';
+
+        // The response deadline, stated truthfully. This read "3 hours" for
+        // every non-emergency booking long after STANDARD_TIMEOUT_S was cut to
+        // three minutes — an artisan who believed it lost the job while they
+        // finished what they were doing.
+        const timeoutTxt = isEmergency             ? 'about 1 minute'
+                         : appointment.scheduled   ? '20 minutes'
+                         :                           '3 minutes';
 
         // Name the customer so the artisan can tell one simultaneous request
         // from another. First name only — the same field the job card shows.
         const who = customerFirstName ? ` from ${String(customerFirstName).slice(0, 40)}` : '';
 
+        // WHEN the job is, stated before anything else. This is the difference
+        // between a request an artisan can answer and one they cannot: "accept
+        // to hold Saturday afternoon" is a decision; "new booking request" on the
+        // same job is a summons they have no way to evaluate.
+        const whenText = appointment.scheduled ? ` for ${appointment.label}` : '';
+
         await sendArtisanNotification(chosen.id, {
             type:      'Bookings',
-            title:     isEmergency ? 'Emergency Job Request' : 'New Booking Request',
-            message:   `${serviceType} request${who}${distText}. You have ${timeoutTxt} to respond.`,
+            title:     isEmergency           ? 'Emergency Job Request'
+                     : appointment.scheduled ? 'New Scheduled Booking'
+                     :                         'New Booking Request',
+            message:   appointment.scheduled
+                ? `${serviceType} visit${who}${whenText}${distText}. Accept within ${timeoutTxt} to hold the slot.`
+                : `${serviceType} request${who}${distText}. You have ${timeoutTxt} to respond.`,
             actionUrl: 'dashboard.html',
             metadata:  {
                 bookingId,
                 serviceType,
                 isEmergency,
+                scheduled:   appointment.scheduled,
+                scheduledFor: appointment.iso,
                 round,
             },
         }).catch(e => console.warn('[dispatch] artisan notif error:', e.message));

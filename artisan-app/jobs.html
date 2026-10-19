@@ -253,6 +253,8 @@ import { createBookingRepository }           from '../shared/js/data/repositorie
 import { describe as describeStatus }        from '../shared/js/domain/bookingStatusMeta.js';
 import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
                                             from '../shared/js/domain/bookingTruth.js';
+import { resolveSchedule, canStartWork }
+                            from '../shared/js/domain/bookingSchedule.js';
 import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 import { performBookingAction, ACTION }      from '../shared/js/domain/bookingActions.js';
 import { pricingService }                    from '../shared/js/services/pricingService.js';
@@ -381,7 +383,14 @@ function buildJobCard(b) {
   // createdAt is when the request was RAISED, not when the visit is booked.
   // Using it as a schedule fallback presented a creation timestamp as an
   // appointment. If there is no real schedule, say so.
-  const date    = b.dateDisplay || fmtDate(b.scheduledAt) || 'Schedule not set';
+  //
+  // scheduledFor/scheduledForMs is the real appointment (server-written, see
+  // bookingSchedule.js). scheduledAt is the legacy field that no code has ever
+  // written a value into — it is read second, and only so an old document that
+  // somehow carries one is not ignored.
+  const appt    = resolveSchedule(b);
+  const gate    = canStartWork(b);
+  const date    = appt.label || b.dateDisplay || fmtDate(b.scheduledAt) || 'Schedule not set';
   const comp    = brief.compensation;
   const distTxt = formatDistance(brief.distanceKm);
 
@@ -415,7 +424,12 @@ function buildJobCard(b) {
           Complete Inspection
         </button>
         ${st === 'inspection_scheduled'
-          ? `<button class="job-btn job-btn-outline" onclick="advanceJob('${esc(b.id)}','en_route','enRouteAt',this)">Mark En Route</button>`
+          ? (gate.allowed
+              ? `<button class="job-btn job-btn-outline" onclick="advanceJob('${esc(b.id)}','en_route','enRouteAt',this)">Mark En Route</button>`
+              // The slot has not come round. The write would be refused by
+              // firestore.rules, so state the appointment instead of offering
+              // a control that cannot succeed.
+              : `<button class="job-btn job-btn-outline" disabled style="opacity:.5;cursor:default;">Booked · ${esc(appt.label)}</button>`)
           : `<button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`}`;
     }
   } else if (isActive && action) {
@@ -429,8 +443,14 @@ function buildJobCard(b) {
         <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
     } else {
       const disabled = action.next === null ? 'disabled style="opacity:.5;cursor:default;"' : '';
+      // Setting out is the one advance an appointment gates. Arriving and
+      // finishing are records of things that already happened and are never
+      // blocked by the clock.
+      const gatedByClock = action.next === 'en_route' && !gate.allowed;
       actionsHtml = `
-        ${action.next ? `<button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','${action.next}','${action.field}',this)" ${disabled}>${esc(action.label)}</button>` : `<button class="job-btn job-btn-decline" disabled style="opacity:.5;">Awaiting Customer…</button>`}
+        ${gatedByClock
+          ? `<button class="job-btn job-btn-outline" disabled style="opacity:.5;cursor:default;">Booked · ${esc(appt.label)}</button>`
+          : action.next ? `<button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','${action.next}','${action.field}',this)" ${disabled}>${esc(action.label)}</button>` : `<button class="job-btn job-btn-decline" disabled style="opacity:.5;">Awaiting Customer…</button>`}
         <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
     }
   } else if (isActive) {

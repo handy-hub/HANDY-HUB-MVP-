@@ -310,6 +310,7 @@ import { resolveAvatar, TRANSFORMS }                   from '../shared/js/servic
 import { pricingService }                              from '../shared/js/services/pricingService.js';
 import { describe as describeStatus }                  from '../shared/js/domain/bookingStatusMeta.js';
 import { performBookingAction, ACTION }                from '../shared/js/domain/bookingActions.js';
+import { resolveSchedule }                             from '../shared/js/domain/bookingSchedule.js';
 
 // ── BLOCKING AUTH GUARD ───────────────────────────────────────────────────────
 // Verifies: authenticated + role=artisan + not suspended.
@@ -604,11 +605,17 @@ function renderJobCard(booking) {
         <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
         ${d.address || d.location || 'Location not set'}
       </p>
-      ${d.dateDisplay || d.scheduledAt ? `
-      <p style="margin:0;font-size:11.5px;color:#777;display:flex;align-items:center;gap:4px">
-        <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        ${d.dateDisplay || (d.scheduledAt ? new Date(d.scheduledAt).toLocaleDateString('en-GH') : 'Schedule not set')}
-      </p>` : ''}
+      ${(function(){
+        // The booked arrival window, when one was agreed. resolveSchedule owns
+        // the formatting so this card, the job list, the job screen and the
+        // customer app all name the same appointment the same way.
+        var ap = resolveSchedule(d);
+        var line = ap.scheduled ? ap.label : (d.dateDisplay || null);
+        if (!line) return '';
+        return '<p style="margin:0;font-size:11.5px;color:#777;display:flex;align-items:center;gap:4px">' +
+          '<svg viewBox="0 0 24 24" fill="none" width="12" height="12"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+          line + '</p>';
+      })()}
     </div>
 
     <p class="job-budget">${(function(){
@@ -702,8 +709,11 @@ window.declineJob = async function(bookingId) {
 // { label, pillCls, hint } shape the rest of this page renders against, but
 // the values are now track-aware and never drift from the other surfaces.
 function statusMeta(booking) {
-  const d = describeStatus(booking, 'artisan');
-  return { label: d.label, pillCls: `pill-${d.tone}`, hint: d.description };
+  // Pass the appointment so `accepted` reads "Booked · Sat 20 Sep" rather than
+  // "Customer is waiting — head to their location" on a job that is days away.
+  // Unscheduled bookings resolve to scheduled:false and the copy is unchanged.
+  const d = describeStatus(booking, 'artisan', { schedule: resolveSchedule(booking) });
+  return { label: d.label, pillCls: `pill-${d.tone}`, hint: d.description, awaitingSlot: d.awaitingSlot };
 }
 
 // Steps for the in-card mini stepper (index = how many are 'done')
@@ -846,13 +856,19 @@ window.markJobDone = async function(bookingId) {
 // ── Render schedule item ───────────────────────────────
 function renderScheduleItem(booking) {
   const d = booking.data;
-  const date = d.scheduledAt ? new Date(d.scheduledAt) : (d.createdAt ? new Date(d.createdAt) : new Date());
-  const hours = date.getHours();
-  const mins  = String(date.getMinutes()).padStart(2, '0');
-  const ampm  = hours >= 12 ? 'PM' : 'AM';
-  const h12   = ((hours % 12) || 12);
+  // ── An appointment, or an honest blank ──────────────────────────────────
+  // This fell back to createdAt and then to new Date(), so a booking with no
+  // agreed time was rendered with a precise clock face — the artisan's own
+  // schedule told them to be somewhere at 4:07 PM because that happened to be
+  // when the customer tapped Book. A job with no appointment now says so.
+  const ap = resolveSchedule(d);
+  const date = ap.scheduled ? new Date(ap.startMs) : null;
+  const hours = date ? date.getHours() : null;
+  const mins  = date ? String(date.getMinutes()).padStart(2, '0') : null;
+  const ampm  = date ? (hours >= 12 ? 'PM' : 'AM') : '';
+  const h12   = date ? ((hours % 12) || 12) : null;
   const today = new Date();
-  const isToday = date.toDateString() === today.toDateString();
+  const isToday = date ? date.toDateString() === today.toDateString() : false;
   const sm = statusMeta(d);
   const statusClass = d.status === 'accepted' ? 'status-upcoming' : d.status === 'in_progress' ? 'status-progress' : 'status-pending';
   const statusLabel = sm.label || d.status || 'Pending';
@@ -861,8 +877,8 @@ function renderScheduleItem(booking) {
   el.className = 'schedule-item';
   el.innerHTML = `
     <div class="schedule-time">
-      <div class="time">${h12}:${mins} ${ampm}</div>
-      <div class="day">${isToday ? 'Today' : date.toLocaleDateString('en-GH',{month:'short',day:'numeric'})}</div>
+      <div class="time">${date ? `${h12}:${mins} ${ampm}` : 'Anytime'}</div>
+      <div class="day">${date ? (isToday ? 'Today' : date.toLocaleDateString('en-GH',{month:'short',day:'numeric'})) : 'No slot'}</div>
     </div>
     <div class="schedule-divider"></div>
     <div class="schedule-info">
@@ -1038,19 +1054,38 @@ subscribeToArtisanAuthState(async user => {
   );
   unsubs.push(u3);
 
-  // ── Schedule (upcoming standard bookings — future scheduledAt) ──
+  // ── Schedule — what this artisan has committed to ──────────────────────────
+  //
+  // The comment here used to read "future scheduledAt" and the query did no such
+  // thing: it fetched active jobs ordered by createdAt, because no booking in
+  // HandyHub had ever carried an appointment. Now that some do, the section can
+  // finally mean what it says.
+  //
+  // The QUERY is deliberately unchanged. Ordering by scheduledForMs in Firestore
+  // would silently drop every document that lacks the field — which is every
+  // immediate booking — and an artisan's schedule that hides the job they are
+  // doing right now is worse than one that is loosely ordered. So the ordering
+  // is done here, over the same result set: real appointments first, in
+  // chronological order, then the come-when-you-can jobs behind them.
   const u4 = databaseService.subscribeToCollection(
     'bookings',
     [{ field: 'artisanId', op: '==', value: uid },
-     { field: 'status',    op: 'in', value: ['accepted', 'en_route', 'in_progress', 'awaiting'] }],
-    { orderBy: { field: 'createdAt', direction: 'asc' }, limit: 5 },
+     { field: 'status',    op: 'in', value: ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'awaiting'] }],
+    { orderBy: { field: 'createdAt', direction: 'asc' }, limit: 20 },
     records => {
       scheduleList.querySelectorAll('.schedule-item').forEach(c => c.remove());
       if (!records.length) {
         scheduleEmpty.style.display = 'block';
       } else {
         scheduleEmpty.style.display = 'none';
-        records.forEach(b => scheduleList.appendChild(renderScheduleItem(b)));
+        const ordered = records.slice().sort((a, b) => {
+          const sa = resolveSchedule(a.data), sb = resolveSchedule(b.data);
+          if (sa.scheduled && sb.scheduled) return sa.startMs - sb.startMs;
+          if (sa.scheduled) return -1;
+          if (sb.scheduled) return 1;
+          return 0;
+        }).slice(0, 5);
+        ordered.forEach(b => scheduleList.appendChild(renderScheduleItem(b)));
       }
     },
     () => { scheduleEmpty.style.display = 'block'; }

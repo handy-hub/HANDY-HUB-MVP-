@@ -321,8 +321,16 @@ window.openBookingModal=function(id){
   document.getElementById('bm-cat').textContent=b.category||b.serviceType||'—';
   document.getElementById('bm-desc').textContent=b.description||b.notes||'—';
   document.getElementById('bm-loc').textContent=b.location||b.address||'—';
-  const sch=b.scheduledDate||b.preferredDate;
-  document.getElementById('bm-scheduled').textContent=sch||(b.scheduledAt?.toDate?.()?.toLocaleString('en-GH'))||'—';
+  /* The booked arrival window. scheduledDate/preferredDate/scheduledAt were
+     three guesses at a field nothing ever wrote, so this cell read '—' on every
+     booking ever made. scheduledForMs is the real one (server-written — see
+     shared/js/domain/bookingSchedule.js); the older names are kept behind it so
+     an imported or legacy document is still shown rather than blanked. */
+  const schMs=Number(b.scheduledForMs);
+  const sch=Number.isFinite(schMs)
+    ? new Date(schMs).toLocaleString('en-GH')+(b.scheduleWindowMins?` (+${b.scheduleWindowMins} min window)`:'')
+    : (b.scheduledDate||b.preferredDate);
+  document.getElementById('bm-scheduled').textContent=sch||(b.scheduledAt?.toDate?.()?.toLocaleString('en-GH'))||'As soon as possible';
   const amt=b.amount||0;
   document.getElementById('bm-amount').textContent=`GHS ${Number(amt).toFixed(2)}`;
   document.getElementById('bm-commission').textContent=`GHS ${(amt*0.15).toFixed(2)}`;

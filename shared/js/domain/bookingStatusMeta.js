@@ -32,6 +32,16 @@
  * strings; the shared vocabulary here is mirrored by a CI check (see
  * scripts/check-status-vocab.cjs) rather than a runtime import, since Firestore
  * Rules and CFs cannot import an ES module.
+ *
+ * TIME IS NOT STATUS
+ * ──────────────────
+ * A booking's status says what has happened. It does not say WHEN the job is —
+ * that lives in shared/js/domain/bookingSchedule.js, deliberately apart, because
+ * an appointment is orthogonal to the lifecycle (a scheduled inspection is still
+ * an inspection). describe() and getAllowedActions() therefore take an optional
+ * `schedule` — the result of resolveSchedule() — rather than importing it, which
+ * keeps this module's no-imports promise. Omit it and every booking reads as
+ * immediate, which is what every booking written before scheduling existed was.
  */
 
 // ── Canonical vocabulary ─────────────────────────────────────────────────────
@@ -144,7 +154,7 @@ function norm(v) { return String(v == null ? '' : v).toLowerCase(); }
  * @param {'customer'|'artisan'|'admin'} [audience='customer']
  * @returns {{ key, label, description, group, tone, isTerminal, cancellable }}
  */
-export function describe(booking, audience = 'customer') {
+export function describe(booking, audience = 'customer', opts = {}) {
     const status = norm(booking?.status);
     const base   = BASE[status] || { label: booking?.status || 'Pending', group: 'upcoming', tone: 'pending', description: '' };
     const over   = (AUDIENCE_OVERRIDE[audience] || {})[status] || {};
@@ -169,6 +179,31 @@ export function describe(booking, audience = 'customer') {
         }
     }
 
+    // ── A booked appointment changes what "accepted" MEANS ───────────────────
+    //
+    // The artisan copy for `accepted` was "Customer is waiting — head to their
+    // location", and for `inspection_scheduled` "head over and assess the
+    // problem". Both are true of an immediate booking and false of an
+    // appointment: nobody is waiting on Monday for a Saturday visit, and an
+    // artisan told to head over is being told to break the promise they made.
+    //
+    // The status has not changed; its meaning has. That is exactly the class of
+    // context this function exists to resolve — the same reason `accepted` on an
+    // unpaid inspection already reads "Pay visit fee" above.
+    const schedule = opts.schedule || null;
+    const awaitingSlot = schedule && schedule.scheduled && schedule.isDue === false;
+
+    if (awaitingSlot && ['accepted', 'inspection_scheduled'].includes(status) &&
+        !(isInspection && status === 'accepted' && !booking?.calloutPaid)) {
+        if (audience === 'artisan') {
+            label = 'Booked';
+            description = `You committed to this visit for ${schedule.label}. Nothing to do until then.`;
+        } else {
+            label = 'Visit booked';
+            description = `Your professional is booked for ${schedule.label}.`;
+        }
+    }
+
     return {
         key:        status,
         label,
@@ -177,6 +212,10 @@ export function describe(booking, audience = 'customer') {
         tone,
         isTerminal: TAB_STATUSES.completed.includes(status) || TAB_STATUSES.cancelled.includes(status),
         cancellable: group === 'upcoming' || (isInspection && ['accepted', 'inspection_scheduled', 'inspection_done', 'quoted'].includes(status)),
+        // True when the booking is committed but the slot has not arrived. Lets a
+        // list view render "waiting for Saturday" as the calm state it is rather
+        // than as an action the reader is failing to take.
+        awaitingSlot: !!awaitingSlot,
     };
 }
 
@@ -186,10 +225,19 @@ export function describe(booking, audience = 'customer') {
  * style consistently. This centralises "which button shows when" so buttons,
  * like labels, derive from the single definition.
  */
-export function getAllowedActions(booking, audience = 'customer') {
+export function getAllowedActions(booking, audience = 'customer', opts = {}) {
     const status = norm(booking?.status);
     const isInspection = norm(booking?.track) === 'inspection';
     const out = [];
+
+    // ── The appointment gate ─────────────────────────────────────────────────
+    // `schedule` is a resolveSchedule() result. Absent, or unscheduled, means
+    // "now" and nothing below changes. Scheduled-but-not-yet-due suppresses the
+    // travel/start controls: an artisan who committed to Saturday should not be
+    // shown "Mark En Route" on Monday, because firestore.rules will refuse the
+    // write and a button that cannot work is worse than no button.
+    const schedule = opts.schedule || null;
+    const dueNow   = !schedule || !schedule.scheduled || schedule.isDue === true;
 
     if (audience === 'customer') {
         if (isInspection && status === 'accepted' && !booking?.calloutPaid) {
@@ -209,7 +257,11 @@ export function getAllowedActions(booking, audience = 'customer') {
             out.push({ id: 'decline', label: 'Decline', kind: 'default' });
         }
         if (isInspection && status === 'inspection_scheduled') {
-            out.push({ id: 'en_route', label: 'Mark En Route', kind: 'primary' });
+            // "Complete Inspection" stays available whatever the clock says: an
+            // artisan who has done the visit must always be able to record it.
+            // Only SETTING OUT is gated.
+            if (dueNow) out.push({ id: 'en_route', label: 'Mark En Route', kind: 'primary' });
+            else out.push({ id: 'scheduled', label: `Booked · ${schedule.label}`, kind: 'info', disabled: true });
             out.push({ id: 'complete_inspection', label: 'Complete Inspection', kind: 'primary' });
         }
         if (isInspection && ['en_route', 'in_progress'].includes(status) && !booking?.quoteApproved) {
@@ -219,7 +271,10 @@ export function getAllowedActions(booking, audience = 'customer') {
             out.push({ id: 'submit_quote', label: 'Submit Quote', kind: 'primary' });
         }
         if (!isInspection || booking?.quoteApproved) {
-            if (status === 'accepted') out.push({ id: 'en_route', label: 'Mark En Route', kind: 'primary' });
+            if (status === 'accepted') {
+                if (dueNow) out.push({ id: 'en_route', label: 'Mark En Route', kind: 'primary' });
+                else out.push({ id: 'scheduled', label: `Booked · ${schedule.label}`, kind: 'info', disabled: true });
+            }
             if (status === 'en_route') out.push({ id: 'arrived', label: 'Mark Arrived', kind: 'primary' });
             if (status === 'in_progress') out.push({ id: 'job_done', label: 'Mark Job Done', kind: 'primary' });
         }

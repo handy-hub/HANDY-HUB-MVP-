@@ -122,6 +122,8 @@ import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
                             from '../shared/js/domain/bookingTruth.js';
 import { performBookingAction, ACTION }
                             from '../shared/js/domain/bookingActions.js';
+import { resolveSchedule, canStartWork }
+                            from '../shared/js/domain/bookingSchedule.js';
 import { pricingService }   from '../shared/js/services/pricingService.js';
 import { mountQuoteComposer, quoteComposerStyles }
                             from '../shared/js/ui/quoteComposer.js';
@@ -154,27 +156,54 @@ function esc(s) {
 function actionsFor(brief, b) {
   const st = String(b.status || '').toLowerCase();
 
+  /* ── The appointment, if there is one ──────────────────────────────────────
+     An unscheduled booking answers isDue:true and everything below behaves
+     exactly as it always has. A scheduled one that has not come round replaces
+     the "set out now" controls with the fact: you committed to a slot, and it
+     is not this one. firestore.rules would refuse the write anyway
+     (scheduleWindowOpen), so offering the button would only produce a failure
+     the artisan cannot act on. */
+  const appt = resolveSchedule(b);
+  const gate = canStartWork(b);
+  const notYet = (waitLabel) => ({
+    waiting: null,
+    waitLabel,
+    note: gate.reason,
+    secondary: [{ label:'Cancel job', action: ACTION.CANCEL, danger:true, confirm:'Cancel this job?' }],
+  });
+
   switch (brief.phase) {
     case JOB_PHASE.REQUEST:
       return {
         waiting: 'you',
-        waitLabel: 'Your decision',
-        primary:   { label: 'Accept this job', action: ACTION.ACCEPT },
+        /* An artisan cannot decide without knowing when. This is the single
+           most important fact on a scheduled request and it was not shown at
+           all — the card read identically whether the job was in ten minutes
+           or in ten days. */
+        waitLabel: appt.scheduled ? `Your decision · ${appt.label}` : 'Your decision',
+        note: appt.scheduled
+          ? 'Accepting commits you to this arrival window. You will not be asked to travel before then.'
+          : null,
+        primary:   { label: appt.scheduled ? 'Accept this slot' : 'Accept this job', action: ACTION.ACCEPT },
         secondary: [{ label: 'Decline', action: ACTION.DECLINE, danger: true, confirm: 'Decline this request?' }],
       };
 
     case JOB_PHASE.AWAITING_CALLOUT:
       return {
         waiting: 'customer',
-        waitLabel: 'Waiting for the customer to pay the callout fee',
+        waitLabel: appt.scheduled
+          ? `Booked for ${appt.label} · awaiting callout fee`
+          : 'Waiting for the customer to pay the callout fee',
         note: 'You will be notified the moment it is paid. Nothing to do until then.',
       };
 
     case JOB_PHASE.INSPECTION:
-      if (st === 'inspection_scheduled')
+      if (st === 'inspection_scheduled') {
+        if (!gate.allowed) return notYet(`Booked for ${appt.label}`);
         return { waiting:'you', waitLabel:'Head to the customer',
                  primary:{ label:"I'm on my way", action: ACTION.EN_ROUTE },
                  secondary:[{ label:'Cancel job', action: ACTION.CANCEL, danger:true, confirm:'Cancel this job?' }] };
+      }
       if (st === 'en_route')
         return { waiting:'you', waitLabel:'Travelling to the job',
                  primary:{ label:"I've arrived", action: ACTION.START } };
@@ -198,10 +227,12 @@ function actionsFor(brief, b) {
                note:'If the customer asks for a different price you can send one revision.' };
 
     case JOB_PHASE.WORK:
-      if (st === 'accepted' || st === 'quoted')
+      if (st === 'accepted' || st === 'quoted') {
+        if (!gate.allowed) return notYet(`Booked for ${appt.label}`);
         return { waiting:'you', waitLabel:'Ready to start the work',
                  primary:{ label:"I'm on my way", action: ACTION.EN_ROUTE },
                  secondary:[{ label:'Cancel job', action: ACTION.CANCEL, danger:true, confirm:'Cancel this job?' }] };
+      }
       if (st === 'en_route')
         return { waiting:'you', waitLabel:'Travelling to the job',
                  primary:{ label:"I've arrived", action: ACTION.START } };
@@ -241,7 +272,15 @@ function render(b) {
   // Schedule is shown ONLY when a real one exists. book-emergency writes
   // scheduledAt:null while the UI used to fall back to today's date, which told
   // the artisan an appointment had been agreed when none had.
-  const schedule = brief.scheduledFor;
+  /* The appointment, as a sentence. brief.scheduledFor is the raw ISO instant;
+     resolveSchedule turns it into the window the two parties actually agreed,
+     relative to now, so "Today, 2-5pm" reads as itself rather than as a
+     timestamp the artisan has to decode. Null when there is no appointment,
+     and the row is omitted entirely — book-emergency writes no schedule, and
+     the UI used to fall back to today's date, which told the artisan an
+     appointment had been agreed when none had. */
+  const apptNow   = resolveSchedule(b);
+  const schedule  = apptNow.scheduled ? apptNow.label : null;
 
   const money = comp && comp.amount !== null && comp.amount !== undefined
     ? `<div class="jb-money">${esc(formatMoney(comp.amount))}${comp.conditional ? '<span class="jb-cond">Not yet confirmed</span>' : ''}</div>
