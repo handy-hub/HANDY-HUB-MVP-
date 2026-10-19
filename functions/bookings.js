@@ -257,8 +257,17 @@ async function _refundEscrowForBooking(bookingId, bookingData) {
 // for them. Direction follows the same fairness rule as cancelInspectionBooking:
 // inspection delivered before cancellation → fee pays the artisan; otherwise →
 // customer refunded. settleCallout() remains the only settlement path.
+//
+// EMERGENCY TRACK: the emergency fee is also a 'callout' escrow
+// (payEmergencyCallout), so _refundEscrowForBooking — job escrow only — never
+// returned it. The customer page used to refund it by calling the refundBooking
+// callable itself, which also let a customer refund the fee at any other time.
+// That callable is now admin-only, so the refund happens here, from the
+// cancellation itself. No emergency status counts as "delivered" under the rule
+// below, so a cancelled emergency always refunds the customer — what the page
+// did before, now decided by the server.
 async function _settleCalloutOnCancellation(bookingId, before, after) {
-    if (after.track !== 'inspection') return;
+    if (!['inspection', 'emergency'].includes(after.track)) return;
     if (!after.calloutPaid || after.calloutSettled || after.calloutSettlePending) return;
     try {
         const pricing   = require('./pricing');

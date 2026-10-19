@@ -6,9 +6,27 @@
 // AUTHORIZATION MODEL
 // ───────────────────
 //   holdFundsForBooking  → verified caller must be the booking's customerId
-//   releaseEscrow        → caller must be the escrow's customer, artisan, or admin
-//   refundEscrow         → caller must be the escrow's customer, artisan, or admin
-//   freezeEscrowForDispute → caller must be the escrow's customer or artisan
+//   releaseEscrow        → SERVER-ONLY. Never reachable with a caller identity.
+//   refundEscrow         → SERVER-ONLY. Never reachable with a caller identity.
+//   adminReleaseEscrow   → admin, job escrow, booking already 'completed'
+//   adminRefundEscrow    → admin, job escrow, booking already 'cancelled'
+//   freezeEscrowForDispute → admin only (parties dispute the BOOKING instead)
+//
+// WHY RELEASE AND REFUND ARE SERVER-ONLY
+// ──────────────────────────────────────
+// Money leaves escrow because the BOOKING reached a state that decides it, not
+// because someone asked. Every legitimate movement already has a server owner:
+//   completed              → onBookingStatusChanged releases   (bookings.js)
+//   cancelled              → onBookingStatusChanged refunds    (bookings.js)
+//   callout fee            → settleCallout                     (pricing.js)
+//   expired                → runAutoRelease                    (escrowAutoRelease.js)
+//   disputed               → resolveDispute, admin only        (disputes.js)
+// These primitives used to accept "either party to the escrow" as authorization,
+// with no look at the booking at all. That let an artisan release a customer's
+// money to themselves before doing the work, and let a customer refund themselves
+// after the work was done or in the middle of a dispute. Identity was checked;
+// the lifecycle was not. The admin entry points below exist only to repair an
+// escrow whose booking already reached a terminal state but whose trigger failed.
 //
 // All financial operations run inside Firestore transactions.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,6 +189,29 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
         // booking. Return the stored escrow details — no writes, no deduction.
         if (lockSnap.exists) {
             const lock = lockSnap.data();
+
+            // ── A lock that does not describe THIS payment is not a replay ────
+            // The lock is keyed only by booking (and kind), so before this check
+            // any earlier hold for the booking — whatever its amount, whoever
+            // paid it — was accepted as "already secured". A customer could
+            // pre-lock their own booking with GHS 0.01 through the old
+            // holdBookingFunds callable, then approve a GHS 500 quote: this path
+            // returned the 0.01 escrow, the artisan was told payment was secured,
+            // and completion paid them 0.01. A genuine retry carries the same
+            // payer and the same amount; anything else is a conflict and must
+            // stop the payment, not silently stand in for it.
+            if (lock.customerId !== customerId || fmt(lock.amount) !== amountNum) {
+                console.error(
+                    `[escrow] Lock conflict for booking ${bookingId} (${kind}): lock escrow ` +
+                    `${lock.escrowId} amount=${lock.amount} does not match requested ` +
+                    `amount=${amountNum}. Refusing to treat it as paid.`
+                );
+                throw new Error(
+                    'Escrow conflict: this booking already has a payment hold that does not ' +
+                    'match this payment. Contact support — no money has been taken.'
+                );
+            }
+
             console.log(
                 `[escrow] Idempotent hold: lock already exists for booking ${bookingId} ` +
                 `→ escrow ${lock.escrowId}. Wallet unchanged.`
@@ -366,15 +407,33 @@ async function backfillEscrowLocks() {
 // ── Release ───────────────────────────────────────────────────────────────────
 
 /**
+ * Refuse any call that carries a caller identity. Release and refund are
+ * decided by booking state in trusted server code (see AUTHORIZATION MODEL);
+ * a caller's identity is never a reason for money to move, so a primitive that
+ * receives one is being reached from a path that skipped the lifecycle check.
+ */
+function _assertServerOnly(callerAuth, op) {
+    if (callerAuth) {
+        throw new Error(
+            `Unauthorized: ${op} is server-only. Money leaves escrow when the booking ` +
+            'is completed, cancelled or resolved — not on request.'
+        );
+    }
+}
+
+/**
  * Release escrow after booking completion.
  *
- * Authorization: customer (of this booking), artisan (of this booking), or admin.
- * Both parties must confirm — or an admin may release unilaterally.
+ * SERVER-ONLY. Callers: onBookingStatusChanged (→ completed), settleCallout,
+ * runAutoRelease, resolveDispute and adminReleaseEscrow — each of which has
+ * already decided, from the booking, that the artisan is owed this money.
  *
  * @param {string} escrowId
- * @param {{ releasedBy: string, callerAuth: object }} opts
+ * @param {{ releasedBy: string, callerAuth?: null }} opts
  */
 async function releaseEscrow(escrowId, { releasedBy = 'system', callerAuth } = {}) {
+    _assertServerOnly(callerAuth, 'releaseEscrow');
+
     const firestore  = db();
     const escrowRef  = firestore.collection('escrow').doc(escrowId);
     const escrowSnap = await escrowRef.get();
@@ -382,12 +441,6 @@ async function releaseEscrow(escrowId, { releasedBy = 'system', callerAuth } = {
     if (!escrowSnap.exists) throw new Error('Escrow record not found.');
     const escrow = escrowSnap.data();
     if (escrow.status !== 'held') throw new Error(`Cannot release escrow with status "${escrow.status}".`);
-
-    // ── Authorization check ───────────────────────────────────────────────────
-    if (callerAuth) {
-        await assertEscrowAccess(callerAuth, escrow, ['customer', 'artisan', 'admin']);
-    }
-    // If callerAuth is null, the caller is the system (auto-release timeout) — allowed.
 
     const { customerId, amount, artisanShare, commission, bookingId } = escrow;
 
@@ -515,10 +568,13 @@ async function releaseEscrow(escrowId, { releasedBy = 'system', callerAuth } = {
 /**
  * Refund escrow back to the customer (booking cancelled or admin-resolved dispute).
  *
- * Authorization: customer (of this booking), artisan (of this booking), or admin.
- * In practice, artisan-initiated refunds mean the artisan is conceding.
+ * SERVER-ONLY. Callers: onBookingStatusChanged (→ cancelled), settleCallout,
+ * runAutoRelease, resolveDispute and adminRefundEscrow. 'disputed' escrow is
+ * refundable here only because resolveDispute (admin) reaches it.
  */
 async function refundEscrow(escrowId, { reason = 'Booking cancelled', refundedBy = 'system', callerAuth } = {}) {
+    _assertServerOnly(callerAuth, 'refundEscrow');
+
     const firestore  = db();
     const escrowRef  = firestore.collection('escrow').doc(escrowId);
     const escrowSnap = await escrowRef.get();
@@ -528,11 +584,6 @@ async function refundEscrow(escrowId, { reason = 'Booking cancelled', refundedBy
 
     if (!['held', 'disputed'].includes(escrow.status)) {
         throw new Error(`Cannot refund escrow with status "${escrow.status}".`);
-    }
-
-    // ── Authorization check ───────────────────────────────────────────────────
-    if (callerAuth) {
-        await assertEscrowAccess(callerAuth, escrow, ['customer', 'artisan', 'admin']);
     }
 
     const { customerId, amount, bookingId } = escrow;
@@ -604,11 +655,90 @@ async function refundEscrow(escrowId, { reason = 'Booking cancelled', refundedBy
     }).catch(() => {});
 }
 
+// ── Admin repair: settle an escrow whose booking already decided the outcome ──
+
+// The booking state that must already hold before an admin may move the money.
+// Only terminal states qualify: they are the states in which the trigger itself
+// would have moved it, so the admin is completing a decision the lifecycle has
+// already made, never making a new one. An active booking is cancelled through
+// cancelBookingAsAdmin (the trigger then refunds); a disputed one is closed
+// through resolveDispute.
+const ADMIN_SETTLEMENT_STATE = { release: 'completed', refund: 'cancelled' };
+
+async function _loadAdminSettlement(auth, escrowId, action) {
+    if (!(await isAdminAuth(auth))) {
+        throw new Error('Unauthorized: only an administrator can settle escrow manually.');
+    }
+    if (!escrowId || typeof escrowId !== 'string') throw new Error('escrowId is required.');
+
+    const escrowSnap = await db().collection('escrow').doc(escrowId).get();
+    if (!escrowSnap.exists) throw new Error('Escrow record not found.');
+    const escrow = escrowSnap.data();
+
+    // Callout fees have their own fairness rule and a single settlement path.
+    if ((escrow.kind || 'job') !== 'job') {
+        throw new Error('Callout escrow is settled only through settleCallout, never manually.');
+    }
+    if (escrow.status !== 'held') {
+        throw new Error(
+            `Cannot ${action} escrow with status "${escrow.status}". ` +
+            'Disputed escrow is closed through resolveDispute.'
+        );
+    }
+    if (!escrow.bookingId) throw new Error('Escrow has no booking to settle against.');
+
+    const bookingSnap = await db().collection('bookings').doc(escrow.bookingId).get();
+    if (!bookingSnap.exists) throw new Error('Booking not found for this escrow.');
+    const booking = bookingSnap.data();
+
+    const status   = String(booking.status || '').toLowerCase().trim();
+    const required = ADMIN_SETTLEMENT_STATE[action];
+    if (status !== required) {
+        throw new Error(
+            `Cannot ${action} escrow: booking is "${booking.status}", must be "${required}".`
+        );
+    }
+    if ((booking.customerId || booking.userId) !== escrow.customerId) {
+        throw new Error('Escrow and booking disagree about the customer — refusing to settle.');
+    }
+    if (action === 'release' && escrow.artisanId && booking.artisanId &&
+        escrow.artisanId !== booking.artisanId) {
+        throw new Error('Escrow and booking disagree about the artisan — refusing to release.');
+    }
+    return escrow;
+}
+
+function _adminLabel(auth) {
+    return `admin:${auth.token?.email || auth.uid}`;
+}
+
+/** Admin repair: release a held job escrow whose booking is already 'completed'. */
+async function adminReleaseEscrow(auth, escrowId) {
+    await _loadAdminSettlement(auth, escrowId, 'release');
+    await releaseEscrow(escrowId, { releasedBy: _adminLabel(auth), callerAuth: null });
+}
+
+/** Admin repair: refund a held job escrow whose booking is already 'cancelled'. */
+async function adminRefundEscrow(auth, escrowId, reason) {
+    await _loadAdminSettlement(auth, escrowId, 'refund');
+    await refundEscrow(escrowId, {
+        reason:     reason || 'Booking cancelled',
+        refundedBy: _adminLabel(auth),
+        callerAuth: null,
+    });
+}
+
 // ── Dispute ───────────────────────────────────────────────────────────────────
 
 /**
  * Freeze escrow funds when a dispute is raised.
- * Authorization: customer or artisan of this booking only.
+ * Authorization: admin only.
+ *
+ * A party raises a dispute by moving the BOOKING to 'disputed' (firestore.rules),
+ * which is what resolveDispute acts on. Letting a party also freeze the escrow
+ * directly created a state nothing could close: the escrow 'disputed' while the
+ * booking was not, so resolveDispute refused it, completion could not release
+ * it, and the scheduler no longer saw it.
  */
 async function freezeEscrowForDispute(escrowId, { disputeId, raisedBy, callerAuth } = {}) {
     const firestore = db();
@@ -620,10 +750,10 @@ async function freezeEscrowForDispute(escrowId, { disputeId, raisedBy, callerAut
         throw new Error(`Only "held" escrow can be disputed (current: "${snap.data().status}").`);
     }
 
-    // ── Authorization: only parties to the booking may raise a dispute ────────
+    // ── Authorization: admin only (see above) ─────────────────────────────────
     // (assertEscrowAccess is async so it must run outside the transaction)
     if (callerAuth) {
-        await assertEscrowAccess(callerAuth, snap.data(), ['customer', 'artisan', 'admin']);
+        await assertEscrowAccess(callerAuth, snap.data(), ['admin']);
     }
 
     // Run the status change inside a transaction to prevent two concurrent dispute
@@ -651,6 +781,9 @@ module.exports = {
     holdFundsForBooking,
     releaseEscrow,
     refundEscrow,
+    adminReleaseEscrow,
+    adminRefundEscrow,
     freezeEscrowForDispute,
     backfillEscrowLocks,
+    isAdminAuth,
 };

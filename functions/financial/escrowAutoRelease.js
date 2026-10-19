@@ -38,6 +38,9 @@
 //   Booking status ∈ { completed, awaiting } AND artisan assigned
 //     → releaseEscrow()  — artisan receives artisanShare; platform takes commission
 //
+//   Booking status = disputed
+//     → left held        — resolveDispute (admin) decides, never the timer
+//
 //   Any other booking state, no artisan, or booking not found
 //     → refundEscrow()   — full amount returned to customer
 //     Reason: if the job was truly done, the artisan had 7 days to confirm or
@@ -115,6 +118,13 @@ async function determineOutcome(escrowData) {
     const status    = (bookingData.status || '').toLowerCase();
     const artisanId = escrowArtisanId || bookingData.artisanId;
 
+    // A disputed booking is waiting for an administrator (resolveDispute), not
+    // for a timer. Refunding it here meant a customer could dispute finished
+    // work and be refunded automatically once the escrow period ran out,
+    // without anyone looking at the dispute. Leave the money held; the next run
+    // reconsiders it, and resolveDispute settles it.
+    if (status === 'disputed') return 'hold';
+
     // The job was marked done (completed) or is awaiting customer confirmation
     // (awaiting), AND an artisan is assigned. Release funds to the artisan.
     //
@@ -125,7 +135,7 @@ async function determineOutcome(escrowData) {
     }
 
     // All other states — pending, in_progress, cancelled, unfulfilled, rejected,
-    // disputed, or anything unexpected — refund the customer. The artisan had
+    // or anything unexpected — refund the customer. The artisan had
     // 7 days to get the booking to a payable state.
     return 'refund';
 }
@@ -180,6 +190,10 @@ async function processOneEscrow(escrowId, escrowData) {
     } catch (err) {
         // determineOutcome itself doesn't throw — but if it ever does, default to refund.
         routedTo = 'refund';
+    }
+
+    if (routedTo === 'hold') {
+        return { ...baseResult, outcome: 'held_for_dispute' };
     }
 
     // ── Attempt 1: release to artisan ──────────────────────────────────────────
@@ -417,6 +431,7 @@ async function runAutoRelease() {
         refunded:         0,
         refundedNoArtisan: 0,
         alreadyProcessed: 0,
+        heldForDispute:   0,
         failed:           0,
     };
 
@@ -507,6 +522,13 @@ async function runAutoRelease() {
                             stats.alreadyProcessed++;
                             console.log(
                                 `[auto-release] ↩ Already    processed escrow ${escrowId} — skipped.`
+                            );
+                            break;
+                        case 'held_for_dispute':
+                            stats.heldForDispute++;
+                            console.log(
+                                `[auto-release] ⏸ Held       escrow ${escrowId} — booking ` +
+                                `${bookingId} is disputed; awaiting resolveDispute.`
                             );
                             break;
                         default:

@@ -232,106 +232,115 @@ exports.submitTopupOtp = onCall(
 // ESCROW â€” called from the booking flow
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+// None of the four callables below can move money on a customer's or an
+// artisan's say-so. Escrow is held, released and refunded by trusted server code
+// reacting to the booking's state (see AUTHORIZATION MODEL in
+// functions/financial/escrow.js). They used to authorise "either party to the
+// escrow" with no look at the booking, which let an artisan pay themselves
+// before working, a customer refund themselves after the work or mid-dispute,
+// and a customer pre-lock their own booking with a token amount so the real
+// payment was never taken. The exports stay so a deploy does not have to
+// delete live functions; old clients calling them get permission-denied.
+
+/** Map an escrow-module error onto the right callable error code. */
+function _escrowCallableError(err) {
+    if (/^Unauthorized/.test(err.message || '')) {
+        return new HttpsError('permission-denied', err.message);
+    }
+    return new HttpsError('failed-precondition', err.message);
+}
+
 /**
- * holdBookingFunds â€” move customer funds into escrow when a booking is confirmed.
+ * holdBookingFunds - RETIRED for every caller.
  *
- * Call from frontend (booking confirmation step):
- *   const hold = httpsCallable(functions, 'holdBookingFunds');
- *   await hold({ bookingId, artisanId, amount });
+ * Escrow is held by onBookingStatusChanged (standard track, on acceptance),
+ * approveJobQuote (job escrow) and payCalloutFee / payEmergencyCallout (callout),
+ * each with the server's own amount. No client calls this. It used to hold any
+ * amount the caller named against any bookingId, under the same idempotency lock
+ * those trusted paths use.
  */
 exports.holdBookingFunds = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
-    await checkRateLimit(request.auth.uid, 'holdBookingFunds');
-    const { bookingId, artisanId, amount } = request.data;
-    // artisanId may be null for dispatch-assigned bookings (artisan not yet selected).
-    // escrow.holdFundsForBooking accepts null artisanId and the release will read the
-    // artisanId from the escrow document when the booking is completed.
-    _validate({ bookingId, amount }, ['bookingId', 'amount']);
-    if (Number(amount) <= 0) throw new HttpsError('invalid-argument', 'Amount must be greater than 0.');
-
-    try {
-        return await escrow.holdFundsForBooking({
-            bookingId,
-            customerId:  request.auth.uid,
-            artisanId:   artisanId || null,
-            amount,
-            callerAuth:  request.auth,
-        });
-    } catch (err) {
-        throw new HttpsError('failed-precondition', err.message);
-    }
+    throw new HttpsError(
+        'permission-denied',
+        'Payment is secured automatically when your booking is accepted or your quote is approved.',
+    );
 });
 
 /**
- * releaseEscrow â€” release funds to artisan after booking completion.
+ * releaseEscrow - ADMIN repair only.
  *
- * Call when BOTH parties confirm (or after auto-release timeout):
+ * Releases a held JOB escrow whose booking is already 'completed' (the trigger
+ * normally does this; this exists for when it failed). Never a callout escrow,
+ * never during a dispute (use resolveDispute).
  *   const release = httpsCallable(functions, 'releaseEscrow');
  *   await release({ escrowId });
  */
 exports.releaseEscrow = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'releaseEscrow');
-    const { escrowId } = request.data;
+    const { escrowId } = request.data || {};
     if (!escrowId) throw new HttpsError('invalid-argument', 'escrowId is required.');
 
     try {
-        await escrow.releaseEscrow(escrowId, {
-            releasedBy: request.auth.uid,
-            callerAuth: request.auth,   // Authorization: must be customer, artisan, or admin of this booking
-        });
+        await escrow.adminReleaseEscrow(request.auth, escrowId);
         return { released: true };
     } catch (err) {
-        throw new HttpsError('failed-precondition', err.message);
+        throw _escrowCallableError(err);
     }
 });
 
 /**
- * refundBooking â€” refund escrow back to customer.
+ * refundBooking - ADMIN repair only.
  *
- * Call on cancellation or admin dispute resolution:
+ * Refunds a held JOB escrow whose booking is already 'cancelled' (the trigger
+ * normally does this). To refund an active booking, cancel it with
+ * cancelBookingAsAdmin; to settle a dispute, use resolveDispute.
  *   const refund = httpsCallable(functions, 'refundBooking');
  *   await refund({ escrowId, reason });
  */
 exports.refundBooking = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'refundBooking');
-    const { escrowId, reason } = request.data;
+    const { escrowId, reason } = request.data || {};
     if (!escrowId) throw new HttpsError('invalid-argument', 'escrowId is required.');
 
     try {
-        await escrow.refundEscrow(escrowId, {
-            reason:     reason || 'Booking cancelled',
-            refundedBy: request.auth.uid,
-            callerAuth: request.auth,   // Authorization: must be customer, artisan, or admin of this booking
-        });
+        await escrow.adminRefundEscrow(request.auth, escrowId, reason);
         return { refunded: true };
     } catch (err) {
-        throw new HttpsError('failed-precondition', err.message);
+        throw _escrowCallableError(err);
     }
 });
 
 /**
- * raiseDispute â€” freeze escrow while a dispute is under review.
+ * raiseDispute - ADMIN only: freeze a held escrow while a dispute is reviewed.
  *
+ * Customers and artisans raise a dispute by moving the booking to 'disputed'
+ * (firestore.rules); that is what resolveDispute closes.
  *   const dispute = httpsCallable(functions, 'raiseDispute');
  *   await dispute({ escrowId, disputeId });
  */
 exports.raiseDispute = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'raiseDispute');
-    const { escrowId, disputeId } = request.data;
+    const { escrowId, disputeId } = request.data || {};
     if (!escrowId) throw new HttpsError('invalid-argument', 'escrowId is required.');
+    // Checked before anything is read, so a non-admin learns nothing about
+    // whether an escrow exists or what state it is in.
+    if (!(await escrow.isAdminAuth(request.auth))) {
+        throw new HttpsError('permission-denied', 'Only an administrator can freeze escrow.');
+    }
 
     try {
         await escrow.freezeEscrowForDispute(escrowId, {
             disputeId:  disputeId || null,
             raisedBy:   request.auth.uid,
-            callerAuth: request.auth,   // Authorization: must be a party to this booking
+            callerAuth: request.auth,   // admin only - enforced in freezeEscrowForDispute
         });
         return { frozen: true };
     } catch (err) {
-        throw new HttpsError('failed-precondition', err.message);
+        throw _escrowCallableError(err);
     }
 });
 

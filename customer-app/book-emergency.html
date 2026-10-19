@@ -1495,21 +1495,11 @@ body {
     window.location.href = 'book-request.html';
   };
 
-  function _emGetEscrowId() {
-    try { return JSON.parse(localStorage.getItem('hh_booking') || '{}').escrowId || null; }
-    catch (_) { return null; }
-  }
-
-  function _emRefundEscrow(reason) {
-    const escrowId = _emGetEscrowId();
-    if (!escrowId) return;
-    import('../shared/js/services/walletService.js')
-      .then(function (m) {
-        m.refundBooking(escrowId, reason)
-          .then(function () { console.log('[emergency] Escrow refunded.'); })
-          .catch(function (err) { console.warn('[emergency] Escrow refund failed (auto-release fallback active):', err.message); });
-      });
-  }
+  // Refunds are not requested from here. Writing status 'cancelled' is the whole
+  // cancellation: onBookingStatusChanged then refunds the emergency fee through
+  // settleCallout. The refundBooking callable this page used to call is
+  // admin-only — a customer who could request refunds directly could also
+  // request one after the professional had done the job.
 
   window.cancelWaiting = function () {
     if (confirm('Cancel this emergency request?')) {
@@ -1521,8 +1511,6 @@ body {
         const b = JSON.parse(localStorage.getItem('hh_booking') || '{}');
         if (b.id === bookRef) { b.status = 'cancelled'; localStorage.setItem('hh_booking', JSON.stringify(b)); }
       } catch (_) {}
-      // Refund escrow if funds were held (fire-and-forget)
-      _emRefundEscrow('Customer cancelled while waiting for professional');
       sessionStorage.removeItem('em_service'); sessionStorage.removeItem('hh_service');
       window.location.href = 'dashboard.html';
     }
@@ -1535,8 +1523,6 @@ body {
         .then(mod => mod.getAppContainer().repositories.bookingRepository.updateStatus(bookRef, 'cancelled'))
         .catch(err => console.warn('[emergency] Cancel write failed:', err.message));
       try { const b = JSON.parse(localStorage.getItem('hh_booking')||'{}'); b.status='cancelled'; localStorage.setItem('hh_booking',JSON.stringify(b)); } catch(_){}
-      // Refund escrow if funds were held (fire-and-forget)
-      _emRefundEscrow('Customer cancelled confirmed emergency booking');
       window.location.href = 'booking.html';
     }
   };

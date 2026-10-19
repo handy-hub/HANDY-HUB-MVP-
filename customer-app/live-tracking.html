@@ -424,13 +424,6 @@ function _getBookingId() {
   } catch (_) { return null; }
 }
 
-function _getEscrowId() {
-  try {
-    const b = window.HH_State ? window.HH_State.booking.get() : {};
-    return b.escrowId || null;
-  } catch (_) { return null; }
-}
-
 // Debounce guard — prevents double-tap triggering two cancel/confirm operations
 let _actionInProgress = false;
 
@@ -443,24 +436,17 @@ function cancelBooking() {
   // of truth that other screens then rendered as fact, even when the Firestore
   // write later failed.
 
-  const bkId    = _getBookingId();
-  const escrowId = _getEscrowId();
+  const bkId = _getBookingId();
 
-  // Write cancellation to Firestore (fire-and-forget)
+  // Write cancellation to Firestore (fire-and-forget). This is the whole job:
+  // onBookingStatusChanged refunds any held escrow — job payment or callout fee —
+  // when the booking reaches 'cancelled'. The page no longer asks for a refund
+  // itself; the refundBooking callable is admin-only, because a customer who could
+  // request refunds directly could also request one after the work was done.
   if (bkId) {
     import('../shared/js/app/container.js').then(function (mod) {
       mod.getAppContainer().repositories.bookingRepository.updateStatus(bkId, 'cancelled')
         .catch(function (err) { console.warn('[tracking] Cancel Firestore write failed:', err); });
-    });
-  }
-
-  // Refund escrow if funds were held — fire-and-forget, do not block navigation.
-  // The Cloud Function is idempotent: a second call after a successful refund is rejected safely.
-  if (escrowId) {
-    import('../shared/js/services/walletService.js').then(function (m) {
-      m.refundBooking(escrowId, 'Customer cancelled booking')
-        .then(function () { console.log('[tracking] Escrow refunded for booking.'); })
-        .catch(function (err) { console.warn('[tracking] Escrow refund failed (auto-release will recover):', err.message); });
     });
   }
 
