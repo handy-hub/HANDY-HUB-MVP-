@@ -118,7 +118,14 @@ service cloud.firestore {
     // ARTISANS COLLECTION
     // ═══════════════════════════════════════════════════════════════
     match /artisans/{artisanId} {
-      // Any signed-in user can read artisan profiles (needed for browse/search)
+      // Any signed-in user can read artisan profiles (needed for browse/search).
+      //
+      // Because this is world-readable to every account — and anyone can open a
+      // customer account — this document must hold ONLY what discovery, booking
+      // and service delivery need. Firestore rules cannot hide individual fields
+      // from a read: a reader gets the whole document or nothing. So identity,
+      // payout and home-location data live in artisans/{id}/private/kyc (below)
+      // and can never be written here (artisanPrivateFields()).
       allow read: if isSignedIn();
 
       // Artisan creates their own document on registration.
@@ -131,6 +138,8 @@ service cloud.firestore {
                       isZeroOrAbsent(incoming(), 'pendingBalance') &&
                       isZeroOrAbsent(incoming(), 'totalEarned') &&
                       isZeroOrAbsent(incoming(), 'withdrawnTotal') &&
+                      // Private identity/payout/home data never enters the public doc.
+                      !incoming().keys().hasAny(artisanPrivateFields()) &&
                       // ── ROLE ISOLATION (application boundary) ──────────────
                       // Symmetric to the customers rule: a UID that already owns
                       // a customer profile may NEVER also become an artisan.
@@ -158,6 +167,61 @@ service cloud.firestore {
                       isSafeArtisanProfileUpdate()
                     );
 
+      allow delete: if isSuperAdmin();
+    }
+
+    // ── Artisan private data ─────────────────────────────────────────────────
+    // Identity (Ghana Card, TIN, date of birth), payout account, emergency
+    // contact and residential address. These used to sit in the public
+    // artisans/{id} document, where every signed-in account could read them.
+    // They now live in exactly one document per artisan, readable only by the
+    // artisan and administrators, and listable by nobody else.
+    function artisanPrivateFields() {
+      return ['ghanaCardNumber', 'tin', 'dob', 'dateOfBirth', 'emergencyContact',
+              'payoutAccount', 'momoProvider', 'momoPhone', 'momoAccountName',
+              'address', 'gpsAddress', 'businessRegNumber'];
+    }
+
+    function isArtisanAccount(uid) {
+      return exists(/databases/$(database)/documents/artisans/$(uid)) &&
+             get(/databases/$(database)/documents/artisans/$(uid)).data.userType == 'artisan';
+    }
+
+    function isOptionalString(d, key, max) {
+      return !(key in d) || d[key] == null || (d[key] is string && d[key].size() <= max);
+    }
+
+    function isValidArtisanPrivate(d) {
+      return d.artisanId == request.auth.uid &&
+             isOptionalString(d, 'ghanaCardNumber', 32) &&
+             isOptionalString(d, 'tin', 32) &&
+             isOptionalString(d, 'dob', 32) &&
+             isOptionalString(d, 'dateOfBirth', 32) &&
+             isOptionalString(d, 'address', 300) &&
+             isOptionalString(d, 'gpsAddress', 32) &&
+             isOptionalString(d, 'businessRegNumber', 64) &&
+             isOptionalString(d, 'momoProvider', 32) &&
+             isOptionalString(d, 'momoPhone', 32) &&
+             isOptionalString(d, 'momoAccountName', 120) &&
+             (!('emergencyContact' in d) ||
+               (d.emergencyContact is map && d.emergencyContact.keys().hasOnly(['name', 'phone']))) &&
+             (!('payoutAccount' in d) ||
+               (d.payoutAccount is map &&
+                d.payoutAccount.keys().hasOnly(['provider', 'phone', 'accountName'])));
+    }
+
+    match /artisans/{artisanId}/private/{docId} {
+      allow read: if isOwner(artisanId) || isAdmin();
+      // The artisan maintains their own record (onboarding, resubmission).
+      // Administrators review it but never write it directly; verification
+      // decisions go through Cloud Functions. The migration that moves legacy
+      // fields here runs with the Admin SDK.
+      allow create, update: if isOwner(artisanId) &&
+                               docId == 'kyc' &&
+                               isArtisanAccount(artisanId) &&
+                               incoming().keys().hasOnly(
+                                 artisanPrivateFields().concat(['artisanId', 'createdAt', 'updatedAt'])) &&
+                               isValidArtisanPrivate(incoming());
       allow delete: if isSuperAdmin();
     }
 
@@ -278,18 +342,16 @@ service cloud.firestore {
       return incoming().diff(existing()).affectedKeys().hasOnly([
         // Core identity
         'id', 'name', 'email', 'phone',
-        // Profile content
-        'bio', 'profileImage', 'location', 'address', 'gpsAddress',
+        // Profile content. Residential address, Ghana Post GPS code, identity
+        // and payout fields are NOT here: they belong in artisans/{id}/private/kyc
+        // (see artisanPrivateFields()), because this document is world-readable.
+        'bio', 'profileImage', 'location',
         'availability', 'isAvailable', 'isOnline',
         'baseRate', 'workRadius', 'skills', 'specialty',
         'yearsExperience', 'gender', 'category',
         // Location coordinates (written by presenceService → updatePresenceAndLocation)
         'latitude', 'longitude', 'lat', 'lng', 'currentLat', 'currentLng',
         'geohash', 'locationAccuracy', 'locationSource', 'lastLocationUpdate',
-        // Onboarding KYC fields (written by onboarding.html during application submission)
-        'dob', 'emergencyContact', 'ghanaCardNumber', 'tin',
-        // Payout account setup
-        'momoProvider', 'momoPhone', 'momoAccountName', 'payoutAccount',
         // Onboarding workflow state artisan may set (status excluded — admin/CF only)
         'verificationStatus', 'onboarded',
         // Presence / heartbeat fields (written by presenceService.js)

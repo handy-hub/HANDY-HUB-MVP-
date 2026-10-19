@@ -575,6 +575,22 @@ window.openDrawer = async function(uid) {
   if(!a) return;
   activeArtisan = a;
 
+  // Identity, payout and home-address data live in artisans/{uid}/private/kyc,
+  // readable only by the artisan and administrators — never in the public
+  // profile every signed-in account can read. Read on demand, one artisan at a
+  // time, rather than for the whole list. Legacy values still on the profile
+  // (until the migration strips them) are the fallback.
+  let priv = {};
+  try {
+    const ps = await getDoc(doc(db, 'artisans', uid, 'private', 'kyc'));
+    if (ps.exists()) priv = ps.data();
+  } catch (e) {
+    console.warn('[artisans] Could not load private record:', e.code || e.message);
+  }
+  if (activeArtisan?.id !== uid) return;   // another drawer was opened meanwhile
+  const pv     = (k) => priv[k] ?? a[k];
+  const payout = priv.payoutAccount || a.payoutAccount || {};
+
   const initials = (a.fullName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('d-avatar').textContent = initials;
   document.getElementById('d-name').textContent   = a.fullName||'—';
@@ -599,8 +615,8 @@ window.openDrawer = async function(uid) {
 
   document.getElementById('d-email').textContent   = a.email||'—';
   document.getElementById('d-phone').textContent   = a.phone||'—';
-  document.getElementById('d-address').textContent = a.address||'—';
-  document.getElementById('d-ghana').textContent   = a.ghanaCardNumber||'Not verified';
+  document.getElementById('d-address').textContent = pv('address')||'—';
+  document.getElementById('d-ghana').textContent   = pv('ghanaCardNumber')||'Not verified';
   const ts = a.createdAt?.toDate?.();
   document.getElementById('d-joined').textContent  = ts ? ts.toLocaleDateString('en-GH') : '—';
 
@@ -610,9 +626,10 @@ window.openDrawer = async function(uid) {
   document.getElementById('d-avail').textContent  = Array.isArray(a.availability) ? a.availability.join(', ') : (a.availability||'—');
 
   const mProv = {mtn:'MTN MoMo',telecel:'Telecel Cash',airteltigo:'AirtelTigo Money'};
-  document.getElementById('d-momo-provider').textContent = mProv[a.momoProvider]||a.momoProvider||'—';
-  document.getElementById('d-momo-number').textContent   = a.momoPhone||'—';
-  document.getElementById('d-momo-name').textContent     = a.momoAccountName||'—';
+  const momoProv = payout.provider || pv('momoProvider');
+  document.getElementById('d-momo-provider').textContent = mProv[momoProv]||momoProv||'—';
+  document.getElementById('d-momo-number').textContent   = payout.phone || pv('momoPhone') || '—';
+  document.getElementById('d-momo-name').textContent     = payout.accountName || pv('momoAccountName') || '—';
 
   // Feature/Suspend buttons
   document.getElementById('d-btn-feature').innerHTML = a.isFeatured

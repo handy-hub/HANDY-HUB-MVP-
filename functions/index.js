@@ -925,6 +925,37 @@ exports.backfillSearchKeywords = onCall(
 //   const { data } = await fn({});
 //   // data â†’ { processed, skipped, errors, total }
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ARTISAN PRIVATE-DATA MIGRATION - move identity / payout / home-address fields
+// off the world-readable artisans/{id} profile into artisans/{id}/private/kyc.
+//
+// adminMigrateArtisanPrivateData  (super-admin only; safe to re-run)
+//   mode 'dry-run' (default) -> report only, writes nothing
+//   mode 'copy'              -> fill the private record, never overwriting
+//   mode 'strip'             -> copy anything missing, then remove from profile
+// Run dry-run, then copy, confirm the admin screens, then strip.
+// The report lists artisan ids and FIELD NAMES only - never values.
+//
+//   const fn = httpsCallable(functions, 'adminMigrateArtisanPrivateData');
+//   const { data } = await fn({ mode: 'dry-run' });
+const artisanPrivacy = require('./artisanPrivacy');
+
+exports.adminMigrateArtisanPrivateData = onCall(
+    { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
+    async (request) => {
+        _requireAuth(request);
+        const { ADMIN_EMAILS } = require('./config');
+        if (!ADMIN_EMAILS.includes(request.auth.token?.email)) {
+            throw new HttpsError('permission-denied', 'Super-admin access required.');
+        }
+        const mode = (request.data && request.data.mode) || 'dry-run';
+        try {
+            return await artisanPrivacy.migrateArtisanPrivateData({ mode });
+        } catch (err) {
+            throw new HttpsError('failed-precondition', err.message);
+        }
+    },
+);
+
 exports.backfillGeohash = onCall(
     { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
     async (request) => {

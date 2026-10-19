@@ -1248,9 +1248,37 @@ window.quickApprove = async function(uid) {
 
 /* ── Open Modal ──────────────────────────────────────── */
 window.openModal = async function(uid) {
-  const r = allRequests.find(x => x.id === uid);
-  if (!r) return;
-  currentRequest = r;
+  const req = allRequests.find(x => x.id === uid);
+  if (!req) return;
+  currentRequest = req;
+
+  // Date of birth, TIN, residential address, Ghana Post GPS, emergency contact
+  // and the MoMo payout account are stored in artisans/{uid}/private/kyc
+  // (owner + admin only). verification_requests never carried them, which is
+  // why this modal showed "—" for all of them. Read the private record for the
+  // one artisan under review; the request's own fields win where both exist.
+  let priv = {};
+  try {
+    const ps = await getDoc(doc(db, 'artisans', uid, 'private', 'kyc'));
+    if (ps.exists()) priv = ps.data();
+  } catch (e) {
+    console.warn('[verifications] Could not load private record:', e.code || e.message);
+  }
+  if (currentRequest?.id !== uid) return;   // another request was opened meanwhile
+  const payout = priv.payoutAccount || {};
+  const r = {
+    ...req,
+    dateOfBirth:      req.dateOfBirth      || priv.dateOfBirth || priv.dob,
+    address:          req.address          || priv.address,
+    gpsAddress:       req.gpsAddress       || priv.gpsAddress,
+    emergencyContact: req.emergencyContact || priv.emergencyContact,
+    ghanaCardNumber:  req.ghanaCardNumber  || priv.ghanaCardNumber,
+    tin:              req.tin              || priv.tin,
+    businessRegNumber:req.businessRegNumber|| priv.businessRegNumber,
+    momoProvider:     req.momoProvider     || payout.provider    || priv.momoProvider,
+    momoPhone:        req.momoPhone        || payout.phone       || priv.momoPhone,
+    momoAccountName:  req.momoAccountName  || payout.accountName || priv.momoAccountName,
+  };
 
   const status = r.verificationStatus || r.status || 'pending_review';
 

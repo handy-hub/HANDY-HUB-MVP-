@@ -971,7 +971,27 @@ async function submitApplication() {
 
     const n = new Date().toISOString();
 
-    // Write artisan profile update (merge — preserves registration fields like walletBalance)
+    // 2a. Private record — identity, payout account, emergency contact, home address.
+    //
+    // Written FIRST and to artisans/{uid}/private/kyc, never to the profile
+    // below. The profile is readable by every signed-in account (customers
+    // browse it), and Firestore rules cannot hide individual fields from a
+    // reader, so anything in it is effectively public. This record is readable
+    // only by the artisan and administrators. Writing it first means a failure
+    // part-way through can never leave the Ghana Card number anywhere public.
+    await databaseService.setDocument(`artisans/${uid}/private`, 'kyc', {
+      artisanId:        uid,
+      ghanaCardNumber:  ghanaCard,
+      tin:              tin || null,
+      dob,
+      address,
+      gpsAddress:       gps,
+      emergencyContact: { name: emergName, phone: emergPhone },
+      payoutAccount:    { provider, phone: momoNum, accountName: acctName },
+      updatedAt:        n,
+    }, { merge: true });
+
+    // 2b. Public profile (merge — preserves registration fields like walletBalance)
     // NOTE: Financial/reputation fields (rating, reviewCount, jobsCompleted, totalEarned,
     //       availableBalance, pendingBalance) are intentionally OMITTED here — they were
     //       set to 0 during registration and are owned exclusively by Cloud Functions.
@@ -982,12 +1002,10 @@ async function submitApplication() {
       email,
       userType:  'artisan',
       status:    'pending',
-      // Personal details
+      // Personal details. Date of birth, residential address and Ghana Post GPS
+      // code are in the private record (2a), not here.
       phone,
-      dob,
       gender,
-      address,
-      gpsAddress:       gps,
       // Work-location coordinates. THIS is what dispatch matches on — the typed
       // address and Ghana Post code are human-readable references only, and
       // neither can be resolved to a position (there is no open GhanaPostGPS
@@ -997,7 +1015,6 @@ async function submitApplication() {
       lat:              _workLocation.lat,
       lng:              _workLocation.lng,
       locationSetAt:    _workLocation.setAt,
-      emergencyContact: { name: emergName, phone: emergPhone },
       // Profile & skills
       // The profile photo is written authoritatively SERVER-side by the commit
       // inside replaceProfilePhoto(); only mirror it when a NEW selfie was
@@ -1019,11 +1036,6 @@ async function submitApplication() {
       baseRate:         baseRate ? Number(baseRate) : null,
       availability:     avail,
       isAvailable:      false, // stays false until admin approves
-      // KYC documents
-      ghanaCardNumber:  ghanaCard,
-      tin:              tin || null,
-      // Payout account
-      payoutAccount:    { provider, phone: momoNum, accountName: acctName },
       // Workflow
       verificationStatus: 'pending_review',
       // Timestamps

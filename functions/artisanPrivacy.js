@@ -1,0 +1,165 @@
+'use strict';
+
+/**
+ * functions/artisanPrivacy.js — move artisan identity, payout and home-address
+ * data out of the public profile.
+ *
+ * WHY
+ * ───
+ * artisans/{id} is readable by every signed-in account (customers browse it),
+ * and Firestore rules cannot hide individual fields from a reader. Onboarding
+ * used to write the Ghana Card number, TIN, date of birth, residential address,
+ * Ghana Post GPS code, emergency contact and MoMo payout account into that same
+ * document, so anyone who created a customer account could read them for every
+ * artisan. New writes now go to artisans/{id}/private/kyc (owner + admin read
+ * only — see firestore.rules). This module moves the data already written.
+ *
+ * MODES  (run in this order; each is safe to repeat)
+ * ─────
+ *   'dry-run'  (default) Report what would move. Writes nothing.
+ *   'copy'     Copy each legacy field into the private record. A value already
+ *              in the private record is NEVER overwritten — it is newer (written
+ *              by the current onboarding) than the legacy copy.
+ *   'strip'    Copy anything still missing, then remove the fields from the
+ *              public profile. A field is only ever removed once the private
+ *              record holds a value for it, in the same transaction, so nothing
+ *              can be lost. Where the private record holds a DIFFERENT value it
+ *              wins: since this change the profile can no longer receive these
+ *              fields (firestore.rules), so its copy is necessarily the older
+ *              one. Such fields are still stripped — a stale Ghana Card number
+ *              is still a Ghana Card number — and reported as conflicts.
+ *
+ * Copy and strip are separate steps so the admin screens that read the private
+ * record can be confirmed working before anything leaves the profile. Each
+ * artisan is handled in its own transaction: the private write and the public
+ * delete commit together or not at all.
+ *
+ * Reports contain artisan ids and FIELD NAMES only, never values: the output
+ * of a migration is itself a log, and must not become a second copy of the
+ * data it is protecting.
+ */
+
+const { FieldValue, FieldPath } = require('firebase-admin/firestore');
+const { FIRESTORE_DB_ID } = require('./config');
+
+let _db;
+function db() {
+    if (!_db) {
+        const { getFirestore } = require('firebase-admin/firestore');
+        _db = getFirestore(FIRESTORE_DB_ID);
+    }
+    return _db;
+}
+
+/**
+ * Fields that must never live on the public profile. Mirrors
+ * artisanPrivateFields() in firestore.rules — keep the two lists identical.
+ */
+const ARTISAN_PRIVATE_FIELDS = Object.freeze([
+    'ghanaCardNumber', 'tin', 'dob', 'dateOfBirth', 'emergencyContact',
+    'payoutAccount', 'momoProvider', 'momoPhone', 'momoAccountName',
+    'address', 'gpsAddress', 'businessRegNumber',
+]);
+
+const MODES = new Set(['dry-run', 'copy', 'strip']);
+
+// Order-insensitive deep equality for the plain values these fields hold
+// (strings, null, and the small emergencyContact / payoutAccount maps).
+function sameValue(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null || typeof a !== 'object' || typeof b !== 'object') return false;
+    const ka = Object.keys(a).sort();
+    const kb = Object.keys(b).sort();
+    return ka.length === kb.length && ka.every((k, i) => k === kb[i] && sameValue(a[k], b[k]));
+}
+
+/**
+ * @param {{ mode?: 'dry-run'|'copy'|'strip', pageSize?: number }} opts
+ * @returns {Promise<{ mode, scanned, affected, copied, stripped, conflicts, errors, artisans }>}
+ */
+async function migrateArtisanPrivateData({ mode = 'dry-run', pageSize = 200 } = {}) {
+    if (!MODES.has(mode)) throw new Error(`mode must be one of: ${[...MODES].join(', ')}.`);
+
+    const report = { mode, scanned: 0, affected: 0, copied: 0, stripped: 0, conflicts: 0, errors: 0, artisans: [] };
+    const artisans = db().collection('artisans');
+
+    let cursor = null;
+    for (;;) {
+        let q = artisans.orderBy(FieldPath.documentId()).limit(pageSize);
+        if (cursor) q = q.startAfter(cursor);
+        const page = await q.get();
+        if (page.empty) break;
+
+        for (const doc of page.docs) {
+            report.scanned++;
+            const legacy = ARTISAN_PRIVATE_FIELDS.filter((f) => doc.data()[f] !== undefined);
+            if (!legacy.length) continue;
+            report.affected++;
+
+            const entry = { artisanId: doc.id, fields: legacy, copied: [], stripped: [], conflicts: [] };
+            try {
+                await processOne(doc.ref, mode, entry);
+            } catch (err) {
+                report.errors++;
+                entry.error = err.message;
+            }
+            report.copied    += entry.copied.length;
+            report.stripped  += entry.stripped.length;
+            report.conflicts += entry.conflicts.length;
+            report.artisans.push(entry);
+        }
+
+        cursor = page.docs[page.docs.length - 1];
+        if (page.docs.length < pageSize) break;
+    }
+    return report;
+}
+
+async function processOne(publicRef, mode, entry) {
+    const privateRef = publicRef.collection('private').doc('kyc');
+
+    await db().runTransaction(async (txn) => {
+        const [pubSnap, privSnap] = await Promise.all([txn.get(publicRef), txn.get(privateRef)]);
+        const pub  = pubSnap.exists  ? pubSnap.data()  : {};
+        const priv = privSnap.exists ? privSnap.data() : {};
+
+        // Reset per attempt: a transaction callback may run more than once.
+        entry.copied = []; entry.stripped = []; entry.conflicts = [];
+
+        const toCopy  = {};
+        const toStrip = {};
+        for (const f of ARTISAN_PRIVATE_FIELDS) {
+            if (pub[f] === undefined) continue;
+            if (priv[f] === undefined) {
+                toCopy[f] = pub[f];          // never overwrites: only fills a gap
+                entry.copied.push(f);
+            } else if (!sameValue(priv[f], pub[f])) {
+                entry.conflicts.push(f);     // private wins; reported, not copied
+            }
+            // Once this transaction commits, the private record holds a value
+            // for f (copied now, or already there), so f may leave the profile.
+            toStrip[f] = FieldValue.delete();
+            entry.stripped.push(f);
+        }
+        if (mode !== 'strip') entry.stripped = [];
+        if (mode === 'dry-run') return;
+
+        const now = new Date().toISOString();
+        if (Object.keys(toCopy).length) {
+            txn.set(privateRef, {
+                ...toCopy,
+                artisanId: publicRef.id,
+                ...(privSnap.exists ? {} : { createdAt: now }),
+                updatedAt: now,
+            }, { merge: true });
+        }
+        if (mode === 'strip') {
+            txn.update(publicRef, { ...toStrip, updatedAt: now });
+        }
+    });
+
+    // A dry run reports what WOULD be copied; nothing was.
+    if (mode === 'dry-run') { entry.wouldCopy = entry.copied; entry.copied = []; }
+}
+
+module.exports = { migrateArtisanPrivateData, ARTISAN_PRIVATE_FIELDS };
