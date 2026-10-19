@@ -210,18 +210,44 @@ service cloud.firestore {
                 d.payoutAccount.keys().hasOnly(['provider', 'phone', 'accountName'])));
     }
 
+    // Payout destination fields. Withdrawals pay ONLY the account on file
+    // (functions/financial/transfers.js), so once an administrator has approved
+    // the artisan this account is frozen: changing where money goes must be a
+    // re-verification, not a self-service edit — otherwise a hijacked session
+    // could redirect every future payout. Before approval the artisan may still
+    // correct it, and the administrator reviews what is there.
+    function artisanPayoutFields() {
+      return ['payoutAccount', 'momoProvider', 'momoPhone', 'momoAccountName'];
+    }
+    function isApprovedArtisan(uid) {
+      return get(/databases/$(database)/documents/artisans/$(uid)).data.verificationStatus == 'approved';
+    }
+
     match /artisans/{artisanId}/private/{docId} {
       allow read: if isOwner(artisanId) || isAdmin();
       // The artisan maintains their own record (onboarding, resubmission).
       // Administrators review it but never write it directly; verification
       // decisions go through Cloud Functions. The migration that moves legacy
-      // fields here runs with the Admin SDK.
-      allow create, update: if isOwner(artisanId) &&
-                               docId == 'kyc' &&
-                               isArtisanAccount(artisanId) &&
-                               incoming().keys().hasOnly(
-                                 artisanPrivateFields().concat(['artisanId', 'createdAt', 'updatedAt'])) &&
-                               isValidArtisanPrivate(incoming());
+      // fields here runs with the Admin SDK. private/security (PIN metadata)
+      // is server-written only: docId == 'kyc' excludes it.
+      allow create: if isOwner(artisanId) &&
+                       docId == 'kyc' &&
+                       isArtisanAccount(artisanId) &&
+                       incoming().keys().hasOnly(
+                         artisanPrivateFields().concat(['artisanId', 'createdAt', 'updatedAt'])) &&
+                       isValidArtisanPrivate(incoming()) &&
+                       // An approved artisan whose record does not exist yet must
+                       // not be able to CREATE one naming a new payout account.
+                       (!isApprovedArtisan(artisanId) ||
+                        !incoming().keys().hasAny(artisanPayoutFields()));
+      allow update: if isOwner(artisanId) &&
+                       docId == 'kyc' &&
+                       isArtisanAccount(artisanId) &&
+                       incoming().keys().hasOnly(
+                         artisanPrivateFields().concat(['artisanId', 'createdAt', 'updatedAt'])) &&
+                       isValidArtisanPrivate(incoming()) &&
+                       (!isApprovedArtisan(artisanId) ||
+                        !incoming().diff(existing()).affectedKeys().hasAny(artisanPayoutFields()));
       allow delete: if isSuperAdmin();
     }
 

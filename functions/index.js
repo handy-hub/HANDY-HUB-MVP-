@@ -367,58 +367,65 @@ exports.resolveDispute = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120,
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * processWithdrawal â€” customer withdraws available (non-escrowed) wallet balance.
+ * processWithdrawal - customer withdraws available (non-escrowed) wallet balance.
+ *
+ * provider/phone select WHICH of the customer's numbers to pay; the server
+ * accepts only a number that has funded one of their credited top-ups.
  *
  *   const withdraw = httpsCallable(functions, 'processWithdrawal');
- *   const { data } = await withdraw({ amount, provider, phone });
+ *   const { data } = await withdraw({ amount, provider, phone, pin, requestId });
  */
 exports.processWithdrawal = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'processWithdrawal');
-    const { amount, provider, phone } = request.data;
-    _validate({ amount, provider, phone }, ['amount', 'provider', 'phone']);
+    const { amount, provider, phone, pin, requestId } = request.data || {};
+    _validate({ amount, provider, phone, pin, requestId }, ['amount', 'provider', 'phone', 'pin', 'requestId']);
     if (!VALID_PROVIDERS.has(provider)) throw new HttpsError('invalid-argument', 'Invalid payment provider.');
     _validateGhanaPhone(phone);
 
     try {
-        const result = await transfers.executeCustomerWithdrawal(request.auth.uid, {
-            amountGHS:    Number(amount),
-            provider,
-            phone,
-            customerName: request.data.customerName || null,
+        return await transfers.executeCustomerWithdrawal(request.auth.uid, {
+            amountGHS: Number(amount), provider, phone,
+            pin: String(pin), requestId: String(requestId),
         });
-        return result;
     } catch (err) {
-        throw new HttpsError('failed-precondition', err.message);
+        throw _withdrawalError(err);
     }
 });
 
 /**
- * processArtisanWithdrawal â€” artisan withdraws their completed earnings.
+ * processArtisanWithdrawal - artisan withdraws their completed earnings.
+ *
+ * The destination is NOT a parameter: money goes only to the payout account
+ * on file (artisans/{uid}/private/kyc), which firestore.rules freezes once the
+ * artisan is approved. Any provider/phone in the request is ignored.
  *
  *   const withdraw = httpsCallable(functions, 'processArtisanWithdrawal');
- *   const { data } = await withdraw({ amount, provider, phone });
+ *   const { data } = await withdraw({ amount, pin, requestId });
+ *   // data.status: 'processing' | 'success' | 'unknown' (being confirmed) | 'reserved'
  */
 exports.processArtisanWithdrawal = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'processArtisanWithdrawal');
-    const { amount, provider, phone } = request.data;
-    _validate({ amount, provider, phone }, ['amount', 'provider', 'phone']);
-    if (!VALID_PROVIDERS.has(provider)) throw new HttpsError('invalid-argument', 'Invalid payment provider.');
-    _validateGhanaPhone(phone);
+    const { amount, pin, requestId } = request.data || {};
+    _validate({ amount, pin, requestId }, ['amount', 'pin', 'requestId']);
 
     try {
-        const result = await transfers.executeArtisanWithdrawal(request.auth.uid, {
-            amountGHS:   Number(amount),
-            provider,
-            phone,
-            artisanName: request.data.artisanName || null,
+        return await transfers.executeArtisanWithdrawal(request.auth.uid, {
+            amountGHS: Number(amount), pin: String(pin), requestId: String(requestId),
         });
-        return result;
     } catch (err) {
-        throw new HttpsError('failed-precondition', err.message);
+        throw _withdrawalError(err);
     }
 });
+
+/** HttpsError (e.g. from the PIN check) passes through; user errors keep their code. */
+function _withdrawalError(err) {
+    if (err instanceof HttpsError) return err;
+    if (err.userCode) return new HttpsError(err.userCode, err.message);
+    console.error('[withdrawal] Unexpected:', err.message);
+    return new HttpsError('internal', 'Withdrawal could not be processed right now. Your balance is unchanged unless shown otherwise in your history.');
+}
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // ARTISAN INDEX â€” keeps artisan_index in sync with artisans collection
@@ -768,10 +775,24 @@ exports.cancelInspectionBooking = onCall({ region: FUNCTIONS_REGION, timeoutSeco
     }
 });
 
+// Payout reconciliation (transfers.reconcilePayouts) rides this hourly job
+// rather than adding another deployed function against the Cloud Run instance
+// quota. It asks Paystack about every payout still reserved / processing /
+// unknown and settles it through the single idempotent finalizePayout path.
+// The two jobs are isolated: one failing never stops the other.
 exports.checkBookingTimeouts = onSchedule(
     { schedule: 'every 1 hours', region: FUNCTIONS_REGION, timeoutSeconds: 300, memory: '512MiB' },
     async () => {
-        await pricingModule.checkBookingTimeouts();
+        const results = await Promise.allSettled([
+            pricingModule.checkBookingTimeouts(),
+            transfers.reconcilePayouts(),
+        ]);
+        const [bookingRun, payoutRun] = results;
+        if (payoutRun.status === 'fulfilled') console.log('[payouts] reconcile', JSON.stringify(payoutRun.value));
+        for (const r of results) {
+            if (r.status === 'rejected') console.error('[scheduler] job failed:', r.reason && r.reason.message);
+        }
+        if (bookingRun.status === 'rejected') throw bookingRun.reason;
     }
 );
 

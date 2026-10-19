@@ -277,6 +277,62 @@ await it('the onboarding public-profile write, now free of KYC fields, is accept
     }, { merge: true }));
 });
 
+console.log('\nARTISAN PRIVACY — Firestore: the payout account is frozen once approved\n');
+
+// Withdrawals pay only the account on file (functions/financial/transfers.js),
+// so after approval, changing it must be a re-verification, not a self-edit.
+const APPROVED = 'artisan_approved';
+await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();   // one handle per context (see client())
+    await setDoc(doc(db, 'artisans', APPROVED),
+        { ...signupProfile(APPROVED), verificationStatus: 'approved', status: 'active' });
+    await setDoc(doc(db, 'artisans', ARTISAN_A, 'private', 'security'),
+        { securityPinConfigured: true, securityPinVersion: 1 });
+});
+const approved = newArtisan(APPROVED);
+const privApproved = () => doc(approved.firestore(), 'artisans', APPROVED, 'private', 'kyc');
+
+await it('an approved artisan cannot CREATE a private record naming a payout account', async () => {
+    await assertFails(setDoc(privApproved(), {
+        artisanId: APPROVED, payoutAccount: { provider: 'mtn', phone: '0249999999', accountName: 'Attacker' },
+    }));
+});
+await it('an approved artisan can still create a private record without payout fields', async () => {
+    await assertSucceeds(setDoc(privApproved(), { artisanId: APPROVED, tin: 'C0012345678' }));
+});
+await it('an approved artisan cannot CHANGE their payout account', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), 'artisans', APPROVED, 'private', 'kyc'), {
+            artisanId: APPROVED, payoutAccount: { provider: 'mtn', phone: '0241111111', accountName: 'Kofi' },
+        });
+    });
+    await assertFails(setDoc(privApproved(), {
+        payoutAccount: { provider: 'mtn', phone: '0249999999', accountName: 'Attacker' },
+    }, { merge: true }));
+    await assertFails(setDoc(privApproved(), { momoPhone: '0249999999' }, { merge: true }));
+});
+await it('an approved artisan can still update non-payout private fields', async () => {
+    await assertSucceeds(setDoc(privApproved(), { artisanId: APPROVED, tin: 'C0099999999' }, { merge: true }));
+});
+await it('an artisan who is not yet approved may still correct their payout account', async () => {
+    await assertSucceeds(setDoc(privA(artisanA), {
+        artisanId: ARTISAN_A, payoutAccount: { provider: 'telecel', phone: '0201234567', accountName: 'Kofi B' },
+    }, { merge: true }));
+});
+
+console.log('\nARTISAN PRIVACY — Firestore: PIN metadata is server-written\n');
+
+const secA = (ctx) => doc(ctx.firestore(), 'artisans', ARTISAN_A, 'private', 'security');
+await it('the artisan can read their own PIN status', async () => {
+    await assertSucceeds(getDoc(secA(artisanA)));
+});
+await it('the artisan cannot write their PIN status (e.g. claim a PIN is set)', async () => {
+    await assertFails(setDoc(secA(artisanA), { securityPinConfigured: false }));
+});
+await it('a customer cannot read an artisan\'s PIN status', async () => {
+    await assertFails(getDoc(secA(customer)));
+});
+
 console.log('\nARTISAN PRIVACY — Storage: identity documents\n');
 
 const kycFile = (ctx) => ref(ctx.storage(), `artisans/${ARTISAN_A}/documents/idFront.jpg`);

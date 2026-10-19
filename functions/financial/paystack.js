@@ -40,22 +40,63 @@ function secretKey() {
     return k;
 }
 
-async function apiRequest(method, path, body) {
+// ── Failure classification ────────────────────────────────────────────────────
+//
+// For money-moving calls the question after an error is not "did it fail?" but
+// "do we KNOW Paystack did not act?". Every thrown error carries `err.outcome`:
+//
+//   'rejected' — Paystack answered with a well-formed refusal to a malformed or
+//                unauthorised request (HTTP 400/401/403/404/422, JSON status
+//                false). The request was not processed. Safe to treat as "no
+//                transfer exists".
+//   'unknown'  — anything else: network error, timeout, 5xx, a gateway HTML
+//                page, a 408/409/429, or a refusal that says the reference is a
+//                DUPLICATE (meaning a transfer with it already exists). Paystack
+//                may have acted. The caller must not assume either way.
+//
+// VERIFY against current Paystack docs: the 4xx-means-not-processed rule and the
+// wording of duplicate-reference errors.
+const DEFINITIVE_REJECTION_STATUSES = new Set([400, 401, 403, 404, 422]);
+const DUPLICATE_RE = /duplicate|already\s+(exists|been|initiated|used)/i;
+const DEFAULT_TIMEOUT_MS = 20_000;
+
+async function apiRequest(method, path, body, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     const opts = {
         method,
         headers: {
             'Authorization': `Bearer ${secretKey()}`,
             'Content-Type':  'application/json',
         },
+        signal: controller.signal,
     };
     if (body) opts.body = JSON.stringify(body);
 
-    const res  = await fetch(`${PAYSTACK_BASE}${path}`, opts);
-    const json = await res.json();
+    let res, json;
+    try {
+        res = await fetch(`${PAYSTACK_BASE}${path}`, opts);
+        json = await res.json();
+    } catch (cause) {
+        // Never reached Paystack, never heard back, or the reply was not JSON.
+        const err = new Error(cause.name === 'AbortError'
+            ? `Paystack ${method} ${path} timed out after ${timeoutMs} ms`
+            : `Paystack ${method} ${path} unreachable: ${cause.message}`);
+        err.outcome    = 'unknown';
+        err.httpStatus = res ? res.status : null;
+        throw err;
+    } finally {
+        clearTimeout(timer);
+    }
 
-    if (!json.status) {
-        const err = new Error(json.message || `Paystack ${method} ${path} failed`);
-        err.paystackCode = json.code;
+    if (!json || !json.status) {
+        const message = (json && json.message) || `Paystack ${method} ${path} failed`;
+        const err = new Error(message);
+        err.paystackCode = json && json.code;
+        err.httpStatus   = res.status;
+        err.outcome = DEFINITIVE_REJECTION_STATUSES.has(res.status) && !DUPLICATE_RE.test(message)
+            ? 'rejected'
+            : 'unknown';
         throw err;
     }
     return json.data;
@@ -184,6 +225,27 @@ async function getTransfer(transferCode) {
     return apiRequest('GET', `/transfer/${transferCode}`);
 }
 
+/**
+ * Look a transfer up by OUR reference — the only identifier we always have,
+ * including when initiation timed out and no transfer_code ever came back.
+ *
+ * Returns the transfer object, or null when Paystack says no transfer with this
+ * reference exists. Throws (err.outcome 'unknown') when it cannot tell.
+ *
+ * VERIFY against current Paystack docs: endpoint GET /transfer/verify/:reference,
+ * its not-found response (assumed HTTP 404 / status false), and the `status`
+ * values a transfer can take.
+ */
+async function verifyTransfer(reference) {
+    try {
+        return await apiRequest('GET', `/transfer/verify/${encodeURIComponent(reference)}`);
+    } catch (err) {
+        if (err.httpStatus === 404 && !DUPLICATE_RE.test(err.message)) return null;
+        err.outcome = 'unknown';
+        throw err;
+    }
+}
+
 module.exports = {
     PROVIDER_BANK_CODES,
     PROVIDER_CHARGE_CODES,
@@ -197,4 +259,5 @@ module.exports = {
     createTransferRecipient,
     initiateTransfer,
     getTransfer,
+    verifyTransfer,
 };

@@ -128,26 +128,42 @@ export async function raiseDispute(escrowId, disputeId) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Initiate a customer wallet withdrawal via Paystack Transfer.
- *
- * @param {{ amount: number, provider: string, phone: string, customerName?: string }} opts
- * @returns {Promise<{ ref: string, payoutId: string, transferCode: string }>}
+ * A fresh idempotency key for ONE withdrawal attempt. Generate it when the
+ * user opens the withdraw sheet and reuse it for retries of that same attempt,
+ * so a double-tap or a network retry returns the payout already created
+ * instead of making a second one.
  */
-export async function withdrawCustomer({ amount, provider, phone, customerName }) {
+export function newWithdrawalRequestId() {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Initiate a customer wallet withdrawal via Paystack Transfer.
+ * provider/phone pick one of the customer's numbers; the server pays only a
+ * number that has funded one of their credited top-ups.
+ *
+ * @param {{ amount: number, provider: string, phone: string, pin: string, requestId: string }} opts
+ * @returns {Promise<{ status: string, ref: string, payoutId: string, duplicate?: boolean }>}
+ *          status 'unknown' / 'reserved' / 'processing' = still being confirmed — not a failure.
+ */
+export async function withdrawCustomer({ amount, provider, phone, pin, requestId }) {
     _enforceLimit('WITHDRAWAL', 'payment');
-    const result = await call('processWithdrawal')({ amount, provider, phone, customerName });
+    const result = await call('processWithdrawal')({ amount, provider, phone, pin, requestId });
     return result.data;
 }
 
 /**
- * Initiate an artisan earnings withdrawal via Paystack Transfer.
+ * Initiate an artisan earnings withdrawal via Paystack Transfer. The server
+ * pays only the payout account on file — there is no destination parameter.
  *
- * @param {{ amount: number, provider: string, phone: string, artisanName?: string }} opts
- * @returns {Promise<{ ref: string, payoutId: string, transferCode: string }>}
+ * @param {{ amount: number, pin: string, requestId: string }} opts
+ * @returns {Promise<{ status: string, ref: string, payoutId: string, duplicate?: boolean }>}
  */
-export async function withdrawArtisan({ amount, provider, phone, artisanName }) {
+export async function withdrawArtisan({ amount, pin, requestId }) {
     _enforceLimit('ARTISAN_WITHDRAWAL', 'payment');
-    const result = await call('processArtisanWithdrawal')({ amount, provider, phone, artisanName });
+    const result = await call('processArtisanWithdrawal')({ amount, pin, requestId });
     return result.data;
 }
 

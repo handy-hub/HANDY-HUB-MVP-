@@ -29,7 +29,7 @@
     "test:booking-truth": "node tests/booking-truth.test.cjs",
     "test:complete-booking": "node tests/complete-booking.test.cjs",
     "test:booking-router": "node tests/booking-router.test.cjs",
-    "test": "npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:escrow-auth && npm run test:artisan-privacy && npm run test:emergency-pricing && npm run test:booking-truth && npm run test:complete-booking && npm run test:booking-router && npm run test:booking-actions && npm run test:booking-tracks && npm run test:booking-schedule && python tests/verify_low_fixes.py",
+    "test": "npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:escrow-auth && npm run test:payouts && npm run test:artisan-privacy && npm run test:emergency-pricing && npm run test:booking-truth && npm run test:complete-booking && npm run test:booking-router && npm run test:booking-actions && npm run test:booking-tracks && npm run test:booking-schedule && python tests/verify_low_fixes.py",
     "test:booking-actions": "node tests/booking-actions.test.cjs",
     "emulators": "firebase emulators:start --only firestore,auth,functions --project lamax-4fd82",
     "seed:e2e": "node tests/e2e/seed-emulator.cjs",
@@ -55,6 +55,7 @@
     "build:functions-shared": "node scripts/build-functions-shared.cjs",
     "test:booking-schedule": "node tests/booking-schedule.test.cjs",
     "test:escrow-auth": "node tests/escrow-authorization.test.cjs",
+    "test:payouts": "node tests/payout-integrity.test.cjs",
     "test:artisan-privacy": "node tests/artisan-privacy-migration.test.cjs",
     "test:privacy-rules": "firebase emulators:exec --only firestore,storage --project lamax-rules-test \"node tests/artisan-privacy-rules.test.mjs\""
   },

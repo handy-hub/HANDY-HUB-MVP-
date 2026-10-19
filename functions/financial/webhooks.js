@@ -8,7 +8,7 @@
 
 const crypto    = require('crypto');
 const { creditWalletFromCharge }                  = require('./wallets');
-const { onTransferSuccess, onTransferFailed }     = require('./transfers');
+const { onTransferEvent }                         = require('./transfers');
 const { verifyCharge }                            = require('./paystack');
 const { sendNotification }                        = require('../notifications');
 const { MIN_TOPUP_GHS, FIRESTORE_DB_ID }          = require('../config');
@@ -235,12 +235,17 @@ async function handlePaystackWebhook(req, res) {
         return res.status(400).json({ error: 'Invalid signature' });
     }
 
-    // ── 2. Always respond 200 quickly (Paystack retries on non-2xx) ──────────
-    res.status(200).json({ received: true });
-
-    // ── 3. Process event asynchronously ─────────────────────────────────────
-    const event = req.body;
-    const data  = event.data;
+    // ── 2. Process FIRST, acknowledge AFTER ─────────────────────────────────
+    //
+    // This used to answer 200 and then do the work. On 2nd-gen Cloud Functions
+    // (Cloud Run) CPU may be throttled or the instance reclaimed once the
+    // response is sent, so the financial effect could silently never happen —
+    // and Paystack, having been told 200, would never retry. Every handler
+    // below is idempotent (settleTopupByReference locks on the reference;
+    // transfer outcomes go through transfers.finalizePayout), so answering
+    // non-2xx on an infrastructure error and letting Paystack redeliver is safe.
+    const event = req.body || {};
+    const data  = event.data || {};
 
     try {
         switch (event.event) {
@@ -274,26 +279,28 @@ async function handlePaystackWebhook(req, res) {
                 break;
             }
 
-            // Payout succeeded — update status, no balance change needed
+            // Payout outcomes. finalizePayout is transactional and idempotent:
+            // a duplicate, late or out-of-order event is a no-op, a refund
+            // happens at most once, and an amount that does not match the
+            // payout moves nothing and is raised for a human.
             case 'transfer.success':
-                await onTransferSuccess(data);
-                console.log(`[webhook] Transfer success: ${data.reference}`);
-                break;
-
-            // Payout failed or reversed — update status + roll back balance
             case 'transfer.failed':
-            case 'transfer.reversed':
-                await onTransferFailed(data, event.event);
-                console.log(`[webhook] Transfer ${event.event}: ${data.reference}`);
+            case 'transfer.reversed': {
+                const r = await onTransferEvent(event.event, data);
+                console.log(`[webhook] ${event.event} ${data.reference}: ${r.result}`);
                 break;
+            }
 
             default:
                 console.log(`[webhook] Unhandled event: ${event.event}`);
         }
     } catch (err) {
-        // Log but don't throw — we already sent 200 to Paystack
+        // Infrastructure failure: the effect may not be recorded. Ask Paystack
+        // to redeliver rather than acknowledging work that did not happen.
         console.error(`[webhook] Error handling ${event.event}:`, err.message, err.stack);
+        return res.status(500).json({ received: false });
     }
+    return res.status(200).json({ received: true });
 }
 
 module.exports = { handlePaystackWebhook, settleTopupByReference };

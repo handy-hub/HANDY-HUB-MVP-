@@ -131,6 +131,11 @@
     .badge.processing { background: #e0f2fe; color: #0369a1; }
     .badge.success    { background: #dcfce7; color: #166534; }
     .badge.failed     { background: #ffe4e6; color: #9f1239; }
+    /* reserved / unknown: funds held, outcome not yet confirmed with Paystack */
+    .badge.reserved   { background: #fef9c3; color: #854d0e; }
+    .badge.unknown    { background: #ffedd5; color: #9a3412; }
+    .badge.reversed   { background: #ffe4e6; color: #9f1239; }
+    .badge.attention  { background: #9f1239; color: #fff; margin-left: 4px; }
     .badge.held       { background: #f0f4ff; color: #3730a3; }
     .badge.released   { background: #dcfce7; color: #166534; }
     .badge.refunded   { background: #f5f5f5; color: #555; }
@@ -278,7 +283,9 @@
       <div class="filter-row" id="payout-filter-row">
         <button class="filter-chip active" data-filter="all">All</button>
         <button class="filter-chip" data-filter="pending">Pending</button>
+        <button class="filter-chip" data-filter="reserved">Reserved</button>
         <button class="filter-chip" data-filter="processing">Processing</button>
+        <button class="filter-chip" data-filter="unknown">Unknown</button>
         <button class="filter-chip" data-filter="success">Success</button>
         <button class="filter-chip" data-filter="failed">Failed</button>
         <button class="filter-chip" data-filter="reversed">Reversed</button>
@@ -400,7 +407,7 @@
         <td><span style="font-weight:700">${d.userType === 'artisan' ? 'Artisan' : 'Customer'}</span></td>
         <td>${PROVIDER_NAMES[d.provider] || d.provider || '—'}</td>
         <td class="amount-col debit">${fmtGHC(d.amount)}</td>
-        <td><span class="badge ${d.status || 'pending'}">${d.status || 'pending'}</span></td>
+        <td><span class="badge ${d.status || 'pending'}">${d.status || 'pending'}</span>${d.needsAttention ? '<span class="badge attention" title="Raised for review — see admin notifications">attention</span>' : ''}</td>
         <td style="color:#888;font-size:12px">${d.createdAt ? fmtDate(d.createdAt) : '—'}</td>
       </tr>`;
     }).join('');
@@ -474,7 +481,9 @@
     getDocs(query(collection(db, 'payouts'), orderBy('createdAt','desc'), limit(100)))
       .then(snap => {
         allPayouts = snap.docs.map(d => ({ id: d.id, data: d.data() }));
-        const pending = allPayouts.filter(r => ['pending','processing'].includes(r.data.status));
+        // Every state in which money is held but not yet confirmed delivered or
+        // returned (functions/financial/transfers.js OPEN_STATUSES).
+        const pending = allPayouts.filter(r => ['pending','reserved','processing','unknown'].includes(r.data.status));
         statPending.textContent = pending.length;
         renderPayouts();
       })

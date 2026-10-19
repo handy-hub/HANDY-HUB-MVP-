@@ -104,8 +104,11 @@ export async function initiatePayment({ email, amount, metadata = {}, onSuccess,
  * @param {string}  opts.phone    - Mobile money phone number
  * @returns {Promise<{ ref: string, transferCode: string }>}
  */
-export async function initiateWithdrawal({ amount, provider, phone }) {
+export async function initiateWithdrawal({ amount, provider, phone, pin, requestId }) {
+    // pin: the customer's Security PIN (verified server-side, never stored here).
+    // requestId: one idempotency key per withdrawal attempt (see walletService
+    // newWithdrawalRequestId) so a retry cannot create a second payout.
     const processWithdrawal = httpsCallable(getFirebaseFunctions(), 'processWithdrawal');
-    const result = await processWithdrawal({ amount, provider, phone });
+    const result = await processWithdrawal({ amount, provider, phone, pin, requestId });
     return result.data;
 }

@@ -471,6 +471,9 @@
     import { openSheet }                               from '../shared/js/components/sheet.js';
     import { createPaymentRepository, PROVIDER_META }  from '../shared/js/data/repositories/paymentRepository.js';
     import { initiateWithdrawal }                      from '../shared/js/services/paystackService.js';
+    import { newWithdrawalRequestId }                  from '../shared/js/services/walletService.js';
+    import { openSecurityPinSheet }                    from '../shared/js/components/securityPinSheet.js';
+    import { pinErrorMessage }                         from '../shared/js/services/securityPinService.js';
 
     // Guard — must be authenticated to view financial history
     await requireAuth();
@@ -500,6 +503,7 @@
     let activeFilter   = 'all';
     let currentBalance = 0;
     let wdSelAccount   = null;
+    let wdRequestId    = null;   // one idempotency key per withdrawal attempt
     let currentUid     = null;
     let paymentRepo    = null;
     // ── Filter chips ──────────────────────────────────────────────────────────
@@ -707,6 +711,7 @@
     function openWithdrawModal() {
         wdAmountInput.value = '';
         wdSelAccount        = null;
+        wdRequestId         = newWithdrawalRequestId();
         document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
         wdOverlay.classList.add('open');
         wdOverlay.setAttribute('aria-hidden', 'false');
@@ -788,34 +793,60 @@
     wdCancelBtn.addEventListener('click', closeWithdrawModal);
     wdOverlay.addEventListener('click', e => { if (e.target === wdOverlay) closeWithdrawModal(); });
 
-    wdConfirmBtn.addEventListener('click', async () => {
+    wdConfirmBtn.addEventListener('click', () => {
         const amount = parseFloat(wdAmountInput.value);
         const acc    = savedAccounts.find(a => a.id === wdSelAccount);
         if (!acc || !amount || amount <= 0) return;
 
-        wdConfirmBtn.disabled    = true;
-        wdConfirmBtn.textContent = 'Sending to Paystack…';
-
-        try {
-            // Calls the processWithdrawal Cloud Function which:
-            //   1. Creates a Paystack Transfer Recipient
-            //   2. Initiates the Paystack Transfer (real payout)
-            //   3. Deducts the wallet balance + records the transaction in Firestore
-            const { ref } = await initiateWithdrawal({
-                amount,
-                provider: acc.data.provider,
-                phone:    acc.data.phone
-            });
-
-            closeWithdrawModal();
-            showToast(`GHS ${amount.toFixed(2)} sent to ${acc.data.phone}. Ref: ${ref}`, 'success');
-        } catch (err) {
-            console.error('Withdrawal error:', err);
-            // Firebase HttpsError surfaces the message from the Cloud Function
-            showToast(err.message || 'Withdrawal failed. Please try again.', 'error');
-            wdConfirmBtn.disabled = false;
-            updateWdConfirm();
-        }
+        // The Security PIN is verified server-side inside processWithdrawal —
+        // never by a standalone endpoint — and is not stored on this page. The
+        // server also accepts only a number that has funded one of this
+        // customer's top-ups; the saved account is a choice, not an authority.
+        openSecurityPinSheet({
+            mode:         'enter',
+            title:        'Enter your PIN',
+            message:      'Enter your 4-digit Security PIN to confirm this withdrawal. This is not your Mobile Money PIN.',
+            context:      `Withdrawal · GHS ${amount.toFixed(2)}`,
+            confirmLabel: 'Confirm Withdrawal',
+            onConfirm: async (pin, controls) => {
+                controls.setBusy(true);
+                try {
+                    const res = await initiateWithdrawal({
+                        amount,
+                        provider:  acc.data.provider,
+                        phone:     acc.data.phone,
+                        pin,
+                        requestId: wdRequestId,
+                    });
+                    controls.close('done');
+                    closeWithdrawModal();
+                    // "Sent" only on Paystack's confirmation; otherwise honest pending.
+                    showToast(res.status === 'success'
+                        ? `GHS ${amount.toFixed(2)} sent to your Mobile Money account.`
+                        : `Withdrawal of GHS ${amount.toFixed(2)} requested. We'll notify you when it arrives. Ref: ${res.ref}`,
+                        res.status === 'success' ? 'success' : 'info');
+                } catch (err) {
+                    const code = String(err?.code || '');
+                    if (code.includes('permission-denied') || code.includes('resource-exhausted')) {
+                        controls.setBusy(false);
+                        controls.showError(code.includes('permission-denied') ? 'Incorrect PIN. Try again.' : pinErrorMessage(err));
+                        return;
+                    }
+                    controls.close('error');
+                    if (/PIN setup required/i.test(err?.message || '')) {
+                        showToast('Set up your Security PIN in Settings → Security first.', 'error');
+                        return;
+                    }
+                    console.error('Withdrawal error:', err);
+                    showToast(err.message || 'Withdrawal failed. Please try again.', 'error');
+                    updateWdConfirm();
+                }
+            },
+            onForgot: (controls) => {
+                controls.close('forgot');
+                window.location.href = 'settings-security.html';
+            },
+        });
     });
 
     // ── Auth + Firebase subscriptions ─────────────────────────────────────────

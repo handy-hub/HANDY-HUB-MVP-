@@ -9,7 +9,8 @@
  * customer's Mobile Money PIN, a Paystack OTP, or the Firebase password.
  *
  * Storage model (two documents, different trust levels):
- *   customers/{uid}            — SAFE metadata only, readable by the owner:
+ *   customers/{uid}  (customers) or artisans/{uid}/private/security (artisans)
+ *                              — SAFE metadata only, readable by the owner:
  *                                securityPinConfigured / CreatedAt / UpdatedAt / Version.
  *                                Clients cannot write these (profile-update allowlist).
  *   payment_security/{uid}     — SENSITIVE material, Admin-SDK ONLY (rules: false):
@@ -138,21 +139,32 @@ async function setSecurityPin(auth, { pin } = {}) {
 
     const secRef  = db().collection(COL_SECURITY).doc(uid);
     const custRef = db().collection('customers').doc(uid);
+    const artRef  = db().collection('artisans').doc(uid);
+    // Artisans need the PIN too: it is required for withdrawals. Their safe
+    // metadata goes to artisans/{uid}/private/security (owner + admin read,
+    // server-only write) — never to customers/{uid} (role isolation: a UID is
+    // a customer OR an artisan) and never to the public artisan profile.
+    const artMetaRef = artRef.collection('private').doc('security');
     const n = nowIso();
 
     let healed = false;
     await db().runTransaction(async (txn) => {
-        const [secSnap, custSnap] = await Promise.all([txn.get(secRef), txn.get(custRef)]);
+        const [secSnap, custSnap, artSnap, artMetaSnap] = await Promise.all([
+            txn.get(secRef), txn.get(custRef), txn.get(artRef), txn.get(artMetaRef),
+        ]);
 
-        if (!custSnap.exists) {
-            throw new HttpsError('failed-precondition', 'Customer profile not found.');
+        const isArtisan = !custSnap.exists && artSnap.exists && artSnap.data().userType === 'artisan';
+        if (!custSnap.exists && !isArtisan) {
+            throw new HttpsError('failed-precondition', 'Account profile not found.');
         }
+        const metaSnap = isArtisan ? artMetaSnap : custSnap;
+        const metaRef  = isArtisan ? artMetaRef  : custRef;
         if (secSnap.exists && secSnap.data().pinHash) {
             throw new HttpsError('already-exists', 'A Security PIN is already configured.');
         }
         // Inconsistency: metadata claims configured but no protected record.
         // Do not silently continue — record it, then heal by creating fresh.
-        if (custSnap.data().securityPinConfigured === true && !secSnap.exists) {
+        if (metaSnap.exists && metaSnap.data().securityPinConfigured === true && !secSnap.exists) {
             healed = true;
         }
 
@@ -169,7 +181,7 @@ async function setSecurityPin(auth, { pin } = {}) {
             createdAt:      n,
             updatedAt:      n,
         });
-        txn.set(custRef, {
+        txn.set(metaRef, {
             securityPinConfigured: true,
             securityPinCreatedAt:  n,
             securityPinUpdatedAt:  n,
