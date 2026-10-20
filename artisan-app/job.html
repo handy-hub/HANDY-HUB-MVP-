@@ -432,6 +432,18 @@ async function run(spec) {
         if (res.booking) render(res.booking);
         return;
       }
+      if (spec.action === ACTION.DECLINE) {
+        // Declining closes the offer to this artisan: there is nothing left to show.
+        try { _offerUnsub?.(); } catch (_) {}
+        showMessage('Request declined', 'It has been offered to another professional, or the customer has been told.');
+        return;
+      }
+      if (spec.action === ACTION.ACCEPT) {
+        // Accepting is what opens the booking to this artisan: follow it now.
+        try { _offerUnsub?.(); } catch (_) {}
+        _offerUnsub = null;
+        watchBooking();
+      }
       toast(
         spec.action === ACTION.ACCEPT   ? 'Job accepted. The customer has been notified.' :
         spec.action === ACTION.DECLINE  ? 'Request declined.' :
@@ -488,7 +500,10 @@ $('jb-back').addEventListener('click', () => { location.href = 'jobs.html'; });
   // The artisan's own position, for the distance line. Absent is fine — the
   // distance is simply omitted rather than shown as 0 km.
   try {
-    const me = await databaseService.getDocument('artisans', _uid);
+    // The artisan's own precise fix is in their private record; the public
+    // profile carries ~1 km (shared/js/domain/locationPrivacy.js).
+    const loc = await databaseService.getDocument(`artisans/${_uid}/private`, 'location').catch(() => null);
+    const me = (loc && loc.exists) ? loc : await databaseService.getDocument('artisans', _uid);
     if (me?.exists) {
       const lat = Number(me.data.lat), lng = Number(me.data.lng);
       if (Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0)) {
@@ -500,6 +515,48 @@ $('jb-back').addEventListener('click', () => { location.href = 'jobs.html'; });
   // Live authoritative state. The screen follows the booking rather than a
   // snapshot taken when the card was drawn — so a customer cancelling, or a
   // callout fee landing, updates this screen while the artisan is looking at it.
+  watchBooking();
+})();
+
+// ── What this artisan may see of the job ─────────────────────────────────────
+// A job they have TAKEN: the booking itself (they are its artisanId). A job they
+// have only been OFFERED: firestore.rules refuse the booking, and the offer
+// summary (job_offers/{id} — no address, position, notes or phone) is shown
+// instead, for as long as the offer is open (functions/jobOffers.js).
+let _offerUnsub = null, _phone = null, _phoneTried = false, _lastBooking = null;
+
+function withPhone(b) { return _phone ? { ...b, customerPhone: _phone } : b; }
+
+// The customer's phone: bookings/{id}/private/contact, which the rules open only
+// once the job is committed and funded, and close when it ends.
+async function loadPhone(b) {
+  if (_phoneTried || !resolveJobBrief(b).customer.contactUnlocked) return;
+  _phoneTried = true;
+  const { services: { databaseService } } = getAppContainer();
+  try {
+    const snap = await databaseService.getDocument(`bookings/${BOOKING_ID}/private`, 'contact');
+    if (snap?.exists && snap.data?.customerPhone) {
+      _phone = snap.data.customerPhone;
+      if (!_busy && _lastBooking) render(withPhone(_lastBooking));
+    }
+  } catch (_) { /* not disclosed in this state */ }
+}
+
+function watchOffer() {
+  if (_offerUnsub) return;
+  const { services: { databaseService } } = getAppContainer();
+  _offerUnsub = databaseService.subscribeToDocument('job_offers', BOOKING_ID,
+    (snap) => {
+      if (!snap?.exists) { showMessage('Job not found', 'This request is no longer available, or it is not yours.'); return; }
+      if (!_busy) render({ id: BOOKING_ID, ...snap.data });
+    },
+    () => showMessage('Request no longer open', 'It was accepted, declined, expired or withdrawn.')
+  );
+}
+
+function watchBooking() {
+  const { services: { databaseService } } = getAppContainer();
+  try { _unsub?.(); } catch (_) {}
   _unsub = databaseService.subscribeToDocument('bookings', BOOKING_ID,
     (snap) => {
       if (!snap?.exists) {
@@ -511,13 +568,18 @@ $('jb-back').addEventListener('click', () => { location.href = 'jobs.html'; });
         showMessage('Not your job', 'This booking belongs to another professional.');
         return;
       }
-      if (!_busy) render(b);
+      _lastBooking = b;
+      if (!_busy) render(withPhone(b));
+      loadPhone(b);
     },
-    () => showMessage('Could not load this job', 'Check your connection and try again.')
+    (err) => {
+      if (/permission/i.test(String(err?.code || err?.message || ''))) { watchOffer(); return; }
+      showMessage('Could not load this job', 'Check your connection and try again.');
+    }
   );
-})();
+}
 
-window.addEventListener('pagehide', () => { try { _unsub?.(); } catch (_) {} });
+window.addEventListener('pagehide', () => { try { _unsub?.(); _offerUnsub?.(); } catch (_) {} });
 </script>
 </body>
 </html>

@@ -106,7 +106,8 @@ function client(ctx) {
     return { firestore: () => fs, storage: () => st };
 }
 function newArtisan(uid) {
-    return client(testEnv.authenticatedContext(uid, { email: `${uid}@example.com` }));
+    // email_verified: KYC and verification writes require a confirmed email (AR-09).
+    return client(testEnv.authenticatedContext(uid, { email: `${uid}@example.com`, email_verified: true }));
 }
 
 const anon     = client(testEnv.unauthenticatedContext());
@@ -227,10 +228,13 @@ await it('the artisan can still toggle availability and update their bio', async
         isAvailable: true, bio: 'Licensed plumber', updatedAt: new Date().toISOString(),
     }));
 });
-await it('the artisan can still publish their presence location', async () => {
+await it('the artisan can still publish their presence location (coarse, AR-03)', async () => {
+    // The precise fix goes to private/location; the public profile gets ~1 km
+    // and the live fields cleared (tests/privacy-access-rules.test.mjs has the
+    // refusals).
     await assertSucceeds(updateDoc(pubA(artisanA), {
-        currentLat: 5.6037, currentLng: -0.187, lastLocationUpdate: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        lat: 5.6, lng: -0.19, geohash: 's0rk3', currentLat: null, currentLng: null,
+        lastLocationUpdate: new Date().toISOString(), updatedAt: new Date().toISOString(),
     }));
 });
 await it('a legacy profile still holding KYC fields does not block unrelated edits', async () => {
@@ -267,7 +271,7 @@ await it('the onboarding public-profile write (exact shape, incl. locationSetAt)
     await assertSucceeds(setDoc(doc(ctx.firestore(), 'artisans', uid), {
         id: uid, name: 'Kofi Boateng', email: `${uid}@example.com`, userType: 'artisan', status: 'pending',
         phone: '0201234567', gender: 'male',
-        lat: 5.6037, lng: -0.187, locationSetAt: n,
+        lat: 5.6, lng: -0.19, locationSetAt: n,   // coarse: the precise pin goes to private/location (AR-03)
         category: 'plumbing', specialty: 'plumbing', skills: ['leaks'],
         requestedService: 'Borehole pump repair',
         bio: 'Plumber', yearsExperience: 5, workRadius: 10, baseRate: 50,

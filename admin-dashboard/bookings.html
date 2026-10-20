@@ -53,6 +53,7 @@
     <div class="sidebar-section-label">Operations</div>
     <a class="nav-link active" href="bookings.html"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Bookings</a>
     <a class="nav-link" href="disputes.html"><svg viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Disputes</a>
+    <a class="nav-link" href="support.html"><svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Support</a>
     <div class="sidebar-section-label">Marketing</div>
     <a class="nav-link" href="promotions.html"><svg viewBox="0 0 24 24" fill="none"><path d="M3 11l18-5v12L3 14v-3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M11.6 16.8a3 3 0 0 1-5.8-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Promotions</a>
     <div class="sidebar-section-label">Finance</div>
@@ -316,7 +317,13 @@ window.openBookingModal=function(id){
   sb.textContent=b.status||'—';
   document.getElementById('bm-customer').textContent=b.customerName||b.customerId||'—';
   document.getElementById('bm-artisan').textContent=b.artisanName||b.artisanId||'—';
-  document.getElementById('bm-cphone').textContent=b.customerPhone||'—';
+  // The customer's phone lives in bookings/{id}/private/contact (AR-06), which
+  // admins may read; legacy bookings still carry it on the booking itself.
+  const cphone=document.getElementById('bm-cphone');
+  cphone.textContent=b.customerPhone||'—';
+  getDoc(doc(db,'bookings',b.id,'private','contact'))
+    .then(s=>{ if(s.exists()&&s.data().customerPhone&&activeBooking===b) cphone.textContent=s.data().customerPhone; })
+    .catch(()=>{});
   document.getElementById('bm-aphone').textContent=b.artisanPhone||'—';
   document.getElementById('bm-cat').textContent=b.category||b.serviceType||'—';
   document.getElementById('bm-desc').textContent=b.description||b.notes||'—';

@@ -28,6 +28,7 @@ const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { FIRESTORE_DB_ID, FUNCTIONS_REGION, MAX_DISPATCH_ROUNDS, BURST_CPU } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const { geohashQueryBounds } = require('geofire-common');
+const jobOffers = require('./jobOffers');
 
 // How long ONE artisan holds a request before it moves to the next.
 //
@@ -272,11 +273,21 @@ async function dispatchRound(bookingId) {
         offerExpiresAtMs = Date.now() + timeout * 1000;
         const deadline = Timestamp.fromMillis(offerExpiresAtMs);
 
+        // The offer. booking.artisanId is NOT set here: holding artisanId is what
+        // lets an artisan read the booking (exact address, position, notes), and
+        // an artisan who has only been OFFERED the job reads job_offers/{id} — the
+        // summary needed to decide (functions/jobOffers.js). artisanId is set by
+        // respondToJobOffer when they accept.
+        txn.set(jobOffers.offerRef(bookingId), jobOffers.buildOfferDoc(booking, {
+            bookingId,
+            artisanId:   chosen.id,
+            expiresAtMs: offerExpiresAtMs,
+            round,
+            distanceKm:  chosen._distKm ?? null,
+        }));
         txn.update(bookingRef, {
             dispatchStatus:         'dispatched',
-            // artisanId is set to the chosen artisan so the artisan dashboard query
-            // (artisanId == auth.uid AND status == 'pending') surfaces this booking.
-            artisanId:              chosen.id,
+            artisanId:              null,
             currentArtisanId:       chosen.id,
             currentArtisanName:     chosen.name           || 'Professional',
             currentArtisanPhoto:    chosen.profileImage   || null,
@@ -424,7 +435,7 @@ const onBookingCreated = onDocumentCreated(
                     category:  data.serviceType || data.category || '',
                     lat:       data.lat,
                     lng:       data.lng,
-                    artisanId: data.artisanId,
+                    artisanId: data.requestedArtisanId || data.artisanId || null,
                 });
                 await db().collection('bookings').doc(bookingId).update({
                     priceType:       'emergency',
@@ -449,8 +460,39 @@ const onBookingCreated = onDocumentCreated(
         // page doing a frontend query) are NOT re-dispatched here. The artisan was
         // already chosen; bookingConfirmNotify.js sent their notification. Dispatch
         // would reassign them and send a duplicate/conflicting notification.
-        if (data.artisanId) {
-            console.log(`[dispatch] Booking ${bookingId} already has artisanId=${data.artisanId} — skipping dispatch (pre-matched).`);
+        // The chosen artisan gets the same offer summary as a dispatched one —
+        // never the booking itself — with no deadline (a customer-chosen request
+        // waits for that artisan; declining tells the customer, as before).
+        //
+        // A booking that arrives with artisanId already set is a LEGACY write (a
+        // client cached from before AR-06, or one created while rules and
+        // functions were deployed apart). Re-dispatching it would hand the
+        // customer's chosen job to someone else, so it is converted instead: the
+        // artisan becomes the request, artisanId is cleared (closing the booking
+        // to them until they accept), and the same offer opens. The transaction
+        // re-reads the booking so a booking already answered is left alone.
+        const requested = data.requestedArtisanId || data.artisanId || null;
+        if (requested) {
+            try {
+                await db().runTransaction(async (txn) => {
+                    const ref  = db().collection('bookings').doc(bookingId);
+                    const snap = await txn.get(ref);
+                    const b    = snap.exists ? snap.data() : null;
+                    if (!b || (b.status || '').toLowerCase() !== 'pending') return;
+                    txn.set(jobOffers.offerRef(bookingId), jobOffers.buildOfferDoc(b, {
+                        bookingId, artisanId: requested, prematched: true,
+                    }));
+                    txn.update(ref, {
+                        requestedArtisanId: requested,
+                        artisanId:          null,
+                        currentArtisanId:   requested,
+                        updatedAt:          new Date().toISOString(),
+                    });
+                });
+            } catch (err) {
+                console.error(`[dispatch] Could not open the offer for pre-matched booking ${bookingId}: ${err?.message}`);
+            }
+            console.log(`[dispatch] Booking ${bookingId} pre-matched to ${requested} — offer opened, no dispatch.`);
             return;
         }
 
@@ -521,6 +563,11 @@ async function handleDispatchEvent(before, after, bookingId) {
         }
     }
 
+    // ── Customer cancelled while the request was on offer → withdraw it ──
+    if (prevStatus === 'pending' && nextStatus === 'cancelled') {
+        await jobOffers.closeOffer(null, bookingId, 'withdrawn');
+    }
+
     // ── Artisan accepted → clear dispatch timer ───────────────────────────
     if (prevStatus === 'pending' && nextStatus === 'accepted') {
         try {
@@ -572,9 +619,10 @@ const checkExpiredDispatches = onSchedule(
                     const d = live.data();
                     if (d.dispatchStatus !== 'dispatched') return false;      // already accepted/re-dispatched
                     if ((d.status || '').toLowerCase() !== 'pending') return false; // no longer pending
+                    jobOffers.closeOffer(txn, bookingId, 'expired');
                     txn.update(doc.ref, {
                         dispatchStatus:   'searching',
-                        artisanId:        null,        // cleared so artisan dashboard doesn't show stale
+                        artisanId:        null,
                         currentArtisanId: null,
                         responseDeadline: null,
                         dispatchHistory:  FieldValue.arrayUnion({

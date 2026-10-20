@@ -9,6 +9,8 @@ import {
   onAuthStateChanged,
   OAuthProvider,
   reauthenticateWithCredential,
+  reload,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
@@ -148,6 +150,32 @@ export function createFirebaseAuthService(authInstance = firebaseAuth) {
       const credential = EmailAuthProvider.credential(user.email, password);
       await reauthenticateWithCredential(user, credential);
       await deleteUser(user);
+    },
+
+    // ── Email verification (optional methods — not in the required contract) ──
+    // Firebase Auth's own verification link: it needs no sending domain of ours,
+    // so it works while the Resend OTP path is switched off (artisan signup.html,
+    // REQUIRE_EMAIL_OTP). Verified status reaches firestore.rules as
+    // request.auth.token.email_verified once the ID token is refreshed.
+
+    /** Email the signed-in user a verification link. */
+    async sendEmailVerification(continueUrl = null) {
+      const user = authInstance.currentUser;
+      if (!user) throw Object.assign(new Error("No signed-in user"), { code: "auth/no-current-user" });
+      await sendEmailVerification(user, continueUrl ? { url: continueUrl } : undefined);
+    },
+
+    /**
+     * Re-read the user from Firebase Auth and refresh the ID token, so a link
+     * clicked in another tab or app takes effect here — in the UI AND in the
+     * token the rules see. Returns whether the email is now verified.
+     */
+    async refreshUser() {
+      const user = authInstance.currentUser;
+      if (!user) throw Object.assign(new Error("No signed-in user"), { code: "auth/no-current-user" });
+      await reload(user);
+      await user.getIdToken(true);
+      return { emailVerified: !!authInstance.currentUser?.emailVerified };
     }
   };
 }

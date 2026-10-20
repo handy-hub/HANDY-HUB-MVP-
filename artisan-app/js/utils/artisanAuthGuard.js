@@ -32,6 +32,7 @@ import { getAppContainer }              from '../../../shared/js/app/container.j
 import { initializePushNotifications } from '../../../shared/js/services/pushNotificationService.js';
 import { isArtisanDevAccessEnabled }   from '../../../shared/js/config/devAccess.js';
 import { getDevArtisanSession, endDevSession } from '../../../shared/dev/artisanDevSession.js';
+import { ensureArtisanAccount, nextArtisanPage } from './artisanAccount.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const LOGIN_URL        = 'login.html';
@@ -166,6 +167,23 @@ const SCREENS = {
       <button class="ag-btn" onclick="_agRetry()">Try again</button>
     </div>`,
 
+  // Signed in, but no artisan profile yet (a first Google sign-in that did not
+  // come through signup). Authentication worked; the account just needs
+  // creating — so say that and do it, instead of "Access Denied" (AR-09).
+  setup: () => `
+    <div class="ag-center">
+      <div class="ag-icon pending">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="8" r="4" stroke="#F97316" stroke-width="2"/>
+          <path d="M4 21c0-4 4-6 8-6s8 2 8 6" stroke="#F97316" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p class="ag-title">Finish setting up your account</p>
+      <p class="ag-sub" id="ag-setup-msg">You're signed in. Create your artisan profile to continue to onboarding.</p>
+      <button class="ag-btn" id="ag-setup-btn" onclick="_agFinishSetup()">Create my artisan profile</button>
+      <button class="ag-btn ag-btn-secondary" onclick="_agSignOut()">Sign Out</button>
+    </div>`,
+
   unauthorized: () => `
     <div class="ag-center">
       <div class="ag-icon unauth">
@@ -263,6 +281,19 @@ export function consumeReturnUrl() {
  * it does NOT clear any auth state — the whole point of the offline overlay is
  * that nothing about the session was wrong.
  */
+window._agFinishSetup = async function () {
+  const btn = document.getElementById('ag-setup-btn');
+  const msg = document.getElementById('ag-setup-msg');
+  if (btn) { btn.disabled = true; btn.textContent = 'Setting up…'; }
+  const acct = await ensureArtisanAccount();
+  if (acct.ok) { window.location.replace(nextArtisanPage(acct.verificationStatus)); return; }
+  if (msg) msg.textContent = acct.message;
+  if (btn) {
+    btn.disabled = acct.reason === 'customer_account' || acct.reason === 'admin_account';
+    btn.textContent = 'Try again';
+  }
+};
+
 window._agRetry = function () {
   try { window.location.reload(); } catch (_) {}
 };
@@ -375,9 +406,9 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
         }
 
         if (!artisanSnap || !artisanSnap.exists) {
-          // User is authenticated but has no artisan document
-          // Could be a customer who typed the URL manually
-          showOverlay('unauthorized');
+          // Authenticated, no artisan profile. A customer is refused by the
+          // server step itself (role isolation); anyone else is offered it.
+          showOverlay('setup');
           return;
         }
 

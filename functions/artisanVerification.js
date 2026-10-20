@@ -70,6 +70,16 @@ async function approveArtisan(auth, { artisanId, notes = '' }) {
     const artisanData    = artisanSnap.data();
     const searchKeywords = buildSearchKeywords(artisanData);
 
+    // Approval lets an account take paid work, so it must belong to someone who
+    // controls the email it signed up with (AR-09). Google sign-ins arrive
+    // verified; password sign-ups verify through the link onboarding sends.
+    const { getAuth } = require('firebase-admin/auth');
+    const authUser = await getAuth().getUser(artisanId).catch(() => null);
+    if (!authUser) throw new Error('This artisan has no sign-in account — it cannot be approved.');
+    if (!authUser.emailVerified) {
+        throw new Error('This artisan has not verified their email address yet. Ask them to open the verification link (onboarding shows it), then approve.');
+    }
+
     const batch = db.batch();
 
     batch.update(db.collection('verification_requests').doc(artisanId), {

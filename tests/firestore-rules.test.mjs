@@ -272,8 +272,12 @@ await it('an artisan cannot inflate their own aggregate', async () => {
     }));
 });
 
-console.log('\nArtisan acceptance (outage guard after artisanName was locked)');
+console.log('\nArtisan acceptance is server-owned (AR-06, 2026-10-20)');
 
+// An offered artisan is not the booking's artisanId until respondToJobOffer
+// (functions/jobOffers.js) accepts for them, so the browser can neither accept
+// nor decline by writing the booking — not even a legacy booking that already
+// names them.
 const ACC_ARTISAN = 'artisan_accepter';
 
 await testEnv.withSecurityRulesDisabled(async (ctx) => {
@@ -293,26 +297,23 @@ await testEnv.withSecurityRulesDisabled(async (ctx) => {
 
 const accDb = testEnv.authenticatedContext(ACC_ARTISAN).firestore();
 
-await it('CURRENT artisan client CAN accept a pending booking', async () => {
-    // Exactly the payload artisan-app/jobs.html sends today.
+await it('an artisan client can NOT accept by writing the booking', async () => {
     const n = new Date().toISOString();
-    await assertSucceeds(updateDoc(doc(accDb, 'bookings', 'HHB-ACC-OK'), {
+    await assertFails(updateDoc(doc(accDb, 'bookings', 'HHB-ACC-OK'), {
         status: 'accepted', acceptedAt: n, updatedAt: n,
     }));
 });
 
-await it('OLD artisan client (sending artisanName) is now rejected', async () => {
-    // Confirms the ordering hazard was real: had rules shipped before the app,
-    // every acceptance in production would have failed.
+await it('an artisan client sending artisanName is rejected too', async () => {
     const n = new Date().toISOString();
     await assertFails(updateDoc(doc(accDb, 'bookings', 'HHB-ACC-OLDCLIENT'), {
         status: 'accepted', acceptedAt: n, updatedAt: n, artisanName: 'Spoofed Name',
     }));
 });
 
-await it('artisan CAN still decline a pending booking', async () => {
+await it('an artisan client can NOT decline by writing the booking', async () => {
     const n = new Date().toISOString();
-    await assertSucceeds(updateDoc(doc(accDb, 'bookings', 'HHB-ACC-OLDCLIENT'), {
+    await assertFails(updateDoc(doc(accDb, 'bookings', 'HHB-ACC-OLDCLIENT'), {
         status: 'rejected', rejectedAt: n, updatedAt: n,
     }));
 });

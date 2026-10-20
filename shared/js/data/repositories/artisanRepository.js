@@ -29,6 +29,8 @@
  * 3. isAvailable ASC, rating DESC — composite
  */
 
+import { publicLocation } from '../../domain/locationPrivacy.js';
+
 const DEFAULT_COLLECTION = "artisans";
 
 function now() {
@@ -243,9 +245,12 @@ export function createArtisanRepository({
             };
 
             if (hasCoords) {
-                payload.lat     = data.lat;
-                payload.lng     = data.lng;
-                payload.geohash = _geohashForPoint(data.lat, data.lng);
+                // Precise position to the private record; only a coarse copy on
+                // the public profile (see domain/locationPrivacy.js).
+                await databaseService.setDocument(`${collectionName}/${artisanId}/private`, 'location', {
+                    lat: data.lat, lng: data.lng, accuracy: null, source: 'profile', updatedAt: now(),
+                }, { merge: true });
+                Object.assign(payload, publicLocation(data.lat, data.lng, _geohashForPoint));
             }
 
             if (!existing?.exists) {
@@ -307,16 +312,29 @@ export function createArtisanRepository({
                 lastHeartbeat: nowISO
             };
 
-            // Only update location fields if valid coordinate data is provided
+            // Only update location fields if valid coordinate data is provided.
+            //
+            // The PRECISE fix goes to artisans/{id}/private/location — readable by
+            // the artisan and admins only — and is written FIRST, so by the time the
+            // profile write below fires syncArtisanIndex, the trigger reads the new
+            // position into artisan_index (dispatch + pricing, server-only). The
+            // public profile gets a ~1 km copy for "about N km away" in search;
+            // firestore.rules refuses anything finer. currentLat/currentLng/
+            // locationAccuracy are nulled so an old precise value cannot linger.
+            // The live map for a job comes from bookings/{id}/live/artisan
+            // (presenceService), never from this document.
             if (typeof latitude === 'number' && typeof longitude === 'number') {
-                payload.latitude           = latitude;
-                payload.longitude          = longitude;
-                payload.lat                = latitude;
-                payload.lng                = longitude;
-                payload.currentLat         = latitude;
-                payload.currentLng         = longitude;
-                payload.geohash            = _geohashForPoint(latitude, longitude);
-                payload.locationAccuracy   = typeof accuracy === 'number' ? accuracy : null;
+                await databaseService.setDocument(`${collectionName}/${artisanId}/private`, 'location', {
+                    lat:       latitude,
+                    lng:       longitude,
+                    accuracy:  typeof accuracy === 'number' ? accuracy : null,
+                    source:    source || 'browser',
+                    updatedAt: nowISO,
+                }, { merge: true });
+                Object.assign(payload, publicLocation(latitude, longitude, _geohashForPoint));
+                payload.currentLat         = null;
+                payload.currentLng         = null;
+                payload.locationAccuracy   = null;
                 payload.locationSource     = source || 'browser';
                 payload.lastLocationUpdate = nowISO;
             }

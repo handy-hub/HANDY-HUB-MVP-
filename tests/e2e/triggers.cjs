@@ -98,8 +98,9 @@ async function main() {
     // ── 3. onBookingStatusChanged reacts to a transition ─────────────────────
     // accepted -> notifications are written by the status trigger. We assert on
     // the notification because it is the trigger's own observable output.
+    // artisanId is assigned on acceptance, as respondToJobOffer does (AR-06).
     await db.collection('bookings').doc(stId).update({
-        status: 'accepted', acceptedAt: now(), updatedAt: now(),
+        status: 'accepted', acceptedAt: now(), updatedAt: now(), artisanId: ART,
     });
     let notifs = [];
     for (let i = 0; i < 30; i++) {

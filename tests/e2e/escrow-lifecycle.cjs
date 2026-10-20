@@ -79,7 +79,10 @@ async function main() {
     // Walk the booking to `awaiting` the way the artisan would.
     for (const [st, stamp] of [['accepted','acceptedAt'], ['en_route','enRouteAt'],
                                ['in_progress','arrivedAt'], ['awaiting','jobDoneAt']]) {
-        await db.collection('bookings').doc(BK).update({ status: st, [stamp]: now(), updatedAt: now() });
+        // Acceptance assigns the artisan, as respondToJobOffer does (AR-06):
+        // onBookingCreated turned the pre-set artisanId into an offer.
+        const assign = st === 'accepted' ? { artisanId: ART } : {};
+        await db.collection('bookings').doc(BK).update({ status: st, [stamp]: now(), updatedAt: now(), ...assign });
         await sleep(700);
     }
 

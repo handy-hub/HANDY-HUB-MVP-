@@ -597,6 +597,42 @@ exports.onBookingStatusChanged  = bookingsModule.onBookingStatusChanged;
  *   const cancel = httpsCallable(functions, 'cancelBookingAsAdmin');
  *   await cancel({ bookingId, reason });
  */
+/**
+ * respondToJobOffer — an artisan accepts or declines the job they were offered.
+ * The ONLY acceptance path (AR-06): an offered artisan reads job_offers/{id},
+ * never the booking, and becomes the booking's artisanId here, after the server
+ * has checked the offer is theirs, open and unexpired and that they are approved.
+ *
+ *   await httpsCallable(functions, 'respondToJobOffer')({ bookingId, decision: 'accept' });
+ */
+/**
+ * ensureArtisanProfile — a signed-in person without a profile becomes an
+ * (unapproved) artisan account, exactly once; customers and admins are refused.
+ * The only profile-creation path for Google sign-ups (functions/artisanAccount.js).
+ */
+exports.ensureArtisanProfile = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 30 }, async (request) => {
+    _requireAuth(request);
+    try {
+        return await require('./artisanAccount').ensureArtisanProfile(request.auth);
+    } catch (err) {
+        const code = ['customer_account', 'admin_account', 'not_artisan'].includes(err.reason) ? 'permission-denied'
+                   : err.reason === 'no_email' ? 'invalid-argument' : 'failed-precondition';
+        throw new HttpsError(code, err.message, err.reason ? { reason: err.reason } : undefined);
+    }
+});
+
+exports.respondToJobOffer = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 30 }, async (request) => {
+    _requireAuth(request);
+    try {
+        return await require('./jobOffers').respondToJobOffer(request.auth, request.data);
+    } catch (err) {
+        const code = err.reason === 'invalid' ? 'invalid-argument'
+                   : err.reason === 'not_offered' ? 'permission-denied'
+                   : 'failed-precondition';
+        throw new HttpsError(code, err.message, err.reason ? { reason: err.reason } : undefined);
+    }
+});
+
 exports.cancelBookingAsAdmin = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     try {
@@ -984,6 +1020,29 @@ exports.adminMigrateArtisanPrivateData = onCall(
         const mode = (request.data && request.data.mode) || 'dry-run';
         try {
             return await artisanPrivacy.migrateArtisanPrivateData({ mode });
+        } catch (err) {
+            throw new HttpsError('failed-precondition', err.message);
+        }
+    },
+);
+
+/**
+ * adminMigrateContactPrivacy — super-admin only. Moves pre-2026-10-20 artisan
+ * precise positions to private/location and booking phone numbers to
+ * private/contact (functions/contactPrivacy.js). Defaults to a dry run; run
+ * 'copy', check, then 'strip'. Never run automatically.
+ */
+exports.adminMigrateContactPrivacy = onCall(
+    { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
+    async (request) => {
+        _requireAuth(request);
+        const { ADMIN_EMAILS } = require('./config');
+        if (!ADMIN_EMAILS.includes(request.auth.token?.email)) {
+            throw new HttpsError('permission-denied', 'Super-admin access required.');
+        }
+        const mode = (request.data && request.data.mode) || 'dry-run';
+        try {
+            return await require('./contactPrivacy').migrateContactPrivacy({ mode });
         } catch (err) {
             throw new HttpsError('failed-precondition', err.message);
         }

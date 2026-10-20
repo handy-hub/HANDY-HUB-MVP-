@@ -736,6 +736,7 @@ import { httpsCallable }
 import { firebaseFunctions }
     from '../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { getApp } from '../shared/vendor/firebase/firebase-app.js';
+import { ensureArtisanAccount, nextArtisanPage } from './js/utils/artisanAccount.js';
 
 const FUNCTIONS_REGION = 'europe-west1';
 const SESSION_KEY      = 'hh_otp_session';
@@ -878,16 +879,25 @@ form.addEventListener('submit', async (e) => {
             return;
         }
 
-        // Direct signup — no verification code. The server builds the artisan
-        // profile with the same routine the OTP path uses, so the account is
-        // identical apart from the email being unverified.
+        // Direct signup — no verification CODE. The server builds the artisan
+        // profile with the same routine the OTP path uses; the email starts
+        // unverified. Then: sign in (the server-created account is not signed in
+        // in this browser) and send Firebase Auth's verification LINK, which needs
+        // no sending domain of ours. Onboarding cannot be submitted, and an admin
+        // cannot approve, until that link is opened (AR-09).
         const fn = httpsCallable(firebaseFunctions, 'signUpArtisanDirect');
         await fn({ payload });
 
         sessionStorage.removeItem(SESSION_KEY);
+        const { services: { authService } } = getAppContainer();
+        await authService.signInWithEmail(email, password);
+        try {
+            await authService.sendEmailVerification?.(new URL('onboarding.html', location.href).href);
+        } catch (vErr) {
+            // Not fatal: onboarding offers to resend the link.
+            console.warn('[signup] verification email not sent:', vErr?.message || vErr);
+        }
         submitting = false;
-        // Straight into onboarding: the account exists and the guard will let
-        // them through, so an interstitial would only add a step.
         window.location.replace('onboarding.html');
     } catch (err) {
         submitting = false;
@@ -917,44 +927,19 @@ if (googleBtn) {
             const user   = result?.user;
             if (!user) throw new Error('Google sign-in returned no user.');
 
-            // A first-time Google artisan has no artisans/{uid} doc yet. Without
-            // it the auth guard treats them as "unauthorized" and bounces them.
-            // Create the same rule-valid base doc the email flow writes, but only
-            // if one does not already exist (returning users keep their data).
-            const existing = await databaseService.getDocument('artisans', user.uid).catch(() => null);
-
-            if (!existing || !existing.exists) {
-                const now = new Date().toISOString();
-                await databaseService.setDocument('artisans', user.uid, {
-                    id:                 user.uid,
-                    name:               user.displayName || (user.email || '').split('@')[0] || 'Artisan',
-                    email:              user.email || '',
-                    userType:           'artisan',
-                    status:             'pending',
-                    uid:                user.uid,
-                    fullName:           user.displayName || '',
-                    phone:              user.phoneNumber || '',
-                    isOnline:           false,
-                    isAvailable:        false,
-                    verificationStatus: 'draft',
-                    rating:             0,
-                    reviewCount:        0,
-                    jobsCompleted:      0,
-                    availableBalance:   0,
-                    pendingBalance:     0,
-                    totalEarned:        0,
-                    withdrawnTotal:     0,
-                    walletBalance:      0,
-                    responseRate:       0,
-                    createdAt:          now,
-                });
-                // Brand-new artisan → finish KYC onboarding before the dashboard.
-                window.location.replace('onboarding.html');
+            // A first-time Google artisan has no artisans/{uid} doc yet. The server
+            // creates it — once, whatever provider or how many attempts, and never
+            // for a customer or admin account (functions/artisanAccount.js).
+            const acct = await ensureArtisanAccount();
+            if (!acct.ok) {
+                await authService.signOut().catch(() => {});
+                googleBtn.disabled = false;
+                alert(acct.message);
                 return;
             }
+            window.location.replace(nextArtisanPage(acct.verificationStatus));
+            return;
 
-            // Returning Google artisan → straight to the dashboard.
-            window.location.replace('dashboard.html');
         } catch (err) {
             googleBtn.disabled = false;
             if (err.code !== 'auth/popup-closed-by-user' &&

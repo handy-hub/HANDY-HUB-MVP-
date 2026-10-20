@@ -723,8 +723,8 @@ if (navigator.geolocation) {
 }
 
 // ── Artisan location from Firestore ─────────────────────────
-// The artisan app writes currentLat/currentLng to artisans/{artisanId}
-// when they are en route. We subscribe and update the map in real time.
+// The artisan app writes its position to bookings/{bookingId}/live/artisan
+// while en route / on site. We subscribe and update the map in real time.
 window.showTrackingUnavailable = function showTrackingUnavailable() {
   const chip = document.getElementById('eta-chip');
   if (chip) chip.textContent = 'Awaiting';
@@ -1037,30 +1037,30 @@ showTrackingUnavailable();
   if (!_setupAborted) {
     // ── Real-time artisan location from Firestore ──────────────
     const artisanId = window._trkSubscribeArtisan;
-    if (artisanId) {
+    if (artisanId && _bookingId) {
       try {
+        // The artisan's precise position for THIS job. presenceService writes it
+        // to bookings/{id}/live/artisan while the job is en_route/in_progress, and
+        // firestore.rules let only this booking's customer and artisan read it,
+        // only in those states. The public profile carries a ~1 km position
+        // (shared/js/domain/locationPrivacy.js) and is never a source for the map.
         window._trkLocationUnsub = databaseService.subscribeToDocument(
-          'artisans', artisanId,
+          `bookings/${_bookingId}/live`, 'artisan',
           snap => {
             if (!snap || !snap.data) { window.showTrackingUnavailable?.(); return; }
             const d    = snap.data;
 
-            // Distinguish a LIVE position from a LAST KNOWN one.
-            //
-            // currentLat/currentLng are published by presenceService's
-            // watchPosition while the artisan is online. `lat`/`lng` are their
-            // registered working location, used for dispatch. Falling back from
-            // one to the other silently presented a base location as though it
-            // were live movement — the customer had no way to tell the artisan
-            // had stopped reporting.
+            // Distinguish a LIVE position from a LAST KNOWN one: the document
+            // keeps the last fix the artisan's phone sent, so its age says whether
+            // they are still reporting.
             const STALE_AFTER_MS = 90_000;   // ~3 heartbeats
-            const isLive   = d.currentLat != null && d.currentLng != null;
-            const updated  = d.lastLocationUpdate ? Date.parse(d.lastLocationUpdate) : NaN;
+            const isLive   = d.lat != null && d.lng != null;
+            const updated  = d.updatedAt ? Date.parse(d.updatedAt) : NaN;
             const ageMs    = Number.isFinite(updated) ? Date.now() - updated : Infinity;
             const isStale  = !isLive || ageMs > STALE_AFTER_MS;
 
-            const aLat = d.currentLat ?? d.lat ?? null;
-            const aLng = d.currentLng ?? d.lng ?? null;
+            const aLat = d.lat ?? null;
+            const aLng = d.lng ?? null;
             if (aLat !== null && aLng !== null) {
               window.updateArtisanMarker(aLat, aLng);
               window.setTrackingFreshness?.(isStale, ageMs);

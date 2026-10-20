@@ -81,32 +81,53 @@ async function t(name, fn) {
 
 (async () => {
 
-// ── The happy paths, one per transition ──────────────────────────────────────
-await t('accept: pending → accepted, with only the keys the rules allow', async () => {
-    const b = base();
+// ── Answering an offer is SERVER-owned (AR-06, 2026-10-20) ───────────────────
+// An offered artisan cannot read the booking (they are not its artisanId until
+// they accept), so accept/decline go to respondToJobOffer, which checks the
+// offer is theirs, open and unexpired — and the client writes nothing at all.
+function offerService(onCall) {
+    const calls = [];
+    return {
+        calls,
+        async respondToJobOffer(id, decision) {
+            calls.push({ id, decision });
+            if (onCall) return onCall(id, decision);
+            return { status: decision === 'accept' ? 'accepted' : 'rejected' };
+        },
+    };
+}
+
+await t('accept goes to respondToJobOffer; the client writes nothing', async () => {
+    const b = base({ artisanId: null });
     const db = makeDb(b);
+    const svc = offerService(() => { b.status = 'accepted'; b.artisanId = ART; return { status: 'accepted' }; });
     const r = await performBookingAction(ACTION.ACCEPT, {
-        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db,
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db, pricingService: svc,
     });
     assert.strictEqual(r.ok, true);
-    assert.strictEqual(r.booking.status, 'accepted');
-    assert.deepStrictEqual(
-        Object.keys(db.writes[0]).sort(), ['acceptedAt', 'status', 'updatedAt']);
+    assert.deepStrictEqual(svc.calls, [{ id: 'B1', decision: 'accept' }]);
+    assert.strictEqual(db.writes.length, 0, 'no client write — the server sets artisanId on acceptance');
+    assert.strictEqual(r.booking.status, 'accepted', 'the caller gets the booking it can now read');
 });
 
-await t('accept does NOT write artisanName — the server stamps identity', async () => {
-    const db = makeDb(base());
-    await performBookingAction(ACTION.ACCEPT, {
-        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
-    assert.ok(!('artisanName' in db.writes[0]),
-        'a client-asserted artisan name is spoofable and incomplete');
-});
-
-await t('decline: pending → rejected', async () => {
-    const db = makeDb(base());
+await t('decline goes to respondToJobOffer and returns no booking to show', async () => {
+    const db = makeDb(base({ artisanId: null }));
+    const svc = offerService();
     const r = await performBookingAction(ACTION.DECLINE, {
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db, pricingService: svc });
+    assert.strictEqual(r.ok, true);
+    assert.deepStrictEqual(svc.calls, [{ id: 'B1', decision: 'decline' }]);
+    assert.strictEqual(db.writes.length, 0);
+    assert.strictEqual(r.booking, null);
+});
+
+await t('answering an offer without the server path fails safely', async () => {
+    const db = makeDb(base());
+    const r = await performBookingAction(ACTION.ACCEPT, {
         bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
-    assert.strictEqual(r.booking.status, 'rejected');
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(r.code, RESULT.FAILED);
+    assert.strictEqual(db.writes.length, 0);
 });
 
 await t('job done: in_progress → awaiting', async () => {
@@ -153,8 +174,8 @@ await t('en_route from inspection_scheduled needs NO quote — artisan travels f
 
 // ── Authorization ────────────────────────────────────────────────────────────
 await t('a stranger cannot act on someone else\'s booking', async () => {
-    const db = makeDb(base());
-    const r = await performBookingAction(ACTION.ACCEPT, {
+    const db = makeDb(base({ status: 'in_progress' }));
+    const r = await performBookingAction(ACTION.JOB_DONE, {
         bookingId: 'B1', actor: 'artisan', uid: 'someone_else', databaseService: db });
     assert.strictEqual(r.ok, false);
     assert.strictEqual(r.code, RESULT.NOT_ALLOWED);
@@ -190,27 +211,30 @@ await t('an artisan may not cancel a pending booking, but a customer may', async
 });
 
 // ── Invalid and duplicate transitions ────────────────────────────────────────
-await t('duplicate accept is refused and explained, not retried', async () => {
-    const db = makeDb(base({ status: 'accepted' }));
+await t('a duplicate or late accept is a CONFLICT, explained in the server\'s words', async () => {
+    const db = makeDb(base({ artisanId: null }));
+    const svc = offerService(() => { throw new Error('This request is no longer open.'); });
     const r = await performBookingAction(ACTION.ACCEPT, {
-        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db, pricingService: svc });
     assert.strictEqual(r.ok, false);
     assert.strictEqual(r.code, RESULT.CONFLICT);
-    assert.match(r.message, /no longer available/i);
+    assert.match(r.message, /no longer open/i);
+});
+
+await t('an expired offer says so', async () => {
+    const db = makeDb(base({ artisanId: null }));
+    const svc = offerService(() => { throw new Error('This request has expired and has been offered to another professional.'); });
+    const r = await performBookingAction(ACTION.ACCEPT, {
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db, pricingService: svc });
+    assert.strictEqual(r.code, RESULT.CONFLICT);
+    assert.match(r.message, /expired/i);
 });
 
 await t('acting on a cancelled booking says it was cancelled', async () => {
     const db = makeDb(base({ status: 'cancelled' }));
-    const r = await performBookingAction(ACTION.ACCEPT, {
+    const r = await performBookingAction(ACTION.START, {
         bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
     assert.match(r.message, /cancelled/i);
-});
-
-await t('the artisan is told plainly when they already declined', async () => {
-    const db = makeDb(base({ status: 'rejected' }));
-    const r = await performBookingAction(ACTION.ACCEPT, {
-        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
-    assert.match(r.message, /already declined/i);
 });
 
 await t('the customer is told the pro declined — not that they declined', async () => {
@@ -230,7 +254,7 @@ await t('skipping a stage (pending → awaiting) is refused', async () => {
 
 await t('a missing booking is reported as missing, not as a failure', async () => {
     const db = makeDb(null);
-    const r = await performBookingAction(ACTION.ACCEPT, {
+    const r = await performBookingAction(ACTION.JOB_DONE, {
         bookingId: 'GONE', actor: 'artisan', uid: ART, databaseService: db });
     assert.strictEqual(r.code, RESULT.NOT_FOUND);
 });
@@ -240,21 +264,21 @@ await t('when the other surface wins the race, the loser gets a CONFLICT with fr
     // The booking reads as pending (the card is stale), but the write is
     // rejected by rules because another surface accepted first; the re-read
     // then shows the truth.
-    const b = base({ status: 'pending' });
+    const b = base({ status: 'en_route' });
     const db = makeDb(b, {
         failWrite: Object.assign(new Error('PERMISSION_DENIED: insufficient permissions'), {}),
-        mutateOnRead: (bk, n) => (n === 1 ? bk : { ...bk, status: 'accepted' }),
+        mutateOnRead: (bk, n) => (n === 1 ? bk : { ...bk, status: 'cancelled' }),
     });
-    const r = await performBookingAction(ACTION.ACCEPT, {
+    const r = await performBookingAction(ACTION.START, {
         bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
     assert.strictEqual(r.ok, false);
     assert.strictEqual(r.code, RESULT.CONFLICT, 'a lost race is a conflict, not a generic failure');
-    assert.strictEqual(r.booking.status, 'accepted', 'the caller gets the REAL state back');
+    assert.strictEqual(r.booking.status, 'cancelled', 'the caller gets the REAL state back');
 });
 
 await t('a genuine write failure stays a failure and changes nothing', async () => {
-    const db = makeDb(base(), { failWrite: new Error('network unavailable') });
-    const r = await performBookingAction(ACTION.ACCEPT, {
+    const db = makeDb(base({ status: 'in_progress' }), { failWrite: new Error('network unavailable') });
+    const r = await performBookingAction(ACTION.JOB_DONE, {
         bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
     assert.strictEqual(r.code, RESULT.FAILED);
     assert.match(r.message, /connection/i);
@@ -381,11 +405,13 @@ await t('arriving and finishing are never blocked by the appointment', async () 
 });
 
 await t('accepting a future appointment is always allowed — that IS the commitment', async () => {
-    const db = makeDb(base({ status: 'pending', scheduledForMs: FUTURE_MS }));
+    const b = base({ status: 'pending', artisanId: null, scheduledForMs: FUTURE_MS });
+    const db = makeDb(b);
+    const svc = offerService(() => { b.status = 'accepted'; b.artisanId = ART; return { status: 'accepted' }; });
     const r = await performBookingAction(ACTION.ACCEPT, {
-        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db });
-    assert.strictEqual(r.ok, true);
-    assert.strictEqual(db.writes[0].status, 'accepted');
+        bookingId: 'B1', actor: 'artisan', uid: ART, databaseService: db, pricingService: svc });
+    assert.strictEqual(r.ok, true, 'no appointment gate on accepting — only on setting out');
+    assert.strictEqual(r.booking.status, 'accepted');
 });
 
 await t('either party may still cancel a future appointment', async () => {

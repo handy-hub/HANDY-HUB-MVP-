@@ -81,52 +81,13 @@
     <div class="sp-hero">
       <div class="sp-hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <p class="sp-hero-title">How can we help?</p>
-      <p class="sp-hero-sub">Our team is available Mon–Fri, 8am–6pm GMT.<br>Typical response time: under 2 hours.</p>
+      <p class="sp-hero-sub" id="sp-hero-sub">Send us a request below. The reply appears on this page and in your notifications.</p>
     </div>
 
-    <!-- Contact channels -->
-    <p class="sp-section-label">Contact Us</p>
-    <div class="sp-contact-list">
-      <a class="sp-contact-card" href="mailto:support@handyhub.app">
-        <div class="sp-c-icon" style="background:#FFF7ED;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="sp-c-info">
-          <p class="sp-c-title">Email Support</p>
-          <p class="sp-c-sub">support@handyhub.app</p>
-        </div>
-        <svg class="sp-c-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </a>
-
-      <a class="sp-contact-card" href="https://wa.me/233000000000" target="_blank" rel="noopener">
-        <div class="sp-c-icon" style="background:#F0FDF4;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="sp-c-info">
-          <p class="sp-c-title">WhatsApp</p>
-          <p class="sp-c-sub">Chat with us directly</p>
-        </div>
-        <svg class="sp-c-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </a>
-
-      <a class="sp-contact-card" href="tel:+233000000000">
-        <div class="sp-c-icon" style="background:#EFF6FF;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" stroke="#1d4ed8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="sp-c-info">
-          <p class="sp-c-title">Call Us</p>
-          <p class="sp-c-sub">+233 000 000 000</p>
-        </div>
-        <svg class="sp-c-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </a>
-    </div>
+    <!-- Contact channels — only those the owner has confirmed are staffed
+         (shared/js/config/supportConfig.js). No placeholder numbers. -->
+    <p class="sp-section-label" id="sp-contact-label" style="display:none">Contact Us</p>
+    <div class="sp-contact-list" id="sp-contact-list"></div>
 
     <!-- FAQ -->
     <p class="sp-section-label">Frequently Asked Questions</p>
@@ -156,10 +117,17 @@
         <textarea class="sp-textarea" id="sp-message" placeholder="Describe your issue in detail…"></textarea>
       </div>
 
+      <p class="sp-label" id="sp-form-error" role="alert" style="display:none;color:var(--ds-danger)"></p>
       <button class="sp-submit" id="sp-submit-btn" onclick="submitTicket()">Send Message</button>
     </div>
 
-    <p class="sp-version" id="sp-version">HandyHub Artisan · v1.0</p>
+    <!-- Your requests: status and the conversation with support -->
+    <p class="sp-section-label">Your requests</p>
+    <div class="sp-faq-list" id="sp-tickets">
+      <p class="sp-label" id="sp-tickets-state">Loading your requests…</p>
+    </div>
+
+    <p class="sp-version" id="sp-version">Fidus X Artisan · v1.0</p>
 
   </div>
 </div>
@@ -171,6 +139,9 @@ import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
 import { createNotification } from '../shared/js/services/notificationRepository.js';
+import { SUPPORT_CONTACTS }   from '../shared/js/config/supportConfig.js';
+import { TICKET_STATUS, validateTicket, validateReply, ticketStatusLabel, topicLabel }
+                              from '../shared/js/domain/supportTickets.js';
 
 const { user, artisan } = await requireArtisanAuth({ allowPending: true });
 
@@ -178,7 +149,7 @@ const { user, artisan } = await requireArtisanAuth({ allowPending: true });
 const FAQS = [
   {
     q: 'How do I get paid for completed jobs?',
-    a: 'Earnings are held in escrow during the job. Once the customer confirms completion (or after 48 hours if no dispute), funds are released to your HandyHub wallet. You can withdraw anytime to MoMo, Telecel Cash, or AirtelTigo Money.'
+    a: 'Earnings are held in escrow during the job. Once the customer confirms completion (or automatically after 7 days if there is no dispute), funds are released to your HandyHub wallet. You can withdraw anytime to MoMo, Telecel Cash, or AirtelTigo Money.'
   },
   {
     q: 'Why can\'t I go online?',
@@ -198,7 +169,7 @@ const FAQS = [
   },
   {
     q: 'How do I withdraw my earnings?',
-    a: 'Go to the Wallet tab, tap "Withdraw Earnings", and enter your Mobile Money number. Payouts are processed within minutes. Minimum withdrawal is GHS 5.'
+    a: 'Go to the Wallet tab, tap "Withdraw Earnings", enter the amount and your security PIN. The money goes to the payout account on your profile, and the wallet shows the withdrawal\'s status until it completes. Minimum withdrawal is GHS 5.'
   },
 ];
 
@@ -222,52 +193,170 @@ window.toggleFaq = function(i) {
   if (!isOpen) { q.classList.add('open'); a.classList.add('open'); }
 };
 
-// ── Submit ticket via notification to admin ────────────
+// ── Contact channels (only confirmed ones) ─────────────
+// shared/js/config/supportConfig.js is empty until the owner confirms which
+// channels are staffed; nothing is shown that nobody answers.
+(function renderContacts() {
+  const list = document.getElementById('sp-contact-list');
+  const cards = [];
+  const card = (href, title, sub, ext) => `
+    <a class="sp-contact-card" href="${esc(href)}"${ext ? ' target="_blank" rel="noopener"' : ''}>
+      <div class="sp-c-info"><p class="sp-c-title">${esc(title)}</p><p class="sp-c-sub">${esc(sub)}</p></div>
+    </a>`;
+  if (SUPPORT_CONTACTS.email)    cards.push(card(`mailto:${SUPPORT_CONTACTS.email}`, 'Email Support', SUPPORT_CONTACTS.email));
+  if (SUPPORT_CONTACTS.whatsapp) cards.push(card(`https://wa.me/${SUPPORT_CONTACTS.whatsapp}`, 'WhatsApp', 'Chat with us', true));
+  if (SUPPORT_CONTACTS.phone)    cards.push(card(`tel:${SUPPORT_CONTACTS.phone}`, 'Call Us', SUPPORT_CONTACTS.phone));
+  if (cards.length) {
+    list.innerHTML = cards.join('');
+    document.getElementById('sp-contact-label').style.display = '';
+  }
+  if (SUPPORT_CONTACTS.hours) {
+    document.getElementById('sp-hero-sub').textContent += ` Support hours: ${SUPPORT_CONTACTS.hours}.`;
+  }
+})();
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+const { services: { databaseService } } = getAppContainer();
+
+// ── Submit a request ───────────────────────────────────
+// The ticket is written FIRST. The acknowledgement used to be sent before it,
+// so a failed write still told the artisan their message had been received,
+// and it promised a reply "within 2 hours" that no process stood behind.
 window.submitTicket = async function() {
   const subject = document.getElementById('sp-subject').value;
   const message = document.getElementById('sp-message').value.trim();
+  const errEl   = document.getElementById('sp-form-error');
+  errEl.style.display = 'none';
 
-  if (!subject)  { showToast('Please select a topic.'); return; }
-  if (!message)  { showToast('Please describe your issue.'); return; }
-  if (message.length < 20) { showToast('Please provide more detail (at least 20 characters).'); return; }
+  const v = validateTicket({ subject, message });
+  if (!v.ok) { errEl.textContent = v.error; errEl.style.display = ''; return; }
 
   const btn = document.getElementById('sp-submit-btn');
   btn.disabled = true;
   btn.textContent = 'Sending…';
 
   try {
-    // Create a support notification for the artisan (acknowledgement)
+    const now = new Date().toISOString();
+    await databaseService.addDocument('support_tickets', {
+      userId:    user.uid,
+      userName:  String(artisan.name || '').slice(0, 120),
+      userEmail: String(artisan.email || user.email || '').slice(0, 254),
+      role:      'artisan',
+      subject,
+      message,
+      status:    TICKET_STATUS.OPEN,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Only now is "received" true. No time promise: none is backed by a process.
     await createNotification({
       receiverId: user.uid,
       senderId:   user.uid,
       type:       'System',
       title:      'Support request received',
-      message:    `Your message about "${subject}" has been received. Our team will respond within 2 hours.`,
-    });
+      message:    `We have your request about "${topicLabel(subject)}". The reply will appear on the Support page and in your notifications.`,
+    }).catch(() => {});
 
-    // Also send to admin collection
-    const { services: { databaseService } } = getAppContainer();
-    await databaseService.addDocument('support_tickets', {
-      userId:    user.uid,
-      userName:  artisan.name || '',
-      userEmail: artisan.email || '',
-      role:      'artisan',
-      subject,
-      message,
-      status:    'open',
-      createdAt: new Date().toISOString(),
-    });
-
-    showToast('Message sent! We\'ll reply shortly.');
+    showToast('Request sent. You will see the reply under "Your requests".');
     document.getElementById('sp-subject').value = '';
     document.getElementById('sp-message').value = '';
   } catch (e) {
-    showToast('Could not send. Try emailing support@handyhub.app');
+    errEl.textContent = 'Your request was not sent — check your connection and try again. Nothing was saved.';
+    errEl.style.display = '';
   } finally {
     btn.disabled = false;
     btn.textContent = 'Send Message';
   }
 };
+
+// ── Your requests ──────────────────────────────────────
+// Read only by their owner and support staff (firestore.rules, support_tickets).
+const ticketsEl = document.getElementById('sp-tickets');
+const _threadUnsubs = new Map();
+let _tickets = [];
+
+function fmtWhen(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : d.toLocaleString('en-GH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function renderTickets() {
+  if (!_tickets.length) {
+    ticketsEl.innerHTML = '<p class="sp-label">You have not sent any requests yet.</p>';
+    return;
+  }
+  ticketsEl.innerHTML = _tickets.map((t) => `
+    <div class="sp-faq" id="tk-${esc(t.id)}">
+      <button class="sp-faq-q" onclick="toggleTicket('${esc(t.id)}')">
+        ${esc(topicLabel(t.subject))} · ${esc(ticketStatusLabel(t.status))}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="sp-faq-a" id="tk-body-${esc(t.id)}">
+        <p style="margin:0 0 6px;"><strong>You</strong> · ${esc(fmtWhen(t.createdAt))}</p>
+        <p style="margin:0 0 10px;white-space:pre-wrap;">${esc(t.message)}</p>
+        <div id="tk-thread-${esc(t.id)}"></div>
+        ${t.status === TICKET_STATUS.CLOSED
+          ? '<p class="sp-label">This request is closed. Send a new one if you still need help.</p>'
+          : `<textarea class="sp-textarea" id="tk-reply-${esc(t.id)}" placeholder="Add a reply…"></textarea>
+             <button class="sp-submit" onclick="replyTicket('${esc(t.id)}', this)">Send reply</button>`}
+      </div>
+    </div>`).join('');
+}
+
+window.toggleTicket = function(id) {
+  const body = document.getElementById(`tk-body-${id}`);
+  const open = !body.classList.contains('open');
+  body.classList.toggle('open', open);
+  if (open && !_threadUnsubs.has(id)) {
+    _threadUnsubs.set(id, databaseService.subscribeToSubCollection('support_tickets', id, 'messages', [], {},
+      (msgs) => {
+        const el = document.getElementById(`tk-thread-${id}`);
+        if (!el) return;
+        const rows = (msgs || []).map((m) => ({ id: m.id, ...(m.data || {}) }))
+          .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+        el.innerHTML = rows.map((m) => `
+          <p style="margin:8px 0 4px;"><strong>${m.authorRole === 'support' ? 'Fidus X support' : 'You'}</strong> · ${esc(fmtWhen(m.createdAt))}</p>
+          <p style="margin:0;white-space:pre-wrap;">${esc(m.body)}</p>`).join('');
+      },
+      () => {}));
+  }
+};
+
+window.replyTicket = async function(id, btn) {
+  const ta = document.getElementById(`tk-reply-${id}`);
+  const v = validateReply(ta.value);
+  if (!v.ok) { showToast(v.error); return; }
+  btn.disabled = true;
+  try {
+    const now = new Date().toISOString();
+    await databaseService.addSubDocument('support_tickets', id, 'messages', {
+      authorId: user.uid, authorRole: 'user', body: ta.value.trim(), createdAt: now,
+    });
+    await databaseService.updateDocument('support_tickets', id, {
+      status: TICKET_STATUS.OPEN, lastReplyAt: now, lastReplyBy: 'user', updatedAt: now,
+    });
+    ta.value = '';
+  } catch (e) {
+    showToast('Your reply was not sent — check your connection and try again.');
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+databaseService.subscribeToCollection('support_tickets',
+  [{ field: 'userId', op: '==', value: user.uid }], {},
+  (records) => {
+    _tickets = (records || []).map((r) => ({ id: r.id, ...(r.data || {}) }))
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    renderTickets();
+  },
+  () => { ticketsEl.innerHTML = '<p class="sp-label">Could not load your requests. Check your connection.</p>'; });
+
+window.addEventListener('pagehide', () => { _threadUnsubs.forEach((u) => { try { u(); } catch (_) {} }); });
 
 function showToast(msg) {
   const t = document.getElementById('toast');

@@ -511,9 +511,10 @@ async function createInspectionBooking(auth, {
     // PRIVACY: first name only. A full name is not needed to decide or to greet
     // someone at a door, and the booking is readable by the dispatched artisan
     // before they have committed to anything. The phone number is stored because
-    // an artisan who is en route genuinely cannot do the job without it; the
-    // artisan UI reveals it only once the job is accepted and the callout fee is
-    // secured (see resolveJobBrief.contact in shared/js/domain/bookingTruth.js).
+    // an artisan who is en route genuinely cannot do the job without it — but NOT
+    // on the booking: it goes to bookings/{id}/private/contact, which
+    // firestore.rules (contactDisclosed) open to the assigned artisan only once the
+    // job is accepted and the callout fee is secured, and close when it ends.
     let customerFirstName = null;
     let customerPhone     = null;
     try {
@@ -543,12 +544,21 @@ async function createInspectionBooking(auth, {
         txn.update(tokenRef, { used: true, usedAt: nowIso(), bookingId });
 
         const n = nowIso();
+        // The customer's phone, kept off the booking (see above).
+        txn.set(bookingRef.collection('private').doc('contact'), {
+            bookingId,
+            customerId:    auth.uid,
+            customerPhone,
+            updatedAt:     n,
+        });
         txn.set(bookingRef, {
             bookingId,
             customerId:   auth.uid,
             customerFirstName,
-            customerPhone,
-            artisanId:    q.artisanId || null,
+            // A customer-chosen artisan is OFFERED the job (job_offers, opened by
+            // onBookingCreated) and becomes artisanId only on accepting it.
+            artisanId:          null,
+            requestedArtisanId: q.artisanId || null,
             track:        'inspection',
             priceType:    'callout_only',
             type:         'standard',

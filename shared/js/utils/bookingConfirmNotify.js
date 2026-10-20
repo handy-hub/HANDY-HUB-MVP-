@@ -142,11 +142,14 @@ export async function onBookingConfirmed(booking) {
 
         // ── Build Firestore document ─────────────────────────────────────────
         // Fields must satisfy the bookings Firestore security rules:
-        //   customerId (string), artisanId (string), serviceType (string), createdAt (string)
+        //   customerId (string), serviceType (string), createdAt (string), and
+        //   artisanId null: the chosen artisan goes in requestedArtisanId and is
+        //   OFFERED the job; artisanId is set server-side on acceptance (AR-06).
         //   status must be 'pending' for the create rule to pass.
         const doc = {
             customerId:  user.uid,
-            artisanId:   booking.artisanId || null,
+            artisanId:   null,
+            requestedArtisanId: booking.artisanId || null,
             // Display fields — stored on the booking document so booking.html
             // can render cards from Firestore without additional lookups.
             serviceType: booking.service,

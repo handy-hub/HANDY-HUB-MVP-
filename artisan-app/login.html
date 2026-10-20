@@ -201,10 +201,9 @@
 
   <div class="login-body">
 
-    <div class="tab-row">
-      <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Sign In</button>
-      <button class="tab-btn" id="tab-register" onclick="switchTab('register')">Create Account</button>
-    </div>
+    <!-- One sign-up path (signup.html). The "Create Account" tab that used to be
+         here built accounts in the browser, outside the server signup (AR-09). -->
+    <p class="terms-text" style="margin:0 0 12px;">New to Fidus X? <a href="signup.html">Create an artisan account</a></p>
 
     <div class="error-banner" id="error-banner"></div>
     <div class="success-banner" id="success-banner"></div>
@@ -235,37 +234,6 @@
       </button>
     </div>
 
-    <!-- REGISTER -->
-    <div class="form-panel" id="panel-register">
-      <div class="field-group">
-        <label class="field-label">Full Name<span class="req">*</span></label>
-        <input class="field-input" type="text" id="reg-name" placeholder="Kwame Mensah" autocomplete="name" />
-        <p class="field-error" id="reg-name-err">Please enter your full name.</p>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Email Address<span class="req">*</span></label>
-        <input class="field-input" type="email" id="reg-email" placeholder="you@email.com" autocomplete="email" />
-        <p class="field-error" id="reg-email-err">Please enter a valid email.</p>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Phone Number<span class="req">*</span></label>
-        <input class="field-input" type="tel" id="reg-phone" placeholder="024XXXXXXX" autocomplete="tel" />
-        <p class="field-error" id="reg-phone-err">Enter a valid Ghana phone number.</p>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Password<span class="req">*</span></label>
-        <div class="password-wrap">
-          <input class="field-input" type="password" id="reg-password" placeholder="Minimum 8 characters" autocomplete="new-password" />
-          <button type="button" class="pw-toggle" onclick="togglePw('reg-password',this)">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
-          </button>
-        </div>
-        <p class="field-error" id="reg-pw-err">Password must be at least 8 characters.</p>
-      </div>
-      <button class="btn-submit" id="reg-btn" onclick="handleRegister()">Create Artisan Account</button>
-      <p class="terms-text">By creating an account you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
-    </div>
-
   </div>
 
   <div class="bottom-nav-hint">
@@ -277,16 +245,12 @@
 <script type="module">
 import { auth, db }     from './js/firebase-artisan.js';
 import {
-  signInWithEmailAndPassword, createUserWithEmailAndPassword,
-  updateProfile, sendPasswordResetEmail, signOut,
+  signInWithEmailAndPassword, sendPasswordResetEmail, signOut,
   GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
 } from '../shared/vendor/firebase/firebase-auth.js';
-import { doc, getDoc, setDoc, serverTimestamp }
+import { doc, getDoc }
   from '../shared/vendor/firebase/firebase-firestore.js';
-
-/* isRegistering prevents onAuthStateChanged from racing ahead
-   before the artisan document is created in Firestore */
-let isRegistering = false;
+import { ensureArtisanAccount, nextArtisanPage } from './js/utils/artisanAccount.js';
 
 const RETURN_KEY = 'hh_artisan_return_url';
 
@@ -301,24 +265,27 @@ function consumeReturnUrl() {
 }
 
 onAuthStateChanged(auth, async user => {
-  if (!user || isRegistering) return;
+  if (!user) return;
 
   const snap = await getDoc(doc(db, 'artisans', user.uid)).catch(() => null);
 
   if (!snap?.exists()) {
-    // No artisan profile for this UID. Before sending to onboarding, confirm this
-    // isn't a CUSTOMER signing into the wrong app. Roles are mutually exclusive:
-    // a customer UID can never create an artisan profile (firestore.rules), so
-    // routing them to onboarding would only dead-end at "Access Denied".
-    const custSnap = await getDoc(doc(db, 'customers', user.uid)).catch(() => null);
-    if (custSnap?.exists()) {
+    // No artisan profile yet (typically a first Google sign-in). Sending them
+    // to onboarding without one dead-ended at "Access Denied", so the server
+    // creates it first — once, and never for a customer or admin account.
+    const acct = await ensureArtisanAccount();
+    if (!acct.ok) {
+      if (acct.reason === 'customer_account') {
+        await signOut(auth).catch(() => {});
+        showError('This is a customer account. Redirecting you to the Customer app…');
+        setTimeout(() => { location.replace('../customer-app/login.html'); }, 1600);
+        return;
+      }
       await signOut(auth).catch(() => {});
-      showError('This is a customer account. Redirecting you to the Customer app…');
-      setTimeout(() => { location.replace('../customer-app/login.html'); }, 1600);
+      showError(acct.message);
       return;
     }
-    // Genuinely new artisan — no document yet — send to onboarding
-    location.replace('onboarding.html');
+    location.replace(nextArtisanPage(acct.verificationStatus));
     return;
   }
 
@@ -338,21 +305,9 @@ onAuthStateChanged(auth, async user => {
     return;
   }
 
-  // Default routing: draft → onboarding; everything else → dashboard
-  if (!data.verificationStatus || data.verificationStatus === 'draft') {
-    location.replace('onboarding.html');
-  } else {
-    location.replace('dashboard.html');
-  }
+  // Default routing: unfinished or returned applications → onboarding; else dashboard
+  location.replace(nextArtisanPage(data.verificationStatus));
 });
-
-window.switchTab = t => {
-  ['login','register'].forEach(p => {
-    document.getElementById('panel-'+p).classList.toggle('active', p===t);
-    document.getElementById('tab-'+p).classList.toggle('active', p===t);
-  });
-  clearBanners();
-};
 
 window.handleLogin = async function() {
   const email = document.getElementById('login-email').value.trim();
@@ -371,62 +326,6 @@ window.handleLogin = async function() {
       ?'Incorrect email or password.'
       :e.code==='auth/too-many-requests'?'Too many attempts. Please wait.':e.message;
     showError(m);
-  }
-};
-
-window.handleRegister = async function() {
-  const name=document.getElementById('reg-name').value.trim();
-  const email=document.getElementById('reg-email').value.trim();
-  const phone=document.getElementById('reg-phone').value.trim();
-  const pw=document.getElementById('reg-password').value;
-  clearBanners();
-  let v=true;
-  if (!name||name.length<2) { showFE('reg-name-err','reg-name'); v=false; }
-  if (!email||!email.includes('@')) { showFE('reg-email-err','reg-email'); v=false; }
-  if (!phone||phone.length<10) { showFE('reg-phone-err','reg-phone'); v=false; }
-  if (!pw||pw.length<8) { showFE('reg-pw-err','reg-password'); v=false; }
-  if (!v) return;
-  setBtn('reg-btn',true,'Creating account…');
-  isRegistering = true;  // block onAuthStateChanged redirect during setup
-  try {
-    const cred = await createUserWithEmailAndPassword(auth, email, pw);
-    await updateProfile(cred.user, { displayName: name });
-    await setDoc(doc(db, 'artisans', cred.user.uid), {
-      /* ── Fields required by Firestore security rules ── */
-      id:       cred.user.uid,
-      name:     name,
-      email:    email,
-      userType: 'artisan',
-      status:   'pending',
-      /* ── App-level fields ─────────────────────────── */
-      uid:               cred.user.uid,   // kept for backward compat
-      fullName:          name,            // kept for backward compat
-      phone:             phone,
-      verificationStatus:'draft',
-      isAvailable:       false,
-      isVerified:        false,
-      /* ── Wallet fields expected by dashboard ────────── */
-      availableBalance:  0,
-      pendingBalance:    0,
-      totalEarned:       0,
-      withdrawnTotal:    0,
-      walletBalance:     0,
-      /* ── Stats ──────────────────────────────────────── */
-      jobsCompleted: 0,
-      rating:        0,
-      responseRate:  0,
-      createdAt:     serverTimestamp(),
-    });
-    /* Doc created — now it's safe to navigate */
-    location.href = 'onboarding.html';
-  } catch(e) {
-    isRegistering = false;
-    setBtn('reg-btn',false,'Create Artisan Account');
-    const msg = e.code === 'auth/email-already-in-use' ? 'Email already in use. Try signing in.'
-              : e.code === 'auth/weak-password'         ? 'Password too weak. Use 8+ characters.'
-              : e.code === 'permission-denied'          ? 'Registration failed: please try again.'
-              : e.message;
-    showError(msg);
   }
 };
 

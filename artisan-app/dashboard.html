@@ -715,7 +715,11 @@ function renderJobCard(booking) {
     <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px">
       <p class="job-location" style="margin:0">
         <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
-        ${d.address || d.location || 'Location not set'}
+        ${d.locationApproximate
+          ? (Number.isFinite(Number(d.distanceKm)) && d.distanceKm !== null
+              ? `About ${Number(d.distanceKm).toFixed(1)} km away · exact address once you accept`
+              : 'Exact address shared once you accept')
+          : (d.address || d.location || 'Location not set')}
       </p>
       ${(function(){
         // The booked arrival window, when one was agreed. resolveSchedule owns
@@ -1138,11 +1142,13 @@ subscribeToArtisanAuthState(async user => {
   });
   unsubs.push(u1);
 
-  // Live job requests (pending bookings for this artisan)
+  // Live job requests: this artisan's OPEN offers. An offered artisan reads the
+  // offer summary (job_offers/{bookingId}) — never the booking, which opens to
+  // them only once they accept (functions/jobOffers.js, firestore.rules).
   const u2 = databaseService.subscribeToCollection(
-    'bookings',
-    [{ field: 'artisanId', op: '==', value: uid }, { field: 'status', op: '==', value: 'pending' }],
-    { orderBy: { field: 'createdAt', direction: 'desc' }, limit: 5 },
+    'job_offers',
+    [{ field: 'artisanId', op: '==', value: uid }, { field: 'offerStatus', op: '==', value: 'open' }],
+    { limit: 5 },
     records => {
       jobSkeleton?.remove();
       // Remove existing job cards

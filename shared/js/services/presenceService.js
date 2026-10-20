@@ -44,9 +44,54 @@ let _lastWrittenCoords = null; // { latitude, longitude, accuracy, timestamp }
 let _lastHeartbeatTime = Date.now();
 let _options           = {};   // callbacks: onLocationError, onLocationSuccess
 
+// ── Live position for the artisan's ACTIVE jobs ───────────────────────────────
+// The customer's live map reads bookings/{id}/live/artisan, which firestore.rules
+// let only that booking's artisan write and only its customer (and artisan) read,
+// and only while the job is en_route or in_progress. So the precise position
+// reaches exactly one audience — the customer the artisan is driving to — and
+// stops reaching them the moment the job moves on. The public profile carries a
+// ~1 km position only (see shared/js/domain/locationPrivacy.js).
+let _activeJobIds    = [];
+let _activeJobsUnsub = null;
+
+function _watchActiveJobs(databaseService) {
+    if (_activeJobsUnsub || !_uid || !databaseService || typeof databaseService.subscribeToCollection !== 'function') return;
+    try {
+        _activeJobsUnsub = databaseService.subscribeToCollection(
+            'bookings',
+            [{ field: 'artisanId', op: '==', value: _uid },
+             { field: 'status',    op: 'in', value: ['en_route', 'in_progress'] }],
+            {},
+            (records) => {
+                const next  = (records || []).map((r) => r.id);
+                const added = next.filter((id) => !_activeJobIds.includes(id));
+                _activeJobIds = next;
+                // A job that just started gets the last known fix at once.
+                if (added.length && _lastWrittenCoords) _writeLive(_lastWrittenCoords, added);
+            },
+            (err) => console.warn('[presenceService] active-jobs subscription failed:', err?.message || err)
+        );
+    } catch (err) {
+        console.warn('[presenceService] active-jobs subscription failed:', err?.message || err);
+    }
+}
+
+async function _writeLive(coords, ids = _activeJobIds) {
+    if (!coords || !_uid || !ids.length) return;
+    const { services: { databaseService } } = getAppContainer();
+    await Promise.all(ids.map((id) => databaseService.setDocument(`bookings/${id}/live`, 'artisan', {
+        artisanId: _uid,
+        lat:       coords.latitude,
+        lng:       coords.longitude,
+        accuracy:  typeof coords.accuracy === 'number' ? coords.accuracy : null,
+        updatedAt: new Date().toISOString(),
+    }).catch((err) => console.warn('[presenceService] live position write failed:', err?.message || err))));
+}
+
 /** Write presence and optional coordinates using the repository layer. */
 async function _writePresence(online, coords = null) {
     if (!_uid) return;
+    if (online && coords) _writeLive(coords);
     try {
         const { repositories: { artisanRepository } } = getAppContainer();
         await artisanRepository.updatePresenceAndLocation(_uid, {
@@ -222,6 +267,8 @@ async function _recoverLocationState() {
 /** Tear down all presence schedules and listeners. */
 function stopPresence() {
     _stopWatcher();
+    if (_activeJobsUnsub) { try { _activeJobsUnsub(); } catch (_) {} _activeJobsUnsub = null; }
+    _activeJobIds = [];
     if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
     document.removeEventListener('visibilitychange', _onVisibilityChange);
     window.removeEventListener('online',  _onNetworkOnline);
@@ -316,6 +363,8 @@ async function startPresence(uid, databaseService, initialOnline = true, options
     _options           = options;
     _started           = true;
     _lastHeartbeatTime = Date.now();
+
+    _watchActiveJobs(databaseService);
 
     // Setup heartbeat and listeners
     _heartbeatTimer = setInterval(_heartbeat, HEARTBEAT_INTERVAL_MS);

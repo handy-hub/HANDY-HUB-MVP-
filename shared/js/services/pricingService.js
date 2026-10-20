@@ -105,6 +105,18 @@ export const pricingService = {
         const { data } = await call('completeInspection')({ bookingId, findings });
         return data;
     },
+
+    /**
+     * Artisan answers a job offer: decision 'accept' | 'decline'. Server-only
+     * since 2026-10-20 (AR-06): an offered artisan can no longer read the
+     * booking itself — only its job_offers/{bookingId} summary — so acceptance
+     * is checked and recorded by the server (offer still open and not expired,
+     * artisan approved and active), which is also what grants the booking.
+     */
+    async respondToJobOffer(bookingId, decision) {
+        const { data } = await call('respondToJobOffer')({ bookingId, decision });
+        return data;
+    },
 };
 
 export default pricingService;

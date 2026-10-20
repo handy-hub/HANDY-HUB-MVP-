@@ -291,6 +291,36 @@ const NEXT_ACTION = {
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let _allJobs         = [];
+let _bookingJobs     = [];
+let _offerJobs       = [];
+let _offersUnsub     = null;
+// The customer's phone, read from bookings/{id}/private/contact. firestore.rules
+// (contactDisclosed) open it only once the job is committed and funded and close
+// it when the job ends; the booking itself no longer carries it.
+const _contacts      = new Map();
+
+function _mergeAndRender() {
+  const offered = new Set(_offerJobs.map(o => o.id));
+  _allJobs = [..._offerJobs, ..._bookingJobs.filter(b => !offered.has(b.id))]
+    .map(j => (_contacts.get(j.id) ? { ...j, customerPhone: _contacts.get(j.id) } : j));
+  render(_allJobs);
+  _loadContacts();
+}
+
+async function _loadContacts() {
+  for (const j of _bookingJobs) {
+    if (_contacts.has(j.id)) continue;
+    if (!resolveJobBrief(j).customer.contactUnlocked) continue;
+    _contacts.set(j.id, null);
+    try {
+      const snap = await _dbService.getDocument(`bookings/${j.id}/private`, 'contact');
+      if (snap?.exists && snap.data?.customerPhone) {
+        _contacts.set(j.id, snap.data.customerPhone);
+        _mergeAndRender();
+      }
+    } catch (_) { /* not disclosed in this state — no phone shown */ }
+  }
+}
 let _unsub           = null;
 let _uid             = null;
 let _dbService       = null;
@@ -494,7 +524,14 @@ function buildJobCard(b) {
     </div>` : '';
 
   // ── Location + navigation to the CUSTOMER's coordinates ─────────────────
-  const locHtml = brief.location.address || brief.location.hasCoords ? `
+  // An offer carries no address (functions/jobOffers.js): say where, roughly,
+  // and that the exact address comes with acceptance.
+  const locHtml = brief.location.precision === 'approximate' ? `
+    <div class="job-brief-block">
+      <p class="job-brief-label">Where</p>
+      <p class="job-address">${distTxt ? `About ${esc(distTxt)} from you` : 'Area shared on acceptance'}</p>
+      <p class="job-warn">${esc(brief.location.note)}</p>
+    </div>` : brief.location.address || brief.location.hasCoords ? `
     <div class="job-brief-block">
       <p class="job-brief-label">Where</p>
       <p class="job-address">${esc(brief.location.address || 'Address not provided')}</p>
@@ -871,17 +908,31 @@ subscribeToArtisanAuthState(async user => {
   _uid = user.uid;
 
   if (_unsub) { _unsub(); _unsub = null; }
+  if (_offersUnsub) { _offersUnsub(); _offersUnsub = null; }
 
+  // Jobs this artisan has TAKEN (they are the booking's artisanId)…
   _unsub = bookingRepo.subscribeByArtisanId(
     user.uid,
     records => {
-      _allJobs = records.map(r => ({ id: r.id, ...(r.data || {}) }));
-      render(_allJobs);
+      _bookingJobs = records.map(r => ({ id: r.id, ...(r.data || {}) }));
+      _mergeAndRender();
     },
     err => {
       console.error('[jobs] Subscription error:', err);
       showToast('Could not load jobs. Check your connection.', 4000);
     }
+  );
+  // …and requests OFFERED to them: the offer summary only (job_offers), never
+  // the booking — that opens to them when they accept (functions/jobOffers.js).
+  _offersUnsub = databaseService.subscribeToCollection(
+    'job_offers',
+    [{ field: 'artisanId', op: '==', value: user.uid }, { field: 'offerStatus', op: '==', value: 'open' }],
+    {},
+    records => {
+      _offerJobs = records.map(r => ({ id: r.id, ...(r.data || {}) }));
+      _mergeAndRender();
+    },
+    err => console.error('[jobs] Offer subscription error:', err)
   );
 
   // Re-establish GPS presence tracking so the customer's live-tracking map
@@ -892,9 +943,13 @@ subscribeToArtisanAuthState(async user => {
       // Distance origin. Only a REAL stored fix is used; when the artisan has no
       // position the job card omits distance entirely rather than printing
       // "0.0 km", which reads as a factual zero.
-      const a  = snap.data || {};
-      const la = Number(a.currentLat ?? a.lat);
-      const ln = Number(a.currentLng ?? a.lng);
+      // The artisan's OWN precise fix lives in their private record (the public
+      // profile carries ~1 km only — shared/js/domain/locationPrivacy.js).
+      const a   = snap.data || {};
+      const loc = await databaseService.getDocument(`artisans/${user.uid}/private`, 'location').catch(() => null);
+      const p   = (loc && loc.exists && loc.data) || {};
+      const la = Number(p.lat ?? a.lat);
+      const ln = Number(p.lng ?? a.lng);
       if (Number.isFinite(la) && Number.isFinite(ln) && !(la === 0 && ln === 0)) {
         _originLat = la; _originLng = ln;
         if (_allJobs.length) render(_allJobs);   // repaint with distances

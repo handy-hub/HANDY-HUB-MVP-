@@ -524,6 +524,7 @@ import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 import { replaceProfilePhoto } from '../shared/js/services/profilePhotoService.js';
+import { coarseCoord }         from '../shared/js/domain/locationPrivacy.js';
 
 // Onboarding is accessible to ALL artisans regardless of KYC status,
 // including pending and rejected — this IS the KYC submission page.
@@ -850,8 +851,80 @@ const _workLocation = { lat: null, lng: null, setAt: null };
 })();
 
 // ── Submit ─────────────────────────────────────────────
+// ── Email verification (AR-09) ─────────────────────────
+// An application is reviewed — and an approved account can take paid work —
+// only for someone who controls the email they signed up with. Google sign-ins
+// arrive verified; a password sign-up opens the link signup.html sends.
+// firestore.rules refuse the KYC record and verification request without it,
+// and approveArtisan refuses an unverified account: this is the explanation and
+// the way through, not the enforcement.
+function _emailVerified() { return !!authService.getCurrentUser()?.emailVerified; }
+
+function renderEmailGate() {
+  let el = document.getElementById('ob-email-gate');
+  if (_emailVerified()) { el?.remove(); return; }
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'ob-email-gate';
+    el.setAttribute('role', 'status');
+    el.style.cssText = 'margin:12px 16px 0;padding:12px 14px;border-radius:var(--ds-r-card);' +
+      'background:var(--ds-warning-bg);color:var(--ds-ink);font:500 13px/1.45 var(--ds-font);';
+    document.querySelector('.ob-scroll')?.prepend(el);
+  }
+  const email = authService.getCurrentUser()?.email || 'your email address';
+  el.textContent = '';
+  const p = document.createElement('p');
+  p.style.margin = '0 0 8px';
+  p.textContent = `Verify ${email} to submit your application. Open the link we emailed you, then tap "I've verified".`;
+  el.appendChild(p);
+  const mk = (label, onClick, primary) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.style.cssText = 'min-height:44px;padding:0 14px;margin-right:8px;border-radius:var(--ds-r-control);cursor:pointer;' +
+      'font:700 13px/1 var(--ds-font);' + (primary
+        ? 'border:0;background:var(--ds-brand-500);color:var(--ds-surface);'
+        : 'border:1px solid var(--ds-line-strong);background:var(--ds-surface);color:var(--ds-ink);');
+    b.addEventListener('click', () => onClick(b));
+    el.appendChild(b);
+  };
+  mk("I've verified", async (b) => {
+    b.disabled = true;
+    const ok = await ensureVerifiedEmail({ quiet: true });
+    b.disabled = false;
+    if (!ok) showToast('Not verified yet — open the link in the email, then try again.', true);
+  }, true);
+  mk('Resend link', async (b) => {
+    b.disabled = true;
+    try {
+      await authService.sendEmailVerification?.(new URL('onboarding.html', location.href).href);
+      showToast(`Verification link sent to ${email}.`);
+    } catch (e) {
+      showToast(e?.code === 'auth/too-many-requests'
+        ? 'Too many requests — wait a few minutes before resending.'
+        : 'Could not send the link. Check your connection and try again.', true);
+    }
+    b.disabled = false;
+  }, false);
+}
+
+async function ensureVerifiedEmail({ quiet = false } = {}) {
+  if (_emailVerified()) return true;
+  try {
+    const r = await authService.refreshUser?.();
+    if (r?.emailVerified) { renderEmailGate(); return true; }
+  } catch (_) { /* offline — fall through to the gate */ }
+  renderEmailGate();
+  if (!quiet) {
+    document.getElementById('ob-email-gate')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('Verify your email before submitting — open the link we sent you.', true);
+  }
+  return false;
+}
+
 async function submitApplication() {
   if (!uid) { showToast('You must be signed in', true); return; }
+  if (!(await ensureVerifiedEmail())) return;
 
   // Refuse to submit without coordinates. An artisan saved without them is
   // silently deleted from the dispatch index (syncArtisanIndex) and will never
@@ -991,6 +1064,21 @@ async function submitApplication() {
       updatedAt:        n,
     }, { merge: true });
 
+    // 2a′. The precise work-location pin — usually where the artisan lives — goes
+    // to artisans/{uid}/private/location (artisan + admins only), written before
+    // the profile so syncArtisanIndex reads it into artisan_index for dispatch.
+    // The public profile below carries a ~1 km copy (domain/locationPrivacy.js);
+    // firestore.rules refuses anything finer there.
+    if (_workLocation.lat !== null && _workLocation.lng !== null) {
+      await databaseService.setDocument(`artisans/${uid}/private`, 'location', {
+        lat:       _workLocation.lat,
+        lng:       _workLocation.lng,
+        accuracy:  null,
+        source:    'work_pin',
+        updatedAt: n,
+      }, { merge: true });
+    }
+
     // 2b. Public profile (merge — preserves registration fields like walletBalance)
     // NOTE: Financial/reputation fields (rating, reviewCount, jobsCompleted, totalEarned,
     //       availableBalance, pendingBalance) are intentionally OMITTED here — they were
@@ -1006,14 +1094,12 @@ async function submitApplication() {
       // code are in the private record (2a), not here.
       phone,
       gender,
-      // Work-location coordinates. THIS is what dispatch matches on — the typed
-      // address and Ghana Post code are human-readable references only, and
-      // neither can be resolved to a position (there is no open GhanaPostGPS
-      // API). syncArtisanIndex derives the geohash from these and refuses to
-      // index an artisan without them, so an artisan with no coordinates is
-      // invisible to every booking.
-      lat:              _workLocation.lat,
-      lng:              _workLocation.lng,
+      // Work-location coordinates, COARSE (~1 km). Dispatch matches on the
+      // precise pin in private/location (2a′); syncArtisanIndex reads that and
+      // falls back to these, and refuses to index an artisan with neither, so
+      // an artisan with no coordinates is invisible to every booking.
+      lat:              coarseCoord(_workLocation.lat),
+      lng:              coarseCoord(_workLocation.lng),
       locationSetAt:    _workLocation.setAt,
       // Profile & skills
       // The profile photo is written authoritatively SERVER-side by the commit
@@ -1103,6 +1189,7 @@ subscribeToArtisanAuthState(user => {
   // Pre-fill email from auth
   const emailEl = document.getElementById('email');
   if (emailEl && user.email) emailEl.value = user.email;
+  renderEmailGate();
 
   // Check if already submitted
   databaseService.getDocument('artisans', uid).then(snap => {

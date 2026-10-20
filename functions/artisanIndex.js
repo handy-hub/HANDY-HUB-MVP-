@@ -98,6 +98,28 @@ function _buildIndexDoc(artisanId, d, lat, lng) {
     };
 }
 
+// ── Where dispatch's position comes from ─────────────────────────────────────
+// The public profile carries a ~1 km position only (shared/js/domain/
+// locationPrivacy.js; firestore.rules refuses finer). The precise fix lives in
+// artisans/{id}/private/location, written by presence and onboarding BEFORE the
+// profile write that fires this trigger. artisan_index is server-only, so the
+// precise position reaches dispatch and travel-fee pricing and nobody else.
+// A legacy artisan with no private record falls back to the public position.
+async function _positionFor(artisanId, d) {
+    try {
+        const snap = await db().collection('artisans').doc(artisanId).collection('private').doc('location').get();
+        if (snap.exists) {
+            const p = snap.data();
+            if (typeof p.lat === 'number' && typeof p.lng === 'number') return { lat: p.lat, lng: p.lng };
+        }
+    } catch (err) {
+        console.warn(`[artisanIndex] private location unreadable for artisan=${artisanId}: ${err.message}`);
+    }
+    const lat = d.lat ?? d.latitude ?? null;
+    const lng = d.lng ?? d.longitude ?? null;
+    return (typeof lat === 'number' && typeof lng === 'number') ? { lat, lng } : null;
+}
+
 // ── Trigger: artisans document written → sync artisan_index ──────────────────
 // Fires on every artisan write, including the 30-second presence heartbeat of
 // each online artisan — the busiest function, so a full vCPU (BURST_CPU).
@@ -115,8 +137,9 @@ const syncArtisanIndex = onDocumentWritten(
         }
 
         const d   = event.data.after.data();
-        const lat = d.lat ?? d.latitude ?? null;
-        const lng = d.lng ?? d.longitude ?? null;
+        const pos = await _positionFor(artisanId, d);
+        const lat = pos ? pos.lat : null;
+        const lng = pos ? pos.lng : null;
 
         if (typeof lat !== 'number' || typeof lng !== 'number') {
             // No valid coordinates — cannot appear in geo queries. Delete any stale
@@ -142,8 +165,9 @@ async function runBackfill() {
 
     for (const doc of snap.docs) {
         const d   = doc.data();
-        const lat = d.lat ?? d.latitude ?? null;
-        const lng = d.lng ?? d.longitude ?? null;
+        const pos = await _positionFor(doc.id, d);
+        const lat = pos ? pos.lat : null;
+        const lng = pos ? pos.lng : null;
 
         if (typeof lat !== 'number' || typeof lng !== 'number') {
             skipped++;
@@ -172,4 +196,4 @@ async function runBackfill() {
     return { processed, skipped, errors, total: snap.size };
 }
 
-module.exports = { syncArtisanIndex, runBackfill };
+module.exports = { syncArtisanIndex, runBackfill, _positionFor };

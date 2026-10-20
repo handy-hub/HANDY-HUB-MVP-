@@ -87,8 +87,47 @@ function createFakeFirestore() {
             collection(sub) { return collectionRef(`${p}/${sub}`); },
         };
     }
+    // ── Queries: enough for the modules under test (where / orderBy / limit /
+    // startAfter on one collection). Direct children only, like Firestore.
+    const norm = (v) => (v && typeof v === 'object' && 'seconds' in v) ? v.seconds * 1000 : v;
+    const OPS = {
+        '==': (a, b) => a === b, '!=': (a, b) => a !== b,
+        '<': (a, b) => norm(a) < norm(b), '<=': (a, b) => norm(a) <= norm(b),
+        '>': (a, b) => norm(a) > norm(b), '>=': (a, b) => norm(a) >= norm(b),
+        'in': (a, b) => Array.isArray(b) && b.includes(a),
+        'array-contains': (a, b) => Array.isArray(a) && a.includes(b),
+    };
+    function query(base, spec = { where: [], order: null, limit: null, after: null }) {
+        const next = (patch) => query(base, { ...spec, ...patch });
+        return {
+            where(field, op, value) { return next({ where: [...spec.where, [field, op, value]] }); },
+            orderBy(field, dir = 'asc') { return next({ order: [field, dir] }); },
+            limit(n) { return next({ limit: n }); },
+            startAfter(v) { return next({ after: v && v.id ? v.id : v }); },
+            async get() {
+                const depth = base.split('/').length + 1;
+                let rows = [...store.keys()]
+                    .filter((k) => k.startsWith(base + '/') && k.split('/').length === depth)
+                    .map((k) => ({ id: k.split('/').pop(), path: k, data: store.get(k) }))
+                    .filter((r) => spec.where.every(([f, op, v]) => OPS[op](r.data[f], v)));
+                if (spec.order) {
+                    const [f, dir] = spec.order;
+                    const key = (r) => (f === '__name__' ? r.id : norm(r.data[f]));
+                    rows.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * (dir === 'desc' ? -1 : 1));
+                }
+                if (spec.after !== null && spec.after !== undefined) {
+                    const i = rows.findIndex((r) => r.id === spec.after);
+                    rows = i >= 0 ? rows.slice(i + 1) : rows;
+                }
+                if (spec.limit) rows = rows.slice(0, spec.limit);
+                const docs = rows.map((r) => snapshot(r.path));
+                return { empty: docs.length === 0, size: docs.length, docs };
+            },
+        };
+    }
     function collectionRef(base) {
         return {
+            ...query(base),
             doc(id) { return docRef(`${base}/${id || `auto_${crypto.randomBytes(6).toString('hex')}`}`); },
             async add(data) { const r = this.doc(); await r.set(data); return r; },
         };
@@ -99,7 +138,11 @@ function createFakeFirestore() {
         const run = chain.then(async () => {
             const staged = [];
             const txn = {
-                async get(ref) { return snapshot(ref.path); },
+                async get(ref) { return ref.path ? snapshot(ref.path) : ref.get(); },
+                create(ref, d) {
+                    if (store.has(ref.path)) { const e = new Error(`Document already exists: ${ref.path}`); e.code = 6; throw e; }
+                    staged.push({ op: 'set', ref, d }); return txn;
+                },
                 set(ref, d, o)  { staged.push({ op: 'set', ref, d, o }); return txn; },
                 update(ref, d)  { staged.push({ op: 'update', ref, d });  return txn; },
                 delete(ref)     { staged.push({ op: 'delete', ref });     return txn; },
@@ -126,9 +169,21 @@ function createFakeFirestore() {
         return run;
     }
 
+    // A write batch commits all-or-nothing, like a transaction without reads.
+    function batch() {
+        const ops = [];
+        return {
+            set(ref, d, o) { ops.push(() => ref.set(d, o)); return this; },
+            update(ref, d) { ops.push(() => ref.update(d)); return this; },
+            delete(ref)    { ops.push(() => ref.delete()); return this; },
+            async commit() { for (const op of ops) await op(); },
+        };
+    }
+
     return {
         collection: (n) => collectionRef(n),
         doc: (p) => docRef(p),
+        batch,
         runTransaction,
         _set: (p, v) => store.set(p, clone(v)),
         _get: (p) => clone(store.get(p)),
@@ -158,12 +213,21 @@ function createFakeMessaging() {
 function install() {
     const db = createFakeFirestore();
     const messaging = createFakeMessaging();
+    const authUsers = new Map();
     const origLoad = Module._load;
     Module._load = function (request) {
         if (request === 'firebase-admin/firestore') {
             return { getFirestore: () => db, FieldValue, Timestamp, FieldPath: { documentId: () => '__name__' } };
         }
         if (request === 'firebase-admin/messaging') return { getMessaging: () => messaging };
+        if (request === 'firebase-admin/auth') {
+            return { getAuth: () => ({
+                async getUser(uid) {
+                    if (!authUsers.has(uid)) { const e = new Error('user not found'); e.code = 'auth/user-not-found'; throw e; }
+                    return { uid, ...authUsers.get(uid) };
+                },
+            }) };
+        }
         if (request === 'firebase-admin/app') return { initializeApp: () => ({}), getApps: () => [] };
         if (request === 'firebase-functions/v2/https') {
             class HttpsError extends Error { constructor(c, m, d) { super(m); this.code = c; this.details = d; } }
@@ -176,7 +240,8 @@ function install() {
         if (request === 'firebase-functions/v2/scheduler') return { onSchedule: (o, h) => h || o };
         return origLoad.apply(this, arguments);
     };
-    return { db, messaging, FieldValue, Timestamp };
+    const auth = { setUser: (uid, u) => authUsers.set(uid, u), reset: () => authUsers.clear() };
+    return { db, messaging, auth, FieldValue, Timestamp };
 }
 
 module.exports = { install, createFakeFirestore, createFakeMessaging };

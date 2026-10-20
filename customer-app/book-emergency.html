@@ -1308,7 +1308,10 @@ body {
       return null;
     }
     const doc = {
-      customerId: uid, artisanId, serviceType: svcName,
+      // The chosen professional is OFFERED the job (job_offers) and becomes the
+      // booking's artisanId only on accepting it — until then they see a summary,
+      // never this address or position (functions/jobOffers.js, firestore.rules).
+      customerId: uid, artisanId: null, requestedArtisanId: artisanId, serviceType: svcName,
       proName: d.name || 'Professional',
       type: 'emergency', status: 'pending', isEmergency: true,
       eta: '10 min', refCode: bookRef, refId: bookRef,

@@ -529,6 +529,11 @@ export function resolveJobBrief(booking, { originLat = null, originLng = null } 
     const lat = Number(b.lat), lng = Number(b.lng);
     const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0);
     const address = text(b.address);
+    // An OFFER (job_offers/{id}) carries the area to ~1 km and a server-computed
+    // distance, never the address: those arrive with the booking on acceptance
+    // (functions/jobOffers.js). Say so rather than navigating to a rounded point.
+    const approximate = b.locationApproximate === true;
+    const serverDistance = Number(b.distanceKm);
 
     const photos = Array.isArray(b.photos)
         ? b.photos.filter(u => typeof u === 'string' && /^https?:\/\//.test(u))
@@ -562,7 +567,15 @@ export function resolveJobBrief(booking, { originLat = null, originLng = null } 
             contactUnlocked,
         },
 
-        location: {
+        location: approximate ? {
+            address:   null,
+            hasCoords: false,
+            lat: null,
+            lng: null,
+            mapUrl: null,
+            precision: 'approximate',
+            note: 'Exact address shared once you accept.',
+        } : {
             address,
             hasCoords,
             lat: hasCoords ? lat : null,
@@ -575,7 +588,10 @@ export function resolveJobBrief(booking, { originLat = null, originLng = null } 
             precision: hasCoords ? 'gps' : (address ? 'address-only' : 'none'),
         },
 
-        distanceKm: hasCoords ? distanceKm(originLat, originLng, lat, lng) : null,
+        distanceKm: approximate
+            ? (Number.isFinite(serverDistance) && b.distanceKm !== null ? serverDistance
+               : (hasCoords ? distanceKm(originLat, originLng, lat, lng) : null))
+            : (hasCoords ? distanceKm(originLat, originLng, lat, lng) : null),
 
         compensation: resolveArtisanCompensation(b),
 

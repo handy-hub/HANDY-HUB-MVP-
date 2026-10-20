@@ -180,6 +180,31 @@ export async function performBookingAction(action, opts = {}) {
     if (!bookingId)            return { ok: false, code: RESULT.NOT_FOUND,   message: 'No booking specified.' };
     if (!databaseService)      return { ok: false, code: RESULT.FAILED,      message: 'Database unavailable.' };
 
+    // ── 0. Answering a job offer is server-owned ────────────────────────────
+    // An offered artisan cannot read the booking (firestore.rules: the booking
+    // opens to an artisan only once they are its artisanId, which the server
+    // sets on acceptance). They see job_offers/{bookingId} — the summary needed
+    // to decide — and answer through respondToJobOffer, which checks the offer
+    // is still theirs, still open and not expired, and that they may take work.
+    if (action === ACTION.ACCEPT || action === ACTION.DECLINE) {
+        if (actor !== 'artisan') {
+            return { ok: false, code: RESULT.NOT_ALLOWED, message: 'That action belongs to the other party.' };
+        }
+        if (!pricingService?.respondToJobOffer) {
+            return { ok: false, code: RESULT.FAILED, message: 'Responding to jobs is unavailable right now.' };
+        }
+        try {
+            await pricingService.respondToJobOffer(bookingId, action === ACTION.ACCEPT ? 'accept' : 'decline');
+        } catch (e) {
+            const m = String(e?.message || '');
+            const code = /expired|no longer|already|another professional|closed/i.test(m) ? RESULT.CONFLICT : RESULT.FAILED;
+            return { ok: false, code, message: m && !/^internal$/i.test(m) ? m : friendly(e) };
+        }
+        // Accepting grants the booking; declining does not, so there is nothing to re-read.
+        if (action === ACTION.DECLINE) return { ok: true, code: RESULT.OK, booking: null, from: 'pending', to: 'rejected' };
+        return after(databaseService, bookingId, { id: bookingId, status: 'pending' }, 'pending', 'accepted');
+    }
+
     // ── 1. Authoritative read ────────────────────────────────────────────────
     let booking;
     try {

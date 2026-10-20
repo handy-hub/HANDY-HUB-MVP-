@@ -59,6 +59,7 @@ const USER_FACING = [
     'createInspectionBooking', 'payCalloutFee', 'payEmergencyCallout', 'completeInspection',
     'cancelInspectionBooking', 'checkAccountDeletable', 'requestAccountDeletion', 'aiSearch',
     'requestSignupOtp', 'signUpArtisanDirect', 'resendSignupOtp', 'verifySignupOtp',
+    'respondToJobOffer',
 ];
 
 // The Firebase CLI's own resolution (firebase-tools lib/deploy/functions/
