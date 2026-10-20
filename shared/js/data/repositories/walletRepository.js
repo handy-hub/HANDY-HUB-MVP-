@@ -3,6 +3,8 @@
 // All balance MUTATIONS must go through Cloud Functions (never frontend-direct).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { deriveArtisanWallet } from '../../domain/walletLedger.js';
+
 const ARTISANS    = 'artisans';
 const CUSTOMERS   = 'customers';
 const ESCROW      = 'escrow';
@@ -39,18 +41,39 @@ export function createWalletRepository({ databaseService: db }) {
 
     // ── Artisan wallet ────────────────────────────────────────────────────────
 
-    /** Subscribe to real-time wallet snapshot for an artisan. */
+    /**
+     * Subscribe to an artisan's wallet, derived from its authoritative records
+     * (shared/js/domain/walletLedger.js — AR-13): the profile's balances, the
+     * escrow held for their jobs, and their payouts. onChange receives
+     * { view, artisan, payouts } once all three have answered, and again on
+     * every change. `pendingBalance` is not read: nothing ever maintained it.
+     */
     function subscribeToArtisanWallet(uid, onChange, onError) {
-        return db.subscribeToDocument(ARTISANS, uid, (snap) => {
-            if (!snap.exists) { onChange(null); return; }
-            const d = snap.data;
+        const state = { artisan: undefined, escrows: undefined, payouts: undefined };
+        const emit = () => {
+            if (state.artisan === undefined || state.escrows === undefined || state.payouts === undefined) return;
+            if (state.artisan === null) { onChange(null); return; }
             onChange({
-                available:   parseFloat((Number(d.availableBalance) || 0).toFixed(2)),
-                pending:     parseFloat((Number(d.pendingBalance)   || 0).toFixed(2)),
-                totalEarned: parseFloat((Number(d.totalEarned)      || 0).toFixed(2)),
-                withdrawn:   parseFloat((Number(d.withdrawnTotal)   || 0).toFixed(2)),
+                view: deriveArtisanWallet({ artisan: state.artisan, escrows: state.escrows, payouts: state.payouts }),
+                artisan: state.artisan,
+                payouts: state.payouts,
             });
-        }, onError);
+        };
+        const rows = (records) => (records || []).map((r) => ({ id: r.id, ...(r.data || {}) }));
+        const unsubs = [
+            db.subscribeToDocument(ARTISANS, uid, (snap) => {
+                state.artisan = snap && snap.exists ? snap.data : null; emit();
+            }, onError),
+            // Only this artisan's held/disputed escrow — the rules allow exactly
+            // this query (artisanId == me).
+            db.subscribeToCollection(ESCROW,
+                [{ field: 'artisanId', op: '==', value: uid }, { field: 'status', op: 'in', value: ['held', 'disputed'] }], {},
+                (records) => { state.escrows = rows(records); emit(); }, onError),
+            db.subscribeToCollection(PAYOUTS,
+                [{ field: 'userId', op: '==', value: uid }], { limit: 200 },
+                (records) => { state.payouts = rows(records); emit(); }, onError),
+        ];
+        return () => unsubs.forEach((u) => { try { u && u(); } catch (_) { /* already gone */ } });
     }
 
     /** Subscribe to real-time transactions for an artisan (newest first, limit 60). */

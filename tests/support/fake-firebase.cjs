@@ -214,6 +214,7 @@ function install() {
     const db = createFakeFirestore();
     const messaging = createFakeMessaging();
     const authUsers = new Map();
+    const deletedUsers = [];
     const origLoad = Module._load;
     Module._load = function (request) {
         if (request === 'firebase-admin/firestore') {
@@ -226,6 +227,7 @@ function install() {
                     if (!authUsers.has(uid)) { const e = new Error('user not found'); e.code = 'auth/user-not-found'; throw e; }
                     return { uid, ...authUsers.get(uid) };
                 },
+                async deleteUser(uid) { deletedUsers.push(uid); authUsers.delete(uid); },
             }) };
         }
         if (request === 'firebase-admin/app') return { initializeApp: () => ({}), getApps: () => [] };
@@ -240,7 +242,11 @@ function install() {
         if (request === 'firebase-functions/v2/scheduler') return { onSchedule: (o, h) => h || o };
         return origLoad.apply(this, arguments);
     };
-    const auth = { setUser: (uid, u) => authUsers.set(uid, u), reset: () => authUsers.clear() };
+    const auth = {
+        setUser: (uid, u) => authUsers.set(uid, u),
+        deleted: deletedUsers,
+        reset: () => { authUsers.clear(); deletedUsers.length = 0; },
+    };
     return { db, messaging, auth, FieldValue, Timestamp };
 }
 

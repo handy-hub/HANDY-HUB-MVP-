@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#F97316" />
+  <title>Offline | Fidus X Artisan</title>
+  <!-- Self-contained on purpose: this page is shown by artisan-app/sw.js when
+       there is no network, so it cannot depend on anything else being cached.
+       It shows no account data. -->
+  <style>
+    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+           background:#F7F8FA; color:#111827; font:500 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width:340px; padding:24px; text-align:center; }
+    h1 { font-size:20px; margin:0 0 8px; }
+    p  { margin:0 0 20px; color:#4B5563; }
+    button { background:#F97316; color:#fff; border:0; border-radius:12px; padding:12px 20px;
+             font:700 15px/1 inherit; min-height:44px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>You're offline</h1>
+    <p>Fidus X needs a connection to show your jobs and wallet. Job requests that arrive meanwhile wait in your inbox.</p>
+    <button type="button" onclick="location.reload()">Try again</button>
+  </main>
+</body>
+</html>

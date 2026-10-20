@@ -9,6 +9,7 @@ import {
   onAuthStateChanged,
   OAuthProvider,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   reload,
   sendEmailVerification,
   signInWithEmailAndPassword,
@@ -136,6 +137,30 @@ export function createFirebaseAuthService(authInstance = firebaseAuth) {
       if (!user) throw Object.assign(new Error("No signed-in user"), { code: "auth/no-current-user" });
       const credential = EmailAuthProvider.credential(user.email, password);
       await reauthenticateWithCredential(user, credential);
+    },
+
+    // ── Step-up identity check (optional methods) ──
+    // Destructive account actions are re-checked on the SERVER from the ID
+    // token's auth_time (functions/accountLifecycle.js), so after proving who
+    // they are the token is refreshed — otherwise the callable would still see
+    // the old sign-in time.
+
+    /** The sign-in methods on this account, e.g. ['password'] or ['google.com']. */
+    signInProviders() {
+      const user = authInstance.currentUser;
+      return user ? user.providerData.map((p) => p.providerId) : [];
+    },
+
+    /** Re-authenticate with a password, or with Google when no password is given. */
+    async reauthenticate(password) {
+      const user = authInstance.currentUser;
+      if (!user) throw Object.assign(new Error("No signed-in user"), { code: "auth/no-current-user" });
+      if (password) {
+        await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+      } else {
+        await reauthenticateWithPopup(user, buildSocialProvider("Google"));
+      }
+      await user.getIdToken(true);
     },
 
     async changePassword(newPassword) {

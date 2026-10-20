@@ -49,6 +49,10 @@ const MIRRORS = [
         source: 'shared/js/domain/performanceMetrics.js',
         target: 'functions/shared/performanceMetrics.js',
     },
+    {
+        source: 'shared/js/domain/walletLedger.js',
+        target: 'functions/shared/walletLedger.js',
+    },
 ];
 
 const BANNER = [

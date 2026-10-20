@@ -161,6 +161,9 @@ service cloud.firestore {
                       isZeroOrAbsent(incoming(), 'withdrawnTotal') &&
                       // Private identity/payout/home data never enters the public doc.
                       !incoming().keys().hasAny(artisanPrivateFields()) &&
+                      // Nor a reviewer's decision (AR-14): a self-created profile
+                      // cannot arrive "verified" or name who approved it.
+                      !incoming().keys().hasAny(artisanDecisionFields()) &&
                       isPublicLocationSafe(incoming().keys()) &&
                       // ── ROLE ISOLATION (application boundary) ──────────────
                       // Symmetric to the customers rule: a UID that already owns
@@ -190,7 +193,8 @@ service cloud.firestore {
                       isSafeArtisanProfileUpdate() &&
                       isPublicLocationSafe(incoming().diff(existing()).affectedKeys()) &&
                       isSafeArtisanVerificationUpdate() &&
-                      isSafeArtisanClaimUpdate()
+                      isSafeArtisanClaimUpdate() &&
+                      isValidArtisanNotificationPrefs()
                     );
 
       allow delete: if isSuperAdmin();
@@ -329,6 +333,15 @@ service cloud.firestore {
     // profile stay freely editable.
     function artisanVerifiedClaimFields() {
       return ['name', 'fullName', 'category', 'specialty', 'requestedService'];
+    }
+    // Written by functions/artisanVerification.js only (approve, reject,
+    // suspend, ban and their reversals). Never in the self-update allowlist
+    // (isSafeArtisanProfileUpdate), and refused on a client create.
+    function artisanDecisionFields() {
+      return ['isVerified', 'approvedAt', 'approvedBy', 'rejectedAt', 'rejectedBy', 'rejectionReason',
+              'suspendedAt', 'suspendedBy', 'suspensionReason', 'bannedAt', 'bannedBy', 'banReason',
+              'reinstatedAt', 'reinstatedBy', 'unbannedAt', 'unbannedBy',
+              'trustScore', 'reviewedBy', 'reviewedAt', 'adminNotes'];
     }
     function artisanIdentityFields() {
       return ['ghanaCardNumber', 'tin', 'dob', 'dateOfBirth', 'businessRegNumber'];
@@ -517,9 +530,20 @@ service cloud.firestore {
         // FCM push token — written by pushNotificationService.js after permission granted,
         // with the platform that picks the message shape (see the customer list above).
         'fcmToken', 'fcmPlatform', 'fcmTokenUpdatedAt',
+        // Push preference (Settings → Push notifications, AR-15); shape checked
+        // by isValidArtisanNotificationPrefs. Read by sendArtisanNotification.
+        'notificationPreferences',
         // Timestamps
         'updatedAt', 'createdAt'
       ]);
+    }
+
+    function isValidArtisanNotificationPrefs() {
+      return !incoming().diff(existing()).affectedKeys().hasAny(['notificationPreferences']) || (
+               incoming().notificationPreferences is map &&
+               incoming().notificationPreferences.keys().hasOnly(['push', 'updatedAt']) &&
+               incoming().notificationPreferences.push is bool &&
+               incoming().notificationPreferences.get('updatedAt', '') is string);
     }
 
     // Customer payment accounts subcollection  (MoMo, etc.)
@@ -956,56 +980,50 @@ service cloud.firestore {
     match /verification_requests/{artisanId} {
       allow read:   if isAdmin() || isOwner(artisanId);
 
-      allow create: if hasVerifiedEmail() && (
-                       (isOwner(artisanId) &&
-                        incoming().verificationStatus in ['draft', 'submitted', 'pending_review']) ||
-                       // Allow onboarding.html path (uses 'status' field, not 'verificationStatus')
-                       (isOwner(artisanId) &&
-                        incoming().status in ['pending_review', 'draft', 'submitted', 'pending'])) &&
-                     // The reviewer's fields are the reviewer's (AR-14, with AR-10).
-                     !incoming().keys().hasAny(verificationReviewFields());
-
-      // Written only by functions/artisanVerification.js. Onboarding used to
-      // write trustScore/rejectionReason/adminNotes itself, which also wiped an
-      // administrator's rejection reason on every resubmission.
-      function verificationReviewFields() {
-        return ['trustScore', 'reviewedBy', 'reviewedAt', 'rejectionReason', 'adminNotes'];
+      // ── Evidence vs decision (AR-14, 2026-10-20) ────────────────────────────
+      // The artisan SUBMITS evidence: who they are, their trade, their documents
+      // and payout details. Everything else on this record is a reviewer's
+      // decision — status beyond "submitted", approvedBy/At, rejectedBy/At and
+      // rejectionReason, infoRequestedBy/Notes, suspension and ban fields,
+      // reviewedBy/At, adminNotes, trustScore — written only by
+      // functions/artisanVerification.js through the Admin SDK, timestamped
+      // and logged to verification_logs. A client can name only evidence keys,
+      // on create as on update, so it cannot pre-fill, impersonate or alter a
+      // review. (No trust score is calculated anywhere; the only value ever
+      // stored was the 50 onboarding wrote about itself.)
+      function verificationEvidenceFields() {
+        return ['artisanId', 'fullName', 'name', 'phone', 'email', 'dateOfBirth', 'dob',
+                'address', 'gpsAddress', 'emergencyContact',
+                'ghanaCardNumber', 'businessRegNumber', 'tin',
+                'category', 'specialty', 'bio', 'yearsExperience',
+                'baseRate', 'workRadius', 'availability',
+                'momoProvider', 'momoPhone', 'momoAccountName', 'payoutAccount',
+                'documents', 'selfieUrl', 'idFrontUrl', 'idBackUrl',
+                'bizRegUrl', 'certUrl', 'profileImage',
+                'updatedAt', 'submittedAt', 'status', 'verificationStatus',
+                'skills', 'gender'];
+      }
+      // The only states an applicant can put their own request in.
+      function isApplicantStatus(d) {
+        return d.get('status', 'draft') in ['pending', 'pending_review', 'draft', 'submitted'] &&
+               d.get('verificationStatus', 'draft') in ['draft', 'submitted', 'pending_review'];
       }
 
-      // Artisan may update their own draft/re-verification fields — and only
+      allow create: if hasVerifiedEmail() && isOwner(artisanId) &&
+                       incoming().keys().hasOnly(verificationEvidenceFields()) &&
+                       isApplicantStatus(incoming());
+
+      // Artisan may update their own draft/re-verification evidence — and only
       // while no review is under way or decided (AR-10): once submitted the
       // record is what the administrator is checking, and once approved it is
       // the evidence behind the approval. A rejected application or a
       // re-verification request reopens it.
-      // Admin approve/reject/request-info/suspend/reinstate/ban/unban all go
-      // through Cloud Functions (functions/artisanVerification.js), which use
-      // the Admin SDK and bypass these rules entirely — admin has no
-      // remaining legitimate reason to write this collection directly.
-      allow update: if (
-                      isOwner(artisanId) &&
-                      hasVerifiedEmail() &&
-                      existing().get('status', existing().get('verificationStatus', 'draft')) in
-                        ['draft', 'pending', 'rejected', 're_verification_required'] &&
-                      incoming().diff(existing()).affectedKeys().hasOnly([
-                        'fullName', 'name', 'phone', 'email', 'dateOfBirth', 'dob',
-                        'address', 'gpsAddress', 'emergencyContact',
-                        'ghanaCardNumber', 'businessRegNumber', 'tin',
-                        'category', 'specialty', 'bio', 'yearsExperience',
-                        'baseRate', 'workRadius', 'availability',
-                        'momoProvider', 'momoPhone', 'momoAccountName', 'payoutAccount',
-                        'documents', 'selfieUrl', 'idFrontUrl', 'idBackUrl',
-                        'bizRegUrl', 'certUrl', 'profileImage',
-                        'updatedAt', 'submittedAt', 'status', 'verificationStatus',
-                        'skills', 'gender', 'artisanId'
-                      ]) &&
-                      // Artisan may only submit — cannot approve/reject themselves
-                      (!incoming().diff(existing()).affectedKeys().hasAny(['verificationStatus']) ||
-                       incoming().verificationStatus in [
-                         'draft', 'submitted', 'pending_review', 're_verification_required'
-                       ]) &&
-                      (!incoming().diff(existing()).affectedKeys().hasAny(['status']) ||
-                       incoming().status in ['pending', 'pending_review', 'draft', 'submitted'])
-                    );
+      allow update: if isOwner(artisanId) &&
+                       hasVerifiedEmail() &&
+                       existing().get('status', existing().get('verificationStatus', 'draft')) in
+                         ['draft', 'pending', 'rejected', 're_verification_required'] &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(verificationEvidenceFields()) &&
+                       isApplicantStatus(incoming());
 
       allow delete: if isSuperAdmin();
     }
@@ -1015,8 +1033,10 @@ service cloud.firestore {
     // ═══════════════════════════════════════════════════════════════
     match /verification_logs/{logId} {
       allow read:          if isAdmin();
-      allow create:        if isAdmin();
-      allow update, delete: if false;
+      // Written only by functions/artisanVerification.js (and artisanAccount.js)
+      // with the acting administrator taken from their verified token (AR-14).
+      // A client-side admin write could name ANOTHER reviewer; no page needs one.
+      allow create, update, delete: if false;
     }
 
     // ═══════════════════════════════════════════════════════════════

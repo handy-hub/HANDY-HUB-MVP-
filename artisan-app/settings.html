@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#F97316" />
   <title>Settings | HandyHub Artisan</title>
   <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="stylesheet" href="css/design-system.css" />
@@ -88,7 +90,7 @@
           <span class="st-ic">
             <svg viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           </span>
-          <span class="st-body"><span class="st-title">Push notifications</span><span class="st-sub">New jobs, payments &amp; messages</span></span>
+          <span class="st-body"><span class="st-title">Push notifications</span><span class="st-sub" id="notif-sub">New job requests and booking updates on this device</span></span>
           <label class="ds-switch">
             <input type="checkbox" id="toggle-notif" />
             <span class="ds-switch-track"></span><span class="ds-switch-thumb"></span>
@@ -168,7 +170,17 @@
       </div>
     </div>
 
-    <p class="st-version">HandyHub Artisan · v1.0</p>
+    <!-- Close account (AR-15) -->
+    <div class="ds-section ds-section--tight">
+      <div class="ds-card ds-card--flush">
+        <button class="st-row" id="close-row">
+          <span class="st-ic danger"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="st-body"><span class="st-title" style="color:var(--ds-danger);">Close account</span><span class="st-sub">Permanently close your artisan account</span></span>
+        </button>
+      </div>
+    </div>
+
+    <p class="st-version">Fidus X Artisan · v1.0</p>
 
   </div>
 </div>
@@ -186,12 +198,32 @@
   </div>
 </div>
 
+<!-- Close-account sheet: asks the server first, explains, then confirms (AR-15) -->
+<div class="st-sheet-ov" id="close-sheet" role="dialog" aria-modal="true" aria-label="Close account">
+  <div class="st-sheet">
+    <div class="st-sheet-handle"></div>
+    <p class="st-sheet-title">Close your account?</p>
+    <div id="close-body"><p class="st-sheet-sub">Checking your account…</p></div>
+    <div class="st-sheet-actions" id="close-actions" style="display:none;">
+      <label class="st-sub" for="close-confirm-text">Type CLOSE to confirm</label>
+      <input id="close-confirm-text" class="ds-input" autocomplete="off" />
+      <input id="close-password" class="ds-input" type="password" autocomplete="current-password" placeholder="Your password" style="display:none;" />
+      <p class="st-sub" id="close-error" style="color:var(--ds-danger);display:none;"></p>
+      <button class="ds-btn ds-btn--danger ds-btn--block" id="close-confirm" disabled>Close my account</button>
+    </div>
+    <button class="ds-btn ds-btn--secondary ds-btn--block" id="close-cancel" style="margin-top:var(--ds-2);">Cancel</button>
+  </div>
+</div>
+
 <script type="module">
 import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
 
-const { artisan } = await requireArtisanAuth({ allowPending: true });
+const { user, artisan } = await requireArtisanAuth({ allowPending: true });
+const { services: { authService, databaseService } } = getAppContainer();
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ── Theme toggle (functional — drives themeManager's pref_theme) ──────── */
 const themeToggle = document.getElementById('toggle-theme');
@@ -204,11 +236,131 @@ themeToggle.addEventListener('change', () => {
   else document.documentElement.removeAttribute('data-theme');
 });
 
-/* ── Notification preference (UX-layer; persisted locally) ─────────────── */
+/* ── Push notifications (AR-15) ─────────────────────────────────────────
+ * Two different things, shown separately:
+ *   • your PREFERENCE — saved on your profile (notificationPreferences.push),
+ *     so it follows you to every device and survives signing out; the server
+ *     reads it before every push (functions/notifications.js);
+ *   • this DEVICE's permission — the browser or phone decides. If it is
+ *     blocked, only the browser's site settings can unblock it.
+ * Turning push off hides nothing: every notification still lands in the
+ * inbox, and payment notifications are always pushed. (The old toggle saved
+ * to this browser only, and nothing ever read it.) */
 const notifToggle = document.getElementById('toggle-notif');
-notifToggle.checked = (localStorage.getItem('artisan_pref_notifications') ?? 'true') === 'true';
-notifToggle.addEventListener('change', () => {
-  localStorage.setItem('artisan_pref_notifications', String(notifToggle.checked));
+const notifSub    = document.getElementById('notif-sub');
+try { localStorage.removeItem('artisan_pref_notifications'); } catch (_) { /* storage blocked */ }
+let pushPref = !(artisan.notificationPreferences && artisan.notificationPreferences.push === false);
+notifToggle.checked = pushPref;
+
+const DEVICE_LINE = {
+  on:          'On for this device.',
+  off:         'Not yet allowed on this device. Turn it off and on again to be asked.',
+  blocked:     'Blocked by this browser. Allow notifications for this site in your browser settings.',
+  unsupported: "This browser can't receive push notifications. Everything still arrives in your inbox.",
+  failed:      "This device couldn't be registered for push. Try again later.",
+  pending:     'Checking this device…',
+};
+async function describeDevice() {
+  if (!pushPref) {
+    notifSub.textContent = 'Off. New job requests show only while the app is open. Payment notifications are still pushed.';
+    return;
+  }
+  const { getPushState } = await import('../shared/js/services/pushNotificationService.js');
+  notifSub.textContent = DEVICE_LINE[getPushState()] || DEVICE_LINE.pending;
+}
+
+notifToggle.addEventListener('change', async () => {
+  const want = notifToggle.checked;
+  notifToggle.disabled = true;
+  try {
+    const n = new Date().toISOString();
+    await databaseService.updateDocument('artisans', user.uid, {
+      notificationPreferences: { push: want, updatedAt: n }, updatedAt: n,
+    });
+    pushPref = want;
+    if (want) {
+      // Asking for permission needs this tap; the result is reported as it is.
+      const svc = await import('../shared/js/services/pushNotificationService.js');
+      await svc.enablePushNotifications(user.uid, 'artisan');
+    }
+    await describeDevice();
+  } catch (err) {
+    notifToggle.checked = pushPref;   // show what is SAVED, not what was attempted
+    notifSub.textContent = 'Could not save your choice. Check your connection and try again.';
+  } finally {
+    notifToggle.disabled = false;
+  }
+});
+window.addEventListener('fx:push-state', () => describeDevice());
+describeDevice();
+
+/* ── Close account (AR-15) ────────────────────────────────────────────────
+ * The server decides (functions/accountLifecycle.js): it refuses while money
+ * or work is outstanding, needs a sign-in from the last few minutes, erases the
+ * profile's personal data, keeps financial and identity records, and deletes
+ * the login last. This sheet asks it first, explains, then re-authenticates. */
+const acctSheet = document.getElementById('close-sheet');
+const closeBody  = document.getElementById('close-body');
+const closeActs  = document.getElementById('close-actions');
+const closeText  = document.getElementById('close-confirm-text');
+const closePass  = document.getElementById('close-password');
+const closeBtn   = document.getElementById('close-confirm');
+const closeErr   = document.getElementById('close-error');
+const providers  = typeof authService.signInProviders === 'function' ? authService.signInProviders() : [];
+const usesPassword = providers.includes('password');
+
+async function callable(name) {
+  const [{ httpsCallable }, { firebaseFunctions }] = await Promise.all([
+    import('../shared/vendor/firebase/firebase-functions.js'),
+    import('../shared/js/backend/providers/firebase/firebaseConfig.js'),
+  ]);
+  return httpsCallable(firebaseFunctions, name);
+}
+
+document.getElementById('close-row').addEventListener('click', async () => {
+  acctSheet.classList.add('open'); document.body.style.overflow = 'hidden';
+  closeActs.style.display = 'none';
+  closeBody.innerHTML = '<p class="st-sheet-sub">Checking your account…</p>';
+  try {
+    const { data } = await (await callable('checkAccountDeletable'))({});
+    if (!data.deletable) {
+      closeBody.innerHTML = '<p class="st-sheet-sub">Your account can\'t be closed yet:</p>' +
+        (data.blockers || []).map(b => `<p class="st-sheet-sub">• ${esc(b.message)}</p>`).join('');
+      return;
+    }
+    closeBody.innerHTML =
+      '<p class="st-sheet-sub">Your name, contact details, photo and location are removed from your profile, you stop receiving jobs, and you can no longer sign in.</p>' +
+      '<p class="st-sheet-sub">Kept: your payment and payout history, the jobs and reviews in your customers\' records, and the identity documents you submitted for verification (visible only to Fidus X administrators).</p>';
+    closePass.style.display = usesPassword ? '' : 'none';
+    closeActs.style.display = '';
+  } catch (err) {
+    closeBody.innerHTML = '<p class="st-sheet-sub">Could not check your account. Check your connection and try again.</p>';
+  }
+});
+const hideClose = () => { acctSheet.classList.remove('open'); document.body.style.overflow = ''; };
+document.getElementById('close-cancel').addEventListener('click', hideClose);
+acctSheet.addEventListener('click', e => { if (e.target === acctSheet) hideClose(); });
+const readyToClose = () => closeText.value.trim().toUpperCase() === 'CLOSE' && (!usesPassword || closePass.value.length > 0);
+closeText.addEventListener('input', () => { closeBtn.disabled = !readyToClose(); });
+closePass.addEventListener('input', () => { closeBtn.disabled = !readyToClose(); });
+
+closeBtn.addEventListener('click', async () => {
+  if (!readyToClose()) return;
+  closeBtn.disabled = true; closeBtn.textContent = 'Closing…'; closeErr.style.display = 'none';
+  try {
+    if (typeof authService.reauthenticate !== 'function') throw new Error('Sign-in check is not available here.');
+    await authService.reauthenticate(usesPassword ? closePass.value : undefined);
+    await (await callable('requestAccountDeletion'))({});
+    try { await authService.signOut(); } catch (_) { /* the login no longer exists */ }
+    window.location.replace('login.html?closed=1');
+  } catch (err) {
+    const code = String(err?.code || '');
+    closeErr.textContent = /wrong-password|invalid-credential/.test(code) ? 'That password is not right.'
+      : /popup-closed|cancelled-popup/.test(code) ? 'Sign-in was cancelled. Your account is unchanged.'
+      : (err?.message || 'Your account was not closed. Try again.');
+    closeErr.style.display = '';
+    closeBtn.disabled = false; closeBtn.textContent = 'Close my account';
+  }
 });
 
 /* ── Reflect verification status in the row subtitle ───────────────────── */
@@ -239,5 +391,6 @@ document.getElementById('signout-confirm').addEventListener('click', async () =>
 });
 </script>
 <script src="js/artisanFloatingNav.js"></script>
+<script src="js/pwa.js" defer></script>
 </body>
 </html>

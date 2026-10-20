@@ -1,0 +1,15 @@
+{
+  "id": "/artisan-app/",
+  "name": "Fidus X Artisan",
+  "short_name": "Fidus X Artisan",
+  "description": "Receive job requests, manage bookings and get paid as a Fidus X professional.",
+  "start_url": "/artisan-app/dashboard.html",
+  "scope": "/artisan-app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F8FA",
+  "theme_color": "#F97316",
+  "lang": "en-GH",
+  "categories": ["business", "productivity"],
+  "icons": []
+}

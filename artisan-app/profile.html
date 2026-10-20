@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#F97316" />
   <title>My Profile | HandyHub Artisan</title>
   <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
@@ -166,7 +168,6 @@ function render(data) {
   const jobsDone   = data.jobsCompleted ?? 0;
   const rating     = (data.rating ?? 0) > 0 ? Number(data.rating).toFixed(1) : '—';
   const available  = Number(data.availableBalance ?? 0);
-  const pending    = Number(data.pendingBalance ?? 0);
   const totalEarned= Number(data.totalEarned ?? 0);
   const kycPillCls = { approved:'ds-pill--success', pending_review:'ds-pill--warning', submitted:'ds-pill--warning',
                        rejected:'ds-pill--danger', draft:'ds-pill--neutral', re_verification_required:'ds-pill--warning',
@@ -240,7 +241,7 @@ function render(data) {
         <div>
           <div class="pf2-earn-lbl">Available to withdraw</div>
           <div class="pf2-earn-val"><span class="cur">GHS</span>${available.toFixed(2)}</div>
-          ${pending > 0 ? `<div style="font:500 12px/1 var(--ds-font);color:rgba(255,255,255,.5);margin-top:8px;">Pending <span style="color:var(--ds-brand-200);font-weight:700;">GHS ${pending.toFixed(2)}</span></div>` : ''}
+          <!-- Pending release lives on the wallet page, derived from held escrow (AR-13). -->
         </div>
         <a href="wallet.html" class="ds-btn ds-btn--primary ds-btn--sm">Withdraw</a>
       </div>
@@ -421,5 +422,6 @@ databaseService.subscribeToDocument('artisans', user.uid, snap => {
 });
 </script>
 <script src="js/artisanFloatingNav.js"></script>
+<script src="js/pwa.js" defer></script>
 </body>
 </html>

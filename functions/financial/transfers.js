@@ -669,6 +669,7 @@ async function alertOps(kind, payoutId, message) {
 
 module.exports = {
     STATUS,
+    OPEN_STATUSES,   // mirrored by shared/js/domain/walletLedger.js PAYOUT_OPEN_STATUSES (test-checked)
     executeCustomerWithdrawal,
     executeArtisanWithdrawal,
     executeWithdrawal,

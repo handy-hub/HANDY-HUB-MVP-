@@ -538,7 +538,6 @@ async function releaseEscrow(escrowId, { releasedBy = 'system', callerAuth } = {
 
         const custEscrow = fmt(customerSnap.data()?.escrowBalance    || 0);
         const artAvail   = fmt(artisanSnap.exists ? artisanSnap.data().availableBalance || 0 : 0);
-        const artPending = fmt(artisanSnap.exists ? artisanSnap.data().pendingBalance   || 0 : 0);
         const artTotal   = fmt(artisanSnap.exists ? artisanSnap.data().totalEarned      || 0 : 0);
 
         txn.update(escrowRef, { status: 'released', releasedBy, releasedAt: n, updatedAt: n });
@@ -548,9 +547,12 @@ async function releaseEscrow(escrowId, { releasedBy = 'system', callerAuth } = {
             updatedAt:     n,
         });
 
+        // pendingBalance is no longer written (AR-13): nothing ever incremented
+        // it, so this decrement — clamped at zero — only ever wrote 0. Money
+        // pending release is derived from the held escrow records themselves
+        // (shared/js/domain/walletLedger.js), which cannot drift from the hold.
         txn.set(artisanRef, {
             availableBalance: fmt(artAvail + artisanShare),
-            pendingBalance:   fmt(Math.max(0, artPending - artisanShare)),
             totalEarned:      fmt(artTotal + artisanShare),
             updatedAt:        n,
         }, { merge: true });

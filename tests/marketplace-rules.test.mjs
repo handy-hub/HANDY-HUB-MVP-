@@ -177,6 +177,61 @@ await it('attribution stays optional for clients that do not send it', async () 
     await assertSucceeds(cancel(c1, 'BK-C2', null));
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('\nAR-14 · evidence is the applicant\'s; decisions are the reviewer\'s\n');
+
+await it('a verification request cannot be created carrying any decision field', async () => {
+    const id = 'artisan_forger';
+    await testEnv.withSecurityRulesDisabled((x) => setDoc(doc(x.firestore(), 'artisans', id), profile(id, { verificationStatus: 'draft', status: 'pending' })));
+    const f = ctx(id);
+    const base = { artisanId: id, name: 'Kofi', status: 'pending_review', submittedAt: NOW };
+    for (const extra of [{ approvedBy: 'silas7korda@gmail.com' }, { approvedAt: NOW }, { rejectedBy: 'x' }, { infoRequestNotes: 'ok' },
+                         { status: 'approved' }, { verificationStatus: 'approved' }, { reviewerVerdict: 'pass' }]) {
+        await assertFails(setDoc(doc(f, 'verification_requests', id), { ...base, ...extra }), JSON.stringify(extra));
+    }
+    await assertSucceeds(setDoc(doc(f, 'verification_requests', id), base));
+});
+await it('an applicant cannot move their reopened request to a decision state', async () => {
+    const r = doc(st.rejected, 'verification_requests', STATES.rejected);
+    await assertFails(updateDoc(r, { status: 'approved', updatedAt: NOW }));
+    await assertFails(updateDoc(r, { verificationStatus: 're_verification_required', updatedAt: NOW }));
+    await assertFails(updateDoc(r, { approvedBy: 'me', updatedAt: NOW }));
+});
+await it('a self-created profile cannot arrive verified or name its approver', async () => {
+    const id = 'artisan_selfverified';
+    const f = ctx(id);
+    for (const extra of [{ isVerified: true }, { approvedBy: 'admin@x.com' }, { trustScore: 100 }, { reviewedBy: 'x' }]) {
+        await assertFails(setDoc(doc(f, 'artisans', id), profile(id, { verificationStatus: 'draft', status: 'pending', ...extra })), JSON.stringify(extra));
+    }
+});
+await it('audit logs are server-only — even an admin client cannot write one', async () => {
+    await assertFails(setDoc(doc(admin, 'verification_logs', 'forged'), { artisanId: A, action: 'approve', adminEmail: 'someone.else@x.com' }));
+    await assertFails(setDoc(doc(a, 'verification_logs', 'forged2'), { artisanId: A, action: 'approve' }));
+    await assertSucceeds(getDocs(collection(admin, 'verification_logs')));
+});
+
+console.log('\nAR-15 · the push preference · AR-13 · the wallet\'s own records\n');
+
+await it('an artisan saves their own push preference, in the strict shape only', async () => {
+    const pub = doc(a, 'artisans', A);
+    await assertSucceeds(updateDoc(pub, { notificationPreferences: { push: false, updatedAt: NOW }, updatedAt: new Date().toISOString() }));
+    await assertFails(updateDoc(pub, { notificationPreferences: { push: 'no' }, updatedAt: new Date().toISOString() }));
+    await assertFails(updateDoc(pub, { notificationPreferences: { push: true, marketing: true }, updatedAt: new Date().toISOString() }));
+    await assertFails(updateDoc(doc(b, 'artisans', A), { notificationPreferences: { push: true }, updatedAt: new Date().toISOString() }));
+});
+await it('the wallet\'s queries: my held escrow and my payouts — nobody else\'s', async () => {
+    await testEnv.withSecurityRulesDisabled(async (x) => {
+        const db = x.firestore();
+        await setDoc(doc(db, 'escrow', 'e_mine'),  { artisanId: A, customerId: C1, status: 'held', artisanShare: 85 });
+        await setDoc(doc(db, 'escrow', 'e_other'), { artisanId: B, customerId: C1, status: 'held', artisanShare: 85 });
+        await setDoc(doc(db, 'payouts', 'p_mine'), { userId: A, status: 'processing', amount: 50 });
+    });
+    await assertSucceeds(getDocs(query(collection(a, 'escrow'), where('artisanId', '==', A), where('status', 'in', ['held', 'disputed']))));
+    await assertFails(getDocs(query(collection(a, 'escrow'), where('artisanId', '==', B), where('status', 'in', ['held', 'disputed']))));
+    await assertSucceeds(getDocs(query(collection(a, 'payouts'), where('userId', '==', A))));
+    await assertFails(getDocs(query(collection(b, 'payouts'), where('userId', '==', A))));
+});
+
 console.log('\n' + '─'.repeat(52));
 console.log(`  ${passed} passed, ${failed} failed`);
 console.log('─'.repeat(52) + '\n');

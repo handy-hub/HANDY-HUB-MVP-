@@ -86,26 +86,43 @@ async function sendNotification(receiverId, data) {
     }
 }
 
+// ── The artisan's push preference (AR-15) ────────────────────────────────────
+// artisans/{id}.notificationPreferences.push, set from the artisan Settings
+// page (firestore.rules validates its shape). It governs PUSH only: the in-app
+// notification is always written, so a job request, a booking change or a
+// support reply is never lost — it waits in the inbox. Payment notifications
+// (earnings released, withdrawal sent/failed) are pushed regardless: they are
+// financial records of the artisan's own money, and the Settings page says so.
+// Absent preference = on (the behaviour before the setting existed).
+const ARTISAN_MANDATORY_PUSH_TYPES = Object.freeze(['Payments']);
+function artisanPushAllowed(artisanDoc, type) {
+    const prefs = (artisanDoc && artisanDoc.notificationPreferences) || {};
+    return prefs.push !== false || ARTISAN_MANDATORY_PUSH_TYPES.includes(type);
+}
+
 /**
  * Send notification to an ARTISAN.
- * No preference check — artisans always receive booking and payment events.
- * Fetches artisan doc for FCM token.
+ * Always writes the in-app notification; pushes unless the artisan turned push
+ * off (payments are always pushed — see artisanPushAllowed).
  */
 async function sendArtisanNotification(artisanId, data) {
     try {
         const type = data.type || 'General';
 
         const snap     = await db().collection('artisans').doc(artisanId).get();
-        const token    = snap.exists ? (snap.data().fcmToken || null) : null;
-        const platform = snap.exists ? (snap.data().fcmPlatform || null) : null;
+        const doc      = snap.exists ? snap.data() : null;
+        const token    = doc ? (doc.fcmToken || null) : null;
+        const platform = doc ? (doc.fcmPlatform || null) : null;
 
         const notifId = await _write(artisanId, type, data);
 
         // Awaited for the same reason as sendNotification. The in-app record
         // above is written first, so a job offer is on the artisan's dashboard
         // whatever happens to the push.
-        if (token) {
+        if (token && artisanPushAllowed(doc, type)) {
             await _sendFcm(token, platform, type, data, artisanId, 'artisan');
+        } else if (token) {
+            console.log(`[notif] Push skipped for ${type} to artisan=${artisanId} (push off; in-app kept)`);
         }
 
         return notifId;
@@ -246,4 +263,6 @@ module.exports = {
     sendArtisanNotification,
     // Exported for tests: the per-platform message shape and expiry must be provable.
     buildFcmMessage,
+    artisanPushAllowed,
+    ARTISAN_MANDATORY_PUSH_TYPES,
 };

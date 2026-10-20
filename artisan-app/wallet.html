@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#F97316" />
   <title>HandyHub – My Earnings</title>
   <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/wallet.css" />
@@ -36,7 +38,7 @@
       <p class="hero-sub">Completed job earnings</p>
       <div class="hero-stats">
         <div class="hero-stat">
-          <p class="hero-stat-label">Pending</p>
+          <p class="hero-stat-label">Pending release</p>
           <p class="hero-stat-value pending" id="pending-balance">GHS —</p>
         </div>
         <div class="hero-stat">
@@ -44,10 +46,12 @@
           <p class="hero-stat-value" id="total-earned">GHS —</p>
         </div>
         <div class="hero-stat">
-          <p class="hero-stat-label">Withdrawn</p>
+          <p class="hero-stat-label">Paid out</p>
           <p class="hero-stat-value" id="total-withdrawn">GHS —</p>
         </div>
       </div>
+      <!-- What the figures mean, and anything on its way (AR-13). -->
+      <p class="hero-sub" id="wallet-explain" style="margin:var(--ds-3) 0 0;"></p>
     </div>
 
     <!-- Withdraw Button -->
@@ -69,8 +73,8 @@
         <p class="pill-value">GHS 5</p>
       </div>
       <div class="info-pill">
-        <p class="pill-label">Payout Time</p>
-        <p class="pill-value green">~1 min</p>
+        <p class="pill-label">Paid to</p>
+        <p class="pill-value green">Mobile Money</p>
       </div>
     </div>
 
@@ -156,6 +160,7 @@
   import { getAppContainer }           from '../shared/js/app/container.js';
   import { showToast }                 from '../shared/js/components/toast.js';
   import { createWalletRepository }    from '../shared/js/data/repositories/walletRepository.js';
+  import { withdrawalStatus }          from '../shared/js/domain/walletLedger.js';
   import { withdrawArtisan, newWithdrawalRequestId } from '../shared/js/services/walletService.js';
   import { openSecurityPinSheet }      from '../shared/js/components/securityPinSheet.js';
   import { setSecurityPin, pinErrorMessage } from '../shared/js/services/securityPinService.js';
@@ -232,15 +237,33 @@
   };
 
   // ── Wallet display ──────────────────────────────────────────────────────────
+  // `w` is deriveArtisanWallet's view (shared/js/domain/walletLedger.js): every
+  // figure comes from the record that is authoritative for it. Pending release
+  // is the customer's money held for your jobs — yours once they confirm, not
+  // spendable before; it is never added to Available.
+  const explainEl = document.getElementById('wallet-explain');
   function updateWalletDisplay(w) {
     if (!w) return;
     currentWallet = w;
     availEl.textContent     = fmtGHS(w.available);
-    pendingEl.textContent   = fmtGHS(w.pending);
+    pendingEl.textContent   = fmtGHS(w.pendingRelease);
     totalEl.textContent     = fmtGHS(w.totalEarned);
-    withdrawnEl.textContent = fmtGHS(w.withdrawn);
+    withdrawnEl.textContent = w.paidOut === null ? 'GHS —' : fmtGHS(w.paidOut);
     withdrawBtn.disabled    = w.available < 5;
+    const notes = [];
+    notes.push(w.heldJobs
+      ? `Pending release: your share (after commission) of ${w.heldJobs} job${w.heldJobs === 1 ? '' : 's'} in progress, paid when the customer confirms the job is done.`
+      : 'Pending release: nothing held for you right now.');
+    if (w.inDispute > 0) notes.push(`${fmtGHS(w.inDispute)} is in a dispute an administrator is reviewing.`);
+    if (w.inTransit > 0) notes.push(`${fmtGHS(w.inTransit)} is on its way to your Mobile Money.`);
+    if (w.paidOut === null) notes.push('Your payout total could not be confirmed — contact support.');
+    explainEl.textContent = notes.join(' ');
   }
+
+  // A withdrawal row's status comes from its payout record (the authority),
+  // not the copy written when it was requested.
+  let payoutsById = new Map();
+  let lastTxns    = null;
 
   // ── Transaction list ────────────────────────────────────────────────────────
   function txnIcon(type) {
@@ -262,7 +285,9 @@
   }
 
   function buildTxnHTML(t, isLast) {
-    const d        = t.data;
+    const d        = t.data.type === 'withdrawal'
+      ? { ...t.data, status: withdrawalStatus(t.data, payoutsById.get(t.data.payoutId)) }
+      : t.data;
     const isCredit = d.type === 'earning';
     const sign     = isCredit ? '+' : '−';
     const amtClass = isCredit ? 'credit' : 'debit';
@@ -288,6 +313,7 @@
   }
 
   function renderTxns(records) {
+    lastTxns = records;
     loadingEl.style.display = 'none';
     if (!records.length) {
       listEl.style.display  = 'none';
@@ -427,17 +453,13 @@
     // Live artisan doc (for name + wallet)
     loadPayoutSetup(user.uid);
 
-    databaseService.subscribeToDocument('artisans', user.uid, snap => {
-      if (snap.exists) {
-        artisanData = snap.data || {};
-        updateWalletDisplay({
-          available:   parseFloat((Number(snap.data.availableBalance) || 0).toFixed(2)),
-          pending:     parseFloat((Number(snap.data.pendingBalance)   || 0).toFixed(2)),
-          totalEarned: parseFloat((Number(snap.data.totalEarned)      || 0).toFixed(2)),
-          withdrawn:   parseFloat((Number(snap.data.withdrawnTotal)   || 0).toFixed(2)),
-        });
-      }
-    });
+    walletRepo.subscribeToArtisanWallet(user.uid, (res) => {
+      if (!res) return;
+      artisanData = res.artisan || {};
+      payoutsById = new Map((res.payouts || []).map(p => [p.id, p]));
+      updateWalletDisplay(res.view);
+      if (lastTxns) renderTxns(lastTxns);   // re-label withdrawals with payout status
+    }, (err) => console.error('[wallet] Wallet error:', err.code || err.message));
 
     // Live transactions
     walletRepo.subscribeToArtisanTransactions(
@@ -454,5 +476,6 @@
 
 <script src="../shared/js/components/fastLoader.js"></script>
 <script src="js/artisanFloatingNav.js"></script>
+<script src="js/pwa.js" defer></script>
 </body>
 </html>

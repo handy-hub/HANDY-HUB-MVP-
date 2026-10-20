@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#F97316" />
   <title>HandyHub – Artisan Dashboard</title>
   <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="stylesheet" href="css/design-system.css" />
@@ -82,7 +84,7 @@
           <span class="currency">GHS</span>
           <span id="wallet-amount">0.00</span>
         </p>
-        <p class="wallet-pending">Pending: <span id="pending-amount">GHS 0.00</span></p>
+        <p class="wallet-pending">Pending release: <span id="pending-amount">GHS —</span></p>
       </div>
       <button class="withdraw-btn" onclick="window.location.href='wallet.html'">
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
@@ -301,6 +303,7 @@
 <script type="module">
 import '../shared/js/utils/global-app.js';
 import { getAppContainer }                             from '../shared/js/app/container.js';
+import { createWalletRepository }                      from '../shared/js/data/repositories/walletRepository.js';
 import { startPresence, stopPresence, setOnlineState } from '../shared/js/services/presenceService.js';
 import { subscribeToUnreadCount }                      from '../shared/js/services/notificationRepository.js';
 import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
@@ -444,10 +447,10 @@ function applyProfile(data) {
   statLevel.textContent    = level;
 
   // Wallet
+  // Pending release comes from the held escrow (walletLedger.js, AR-13) via the
+  // wallet subscription below — pendingBalance was never maintained.
   const available = Number(data.availableBalance || 0);
-  const pending   = Number(data.pendingBalance   || 0);
   walletAmount.textContent = available.toFixed(2);
-  pendingAmount.textContent = `GHS ${pending.toFixed(2)}`;
 
   // Performance
   document.getElementById('perf-jobs').textContent     = jobs;
@@ -1142,6 +1145,11 @@ subscribeToArtisanAuthState(async user => {
   });
   unsubs.push(u1);
 
+  // Wallet figures derived from their authoritative records (AR-13).
+  unsubs.push(createWalletRepository({ databaseService }).subscribeToArtisanWallet(uid, (res) => {
+    if (res) pendingAmount.textContent = `GHS ${res.view.pendingRelease.toFixed(2)}`;
+  }, () => { pendingAmount.textContent = 'GHS —'; }));
+
   // Live job requests: this artisan's OPEN offers. An offered artisan reads the
   // offer summary (job_offers/{bookingId}) — never the booking, which opens to
   // them only once they accept (functions/jobOffers.js, firestore.rules).
@@ -1238,6 +1246,7 @@ window.addEventListener('pagehide', () => {
 
 <script src="../shared/js/components/fastLoader.js"></script>
 <script src="js/artisanFloatingNav.js"></script>
+<script src="js/pwa.js" defer></script>
 </body>
 </html>
 

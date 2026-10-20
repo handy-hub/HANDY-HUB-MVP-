@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#F97316" />
 <title>Job | HandyHub Artisan</title>
 <link rel="stylesheet" href="css/design-system.css">
 <style>
@@ -581,5 +583,6 @@ function watchBooking() {
 
 window.addEventListener('pagehide', () => { try { _unsub?.(); _offerUnsub?.(); } catch (_) {} });
 </script>
+<script src="js/pwa.js" defer></script>
 </body>
 </html>
