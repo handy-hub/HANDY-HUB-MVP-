@@ -25,7 +25,7 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onSchedule }    = require('firebase-functions/v2/scheduler');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
-const { FIRESTORE_DB_ID, FUNCTIONS_REGION, MAX_DISPATCH_ROUNDS } = require('./config');
+const { FIRESTORE_DB_ID, FUNCTIONS_REGION, MAX_DISPATCH_ROUNDS, BURST_CPU } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const { geohashQueryBounds } = require('geofire-common');
 
@@ -356,8 +356,9 @@ async function dispatchRound(bookingId) {
 }
 
 // ── Trigger: booking CREATED → initialise + first dispatch ───────────────────
+// Dispatch latency matters and bookings arrive in bursts: a full vCPU (BURST_CPU).
 const onBookingCreated = onDocumentCreated(
-    { document: 'bookings/{bookingId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION },
+    { document: 'bookings/{bookingId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION, ...BURST_CPU },
     async (event) => {
         const bookingId = event.params.bookingId;
         const data      = event.data.data();

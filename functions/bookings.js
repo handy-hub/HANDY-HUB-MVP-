@@ -36,7 +36,7 @@
 
 const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const { FieldValue }        = require('firebase-admin/firestore');
-const { FUNCTIONS_REGION, FIRESTORE_DB_ID } = require('./config');
+const { FUNCTIONS_REGION, FIRESTORE_DB_ID, BURST_CPU } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const escrow    = require('./financial/escrow');
 const dispatch  = require('./dispatch');
@@ -325,8 +325,9 @@ async function _handleEscrowHoldFailure(bookingId, bookingData, reason) {
 
 // ── Main trigger ───────────────────────────────────────────────────────────────
 
+// Fires on every booking write, so it takes a full vCPU (BURST_CPU).
 const onBookingStatusChanged = onDocumentUpdated(
-    { document: 'bookings/{bookingId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION },
+    { document: 'bookings/{bookingId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION, ...BURST_CPU },
     async (event) => {
         const before    = event.data.before.data();
         const after     = event.data.after.data();

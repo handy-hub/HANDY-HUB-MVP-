@@ -15,26 +15,33 @@ const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https')
 const { onDocumentCreated }            = require('firebase-functions/v2/firestore');
 const { onSchedule }                   = require('firebase-functions/v2/scheduler');
 const { setGlobalOptions }             = require('firebase-functions/v2');
-const { FUNCTIONS_REGION, FIRESTORE_DB_ID } = require('./config');
+const { FUNCTIONS_REGION, FIRESTORE_DB_ID, BURST_CPU, USER_FACING_SCALE } = require('./config');
 
-// Cap autoscaling for every function.
+// Capacity for every function. Measured 2026-10-19 — see CLAUDE.md §4.
 //
-// The binding constraint is the Cloud Run **"Instances" quota: 100 per project
-// per region** (europe-west1). It is NOT the CPU quota — "Total CPU allocation"
-// is 20,000 here and was never close to exhausted. Cloud Run nevertheless
-// reports the failure as *"Quota exceeded for total allowable CPU per project
-// per region"*, which is thoroughly misleading: measure instances, not CPU.
+// The binding constraint is Cloud Run "Total CPU allocation"
+// (run.googleapis.com/cpu_allocation) in europe-west1: 20,000 milli-vCPU, i.e.
+// 20 vCPU, counted over every RUNNING instance — idle ones included, and an
+// instance lingers ~15 minutes after its last request. The console will not
+// raise it for this project yet (its maximum is the current value). Hitting it
+// shows as a 503 ("exceeded its quota limit for run.googleapis.com/
+// cpu_allocation") on a cold start, and as "Quota exceeded for total allowable
+// CPU" on a deploy. The Instances quota (100) is never reached.
 //
-// Budget: 47 functions. During a deploy an updating service briefly holds BOTH
-// its old and new revision, so the peak is 2x the steady state:
-//     maxInstances 1  →  47 steady, ~94 peak   (fits under 100)
-//     maxInstances 2  →  94 steady, ~188 peak  (fails mid-deploy)
-// Hence 1. With the default container concurrency of 80, a single instance
-// still serves ~80 simultaneous requests per function.
+// Firebase's default is 1 vCPU per instance, which let only ~20 of these 56
+// functions be warm at once. So every function defaults to gen1-sized CPU
+// (0.17 vCPU at 256MiB, 0.33 at 512MiB), serving one request per instance, and
+// two spreads from ./config opt out:
+//   BURST_CPU          1 vCPU, 80 concurrent requests — the Paystack webhook and
+//                      the booking/artisan triggers, which receive bursts
+//   USER_FACING_SCALE  up to 3 small instances — callables people wait on
+// Everything else (admin tools, backfills, schedulers) keeps one small instance;
+// backfills and migrations must never run in parallel anyway.
 //
-// TO RAISE THIS: request an increase to the Cloud Run "Instances" quota for
-// europe-west1, then raise this number. Do not raise it before the quota.
-setGlobalOptions({ maxInstances: 1 });
+// With every function warm once this spends ~17.3 of the 20 vCPU, and no
+// function can ever hold more than 1 vCPU. tests/functions-capacity.test.cjs
+// enforces both: a new function is small unless it is deliberately listed.
+setGlobalOptions({ maxInstances: 1, cpu: 'gcf_gen1' });
 
 initializeApp();
 
@@ -89,18 +96,18 @@ const emailOtpModule = require('./emailOtp');
 // ─────────────────────────────────────────────────────────────────────────────
 const profilePhotos = require('./profilePhotos');
 
-exports.beginProfilePhotoReplacement = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async request => {
+exports.beginProfilePhotoReplacement = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60 }, async request => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'beginProfilePhotoReplacement');
     return profilePhotos.begin(request.auth, request.data);
 });
 
-exports.commitProfilePhotoReplacement = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async request => {
+exports.commitProfilePhotoReplacement = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60 }, async request => {
     _requireAuth(request);
     return profilePhotos.commit(request.auth, request.data);
 });
 
-exports.abortProfilePhotoReplacement = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async request => {
+exports.abortProfilePhotoReplacement = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60 }, async request => {
     _requireAuth(request);
     return profilePhotos.abort(request.auth, request.data);
 });
@@ -117,7 +124,7 @@ exports.retryProfilePhotoCleanup = onSchedule(
 // e.g. https://europe-west1-lamax-4fd82.cloudfunctions.net/paystackWebhook
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.paystackWebhook = onRequest(
-    { region: FUNCTIONS_REGION, invoker: 'public' },
+    { region: FUNCTIONS_REGION, ...BURST_CPU, invoker: 'public' },
     (req, res) => webhooks.handlePaystackWebhook(req, res),
 );
 
@@ -135,7 +142,7 @@ exports.paystackWebhook = onRequest(
 const securityPin = require('./securityPin');
 
 exports.setSecurityPin = onCall(
-    { region: FUNCTIONS_REGION, timeoutSeconds: 30, memory: '256MiB' },
+    { region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 30, memory: '256MiB' },
     async (request) => {
         _requireAuth(request);
         await checkRateLimit(request.auth.uid, 'setSecurityPin');
@@ -165,7 +172,7 @@ exports.setSecurityPin = onCall(
 const topups = require('./topups');
 
 exports.initiateTopupCharge = onCall(
-    { region: FUNCTIONS_REGION, timeoutSeconds: 60, memory: '512MiB' },
+    { region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60, memory: '512MiB' },
     async (request) => {
         _requireAuth(request);
         await checkRateLimit(request.auth.uid, 'initiateTopupCharge');
@@ -199,7 +206,7 @@ exports.initiateTopupCharge = onCall(
  *   limit and small footprint.
  */
 exports.verifyTopupNow = onCall(
-    { region: FUNCTIONS_REGION, timeoutSeconds: 30, memory: '256MiB' },
+    { region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 30, memory: '256MiB' },
     async (request) => {
         _requireAuth(request);
         await checkRateLimit(request.auth.uid, 'verifyTopupNow');
@@ -214,7 +221,7 @@ exports.verifyTopupNow = onCall(
 );
 
 exports.submitTopupOtp = onCall(
-    { region: FUNCTIONS_REGION, timeoutSeconds: 30, memory: '256MiB' },
+    { region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 30, memory: '256MiB' },
     async (request) => {
         _requireAuth(request);
         await checkRateLimit(request.auth.uid, 'submitTopupOtp');
@@ -375,7 +382,7 @@ exports.resolveDispute = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120,
  *   const withdraw = httpsCallable(functions, 'processWithdrawal');
  *   const { data } = await withdraw({ amount, provider, phone, pin, requestId });
  */
-exports.processWithdrawal = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+exports.processWithdrawal = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'processWithdrawal');
     const { amount, provider, phone, pin, requestId } = request.data || {};
@@ -404,7 +411,7 @@ exports.processWithdrawal = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 1
  *   const { data } = await withdraw({ amount, pin, requestId });
  *   // data.status: 'processing' | 'success' | 'unknown' (being confirmed) | 'reserved'
  */
-exports.processArtisanWithdrawal = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+exports.processArtisanWithdrawal = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'processArtisanWithdrawal');
     const { amount, pin, requestId } = request.data || {};
@@ -668,7 +675,7 @@ exports.checkExpiredDispatches  = dispatchModule.checkExpiredDispatches;
 //   Customer rejects â†’ artisan notified, can resubmit revised quote.
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-exports.submitJobQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+exports.submitJobQuote = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     try {
         return await quotesModule.submitJobQuote(request.auth, request.data);
@@ -677,7 +684,7 @@ exports.submitJobQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120,
     }
 });
 
-exports.approveJobQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+exports.approveJobQuote = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     try {
         return await quotesModule.approveJobQuote(request.auth, request.data);
@@ -686,7 +693,7 @@ exports.approveJobQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120
     }
 });
 
-exports.rejectJobQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+exports.rejectJobQuote = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     try {
         return await quotesModule.rejectJobQuote(request.auth, request.data);
@@ -707,7 +714,7 @@ exports.rejectJobQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120,
 // adminSeedPricingConfig   (admin)    seeds pricing_config defaults
 // ─────────────────────────────────────────────────────────────────────────────
 
-exports.getPricingQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async (request) => {
+exports.getPricingQuote = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60 }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'getPricingQuote');
     try {
@@ -717,7 +724,7 @@ exports.getPricingQuote = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 
     }
 });
 
-exports.createInspectionBooking = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120 }, async (request) => {
+exports.createInspectionBooking = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 120 }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'createInspectionBooking');
     try {
@@ -727,7 +734,7 @@ exports.createInspectionBooking = onCall({ region: FUNCTIONS_REGION, timeoutSeco
     }
 });
 
-exports.payCalloutFee = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+exports.payCalloutFee = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'holdBookingFunds');   // shares the financial-hold bucket
     try {
@@ -745,7 +752,7 @@ exports.payCalloutFee = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, 
  * firestore.rules forbids clients from writing. Shares the financial-hold rate
  * limit bucket with holdBookingFunds and payCalloutFee.
  */
-exports.payEmergencyCallout = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+exports.payEmergencyCallout = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'holdBookingFunds');
     try {
@@ -755,7 +762,7 @@ exports.payEmergencyCallout = onCall({ region: FUNCTIONS_REGION, timeoutSeconds:
     }
 });
 
-exports.completeInspection = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async (request) => {
+exports.completeInspection = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60 }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'completeInspection');
     try {
@@ -765,7 +772,7 @@ exports.completeInspection = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 
     }
 });
 
-exports.cancelInspectionBooking = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+exports.cancelInspectionBooking = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'cancelInspectionBooking');
     try {
@@ -808,7 +815,7 @@ exports.checkBookingTimeouts = onSchedule(
 const accountLifecycle = require('./accountLifecycle');
 
 /** Pre-flight: tell the UI whether deletion is possible, and why not. */
-exports.checkAccountDeletable = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 60 }, async (request) => {
+exports.checkAccountDeletable = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60 }, async (request) => {
     _requireAuth(request);
     try {
         return await accountLifecycle.checkAccountDeletable(request.auth);
@@ -818,7 +825,7 @@ exports.checkAccountDeletable = onCall({ region: FUNCTIONS_REGION, timeoutSecond
 });
 
 /** Destructive: guarded teardown. Throws failed-precondition with blockers attached. */
-exports.requestAccountDeletion = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+exports.requestAccountDeletion = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     _requireAuth(request);
     await checkRateLimit(request.auth.uid, 'requestAccountDeletion');
     try {
@@ -1066,7 +1073,7 @@ exports.backfillGeohash = onCall(
  *   const { data } = await fn({ query: 'my ceiling is leaking' });
  *   // data â†’ { searchTerms: ['plumber', 'ceiling leak'], category: 'plumbing', interpretation: '...' }
  */
-exports.aiSearch = onCall({ region: FUNCTIONS_REGION }, async (request) => {
+exports.aiSearch = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE }, async (request) => {
     _requireAuth(request);
     const { query } = request.data;
     if (!query || typeof query !== 'string' || !query.trim()) {
@@ -1103,7 +1110,7 @@ exports.aiSearch = onCall({ region: FUNCTIONS_REGION }, async (request) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 exports.requestSignupOtp = onCall(
-    { region: FUNCTIONS_REGION, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
+    { region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
     async (request) => {
         const ip        = request.rawRequest?.ip || request.rawRequest?.headers?.['x-forwarded-for'] || null;
         const userAgent = request.rawRequest?.headers?.['user-agent'] || null;
@@ -1130,7 +1137,7 @@ exports.requestSignupOtp = onCall(
  *   Rate-limited by IP because it is unauthenticated and creates accounts.
  */
 exports.signUpArtisanDirect = onCall(
-    { region: FUNCTIONS_REGION, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
+    { region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
     async (request) => {
         const ip = request.rawRequest?.ip
             || request.rawRequest?.headers?.['x-forwarded-for']
@@ -1147,7 +1154,7 @@ exports.signUpArtisanDirect = onCall(
 );
 
 exports.resendSignupOtp = onCall(
-    { region: FUNCTIONS_REGION, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
+    { region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
     async (request) => {
         const ip        = request.rawRequest?.ip || request.rawRequest?.headers?.['x-forwarded-for'] || null;
         const userAgent = request.rawRequest?.headers?.['user-agent'] || null;
@@ -1168,7 +1175,7 @@ exports.resendSignupOtp = onCall(
 );
 
 exports.verifySignupOtp = onCall(
-    { region: FUNCTIONS_REGION, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
+    { region: FUNCTIONS_REGION, ...USER_FACING_SCALE, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
     async (request) => {
         const ip = request.rawRequest?.ip || request.rawRequest?.headers?.['x-forwarded-for'] || null;
         try {

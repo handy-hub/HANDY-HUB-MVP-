@@ -66,6 +66,17 @@ const PAYSTACK_BASE = 'https://api.paystack.co';
 // europe-west1 (Belgium) is ~90 ms from Ghana vs ~270 ms for us-central1 (~60% latency cut).
 const FUNCTIONS_REGION = 'europe-west1';
 
+// ── Cloud Run capacity tiers ──────────────────────────────────────────────────
+// Every function defaults to gen1-sized CPU and one request per instance (see
+// the note on setGlobalOptions in index.js). These opt a function out of part
+// of that. tests/functions-capacity.test.cjs holds the budget they spend.
+
+/** 1 vCPU, 80 concurrent requests — ONLY for functions that receive bursts. */
+const BURST_CPU = Object.freeze({ cpu: 1 });
+
+/** Up to 3 small instances — callables a customer or artisan waits on. */
+const USER_FACING_SCALE = Object.freeze({ maxInstances: 3 });
+
 // ── Cloudinary ────────────────────────────────────────────────────────────────
 // All three values come from functions/.env (gitignored).
 // To deploy: firebase deploy --only functions — the CLI bundles .env at deploy time.
@@ -76,6 +87,8 @@ const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
 module.exports = {
     FIRESTORE_DB_ID,
     FUNCTIONS_REGION,
+    BURST_CPU,
+    USER_FACING_SCALE,
     ADMIN_EMAILS,
     COMMISSION_RATE,
     MIN_WITHDRAWAL,

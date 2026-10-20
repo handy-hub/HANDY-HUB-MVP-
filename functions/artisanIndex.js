@@ -26,7 +26,7 @@
 const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { FieldValue }        = require('firebase-admin/firestore');
 const { geohashForLocation } = require('geofire-common');
-const { FIRESTORE_DB_ID, FUNCTIONS_REGION } = require('./config');
+const { FIRESTORE_DB_ID, FUNCTIONS_REGION, BURST_CPU } = require('./config');
 
 let _db;
 function db() {
@@ -99,8 +99,10 @@ function _buildIndexDoc(artisanId, d, lat, lng) {
 }
 
 // ── Trigger: artisans document written → sync artisan_index ──────────────────
+// Fires on every artisan write, including the 30-second presence heartbeat of
+// each online artisan — the busiest function, so a full vCPU (BURST_CPU).
 const syncArtisanIndex = onDocumentWritten(
-    { document: 'artisans/{artisanId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION },
+    { document: 'artisans/{artisanId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION, ...BURST_CPU },
     async (event) => {
         const artisanId = event.params.artisanId;
         const indexRef  = db().collection('artisan_index').doc(artisanId);

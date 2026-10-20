@@ -28,7 +28,7 @@
  */
 
 const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
-const { FUNCTIONS_REGION, FIRESTORE_DB_ID } = require('./config');
+const { FUNCTIONS_REGION, FIRESTORE_DB_ID, BURST_CPU } = require('./config');
 
 let _db;
 function db() {
@@ -39,8 +39,9 @@ function db() {
     return _db;
 }
 
+// Fires on every booking write (most exit early), so a full vCPU (BURST_CPU).
 const onBookingReviewed = onDocumentUpdated(
-    { document: 'bookings/{bookingId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION },
+    { document: 'bookings/{bookingId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION, ...BURST_CPU },
     async (event) => {
         const before    = event.data.before.data();
         const after     = event.data.after.data();

@@ -115,9 +115,15 @@ A UID is a customer **or** an artisan, never both. Enforced in four layers
 - Firestore is a **named database** (`ai-studio-5589039d-…`), not `(default)`. Every
   Firestore trigger **must** pass `database: FIRESTORE_DB_ID` or it deploys dead and
   silently never fires.
-- `setGlobalOptions({ maxInstances: 1 })` is deliberate. The binding limit is the
-  Cloud Run **Instances** quota (100/region), *not* CPU — Cloud Run misreports it as
-  a CPU error. Raise the quota before raising the cap.
+- The binding limit is Cloud Run **"Total CPU allocation"** in europe-west1:
+  **20 vCPU** across every running instance, idle ones included (measured
+  2026-10-19; the console will not raise it yet). Not the Instances quota (100),
+  which is never reached. So every function defaults to gen1-sized CPU
+  (`cpu: 'gcf_gen1'`, one request per instance); only `BURST_CPU` functions get
+  1 vCPU, and only `USER_FACING_SCALE` callables get more than one instance
+  (`functions/config.js`). `npm run test:capacity` holds the budget — every function
+  warm once must fit in 18 vCPU. Never burst-call every function against
+  production: that alone fills the quota for ~15 minutes.
 - Deploys frequently fail to set invoker IAM on this project. After deploying a new
   callable, verify it returns 400/401 rather than **403**, and grant
   `allUsers`/`run.invoker` if not.
