@@ -686,12 +686,51 @@ async function payCalloutFee(auth, { bookingId }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Arrival before assessment
+//
+// The callout fee pays for a VISIT, and completing the inspection is what lets
+// that fee reach the artisan (quote approval, final rejection, quote expiry or a
+// customer cancellation all release it once the inspection is done). So it is
+// accepted only once the visit has demonstrably begun:
+//   • the artisan set out — inspection_scheduled → en_route, which
+//     firestore.rules (scheduleWindowOpen) refuse before the booked window;
+//   • and recorded arrival — en_route → in_progress, which stamps arrivedAt.
+// The window is checked again here, so a booking cannot be completed ahead of its
+// slot whatever route brought it to in_progress. Arrival is the artisan's own
+// record (there is no location proof in the product); the customer can still
+// dispute an inspection that did not happen.
+//
+// Returns null when completion is allowed, otherwise the reason to show.
+// ─────────────────────────────────────────────────────────────────────────────
+function inspectionCompletionBlocker(booking, nowMs = Date.now()) {
+    const b = booking || {};
+    if (b.track !== 'inspection') return 'This booking does not use the inspection flow.';
+    if (!b.calloutPaid)           return 'Callout fee has not been paid yet.';
+    // in_progress after an approved quote is the WORK visit, not the inspection.
+    if (b.quoteApproved)          return 'The inspection is already complete — this booking is in the work phase.';
+    if (b.status === 'inspection_scheduled') {
+        return 'Set out and mark yourself arrived at the customer before completing the inspection.';
+    }
+    if (b.status === 'en_route') {
+        return 'Mark yourself arrived at the customer before completing the inspection.';
+    }
+    if (b.status !== 'in_progress') return `Cannot complete inspection — booking is ${b.status}.`;
+    if (!b.arrivedAt) {
+        return 'Your arrival was not recorded. Mark yourself arrived before completing the inspection.';
+    }
+    const gate = bookingSchedule.canStartWork(b, nowMs);
+    if (!gate.allowed) return gate.reason || 'This visit is not due yet.';
+    return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // completeInspection
 //
 // Called by: artisan app, on site after assessing the problem.
 // Payload:  { bookingId, findings? }
 // Pure status transition — NO money moves here. The callout escrow settles on
 // customer quote decisions or scheduled timeouts, never on artisan say-so.
+// Allowed only from in_progress, after a recorded arrival (see above).
 // ─────────────────────────────────────────────────────────────────────────────
 async function completeInspection(auth, { bookingId, findings = '' }) {
     if (!bookingId) throw new Error('bookingId is required.');
@@ -702,20 +741,22 @@ async function completeInspection(auth, { bookingId, findings = '' }) {
     const preBooking = bookingSnap.data();
 
     if (preBooking.artisanId !== auth.uid) throw new Error('Not authorised for this booking.');
-    if (preBooking.track !== 'inspection') throw new Error('This booking does not use the inspection flow.');
-    if (!preBooking.calloutPaid)           throw new Error('Callout fee has not been paid yet.');
-    if (!['inspection_scheduled', 'en_route', 'in_progress'].includes(preBooking.status)) {
-        throw new Error(`Cannot complete inspection — booking is ${preBooking.status}.`);
-    }
+    const blocker = inspectionCompletionBlocker(preBooking);
+    if (blocker) throw new Error(blocker);
 
     // Atomic claim: no money moves here, but this prevents a double-fire and a
-    // race against a concurrent cancellation from both writing.
+    // race against a concurrent cancellation from both writing. The full
+    // prerequisite check runs again on the transaction's own snapshot; throwing
+    // from the guard aborts the transaction with the specific reason.
     const booking = await claimBookingTransition(bookingRef, {
         authUid: auth.uid,
         party:   'artisan',
-        fromStatuses: ['inspection_scheduled', 'en_route', 'in_progress'],
-        guard: (b) => b.track === 'inspection' && !!b.calloutPaid,
-        guardMessage: 'This inspection can no longer be completed.',
+        fromStatuses: ['in_progress'],
+        guard: (b) => {
+            const reason = inspectionCompletionBlocker(b);
+            if (reason) throw new Error(reason);
+            return true;
+        },
         patch: {
             status:             'inspection_done',
             inspectionDoneAt:   nowIso(),
@@ -1173,6 +1214,8 @@ module.exports = {
     createInspectionBooking,
     payCalloutFee,
     completeInspection,
+    // Exported for tests: the arrival/slot prerequisites must be provable alone.
+    inspectionCompletionBlocker,
     cancelInspectionBooking,
     checkBookingTimeouts,
     seedPricingConfig,

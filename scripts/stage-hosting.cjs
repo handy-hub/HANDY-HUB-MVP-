@@ -72,6 +72,18 @@ fs.rmSync(outDir, { recursive: true, force: true });
 copyDir(srcApp,    path.join(outDir, appDir));
 copyDir(srcShared, path.join(outDir, 'shared'));
 
+// The push service worker must be served at the SITE ROOT — a worker's scope
+// cannot reach above its own path, and pushNotificationService.js registers
+// /firebase-messaging-sw.js with scope '/'. Without this copy that path falls
+// through to the `**` rewrite and the browser receives login.html instead
+// (no push token was ever stored, 2026-07-02 → 2026-10-20).
+// tests/push-delivery.test.cjs holds this in place.
+const PUSH_APPS = new Set(['customer-app', 'artisan-app']);
+if (PUSH_APPS.has(appDir)) {
+  fs.copyFileSync(path.join(srcShared, 'push', 'firebase-messaging-sw.js'),
+                  path.join(outDir, 'firebase-messaging-sw.js'));
+}
+
 // Sanity-check: ensure the build produced at least one HTML file.
 // An empty build would silently wipe the live site on deploy.
 function countFiles(dir) {

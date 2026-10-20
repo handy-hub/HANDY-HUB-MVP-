@@ -203,6 +203,7 @@ async function dispatchRound(bookingId) {
     // use them. customerFirstName lets the artisan tell one simultaneous
     // request from another.
     let chosen, isEmergency, round, customerId, serviceType, customerFirstName, appointment;
+    let offerExpiresAtMs = null;   // the responseDeadline, carried to the push so it can expire with the offer
 
     const result = await db().runTransaction(async (txn) => {
         const snap    = await txn.get(bookingRef);
@@ -268,7 +269,8 @@ async function dispatchRound(bookingId) {
         }
 
         chosen = candidates[0];
-        const deadline = Timestamp.fromMillis(Date.now() + timeout * 1000);
+        offerExpiresAtMs = Date.now() + timeout * 1000;
+        const deadline = Timestamp.fromMillis(offerExpiresAtMs);
 
         txn.update(bookingRef, {
             dispatchStatus:         'dispatched',
@@ -333,6 +335,9 @@ async function dispatchRound(bookingId) {
                 scheduled:   appointment.scheduled,
                 scheduledFor: appointment.iso,
                 round,
+                // The push lives exactly as long as the offer: notifications.js
+                // sets its TTL from this and drops it once the offer has lapsed.
+                expiresAtMs: offerExpiresAtMs,
             },
         }).catch(e => console.warn('[dispatch] artisan notif error:', e.message));
 

@@ -441,6 +441,28 @@ await it('customer cannot clear the reminder flag to farm notifications', async 
     }));
 });
 
+// ── Push token (AR-04, 2026-10-20) ───────────────────────────────────────────
+// pushNotificationService saves the device token with its platform, which picks
+// the message shape the server sends. If the rules refused this write, push
+// would stay dead with nothing but a console warning to show for it.
+console.log('\nPUSH TOKEN\n');
+
+await it('a customer can save their own push token with its platform', async () => {
+    const n = new Date().toISOString();
+    await assertSucceeds(updateDoc(doc(victimDb, 'customers', VICTIM), {
+        fcmToken: 'tok-web-1', fcmPlatform: 'web', fcmTokenUpdatedAt: n, updatedAt: n,
+    }));
+});
+
+await it('nobody can redirect another customer\'s notifications to their own device', async () => {
+    await assertFails(updateDoc(doc(attackerDb, 'customers', VICTIM), { fcmToken: 'tok-attacker', fcmPlatform: 'web' }));
+});
+
+await it('a push-token write cannot carry a wallet change with it', async () => {
+    await assertFails(updateDoc(doc(victimDb, 'customers', VICTIM), {
+        fcmToken: 'tok-web-2', fcmPlatform: 'web', walletBalance: 999999,
+    }));
+});
 
 console.log('\n' + '─'.repeat(52));
 console.log(`  ${passed} passed, ${failed} failed`);

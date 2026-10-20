@@ -366,6 +366,23 @@ await it('a super-administrator can read identity documents (verification)', asy
 await it('a customer can still read an artisan\'s public profile photo', async () => {
     await assertSucceeds(getMetadata(ref(customer.storage(), `artisans/${ARTISAN_A}/profile/photo.jpg`)));
 });
+console.log('\nPUSH TOKEN — the device a job offer is sent to (AR-04)\n');
+
+await it('an artisan can save their own push token with its platform', async () => {
+    const n = new Date().toISOString();
+    await assertSucceeds(updateDoc(pubA(artisanA), {
+        fcmToken: 'tok-web-1', fcmPlatform: 'web', fcmTokenUpdatedAt: n, updatedAt: n,
+    }));
+});
+await it('another artisan cannot redirect artisan A\'s job alerts to their own device', async () => {
+    await assertFails(updateDoc(pubA(artisanB), { fcmToken: 'tok-attacker', fcmPlatform: 'web' }));
+});
+await it('a customer cannot write an artisan\'s push token', async () => {
+    await assertFails(updateDoc(pubA(customer), { fcmToken: 'tok-customer' }));
+});
+await it('a push-token write cannot carry a protected field with it', async () => {
+    await assertFails(updateDoc(pubA(artisanA), { fcmToken: 'tok-web-2', fcmPlatform: 'web', rating: 5 }));
+});
 
 console.log('\n' + '─'.repeat(52));
 console.log(`  ${passed} passed, ${failed} failed`);

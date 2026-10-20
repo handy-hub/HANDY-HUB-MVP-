@@ -355,7 +355,9 @@ service cloud.firestore {
         'savedProfessionals', 'savedServices',
         // FCM push token — written by pushNotificationService.js after permission granted.
         // Not sensitive (receive-only); Cloud Functions clear it on delivery failure.
-        'fcmToken',
+        // fcmPlatform ('web' | 'android' | 'ios') picks the message shape the
+        // server sends (functions/notifications.js buildFcmMessage).
+        'fcmToken', 'fcmPlatform', 'fcmTokenUpdatedAt',
         'updatedAt'
       ]);
     }
@@ -386,8 +388,9 @@ service cloud.firestore {
         'verificationStatus', 'onboarded',
         // Presence / heartbeat fields (written by presenceService.js)
         'lastActive', 'lastHeartbeat', 'presenceUpdatedAt',
-        // FCM push token — written by pushNotificationService.js after permission granted.
-        'fcmToken',
+        // FCM push token — written by pushNotificationService.js after permission granted,
+        // with the platform that picks the message shape (see the customer list above).
+        'fcmToken', 'fcmPlatform', 'fcmTokenUpdatedAt',
         // Timestamps
         'updatedAt', 'createdAt'
       ]);

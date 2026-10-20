@@ -130,9 +130,6 @@ async function assertEscrowAccess(auth, escrowData, allowedRoles) {
  * @returns {{ escrowId: string, commission: number, artisanShare: number }}
  */
 async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, callerAuth, kind = 'job' }) {
-    if (!['job', 'callout'].includes(kind)) {
-        throw new Error(`Invalid escrow kind "${kind}". Must be 'job' or 'callout'.`);
-    }
     // ── Authorization ─────────────────────────────────────────────────────────
     // This is an identity check (who is the caller?), not a financial state check.
     // It is safe outside the transaction — even if two callers pass auth at the
@@ -142,6 +139,9 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
     //   object    → client call: enforce customer/admin identity check
     //   null      → system call (Cloud Function with Admin SDK): auth bypassed — server-authoritative
     //   undefined → programming error: throw
+    if (!['job', 'callout'].includes(kind)) {
+        throw new Error(`Invalid escrow kind "${kind}". Must be 'job' or 'callout'.`);
+    }
     if (callerAuth === undefined) {
         throw new Error('callerAuth is required. Pass the caller\'s Firebase auth context, or null for system (Cloud Function) calls.');
     }
@@ -152,195 +152,249 @@ async function holdFundsForBooking({ bookingId, customerId, artisanId, amount, c
         }
     }
 
-    // ── Input validation and deterministic pre-computation ────────────────────
-    // These values depend only on config, not Firestore state. Safe outside txn.
-    const amountNum    = fmt(amount);
-    const commission   = fmt(amountNum * COMMISSION_RATE);
-    const artisanShare = fmt(amountNum - commission);
-
-    if (amountNum <= 0) throw new Error('Amount must be greater than zero.');
-
-    const firestore = db();
-    const n         = now();
-
-    // ── Pre-allocate document references ──────────────────────────────────────
-    // Firestore auto-IDs are generated client-side (random strings). Creating a
-    // DocumentReference does NOT contact Firestore. References are stable across
-    // transaction retries — the same escrowRef.id is used regardless of retries.
-    const lockRef     = firestore.collection('_escrow_locks')
-                                 .doc(kind === 'job' ? bookingId : `${bookingId}_${kind}`);
-    const escrowRef   = firestore.collection('escrow').doc();
-    const auditRef    = firestore.collection('financialAudit').doc();
-    const customerRef = firestore.collection('customers').doc(customerId);
+    const plan = planHold({ bookingId, customerId, artisanId, amount, kind });
 
     // ── Atomic transaction ────────────────────────────────────────────────────
     // ALL reads happen before ANY writes (Firestore requirement).
     // The lock check and wallet deduction are one indivisible unit.
-    const txResult = await firestore.runTransaction(async (txn) => {
-
-        // ── READS (all reads before any writes) ───────────────────────────────
-        const [lockSnap, customerSnap] = await Promise.all([
-            txn.get(lockRef),
-            txn.get(customerRef),
-        ]);
-
-        // ── IDEMPOTENCY GATE (race-free — inside the transaction) ─────────────
-        // The lock document was written by a previous successful call for this
-        // booking. Return the stored escrow details — no writes, no deduction.
-        if (lockSnap.exists) {
-            const lock = lockSnap.data();
-
-            // ── A lock that does not describe THIS payment is not a replay ────
-            // The lock is keyed only by booking (and kind), so before this check
-            // any earlier hold for the booking — whatever its amount, whoever
-            // paid it — was accepted as "already secured". A customer could
-            // pre-lock their own booking with GHS 0.01 through the old
-            // holdBookingFunds callable, then approve a GHS 500 quote: this path
-            // returned the 0.01 escrow, the artisan was told payment was secured,
-            // and completion paid them 0.01. A genuine retry carries the same
-            // payer and the same amount; anything else is a conflict and must
-            // stop the payment, not silently stand in for it.
-            if (lock.customerId !== customerId || fmt(lock.amount) !== amountNum) {
-                console.error(
-                    `[escrow] Lock conflict for booking ${bookingId} (${kind}): lock escrow ` +
-                    `${lock.escrowId} amount=${lock.amount} does not match requested ` +
-                    `amount=${amountNum}. Refusing to treat it as paid.`
-                );
-                throw new Error(
-                    'Escrow conflict: this booking already has a payment hold that does not ' +
-                    'match this payment. Contact support — no money has been taken.'
-                );
-            }
-
-            console.log(
-                `[escrow] Idempotent hold: lock already exists for booking ${bookingId} ` +
-                `→ escrow ${lock.escrowId}. Wallet unchanged.`
-            );
-            return {
-                idempotent:   true,
-                escrowId:     lock.escrowId,
-                commission:   lock.commission,
-                artisanShare: lock.artisanShare,
-            };
-        }
-
-        // ── BALANCE VALIDATION ────────────────────────────────────────────────
-        if (!customerSnap.exists) {
-            throw new Error('Customer account not found.');
-        }
-
-        const available     = fmt(customerSnap.data().walletBalance || 0);
-        const currentEscrow = fmt(customerSnap.data().escrowBalance || 0);
-
-        if (amountNum > available) {
-            throw new Error(
-                `Insufficient balance. Need GHS ${amountNum.toFixed(2)}, ` +
-                `available GHS ${available.toFixed(2)}.`
-            );
-        }
-
-        // ── WRITES ────────────────────────────────────────────────────────────
-        // All reads are complete. Firestore will reject the commit if any of the
-        // read documents changed between our read and this commit — guaranteeing
-        // the "lock absent" observation we acted on is still true at commit time.
-
-        // 1. Lock document — the distributed mutex for this bookingId.
-        //    Stores the escrow details so idempotent callers get consistent data.
-        //    Written first so it is the contention point: only one concurrent
-        //    transaction can create this document.
-        txn.set(lockRef, {
-            bookingId,
-            customerId,
-            kind,
-            escrowId:     escrowRef.id,
-            commission,
-            artisanShare,
-            amount:       amountNum,
-            lockedAt:     n,
-        });
-
-        // 2. Wallet mutation: deduct from available, add to escrowed amount.
-        txn.update(customerRef, {
-            walletBalance: fmt(available     - amountNum),
-            escrowBalance: fmt(currentEscrow + amountNum),
-            updatedAt:     n,
-        });
-
-        // 3. Escrow record.
-        txn.set(escrowRef, {
-            bookingId,
-            customerId,
-            artisanId:         artisanId ?? null,
-            kind,
-            amount:            amountNum,
-            commission,
-            artisanShare,
-            commissionRate:    COMMISSION_RATE,
-            status:            'held',
-            customerConfirmed: false,
-            artisanConfirmed:  false,
-            disputeId:         null,
-            autoReleaseAt:     new Date(
-                Date.now() + ESCROW_AUTO_RELEASE_DAYS * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            createdAt:         n,
-            updatedAt:         n,
-        });
-
-        // 4. Customer-facing transaction record.
-        //    custTxnRef is inside the callback intentionally — a new auto-ID is
-        //    generated on each retry, but only the committed retry's write persists.
-        const custTxnRef = customerRef.collection('transactions').doc();
-        txn.set(custTxnRef, {
-            type:        'escrow_hold',
-            amount:      amountNum,
-            bookingId,
-            escrowId:    escrowRef.id,
-            description: kind === 'callout'
-                ? 'Callout fee secured for inspection visit'
-                : 'Payment secured for booking',
-            status:      'completed',
-            ref:         genId('ESC'),
-            createdAt:   n,
-        });
-
-        // 5. Financial audit record (immutable — update/delete blocked by rules).
-        txn.set(auditRef, {
-            action:         'escrow_hold',
-            userId:         customerId,
-            userType:       'customer',
-            kind,
-            bookingId,
-            escrowId:       escrowRef.id,
-            amount:         amountNum,
-            commission,
-            artisanShare,
-            commissionRate: COMMISSION_RATE,
-            balanceBefore:  available,
-            balanceAfter:   fmt(available - amountNum),
-            createdAt:      n,
-        });
-
-        return { idempotent: false };
+    const result = await db().runTransaction(async (txn) => {
+        const reads = await readHold(txn, plan);
+        return applyHold(txn, plan, reads);
     });
 
     // ── Post-transaction: notify customer ─────────────────────────────────────
     // Fire only for a fresh escrow. Idempotent re-calls must not re-notify.
-    if (!txResult.idempotent) {
-        sendNotification(customerId, {
-            type:      'Payments',
-            title:     'Payment Secured',
-            message:   `GHS ${amountNum.toFixed(2)} is safely held in escrow for your booking.`,
-            actionUrl: 'booking.html',
-            metadata:  { bookingId, escrowId: escrowRef.id },
-        }).catch(() => {});
+    if (!result.idempotent) notifyHoldSecured(plan);
+
+    return { escrowId: result.escrowId, commission: result.commission, artisanShare: result.artisanShare };
+}
+
+// ── Composable hold ───────────────────────────────────────────────────────────
+//
+// holdFundsForBooking runs a hold in a transaction of its own. A caller that
+// must commit a hold TOGETHER with its own writes — approveJobQuote moves the
+// booking to approved in the same commit as the money, so neither can exist
+// without the other — uses the three steps directly:
+//
+//   const hold  = escrow.planHold({ bookingId, customerId, artisanId, amount });
+//   await db.runTransaction(async (txn) => {
+//       const holdReads = await escrow.readHold(txn, hold);   // with the caller's other reads
+//       ...                                                    // all reads before any write
+//       const held = escrow.applyHold(txn, hold, holdReads);   // throws → nothing commits
+//       txn.update(bookingRef, { ..., escrowId: held.escrowId });
+//   });
+//   escrow.notifyHoldSecured(hold);                            // only when !held.idempotent
+//
+// Failures carry a machine-readable `reason` so callers can tell a short wallet
+// (recoverable: top up and retry) from a conflicting lock (needs support).
+
+/** An error a caller can branch on without parsing its message. */
+function holdError(reason, message, extra = {}) {
+    const err = new Error(message);
+    err.reason = reason;
+    Object.assign(err, extra);
+    return err;
+}
+
+/**
+ * Everything about a hold that does not depend on Firestore state: validated
+ * amount, commission split and pre-allocated document references. References
+ * are created locally (no network) and stay stable across transaction retries,
+ * so the same escrow id is used however many times the transaction re-runs.
+ */
+function planHold({ bookingId, customerId, artisanId = null, amount, kind = 'job' }) {
+    if (!['job', 'callout'].includes(kind)) {
+        throw new Error(`Invalid escrow kind "${kind}". Must be 'job' or 'callout'.`);
+    }
+    if (!bookingId || !customerId) throw new Error('bookingId and customerId are required.');
+
+    const amountNum    = fmt(amount);
+    // `> 0` rather than `<= 0`: a NaN amount fails every comparison, and must not
+    // pass this check by failing the opposite one.
+    if (!(amountNum > 0)) throw new Error('Amount must be greater than zero.');
+    const commission   = fmt(amountNum * COMMISSION_RATE);
+    const artisanShare = fmt(amountNum - commission);
+
+    const firestore = db();
+    return {
+        bookingId, customerId, artisanId: artisanId ?? null, kind,
+        amountNum, commission, artisanShare,
+        at:          now(),
+        lockRef:     firestore.collection('_escrow_locks')
+                              .doc(kind === 'job' ? bookingId : `${bookingId}_${kind}`),
+        escrowRef:   firestore.collection('escrow').doc(),
+        auditRef:    firestore.collection('financialAudit').doc(),
+        customerRef: firestore.collection('customers').doc(customerId),
+    };
+}
+
+/** READ step. Run it with the caller's other reads, before any write. */
+async function readHold(txn, plan) {
+    const [lockSnap, customerSnap] = await Promise.all([
+        txn.get(plan.lockRef),
+        txn.get(plan.customerRef),
+    ]);
+    return { lockSnap, customerSnap };
+}
+
+/**
+ * DECIDE + WRITE step. Stages the hold's writes on `txn`, or returns the stored
+ * hold for a genuine replay, or throws (and the caller's transaction commits
+ * nothing). Never touches Firestore outside the transaction.
+ *
+ * @returns {{ idempotent: boolean, escrowId: string, commission: number, artisanShare: number }}
+ */
+function applyHold(txn, plan, { lockSnap, customerSnap }) {
+    const { bookingId, customerId, artisanId, kind, amountNum, commission, artisanShare, at: n } = plan;
+
+    // ── IDEMPOTENCY GATE (race-free — inside the transaction) ─────────────────
+    // The lock document was written by a previous successful hold for this
+    // booking. Return the stored escrow details — no writes, no deduction.
+    if (lockSnap.exists) {
+        const lock = lockSnap.data();
+
+        // ── A lock that does not describe THIS payment is not a replay ────────
+        // The lock is keyed only by booking (and kind), so before this check
+        // any earlier hold for the booking — whatever its amount, whoever
+        // paid it — was accepted as "already secured". A customer could
+        // pre-lock their own booking with GHS 0.01 through the old
+        // holdBookingFunds callable, then approve a GHS 500 quote: this path
+        // returned the 0.01 escrow, the artisan was told payment was secured,
+        // and completion paid them 0.01. A genuine retry carries the same
+        // payer and the same amount; anything else is a conflict and must
+        // stop the payment, not silently stand in for it.
+        if (lock.customerId !== customerId || fmt(lock.amount) !== amountNum) {
+            console.error(
+                `[escrow] Lock conflict for booking ${bookingId} (${kind}): lock escrow ` +
+                `${lock.escrowId} amount=${lock.amount} does not match requested ` +
+                `amount=${amountNum}. Refusing to treat it as paid.`
+            );
+            throw holdError('escrow_conflict',
+                'Escrow conflict: this booking already has a payment hold that does not ' +
+                'match this payment. Contact support — no money has been taken.');
+        }
+
+        console.log(
+            `[escrow] Idempotent hold: lock already exists for booking ${bookingId} ` +
+            `→ escrow ${lock.escrowId}. Wallet unchanged.`
+        );
+        return {
+            idempotent:   true,
+            escrowId:     lock.escrowId,
+            commission:   lock.commission,
+            artisanShare: lock.artisanShare,
+        };
     }
 
-    return {
-        escrowId:     txResult.idempotent ? txResult.escrowId     : escrowRef.id,
-        commission:   txResult.idempotent ? txResult.commission   : commission,
-        artisanShare: txResult.idempotent ? txResult.artisanShare : artisanShare,
-    };
+    // ── BALANCE VALIDATION ────────────────────────────────────────────────────
+    if (!customerSnap.exists) {
+        throw holdError('customer_missing', 'Customer account not found.');
+    }
+
+    const available     = fmt(customerSnap.data().walletBalance || 0);
+    const currentEscrow = fmt(customerSnap.data().escrowBalance || 0);
+
+    if (amountNum > available) {
+        throw holdError('insufficient_balance',
+            `Insufficient balance. Need GHS ${amountNum.toFixed(2)}, ` +
+            `available GHS ${available.toFixed(2)}.`,
+            { needed: amountNum, available });
+    }
+
+    // ── WRITES ────────────────────────────────────────────────────────────────
+    // All reads are complete. Firestore will reject the commit if any of the
+    // read documents changed between our read and this commit — guaranteeing
+    // the "lock absent" observation we acted on is still true at commit time.
+
+    // 1. Lock document — the distributed mutex for this bookingId.
+    //    Stores the escrow details so idempotent callers get consistent data.
+    //    Written first so it is the contention point: only one concurrent
+    //    transaction can create this document.
+    txn.set(plan.lockRef, {
+        bookingId,
+        customerId,
+        kind,
+        escrowId:     plan.escrowRef.id,
+        commission,
+        artisanShare,
+        amount:       amountNum,
+        lockedAt:     n,
+    });
+
+    // 2. Wallet mutation: deduct from available, add to escrowed amount.
+    txn.update(plan.customerRef, {
+        walletBalance: fmt(available     - amountNum),
+        escrowBalance: fmt(currentEscrow + amountNum),
+        updatedAt:     n,
+    });
+
+    // 3. Escrow record.
+    txn.set(plan.escrowRef, {
+        bookingId,
+        customerId,
+        artisanId:         artisanId ?? null,
+        kind,
+        amount:            amountNum,
+        commission,
+        artisanShare,
+        commissionRate:    COMMISSION_RATE,
+        status:            'held',
+        customerConfirmed: false,
+        artisanConfirmed:  false,
+        disputeId:         null,
+        autoReleaseAt:     new Date(
+            Date.now() + ESCROW_AUTO_RELEASE_DAYS * 24 * 60 * 60 * 1000
+        ).toISOString(),
+        createdAt:         n,
+        updatedAt:         n,
+    });
+
+    // 4. Customer-facing transaction record.
+    //    A new auto-ID is generated on each retry, but only the committed
+    //    retry's write persists.
+    const custTxnRef = plan.customerRef.collection('transactions').doc();
+    txn.set(custTxnRef, {
+        type:        'escrow_hold',
+        amount:      amountNum,
+        bookingId,
+        escrowId:    plan.escrowRef.id,
+        description: kind === 'callout'
+            ? 'Callout fee secured for inspection visit'
+            : 'Payment secured for booking',
+        status:      'completed',
+        ref:         genId('ESC'),
+        createdAt:   n,
+    });
+
+    // 5. Financial audit record (immutable — update/delete blocked by rules).
+    txn.set(plan.auditRef, {
+        action:         'escrow_hold',
+        userId:         customerId,
+        userType:       'customer',
+        kind,
+        bookingId,
+        escrowId:       plan.escrowRef.id,
+        amount:         amountNum,
+        commission,
+        artisanShare,
+        commissionRate: COMMISSION_RATE,
+        balanceBefore:  available,
+        balanceAfter:   fmt(available - amountNum),
+        createdAt:      n,
+    });
+
+    return { idempotent: false, escrowId: plan.escrowRef.id, commission, artisanShare };
+}
+
+/** Tell the customer a fresh hold succeeded. Never for an idempotent replay. */
+function notifyHoldSecured(plan) {
+    sendNotification(plan.customerId, {
+        type:      'Payments',
+        title:     'Payment Secured',
+        message:   `GHS ${plan.amountNum.toFixed(2)} is safely held in escrow for your booking.`,
+        actionUrl: 'booking.html',
+        metadata:  { bookingId: plan.bookingId, escrowId: plan.escrowRef.id },
+    }).catch(() => {});
 }
 
 // ── Migration utility ─────────────────────────────────────────────────────────
@@ -779,6 +833,12 @@ async function freezeEscrowForDispute(escrowId, { disputeId, raisedBy, callerAut
 
 module.exports = {
     holdFundsForBooking,
+    // Composable hold — for a caller that must commit a hold together with its
+    // own writes in one transaction (approveJobQuote).
+    planHold,
+    readHold,
+    applyHold,
+    notifyHoldSecured,
     releaseEscrow,
     refundEscrow,
     adminReleaseEscrow,

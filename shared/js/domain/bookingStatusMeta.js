@@ -256,19 +256,13 @@ export function getAllowedActions(booking, audience = 'customer', opts = {}) {
             out.push({ id: 'accept', label: 'Accept', kind: 'primary' });
             out.push({ id: 'decline', label: 'Decline', kind: 'default' });
         }
-        if (isInspection && status === 'inspection_scheduled') {
-            // "Complete Inspection" stays available whatever the clock says: an
-            // artisan who has done the visit must always be able to record it.
-            // Only SETTING OUT is gated.
-            if (dueNow) out.push({ id: 'en_route', label: 'Mark En Route', kind: 'primary' });
-            else out.push({ id: 'scheduled', label: `Booked · ${schedule.label}`, kind: 'info', disabled: true });
-            out.push({ id: 'complete_inspection', label: 'Complete Inspection', kind: 'primary' });
-        }
-        if (isInspection && ['en_route', 'in_progress'].includes(status) && !booking?.quoteApproved) {
-            out.push({ id: 'complete_inspection', label: 'Complete Inspection', kind: 'primary' });
-        }
-        if (isInspection && status === 'inspection_done') {
-            out.push({ id: 'submit_quote', label: 'Submit Quote', kind: 'primary' });
+        // Inspection track, before the quote is approved: one step at a time, in
+        // the order the server enforces (see artisanInspectionStep).
+        const step = artisanInspectionStep(booking, { schedule });
+        if (step && step.id !== 'await_callout' && step.id !== 'await_decision') {
+            out.push(step.blocked
+                ? { id: step.id, label: step.label, kind: 'info', disabled: true }
+                : { id: step.id, label: step.label, kind: 'primary' });
         }
         if (!isInspection || booking?.quoteApproved) {
             if (status === 'accepted') {
@@ -280,6 +274,50 @@ export function getAllowedActions(booking, audience = 'customer', opts = {}) {
         }
     }
     return out;
+}
+
+/**
+ * The artisan's next step on the inspection track, before a quote is approved.
+ *
+ * THE rule for which inspection control an artisan is offered. getAllowedActions,
+ * the jobs list and the dashboard all read it, and functions/pricing.js
+ * (inspectionCompletionBlocker) enforces the same order on the server:
+ *
+ *   accepted, callout unpaid → wait for the customer to pay
+ *   inspection_scheduled     → set out — only once the booked window opens
+ *   en_route                 → mark arrived — never clock-gated
+ *   in_progress              → complete the inspection — only after arrival
+ *   inspection_done          → submit the quote
+ *   quoted                   → wait for the customer's decision
+ *
+ * The callout fee pays for a visit, and completing the inspection is what lets
+ * it reach the artisan, so "Complete Inspection" is never offered before
+ * arrival has been recorded.
+ *
+ * @param {object} booking
+ * @param {{schedule?: object}} [opts]  a resolveSchedule() result
+ * @returns {{id: string, label: string, blocked?: boolean}|null}  null off the
+ *          inspection track, or once the quote is approved (the work phase uses
+ *          the ordinary steps)
+ */
+export function artisanInspectionStep(booking, opts = {}) {
+    const b = booking || {};
+    if (norm(b.track) !== 'inspection' || b.quoteApproved === true) return null;
+    const schedule = opts.schedule || null;
+    const dueNow   = !schedule || !schedule.scheduled || schedule.isDue === true;
+    switch (norm(b.status)) {
+        case 'accepted':
+            return b.calloutPaid ? null : { id: 'await_callout', label: 'Awaiting callout fee…', blocked: true };
+        case 'inspection_scheduled':
+            return dueNow
+                ? { id: 'en_route', label: 'Mark En Route' }
+                : { id: 'scheduled', label: `Booked · ${schedule.label}`, blocked: true };
+        case 'en_route':        return { id: 'arrived', label: 'Mark Arrived' };
+        case 'in_progress':     return { id: 'complete_inspection', label: 'Complete Inspection' };
+        case 'inspection_done': return { id: 'submit_quote', label: 'Submit Quote' };
+        case 'quoted':          return { id: 'await_decision', label: 'Waiting for customer decision…', blocked: true };
+        default:                return null;
+    }
 }
 
 // ── Legacy-compatible wrappers (existing callers) ─────────────────────────────

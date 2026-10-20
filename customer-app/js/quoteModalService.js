@@ -12,7 +12,8 @@ import { firebaseDb, firebaseApp, firebaseFunctions }
     from '../../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }
     from '../../shared/js/config/appConfig.js';
-import { resolveMoney, resolveArtisan, initialsOf, formatMoney, resolveQuoteDecision }
+import { resolveMoney, resolveArtisan, initialsOf, formatMoney, resolveQuoteDecision,
+         describeApprovalFailure }
     from '../../shared/js/domain/bookingTruth.js';
 
 // ── Module state ──────────────────────────────────────────────────────────────
@@ -255,12 +256,12 @@ async function _approve(bookingId, due, dueKnown) {
         _closeModal();
         window.location.href = 'booking.html';
     } catch (err) {
-        // A failed call is NOT proof that no money moved — the request may have
-        // succeeded with the response lost. approveJobQuote is idempotent via
-        // the quoted→accepted compare-and-set and the _escrow_locks entry, so a
-        // retry is safe; say what we actually know rather than "Payment failed".
-        _showInlineError(err?.message
-            || 'We could not confirm this approval. Check My Bookings before retrying — your money has not been taken twice.');
+        // approveJobQuote approves and holds the money in ONE transaction, so a
+        // refusal with a reason means nothing moved; a failure without one may
+        // be a lost response, and a retry is answered rather than charged twice.
+        // describeApprovalFailure says which, and offers a top-up when short.
+        const f = describeApprovalFailure(err);
+        _showInlineError(f.message, f.topUp ? { label: 'Top up wallet', href: 'topup.html' } : null);
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = _approveLabel(due, dueKnown);
@@ -317,7 +318,7 @@ async function _confirmReject() {
     }
 }
 
-function _showInlineError(msg) {
+function _showInlineError(msg, link = null) {
     const body = document.getElementById('hh-qm-body');
     if (!body) return;
     const existing = body.querySelector('.hh-qm-inline-err');
@@ -325,6 +326,13 @@ function _showInlineError(msg) {
     const el = document.createElement('div');
     el.className = 'hh-qm-inline-err';
     el.textContent = msg;
+    if (link) {
+        const a = document.createElement('a');
+        a.href = link.href;
+        a.textContent = link.label;
+        a.style.cssText = 'display:block;margin-top:6px;font-weight:700;color:inherit;text-decoration:underline;';
+        el.appendChild(a);
+    }
     const approveBtn = body.querySelector('.hh-qm-approve');
     if (approveBtn) body.insertBefore(el, approveBtn);
     else body.appendChild(el);

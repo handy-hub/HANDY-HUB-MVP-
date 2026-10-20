@@ -391,7 +391,7 @@ export const JOB_PHASE = {
 const PHASE_COPY = {
     [JOB_PHASE.REQUEST]:          { label: 'New request',        cycle: null,         hint: 'Decide whether to take this job.' },
     [JOB_PHASE.AWAITING_CALLOUT]: { label: 'Awaiting callout fee', cycle: 'Inspection', hint: 'Accepted. The customer is paying the callout fee.' },
-    [JOB_PHASE.INSPECTION]:       { label: 'Inspection visit',   cycle: 'Inspection', hint: 'Travel, assess the problem, then complete the inspection.' },
+    [JOB_PHASE.INSPECTION]:       { label: 'Inspection visit',   cycle: 'Inspection', hint: 'Travel, mark your arrival, assess the problem, then complete the inspection.' },
     [JOB_PHASE.QUOTING]:          { label: 'Quote needed',       cycle: 'Inspection', hint: 'Inspection done — send the customer a fixed quote.' },
     [JOB_PHASE.AWAITING_QUOTE]:   { label: 'Awaiting approval',  cycle: 'Inspection', hint: 'Quote sent. Waiting for the customer to approve.' },
     [JOB_PHASE.WORK]:             { label: 'Work visit',         cycle: 'Work',       hint: 'Quote approved and paid into escrow — go and do the job.' },
@@ -596,6 +596,49 @@ export function resolveJobBrief(booking, { originLat = null, originLng = null } 
 // ── Quote decision ───────────────────────────────────────────────────────────
 
 /**
+ * What a refused approveJobQuote call means for the customer.
+ *
+ * approveJobQuote approves the booking in the same transaction that moves the
+ * money into escrow, so a refusal that carries a `reason` means NOTHING moved
+ * and the quote is still waiting. The copy says exactly that, and for a short
+ * wallet it offers the fix. A failure with no reason may be a lost response —
+ * the approval may have gone through — so it says to check before retrying
+ * (retrying is safe: a repeat approval is answered, never charged twice).
+ *
+ * @param {Error & {details?: {reason?: string, needed?: number, available?: number}}} err
+ * @returns {{ reason: string|null, message: string, topUp: boolean, shortfall: number|null }}
+ */
+export function describeApprovalFailure(err) {
+    const d = (err && err.details) || {};
+    const reason = typeof d.reason === 'string' ? d.reason : null;
+    if (reason === 'insufficient_balance') {
+        const needed = Number(d.needed), available = Number(d.available);
+        const shortfall = Number.isFinite(needed) && Number.isFinite(available)
+            ? Math.max(0, Math.round((needed - available) * 100) / 100) : null;
+        return {
+            reason, topUp: true, shortfall,
+            message: shortfall !== null
+                ? `Your wallet is ${formatMoney(shortfall)} short. Top up, then approve again — nothing has been charged.`
+                : 'Your wallet balance is too low for this quote. Top up, then approve again — nothing has been charged.',
+        };
+    }
+    if (reason) {
+        return { reason, topUp: false, shortfall: null,
+                 message: (err && err.message) || 'This quote could not be approved. Nothing has been charged.' };
+    }
+    // The server answered and refused (e.g. the booking was cancelled meanwhile):
+    // its own sentence is the truth. Only a transport failure is ambiguous.
+    const code = String((err && err.code) || '');
+    if (/failed-precondition|permission-denied|not-found|invalid-argument|unauthenticated/.test(code) && err.message) {
+        return { reason: null, topUp: false, shortfall: null, message: err.message };
+    }
+    return {
+        reason: null, topUp: false, shortfall: null,
+        message: 'We could not confirm this approval. Check My Bookings before retrying — your money will not be taken twice.',
+    };
+}
+
+/**
  * What declining a quote ACTUALLY does at this point.
  *
  * quotes.js implements a single-revision rule: the first rejection sends the
@@ -776,15 +819,20 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
         just: 'The visit fee is secured — you are paid for this trip.',
         next: notYet
             ? `You committed to arriving ${apptWhen}. Nothing to do until then.`
-            : 'Assess the problem on site, then complete the inspection.',
+            : st === 'en_route'
+                ? 'Mark yourself arrived when you reach the customer, then assess the problem.'
+                : 'Assess the problem on site, then complete the inspection.',
         // Acceptance is not commencement. Offering "Mark en route" days before
         // the slot proposes an action firestore.rules (scheduleWindowOpen) will
-        // refuse — so the action is withheld rather than made to fail.
+        // refuse — so the action is withheld rather than made to fail. The same
+        // goes for completing before arrival: completeInspection refuses it.
         action: notYet
             ? null
             : st === 'inspection_scheduled'
                 ? { label: 'Mark en route', kind: 'primary', op: 'enRoute' }
-                : { label: 'Complete inspection', kind: 'primary', op: 'completeInspection' },
+                : st === 'en_route'
+                    ? { label: 'Mark arrived', kind: 'primary', op: 'arrived' }
+                    : { label: 'Complete inspection', kind: 'primary', op: 'completeInspection' },
         tone: notYet ? 'waiting' : 'action',
     };
 

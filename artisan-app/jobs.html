@@ -250,7 +250,8 @@
 <script type="module">
 import { getAppContainer }                   from '../shared/js/app/container.js';
 import { createBookingRepository }           from '../shared/js/data/repositories/bookingRepository.js';
-import { describe as describeStatus }        from '../shared/js/domain/bookingStatusMeta.js';
+import { describe as describeStatus, artisanInspectionStep }
+                                            from '../shared/js/domain/bookingStatusMeta.js';
 import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
                                             from '../shared/js/domain/bookingTruth.js';
 import { resolveSchedule, canStartWork }
@@ -404,33 +405,38 @@ function buildJobCard(b) {
   } else if (isActive && b.track === 'inspection' && !b.quoteApproved &&
              ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'inspection_done'].includes(st)) {
     // ── Inspection track (pre-quote-approval) ────────────────────────────────
-    if (st === 'accepted') {
-      // Customer hasn't paid the callout fee yet — nothing to do but wait.
+    // One step at a time, in the order completeInspection enforces: set out
+    // (only once the booked slot opens — firestore.rules refuse it earlier),
+    // mark arrived, THEN complete the inspection. artisanInspectionStep is the
+    // single rule; this only draws it.
+    const step = artisanInspectionStep(b, { schedule: appt });
+    const dashBtn = `<button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
+    const tickSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+    if (!step || step.blocked) {
+      // Nothing the artisan can do yet (callout unpaid, or the slot has not
+      // come round): state it instead of offering a control that would fail.
       actionsHtml = `
-        <button class="job-btn job-btn-decline" disabled style="opacity:.5;cursor:default;">Awaiting callout fee…</button>
-        <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
-    } else if (st === 'inspection_done') {
+        <button class="job-btn ${step && step.id === 'scheduled' ? 'job-btn-outline' : 'job-btn-decline'}" disabled style="opacity:.5;cursor:default;">${esc(step ? step.label : 'Inspection visit')}</button>
+        ${dashBtn}`;
+    } else if (step.id === 'submit_quote') {
       actionsHtml = `
         <button class="job-btn job-btn-track" onclick="openQuoteSheet('${esc(b.id)}')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
           Submit Quote
         </button>
-        <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
-    } else {
-      // inspection_scheduled / en_route / in_progress → complete the inspection
+        ${dashBtn}`;
+    } else if (step.id === 'complete_inspection') {
       actionsHtml = `
-        <button class="job-btn job-btn-track" onclick="completeInspectionJob('${esc(b.id)}', this)">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
-          Complete Inspection
-        </button>
-        ${st === 'inspection_scheduled'
-          ? (gate.allowed
-              ? `<button class="job-btn job-btn-outline" onclick="advanceJob('${esc(b.id)}','en_route','enRouteAt',this)">Mark En Route</button>`
-              // The slot has not come round. The write would be refused by
-              // firestore.rules, so state the appointment instead of offering
-              // a control that cannot succeed.
-              : `<button class="job-btn job-btn-outline" disabled style="opacity:.5;cursor:default;">Booked · ${esc(appt.label)}</button>`)
-          : `<button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`}`;
+        <button class="job-btn job-btn-track" onclick="completeInspectionJob('${esc(b.id)}', this)">${tickSvg}Complete Inspection</button>
+        ${dashBtn}`;
+    } else if (step.id === 'arrived') {
+      actionsHtml = `
+        <button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','in_progress','arrivedAt',this)">${tickSvg}Mark Arrived</button>
+        ${dashBtn}`;
+    } else {
+      actionsHtml = `
+        <button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','en_route','enRouteAt',this)">Mark En Route</button>
+        ${dashBtn}`;
     }
   } else if (isActive && action) {
     if (st === 'accepted' && !b.quoteApproved) {

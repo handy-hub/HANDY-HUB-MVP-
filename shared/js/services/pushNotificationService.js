@@ -8,9 +8,17 @@
  * successfully authenticates. Safe to call multiple times — it's idempotent.
  *
  * Requires:
- *   - firebase-messaging-sw.js deployed at the root of the hosting domain
+ *   - the push service worker at the SITE ROOT, /firebase-messaging-sw.js.
+ *     Its source is shared/push/firebase-messaging-sw.js; scripts/stage-hosting.cjs
+ *     copies it to the root of every build that uses push. (Until 2026-10-20 that
+ *     path served login.html, registration failed, and no token was ever saved.)
  *   - FCM_VAPID_KEY filled in appConfig.js
- *   - fcmToken field allowed in Firestore rules for both customers and artisans
+ *   - fcmToken / fcmPlatform / fcmTokenUpdatedAt allowed in Firestore rules for
+ *     both customers and artisans
+ *
+ * Status: getPushState() and the window event 'fx:push-state' report a
+ * PUSH_STATE (./pushState.js). Only a token that was obtained AND saved is ON —
+ * a registered worker alone is not push working.
  */
 
 import { getToken, onMessage }   from '../../vendor/firebase/firebase-messaging.js';
@@ -19,11 +27,27 @@ import { doc, updateDoc }        from '../../vendor/firebase/firebase-firestore.
 // may not expose firebaseMessaging yet; that must not stop the dashboard graph.
 import * as firebaseConfig from '../backend/providers/firebase/firebaseConfig.js';
 import { FCM_VAPID_KEY }         from '../config/appConfig.js';
+import { PUSH_STATE, tokenNeedsSave, workerUrl } from './pushState.js';
 
 const { firebaseDb } = firebaseConfig;
 const firebaseMessaging = firebaseConfig.firebaseMessaging ?? null;
 
 let _initialized = false;
+let _foregroundWired = false;
+let _state = PUSH_STATE.PENDING;
+
+/** The current push state of this device (see ./pushState.js). */
+export function getPushState() {
+    return _state;
+}
+
+function setState(next) {
+    if (_state === next) return;
+    _state = next;
+    try {
+        window.dispatchEvent(new CustomEvent('fx:push-state', { detail: { state: next } }));
+    } catch (_) { /* no window (tests) */ }
+}
 
 /**
  * The Capacitor PushNotifications plugin, or null on the web.
@@ -40,26 +64,50 @@ function nativePushPlugin() {
     }
 }
 
+const savedTokenKey = (userType, uid) => `fx_push_token:${userType}:${uid}`;
+
 /**
  * Persist the device token. Identical for web and native by design: Cloud
- * Functions look up ONE field, so both platforms must write the same one.
+ * Functions look up ONE field, so both platforms must write the same one, plus
+ * the platform, which decides the message shape the server sends.
+ *
+ * Written only when it changed (remembered per browser): every write to an
+ * artisan's profile re-runs the search-index trigger, and the token is fetched
+ * on every page load.
  */
-async function saveDeviceToken(uid, userType, token) {
+async function saveDeviceToken(uid, userType, token, platform) {
     if (!uid || !token) return;
+    let saved = null;
+    try { saved = localStorage.getItem(savedTokenKey(userType, uid)); } catch (_) { /* private mode */ }
+    if (!tokenNeedsSave(saved, token)) return;
+
     const collection = userType === 'artisan' ? 'artisans' : 'customers';
+    const now = new Date().toISOString();
     await updateDoc(doc(firebaseDb, collection, uid), {
-        fcmToken:  token,
-        updatedAt: new Date().toISOString(),
+        fcmToken:          token,
+        fcmPlatform:       platform,
+        fcmTokenUpdatedAt: now,
+        updatedAt:         now,
     });
+    try { localStorage.setItem(savedTokenKey(userType, uid), token); } catch (_) { /* best effort */ }
 }
 
-/** Foreground presentation, shared by both transports. */
-function presentForeground(title, body, type) {
+/**
+ * Foreground presentation, shared by both transports. An open page hears it
+ * first ('fx:push', cancelable) and may cancel the generic toast — the artisan
+ * dashboard does, for an offer it has already announced itself.
+ */
+function presentForeground(title, body, type, data = {}) {
+    let handledByPage = false;
+    try {
+        handledByPage = !window.dispatchEvent(new CustomEvent('fx:push', { detail: data, cancelable: true }));
+    } catch (_) { /* no window (tests) */ }
+    if (handledByPage) return;
     const toastType = type === 'payments' ? 'success'
                     : type === 'bookings' ? 'info'
                     : 'info';
     if (typeof window.showToast === 'function') {
-        window.showToast(`${title} — ${body}`, toastType);
+        window.showToast(body ? `${title} — ${body}` : title, toastType);
     }
 }
 
@@ -73,6 +121,12 @@ async function initNativePush(uid, userType) {
     const PN = nativePushPlugin();
     if (!PN) return false;
 
+    let platform = 'android';
+    try {
+        const p = window.Capacitor.getPlatform && window.Capacitor.getPlatform();
+        if (p === 'ios' || p === 'android') platform = p;
+    } catch (_) { /* default android — the only native build that exists */ }
+
     try {
         let perm = await PN.checkPermissions();
         if (perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') {
@@ -82,6 +136,7 @@ async function initNativePush(uid, userType) {
             // A declined prompt is a legitimate user choice, not an error. The
             // app keeps working; it simply will not receive pushes.
             console.info('[push] native permission not granted — push disabled');
+            setState(PUSH_STATE.BLOCKED);
             return true;
         }
 
@@ -89,9 +144,11 @@ async function initNativePush(uid, userType) {
         // listeners must be attached BEFORE register() is called.
         PN.addListener('registration', async (t) => {
             try {
-                await saveDeviceToken(uid, userType, t && t.value);
+                await saveDeviceToken(uid, userType, t && t.value, platform);
+                setState(PUSH_STATE.ON);
                 console.log('[push] native token registered for', userType, uid);
             } catch (err) {
+                setState(PUSH_STATE.FAILED);
                 console.warn('[push] saving native token failed:', err && err.message);
             }
         });
@@ -100,15 +157,17 @@ async function initNativePush(uid, userType) {
             // Almost always a missing google-services.json / APNs setup rather
             // than anything the user did. Loud, because silence here is what
             // made the web version so hard to notice.
+            setState(PUSH_STATE.FAILED);
             console.warn('[push] native registration FAILED:', err && (err.error || err.message));
         });
 
         // Delivered while the app is in the foreground; the OS shows nothing.
         PN.addListener('pushNotificationReceived', (notif) => {
             presentForeground(
-                (notif && notif.title) || 'HandyHub',
+                (notif && notif.title) || 'Fidus X',
                 (notif && notif.body) || '',
-                ((notif && notif.data && notif.data.type) || 'info').toLowerCase()
+                ((notif && notif.data && notif.data.type) || 'info').toLowerCase(),
+                (notif && notif.data) || {}
             );
         });
 
@@ -127,6 +186,7 @@ async function initNativePush(uid, userType) {
         return true;
 
     } catch (err) {
+        setState(PUSH_STATE.FAILED);
         console.warn('[push] native init failed:', err && err.message);
         return true;   // native shell confirmed; do not fall back to the web path
     }
@@ -138,8 +198,10 @@ async function initNativePush(uid, userType) {
  *
  * @param {string} uid       — Firebase Auth UID of the current user
  * @param {'customer'|'artisan'} userType
+ * @param {{ prompt?: boolean }} [opts] — prompt:false never shows the browser's
+ *        permission prompt (used to refresh state without interrupting)
  */
-export async function initializePushNotifications(uid, userType = 'customer') {
+export async function initializePushNotifications(uid, userType = 'customer', { prompt = true } = {}) {
     if (_initialized) return;
 
     // Native first. The web path below depends on a service worker and a VAPID
@@ -147,64 +209,72 @@ export async function initializePushNotifications(uid, userType = 'customer') {
     // would return silently rather than report that push is dead.
     if (await initNativePush(uid, userType)) return;
 
-    if (!firebaseMessaging) return; // browser doesn't support FCM (e.g. Safari < 16)
-    if (!FCM_VAPID_KEY)    return; // not yet configured — skip silently
-
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    if (!firebaseMessaging || !FCM_VAPID_KEY ||
+        !('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        setState(PUSH_STATE.UNSUPPORTED);
+        return;
+    }
+    if (Notification.permission === 'denied') {
+        setState(PUSH_STATE.BLOCKED);
+        return;
+    }
 
     try {
-        // Register the FCM service worker.
-        // Must be at the root of the hosting scope — firebase.json serves customer-app/ as root.
-        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+        // The worker lives at the SITE ROOT so its scope covers every app page;
+        // it is given this page's Firebase config and which app it serves.
+        const options = (firebaseConfig.firebaseApp && firebaseConfig.firebaseApp.options) || {};
+        const registration = await navigator.serviceWorker.register(workerUrl(userType, options), {
             scope: '/',
         });
 
-        // Request permission — browser shows the native permission prompt once.
-        // On subsequent calls, returns the already-granted state without prompting.
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') return;
+        // Ask once (or not at all when prompt is false). A granted permission
+        // returns at once without prompting.
+        let permission = Notification.permission;
+        if (permission === 'default' && prompt) permission = await Notification.requestPermission();
+        if (permission === 'denied')  { setState(PUSH_STATE.BLOCKED); return; }
+        if (permission !== 'granted') { setState(PUSH_STATE.OFF);     return; }
 
-        // Get the FCM registration token for this device+browser.
+        // Get the FCM registration token for this device+browser. FCM may rotate
+        // it; a changed token is saved, an unchanged one is not.
         const token = await getToken(firebaseMessaging, {
             vapidKey: FCM_VAPID_KEY,
             serviceWorkerRegistration: registration,
         });
+        if (!token) { setState(PUSH_STATE.FAILED); return; }
 
-        if (!token) return;
+        await saveDeviceToken(uid, userType, token, 'web');
 
-        // Persist the token in the user's Firestore document so Cloud Functions
-        // can look it up when sending notifications.
-        await saveDeviceToken(uid, userType, token);
-
-        // Handle notifications that arrive while the app is open (foreground).
-        // Firebase suppresses the system notification in this case, so we show
-        // a toast instead to keep the UX consistent.
-        onMessage(firebaseMessaging, (payload) => {
-            const title = payload.notification?.title || 'HandyHub';
-            const body  = payload.notification?.body  || '';
-            const type  = payload.data?.type?.toLowerCase() || 'info';
-
-            // Map FCM type → toast type
-            const toastType = type === 'payments' ? 'success'
-                            : type === 'bookings' ? 'info'
-                            : 'info';
-
-            if (typeof window.showToast === 'function') {
-                window.showToast(`${title} — ${body}`, toastType);
-            }
-
-            // Also navigate on foreground notification tap via actionUrl
-            const actionUrl = payload.data?.actionUrl;
-            if (actionUrl && payload.data?._tapped) {
-                window.location.href = `/${actionUrl}`;
-            }
-        });
+        // Messages that arrive while a page of this site is in focus come here
+        // instead of the worker. Web pushes are data-only (functions/
+        // notifications.js), so the text is in payload.data.
+        if (!_foregroundWired) {
+            _foregroundWired = true;
+            onMessage(firebaseMessaging, (payload) => {
+                const data  = payload.data || {};
+                const title = payload.notification?.title || data.title || 'Fidus X';
+                const body  = payload.notification?.body  || data.body  || '';
+                presentForeground(title, body, String(data.type || 'info').toLowerCase(), data);
+            });
+        }
 
         _initialized = true;
+        setState(PUSH_STATE.ON);
         console.log('[push] FCM initialized for', userType, uid);
 
     } catch (err) {
-        // Never throw — push notification failures are always non-fatal
+        // Never throw — push notification failures are always non-fatal. But say
+        // so: getPushState() turns the dashboard banner on.
+        setState(PUSH_STATE.FAILED);
         console.warn('[push] initializePushNotifications failed:', err.message);
     }
+}
+
+/**
+ * The banner's "Turn on alerts" button: runs from a user gesture, so the
+ * browser will show its permission prompt.
+ */
+export async function enablePushNotifications(uid, userType = 'customer') {
+    _initialized = false;
+    await initializePushNotifications(uid, userType, { prompt: true });
+    return _state;
 }

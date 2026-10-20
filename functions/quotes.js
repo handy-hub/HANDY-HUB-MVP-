@@ -194,77 +194,160 @@ async function submitJobQuote(auth, { bookingId, labourCost, materials = [], not
 //
 // Called by: customer app
 // Payload: { bookingId }
+//
+// THE FUNDING RULE. A booking becomes approved (status 'accepted',
+// quoteApproved: true — the state that tells the artisan to set out) in the
+// SAME Firestore transaction that moves the money into escrow. Neither can
+// exist without the other:
+//   • short wallet, conflicting lock, artisan no longer available, quote
+//     changed → the transaction throws and NOTHING commits: the booking is still
+//     'quoted', no money moved, and the customer can top up and approve again;
+//   • success → booking approved, booking.escrowId set, wallet debited, escrow
+//     and lock written — one commit.
+// The hold is wallet → escrow, entirely inside Firestore; no payment provider
+// is involved, so one transaction is a real atomic boundary.
+//
+// Retries and concurrent approvals (double tap, two tabs, a response lost on a
+// bad network): Firestore serialises the transactions, so whichever commits
+// second re-reads an approved booking and gets the same answer back
+// (idempotent: true) without touching the money — provided the hold that
+// approval needs is really there.
+//
+// After the commit, outside the transaction and recoverable: the callout credit
+// is released to the artisan (settleCallout flags failures for the hourly
+// retry), and both parties are notified.
 // ─────────────────────────────────────────────────────────────────────────────
-async function approveJobQuote(auth, { bookingId }) {
+const POST_APPROVAL_STATUSES = ['accepted', 'en_route', 'in_progress', 'awaiting', 'completed'];
+
+/** An error the callable can hand to the client with a machine-readable reason. */
+function approvalError(reason, message, extra = {}) {
+    const err = new Error(message);
+    err.reason = reason;
+    Object.assign(err, extra);
+    return err;
+}
+
+async function approveJobQuote(auth, { bookingId } = {}) {
     if (!bookingId) throw new Error('bookingId is required.');
 
-    const bookingRef  = db().collection('bookings').doc(bookingId);
-    const bookingSnap = await bookingRef.get();
-    if (!bookingSnap.exists) throw new Error('Booking not found.');
+    const firestore  = db();
+    const bookingRef = firestore.collection('bookings').doc(bookingId);
+    const lockRef    = firestore.collection('_escrow_locks').doc(bookingId);   // the job hold's mutex
 
-    const preBooking = bookingSnap.data();
+    // ── Plan from a first read; decide again inside the transaction ──────────
+    // The hold's document references are allocated up front so they are stable
+    // across transaction retries. Nothing here is trusted for a decision: the
+    // transaction re-reads the booking and re-derives every figure.
+    const preSnap = await bookingRef.get();
+    if (!preSnap.exists) throw new Error('Booking not found.');
+    const pre = preSnap.data();
+    if (pre.customerId !== auth.uid) throw new Error('Not authorised for this booking.');
 
-    // Only the customer of this booking may approve
-    if (preBooking.customerId !== auth.uid) throw new Error('Not authorised for this booking.');
-
-    // Must be in quoted status
-    if (preBooking.status !== 'quoted') {
-        throw new Error(`Quote cannot be approved — booking is ${preBooking.status}.`);
-    }
-
-    const jobQuote = Number(preBooking.jobQuote || 0);
-    if (jobQuote <= 0) throw new Error('No valid quote to approve.');
-
-    // ── Re-verify artisan is still active before locking funds ───────────────
-    if (preBooking.artisanId) {
-        const artisanSnap = await db().collection('artisans').doc(preBooking.artisanId).get();
-        if (!artisanSnap.exists || artisanSnap.data().status !== 'active' ||
-            artisanSnap.data().verificationStatus !== 'approved') {
-            throw new Error('The artisan is no longer available. Please contact support.');
+    let hold = null;
+    if (pre.status === 'quoted') {
+        const preQuote = Number(pre.jobQuote);
+        if (!Number.isFinite(preQuote) || preQuote <= 0) throw new Error('No valid quote to approve.');
+        const preDue = computeQuoteSettlement(pre, preQuote).amountDue;
+        if (preDue > 0) {
+            hold = escrow.planHold({
+                bookingId,
+                customerId: pre.customerId,
+                artisanId:  pre.artisanId || null,
+                amount:     preDue,
+                kind:       'job',
+            });
         }
     }
+    const artisanRef = pre.artisanId ? firestore.collection('artisans').doc(pre.artisanId) : null;
 
-    // Same formula the quote-submit preview used, so what the customer approved
-    // on screen is exactly what moves here.
-    const settlement    = computeQuoteSettlement(preBooking, jobQuote);
-    const calloutCredit = settlement.calloutCredit;
-    const escrowAmount  = settlement.amountDue;
+    const outcome = await firestore.runTransaction(async (txn) => {
+        // ── READS (all of them, before any write) ─────────────────────────────
+        const snap        = await txn.get(bookingRef);
+        const holdReads   = hold ? await escrow.readHold(txn, hold) : null;
+        const lockSnap    = holdReads ? holdReads.lockSnap : await txn.get(lockRef);
+        const artisanSnap = artisanRef ? await txn.get(artisanRef) : null;
 
-    // ── Claim quoted → accepted atomically BEFORE moving money (F4) ───────────
-    // This is the compare-and-set that serializes a concurrent approve/reject
-    // (double-tap, two tabs) or approve racing a cancel. Whoever claims first
-    // moves the booking out of 'quoted'; the loser re-reads a non-'quoted' status
-    // and aborts before holding any escrow. Setting quoteApproved:true inside the
-    // claim also flips off cancelInspectionBooking's guard, so a cancel that
-    // arrives after this point is rejected rather than double-settling the callout.
-    const booking = await claimBookingTransition(bookingRef, {
-        authUid: auth.uid,
-        party:   'customer',
-        fromStatuses: ['quoted'],
-        patch: {
-            status:           'accepted',   // artisan can now go en_route
+        if (!snap.exists) throw new Error('Booking not found.');
+        const b = snap.data();
+        if (b.customerId !== auth.uid) throw new Error('Not authorised for this booking.');
+
+        // ── Already approved: answer the replay truthfully ────────────────────
+        if (b.status !== 'quoted') {
+            if (b.quoteApproved === true && POST_APPROVAL_STATUSES.includes(b.status)) {
+                const due  = fmt(Number(b.escrowHeldAmount || 0));
+                const lock = lockSnap.exists ? lockSnap.data() : null;
+                const funded = due === 0 ||
+                    (!!lock && lock.customerId === b.customerId && fmt(lock.amount) === due);
+                if (!funded) {
+                    // Only a booking approved before this rule existed can be here.
+                    throw approvalError('funding_missing',
+                        'This quote was approved but no payment is secured for it. ' +
+                        'Contact support before the work goes ahead — no money has been taken.');
+                }
+                return { replay: true, booking: b, escrowId: lock ? lock.escrowId : (b.escrowId || null) };
+            }
+            throw new Error(`Quote cannot be approved — booking is ${b.status}.`);
+        }
+
+        // ── Fresh approval ────────────────────────────────────────────────────
+        const jobQuote = Number(b.jobQuote);
+        if (!Number.isFinite(jobQuote) || jobQuote <= 0) throw new Error('No valid quote to approve.');
+
+        // Re-verify the artisan is still active before locking funds.
+        if (artisanRef) {
+            const a = artisanSnap && artisanSnap.exists ? artisanSnap.data() : null;
+            if (b.artisanId !== pre.artisanId || !a || a.status !== 'active' || a.verificationStatus !== 'approved') {
+                throw approvalError('artisan_unavailable',
+                    'The artisan is no longer available. Please contact support.');
+            }
+        }
+
+        // Same formula the quote-submit preview used, so what the customer
+        // approved on screen is exactly what moves here.
+        const settlement    = computeQuoteSettlement(b, jobQuote);
+        const calloutCredit = settlement.calloutCredit;
+        const escrowAmount  = settlement.amountDue;
+
+        let held = null;
+        if (escrowAmount > 0 || hold) {
+            if (!hold || hold.amountNum !== fmt(escrowAmount)) {
+                throw approvalError('quote_changed',
+                    'The quote changed while you were approving it. Review the new amount and approve again.');
+            }
+            // Throws (insufficient_balance / escrow_conflict / customer_missing)
+            // → the whole transaction, booking update included, commits nothing.
+            held = escrow.applyHold(txn, hold, holdReads);
+        }
+
+        txn.update(bookingRef, {
+            status:           'accepted',   // the artisan may now set out
             quoteApproved:    true,
             quoteApprovedAt:  new Date().toISOString(),
             calloutCredit,
             escrowHeldAmount: escrowAmount,
-        },
+            // The hold this approval rests on. Receipts and completion read it.
+            ...(held ? { escrowId: held.escrowId } : {}),
+            updatedAt:        new Date().toISOString(),
+        });
+
+        return { replay: false, booking: b, held, jobQuote, calloutCredit, escrowAmount };
     });
 
-    // ── Hold job escrow (idempotent via _escrow_locks/{bookingId}) ───────────
-    // The claim already advanced the status; if this fails the booking is left
-    // 'accepted' with quoteApproved:true and no job escrow — the completion path
-    // and auto-release scheduler reconcile, and the customer sees the standard
-    // "payment could not be secured" flow rather than a lost decision.
-    if (escrowAmount > 0) {
-        await escrow.holdFundsForBooking({
-            bookingId,
-            customerId:  booking.customerId,
-            artisanId:   booking.artisanId || null,
-            amount:      escrowAmount,
-            callerAuth:  null,   // server-authoritative call
-            kind:        'job',
-        });
+    if (outcome.replay) {
+        const b = outcome.booking;
+        console.log(`[quotes] Approval replay: booking=${bookingId} status=${b.status} — no money moved.`);
+        return {
+            success:       true,
+            idempotent:    true,
+            jobQuote:      Number(b.jobQuote || 0),
+            calloutCredit: Number(b.calloutCredit || 0),
+            escrowAmount:  Number(b.escrowHeldAmount || 0),
+            escrowId:      outcome.escrowId,
+        };
     }
+
+    const { booking, held, jobQuote, calloutCredit, escrowAmount } = outcome;
+    if (held && !held.idempotent) escrow.notifyHoldSecured(hold);
 
     // ── Release the callout escrow to the artisan (credited into the job) ────
     // Failure is non-fatal: settleCallout flags the booking and the hourly
@@ -274,17 +357,24 @@ async function approveJobQuote(auth, { bookingId }) {
         await pricing.settleCallout(booking, bookingId, 'artisan', 'quote_approved_credit');
     }
 
-    // ── Notify artisan ───────────────────────────────────────────────────────
+    // ── Notify artisan — true by construction: the commit above holds the money ─
     await sendArtisanNotification(booking.artisanId, {
         type:      'Bookings',
         title:     'Quote Approved!',
-        message:   `Your quote of GHS ${jobQuote.toFixed(2)} was approved. Payment is secured. You can now head to the job.`,
+        message:   escrowAmount > 0
+            ? `Your quote of GHS ${jobQuote.toFixed(2)} was approved. Payment is secured in escrow. You can now head to the job.`
+            : `Your quote of GHS ${jobQuote.toFixed(2)} was approved and is covered by the visit fee already paid. You can now head to the job.`,
         actionUrl: `jobs.html`,
         bookingId,
     }).catch(() => {});
 
     console.log(`[quotes] Quote approved: booking=${bookingId} quote=GHS${jobQuote} credit=GHS${calloutCredit} escrowed=GHS${escrowAmount}`);
-    return { success: true, jobQuote, calloutCredit, escrowAmount };
+    return {
+        success: true,
+        idempotent: false,
+        jobQuote, calloutCredit, escrowAmount,
+        escrowId: held ? held.escrowId : null,
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

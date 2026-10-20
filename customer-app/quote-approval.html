@@ -130,7 +130,8 @@
 <script type="module">
 import { getAppContainer }   from '../shared/js/app/container.js';
 import { requireAuth }        from '../shared/js/utils/authGuard.js';
-import { resolveMoney, resolveArtisan, initialsOf, formatMoney, resolveQuoteDecision }
+import { resolveMoney, resolveArtisan, initialsOf, formatMoney, resolveQuoteDecision,
+         describeApprovalFailure }
                               from '../shared/js/domain/bookingTruth.js';
 import { getFunctions, httpsCallable }
     from '../shared/vendor/firebase/firebase-functions.js';
@@ -323,15 +324,25 @@ window.approveQuote = async function() {
         <button onclick="window.location.href='booking.html'" style="margin-top:28px;width:100%;height:48px;border-radius:14px;border:none;background: var(--ui-primary);color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;">View My Bookings</button>
       </div>`);
   } catch(err) {
-    // A thrown call is not proof that nothing moved — the response may simply
-    // have been lost. approveJobQuote is idempotent (quoted→accepted CAS plus the
-    // escrow lock), so retrying is safe and we must not assert a failed payment.
-    showToast(err.message
-      || 'We could not confirm this approval. Check My Bookings before retrying — you have not been charged twice.');
+    // approveJobQuote approves and holds the money in ONE transaction, so a
+    // refusal with a reason means nothing moved; a failure without one may be a
+    // lost response, and a retry is answered rather than charged twice.
+    const f = describeApprovalFailure(err);
+    showToast(f.message);
     if (btn) {
       btn.disabled = false;
       const mm = resolveMoney(_booking || {});
       btn.innerHTML = approveLabel(mm.amountDue, mm.amountDue !== null);
+    }
+    if (f.topUp && !document.getElementById('qa-topup-link')) {
+      // Short wallet: the quote is still waiting. Offer the fix beside the button.
+      const a = document.createElement('a');
+      a.id = 'qa-topup-link';
+      a.href = 'topup.html';
+      a.className = 'qa-btn-reject';
+      a.style.cssText = 'display:block;text-align:center;text-decoration:none;';
+      a.textContent = 'Top up wallet';
+      btn?.parentNode?.insertBefore(a, btn.nextSibling);
     }
   }
 };

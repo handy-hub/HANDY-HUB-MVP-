@@ -689,7 +689,13 @@ exports.approveJobQuote = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCAL
     try {
         return await quotesModule.approveJobQuote(request.auth, request.data);
     } catch (err) {
-        throw new HttpsError('failed-precondition', err.message);
+        // `reason` lets the app branch without parsing text: insufficient_balance
+        // (top up and approve again — nothing moved), escrow_conflict,
+        // quote_changed, artisan_unavailable, funding_missing.
+        const details = err.reason
+            ? { reason: err.reason, needed: err.needed ?? null, available: err.available ?? null }
+            : undefined;
+        throw new HttpsError('failed-precondition', err.message, details);
     }
 });
 

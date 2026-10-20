@@ -296,11 +296,31 @@ t('"Mark En Route" IS offered once the window opens', () => {
     assert.ok(!ids.includes('scheduled'));
 });
 
-t('"Complete Inspection" is NEVER gated — a visit that happened can be recorded', () => {
+// Corrected 2026-10-20 (AR-01). This used to assert that "Complete Inspection"
+// was offered from inspection_scheduled — before the artisan had set out — so a
+// callout fee could reach an artisan for a visit that never happened. A visit
+// is now recorded as it happens: set out (gated by the slot), arrive (never
+// gated), then complete (only after arrival).
+t('"Complete Inspection" is never offered before arrival', () => {
     const b = scheduled({ status: 'inspection_scheduled', calloutPaid: true });
-    const ids = META.getAllowedActions(b, 'artisan', { schedule: SCHED.resolveSchedule(b, NOW) })
+    const early = META.getAllowedActions(b, 'artisan', { schedule: SCHED.resolveSchedule(b, NOW) })
         .map(a => a.id);
-    assert.ok(ids.includes('complete_inspection'));
+    assert.ok(!early.includes('complete_inspection'), 'not before setting out');
+    const opens = SAT_2PM - SCHED.EARLY_START_GRACE_MS;
+    const due = META.getAllowedActions(b, 'artisan', { schedule: SCHED.resolveSchedule(b, opens) })
+        .map(a => a.id);
+    assert.ok(!due.includes('complete_inspection'), 'not even once the slot opens — arrive first');
+});
+
+t('arriving is never clock-gated, and completion follows arrival', () => {
+    const enRoute = scheduled({ status: 'en_route', calloutPaid: true });
+    const ids = META.getAllowedActions(enRoute, 'artisan', { schedule: SCHED.resolveSchedule(enRoute, NOW) })
+        .map(a => a.id);
+    assert.ok(ids.includes('arrived'));
+    const onSite = scheduled({ status: 'in_progress', calloutPaid: true });
+    const ids2 = META.getAllowedActions(onSite, 'artisan', { schedule: SCHED.resolveSchedule(onSite, NOW) })
+        .map(a => a.id);
+    assert.ok(ids2.includes('complete_inspection'));
 });
 
 t('the work track gates en_route the same way', () => {

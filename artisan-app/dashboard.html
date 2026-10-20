@@ -308,9 +308,14 @@ import { isArtisanDevAccessEnabled } from '../shared/js/config/devAccess.js';
 import { getDevStateKey }            from '../shared/dev/artisanDevSession.js';
 import { resolveAvatar, TRANSFORMS }                   from '../shared/js/services/cloudinaryService.js';
 import { pricingService }                              from '../shared/js/services/pricingService.js';
-import { describe as describeStatus }                  from '../shared/js/domain/bookingStatusMeta.js';
+import { describe as describeStatus, artisanInspectionStep }
+                                                       from '../shared/js/domain/bookingStatusMeta.js';
 import { performBookingAction, ACTION }                from '../shared/js/domain/bookingActions.js';
 import { resolveSchedule }                             from '../shared/js/domain/bookingSchedule.js';
+import { offerState, formatTimeLeft, createOfferWatcher }
+                                                       from '../shared/js/domain/jobOffers.js';
+import { getPushState, enablePushNotifications }       from '../shared/js/services/pushNotificationService.js';
+import { describePushState }                          from '../shared/js/services/pushState.js';
 
 // ── BLOCKING AUTH GUARD ───────────────────────────────────────────────────────
 // Verifies: authenticated + role=artisan + not suspended.
@@ -552,12 +557,121 @@ function _startJobCountdown(bookingId, deadlineMillis) {
 
     if (totalSec <= 0) {
       clearInterval(_activeCountdowns[bookingId]);
-      // Card will be removed by Firestore listener when dispatch engine re-assigns
+      // The card is removed by the listener once the dispatch sweep re-assigns
+      // the offer. Until then, accepting would race that sweep: withdraw it.
+      const acceptBtn = document.querySelector(`#job-${bookingId} .btn-accept`);
+      if (acceptBtn) {
+        acceptBtn.disabled = true;
+        acceptBtn.removeAttribute('onclick');
+        acceptBtn.textContent = 'Expired';
+        acceptBtn.style.opacity = '.5';
+      }
     }
   }
   tick();
   _activeCountdowns[bookingId] = setInterval(tick, 1000);
 }
+
+// ── New-offer alerts, independent of push ─────────────
+// Push is one way an offer reaches the artisan. While this screen is open the
+// live listener is another — and the only one when push is off, blocked or
+// failing. An offer expires within minutes, so its arrival is announced here
+// too, once per offer whichever path announces it first.
+const _offerWatcher    = createOfferWatcher();
+const _announcedOffers = new Set();
+let   _titleFlash      = null;
+let   _pushUid         = null;
+
+function alertNewOffer(rec) {
+  if (!rec || _announcedOffers.has(rec.id)) return;
+  _announcedOffers.add(rec.id);
+  const d = rec.data || {};
+  const { secondsLeft, expired } = offerState(d);
+  if (expired) return;
+  const svc = d.serviceType || d.service || 'job';
+  const msg = secondsLeft !== null
+    ? `New ${svc} request — respond within ${formatTimeLeft(secondsLeft)}.`
+    : `New ${svc} request.`;
+  showToast(msg);
+  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (_) {}
+  if (document.hidden) {
+    _flashTitle('New job request');
+    // A local notification needs only permission, not a push token, so it still
+    // reaches an artisan whose dashboard is open in a background tab. It uses
+    // the push's tag, so the two never stack.
+    if ('Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker) {
+      navigator.serviceWorker.getRegistration('/').then((reg) => reg && reg.showNotification('New job request', {
+        body: msg,
+        tag: `booking-${rec.id}`,
+        requireInteraction: true,
+        icon: '/shared/assets/images/handyhub-logo.png',
+        data: { url: location.pathname, bookingId: rec.id, type: 'Bookings' },
+      })).catch(() => {});
+    }
+  }
+}
+
+function _flashTitle(text) {
+  if (_titleFlash) return;
+  const original = document.title;
+  let on = false;
+  _titleFlash = setInterval(() => { on = !on; document.title = on ? `● ${text}` : original; }, 1200);
+  const stop = () => {
+    if (document.hidden) return;
+    clearInterval(_titleFlash);
+    _titleFlash = null;
+    document.title = original;
+    document.removeEventListener('visibilitychange', stop);
+  };
+  document.addEventListener('visibilitychange', stop);
+}
+
+// A push arriving while this page is in focus. If it announces an offer this
+// page already announced, cancel the generic toast; otherwise let it show and
+// remember the offer so the listener does not announce it a second time.
+window.addEventListener('fx:push', (e) => {
+  const id = e.detail && e.detail.bookingId;
+  if (!id) return;
+  if (_announcedOffers.has(id)) e.preventDefault();
+  else _announcedOffers.add(id);
+});
+
+// ── Job-alert status ───────────────────────────────────
+// Push that is not working is said out loud. A registered worker is not
+// enough: only a saved token counts (see shared/js/services/pushState.js).
+function renderPushBanner(state) {
+  const info = describePushState(state);
+  let el = document.getElementById('push-alert-banner');
+  if (!info.alert) { if (el) el.remove(); return; }
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'push-alert-banner';
+    el.setAttribute('role', 'status');
+    el.style.cssText = 'margin:0 0 12px;padding:12px 14px;border-radius:var(--ds-r-card);' +
+      'background:var(--ds-warning-bg);color:var(--ds-ink);font:500 13px/1.45 var(--ds-font);';
+    jobsList.parentNode.insertBefore(el, jobsList);
+  }
+  el.textContent = '';
+  const p = document.createElement('p');
+  p.style.margin = '0';
+  p.textContent = info.message;
+  el.appendChild(p);
+  if (info.canEnable && _pushUid) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Turn on job alerts';
+    btn.style.cssText = 'margin-top:8px;min-height:44px;padding:0 16px;border:0;cursor:pointer;' +
+      'border-radius:var(--ds-r-control);background:var(--ds-brand-500);color:var(--ds-surface);' +
+      'font:700 13px/1 var(--ds-font);';
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Turning on…';
+      renderPushBanner(await enablePushNotifications(_pushUid, 'artisan'));
+    });
+    el.appendChild(btn);
+  }
+}
+window.addEventListener('fx:push-state', (e) => renderPushBanner(e.detail && e.detail.state));
 
 // ── Render job request card ────────────────────────────
 function renderJobCard(booking) {
@@ -565,14 +679,12 @@ function renderJobCard(booking) {
   const id   = booking.id;
   const isEmergency = d.bookingType === 'emergency' || d.type === 'emergency';
 
-  // Parse deadline
-  let deadlineMs = null;
-  if (d.responseDeadline) {
-    deadlineMs = d.responseDeadline.toMillis
-      ? d.responseDeadline.toMillis()
-      : Number(d.responseDeadline) * 1000;
-  }
-  const hasDeadline = deadlineMs && deadlineMs > Date.now();
+  // The response deadline, whatever shape it arrived in (a live Timestamp, or a
+  // plain {seconds} copy from the cache) — never NaN.
+  const offer       = offerState(d);
+  const deadlineMs  = offer.expiresAtMs;
+  const hasDeadline = deadlineMs !== null && !offer.expired;
+  const lapsed      = deadlineMs !== null && offer.expired;
 
   const card = document.createElement('div');
   card.className = 'job-request-card';
@@ -629,10 +741,14 @@ function renderJobCard(booking) {
     })()}</p>
 
     <div class="job-actions">
-      <button class="btn-accept" onclick="acceptJob('${id}')">
+      ${lapsed
+        // The offer has lapsed; the dispatch sweep (every minute) is moving it to
+        // the next professional. Accepting now would race that, so it is not offered.
+        ? `<button class="btn-accept" disabled style="opacity:.5;cursor:default">Expired</button>`
+        : `<button class="btn-accept" onclick="acceptJob('${id}')">
         <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Accept
-      </button>
+      </button>`}
       <button class="btn-decline" onclick="declineJob('${id}')">Decline</button>
     </div>`;
 
@@ -755,29 +871,35 @@ function renderActiveJobCard(booking) {
   // Progression button HTML
   let btnHtml = '';
   if (isInspection) {
-    if (status === 'inspection_scheduled') {
+    // One step at a time, in the order completeInspection enforces: set out
+    // (only once the booked slot opens), mark arrived, THEN complete the
+    // inspection. artisanInspectionStep is the single rule; this only draws it.
+    const step = artisanInspectionStep(d, { schedule: resolveSchedule(d) });
+    if (step && step.id === 'en_route') {
       btnHtml = `<button class="btn-progress btn-progress-orange" onclick="markEnRoute('${id}')">
         <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Mark En Route
-      </button>
-      <button class="btn-progress btn-progress-green" onclick="completeInspectionAction('${id}')" style="margin-top:8px">
-        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
-        Complete Inspection
       </button>`;
-    } else if (status === 'en_route' || status === 'in_progress') {
+    } else if (step && step.id === 'arrived') {
+      btnHtml = `<button class="btn-progress btn-progress-orange" onclick="markArrived('${id}')">
+        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.5" fill="rgba(249,115,22,0.8)"/></svg>
+        Mark Arrived
+      </button>`;
+    } else if (step && step.id === 'complete_inspection') {
       btnHtml = `<button class="btn-progress btn-progress-green" onclick="completeInspectionAction('${id}')">
         <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
         Complete Inspection
       </button>`;
-    } else if (status === 'inspection_done') {
+    } else if (step && step.id === 'submit_quote') {
       btnHtml = `<button class="btn-progress btn-progress-orange" onclick="window.location.href='jobs.html'">
         <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Submit Quote
       </button>`;
-    } else if (status === 'quoted') {
+    } else if (step && step.blocked) {
+      // Callout unpaid, slot not yet open, or the quote is with the customer.
       btnHtml = `<button class="btn-progress btn-progress-grey" disabled>
         <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        Waiting for customer decision…
+        ${step.label}
       </button>`;
     }
   } else if (status === 'accepted') {
@@ -959,6 +1081,11 @@ subscribeToArtisanAuthState(async user => {
     return;
   }
 
+  // Job-alert status: artisanAuthGuard starts push for every artisan page; this
+  // screen says plainly when it is not working, and offers to turn it on.
+  _pushUid = uid;
+  renderPushBanner(getPushState());
+
   // Keep _currentArtisan in sync when profile updates
   if (user.uid) {
     databaseService.getDocument('artisans', user.uid)
@@ -1026,6 +1153,10 @@ subscribeToArtisanAuthState(async user => {
         jobsEmpty.style.display = 'none';
         records.forEach(b => jobsList.appendChild(renderJobCard(b)));
       }
+      // An offer that arrived while this screen is open is announced here too:
+      // push may be off, blocked or broken, and the offer expires in minutes.
+      _offerWatcher.next(records.map(r => r.id))
+        .forEach(fid => alertNewOffer(records.find(r => r.id === fid)));
     },
     () => { jobSkeleton?.remove(); jobsEmpty.style.display = 'block'; }
   );
