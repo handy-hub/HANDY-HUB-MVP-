@@ -29,6 +29,7 @@ const { FIRESTORE_DB_ID, FUNCTIONS_REGION, MAX_DISPATCH_ROUNDS, BURST_CPU } = re
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const { geohashQueryBounds } = require('geofire-common');
 const jobOffers = require('./jobOffers');
+const performanceMetrics = require('./shared/performanceMetrics');
 
 // How long ONE artisan holds a request before it moves to the next.
 //
@@ -162,16 +163,18 @@ async function findEligibleArtisans(booking, excludeIds) {
     // before a booking is unfulfilled is already a generous ceiling.
     const HARD_LIMIT = 20;
 
-    return candidates
+    const eligible = candidates
         .filter(a => {
             if (excludeIds.includes(a.id)) return false;
 
-            // Skill match: artisan_index.skills[] contains category synonyms.
-            // First keyword of serviceType matched against the skills array.
+            // Skill match: artisan_index.skills[] holds the VERIFIED trade
+            // terms (category, specialty, synonyms — artisanIndex._buildSkills),
+            // all lower-case. First keyword of serviceType matched against them;
+            // lower-cased too, so "Plumbing" matches "plumbing".
             if (serviceType) {
-                const keyword = serviceType.split(/[\s,/]+/)[0];
+                const keyword = serviceType.split(/[\s,/]+/)[0].toLowerCase();
                 if (keyword.length > 2 &&
-                    !(a.skills || []).some(s => s.includes(keyword))) return false;
+                    !(a.skills || []).some(s => String(s).includes(keyword))) return false;
             }
 
             // Exact distance check — geohash cells are rectangular, not circular.
@@ -182,19 +185,14 @@ async function findEligibleArtisans(booking, excludeIds) {
             }
 
             return true;
-        })
-        .map(a => {
-            let score = 0;
-            score += (a.rating         || 4.0) * 15;  // max 60
-            score += (a.completionRate || 0.8) * 20;  // max 20
-            score += (a.responseRate   || 0.7) * 15;  // max 15
-            score += a.isOnline ? 20 : 0;              // online bonus
-            if (a._distKm != null) score -= a._distKm * 1.5; // distance penalty
-            a._score = score;
-            return a;
-        })
-        .sort((a, b) => b._score - a._score)
-        .slice(0, HARD_LIMIT);
+        });
+
+    // Ranking: shared/js/domain/performanceMetrics.js (AR-12). Same weights as
+    // before; the inputs are now measured where there is enough data and a
+    // neutral value — the same for everyone — where there is not. Previously
+    // `a.rating || 4.0` scored every unrated artisan as a 4.0, and response and
+    // completion were never computed, so both were constants for everyone.
+    return performanceMetrics.rankCandidates(eligible).slice(0, HARD_LIMIT);
 }
 
 // ── Core dispatch round (transaction-safe) ────────────────────────────────────
@@ -613,13 +611,20 @@ const checkExpiredDispatches = onSchedule(
                 // in the gap, blindly nulling artisanId here would strip the
                 // professional off an accepted booking. Claim the timeout only
                 // if the booking is still dispatched to the same round.
+                let expiredFor = null;
                 const claimed = await db().runTransaction(async (txn) => {
                     const live = await txn.get(doc.ref);
+                    const offerSnap = await txn.get(jobOffers.offerRef(bookingId));
                     if (!live.exists) return false;
                     const d = live.data();
                     if (d.dispatchStatus !== 'dispatched') return false;      // already accepted/re-dispatched
                     if ((d.status || '').toLowerCase() !== 'pending') return false; // no longer pending
-                    jobOffers.closeOffer(txn, bookingId, 'expired');
+                    // The offer as it stands, so the close records an 'expired'
+                    // event for the artisan who let it lapse (AR-12).
+                    const offer = offerSnap.exists ? offerSnap.data() : null;
+                    jobOffers.closeOffer(txn, bookingId, 'expired',
+                        offer && offer.artisanId === d.currentArtisanId ? offer : null);
+                    expiredFor = d.currentArtisanId || null;
                     txn.update(doc.ref, {
                         dispatchStatus:   'searching',
                         artisanId:        null,
@@ -640,6 +645,7 @@ const checkExpiredDispatches = onSchedule(
                     console.log(`[dispatch] Expiry skipped — booking ${bookingId} advanced before timeout claim.`);
                     return;
                 }
+                await jobOffers.refreshResponseStats(expiredFor);
 
                 // Notify customer
                 if (booking.customerId) {

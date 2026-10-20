@@ -16,6 +16,10 @@
  * composers mounted at once would still each submit against their own booking.
  */
 
+// The same validator submitJobQuote runs (AR-08): the artisan sees the
+// server's own verdict and totals before sending, and nothing here is trusted.
+import { validateQuoteInput } from '../domain/quoteMoney.js';
+
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -92,7 +96,7 @@ export function mountQuoteComposer(opts = {}) {
         row.className = 'qc-mat-row';
         row.innerHTML = `
           <input type="text"   class="qc-input" placeholder="Item name">
-          <input type="number" class="qc-input" placeholder="Qty"   min="1" step="1" inputmode="numeric">
+          <input type="number" class="qc-input" placeholder="Qty"   min="0.01" step="0.01" inputmode="decimal">
           <input type="number" class="qc-input" placeholder="Price" min="0" step="0.01" inputmode="decimal">
           <button type="button" class="qc-del" aria-label="Remove item">&times;</button>`;
         row.querySelectorAll('input').forEach(i => i.addEventListener('input', recalc));
@@ -101,33 +105,25 @@ export function mountQuoteComposer(opts = {}) {
         row.querySelector('input').focus();
     }
 
-    function readMaterials() {
-        const out = [];
-        let valid = true;
-        mount.querySelectorAll('.qc-mat-row').forEach(row => {
-            const [nameEl, qtyEl, priceEl] = row.querySelectorAll('input');
-            const name  = nameEl.value.trim();
-            const qty   = parseFloat(qtyEl.value) || 0;
-            const price = parseFloat(priceEl.value) || 0;
-            if (!name || qty <= 0 || price <= 0) { valid = false; return; }
-            out.push({ name, qty, unitPrice: price });
-        });
-        return { materials: out, valid };
+    // Raw strings go to the validator as typed: parseFloat('12abc') is 12, and
+    // `|| 0` turned anything unreadable into a silent zero.
+    function readInput() {
+        const materials = needsMaterials
+            ? [...mount.querySelectorAll('.qc-mat-row')].map(row => {
+                const [nameEl, qtyEl, priceEl] = row.querySelectorAll('input');
+                return { name: nameEl.value, qty: qtyEl.value.trim(), unitPrice: priceEl.value.trim() };
+            })
+            : [];
+        return { labourCost: $('qc-labour').value.trim(), materials, note: $('qc-note').value };
     }
 
     function recalc() {
-        const labour = parseFloat($('qc-labour').value) || 0;
-        let mats = 0;
-        if (needsMaterials) {
-            mount.querySelectorAll('.qc-mat-row').forEach(row => {
-                const i = row.querySelectorAll('input');
-                mats += (parseFloat(i[1].value) || 0) * (parseFloat(i[2].value) || 0);
-            });
-        }
-        $('qc-s-lab').textContent = money(labour);
-        $('qc-s-mat').textContent = money(mats);
-        $('qc-s-tot').textContent = money(labour + mats);
-        $('qc-submit').disabled = !(labour + mats > 0) || busy;
+        const checked = validateQuoteInput(readInput());
+        const q = checked.ok ? checked.quote : null;
+        $('qc-s-lab').textContent = q ? money(q.labourCost) : '—';
+        $('qc-s-mat').textContent = q ? money(q.materialsCost) : '—';
+        $('qc-s-tot').textContent = q ? money(q.jobQuote) : '—';
+        $('qc-submit').disabled = !q || busy;
     }
 
     function setMaterials(yes) {
@@ -142,11 +138,9 @@ export function mountQuoteComposer(opts = {}) {
 
     async function submit() {
         if (busy) return;                       // duplicate taps do nothing
-        const labourCost = parseFloat($('qc-labour').value) || 0;
-        if (labourCost <= 0) { say('Enter a labour charge greater than 0.'); return; }
-
-        const { materials, valid } = needsMaterials ? readMaterials() : { materials: [], valid: true };
-        if (!valid) { say('Fill in every material row — name, quantity and price.'); return; }
+        const checked = validateQuoteInput(readInput());
+        if (!checked.ok) { say(checked.message); return; }
+        const { labourCost, materials, note } = checked.quote;
 
         busy = true;
         const btn = $('qc-submit');
@@ -162,8 +156,8 @@ export function mountQuoteComposer(opts = {}) {
             const res = await send({
                 bookingId,
                 labourCost,
-                materials,
-                note: $('qc-note').value.trim(),
+                materials: materials.map(({ name, qty, unitPrice }) => ({ name, qty, unitPrice })),
+                note,
             });
             say('Quote sent. The customer has been notified.');
             if (typeof onSubmitted === 'function') onSubmitted(res, bookingId);

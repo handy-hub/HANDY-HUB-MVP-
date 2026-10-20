@@ -263,21 +263,46 @@ async function _refundEscrowForBooking(bookingId, bookingData) {
 // returned it. The customer page used to refund it by calling the refundBooking
 // callable itself, which also let a customer refund the fee at any other time.
 // That callable is now admin-only, so the refund happens here, from the
-// cancellation itself. No emergency status counts as "delivered" under the rule
-// below, so a cancelled emergency always refunds the customer — what the page
-// did before, now decided by the server.
+// cancellation itself. A customer can only cancel an emergency before the
+// artisan sets out (firestore.rules), so that refund is what the page did
+// before, now decided by the server; a cancellation after arrival — which only
+// an administrator can make — pays the artisan for the visit.
+//
+// The direction comes from pricing.calloutDecision — the one definition of
+// "was the visit delivered?" (AR-07). For an emergency that means the artisan
+// arrived; a quote alone (sent from 'accepted', before travel) is not a visit.
 async function _settleCalloutOnCancellation(bookingId, before, after) {
-    if (!['inspection', 'emergency'].includes(after.track)) return;
-    if (!after.calloutPaid || after.calloutSettled || after.calloutSettlePending) return;
+    await _settleCalloutFor(bookingId, after, { priorStatus: before.status }, 'cancelled_out_of_band');
+}
+
+// Settle the callout when the job COMPLETES (AR-07).
+//
+// Completion used to release only the job escrow (_findHeldEscrow is
+// kind-filtered), so an emergency callout — the one money on an emergency job
+// with no quote — stayed held until autoReleaseEscrow found it seven days
+// later. The visit is delivered by definition once the job is completed, so the
+// fee is the artisan's now. Idempotent: settleCallout is a no-op once the
+// booking records calloutSettled, and a failure flags calloutSettlePending for
+// the hourly retry instead of blocking completion.
+async function _settleCalloutOnCompletion(bookingId, after) {
+    await _settleCalloutFor(bookingId, after, { event: 'completed' }, 'job_completed');
+}
+
+async function _settleCalloutFor(bookingId, booking, ctx, why) {
+    if (!['inspection', 'emergency'].includes(booking.track)) return;
+    if (!booking.calloutPaid || booking.calloutSettled || booking.calloutSettlePending) return;
     try {
-        const pricing   = require('./pricing');
-        const delivered = ['inspection_done', 'quoted'].includes(_str(before.status));
-        const settleTo  = delivered ? 'artisan' : 'customer';
-        await pricing.settleCallout(after, bookingId, settleTo, 'cancelled_out_of_band');
-        console.log(`[bookings] Out-of-band cancellation: callout settled to ${settleTo} booking=${bookingId}`);
+        const pricing  = require('./pricing');
+        const decision = pricing.calloutDecision(booking, ctx);
+        if (decision.hold || !decision.to) {
+            console.log(`[bookings] Callout left held (${decision.why}) booking=${bookingId}`);
+            return;
+        }
+        await pricing.settleCallout(booking, bookingId, decision.to, why);
+        console.log(`[bookings] Callout settled to ${decision.to} (${decision.why}) booking=${bookingId}`);
     } catch (err) {
         // settleCallout flags calloutSettlePending itself; this catch is belt-and-braces.
-        console.error(`[bookings] Callout settlement on cancellation failed booking=${bookingId}:`, err.message);
+        console.error(`[bookings] Callout settlement (${why}) failed booking=${bookingId}:`, err.message);
     }
 }
 
@@ -535,6 +560,7 @@ const onBookingStatusChanged = onDocumentUpdated(
         //    Non-fatal: auto-release scheduler handles stuck escrows every 6 hours.
         if (nextStatus === 'completed') {
             await _releaseEscrowForBooking(bookingId);
+            await _settleCalloutOnCompletion(bookingId, after);
         }
 
         // 3. REFUND — * → cancelled

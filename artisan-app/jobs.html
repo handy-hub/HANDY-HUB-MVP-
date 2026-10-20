@@ -258,6 +258,7 @@ import { resolveSchedule, canStartWork }
                             from '../shared/js/domain/bookingSchedule.js';
 import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 import { performBookingAction, ACTION }      from '../shared/js/domain/bookingActions.js';
+import { validateQuoteInput }                from '../shared/js/domain/quoteMoney.js';
 import { pricingService }                    from '../shared/js/services/pricingService.js';
 import { startPresence, stopPresence }       from '../shared/js/services/presenceService.js';
 import { getFunctions, httpsCallable }
@@ -799,7 +800,7 @@ window.addMatRow = function() {
   row.className = 'qs-mat-row';
   row.innerHTML = `
     <input type="text"   class="qs-input" placeholder="Item name"  oninput="recalcQuote()" />
-    <input type="number" class="qs-input" placeholder="Qty"  min="1" step="1"    oninput="recalcQuote()" />
+    <input type="number" class="qs-input" placeholder="Qty"  min="0.01" step="0.01" oninput="recalcQuote()" />
     <input type="number" class="qs-input" placeholder="Price" min="0" step="0.01" oninput="recalcQuote()" />
     <button class="qs-mat-del" onclick="removeMatRow(this)" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button>`;
   document.getElementById('qs-mat-rows').appendChild(row);
@@ -811,48 +812,38 @@ window.removeMatRow = function(btn) {
   recalcQuote();
 };
 
+// The quote as typed, judged by the same validator submitJobQuote runs (AR-08).
+// parseFloat('12abc') is 12 and `|| 0` hid anything unreadable; raw strings
+// now go to shared/js/domain/quoteMoney.js, which refuses them.
+function readQuoteInput() {
+  const materials = _needsMaterials
+    ? [...document.querySelectorAll('#qs-mat-rows .qs-mat-row')].map(row => {
+        const inputs = row.querySelectorAll('input');
+        return { name: inputs[0].value, qty: inputs[1].value.trim(), unitPrice: inputs[2].value.trim() };
+      })
+    : [];
+  return { labourCost: document.getElementById('qs-labour').value.trim(), materials,
+           note: document.getElementById('qs-note').value };
+}
+
 function recalcQuote() {
-  const labour = parseFloat(document.getElementById('qs-labour').value) || 0;
-  let   mats   = 0;
-
-  if (_needsMaterials) {
-    document.querySelectorAll('#qs-mat-rows .qs-mat-row').forEach(row => {
-      const inputs = row.querySelectorAll('input');
-      const qty   = parseFloat(inputs[1].value) || 0;
-      const price = parseFloat(inputs[2].value) || 0;
-      mats += qty * price;
-    });
-  }
-
-  const total = labour + mats;
-  document.getElementById('qs-s-labour').textContent = labour.toFixed(2);
-  document.getElementById('qs-s-mats').textContent   = mats.toFixed(2);
-  document.getElementById('qs-s-total').textContent  = total.toFixed(2);
-  document.getElementById('qs-submit').disabled      = total <= 0;
+  const checked = validateQuoteInput(readQuoteInput());
+  const q = checked.ok ? checked.quote : null;
+  document.getElementById('qs-s-labour').textContent = q ? q.labourCost.toFixed(2)    : '—';
+  document.getElementById('qs-s-mats').textContent   = q ? q.materialsCost.toFixed(2) : '—';
+  document.getElementById('qs-s-total').textContent  = q ? q.jobQuote.toFixed(2)      : '—';
+  document.getElementById('qs-submit').disabled      = !q;
 }
 window.recalcQuote = recalcQuote;
 
 window.submitQuote = async function() {
   if (!_quoteBookingId) return;
 
-  const labourCost = parseFloat(document.getElementById('qs-labour').value) || 0;
-  if (labourCost <= 0) { showToast('Enter a labour cost greater than 0.'); return; }
+  const checked = validateQuoteInput(readQuoteInput());
+  if (!checked.ok) { showToast(checked.message); return; }
+  const { labourCost, note } = checked.quote;
+  const materials = checked.quote.materials.map(({ name, qty, unitPrice }) => ({ name, qty, unitPrice }));
 
-  const materials = [];
-  if (_needsMaterials) {
-    let valid = true;
-    document.querySelectorAll('#qs-mat-rows .qs-mat-row').forEach(row => {
-      const inputs = row.querySelectorAll('input');
-      const name  = inputs[0].value.trim();
-      const qty   = parseFloat(inputs[1].value) || 0;
-      const price = parseFloat(inputs[2].value) || 0;
-      if (!name || qty <= 0 || price <= 0) { valid = false; return; }
-      materials.push({ name, qty, unitPrice: price });
-    });
-    if (!valid) { showToast('Fill in all material fields (name, qty, price).'); return; }
-  }
-
-  const note = document.getElementById('qs-note').value.trim();
   const btn  = document.getElementById('qs-submit');
   btn.disabled = true;
   btn.textContent = 'Sending…';

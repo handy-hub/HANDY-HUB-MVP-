@@ -787,6 +787,70 @@ async function completeInspection(auth, { bookingId, findings = '' }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// calloutDecision — WHO a still-held callout fee belongs to. (AR-07)
+//
+// The lifecycle CFs that settle a callout carry their own verdict and keep it
+// (quote approved/finally rejected → artisan; artisan cancelled, no-show, no
+// quote → customer). Everything else — a booking COMPLETING, an out-of-band
+// cancellation (admin, system), the stuck-escrow sweep, a resolved dispute —
+// asks this one function, so the three hand-written copies of "was it
+// delivered?" that used to disagree cannot drift again.
+//
+// The rule, for both tracks: the fee pays for the VISIT. It belongs to the
+// artisan once the visit was genuinely delivered, and is the customer's
+// otherwise.
+//   inspection  delivered = the inspection was completed (inspectionDoneAt,
+//               inspection_done / quoted, a quote approved, or completed)
+//   emergency   delivered = the artisan ARRIVED (arrivedAt, or the booking
+//               reached in_progress / awaiting / completed). A quote alone is
+//               not a visit: an emergency quote is sent from 'accepted',
+//               before travel, so cancelling after one refunds the customer.
+//   disputed    held — resolveDispute decides, never a timer or a trigger.
+//   resolved    the administrator's resolution (calloutResolution, else
+//               full_refund → customer, release_artisan → artisan); a partial
+//               resolution with no callout decision is held for an admin.
+//
+// Before this, an emergency fee was settled ONLY on cancellation: completion
+// released the job escrow (kind 'job') and nothing else, so a delivered
+// emergency fee sat held until autoReleaseEscrow found it seven days later.
+//
+// Returns { to: 'artisan'|'customer'|null, hold: boolean, why }.
+// ─────────────────────────────────────────────────────────────────────────────
+function calloutDecision(booking, { event = null, priorStatus = null } = {}) {
+    const b = booking || {};
+    if (!b.calloutPaid || !b.calloutEscrowId || b.calloutSettled) {
+        return { to: null, hold: false, why: 'nothing_to_settle' };
+    }
+    const status = String(b.status || '').toLowerCase();
+    const prior  = String(priorStatus || '').toLowerCase();
+
+    if (status === 'disputed') return { to: null, hold: true, why: 'disputed' };
+    if (status === 'resolved') {
+        if (b.calloutResolution === 'artisan' || b.calloutResolution === 'customer') {
+            return { to: b.calloutResolution, hold: false, why: 'dispute_resolution' };
+        }
+        if (b.resolution === 'full_refund')     return { to: 'customer', hold: false, why: 'dispute_full_refund' };
+        if (b.resolution === 'release_artisan') return { to: 'artisan',  hold: false, why: 'dispute_release' };
+        return { to: null, hold: true, why: 'dispute_needs_callout_decision' };
+    }
+
+    const reached = (list) => list.includes(status) || list.includes(prior);
+    let delivered;
+    if (b.track === 'emergency') {
+        delivered = !!b.arrivedAt || reached(['in_progress', 'awaiting', 'completed']);
+    } else {
+        delivered = !!b.inspectionDoneAt || b.quoteApproved === true ||
+                    reached(['inspection_done', 'quoted', 'completed']);
+    }
+    if (event === 'completed') {
+        return { to: 'artisan', hold: false, why: 'job_completed' };
+    }
+    return delivered
+        ? { to: 'artisan',  hold: false, why: 'visit_delivered' }
+        : { to: 'customer', hold: false, why: 'visit_not_delivered' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Callout settlement helper — release to artisan or refund to customer.
 // settleTo: 'artisan' | 'customer'
 // Never throws — records failures on the booking for the sweeper to retry.
@@ -1017,6 +1081,34 @@ async function checkBookingTimeouts() {
                 if (sweep.onlyInspection && booking.track !== 'inspection') continue;
                 if (sweep.requireUnpaid && booking.calloutPaid) continue;
 
+                // ── An unpriceable quote was not "ghosted" (AR-08) ─────────────
+                // A malformed legacy quote can never be approved, so letting it
+                // expire into a cancellation would pay the callout fee to the
+                // artisan for a decision the customer could not make. Withdraw
+                // it for correction instead — no money moves, no revision used.
+                if (sweep.label === 'quote_expired') {
+                    const quotes = require('./quotes');
+                    const stored = quotes.storedQuoteCheck(booking);
+                    if (!stored.ok) {
+                        try {
+                            await claimBookingTransition(doc.ref, {
+                                authUid: null, party: 'any', fromStatuses: ['quoted'],
+                                patch: quotes.voidQuotePatch(booking, stored.problems),
+                            });
+                            await quotes.notifyQuoteVoided(booking, doc.id);
+                            console.warn(`[pricing] Invalid expired quote voided, not settled: booking=${doc.id} problems=${stored.problems.join(',')}`);
+                        } catch {
+                            console.log(`[pricing] Quote void skipped booking=${doc.id} — status changed before claim.`);
+                        }
+                        continue;
+                    }
+                }
+                // A withdrawn quote restarts the artisan's time to send a new one.
+                if (sweep.label === 'no_quote_submitted' && booking.quoteVoidedAt &&
+                    Date.parse(booking.quoteVoidedAt) > Date.now() - NO_QUOTE_HOURS * 3600000) {
+                    continue;
+                }
+
                 // ── The stale clock starts at the APPOINTMENT, not at payment ─
                 //
                 // These two sweeps ask "has the artisan had long enough to do
@@ -1230,6 +1322,7 @@ module.exports = {
     checkBookingTimeouts,
     seedPricingConfig,
     settleCallout,
+    calloutDecision,
     claimBookingTransition,
     // Exported for tests: reminder idempotency has to be provable without
     // waiting two hours for a real appointment.

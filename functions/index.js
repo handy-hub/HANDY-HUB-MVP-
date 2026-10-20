@@ -606,17 +606,24 @@ exports.onBookingStatusChanged  = bookingsModule.onBookingStatusChanged;
  *   await httpsCallable(functions, 'respondToJobOffer')({ bookingId, decision: 'accept' });
  */
 /**
- * ensureArtisanProfile — a signed-in person without a profile becomes an
- * (unapproved) artisan account, exactly once; customers and admins are refused.
- * The only profile-creation path for Google sign-ups (functions/artisanAccount.js).
+ * artisanAccount — the artisan account actions (functions/artisanAccount.js),
+ * one deployed function because the region's CPU quota is spent:
+ *   { action: 'ensure' }                a signed-in person without a profile
+ *                                       becomes an (unapproved) artisan account,
+ *                                       exactly once; customers/admins refused
+ *   { action: 'requestProfileChange', name?, category?, specialty?, reason }
+ *   { action: 'cancelProfileChange' }   an approved artisan's verified-claim change
+ *   { action: 'reviewProfileChange', artisanId, decision, notes }   admin only
  */
-exports.ensureArtisanProfile = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 30 }, async (request) => {
+exports.artisanAccount = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 30 }, async (request) => {
     _requireAuth(request);
     try {
-        return await require('./artisanAccount').ensureArtisanProfile(request.auth);
+        return await require('./artisanAccount').handleArtisanAccount(request.auth, request.data || {});
     } catch (err) {
         const code = ['customer_account', 'admin_account', 'not_artisan'].includes(err.reason) ? 'permission-denied'
-                   : err.reason === 'no_email' ? 'invalid-argument' : 'failed-precondition';
+                   : ['no_email', 'invalid', 'no_change'].includes(err.reason) ? 'invalid-argument'
+                   : /Unauthorized|Authentication required/.test(err.message) ? 'permission-denied'
+                   : 'failed-precondition';
         throw new HttpsError(code, err.message, err.reason ? { reason: err.reason } : undefined);
     }
 });
@@ -716,6 +723,11 @@ exports.submitJobQuote = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCALE
     try {
         return await quotesModule.submitJobQuote(request.auth, request.data);
     } catch (err) {
+        // invalid_quote: an amount failed shared/js/domain/quoteMoney.js — the
+        // fields say which, so the composer can point at them (AR-08).
+        if (err.reason === 'invalid_quote') {
+            throw new HttpsError('invalid-argument', err.message, { reason: err.reason, fields: err.fields || [] });
+        }
         throw new HttpsError('failed-precondition', err.message);
     }
 });
@@ -727,7 +739,8 @@ exports.approveJobQuote = onCall({ region: FUNCTIONS_REGION, ...USER_FACING_SCAL
     } catch (err) {
         // `reason` lets the app branch without parsing text: insufficient_balance
         // (top up and approve again — nothing moved), escrow_conflict,
-        // quote_changed, artisan_unavailable, funding_missing.
+        // quote_changed, artisan_unavailable, funding_missing, quote_invalid
+        // (a malformed stored quote was withdrawn for correction — AR-08).
         const details = err.reason
             ? { reason: err.reason, needed: err.needed ?? null, available: err.available ?? null }
             : undefined;

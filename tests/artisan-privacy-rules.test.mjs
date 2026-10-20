@@ -306,8 +306,11 @@ await it('an approved artisan cannot CREATE a private record naming a payout acc
         artisanId: APPROVED, payoutAccount: { provider: 'mtn', phone: '0249999999', accountName: 'Attacker' },
     }));
 });
-await it('an approved artisan can still create a private record without payout fields', async () => {
-    await assertSucceeds(setDoc(privApproved(), { artisanId: APPROVED, tin: 'C0012345678' }));
+await it('an approved artisan can still create a private record without payout or identity fields', async () => {
+    // Identity documents (TIN, Ghana Card, DOB) are verified claims and fixed
+    // once approved (AR-10) — the address and emergency contact are not.
+    await assertFails(setDoc(privApproved(), { artisanId: APPROVED, tin: 'C0012345678' }));
+    await assertSucceeds(setDoc(privApproved(), { artisanId: APPROVED, address: '12 Example Street, Accra' }));
 });
 await it('an approved artisan cannot CHANGE their payout account', async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
@@ -320,8 +323,9 @@ await it('an approved artisan cannot CHANGE their payout account', async () => {
     }, { merge: true }));
     await assertFails(setDoc(privApproved(), { momoPhone: '0249999999' }, { merge: true }));
 });
-await it('an approved artisan can still update non-payout private fields', async () => {
-    await assertSucceeds(setDoc(privApproved(), { artisanId: APPROVED, tin: 'C0099999999' }, { merge: true }));
+await it('an approved artisan can still update non-payout, non-identity private fields', async () => {
+    await assertSucceeds(setDoc(privApproved(), { artisanId: APPROVED, emergencyContact: { name: 'Ama', phone: '0240000001' } }, { merge: true }));
+    await assertFails(setDoc(privApproved(), { artisanId: APPROVED, tin: 'C0099999999' }, { merge: true }), 'the TIN is a verified claim');
 });
 await it('an artisan who is not yet approved may still correct their payout account', async () => {
     await assertSucceeds(setDoc(privA(artisanA), {

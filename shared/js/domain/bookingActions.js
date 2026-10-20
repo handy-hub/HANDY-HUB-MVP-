@@ -128,7 +128,9 @@ const TRANSITIONS = {
         from:  ['pending', 'accepted', 'quoted'],
         to:    'cancelled',
         stamp: null,
-        extra: (opts) => ({ cancellationReason: opts.reason || 'Cancelled' }),
+        // Who cancelled is recorded (AR-12): a completion rate can only hold an
+        // artisan to the cancellations they made, never the customer's.
+        extra: (opts) => ({ cancellationReason: opts.reason || 'Cancelled', cancelledBy: opts.actor }),
         actorFrom: { artisan: ['accepted', 'quoted'] },
     },
 };
@@ -272,7 +274,7 @@ export async function performBookingAction(action, opts = {}) {
 
     const payload = { status: spec.to, updatedAt: n };
     if (spec.stamp) payload[spec.stamp] = n;
-    if (spec.extra) Object.assign(payload, spec.extra({ reason }));
+    if (spec.extra) Object.assign(payload, spec.extra({ reason, actor }));
 
     try {
         await databaseService.updateDocument('bookings', bookingId, payload);

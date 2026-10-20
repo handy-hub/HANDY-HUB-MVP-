@@ -520,4 +520,7 @@ module.exports = {
     unbanArtisan,
     backfillSearchKeywords,
     onVerificationSubmitted,
+    // Shared with functions/artisanAccount.js (profile-change review, AR-10).
+    requireAdmin,
+    logAction,
 };

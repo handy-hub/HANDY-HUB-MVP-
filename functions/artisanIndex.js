@@ -52,6 +52,12 @@ const CATEGORY_SYNONYMS = {
     'roofing':    ['roofer', 'roof', 'gutter', 'waterproofing'],
 };
 
+// The trade terms dispatch matches a job against come from the VERIFIED claims
+// only — category and specialty, which an administrator approved and which
+// firestore.rules fixes once an application is submitted (AR-10). The free
+// `skills` list used to be merged in too, so an approved plumber who added
+// "wiring" to their skills started receiving electrical jobs that nobody had
+// verified them for. Skills stay on the profile as a description.
 function _buildSkills(data) {
     const terms = new Set();
     const cat   = (data.category  || '').toLowerCase().trim();
@@ -60,7 +66,6 @@ function _buildSkills(data) {
     if (spec) terms.add(spec);
     const synonyms = CATEGORY_SYNONYMS[cat] || CATEGORY_SYNONYMS[spec] || [];
     synonyms.forEach(s => terms.add(s));
-    (data.skills || []).forEach(s => { if (s) terms.add(String(s).toLowerCase().trim()); });
     return [...terms].filter(Boolean);
 }
 
@@ -87,9 +92,14 @@ function _buildIndexDoc(artisanId, d, lat, lng) {
         status:             d.status              || 'pending',
         verificationStatus: d.verificationStatus  || 'pending',
         rating:             d.rating              ?? 0,
+        reviewCount:        d.reviewCount         ?? 0,
         workRadius:         d.workRadius          ?? 20,
-        responseRate:       d.responseRate        ?? 0.7,
-        completionRate:     d.completionRate      ?? 0.8,
+        // Measured figures only (AR-12): null means "not enough data", which
+        // dispatch scores as neutral (shared/js/domain/performanceMetrics.js).
+        // These used to default to 0.7 / 0.8 here and nothing ever computed
+        // them, so every candidate carried the same constants.
+        responseRate:       d.responseStats && d.responseStats.sufficient ? d.responseStats.rate : null,
+        completionRate:     null,   // not yet measured server-side — see performanceMetrics.js
         // Display fields — avoids a Phase 2 fetch in dispatch for the notification body
         name:               d.name               || 'Professional',
         profileImage:       d.profileImage        || null,
@@ -196,4 +206,4 @@ async function runBackfill() {
     return { processed, skipped, errors, total: snap.size };
 }
 
-module.exports = { syncArtisanIndex, runBackfill, _positionFor };
+module.exports = { syncArtisanIndex, runBackfill, _positionFor, _buildIndexDoc, _buildSkills };

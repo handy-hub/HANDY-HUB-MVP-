@@ -4,8 +4,8 @@
  * CommonJS mirror of shared/js/domain/bookingSchedule.js, produced by
  * scripts/build-functions-shared.cjs so the Cloud Functions runtime (which
  * only receives the functions/ directory, and cannot import an ES module)
- * decides appointments with exactly the same rules and the same numbers as
- * the browser and firestore.rules.
+ * decides with exactly the same rules and the same numbers as the browser
+ * (and, for appointments, firestore.rules).
  *
  * Edit the source module and re-run:  node scripts/build-functions-shared.cjs
  * `npm run lint` fails if this file has drifted from its source.

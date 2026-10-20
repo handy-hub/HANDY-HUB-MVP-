@@ -280,11 +280,23 @@ async function settleStuckCallout(escrowId, escrowData, baseResult) {
         return { ...baseResult, outcome: 'already_processed' };
     }
 
-    const delivered = ['inspection_done', 'quoted', 'completed'].includes((booking.status || '').toLowerCase())
-                   || !!booking.quoteApproved;
-    const settleTo  = delivered ? 'artisan' : 'customer';
-    const ok = await pricing.settleCallout(booking, bookingId, settleTo, 'auto_release_stuck_callout');
-    return { ...baseResult, outcome: !ok ? 'already_processed' : settleTo === 'artisan' ? 'released' : 'refunded' };
+    // The hold succeeded but the booking was never stamped (payEmergencyCallout
+    // / payCalloutFee write calloutPaid only AFTER the hold, and that write can
+    // fail). The escrow is the evidence the money is held; without this,
+    // settleCallout saw calloutPaid:false, did nothing, and the escrow stayed
+    // held forever while every run reported it settled.
+    const view = { ...booking, calloutPaid: true, calloutEscrowId: booking.calloutEscrowId || escrowId };
+
+    // One decision for every path (pricing.calloutDecision, AR-07). A disputed
+    // booking is held for resolveDispute — before this, the sweep treated
+    // 'disputed' as "not delivered" and refunded the customer after 7 days
+    // without anyone looking at the dispute.
+    const decision = pricing.calloutDecision(view, {});
+    if (decision.hold || !decision.to) {
+        return { ...baseResult, outcome: 'held_for_dispute' };
+    }
+    const ok = await pricing.settleCallout(view, bookingId, decision.to, 'auto_release_stuck_callout');
+    return { ...baseResult, outcome: !ok ? 'settle_failed_retry' : decision.to === 'artisan' ? 'released' : 'refunded' };
 }
 
 // ── Batch processor ────────────────────────────────────────────────────────────
@@ -529,6 +541,15 @@ async function runAutoRelease() {
                             console.log(
                                 `[auto-release] ⏸ Held       escrow ${escrowId} — booking ` +
                                 `${bookingId} is disputed; awaiting resolveDispute.`
+                            );
+                            break;
+                        case 'settle_failed_retry':
+                            // settleCallout flagged calloutSettlePending; the hourly
+                            // checkBookingTimeouts retry owns it from here.
+                            stats.failed++;
+                            console.warn(
+                                `[auto-release] ↻ Callout settlement failed for escrow ${escrowId} ` +
+                                `(booking ${bookingId}) — flagged for the hourly retry.`
                             );
                             break;
                         default:

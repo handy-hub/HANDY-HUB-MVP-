@@ -63,7 +63,7 @@ const VALID_RESOLUTIONS = new Set(['full_refund', 'release_artisan', 'partial_re
  *                                         the portion (GHS) returned to the customer;
  *                                         the remainder (minus commission) goes to the artisan.
  */
-async function resolveDispute(auth, { bookingId, resolution, notes, customerAmount } = {}) {
+async function resolveDispute(auth, { bookingId, resolution, notes, customerAmount, calloutTo } = {}) {
     if (!(await isAdminAuth(auth))) throw new Error('Unauthorized: admin access only.');
     if (!bookingId)  throw new Error('"bookingId" is required.');
     if (!notes)      throw new Error('"notes" is required to resolve a dispute.');
@@ -93,16 +93,42 @@ async function resolveDispute(auth, { bookingId, resolution, notes, customerAmou
         .limit(5)
         .get();
     const escrowDoc = escrowQuery.docs.find(d => (d.data().kind || 'job') === 'job');
-    if (!escrowDoc) {
+
+    // ── The callout fee, if it is still held (AR-07) ─────────────────────────
+    // An emergency job's callout is held until the job completes, so a dispute
+    // can find it unsettled — and on an emergency job with no quote it is the
+    // ONLY money. This used to throw "No held/disputed escrow" for such a
+    // booking (unresolvable), while the stuck-escrow sweep refunded the callout
+    // after 7 days without anyone looking at the dispute. The administrator now
+    // decides it here, through settleCallout (the single callout path).
+    const calloutHeld = !!(booking.calloutPaid && booking.calloutEscrowId && !booking.calloutSettled);
+    if (!escrowDoc && calloutHeld && resolution === 'partial_refund') {
+        throw new Error('This booking holds only the callout fee, which is settled whole — choose a full refund or release to the artisan.');
+    }
+    let calloutDecisionTo = null;
+    if (calloutHeld) {
+        if (calloutTo !== undefined && calloutTo !== null && !['artisan', 'customer'].includes(calloutTo)) {
+            throw new Error('"calloutTo" must be "artisan" or "customer".');
+        }
+        calloutDecisionTo = calloutTo
+            || (resolution === 'full_refund' ? 'customer' : resolution === 'release_artisan' ? 'artisan' : null);
+        if (!calloutDecisionTo) {
+            throw new Error('This booking also holds a callout fee. Choose who it goes to (calloutTo: "artisan" or "customer").');
+        }
+    }
+
+    if (!escrowDoc && !calloutHeld) {
         throw new Error('No held/disputed escrow record found for this booking — cannot resolve financially.');
     }
-    const escrowId = escrowDoc.id;
+    const escrowId = escrowDoc ? escrowDoc.id : null;
 
     const customerId = booking.customerId;
     const artisanId  = booking.artisanId;
     const adminEmail = auth.token?.email || auth.uid;
 
-    if (resolution === 'full_refund') {
+    if (!escrowId) {
+        // Callout-only booking: nothing but the callout below to settle.
+    } else if (resolution === 'full_refund') {
         await refundEscrow(escrowId, {
             reason:     `Dispute resolved (admin): ${notes}`,
             refundedBy: adminEmail,
@@ -121,10 +147,18 @@ async function resolveDispute(auth, { bookingId, resolution, notes, customerAmou
         await _partialRefund(firestore, escrowId, { customerAmount, notes, adminEmail });
     }
 
+    // Never throws: a failure flags calloutSettlePending for the hourly retry,
+    // and calloutResolution (below) records the administrator's decision, which
+    // pricing.calloutDecision honours for any later settlement attempt.
+    if (calloutHeld) {
+        await require('./pricing').settleCallout(booking, bookingId, calloutDecisionTo, `dispute_${resolution}`);
+    }
+
     // ── Close the booking's dispute state ──────────────────────────────────────
     await bookingRef.update({
         status:          'resolved',
         resolution,
+        ...(calloutHeld ? { calloutResolution: calloutDecisionTo } : {}),
         resolutionNotes: notes,
         resolvedAt:       FieldValue.serverTimestamp(),
         resolvedBy:       adminEmail,

@@ -227,11 +227,19 @@ await t('an artisan who is no longer active blocks the approval before any money
     assertFundingInvariant('artisan unavailable');
 });
 
-await t('an invalid quote (NaN, zero) is refused', async () => {
+await t('an invalid quote (NaN, zero) is refused — and withdrawn for correction, no money moved', async () => {
+    // AR-08: an unpriceable stored quote is voided (back to the quoting state,
+    // no revision used) rather than left for a rejection or expiry to settle.
     for (const quote of [NaN, 0, -5, 'abc']) {
         seed({ quote });
-        await rejects(() => quotes.approveJobQuote(AUTH, { bookingId: ID }), /no valid quote/i);
+        const e = await rejects(() => quotes.approveJobQuote(AUTH, { bookingId: ID }), /invalid amounts/i);
+        assert.strictEqual(e.reason, 'quote_invalid');
         assert.strictEqual(customer().walletBalance, 1000);
+        const b = fake.db._get(`bookings/${ID}`);
+        assert.notStrictEqual(b.status, 'quoted', `quote ${quote} must be withdrawn`);
+        assert.strictEqual(b.jobQuote, undefined);
+        assert.strictEqual(b.quoteVoidReason, 'invalid_amounts');
+        assert.strictEqual(Number(b.quoteRevisionCount || 0), 0, 'no revision used up');
         assertFundingInvariant(`quote ${quote}`);
     }
 });

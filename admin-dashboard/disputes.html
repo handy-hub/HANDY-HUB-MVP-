@@ -222,6 +222,16 @@
           <input type="number" id="partial-amount" min="0" step="0.01" class="notes-area" style="height:44px;border-radius:10px;" placeholder="e.g. 50.00" />
         </div>
 
+        <!-- Callout fee still held (shown only when it is) — settled whole, by this choice -->
+        <div id="callout-wrap" style="display:none;margin-bottom:12px;">
+          <label for="callout-to" style="font-size:12px;font-weight:600;color:var(--text-dark);display:block;margin-bottom:6px;">Callout fee <span id="callout-amt"></span> goes to</label>
+          <select id="callout-to" class="notes-area" style="height:44px;border-radius:10px;">
+            <option value="">Choose…</option>
+            <option value="customer">Customer (refund)</option>
+            <option value="artisan">Artisan (visit was delivered)</option>
+          </select>
+        </div>
+
         <label style="font-size:12px;font-weight:600;color:var(--text-dark);display:block;margin-bottom:6px;">Admin Notes <span style="font-weight:400;color:var(--text-light);">(required)</span></label>
         <textarea class="notes-area" id="rm-notes" placeholder="Explain your resolution decision…"></textarea>
       </div>
@@ -337,6 +347,13 @@ window.openDispute = function(id) {
   document.getElementById('rm-submit-btn').disabled=true;
   document.getElementById('partial-wrap').style.display='none';
 
+  // A callout fee the booking still holds is decided here too (AR-07): on an
+  // emergency job with no quote it is the only money in the dispute.
+  const calloutHeld = !!(d.calloutPaid && d.calloutEscrowId && !d.calloutSettled);
+  document.getElementById('callout-wrap').style.display = calloutHeld ? 'block' : 'none';
+  document.getElementById('callout-to').value = '';
+  document.getElementById('callout-amt').textContent = calloutHeld && d.calloutFee ? `(GHS ${Number(d.calloutFee).toFixed(2)})` : '';
+
   document.getElementById('rm-booking').textContent=(d.bookingId||d.id||'—').slice(0,14).toUpperCase();
   document.getElementById('rm-customer').textContent=d.customerName||d.customerId||'—';
   document.getElementById('rm-artisan').textContent=d.artisanName||d.artisanId||'—';
@@ -372,14 +389,22 @@ window.selectResolution = function(res) {
   selectedResolution=res;
   document.querySelectorAll('.res-option').forEach(o=>o.classList.toggle('selected',o.dataset.res===res));
   document.getElementById('partial-wrap').style.display=res==='partial_refund'?'block':'none';
+  // Default the callout to follow a whole-amount resolution; a split needs an explicit choice.
+  const sel=document.getElementById('callout-to');
+  if(document.getElementById('callout-wrap').style.display!=='none'){
+    sel.value = res==='full_refund' ? 'customer' : res==='release_artisan' ? 'artisan' : '';
+  }
   checkCanSubmit();
 };
 
 document.getElementById('rm-notes').addEventListener('input',checkCanSubmit);
+document.getElementById('callout-to').addEventListener('change',checkCanSubmit);
 function checkCanSubmit(){
   const hasRes=!!selectedResolution;
   const hasNotes=document.getElementById('rm-notes').value.trim().length>0;
-  document.getElementById('rm-submit-btn').disabled=!(hasRes&&hasNotes);
+  const needsCallout=document.getElementById('callout-wrap').style.display!=='none';
+  const hasCallout=!needsCallout||!!document.getElementById('callout-to').value;
+  document.getElementById('rm-submit-btn').disabled=!(hasRes&&hasNotes&&hasCallout);
 }
 
 window.closeRM=()=>document.getElementById('rm-overlay').classList.remove('open');
@@ -403,6 +428,9 @@ window.submitResolution = async function() {
     const payload = { bookingId, resolution: selectedResolution, notes };
     if (selectedResolution === 'partial_refund') {
       payload.customerAmount = parseFloat(document.getElementById('partial-amount').value) || 0;
+    }
+    if (document.getElementById('callout-wrap').style.display !== 'none') {
+      payload.calloutTo = document.getElementById('callout-to').value;
     }
     await callAdminFunction('resolveDispute', payload);
 

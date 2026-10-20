@@ -696,6 +696,16 @@
         </div>
       </div>
 
+      <!-- ── Profile change requests (AR-10) ───────────────
+           An approved artisan's request to change a verified name or trade.
+           Nothing changes on their profile until it is approved here. -->
+      <div id="pcr-panel" style="display:none;margin-bottom:16px;">
+        <div class="verif-stat" style="text-align:left;padding:14px 16px;">
+          <div class="verif-stat-lbl" style="margin-bottom:10px;">Profile change requests</div>
+          <div id="pcr-list"></div>
+        </div>
+      </div>
+
       <!-- ── Toolbar ────────────────────────────────────── -->
       <div class="table-toolbar" style="margin-bottom:16px;">
         <div class="filter-chips" id="filter-chips">
@@ -962,7 +972,48 @@ let unsubVerif     = null;
 /* ── Init ────────────────────────────────────────────── */
 function init() {
   subscribeVerifications();
+  subscribeProfileChanges();
 }
+
+/* ── Profile change requests (AR-10) ─────────────────────
+ * Reviewed through the artisanAccount callable (functions/artisanAccount.js):
+ * approving applies the stored values to the profile and the verification
+ * record in one transaction and logs it; rejecting sends the artisan the
+ * reason. A change that needs fresh documents is a re-verification instead —
+ * use "Request info" on the artisan's verification. */
+const pcrEsc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let pendingChanges = [];
+function subscribeProfileChanges() {
+  onSnapshot(query(collection(db, 'profile_change_requests'), where('status', '==', 'pending')), snap => {
+    pendingChanges = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderProfileChanges();
+  }, err => console.error('profile change subscription error:', err));
+}
+function renderProfileChanges() {
+  const panel = document.getElementById('pcr-panel');
+  panel.style.display = pendingChanges.length ? '' : 'none';
+  const label = { name: 'Name', category: 'Trade', specialty: 'Specialty' };
+  document.getElementById('pcr-list').innerHTML = pendingChanges.map(r => `
+    <div style="border-top:1px solid var(--border, #eee);padding:10px 0;">
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">${pcrEsc(r.artisanId)} · ${pcrEsc((r.createdAt || '').slice(0, 16).replace('T', ' '))}</div>
+      ${(r.fields || []).map(f => `<div style="font-size:13px;"><strong>${label[f] || pcrEsc(f)}:</strong>
+        ${pcrEsc(r.current?.[f] ?? '—')} → <strong>${pcrEsc(r.requested?.[f])}</strong></div>`).join('')}
+      <div style="font-size:12px;margin:6px 0;">Reason: ${pcrEsc(r.reason)}</div>
+      <textarea id="pcr-notes-${pcrEsc(r.id)}" class="notes-textarea" placeholder="Notes (required to reject)" style="min-height:44px;margin-bottom:8px;"></textarea>
+      <button class="btn btn-sm btn-primary" onclick="reviewProfileChange('${pcrEsc(r.id)}','approve')">Approve change</button>
+      <button class="btn btn-sm" onclick="reviewProfileChange('${pcrEsc(r.id)}','reject')">Reject</button>
+    </div>`).join('');
+}
+window.reviewProfileChange = async (artisanId, decision) => {
+  const notes = (document.getElementById(`pcr-notes-${artisanId}`)?.value || '').trim();
+  try {
+    await callAdminFunction('artisanAccount', { action: 'reviewProfileChange', artisanId, decision, notes });
+    showToast(decision === 'approve' ? 'Change approved and applied.' : 'Change rejected — the artisan has been told why.', 'success');
+  } catch (e) {
+    showToast('Error: ' + (e.message || e), 'error');
+  }
+};
 
 /* ── Real-time subscription ──────────────────────────── */
 function subscribeVerifications() {

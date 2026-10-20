@@ -85,11 +85,80 @@ function buildOfferDoc(booking, { bookingId, artisanId, expiresAtMs = null, roun
 
 const offerRef = (bookingId) => db().collection('job_offers').doc(bookingId);
 
-/** Close the booking's offer (in a transaction when one is given). Never throws for a missing offer. */
-function closeOffer(txn, bookingId, outcome) {
-    const patch = { offerStatus: outcome, closedAt: nowIso() };
-    if (txn) { txn.set(offerRef(bookingId), patch, { merge: true }); return null; }
-    return offerRef(bookingId).set(patch, { merge: true }).catch(() => {});
+// ── Offer events: the source of the response rate (AR-12) ────────────────────
+// job_offers/{bookingId} is ONE document per booking, overwritten round by
+// round, so it cannot say how an artisan answered past offers. Every close now
+// also writes offer_events/{bookingId}_{round}_{artisanId} in the SAME
+// transaction: the id is deterministic, so a retried or duplicated close
+// rewrites the same record instead of counting twice, and only offers create
+// events. shared/js/domain/performanceMetrics.js defines what they count for.
+function offerEventRef(bookingId, offer) {
+    const round = offer && offer.round != null ? offer.round : 'p';
+    return db().collection('offer_events').doc(`${bookingId}_${round}_${offer.artisanId}`);
+}
+function offerEventDoc(bookingId, offer, outcome, closedAt) {
+    const offeredMs = Date.parse(offer.offeredAt);
+    const closedMs  = Date.parse(closedAt);
+    return {
+        bookingId,
+        artisanId:   offer.artisanId,
+        round:       offer.round ?? null,
+        prematched:  !!offer.prematched,
+        outcome,
+        offeredAt:   offer.offeredAt || null,
+        expiresAtMs: Number.isFinite(offer.expiresAtMs) ? offer.expiresAtMs : null,
+        closedAt,
+        responseMs:  ['accepted', 'declined'].includes(outcome) && Number.isFinite(offeredMs) && Number.isFinite(closedMs)
+            ? Math.max(0, closedMs - offeredMs) : null,
+    };
+}
+
+/**
+ * Close the booking's offer and record how it ended. `offer` is the offer as
+ * read in the same transaction; it is closed only while still open, so a late
+ * "withdrawn" can never overwrite an accepted or expired outcome. Without a
+ * transaction, one is run. Never throws for a missing offer.
+ */
+function closeOffer(txn, bookingId, outcome, offer = null) {
+    if (txn) {
+        const n = nowIso();
+        txn.set(offerRef(bookingId), { offerStatus: outcome, closedAt: n }, { merge: true });
+        if (offer && offer.artisanId && offer.offerStatus === 'open') {
+            txn.set(offerEventRef(bookingId, offer), offerEventDoc(bookingId, offer, outcome, n));
+        }
+        return null;
+    }
+    return db().runTransaction(async (t) => {
+        const snap = await t.get(offerRef(bookingId));
+        if (!snap.exists || snap.data().offerStatus !== 'open') return false;
+        closeOffer(t, bookingId, outcome, snap.data());
+        return true;
+    }).catch(() => false);
+}
+
+/**
+ * Recompute an artisan's response figures from their offer events and store
+ * them on the profile (server-only fields; syncArtisanIndex carries the rate to
+ * dispatch). A full recompute, not an increment: it is idempotent, and a
+ * failed refresh is repaired by the next one. Never throws.
+ */
+async function refreshResponseStats(artisanId) {
+    if (!artisanId) return null;
+    try {
+        const { computeResponseStats, RESPONSE_RATE_POLICY } = require('./shared/performanceMetrics');
+        const fromIso = new Date(Date.now() - RESPONSE_RATE_POLICY.windowDays * 86400000).toISOString();
+        const snap = await db().collection('offer_events')
+            .where('artisanId', '==', artisanId)
+            .where('closedAt', '>=', fromIso)
+            .get();
+        const stats = computeResponseStats(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const responseStats = { ...stats, computedAt: nowIso() };
+        await db().collection('artisans').doc(artisanId).update({ responseStats, responseRate: stats.rate });
+        return responseStats;
+    } catch (err) {
+        console.error(`[jobOffers] Response stats refresh failed artisan=${artisanId}:`, err.message);
+        return null;
+    }
 }
 
 function offerError(reason, message) {
@@ -121,7 +190,7 @@ async function respondToJobOffer(auth, { bookingId, decision } = {}) {
     const bookingRef = db().collection('bookings').doc(bookingId);
     const artisanRef = db().collection('artisans').doc(uid);
 
-    return db().runTransaction(async (txn) => {
+    const result = await db().runTransaction(async (txn) => {
         const [offerSnap, bookingSnap, artisanSnap] = await Promise.all([
             txn.get(offerRef(bookingId)), txn.get(bookingRef), txn.get(artisanRef),
         ]);
@@ -147,7 +216,7 @@ async function respondToJobOffer(auth, { bookingId, decision } = {}) {
         const n = nowIso();
         if (decision === 'decline') {
             txn.update(bookingRef, { status: 'rejected', rejectedAt: n, updatedAt: n });
-            txn.set(offerRef(bookingId), { offerStatus: 'declined', closedAt: n }, { merge: true });
+            closeOffer(txn, bookingId, 'declined', offer);
             return { status: 'rejected' };
         }
 
@@ -161,9 +230,11 @@ async function respondToJobOffer(auth, { bookingId, decision } = {}) {
             acceptedAt: n,
             updatedAt:  n,
         });
-        txn.set(offerRef(bookingId), { offerStatus: 'accepted', closedAt: n }, { merge: true });
+        closeOffer(txn, bookingId, 'accepted', offer);
         return { status: 'accepted' };
     });
+    await refreshResponseStats(uid);
+    return result;
 }
 
 /**
@@ -179,6 +250,8 @@ module.exports = {
     buildOfferDoc,
     closeOffer,
     offerRef,
+    offerEventRef,
     contactRef,
     respondToJobOffer,
+    refreshResponseStats,
 };

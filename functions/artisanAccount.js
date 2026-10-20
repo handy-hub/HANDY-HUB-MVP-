@@ -105,4 +105,181 @@ async function ensureArtisanProfile(auth) {
     return { ...outcome, emailVerified: token.email_verified === true };
 }
 
-module.exports = { ensureArtisanProfile, baseArtisanProfile };
+// ─────────────────────────────────────────────────────────────────────────────
+// Changing a VERIFIED claim (AR-10, 2026-10-20)
+//
+// An administrator approves an artisan's name (matched to their Ghana Card)
+// and trade (which decides the jobs dispatch offers them). The profile page
+// used to write both directly, so an approved plumber could rename themselves
+// or become an "electrician" and start receiving electrical jobs with no one
+// checking. firestore.rules now fixes those fields while an application is
+// under review or decided (isSafeArtisanClaimUpdate); this is how an approved
+// artisan changes them instead:
+//
+//   requestProfileChange  the artisan proposes new values and says why; the
+//                         request is stored for review, and the profile shows
+//                         it as pending. They keep working under the claims
+//                         that were verified — nothing changes until review.
+//   cancelProfileChange   the artisan withdraws a pending request.
+//   reviewProfileChange   an administrator approves (the new values are
+//                         applied to the profile and the verification record,
+//                         in one transaction, and logged) or rejects (with a
+//                         reason the artisan sees). A change that needs fresh
+//                         documents is a re-verification: requestMoreInfo.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The trades onboarding offers — keep in step with artisan-app/onboarding.html #category.
+const ARTISAN_TRADES = Object.freeze([
+    'Plumbing', 'Electrical', 'Carpentry', 'Painting', 'Tiling', 'AC', 'Roofing',
+    'Welding', 'Cleaning', 'Moving', 'Landscaping', 'Security',
+]);
+const CLAIM_FIELDS = Object.freeze(['name', 'category', 'specialty']);
+
+const changeRef = (uid) => db().collection('profile_change_requests').doc(uid);
+
+/** Validate a proposed change against the current profile. Pure. */
+function validateProfileChange(current, proposed) {
+    const p = proposed && typeof proposed === 'object' ? proposed : {};
+    const requested = {};
+    if (p.name !== undefined) {
+        const name = typeof p.name === 'string' ? p.name.trim().replace(/\s+/g, ' ') : '';
+        if (name.length < 2 || name.length > 80 || !/^[\p{L}][\p{L}\p{M} .'-]*$/u.test(name)) {
+            throw accountError('invalid', 'Enter your full name as it appears on your Ghana Card (letters only).');
+        }
+        if (name !== String(current.name || '').trim()) requested.name = name;
+    }
+    if (p.category !== undefined) {
+        const trade = ARTISAN_TRADES.find((t) => t.toLowerCase() === String(p.category || '').trim().toLowerCase());
+        if (!trade) throw accountError('invalid', 'Choose one of the listed trades.');
+        if (trade.toLowerCase() !== String(current.category || '').trim().toLowerCase()) requested.category = trade;
+    }
+    if (p.specialty !== undefined) {
+        const specialty = typeof p.specialty === 'string' ? p.specialty.trim().replace(/\s+/g, ' ') : '';
+        if (specialty.length < 2 || specialty.length > 60) {
+            throw accountError('invalid', 'Describe your specialty in 2 to 60 characters.');
+        }
+        if (specialty !== String(current.specialty || '').trim()) requested.specialty = specialty;
+    }
+    if (!Object.keys(requested).length) {
+        throw accountError('no_change', 'Nothing to change — these are already your verified details.');
+    }
+    const reason = typeof p.reason === 'string' ? p.reason.trim() : '';
+    if (reason.length < 10 || reason.length > 500) {
+        throw accountError('invalid', 'Tell us why in 10 to 500 characters, so the reviewer can check it.');
+    }
+    return { requested, reason };
+}
+
+async function requestProfileChange(auth, data = {}) {
+    if (!auth || !auth.uid) throw accountError('unauthenticated', 'Sign in first.');
+    const uid = auth.uid;
+    const artisanRef = db().collection('artisans').doc(uid);
+    const n = new Date().toISOString();
+    return db().runTransaction(async (txn) => {
+        const [a, existing] = await Promise.all([txn.get(artisanRef), txn.get(changeRef(uid))]);
+        if (!a.exists || a.data().userType !== 'artisan') throw accountError('not_artisan', 'No artisan profile found.');
+        const current = a.data();
+        const vs = current.verificationStatus || 'draft';
+        if (['draft', 'rejected', 're_verification_required'].includes(vs)) {
+            throw accountError('editable', 'Your application is not under review — edit these details directly in onboarding.');
+        }
+        if (vs !== 'approved') {
+            throw accountError('under_review', 'Your details are being reviewed. You can request a change once the review is complete.');
+        }
+        if (existing.exists && existing.data().status === 'pending') {
+            throw accountError('pending', 'You already have a change waiting for review. Withdraw it first to send a different one.');
+        }
+        const { requested, reason } = validateProfileChange(current, data);
+        const fields = Object.keys(requested);
+        const before = {};
+        fields.forEach((f) => { before[f] = current[f] ?? null; });
+        txn.set(changeRef(uid), {
+            artisanId: uid, status: 'pending', fields, current: before, requested, reason,
+            createdAt: n, updatedAt: n, reviewedAt: null, reviewedBy: null, reviewNotes: null,
+        });
+        txn.update(artisanRef, { pendingProfileChange: { fields, requestedAt: n }, updatedAt: n });
+        return { status: 'pending', fields };
+    });
+}
+
+async function cancelProfileChange(auth) {
+    if (!auth || !auth.uid) throw accountError('unauthenticated', 'Sign in first.');
+    const uid = auth.uid;
+    const n = new Date().toISOString();
+    return db().runTransaction(async (txn) => {
+        const r = await txn.get(changeRef(uid));
+        if (!r.exists || r.data().status !== 'pending') throw accountError('none', 'There is no pending change to withdraw.');
+        txn.update(changeRef(uid), { status: 'withdrawn', updatedAt: n });
+        txn.update(db().collection('artisans').doc(uid), { pendingProfileChange: null, updatedAt: n });
+        return { status: 'withdrawn' };
+    });
+}
+
+async function reviewProfileChange(auth, { artisanId, decision, notes = '' } = {}) {
+    const verification = require('./artisanVerification');
+    await verification.requireAdmin(auth);
+    if (!artisanId || typeof artisanId !== 'string') throw accountError('invalid', '"artisanId" is required.');
+    if (decision !== 'approve' && decision !== 'reject') throw accountError('invalid', 'decision must be approve or reject.');
+    const reviewNotes = typeof notes === 'string' ? notes.trim().slice(0, 500) : '';
+    if (decision === 'reject' && reviewNotes.length < 5) {
+        throw accountError('invalid', 'Give the artisan a reason when rejecting a change.');
+    }
+    const reviewer = auth.token?.email || auth.uid;
+    const artisanRef = db().collection('artisans').doc(artisanId);
+    const requestRef = db().collection('verification_requests').doc(artisanId);
+    const n = new Date().toISOString();
+
+    const result = await db().runTransaction(async (txn) => {
+        const [r, a, vr] = await Promise.all([txn.get(changeRef(artisanId)), txn.get(artisanRef), txn.get(requestRef)]);
+        if (!r.exists || r.data().status !== 'pending') throw accountError('none', 'This change request is no longer pending.');
+        if (!a.exists) throw accountError('not_artisan', 'Artisan not found.');
+        const req = r.data();
+        const lastProfileChange = { status: decision === 'approve' ? 'approved' : 'rejected', fields: req.fields,
+                                    notes: reviewNotes || null, reviewedAt: n };
+        if (decision === 'reject') {
+            txn.update(changeRef(artisanId), { status: 'rejected', reviewedAt: n, reviewedBy: reviewer, reviewNotes, updatedAt: n });
+            txn.update(artisanRef, { pendingProfileChange: null, lastProfileChange, updatedAt: n });
+            return { status: 'rejected', fields: req.fields };
+        }
+        // The values reviewed are the values stored on the request — never
+        // re-read from the client — and they must still be valid now.
+        const { requested } = validateProfileChange(a.data(), { ...req.requested, reason: req.reason });
+        const patch = { ...requested, pendingProfileChange: null, lastProfileChange, updatedAt: n };
+        if (requested.name) patch.fullName = requested.name;
+        txn.update(artisanRef, patch);
+        if (vr.exists) {
+            const vrPatch = { updatedAt: n };
+            if (requested.name) { vrPatch.name = requested.name; vrPatch.fullName = requested.name; }
+            if (requested.category) vrPatch.category = requested.category;
+            if (requested.specialty) vrPatch.specialty = requested.specialty;
+            txn.update(requestRef, vrPatch);
+        }
+        txn.update(changeRef(artisanId), { status: 'approved', reviewedAt: n, reviewedBy: reviewer, reviewNotes, updatedAt: n });
+        return { status: 'approved', fields: Object.keys(requested) };
+    });
+
+    await verification.logAction(db(), artisanId, `profile_change_${result.status}`, auth.token?.email || '', auth.uid,
+        `${result.fields.join(', ')}${reviewNotes ? ` — ${reviewNotes}` : ''}`);
+    return result;
+}
+
+/**
+ * The artisanAccount callable: one deployed function for the account actions
+ * above (the region's CPU quota is spent — tests/functions-capacity.test.cjs).
+ */
+async function handleArtisanAccount(auth, data = {}) {
+    const action = (data && data.action) || 'ensure';
+    switch (action) {
+        case 'ensure':               return ensureArtisanProfile(auth);
+        case 'requestProfileChange': return requestProfileChange(auth, data);
+        case 'cancelProfileChange':  return cancelProfileChange(auth);
+        case 'reviewProfileChange':  return reviewProfileChange(auth, data);
+        default: throw accountError('invalid', `Unknown action "${action}".`);
+    }
+}
+
+module.exports = {
+    ensureArtisanProfile, baseArtisanProfile,
+    requestProfileChange, cancelProfileChange, reviewProfileChange, validateProfileChange,
+    handleArtisanAccount, ARTISAN_TRADES,
+};

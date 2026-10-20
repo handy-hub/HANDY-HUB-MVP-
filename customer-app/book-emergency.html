@@ -1520,7 +1520,7 @@ body {
   };
 
   window.confirmCancel = function () {
-    if (confirm('Cancel this booking? A fee may apply if the professional is already on the way.')) {
+    if (confirm('Cancel this booking? Any emergency fee you paid is refunded to your wallet.')) {
       clearInterval(etaInterval); cleanupSubs();
       import('../shared/js/app/container.js')
         .then(mod => mod.getAppContainer().repositories.bookingRepository.updateStatus(bookRef, 'cancelled'))

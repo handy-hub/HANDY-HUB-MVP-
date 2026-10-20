@@ -324,6 +324,14 @@
         { "fieldPath": "email",  "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "offer_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "artisanId", "order": "ASCENDING" },
+        { "fieldPath": "closedAt",  "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

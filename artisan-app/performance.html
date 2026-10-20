@@ -125,6 +125,10 @@
 import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+// The definitions behind every figure on this page, shared with the server
+// that computes them and with dispatch (AR-12).
+import { computeCompletionStats, RESPONSE_RATE_POLICY, COMPLETION_RATE_POLICY, MIN_REVIEWS_FOR_RATING }
+                              from '../shared/js/domain/performanceMetrics.js';
 
 const { user } = await requireArtisanAuth({ allowPending: true });
 const { services: { databaseService } } = getAppContainer();
@@ -174,21 +178,33 @@ function render() {
   const filteredRevs = _reviews.filter(r => inPeriod(r.data.createdAt));
 
   const jobs     = filtered.length;
-  const earnings = filtered.reduce((s,b) => s + Number(b.data.finalPrice ?? b.data.price ?? 0), 0);
   const allJobs  = allCompleted.length;
   const rating   = _reviews.length ? (_reviews.reduce((s,r) => s + (r.data.rating||0), 0) / _reviews.length) : 0;
   const periodRating = filteredRevs.length ? (filteredRevs.reduce((s,r) => s + (r.data.rating||0), 0) / filteredRevs.length) : 0;
+  // Earnings are the wallet ledger's figure (server-maintained). Summing
+  // booking prices counted what customers paid, commission included, and read
+  // 0 for quoted jobs whose price lives in jobQuote.
+  const totalEarned = Number(_artisan.totalEarned ?? 0);
 
-  // Response rate from artisan doc
-  const responseRate = Number(_artisan.responseRate || 0);
-  const completionRate = allJobs + _bookings.filter(b => b.data.status === 'cancelled').length > 0
-    ? Math.round(allJobs / (allJobs + _bookings.filter(b => b.data.status === 'cancelled').length) * 100)
-    : 100;
+  // Response rate: computed by the server from offer events (offer_events) —
+  // null until there are enough offers to say anything (performanceMetrics.js).
+  const rs = _artisan.responseStats || null;
+  const response = rs && rs.sufficient && typeof rs.rate === 'number'
+    ? { pct: Math.round(rs.rate * 100), sub: `${rs.responded} of ${rs.counted} job requests answered before they expired · last ${rs.windowDays} days` }
+    : { pct: null, sub: `Not enough job requests yet — shown after ${RESPONSE_RATE_POLICY.minOffers} in ${RESPONSE_RATE_POLICY.windowDays} days` +
+                        (rs && rs.counted ? ` (${rs.counted} so far)` : '') + '.' };
+
+  // Completion rate: jobs completed vs jobs YOU cancelled. A customer's
+  // cancellation is not yours and is left out.
+  const cs = computeCompletionStats(_bookings.map(b => b.data));
+  const completion = cs.sufficient
+    ? { pct: Math.round(cs.rate * 100), sub: `${cs.completed} completed, ${cs.cancelledByArtisan} cancelled by you` }
+    : { pct: null, sub: `Shown after ${COMPLETION_RATE_POLICY.minEnded} finished jobs (${cs.ended} so far). Cancellations by customers don't count.` };
 
   // Score cards
   document.getElementById('pf-score-grid').innerHTML = [
     { label:'Jobs Done',  value:jobs,                icon:ICON.clipboard, unit:'',     delta: jobs > 0 ? '+' + jobs : '0 this period' },
-    { label:'Earnings',   value:'GHS '+earnings.toFixed(0), icon:ICON.wallet, unit:'', delta: jobs > 0 ? 'from '+jobs+' jobs' : 'No jobs yet' },
+    { label:'Earned',     value:'GHS '+totalEarned.toFixed(0), icon:ICON.wallet, unit:'', delta: 'all time, after commission' },
     { label:'Avg Rating', value:periodRating > 0 ? periodRating.toFixed(1) : '—', icon:ICON.star, unit:'', delta: filteredRevs.length + ' review' + (filteredRevs.length !== 1 ? 's' : '') },
     { label:'Total Jobs', value:allJobs,             icon:ICON.medal, unit:'all-time', delta: 'lifetime completed' },
   ].map(s => `
@@ -214,29 +230,35 @@ function render() {
     </div>`;
 
   // Meters
+  // A meter with no figure shows "—" and an empty track — never a 0% or a
+  // 100% built on no data.
   document.getElementById('pf-meters').innerHTML = [
-    { label:'Response Rate', value:responseRate,   unit:'%', sub:'How often you respond to job requests', color:'#F97316' },
-    { label:'Completion Rate', value:completionRate, unit:'%', sub:'Jobs completed vs accepted', color:'#22c55e' },
-    { label:'Overall Rating', value:rating > 0 ? rating/5*100 : 0, displayValue: rating > 0 ? rating.toFixed(1)+' / 5.0' : '—', sub:'Based on '+_reviews.length+' customer review'+(_reviews.length!==1?'s':''), color:'#f59e0b' },
+    { label:'Response Rate',   value:response.pct,   sub:response.sub,   color:'#F97316' },
+    { label:'Completion Rate', value:completion.pct, sub:completion.sub, color:'#22c55e' },
+    { label:'Overall Rating', value:rating > 0 ? rating/5*100 : null, displayValue: rating > 0 ? rating.toFixed(1)+' / 5.0' : '—', sub:'Based on '+_reviews.length+' customer review'+(_reviews.length!==1?'s':''), color:'#f59e0b' },
   ].map(m => `
     <div class="pf-meter-card">
       <div class="pf-meter-row">
         <span class="pf-meter-label">${m.label}</span>
-        <span class="pf-meter-value">${m.displayValue ?? m.value + m.unit}</span>
+        <span class="pf-meter-value">${m.displayValue ?? (m.value === null ? '—' : m.value + '%')}</span>
       </div>
       <div class="pf-meter-track">
-        <div class="pf-meter-fill" style="width:${Math.min(m.value,100)}%;background:${m.color};"></div>
+        <div class="pf-meter-fill" style="width:${m.value === null ? 0 : Math.min(m.value,100)}%;background:${m.color};"></div>
       </div>
       <p class="pf-meter-sub">${m.sub}</p>
     </div>`).join('');
 
-  // Tips
+  // Tips — each one true of how dispatch actually works
+  // (shared/js/domain/performanceMetrics.js scoreCandidate): it ranks by
+  // distance, being online, rating (once there are enough reviews) and
+  // response rate. Completion rate and level do not change dispatch.
   const tips = [];
-  if (responseRate < 70)  tips.push('Respond to job requests faster to improve your response rate and get dispatched more often.');
-  if (completionRate < 80) tips.push('Avoid cancelling accepted bookings — it lowers your completion rate and reduces job dispatches.');
-  if (rating < 4.5 && _reviews.length > 0) tips.push('Ask satisfied customers to leave a review — higher ratings unlock more job requests.');
-  if (allJobs < 20)       tips.push('Complete 20 jobs to reach "Rising" level and unlock priority job dispatch.');
-  if (tips.length === 0)  tips.push('Great work! Keep your response rate high and continue delivering quality service.');
+  if (response.pct !== null && response.pct < 70) tips.push(`You answered ${rs.responded} of your last ${rs.counted} job requests in time. A request you miss goes to another professional, and your response rate is one of the things dispatch ranks by.`);
+  if (response.pct === null) tips.push('Answer each job request — accept or decline — before it expires. Declining counts as a response.');
+  if (_reviews.length < MIN_REVIEWS_FOR_RATING) tips.push(`Your rating starts counting toward dispatch once you have ${MIN_REVIEWS_FOR_RATING} reviews. Until then every new professional is ranked the same on rating.`);
+  else if (rating < 4.5) tips.push('Your average rating is one of the things dispatch ranks by. Ask satisfied customers to leave a review.');
+  if (completion.pct !== null && completion.pct < 80) tips.push('Cancelling jobs you accepted leaves customers waiting. Decline a request instead if you cannot take it.');
+  tips.push('Staying online while you are available puts you ahead of offline professionals nearby.');
 
   document.getElementById('pf-tips').innerHTML = `
     <p class="pf-tips-title"><span class="pf-tips-ic" aria-hidden="true">${ICON.bulb}</span>Tips to Improve</p>

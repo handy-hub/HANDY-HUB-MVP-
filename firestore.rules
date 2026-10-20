@@ -189,7 +189,8 @@ service cloud.firestore {
                       isSafeArtisanStatusUpdate() &&
                       isSafeArtisanProfileUpdate() &&
                       isPublicLocationSafe(incoming().diff(existing()).affectedKeys()) &&
-                      isSafeArtisanVerificationUpdate()
+                      isSafeArtisanVerificationUpdate() &&
+                      isSafeArtisanClaimUpdate()
                     );
 
       allow delete: if isSuperAdmin();
@@ -265,7 +266,9 @@ service cloud.firestore {
                        // An approved artisan whose record does not exist yet must
                        // not be able to CREATE one naming a new payout account.
                        (!isApprovedArtisan(artisanId) ||
-                        !incoming().keys().hasAny(artisanPayoutFields()));
+                        !incoming().keys().hasAny(artisanPayoutFields())) &&
+                       (!artisanClaimsLocked(artisanId) ||
+                        !incoming().keys().hasAny(artisanIdentityFields()));
       allow update: if isOwner(artisanId) &&
                        docId == 'kyc' &&
                        hasVerifiedEmail() &&
@@ -274,7 +277,12 @@ service cloud.firestore {
                          artisanPrivateFields().concat(['artisanId', 'createdAt', 'updatedAt'])) &&
                        isValidArtisanPrivate(incoming()) &&
                        (!isApprovedArtisan(artisanId) ||
-                        !incoming().diff(existing()).affectedKeys().hasAny(artisanPayoutFields()));
+                        !incoming().diff(existing()).affectedKeys().hasAny(artisanPayoutFields())) &&
+                       // Identity documents are verified claims (AR-10): fixed
+                       // while under review or decided; changed only through a
+                       // re-verification.
+                       (!artisanClaimsLocked(artisanId) ||
+                        !incoming().diff(existing()).affectedKeys().hasAny(artisanIdentityFields()));
       // The precise position (presence, onboarding's work pin). Readable by the
       // artisan and admins only (read rule above); syncArtisanIndex copies it into
       // the server-only artisan_index for dispatch and pricing.
@@ -304,6 +312,36 @@ service cloud.firestore {
                  ['draft', 'submitted', 'pending_review', 'rejected', 're_verification_required'] &&
                incoming().verificationStatus in ['draft', 'submitted', 'pending_review'] &&
                (incoming().verificationStatus == 'draft' || hasVerifiedEmail()));
+    }
+
+    // ── Verified claims (AR-10, 2026-10-20) ──────────────────────────────────
+    // What an administrator checks and approves: who the artisan is (the name
+    // matched to their Ghana Card) and what trade they practise (which decides
+    // which jobs dispatch offers them). An approved artisan used to be able to
+    // rename themselves or switch trade from the profile page with no review.
+    //
+    // These fields are now fixed from the moment an application is submitted
+    // until a decision is reversed: editable only in draft, after a rejection,
+    // or when re-verification was requested. An approved artisan changes them
+    // through a profile-change request (functions/artisanAccount.js), which an
+    // administrator reviews; until then they keep working under the claims
+    // that were verified. Bio, photo, rates, availability and the rest of the
+    // profile stay freely editable.
+    function artisanVerifiedClaimFields() {
+      return ['name', 'fullName', 'category', 'specialty', 'requestedService'];
+    }
+    function artisanIdentityFields() {
+      return ['ghanaCardNumber', 'tin', 'dob', 'dateOfBirth', 'businessRegNumber'];
+    }
+    function claimsLockedIn(status) {
+      return status in ['submitted', 'pending_review', 'approved', 'suspended', 'banned'];
+    }
+    function artisanClaimsLocked(uid) {
+      return claimsLockedIn(get(/databases/$(database)/documents/artisans/$(uid)).data.get('verificationStatus', 'draft'));
+    }
+    function isSafeArtisanClaimUpdate() {
+      return !incoming().diff(existing()).affectedKeys().hasAny(artisanVerifiedClaimFields()) ||
+             !claimsLockedIn(existing().get('verificationStatus', 'draft'));
     }
 
     // Admin direct-write allowlist — deliberately narrow. Anything touching
@@ -777,8 +815,11 @@ service cloud.firestore {
           // settleCallout in functions/pricing.js is the only settlement path).
           // A raw client cancel here would let the generic refund trigger hand
           // the callout back to the customer even after a delivered inspection.
+          // cancelledBy is optional and, when present, names the party truthfully
+          // (AR-12: completion rate counts only cancellations by the artisan).
           (keys.hasAny(['status']) &&
-           keys.hasOnly(['status', 'updatedAt', 'cancellationReason']) &&
+           keys.hasOnly(['status', 'updatedAt', 'cancellationReason', 'cancelledBy']) &&
+           incoming().get('cancelledBy', 'customer') == 'customer' &&
            prev in ['pending', 'Pending', 'accepted', 'quoted'] && next == 'cancelled' &&
            (!('track' in existing()) || existing().track != 'inspection')) ||
           // Leave a review — only after job is completed, no status change.
@@ -825,7 +866,8 @@ service cloud.firestore {
           // Inspection-track excluded for the same reason as the customer clause:
           // cancelInspectionBooking (CF) owns callout settlement on that track.
           (keys.hasAny(['status']) &&
-           keys.hasOnly(['status', 'updatedAt', 'cancellationReason']) &&
+           keys.hasOnly(['status', 'updatedAt', 'cancellationReason', 'cancelledBy']) &&
+           incoming().get('cancelledBy', 'artisan') == 'artisan' &&
            prev in ['accepted', 'quoted'] && next == 'cancelled' &&
            (!('track' in existing()) || existing().track != 'inspection')) ||
           // Add artisan notes without status change — always allowed
@@ -919,9 +961,22 @@ service cloud.firestore {
                         incoming().verificationStatus in ['draft', 'submitted', 'pending_review']) ||
                        // Allow onboarding.html path (uses 'status' field, not 'verificationStatus')
                        (isOwner(artisanId) &&
-                        incoming().status in ['pending_review', 'draft', 'submitted', 'pending']));
+                        incoming().status in ['pending_review', 'draft', 'submitted', 'pending'])) &&
+                     // The reviewer's fields are the reviewer's (AR-14, with AR-10).
+                     !incoming().keys().hasAny(verificationReviewFields());
 
-      // Artisan may update their own draft/re-verification fields.
+      // Written only by functions/artisanVerification.js. Onboarding used to
+      // write trustScore/rejectionReason/adminNotes itself, which also wiped an
+      // administrator's rejection reason on every resubmission.
+      function verificationReviewFields() {
+        return ['trustScore', 'reviewedBy', 'reviewedAt', 'rejectionReason', 'adminNotes'];
+      }
+
+      // Artisan may update their own draft/re-verification fields — and only
+      // while no review is under way or decided (AR-10): once submitted the
+      // record is what the administrator is checking, and once approved it is
+      // the evidence behind the approval. A rejected application or a
+      // re-verification request reopens it.
       // Admin approve/reject/request-info/suspend/reinstate/ban/unban all go
       // through Cloud Functions (functions/artisanVerification.js), which use
       // the Admin SDK and bypass these rules entirely — admin has no
@@ -929,6 +984,8 @@ service cloud.firestore {
       allow update: if (
                       isOwner(artisanId) &&
                       hasVerifiedEmail() &&
+                      existing().get('status', existing().get('verificationStatus', 'draft')) in
+                        ['draft', 'pending', 'rejected', 're_verification_required'] &&
                       incoming().diff(existing()).affectedKeys().hasOnly([
                         'fullName', 'name', 'phone', 'email', 'dateOfBirth', 'dob',
                         'address', 'gpsAddress', 'emergencyContact',
@@ -939,8 +996,7 @@ service cloud.firestore {
                         'documents', 'selfieUrl', 'idFrontUrl', 'idBackUrl',
                         'bizRegUrl', 'certUrl', 'profileImage',
                         'updatedAt', 'submittedAt', 'status', 'verificationStatus',
-                        'skills', 'gender', 'trustScore', 'reviewedBy', 'reviewedAt',
-                        'rejectionReason', 'adminNotes'
+                        'skills', 'gender', 'artisanId'
                       ]) &&
                       // Artisan may only submit — cannot approve/reject themselves
                       (!incoming().diff(existing()).affectedKeys().hasAny(['verificationStatus']) ||
@@ -1528,6 +1584,29 @@ service cloud.firestore {
     // Readable by the offered artisan ONLY while the offer is open — declined,
     // expired, withdrawn and accepted offers close to them.
     // ═══════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    // PROFILE CHANGE REQUESTS  (AR-10) — profile_change_requests/{artisanId}
+    // An approved artisan's request to change a verified claim (name, trade).
+    // Written only by functions/artisanAccount.js (request, cancel, review);
+    // the artisan reads their own, administrators read all.
+    // ═══════════════════════════════════════════════════════════════
+    match /profile_change_requests/{artisanId} {
+      allow read:  if isAdmin() || isOwner(artisanId);
+      allow write: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // OFFER EVENTS  (AR-12) — offer_events/{bookingId}_{round}_{artisanId}
+    // One record per closed job offer, written by the server in the same
+    // transaction that closes it: the source events of the response rate.
+    // The artisan reads their own (the performance page explains the figure
+    // from them); nobody writes them from a client.
+    // ═══════════════════════════════════════════════════════════════
+    match /offer_events/{eventId} {
+      allow read:  if isAdmin() || (isSignedIn() && resource.data.artisanId == request.auth.uid);
+      allow write: if false;
+    }
+
     match /job_offers/{bookingId} {
       allow read: if isAdmin() || (
                      isSignedIn() &&

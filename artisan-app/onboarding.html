@@ -1140,12 +1140,11 @@ async function submitApplication() {
       documents:    docUrls,
       status:       'pending_review',
       submittedAt:  n,
-      reviewedBy:   null,
-      reviewedAt:   null,
-      rejectionReason: null,
-      adminNotes:   '',
-      trustScore:   50,
-    });
+      // The reviewer's fields (reviewedBy, rejectionReason, adminNotes,
+      // trustScore) are written by functions/artisanVerification.js only.
+      // Writing them here — without merge — erased an administrator's
+      // rejection reason on every resubmission (AR-10 / AR-14).
+    }, { merge: true });
 
     // 4. If "Other" trade: write to service_requests for admin review (non-critical)
     if (requestedService) {

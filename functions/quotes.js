@@ -28,6 +28,9 @@ const { FieldValue } = require('firebase-admin/firestore');
 const { FIRESTORE_DB_ID, COMMISSION_RATE, MAX_QUOTE_GHS } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const escrow = require('./financial/escrow');
+// Generated mirror of shared/js/domain/quoteMoney.js — the one definition of a
+// valid quote amount, shared with the artisan's quote composer (AR-08).
+const quoteMoney = require('./shared/quoteMoney');
 // claimBookingTransition is the shared atomic compare-and-set primitive (F4).
 // Lazy-required inside handlers to avoid a require cycle (pricing.js requires
 // this module's sibling escrow, and requires quotes indirectly via index).
@@ -89,10 +92,20 @@ function computeQuoteSettlement(booking, jobQuoteOverride) {
 //   materials   array (optional) [{ name, qty, unitPrice }]
 //   note        string (optional)
 // ─────────────────────────────────────────────────────────────────────────────
-async function submitJobQuote(auth, { bookingId, labourCost, materials = [], note = '' }) {
-    if (!bookingId)            throw new Error('bookingId is required.');
-    if (!labourCost || Number(labourCost) <= 0) throw new Error('Labour cost must be greater than 0.');
-    if (Number(labourCost) > MAX_QUOTE_GHS) throw new Error(`Labour cost cannot exceed GHS ${MAX_QUOTE_GHS}.`);
+async function submitJobQuote(auth, { bookingId, labourCost, materials = [], note = '' } = {}) {
+    if (!bookingId || typeof bookingId !== 'string') throw new Error('bookingId is required.');
+
+    // ── Validate every amount BEFORE anything is read or written (AR-08) ────
+    // A malformed or out-of-policy value is refused here and never reaches the
+    // booking, so it can never become a quote that cannot be approved.
+    const checked = quoteMoney.validateQuoteInput({ labourCost, materials, note }, { maxQuoteGHS: MAX_QUOTE_GHS });
+    if (!checked.ok) {
+        const err = new Error(checked.message);
+        err.reason = 'invalid_quote';
+        err.fields = checked.errors.map((e) => e.field);
+        throw err;
+    }
+    const q = checked.quote;
 
     const bookingRef  = db().collection('bookings').doc(bookingId);
     const bookingSnap = await bookingRef.get();
@@ -115,28 +128,11 @@ async function submitJobQuote(auth, { bookingId, labourCost, materials = [], not
         throw new Error('Quote revision limit reached for this booking.');
     }
 
-    // ── Validate and total up materials ─────────────────────────────────────
-    const cleanMaterials = [];
-    let   materialsCost  = 0;
-
-    for (const item of materials) {
-        const qty       = Number(item.qty       || 0);
-        const unitPrice = Number(item.unitPrice || 0);
-        const name      = String(item.name      || '').trim();
-
-        if (!name)         throw new Error('Each material must have a name.');
-        if (qty <= 0)      throw new Error(`Quantity for "${name}" must be greater than 0.`);
-        if (unitPrice <= 0) throw new Error(`Price for "${name}" must be greater than 0.`);
-
-        const rowTotal = fmt(qty * unitPrice);
-        materialsCost += rowTotal;
-
-        cleanMaterials.push({ name, qty, unitPrice: fmt(unitPrice), total: rowTotal });
-    }
-
-    materialsCost        = fmt(materialsCost);
-    const labourCostFmt  = fmt(Number(labourCost));
-    const jobQuote       = fmt(labourCostFmt + materialsCost);
+    // Totals come from the validator, computed in whole pesewas.
+    const cleanMaterials = q.materials;
+    const materialsCost  = q.materialsCost;
+    const labourCostFmt  = q.labourCost;
+    const jobQuote       = q.jobQuote;
     const artisanEarns   = fmt(jobQuote * (1 - COMMISSION_RATE));
     const platformFee    = fmt(jobQuote * COMMISSION_RATE);
 
@@ -162,7 +158,7 @@ async function submitJobQuote(auth, { bookingId, labourCost, materials = [], not
             materials:           cleanMaterials,
             materialsCost,
             hasMaterials:        cleanMaterials.length > 0,
-            quoteNote:           note.trim().slice(0, 300),
+            quoteNote:           q.note,
             commissionRate:      COMMISSION_RATE,   // locked at quote time
             artisanEarns,
             platformFee,
@@ -227,6 +223,62 @@ function approvalError(reason, message, extra = {}) {
     return err;
 }
 
+// ── A stored quote that cannot be priced (AR-08) ─────────────────────────────
+// New quotes are validated on submit, but a booking written before that may
+// hold a NaN or out-of-policy quote. Such a quote can never be approved, and
+// before this the customer's only ways out — rejecting it or letting it expire
+// — cancelled the job and, on the inspection track, paid the callout fee to the
+// artisan for a quote the customer was never able to accept.
+//
+// So an invalid stored quote is VOIDED instead: the booking returns to the
+// state the artisan quotes from, the quote fields are cleared, and — because
+// the fault is in the quote, not in the customer's decision — no revision is
+// used up and no money moves. The artisan is asked for a corrected quote.
+// Every caller claims the transition atomically (its own transaction or
+// claimBookingTransition), so a void can never race an approval.
+function voidQuotePatch(booking, problems) {
+    return {
+        status:               booking.track === 'inspection' ? 'inspection_done' : 'accepted',
+        quoteApproved:        false,
+        quoteVoidedAt:        new Date().toISOString(),
+        quoteVoidReason:      'invalid_amounts',
+        quoteVoidProblems:    (problems || []).slice(0, 10),
+        jobQuote:             FieldValue.delete(),
+        labourCost:           FieldValue.delete(),
+        materials:            FieldValue.delete(),
+        materialsCost:        FieldValue.delete(),
+        hasMaterials:         FieldValue.delete(),
+        quoteNote:            FieldValue.delete(),
+        quoteSubmittedAt:     FieldValue.delete(),
+        artisanEarns:         FieldValue.delete(),
+        platformFee:          FieldValue.delete(),
+        calloutCreditPreview: FieldValue.delete(),
+        amountDuePreview:     FieldValue.delete(),
+        updatedAt:            new Date().toISOString(),
+    };
+}
+
+async function notifyQuoteVoided(booking, bookingId) {
+    await sendArtisanNotification(booking.artisanId, {
+        type:      'Bookings',
+        title:     'Please send your quote again',
+        message:   'Your quote could not be approved because its amounts were invalid. ' +
+                   'Send a corrected quote — this does not count as a revision.',
+        actionUrl: 'jobs.html',
+        bookingId,
+    }).catch(() => {});
+    await sendNotification(booking.customerId, {
+        type:      'Bookings',
+        title:     'Quote withdrawn for correction',
+        message:   'The quote for this job had invalid amounts, so it was withdrawn. No money was taken, ' +
+                   'and the artisan has been asked to send a corrected quote.',
+        actionUrl: 'booking.html',
+        bookingId,
+    }).catch(() => {});
+}
+
+const storedQuoteCheck = (b) => quoteMoney.checkStoredQuote(b, { maxQuoteGHS: MAX_QUOTE_GHS });
+
 async function approveJobQuote(auth, { bookingId } = {}) {
     if (!bookingId) throw new Error('bookingId is required.');
 
@@ -244,9 +296,8 @@ async function approveJobQuote(auth, { bookingId } = {}) {
     if (pre.customerId !== auth.uid) throw new Error('Not authorised for this booking.');
 
     let hold = null;
-    if (pre.status === 'quoted') {
+    if (pre.status === 'quoted' && storedQuoteCheck(pre).ok) {
         const preQuote = Number(pre.jobQuote);
-        if (!Number.isFinite(preQuote) || preQuote <= 0) throw new Error('No valid quote to approve.');
         const preDue = computeQuoteSettlement(pre, preQuote).amountDue;
         if (preDue > 0) {
             hold = escrow.planHold({
@@ -289,9 +340,15 @@ async function approveJobQuote(auth, { bookingId } = {}) {
             throw new Error(`Quote cannot be approved — booking is ${b.status}.`);
         }
 
+        // ── An unpriceable quote is voided, never charged (AR-08) ─────────────
+        const stored = storedQuoteCheck(b);
+        if (!stored.ok) {
+            txn.update(bookingRef, voidQuotePatch(b, stored.problems));
+            return { voided: true, booking: b, problems: stored.problems };
+        }
+
         // ── Fresh approval ────────────────────────────────────────────────────
         const jobQuote = Number(b.jobQuote);
-        if (!Number.isFinite(jobQuote) || jobQuote <= 0) throw new Error('No valid quote to approve.');
 
         // Re-verify the artisan is still active before locking funds.
         if (artisanRef) {
@@ -332,6 +389,14 @@ async function approveJobQuote(auth, { bookingId } = {}) {
 
         return { replay: false, booking: b, held, jobQuote, calloutCredit, escrowAmount };
     });
+
+    if (outcome.voided) {
+        await notifyQuoteVoided(outcome.booking, bookingId);
+        console.warn(`[quotes] Invalid stored quote voided on approval: booking=${bookingId} problems=${outcome.problems.join(',')}`);
+        throw approvalError('quote_invalid',
+            'This quote had invalid amounts and has been withdrawn. No money was taken, ' +
+            'and the artisan has been asked to send a corrected quote.');
+    }
 
     if (outcome.replay) {
         const b = outcome.booking;
@@ -401,7 +466,24 @@ async function rejectJobQuote(auth, { bookingId, reason = '' }) {
 
     const prevQuote  = preBooking.jobQuote;
     const rejections = Number(preBooking.quoteRevisionCount || 0);
-    const cleanReason = reason.trim().slice(0, 300);
+    const cleanReason = (typeof reason === 'string' ? reason : '').trim().slice(0, 300);
+
+    // ── An unpriceable quote is voided: no revision used, no money moved ────
+    // Rejecting it must not use up the artisan's one revision, and a second
+    // rejection must not close the job and pay the callout fee for a quote the
+    // customer could never have approved (AR-08).
+    const stored = storedQuoteCheck(preBooking);
+    if (!stored.ok) {
+        const booking = await claimBookingTransition(bookingRef, {
+            authUid: auth.uid,
+            party:   'customer',
+            fromStatuses: ['quoted'],
+            patch: voidQuotePatch(preBooking, stored.problems),
+        });
+        await notifyQuoteVoided(booking, bookingId);
+        console.warn(`[quotes] Invalid stored quote voided on rejection: booking=${bookingId} problems=${stored.problems.join(',')}`);
+        return { success: true, final: false, voided: true };
+    }
 
     // ── 2nd rejection — FINAL. No bargaining loops. ──────────────────────────
     if (rejections >= 1) {
@@ -485,4 +567,7 @@ async function rejectJobQuote(auth, { bookingId, reason = '' }) {
 // formula is the one piece of arithmetic the customer's approval screen and the
 // ledger must agree on, so it is tested directly rather than only through a
 // deployed callable.
-module.exports = { submitJobQuote, approveJobQuote, rejectJobQuote, computeQuoteSettlement };
+module.exports = {
+    submitJobQuote, approveJobQuote, rejectJobQuote, computeQuoteSettlement,
+    voidQuotePatch, notifyQuoteVoided, storedQuoteCheck,
+};
