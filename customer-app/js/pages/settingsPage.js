@@ -47,7 +47,10 @@ window.confirmDeleteAccount = async function () {
         // held escrow, and all PII, because nothing on the server ever cleaned up
         // and the user could never sign in again to reach their money (CX-1).
         // Re-auth now only PROVES who we are; the server owns the teardown.
-        await authService.reauthenticateWithPassword(password);
+        // reauthenticate() also refreshes the ID token: the server checks the
+        // sign-in time from it (functions/accountLifecycle.js) and would still
+        // see the old one otherwise.
+        await authService.reauthenticate(password);
 
         // ── 2. Server-authoritative, guarded deletion ─────────────────────────
         // requestAccountDeletion refuses while the user still holds money or has

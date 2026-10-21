@@ -194,7 +194,8 @@ service cloud.firestore {
                       isPublicLocationSafe(incoming().diff(existing()).affectedKeys()) &&
                       isSafeArtisanVerificationUpdate() &&
                       isSafeArtisanClaimUpdate() &&
-                      isValidArtisanNotificationPrefs()
+                      isValidArtisanNotificationPrefs() &&
+                      isValidArtisanWorkRadius()
                     );
 
       allow delete: if isSuperAdmin();
@@ -544,6 +545,16 @@ service cloud.firestore {
                incoming().notificationPreferences.keys().hasOnly(['push', 'updatedAt']) &&
                incoming().notificationPreferences.push is bool &&
                incoming().notificationPreferences.get('updatedAt', '') is string);
+    }
+
+    // Work radius (Settings → Job radius, onboarding). Dispatch filters with
+    // `dist > (workRadius || 20)` (functions/dispatch.js), so a string, zero or
+    // negative value silently changed which jobs an artisan is offered. Only a
+    // number of kilometres is accepted; 100 is onboarding's widest choice.
+    function isValidArtisanWorkRadius() {
+      return !incoming().diff(existing()).affectedKeys().hasAny(['workRadius']) || (
+               incoming().workRadius is number &&
+               incoming().workRadius >= 1 && incoming().workRadius <= 100);
     }
 
     // Customer payment accounts subcollection  (MoMo, etc.)

@@ -123,6 +123,13 @@ async function requestAccountDeletion(auth) {
     if (await isArtisanAccount(auth.uid)) return requestArtisanClosure(auth);
     const uid = auth.uid;
 
+    // ── 0. A sign-in from the last few minutes, as for artisans ─────────────
+    // The customer app re-asks for the password before calling, but nothing
+    // here checked that it had: any holder of a still-valid session token
+    // could erase the account. Read from the token's auth_time, not trusted
+    // to the client.
+    requireRecentSignIn(auth, 'Please confirm it is you — sign in again — and then delete your account.');
+
     // ── 1. Guard ─────────────────────────────────────────────────────────────
     const { deletable, blockers } = await checkCustomerDeletable(auth);
     if (!deletable) {
@@ -281,12 +288,17 @@ async function checkArtisanClosable(auth) {
     return { deletable: blockers.length === 0, blockers, role: 'artisan' };
 }
 
-async function requestArtisanClosure(auth) {
-    const uid = auth.uid;
+/** Refuse unless the ID token proves a sign-in within RECENT_AUTH_SECONDS. */
+function requireRecentSignIn(auth, message) {
     const authTime = Number(auth.token && auth.token.auth_time);
     if (!Number.isFinite(authTime) || Date.now() / 1000 - authTime > RECENT_AUTH_SECONDS) {
-        throw closureError('Please confirm it is you — sign in again — and then close your account.', [], 'reauth_required');
+        throw closureError(message, [], 'reauth_required');
     }
+}
+
+async function requestArtisanClosure(auth) {
+    const uid = auth.uid;
+    requireRecentSignIn(auth, 'Please confirm it is you — sign in again — and then close your account.');
 
     const { deletable, blockers } = await checkArtisanClosable(auth);
     if (!deletable) throw closureError(blockers.map((b) => b.message).join(' '), blockers);

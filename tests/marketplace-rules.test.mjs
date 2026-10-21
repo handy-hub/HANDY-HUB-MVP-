@@ -219,6 +219,15 @@ await it('an artisan saves their own push preference, in the strict shape only',
     await assertFails(updateDoc(pub, { notificationPreferences: { push: true, marketing: true }, updatedAt: new Date().toISOString() }));
     await assertFails(updateDoc(doc(b, 'artisans', A), { notificationPreferences: { push: true }, updatedAt: new Date().toISOString() }));
 });
+await it('Settings → job radius: a number of kilometres from the artisan only', async () => {
+    const pub = doc(a, 'artisans', A);
+    const at = () => new Date().toISOString();
+    for (const km of [5, 15, 25, 100]) await assertSucceeds(updateDoc(pub, { workRadius: km, updatedAt: at() }));
+    // dispatch compares `dist > (workRadius || 20)`: these silently changed what was offered
+    for (const bad of ['far', 0, -5, 500, null, true]) await assertFails(updateDoc(pub, { workRadius: bad, updatedAt: at() }));
+    await assertFails(updateDoc(doc(b, 'artisans', A), { workRadius: 10, updatedAt: at() }));
+    await assertFails(updateDoc(doc(c1, 'artisans', A), { workRadius: 10, updatedAt: at() }));
+});
 await it('the wallet\'s queries: my held escrow and my payouts — nobody else\'s', async () => {
     await testEnv.withSecurityRulesDisabled(async (x) => {
         const db = x.firestore();

@@ -28,76 +28,9 @@ function applyTheme(value) {
   localStorage.setItem('pref_theme', value);
 }
 
-/* Currency auto-detect: sets pref_currency using GPS location or IP fallback if user hasn't chosen yet */
-(async function () {
-  if (localStorage.getItem('pref_currency')) return;
-
-  // Currency mapping based on ISO 2-letter country codes
-  const currencyMap = {
-    'GH': 'GHS', // Ghana (ISO 4217 — 'GHC' was retired in 2007)
-    'NG': 'NGN', // Nigeria
-    'US': 'USD', // United States
-    'GB': 'GBP', // United Kingdom
-    // Eurozone
-    'AT': 'EUR', 'BE': 'EUR', 'CY': 'EUR', 'EE': 'EUR', 'FI': 'EUR', 
-    'FR': 'EUR', 'DE': 'EUR', 'GR': 'EUR', 'IE': 'EUR', 'IT': 'EUR', 
-    'LV': 'EUR', 'LT': 'EUR', 'LU': 'EUR', 'MT': 'EUR', 'NL': 'EUR', 
-    'PT': 'EUR', 'SK': 'EUR', 'SI': 'EUR', 'ES': 'EUR', 'HR': 'EUR'
-  };
-
-  const defaultCurrency = 'GHS';
-
-  // Helper function to set currency from country code
-  function applyCurrency(countryCode) {
-    const currency = currencyMap[countryCode?.toUpperCase()] || defaultCurrency;
-    localStorage.setItem('pref_currency', currency);
-  }
-
-  // Fallback: Fetch location via IP address (Fast, no popup permission required)
-  async function fallbackToIP() {
-    try {
-      const res = await fetch('https://country.is/'); // Free, open-source IP-to-country API
-      const data = await res.json();
-      if (data && data.country) {
-        applyCurrency(data.country);
-      } else {
-        localStorage.setItem('pref_currency', defaultCurrency);
-      }
-    } catch (_) {
-      localStorage.setItem('pref_currency', defaultCurrency);
-    }
-  }
-
-  // Primary: Use browser Geolocation API for maximum accuracy
-  if ("geolocation" in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          
-          // Free reverse geocoding API with no API keys required
-          const geoUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
-          const res = await fetch(geoUrl);
-          const data = await res.json();
-          
-          if (data && data.countryCode) {
-            applyCurrency(data.countryCode);
-          } else {
-            await fallbackToIP();
-          }
-        } catch (_) {
-          await fallbackToIP();
-        }
-      },
-      async (error) => {
-        // User denied GPS or location timed out: run the IP fallback instantly
-        await fallbackToIP();
-      },
-      { timeout: 6000 } // Don't let the GPS prompt hang indefinitely
-    );
-  } else {
-    // Geolocation not supported by browser
-    await fallbackToIP();
-  }
-})();
+/* Currency is not auto-detected. This block used to ask for the device's GPS
+   position on first load and send it to a third-party reverse-geocoder
+   (api.bigdatacloud.net), or the IP to country.is, to pick a currency that
+   nothing reads: every amount is formatted as GHS (shared/js/utils/currency.js).
+   It ran on every page that loads this file, including both Settings pages.
+   An explicit choice in customer Settings still sets pref_currency. */
