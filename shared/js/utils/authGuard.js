@@ -281,7 +281,7 @@ export async function requireAuth() {
         if (roleInfo && roleInfo.isArtisan) {
           showRoleDenied({
             title: 'Wrong App',
-            message: "You're signed in with an artisan account. Artisans use the HandyHub Pro app, not the Customer app.",
+            message: "You're signed in with an artisan account. Artisans use the Fidus X Artisan app, not the Customer app.",
             buttonLabel: 'Go to Artisan App',
             buttonHref: ARTISAN_APP_URL,
           });

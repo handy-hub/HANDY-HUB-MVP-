@@ -270,7 +270,7 @@ button {
 
 .txn-ref {
   font-size: 11px;
-  color: #aaa;
+  color: var(--ui-faint);
 }
 
 .txn-amount-wrap {
@@ -408,7 +408,7 @@ button {
 
 .security-note span {
   font-size: 11.5px;
-  color: #999;
+  color: var(--ui-faint);
 }
 
 /* Bottom-nav styles removed — page uses the shared floatingNav component.

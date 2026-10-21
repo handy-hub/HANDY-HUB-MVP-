@@ -228,7 +228,7 @@ body {
 }
 .bk-empty-icon svg { width: 52px; height: 52px; }
 .bk-empty-title { font-size: 15px; font-weight: 700; color: var(--ui-text); margin-bottom: 8px; letter-spacing: 0; }
-.bk-empty-sub { font-size: 12px; color: #999; line-height: 1.55; margin-bottom: 24px; max-width: 240px; }
+.bk-empty-sub { font-size: 12px; color: var(--ui-faint); line-height: 1.55; margin-bottom: 24px; max-width: 240px; }
 .bk-empty-btn {
   background: var(--ui-primary); color: #fff; border: none;
   padding: 14px 32px; border-radius: var(--ui-radius-md); font-size: 14px; font-weight: 800; cursor: pointer;
@@ -272,7 +272,7 @@ body {
   font-size: 10px; font-weight: 700;
 }
 .bk-progress-labels span:first-child { color: var(--ui-primary); }
-.bk-progress-labels span:last-child  { color: #aaa; }
+.bk-progress-labels span:last-child  { color: var(--ui-faint); }
 
 /* Action row */
 .bk-active-actions { display: flex; border-top: 1px solid #f4f4f4; }

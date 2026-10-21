@@ -120,7 +120,7 @@ body {
 .hero-stat-label {
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.62);   /* ≈6:1 on the dark card (0.4 was ≈3.7:1) */
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: var(--ds-1);
@@ -130,9 +130,19 @@ body {
   font-size: 15px;
   font-weight: 800;
   color: #fff;
+  white-space: nowrap;              /* a figure never breaks mid-amount */
+  font-variant-numeric: tabular-nums;
+}
+/* The currency code sits on its own small line above EVERY figure, so the three
+   stats read the same whatever the amount — before, a long amount wrapped
+   "GHS / 42310.90" while a short one stayed on one line. */
+.hero-stat-value .hero-cur {
+  display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.62); margin-bottom: 2px;
 }
 
-.hero-stat-value.pending { color: var(--ds-warning, #d97706); }
+/* --ds-warning (#B45309) is a light-surface colour: ≈3.3:1 on this dark card. */
+.hero-stat-value.pending { color: var(--ds-brand-200); }
 
 /* ── Withdraw CTA ────────────────────────────────────────────────────────── */
 .withdraw-cta-btn {

@@ -12,7 +12,7 @@ import { firebaseDb, firebaseApp, firebaseFunctions }
     from '../../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }
     from '../../shared/js/config/appConfig.js';
-import { resolveMoney, resolveArtisan, initialsOf, formatMoney, resolveQuoteDecision,
+import { resolveMoney, resolveArtisan, initialsOf, formatMoney, serviceLabel, resolveQuoteDecision,
          describeApprovalFailure }
     from '../../shared/js/domain/bookingTruth.js';
 
@@ -38,7 +38,6 @@ function _esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function _fmt(n) { return Number(n || 0).toFixed(2); }
 
 // ── DOM ───────────────────────────────────────────────────────────────────────
 const ROOT_ID = 'hh-qm-root';
@@ -170,7 +169,7 @@ function _renderQuote(b) {
 
     const name     = artisan.name || 'Your professional';
     const initials = initialsOf(artisan.name) || '·';
-    const service  = b.serviceType || b.service || 'Service Job';
+    const service  = serviceLabel(b.serviceType) || serviceLabel(b.service) || 'Service Job';
     const labour   = m.labourCost;
     const matsCost = m.materialsCost;
     const total    = m.jobQuote;
@@ -190,14 +189,14 @@ function _renderQuote(b) {
         ? b.materials.map(m =>
             `<div class="hh-qm-mrow">
                 <span>${_esc(m.name)} × ${_esc(m.qty)}</span>
-                <span>GHS ${_fmt(m.total != null ? m.total : m.qty * m.unitPrice)}</span>
+                <span class="hh-qm-mamt">${formatMoney(m.total != null ? m.total : m.qty * m.unitPrice)}</span>
             </div>`
         ).join('') : '';
 
     const matSection = hasMats ? `
         <div class="hh-qm-row">
             <span class="hh-qm-rl">Materials</span>
-            <span class="hh-qm-rv">GHS ${_fmt(matsCost)}</span>
+            <span class="hh-qm-rv">${formatMoney(matsCost)}</span>
         </div>
         <div class="hh-qm-mats">${matRows}</div>` : '';
 

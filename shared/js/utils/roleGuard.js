@@ -105,14 +105,14 @@ export async function assertNoCrossRole(databaseService, uid, intendedRole) {
 
   if (intendedRole === ROLE.CUSTOMER && info.isArtisan) {
     throw Object.assign(
-      new Error('This is an artisan account. Please use the HandyHub Pro (artisan) app to sign in.'),
+      new Error('This is an artisan account. Please use the Fidus X Artisan app to sign in.'),
       { code: 'auth/wrong-app-role', actualRole: ROLE.ARTISAN }
     );
   }
 
   if (intendedRole === ROLE.ARTISAN && info.isCustomer) {
     throw Object.assign(
-      new Error('This is a customer account. Please use the HandyHub Customer app to sign in.'),
+      new Error('This is a customer account. Please use the Fidus X Customer app to sign in.'),
       { code: 'auth/wrong-app-role', actualRole: ROLE.CUSTOMER }
     );
   }

@@ -179,11 +179,15 @@ body {
   display: flex;
   align-items: center;
   gap: 5px;
-  flex-wrap: wrap;
+  /* nowrap + a shrinkable name: a long name ellipsises and the verified badge
+     stays beside it (wrap left the badge alone on the next line). */
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 /* Matches Notification's .notif-title (14px/700). */
 .sv-pro-name {
+  min-width: 0;
   font-size: 14px;
   font-weight: 700;
   color: var(--ui-text, #111);
@@ -414,7 +418,7 @@ body {
 
 .sv-empty-sub {
   font-size: 12px;
-  color: #999;
+  color: var(--ui-faint);
   line-height: 1.55;
   max-width: 240px;
 }

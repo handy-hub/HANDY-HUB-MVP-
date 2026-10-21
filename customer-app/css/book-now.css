@@ -206,7 +206,7 @@ body {
 .bn-stat-label { font-size: 10px; color: var(--ui-faint); }
 .bn-stat-val { font-size: 14px; font-weight: 800; color: #111; }
 .bn-stat-val.price { font-size: 18px; color: #111; display: flex; align-items: center; gap: 4px; }
-.bn-stat-info { font-size: 12px; color: #aaa; cursor: pointer; }
+.bn-stat-info { font-size: 12px; color: var(--ui-faint); cursor: pointer; }
 
 .bn-trust {
   background: #fde8e8; border-radius: var(--ui-radius-sm); padding: 10px 12px;
@@ -331,7 +331,7 @@ body {
 /* ── Match rating row ── */
 .em-match-rating-row { display: flex; align-items: center; gap: 4px; }
 .em-match-rating-val { font-size: 13px; font-weight: 800; color: #111; }
-.em-match-rating-count { font-size: 12px; color: #aaa; }
+.em-match-rating-count { font-size: 12px; color: var(--ui-faint); }
 
 /* ── Match state progress ── */
 .em-match-progress-wrap { margin-top: 28px; width: 100%; max-width: 320px; }
@@ -398,7 +398,7 @@ body {
 .em-sheet-eta-line { display: flex; align-items: baseline; gap: 5px; margin-bottom: 4px; }
 .em-sheet-eta-num { font-size: 40px; font-weight: 900; color: #0a0a0a; letter-spacing: -1.5px; line-height: 1; }
 .em-sheet-eta-unit { font-size: 14px; font-weight: 700; color: var(--ui-faint); }
-.em-sheet-eta-addr { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #999; }
+.em-sheet-eta-addr { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ui-faint); }
 .em-sheet-live-badge {
   background: #e8f5e9; color: #2e7d32; font-size: 11px; font-weight: 700;
   padding: 5px 10px; border-radius: var(--ui-radius-lg);
@@ -524,7 +524,7 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
 .bn2-step-dot {
   width: 26px; height: 26px; border-radius: 50%; background: #e0e0e0;
   display: flex; align-items: center; justify-content: center;
-  color: #aaa; transition: background 0.2s;
+  color: var(--ui-faint); transition: background 0.2s;
 }
 .bn2-step.active .bn2-step-dot { background: var(--ui-primary); color: #fff; }
 .bn2-step-lbl { font-size: 10px; font-weight: 700; color: #bbb; white-space: nowrap; }
@@ -549,7 +549,7 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .bn2-loc-body { flex: 1; }
-.bn2-loc-label { font-size: 11px; color: #aaa; font-weight: 600; margin-bottom: 2px; }
+.bn2-loc-label { font-size: 11px; color: var(--ui-faint); font-weight: 600; margin-bottom: 2px; }
 .bn2-loc-addr  { font-size: 14px; font-weight: 700; color: #111; }
 .bn2-loc-edit-btn {
   width: 34px; height: 34px; border: none; background: var(--ui-surface-2); border-radius: var(--ui-radius-sm);
@@ -679,7 +679,7 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
 .bn2-urgency-btn.active .bn2-urgency-icon { background: var(--ui-primary); color: #fff; }
 .bn2-urgency-label { font-size: 13px; font-weight: 800; color: var(--ui-text); }
 .bn2-urgency-btn.active .bn2-urgency-label { color: var(--ui-primary); }
-.bn2-urgency-sub { font-size: 10px; color: #aaa; font-weight: 600; }
+.bn2-urgency-sub { font-size: 10px; color: var(--ui-faint); font-weight: 600; }
 
 /* ── Professional cards ── */
 .bn2-pros-list { padding: 0 14px; display: flex; flex-direction: column; gap: 10px; }
@@ -719,7 +719,7 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
 .bn2-pro-spec    { font-size: 12px; color: var(--ui-faint); margin-bottom: 5px; }
 .bn2-pro-meta-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .bn2-pro-rating  { font-size: 13px; font-weight: 800; color: #f5a623; }
-.bn2-pro-reviews { font-size: 12px; color: #aaa; }
+.bn2-pro-reviews { font-size: 12px; color: var(--ui-faint); }
 .bn2-pro-dot-sep { color: #ddd; font-size: 12px; }
 .bn2-pro-jobs    { font-size: 12px; color: var(--ui-faint); }
 
@@ -750,7 +750,7 @@ html.dark .em-sheet-btn-primary { background: #f0f0f0; color: #111; }
   display: flex; align-items: center; justify-content: center; margin-bottom: 4px;
 }
 .bn2-pros-empty-title { font-size: 15px; font-weight: 800; color: var(--ui-text); text-align: center; }
-.bn2-pros-empty-sub   { font-size: 13px; color: #aaa; text-align: center; line-height: 1.5; }
+.bn2-pros-empty-sub   { font-size: 13px; color: var(--ui-faint); text-align: center; line-height: 1.5; }
 .bn2-inline-retry {
   background: none; border: none; color: var(--ui-primary); font-weight: 700;
   font-size: 13px; cursor: pointer; padding: 0;

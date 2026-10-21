@@ -156,7 +156,7 @@ function signupErrorMessage(error) {
 function socialErrorMessage(error, providerName) {
   switch (error.code) {
     case "auth/wrong-app-role":
-      return "This is an artisan account. Please sign in through the HandyHub Pro (artisan) app.";
+      return "This is an artisan account. Please sign in through the Fidus X Artisan app.";
     case "auth/operation-not-allowed":
       return `${providerName} sign-in is not enabled in authentication settings.`;
     case "auth/popup-closed-by-user":
@@ -427,7 +427,7 @@ function setupEmailSignupForm() {
       // Any half-finished OTP session from an earlier attempt is now meaningless.
       sessionStorage.removeItem(SESSION_KEY);
 
-      showToast("Account created! Welcome to HandyHub.", "success");
+      showToast("Account created! Welcome to Fidus X.", "success");
       signupForm.reset();
       updateSubmitButtonState(false);
       // Straight into the app. The account is created AND signed in at this

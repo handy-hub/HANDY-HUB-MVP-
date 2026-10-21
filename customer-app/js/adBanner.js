@@ -112,7 +112,9 @@ function adaptPromotion(promo) {
     subtitle: content.subtitle ?? '',
     body: content.body ?? '',
     cta: content.cta ?? 'Learn More',
-    color: promo.color ?? 'linear-gradient(135deg, #4a8cc9 0%, #1e5a9a 100%)',
+    // No admin-set colour: fall back to the brand maroon, not a stray blue that
+    // showed as an off-brand block whenever a promotion had no image.
+    color: promo.color ?? 'linear-gradient(135deg, var(--ui-primary, #730201) 0%, var(--ui-primary-dark, #5a0100) 100%)',
     image: resolveImage(media.imageKey),
     clients: promo.clients ?? null,
     // Canonical {type, value} — the SAME shape BANNER_DATA and the admin editor use.

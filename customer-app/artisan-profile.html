@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Professional Profile | HandyHub</title>
+  <title>Professional Profile | Fidus X</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -453,7 +453,7 @@
     }
     .price-note {
       font-size: 12px;
-      color: #aaa;
+      color: var(--ui-faint, #737373);
       font-weight: 400;
       line-height: 1.5;
       display: flex;
@@ -956,7 +956,7 @@
     }
     trustItems.push(`<span class="trust-item">${ICO.shield} Background Checked</span>`);
     trustItems.push(`<span class="trust-sep"></span>`);
-    trustItems.push(`<span class="trust-item t-approved">${ICO.check} HandyHub Approved</span>`);
+    trustItems.push(`<span class="trust-item t-approved">${ICO.check} Fidus X Approved</span>`);
 
     bodyEl.innerHTML = `
 
@@ -1078,9 +1078,9 @@
   document.getElementById('ap-share')?.addEventListener('click', function () {
     const a = loadArtisan();
     if (!a) return;
-    const text = `Check out ${a.name || 'this professional'} on HandyHub — ${a.category || 'great service'}!`;
+    const text = `Check out ${a.name || 'this professional'} on Fidus X — ${a.category || 'great service'}!`;
     if (navigator.share) {
-      navigator.share({ title: 'HandyHub', text }).catch(() => {});
+      navigator.share({ title: 'Fidus X', text }).catch(() => {});
     } else {
       navigator.clipboard?.writeText(text)
         .then(() => showToast('Profile link copied!'))

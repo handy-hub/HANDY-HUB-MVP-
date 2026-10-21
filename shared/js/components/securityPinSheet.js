@@ -236,7 +236,7 @@ let _seq = 0;
 export async function openSecurityPinSheet({
     mode = 'enter',
     title = 'Enter your PIN',
-    message = 'Enter your 4-digit Handy Hub Security PIN.',
+    message = 'Enter your 4-digit Fidus X Security PIN.',
     confirmLabel = '',
     context = '',
     pinLength = 4,
@@ -253,7 +253,7 @@ export async function openSecurityPinSheet({
         ? [
             {
                 title:   'Create your PIN',
-                message: `Create a ${pinLength}-digit Handy Hub Security PIN to protect wallet top-ups and sensitive account actions.`,
+                message: `Create a ${pinLength}-digit Fidus X Security PIN to protect wallet top-ups and sensitive account actions.`,
                 confirm: 'Continue',
             },
             {
@@ -296,7 +296,7 @@ export async function openSecurityPinSheet({
       ${showForgot ? '<button class="hh-pin-forgot" type="button">Forgot PIN?</button>' : ''}
       <div class="hh-pin-foot">
         ${LOCK_SVG}
-        <span>Your Handy Hub Security PIN is encrypted and never shared.</span>
+        <span>Your Fidus X Security PIN is encrypted and never shared.</span>
       </div>`;
 
     const backBtn    = root.querySelector('.hh-pin-back');

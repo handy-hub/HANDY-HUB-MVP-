@@ -13,7 +13,7 @@ export function createFirebaseNotificationService() {
         return { delivered: false, reason: "permission-denied" };
       }
 
-      const instance = new Notification(notification.title || "HandyHub", {
+      const instance = new Notification(notification.title || "Fidus X", {
         body: notification.body || "",
         icon: notification.icon || ""
       });

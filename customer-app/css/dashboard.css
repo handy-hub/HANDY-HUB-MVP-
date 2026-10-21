@@ -159,7 +159,7 @@ body {
 }
 .uc-avatar { width: 100%; height: 100%; object-fit: cover; display: block; }
 .uc-text { flex: 1; min-width: 0; }
-.uc-greeting { font-size: 10.5px; font-weight: 500; color: #999; margin: 0 0 1px; }
+.uc-greeting { font-size: 10.5px; font-weight: 500; color: var(--ui-faint); margin: 0 0 1px; }
 .uc-name-row { display: flex; align-items: center; gap: 3px; margin-bottom: 2px; }
 .uc-name { font-size: 15px; font-weight: 800; color: #0a0a0a; margin: 0; letter-spacing: -0.3px; }
 .uc-loc {
@@ -217,7 +217,7 @@ body {
 .chip-icon svg { width: 16px; height: 16px; display: block; }
 .chip-text { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
 .chip-name { font-size: 12px; font-weight: 700; color: #0d0d0d; line-height: 1.2; white-space: nowrap; }
-.chip-cat  { font-size: 10.5px; font-weight: 500; color: #aaa; line-height: 1.2; }
+.chip-cat  { font-size: 10.5px; font-weight: 500; color: var(--ui-faint); line-height: 1.2; }
 
 /* ══════════════════════════════════════
    AD BANNER  (data-driven, JS-controlled)
@@ -297,7 +297,7 @@ body {
   letter-spacing: -0.5px; margin-bottom: 2px;
 }
 .slide-sub  { font-size: 12.5px; font-weight: 500; color: #666; margin-bottom: 4px; }
-.slide-body { font-size: 11px; line-height: 1.4; color: #999; }
+.slide-body { font-size: 11px; line-height: 1.4; color: var(--ui-faint); }
 
 .slide-bottom { display: flex; flex-direction: column; gap: 8px; }
 
@@ -327,7 +327,7 @@ body {
 .client-av:first-child { margin-left: 0; }
 .client-count { display: flex; flex-direction: column; line-height: 1.25; }
 .client-count strong { font-size: 11.5px; font-weight: 800; color: #0d0d0d; }
-.client-count span   { font-size: 10px; color: #999; font-weight: 400; }
+.client-count span   { font-size: 10px; color: var(--ui-faint); font-weight: 400; }
 
 /* Dots — normal flow below the card */
 .slider-dots {
@@ -496,10 +496,10 @@ body {
   display: flex; align-items: center; gap: 3px; margin-bottom: 5px;
 }
 .pc-score { font-size: 12px; font-weight: 800; color: #0a0a0a; }
-.pc-rcount { font-size: 11px; color: #aaa; font-weight: 500; }
+.pc-rcount { font-size: 11px; color: var(--ui-faint); font-weight: 500; }
 .pc-meta-row {
   display: flex; align-items: center; gap: 6px;
-  font-size: 11px; color: #999; flex-wrap: wrap;
+  font-size: 11px; color: var(--ui-faint); flex-wrap: wrap;
 }
 .pc-meta-item { display: flex; align-items: center; gap: 3px; }
 .pc-meta-sep { color: #ddd; line-height: 1; }
@@ -600,7 +600,7 @@ html.dark .pc-top-badge {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .em-modal-title { font-size: 16px; font-weight: 900; color: #0a0a0a; margin: 0 0 2px; letter-spacing: -0.3px; }
-.em-modal-sub   { font-size: 11.5px; color: #999; margin: 0; }
+.em-modal-sub   { font-size: 11.5px; color: var(--ui-faint); margin: 0; }
 .em-type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
 .em-type-btn {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -678,7 +678,7 @@ html.dark .pc-top-badge {
 }
 .am-stat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .am-stat-val { font-size: 17px; font-weight: 900; color: #0a0a0a; letter-spacing: -0.4px; }
-.am-stat-lbl { font-size: 10px; font-weight: 600; color: #aaa; text-align: center; }
+.am-stat-lbl { font-size: 10px; font-weight: 600; color: var(--ui-faint); text-align: center; }
 .am-stat-divider { width: 1px; height: 30px; background: #e8e8e8; flex-shrink: 0; }
 .am-section { margin-bottom: 16px; }
 .am-section-title { font-size: 12.5px; font-weight: 800; color: #0a0a0a; margin: 0 0 7px; letter-spacing: -0.2px; }
@@ -700,7 +700,7 @@ html.dark .pc-top-badge {
   border-top: 1px solid #f0f0f0; margin-top: 4px; flex-shrink: 0;
 }
 .am-price-info { display: flex; flex-direction: column; }
-.am-price-from { font-size: 10px; color: #aaa; font-weight: 500; margin-bottom: 1px; }
+.am-price-from { font-size: 10px; color: var(--ui-faint); font-weight: 500; margin-bottom: 1px; }
 .am-price-val  { font-size: 18px; font-weight: 900; color: #0a0a0a; letter-spacing: -0.4px; }
 .am-book-btn {
   flex-shrink: 0; background: var(--ui-primary); color: #fff; border: none;
@@ -886,7 +886,7 @@ html.dark .skel {
   font-size: 13.5px; font-weight: 800; color: #111; margin: 0;
 }
 .np-empty-sub {
-  font-size: 11.5px; color: #aaa; margin: 0 0 8px;
+  font-size: 11.5px; color: var(--ui-faint); margin: 0 0 8px;
 }
 .np-empty-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .np-expand-btn {

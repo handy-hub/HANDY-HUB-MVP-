@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>HandyHub – Artisan Dashboard</title>
+  <title>Fidus X – Artisan Dashboard</title>
   <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
@@ -20,7 +20,7 @@
 
     <!-- ── Top Bar ──────────────────────────────────── -->
     <header class="top-bar">
-      <span class="top-bar-logo">Handy<span>Hub</span></span>
+      <span class="top-bar-logo">Fidus <span>X</span></span>
       <div class="top-bar-actions">
         <button class="icon-btn" aria-label="Settings" onclick="window.location.href='settings.html'">
           <svg viewBox="0 0 24 24" fill="none">
@@ -314,6 +314,8 @@ import { pricingService }                              from '../shared/js/servic
 import { describe as describeStatus, artisanInspectionStep }
                                                        from '../shared/js/domain/bookingStatusMeta.js';
 import { performBookingAction, ACTION }                from '../shared/js/domain/bookingActions.js';
+import { serviceLabel }                                from '../shared/js/domain/bookingTruth.js';
+import { formatGHS }                                   from '../shared/js/utils/currency.js';
 import { resolveSchedule }                             from '../shared/js/domain/bookingSchedule.js';
 import { offerState, formatTimeLeft, createOfferWatcher }
                                                        from '../shared/js/domain/jobOffers.js';
@@ -450,11 +452,11 @@ function applyProfile(data) {
   // Pending release comes from the held escrow (walletLedger.js, AR-13) via the
   // wallet subscription below — pendingBalance was never maintained.
   const available = Number(data.availableBalance || 0);
-  walletAmount.textContent = available.toFixed(2);
+  walletAmount.textContent = formatGHS(available, { code: false });
 
   // Performance
   document.getElementById('perf-jobs').textContent     = jobs;
-  document.getElementById('perf-earnings').textContent = `GHS ${Number(data.totalEarned || 0).toFixed(0)}`;
+  document.getElementById('perf-earnings').textContent = formatGHS(data.totalEarned, { decimals: 0 });
   document.getElementById('perf-response').textContent = response;
   document.getElementById('perf-rating').textContent   = Number(rating).toFixed(1);
 }
@@ -713,7 +715,7 @@ function renderJobCard(booking) {
       }
     </div>
 
-    <p class="job-title">${d.serviceType || d.service || 'Service Request'}</p>
+    <p class="job-title">${serviceLabel(d.serviceType) || serviceLabel(d.service) || 'Service Request'}</p>
 
     <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px">
       <p class="job-location" style="margin:0">
@@ -742,8 +744,8 @@ function renderJobCard(booking) {
       // quote yet". Name the callout fee they actually earn for the visit, and
       // say plainly when the amount is not yet known.
       var q = Number(d.jobQuote), c = Number(d.calloutFee);
-      if (Number.isFinite(q) && q > 0)  return 'Quote: <strong>GHS ' + q.toFixed(2) + '</strong>';
-      if (Number.isFinite(c) && c > 0)  return 'Callout fee: <strong>GHS ' + c.toFixed(2) + '</strong>';
+      if (Number.isFinite(q) && q > 0)  return 'Quote: <strong>' + formatGHS(q) + '</strong>';
+      if (Number.isFinite(c) && c > 0)  return 'Callout fee: <strong>' + formatGHS(c) + '</strong>';
       return 'Fee confirmed on acceptance';
     })()}</p>
 
@@ -939,7 +941,7 @@ function renderActiveJobCard(booking) {
       <span class="active-job-status-pill ${meta.pillCls}">${meta.label}</span>
       <span style="font-size:11px;color:#9CA3AF">${_timeAgo(d.acceptedAt || d.createdAt)}</span>
     </div>
-    <p class="active-job-title">${d.serviceType || d.service || 'Service Request'}</p>
+    <p class="active-job-title">${serviceLabel(d.serviceType) || serviceLabel(d.service) || 'Service Request'}</p>
     <div class="active-job-meta">
       <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
       ${d.address || d.location || 'Location not set'}
@@ -1011,7 +1013,7 @@ function renderScheduleItem(booking) {
     </div>
     <div class="schedule-divider"></div>
     <div class="schedule-info">
-      <p class="schedule-service">${d.serviceType || d.service || 'Service'}</p>
+      <p class="schedule-service">${serviceLabel(d.serviceType) || serviceLabel(d.service) || 'Service'}</p>
       <p class="schedule-loc">
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
         ${d.address || d.location || 'Location TBD'}
@@ -1147,7 +1149,7 @@ subscribeToArtisanAuthState(async user => {
 
   // Wallet figures derived from their authoritative records (AR-13).
   unsubs.push(createWalletRepository({ databaseService }).subscribeToArtisanWallet(uid, (res) => {
-    if (res) pendingAmount.textContent = `GHS ${res.view.pendingRelease.toFixed(2)}`;
+    if (res) pendingAmount.textContent = formatGHS(res.view.pendingRelease);
   }, () => { pendingAmount.textContent = 'GHS —'; }));
 
   // Live job requests: this artisan's OPEN offers. An offered artisan reads the

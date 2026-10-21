@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>Performance | HandyHub Artisan</title>
+  <title>Performance | Fidus X Artisan</title>
+  <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -127,6 +128,7 @@
 import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+import { formatGHS }          from '../shared/js/utils/currency.js';
 // The definitions behind every figure on this page, shared with the server
 // that computes them and with dispatch (AR-12).
 import { computeCompletionStats, RESPONSE_RATE_POLICY, COMPLETION_RATE_POLICY, MIN_REVIEWS_FOR_RATING }
@@ -206,7 +208,7 @@ function render() {
   // Score cards
   document.getElementById('pf-score-grid').innerHTML = [
     { label:'Jobs Done',  value:jobs,                icon:ICON.clipboard, unit:'',     delta: jobs > 0 ? '+' + jobs : '0 this period' },
-    { label:'Earned',     value:'GHS '+totalEarned.toFixed(0), icon:ICON.wallet, unit:'', delta: 'all time, after commission' },
+    { label:'Earned',     value:formatGHS(totalEarned, { decimals: 0 }), icon:ICON.wallet, unit:'', delta: 'all time, after commission' },
     { label:'Avg Rating', value:periodRating > 0 ? periodRating.toFixed(1) : '—', icon:ICON.star, unit:'', delta: filteredRevs.length + ' review' + (filteredRevs.length !== 1 ? 's' : '') },
     { label:'Total Jobs', value:allJobs,             icon:ICON.medal, unit:'all-time', delta: 'lifetime completed' },
   ].map(s => `

@@ -144,8 +144,8 @@ with sync_playwright() as p:
                 all_titles_ok = False
                 continue
             title = m.group(1)
-            # Must contain "HandyHub" and use | separator (not – or ·)
-            has_handy = "HandyHub" in title
+            # Must carry the product name (Fidus X, formerly HandyHub) and use | (not – or ·)
+            has_handy = "Fidus X" in title
             has_bad_sep = any(c in title for c in FORBIDDEN)
             if not has_handy or has_bad_sep:
                 bad_titles.append(f"{fname}: '{title}'")
@@ -154,7 +154,7 @@ with sync_playwright() as p:
             bad_titles.append(f"{fname}: error {e}")
             all_titles_ok = False
 
-    rec("L2-T1", "All sampled page titles use HandyHub branding with | separator",
+    rec("L2-T1", "All sampled page titles use Fidus X branding with | separator",
         all_titles_ok, str(bad_titles[:3]), "")
 
     # Browser test: titles render without garbled characters
@@ -162,20 +162,20 @@ with sync_playwright() as p:
     page = ctx.new_page()
     go(page, f"{BASE_CA}/login.html")
     title_text = page.title()
-    rec("L2-T2", "Login page title is 'Login | HandyHub'",
-        title_text == "Login | HandyHub",
+    rec("L2-T2", "Login page title is 'Login | Fidus X'",
+        title_text == "Login | Fidus X",
         f"Got: {title_text!r}", "")
 
     go(page, f"{BASE_CA}/settings.html")
     settings_title = page.title()
-    rec("L2-T3", "Settings page title is 'Settings | HandyHub'",
-        settings_title == "Settings | HandyHub",
+    rec("L2-T3", "Settings page title is 'Settings | Fidus X'",
+        settings_title == "Settings | Fidus X",
         f"Got: {settings_title!r}", "")
 
     go(page, f"{BASE_CA}/book-step1.html")
     step1_title = page.title()
     rec("L2-T4", "Book Step 1 title uses pipe separator",
-        "|" in step1_title and "HandyHub" in step1_title,
+        "|" in step1_title and "Fidus X" in step1_title,
         f"Got: {step1_title!r}", "")
     page.close(); ctx.close()
 

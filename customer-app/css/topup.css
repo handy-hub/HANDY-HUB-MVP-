@@ -654,7 +654,7 @@ input  { font-family: inherit; }
   max-width: 320px;
 }
 .ss-ref-label {
-  font-size: 10px; font-weight: 700; color: #aaa;
+  font-size: 10px; font-weight: 700; color: var(--ui-faint);
   text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
 }
 .ss-ref-val {
@@ -690,7 +690,7 @@ input  { font-family: inherit; }
 }
 
 .ss-card-title {
-  font-size: 10.5px; font-weight: 700; color: #aaa;
+  font-size: 10.5px; font-weight: 700; color: var(--ui-faint);
   text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 16px;
 }
 

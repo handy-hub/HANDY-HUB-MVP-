@@ -350,7 +350,7 @@ function openEnterPinFlow(amount) {
     openSecurityPinSheet({
         mode:         'enter',
         title:        'Enter your PIN',
-        message:      'Enter your 4-digit Handy Hub Security PIN to confirm this top-up. This is not your Mobile Money PIN.',
+        message:      'Enter your 4-digit Fidus X Security PIN to confirm this top-up. This is not your Mobile Money PIN.',
         context:      `Top-up · ${formatGHC(amount)}`,
         confirmLabel: 'Confirm Top Up',
         onConfirm: (pin, controls) => {

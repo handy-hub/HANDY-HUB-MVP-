@@ -96,7 +96,7 @@ export function createCustomerAuthService({ authRepository, customerRepository, 
       // on the customer surface.
       try { await authRepository.signOut(); } catch (_) { /* ignore */ }
       throw Object.assign(
-        new Error("This is an artisan account. Please use the HandyHub Pro (artisan) app to sign in."),
+        new Error("This is an artisan account. Please use the Fidus X Artisan app to sign in."),
         { code: "auth/wrong-app-role" }
       );
     }

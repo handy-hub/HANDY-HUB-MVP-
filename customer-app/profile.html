@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile | HandyHub</title>
+  <title>Profile | Fidus X</title>
   <link rel="stylesheet" href="css/profile.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -291,7 +291,7 @@
         </button>
 
         <button class="menu-item"
-          onclick="if(navigator.share){navigator.share({title:'Handy Hub',text:'Try Handy Hub – the fastest way to book trusted artisans in Ghana!',url:window.location.origin})}else{alert('Share: Try Handy Hub for trusted artisans in Ghana!')}">
+          onclick="if(navigator.share){navigator.share({title:'Fidus X',text:'Try Fidus X – the fastest way to book trusted artisans in Ghana!',url:window.location.origin})}else{alert('Share: Try Fidus X for trusted artisans in Ghana!')}">
           <div class="menu-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
@@ -317,7 +317,7 @@
             </svg>
           </div>
           <div class="menu-text">
-            <p class="menu-title">About Handy Hub</p>
+            <p class="menu-title">About Fidus X</p>
             <p class="menu-sub">Learn more about us</p>
           </div>
           <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -346,6 +346,8 @@
     await requireAuth();
   </script>
   <script type="module" src="js/pages/profilePage.js"></script>
+  <!-- Profile is one of the five bottom-nav tabs; without this the bar vanished on its own tab. -->
+  <script src="../shared/js/components/floatingNav.js"></script>
   <script src="../shared/js/components/fastLoader.js"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Messages | HandyHub</title>
+  <title>Messages | Fidus X</title>
   <link rel="stylesheet" href="css/messages.css" />
 
   <link rel='stylesheet' href='../shared/css/ui-polish.css' />
@@ -228,7 +228,7 @@ function otherParticipant(chatData) {
 async function resolveParticipant(otherUid) {
   if (PARTICIPANT_CACHE.has(otherUid)) return PARTICIPANT_CACHE.get(otherUid);
 
-  let info = { name: 'HandyHub User', photo: null, isOnline: false, phone: null };
+  let info = { name: 'Fidus X User', photo: null, isOnline: false, phone: null };
   try {
     const a = await artisanRepository.getById(otherUid);
     if (a.exists) {

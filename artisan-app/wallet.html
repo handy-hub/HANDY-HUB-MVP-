@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>HandyHub – My Earnings</title>
+  <title>Fidus X – My Earnings</title>
   <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/wallet.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -161,6 +161,7 @@
   import { showToast }                 from '../shared/js/components/toast.js';
   import { createWalletRepository }    from '../shared/js/data/repositories/walletRepository.js';
   import { withdrawalStatus }          from '../shared/js/domain/walletLedger.js';
+  import { formatGHS }                 from '../shared/js/utils/currency.js';
   import { withdrawArtisan, newWithdrawalRequestId } from '../shared/js/services/walletService.js';
   import { openSecurityPinSheet }      from '../shared/js/components/securityPinSheet.js';
   import { setSecurityPin, pinErrorMessage } from '../shared/js/services/securityPinService.js';
@@ -228,7 +229,9 @@
   }
 
   // ── Formatting ──────────────────────────────────────────────────────────────
-  const fmtGHS  = (n) => `GHS ${Number(n).toFixed(2)}`;
+  // Grouped thousands ("GHS 18,765.40") — shared/js/utils/currency.js.
+  const fmtGHS  = (n) => formatGHS(n);
+  const statHTML = (n) => `<span class="hero-cur">GHS</span>${formatGHS(n, { code: false })}`;
   const fmtDate = (iso) => {
     const d = new Date(iso);
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -246,9 +249,9 @@
     if (!w) return;
     currentWallet = w;
     availEl.textContent     = fmtGHS(w.available);
-    pendingEl.textContent   = fmtGHS(w.pendingRelease);
-    totalEl.textContent     = fmtGHS(w.totalEarned);
-    withdrawnEl.textContent = w.paidOut === null ? 'GHS —' : fmtGHS(w.paidOut);
+    pendingEl.innerHTML     = statHTML(w.pendingRelease);
+    totalEl.innerHTML       = statHTML(w.totalEarned);
+    withdrawnEl.innerHTML   = w.paidOut === null ? '<span class="hero-cur">GHS</span>—' : statHTML(w.paidOut);
     withdrawBtn.disabled    = w.available < 5;
     const notes = [];
     notes.push(w.heldJobs
@@ -293,7 +296,7 @@
     const amtClass = isCredit ? 'credit' : 'debit';
 
     const commissionNote = (d.type === 'earning' && d.commission)
-      ? `<p class="txn-ref">After ${(d.commissionRate * 100).toFixed(0)}% commission · Gross GHS ${Number(d.totalAmount).toFixed(2)}</p>`
+      ? `<p class="txn-ref">After ${(d.commissionRate * 100).toFixed(0)}% commission · Gross ${formatGHS(d.totalAmount)}</p>`
       : (d.ref ? `<p class="txn-ref">Ref: ${d.ref}</p>` : '');
 
     return `
@@ -305,7 +308,7 @@
           ${commissionNote}
         </div>
         <div class="txn-amount-col">
-          <p class="txn-amount ${amtClass}">${sign} GHS ${Number(d.amount).toFixed(2)}</p>
+          <p class="txn-amount ${amtClass}">${sign} ${formatGHS(d.amount)}</p>
           <span class="txn-status ${statusClass(d.status)}">${d.status || '—'}</span>
         </div>
       </div>
@@ -347,7 +350,7 @@
     const ready  = !!payoutAccount && amount >= 5 && amount <= currentWallet.available;
     wdConfirmBtn.disabled    = !ready;
     wdConfirmBtn.textContent = ready
-      ? `Withdraw GHS ${amount.toFixed(2)}`
+      ? `Withdraw ${formatGHS(amount)}`
       : 'Confirm Withdrawal';
   }
 
@@ -380,9 +383,9 @@
       // Only Paystack's confirmation means "sent". Anything else is honest
       // pending: the balance is held, and we notify when it settles.
       if (res.status === 'success') {
-        showToast(`GHS ${amount.toFixed(2)} sent to your Mobile Money account.`, 'success');
+        showToast(`${formatGHS(amount)} sent to your Mobile Money account.`, 'success');
       } else {
-        showToast(`Withdrawal of GHS ${amount.toFixed(2)} requested. We'll notify you when it arrives. Ref: ${res.ref}`, 'info');
+        showToast(`Withdrawal of ${formatGHS(amount)} requested. We'll notify you when it arrives. Ref: ${res.ref}`, 'info');
       }
     } catch (err) {
       const code = String(err?.code || '');

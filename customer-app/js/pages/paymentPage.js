@@ -157,7 +157,7 @@ function wireCompose() {
 function renderPin() {
     const acc = selectedAccount();
     $('pin-sub').innerHTML =
-        `This is your <strong>Handy Hub</strong> PIN — not your Mobile Money PIN. ` +
+        `This is your <strong>Fidus X</strong> PIN — not your Mobile Money PIN. ` +
         `It authorises a ${formatGHS(S.amount)} top-up from ${accMasked(acc)}.`;
     setPin('');
     $('pin-err').textContent = '';

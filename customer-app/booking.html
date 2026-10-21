@@ -5,7 +5,7 @@
   <script src="../shared/js/utils/themeManager.js"></script>
   <script src="../shared/js/services/stateService.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Bookings | HandyHub</title>
+  <title>My Bookings | Fidus X</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -370,7 +370,7 @@ function buildCancelledCard(b) {
     metaRows,
     amountLabel: 'Amount',
     amountValue: amountFor(b).value,
-    amountStyle: 'color:#aaa;',
+    amountStyle: 'color: var(--ui-faint, #737373);',
   });
 }
 
@@ -701,7 +701,7 @@ authService.subscribeToAuthState(user => {
       if (!_firstPaint) {
         ['list-upcoming','list-ongoing','list-completed','list-cancelled'].forEach(id => {
           const el = document.getElementById(id);
-          if (el) el.innerHTML = '<p style="text-align:center;padding:32px 16px;color:#999;">Could not load bookings. Check your connection and refresh.</p>';
+          if (el) el.innerHTML = '<p style="text-align:center;padding:32px 16px;color: var(--ui-faint, #737373);">Could not load bookings. Check your connection and refresh.</p>';
         });
       }
     }

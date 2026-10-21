@@ -15,9 +15,15 @@
      • RESTRAINT. Orange is a functional accent for primary actions and live
        state — never decoration. Neutrals carry the interface.
 
-   Brand: HandyHub orange #F97316 — same product family as the Customer App,
-   distinct role for the artisan operator.
+   Brand: Fidus X artisan orange #F97316 — same product family as the
+   Customer App, distinct role for the artisan operator.
    ========================================================================== */
+
+/* One box model for every artisan page. dashboard.css and most page styles
+   already set this; settings.html and job.html did not, so full-width rows with
+   padding (width:100% + 16px each side) ran 32px past their cards — clipping the
+   Settings toggles and the "10 km" radius value. */
+*, *::before, *::after { box-sizing: border-box; }
 
 :root {
   /* ── Brand ─────────────────────────────────────────────────────────────
@@ -38,7 +44,7 @@
 
   --ds-ink:        #0F1216;   /* primary text — near-black, not pure */
   --ds-ink-2:      #475067;   /* secondary text */
-  --ds-ink-3:      #8A93A6;   /* tertiary / metadata */
+  --ds-ink-3:      #646C7E;   /* tertiary / metadata — 5.3:1 on white, 5.0:1 on --ds-bg (was #8A93A6, 3.1:1) */
   --ds-ink-4:      #B6BDC9;   /* placeholder / disabled */
 
   /* ── Functional state ──────────────────────────────────────────────────
@@ -84,7 +90,17 @@
   --ds-shell:   430px;
   --ds-nav-h:   62px;
   --ds-header-h: 56px;
+}
 
+/* ── Bridge tokens: artisan values for names the SHARED/customer CSS also
+   declares. Artisan pages also load shared/css/ui-polish.css (for the shared
+   sheet, toast and back-button components), which defines --nav-brand,
+   --ui-sheet-radius and the legacy aliases at :root too — and whichever :root
+   block loaded LAST used to win. On settings, profile, wallet and the rest
+   that was ui-polish, so the active nav tab turned customer maroon inside the
+   artisan app. :root:root out-ranks a plain :root, so these artisan values
+   hold whatever order the stylesheets load in. */
+:root:root {
   /* ── Navigation bridge tokens (Artisan App context) ───────────────────────
      These override the Customer App's --nav-brand* values so the shared
      floating nav component renders in artisan orange without any code fork.
@@ -94,12 +110,48 @@
   --nav-brand:        var(--ds-brand-500);     /* active item colour: orange */
   --nav-brand-rgb:    249, 115, 22;            /* for rgba() glow effects */
   --nav-brand-dark:   #fb923c;                 /* dark-mode active (orange-300) */
+  --nav-brand-text:   var(--ds-brand-text);    /* active label/icon: orange-500 is 2.8:1 as 9px text */
 
   /* ── Sheet component bridge token ─────────────────────────────────────────
      Overrides the customer default (18px) so artisan bottom sheets
      resolve to 16px without any per-component config.                     */
   --ui-sheet-radius:  var(--ds-r-card);        /* 16px — artisan sheet corner */
   --ui-overlay:       rgba(0, 0, 0, 0.5);      /* shared backdrop token */
+
+  /* ── Orange as TEXT ───────────────────────────────────────────────────────
+     brand-500 is the fill colour (buttons, pills, icons). As text on white it
+     is 2.8:1 and brand-600 3.6:1 — both under the 4.5:1 body-text minimum —
+     so links, ghost buttons and orange labels use brand-700 (5.2:1). */
+  --ds-brand-text: var(--ds-brand-700);
+
+  /* ── Legacy names (pre-design-system pages) ───────────────────────────────
+     performance, reviews, notifications and support were written against the
+     old un-prefixed variables, which dashboard.css stopped defining when it
+     moved to --ds-*. Unresolved, every surface, radius and colour on those
+     pages collapsed — and with no --ds-font the text fell back to Times New
+     Roman. These aliases resolve the old names to the canonical tokens (the
+     same mapping onboarding.css uses) so those pages render in the system
+     without being rewritten. Do not use them in new code. */
+  --primary:       var(--ds-brand-500);
+  --primary-dark:  var(--ds-brand-600);
+  --primary-light: var(--ds-brand-50);
+  --text-dark:     var(--ds-ink);
+  --text-mid:      var(--ds-ink-2);
+  --text-light:    var(--ds-ink-3);
+  --surface:       var(--ds-surface);
+  --surface-2:     var(--ds-bg);
+  --surface-3:     var(--ds-surface-2);
+  --border:        var(--ds-line-strong);
+  --success:       var(--ds-success);
+  --success-bg:    var(--ds-success-bg);
+  --danger:        var(--ds-danger);
+  --danger-bg:     var(--ds-danger-bg);
+  --warning:       var(--ds-warning);
+  --radius-sm:     var(--ds-r-control);
+  --radius-md:     var(--ds-r-control);
+  --radius-lg:     var(--ds-r-card);
+  --shadow-sm:     var(--ds-shadow-sm);
+  --shadow-md:     var(--ds-shadow-pop);
 }
 
 /* ── Dark theme — overrides tokens, components stay identical ───────────── */
@@ -113,6 +165,7 @@
   --ds-ink:        #F3F5F8;
   --ds-ink-2:      #AEB6C4;
   --ds-ink-3:      #7B8494;
+  --ds-brand-text: #FB923C;   /* orange-400 as text on dark surfaces — 7.7:1 */
   --ds-ink-4:      #555E6E;
 
   --ds-brand-50:   rgba(249,115,22,0.12);
@@ -172,7 +225,7 @@
 }
 .ds-section-title { font: 700 16px/1.3 var(--ds-font); letter-spacing: -0.2px; color: var(--ds-ink); }
 .ds-link {
-  font: 600 13px/1 var(--ds-font); color: var(--ds-brand-600);
+  font: 600 13px/1 var(--ds-font); color: var(--ds-brand-text);
   text-decoration: none; display: inline-flex; align-items: center; gap: 2px;
 }
 .ds-link:active { opacity: 0.6; }
@@ -219,7 +272,7 @@
 .ds-btn--secondary { background: var(--ds-surface-2); color: var(--ds-ink); }
 .ds-btn--secondary:active:not(:disabled) { background: var(--ds-line-strong); }
 
-.ds-btn--ghost     { background: transparent; color: var(--ds-brand-600); padding-inline: var(--ds-3); }
+.ds-btn--ghost     { background: transparent; color: var(--ds-brand-text); padding-inline: var(--ds-3); }
 .ds-btn--ghost:active:not(:disabled) { opacity: 0.6; }
 
 .ds-btn--success   { background: var(--ds-success); color: #fff; }

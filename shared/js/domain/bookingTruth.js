@@ -46,14 +46,31 @@ export function money(v) {
 }
 
 /** Format for display. Unresolved renders as an em-dash, never as a number. */
+// Grouped thousands, two decimals — the same output as shared/js/utils/currency.js
+// formatGHS ("GHS 14,500.50"). Ungrouped five-digit amounts were hard to read and
+// disagreed with the screens that already used formatGHS.
 export function formatMoney(v, { currency = 'GHS', dash = '—' } = {}) {
     const n = money(v);
-    return n === null ? dash : `${currency} ${n.toFixed(2)}`;
+    return n === null ? dash
+        : `${currency} ${n.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function text(v) {
     const s = (v === null || v === undefined) ? '' : String(v).trim();
     return s === '' ? null : s;
+}
+
+// Catalogue ids are stored lower-case ("plumbing", "ac-repair") and used to
+// reach the screen as-is, so the same booking read "plumbing" on a job card and
+// "Plumbing" in a heading. Ids become their display label; anything a person
+// typed with its own capitals ("Borehole pump repair") is left exactly as typed.
+const SERVICE_LABELS = { 'ac-repair': 'AC Repair', 'ac': 'AC Repair' };
+export function serviceLabel(v) {
+    const s = text(v);
+    if (!s) return null;
+    if (SERVICE_LABELS[s.toLowerCase()]) return SERVICE_LABELS[s.toLowerCase()];
+    if (s !== s.toLowerCase()) return s;
+    return s.split(/[\s_-]+/).filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
 }
 
 const norm = (s) => String(s || '').trim().toLowerCase();
@@ -357,7 +374,7 @@ export function resolveReceipt(booking, loadedById = null, escrow = null) {
         reason:    null,
         bookingId,
         status,
-        service:   text(booking.serviceType) || text(booking.service),
+        service:   serviceLabel(booking.serviceType) || serviceLabel(booking.service),
         completedAt: text(booking.completedAt) || text(booking.updatedAt) || null,
         artisan,
         money:     m,
@@ -553,7 +570,7 @@ export function resolveJobBrief(booking, { originLat = null, originLng = null } 
         // 'Inspection' vs 'Work' — the same statuses recur in both cycles.
         cycle: copy.cycle,
 
-        service: text(b.serviceType) || text(b.service) || text(b.category),
+        service: serviceLabel(b.serviceType) || serviceLabel(b.service) || serviceLabel(b.category),
         // The customer's own words, in full. The card may clamp them visually,
         // but the complete text is always present in the DOM and expandable.
         problem: text(b.description),

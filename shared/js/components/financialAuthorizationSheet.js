@@ -35,7 +35,7 @@ const STATE_COPY = {
     // PIN protects the wallet, this authorises a single payment at the provider.
     otp: {
         title: 'Enter Your Mobile Money Code',
-        message: 'Your mobile money provider sent a code to your phone to authorise this payment. This is NOT your HandyHub PIN.',
+        message: 'Your mobile money provider sent a code to your phone to authorise this payment. This is NOT your Fidus X PIN.',
         live: 'Enter the authorization code sent by your mobile money provider.',
         action: '',
     },
@@ -157,7 +157,7 @@ export async function openFinancialAuthorizationSheet({
       <section class="hh-fin-auth__info" aria-label="What to expect">
         <h3>What to expect</h3>
         <div class="hh-fin-auth__item">${PHONE_SVG}<span>Approve the Mobile Money prompt on your phone.</span></div>
-        <div class="hh-fin-auth__item">${SIGNAL_SVG}<span>Keep Handy Hub open and stay connected while authorization is pending.</span></div>
+        <div class="hh-fin-auth__item">${SIGNAL_SVG}<span>Keep Fidus X open and stay connected while authorization is pending.</span></div>
         <div class="hh-fin-auth__item">${CLOCK_SVG}<span>This usually takes only a few moments.</span></div>
       </section>
       <form class="hh-fin-auth__otp" hidden>

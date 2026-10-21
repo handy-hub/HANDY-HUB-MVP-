@@ -30,7 +30,7 @@
   --ui-surface-2:     #f5f5f5;   /* L1 — inset/quiet fill (chips, secondary buttons, wells) */
   --ui-text:          #111111;   /* primary text */
   --ui-muted:         #666666;   /* secondary text */
-  --ui-faint:         #888888;   /* tertiary text / labels */
+  --ui-faint:         #737373;   /* tertiary text / labels — 4.7:1 on white (#888 was 3.5:1, below AA) */
   --ui-border:        rgba(0, 0, 0, 0.08);
   --ui-border-2:      #e8e8e8;   /* solid hairline (chip/well borders) */
 
@@ -824,6 +824,12 @@ textarea {
   max-width: 430px;
 }
 
+/* Tertiary text on dark surfaces. --ui-faint is tuned for white (#737373,
+   4.7:1); on #1e1e1e it would drop to ~3.7:1, so it follows --ui-dark-muted. */
+[data-theme="dark"] {
+  --ui-faint: var(--ui-dark-muted);
+}
+
 [data-theme="dark"] body {
   background: #111;
   color: #ececec;
@@ -908,6 +914,9 @@ textarea {
 @media (min-width: 768px) {
   body {
     padding: 16px !important;
+    /* global-app.js forces width:100% on body; without border-box the frame
+       padding made pages 32px wider than the viewport (right gutter clipped). */
+    box-sizing: border-box;
     background: #eceff4;
   }
 
