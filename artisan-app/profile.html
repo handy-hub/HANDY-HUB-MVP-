@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>My Profile | HandyHub Artisan</title>
+  <title>My Profile | Fidus X Artisan</title>
   <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -93,7 +93,7 @@
 <script src="../shared/js/utils/global-app.js"></script>
 <script type="module">
 import { getAppContainer }    from '../shared/js/app/container.js';
-import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+import { requireArtisanAuth, patchArtisanSession } from './js/utils/artisanAuthGuard.js';
 import { avatarUrl, TRANSFORMS, fallbackAvatar } from '../shared/js/services/cloudinaryService.js';
 import { replaceProfilePhoto } from '../shared/js/services/profilePhotoService.js';
 import { ARTISAN_TRADES, claimsLocked, requestProfileChange, cancelProfileChange } from './js/utils/artisanAccount.js';
@@ -386,6 +386,7 @@ window.saveProfile = async function() {
 
   try {
     await databaseService.updateDocument('artisans', user.uid, updates);
+    patchArtisanSession(updates);   // next page paints the saved details
     showToast('Profile saved');
   } catch(e) {
     showToast('Could not save. Try again.');

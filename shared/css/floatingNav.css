@@ -35,7 +35,11 @@
   justify-content: center;
   padding: 0 18px calc(14px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
-  animation: fnav-rise 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  /* backwards, not both: a fill that HOLDS the final keyframe keeps an opacity
+     animation applied for the life of the page, which makes .hh-fnav the
+     backdrop root — the pill's backdrop-filter then has nothing to blur and the
+     page text showed straight through the nav in Chromium (Android Chrome). */
+  animation: fnav-rise 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 }
 
 /* ── Glass pill ─────────────────────────────────────────────────── */
@@ -115,7 +119,7 @@
   position: relative;
   z-index: 1;
   text-decoration: none;
-  color: rgba(100, 100, 115, 0.80);
+  color: rgba(60, 60, 75, 0.86);   /* ≈6.9:1 on the frosted pill (was 0.80 alpha of #646473, ≈4:1) */
   padding: 8px 4px 6px;
   border-radius: 28px;
   background: none;
@@ -160,7 +164,9 @@
 
 /* ── Active state ───────────────────────────────────────────────── */
 .hh-fnav-item.hh-fnav-active {
-  color: var(--nav-brand);
+  /* --nav-brand-text lets an app whose brand colour is too light for small
+     text (artisan orange) darken the label without dimming the indicator. */
+  color: var(--nav-brand-text, var(--nav-brand));
 }
 
 /* Icon scales up slightly */
@@ -223,52 +229,53 @@
 }
 
 /* ── Dark mode — liquid obsidian glass ─────────────────────────── */
-@media (prefers-color-scheme: dark) {
-  .hh-fnav-pill {
-    background: rgba(18, 18, 24, 0.82);
-    backdrop-filter: blur(40px) saturate(220%) brightness(0.94);
-    -webkit-backdrop-filter: blur(40px) saturate(220%) brightness(0.94);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    box-shadow: none;
-  }
+/* Follows the APP theme (themeManager sets data-theme="dark"), like every
+   page does — not the OS preference, which left a light nav on a dark page
+   (and a dark nav on a light one) whenever the two disagreed. */
+[data-theme="dark"] .hh-fnav-pill {
+  background: rgba(18, 18, 24, 0.82);
+  backdrop-filter: blur(40px) saturate(220%) brightness(0.94);
+  -webkit-backdrop-filter: blur(40px) saturate(220%) brightness(0.94);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: none;
+}
 
-  .hh-fnav-pill::before {
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.14) 25%,
-      rgba(255, 255, 255, 0.20) 50%,
-      rgba(255, 255, 255, 0.14) 75%,
-      transparent 100%
-    );
-  }
+[data-theme="dark"] .hh-fnav-pill::before {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.14) 25%,
+    rgba(255, 255, 255, 0.20) 50%,
+    rgba(255, 255, 255, 0.14) 75%,
+    transparent 100%
+  );
+}
 
-  .hh-fnav-pill::after {
-    background: linear-gradient(
-      170deg,
-      rgba(255, 255, 255, 0.06) 0%,
-      transparent               45%,
-      rgba(0,   0,   0,   0.18) 100%
-    );
-  }
+[data-theme="dark"] .hh-fnav-pill::after {
+  background: linear-gradient(
+    170deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    transparent               45%,
+    rgba(0,   0,   0,   0.18) 100%
+  );
+}
 
-  .hh-fnav-item {
-    color: rgba(160, 160, 180, 0.55);
-  }
+[data-theme="dark"] .hh-fnav-item {
+  color: rgba(176, 176, 196, 0.88);   /* 7.0:1 on the obsidian pill (0.55 was 3.0:1) */
+}
 
-  .hh-fnav-item.hh-fnav-active {
-    color: var(--nav-brand-dark);
-  }
+[data-theme="dark"] .hh-fnav-item.hh-fnav-active {
+  color: var(--nav-brand-dark);
+}
 
-  .hh-fnav-item.hh-fnav-active .hh-fnav-icon {
-    transform: scale(1.12) translateY(-1px);
-  }
+[data-theme="dark"] .hh-fnav-item.hh-fnav-active .hh-fnav-icon {
+  transform: scale(1.12) translateY(-1px);
+}
 
-  .hh-fnav-badge {
-    box-shadow:
-      0 0  0 2px rgba(18, 18, 24, 0.95),
-      0 2px 8px rgba(var(--nav-brand-rgb), 0.55);
-  }
+[data-theme="dark"] .hh-fnav-badge {
+  box-shadow:
+    0 0  0 2px rgba(18, 18, 24, 0.95),
+    0 2px 8px rgba(var(--nav-brand-rgb), 0.55);
 }
 
 /* ── Fallback: no backdrop-filter support ───────────────────────── */
@@ -276,12 +283,8 @@
   .hh-fnav-pill {
     background: rgba(250, 250, 253, 0.98);
   }
-}
-@supports not (backdrop-filter: blur(1px)) {
-  @media (prefers-color-scheme: dark) {
-    .hh-fnav-pill {
-      background: rgba(20, 20, 26, 0.99);
-    }
+  [data-theme="dark"] .hh-fnav-pill {
+    background: rgba(20, 20, 26, 0.99);
   }
 }
 
@@ -372,7 +375,7 @@
 }
 .em-modal-sub {
   font-size: 11.5px;
-  color: #888;
+  color: var(--ui-faint);
   margin: 0;
 }
 
@@ -430,7 +433,7 @@
   padding: 13px;
   font-size: 14px;
   font-weight: 600;
-  color: #888;
+  color: var(--ui-faint);
   cursor: pointer;
   font-family: inherit;
   transition: background 0.15s;

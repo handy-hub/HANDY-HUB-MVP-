@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Privacy Policy | HandyHub</title>
+  <title>Privacy Policy | Fidus X</title>
   <link rel="stylesheet" href="css/settings.css" />
   <link rel="stylesheet" href="../shared/css/pageTransitions.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,8 +22,10 @@
     <div class="scroll-area">
 
       <div class="page-header">
+        <!-- Also opened from the artisan app (Settings, onboarding): go back to where the
+             reader came from, not always to the customer settings page. -->
         <button class="back-btn" aria-label="Go back"
-          onclick="sessionStorage.setItem('pageTransitionDirection','back'); window.location.href='settings.html'">
+          onclick="sessionStorage.setItem('pageTransitionDirection','back'); if (history.length > 1 && document.referrer.indexOf(location.origin + '/') === 0) history.back(); else window.location.href='settings.html'">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -32,7 +34,7 @@
         <div class="header-spacer"></div>
       </div>
 
-      <p id="last-updated" style="font-size:11.5px;color:#aaa;margin-bottom:18px;">Last updated: </p>
+      <p id="last-updated" style="font-size:11.5px;color: var(--ui-faint, #737373);margin-bottom:18px;">Last updated: </p>
 
       <div class="menu-card" style="padding:18px;">
         <div class="static-text">
@@ -55,7 +57,7 @@
           We use browser local storage to remember your preferences (language, currency, theme). No advertising cookies are used.
 
           <h3>7. Children's Privacy</h3>
-          Handy Hub is not intended for users under 18. We do not knowingly collect data from minors.
+          Fidus X is not intended for users under 18. We do not knowingly collect data from minors.
 
           <h3>8. Changes to This Policy</h3>
           We may update this policy periodically. We will notify you of significant changes via the app.

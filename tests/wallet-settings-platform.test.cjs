@@ -335,14 +335,30 @@ await t('a clear account closes: PII erased, out of dispatch, records kept, logi
     assert.deepStrictEqual(fake.auth.deleted, [ART]);
 });
 
-await t('the customer path is unchanged and still refuses money outstanding', async () => {
+const CUST_AT = (secondsAgo) => ({ uid: CUST, token: { auth_time: Math.floor(Date.now() / 1000) - secondsAgo } });
+
+await t('the customer path still refuses money outstanding', async () => {
     fake.db._reset(); fake.auth.reset();
     fake.db._set(`customers/${CUST}`, { walletBalance: 5, escrowBalance: 0, name: 'Ama' });
     const r = await lifecycle.checkAccountDeletable({ uid: CUST, token: {} });
     assert.deepStrictEqual([r.deletable, r.blockers[0].code], [false, 'wallet_balance']);
     fake.db._set(`customers/${CUST}`, { walletBalance: 0, escrowBalance: 0, name: 'Ama', email: 'a@x.com' });
-    await lifecycle.requestAccountDeletion({ uid: CUST, token: {} });
+    await lifecycle.requestAccountDeletion(CUST_AT(30));
     assert.deepStrictEqual(fake.auth.deleted, [CUST]);
+});
+
+await t('deleting a customer needs a recent sign-in too — a bare session token cannot erase the account', async () => {
+    fake.db._reset(); fake.auth.reset();
+    fake.db._set(`customers/${CUST}`, { walletBalance: 0, escrowBalance: 0, name: 'Ama', email: 'a@x.com' });
+    for (const auth of [{ uid: CUST, token: {} }, CUST_AT(3600)]) {
+        const e = await rejects(() => lifecycle.requestAccountDeletion(auth), /sign in again/);
+        assert.strictEqual(e.reason, 'reauth_required');
+    }
+    assert.strictEqual(fake.auth.deleted.length, 0);
+    assert.strictEqual(fake.db._get(`customers/${CUST}`).name, 'Ama', 'nothing erased on a refusal');
+    const page = read('customer-app/js/pages/settingsPage.js');
+    assert.ok(page.indexOf('authService.reauthenticate(password)') > 0, 'customer settings refreshes the token (auth_time) before calling');
+    assert.ok(page.indexOf('authService.reauthenticate(password)') < page.indexOf('await deleteAccountOnServer();'));
 });
 
 await t('Settings asks the server first and re-authenticates before closing', () => {
@@ -351,6 +367,51 @@ await t('Settings asks the server first and re-authenticates before closing', ()
     assert.ok(s.indexOf('authService.reauthenticate(') < s.indexOf("callable('requestAccountDeletion')"), 'reauth happens first');
     assert.match(s, /Type CLOSE to confirm/);
     assert.match(read('shared/js/backend/providers/firebase/firebaseAuthService.js'), /await user\.getIdToken\(true\)/);
+});
+
+console.log('\n── Settings · what an artisan sees, and what each control really does ──\n');
+
+await t('job radius reads and writes the field dispatch uses, within what dispatch honours', () => {
+    const s = read('artisan-app/settings.html');
+    assert.ok(!/jobRadius/.test(s), 'jobRadius was never written by anything; the row always showed 10 km');
+    assert.match(s, /updateDocument\('artisans', user\.uid, patch\)/);
+    assert.match(s, /const patch = \{ workRadius: v, updatedAt: n \}/);
+    assert.match(s, /RADIUS_CHOICES = \[5, 10, 15, 20, 25\]/);
+    assert.match(read('functions/dispatch.js'), /25_000/, 'Settings caps at the dispatch search radius');
+    assert.match(read('functions/dispatch.js'), /a\.workRadius \|\| 20/);
+    assert.match(read('firestore.rules'), /isValidArtisanWorkRadius\(\)\s*\n\s*\);/);
+});
+
+await t('verification is a status for an approved artisan, not a link into onboarding', () => {
+    const s = read('artisan-app/settings.html');
+    assert.match(s, /approved:\s+\{ value: 'Verified',\s+tone: 'ok',.*link: false \}/);
+    assert.match(read('artisan-app/onboarding.html'), /verificationStatus === 'approved'\) \{\s*window\.location\.href = 'dashboard\.html'/,
+        'onboarding bounces approved accounts, which is why the row must not link there');
+});
+
+await t('the payout account is shown masked and never edited from Settings', () => {
+    const s = read('artisan-app/settings.html');
+    assert.match(s, /digits\.slice\(-4\)/);
+    assert.ok(!/(update|set)Document\(`artisans\/\$\{user\.uid\}\/private`/.test(s));
+});
+
+await t('changing the password proves the current one first, and only for password accounts', () => {
+    const s = read('artisan-app/settings.html');
+    const i = s.indexOf('await authService.reauthenticate(cur)');
+    assert.ok(i > 0 && i < s.indexOf('await authService.changePassword(next)'));
+    assert.match(s, /\$\('password-row'\)\.hidden = !usesPassword/);
+    assert.ok(s.indexOf("showToast('Password updated.'") > s.indexOf('await authService.changePassword(next)'), 'success only after Firebase accepts');
+});
+
+await t('Settings pages no longer send the device location to third parties', () => {
+    const tm = read('shared/js/utils/themeManager.js');
+    assert.ok(!/navigator\.geolocation|fetch\(/.test(tm), 'themeManager asked for GPS and posted it to a reverse-geocoder');
+});
+
+await t('the shared legal pages go back where the reader came from (artisans were sent into the customer app)', () => {
+    for (const f of ['customer-app/settings-terms.html', 'customer-app/settings-privacy-policy.html']) {
+        assert.match(read(f), /document\.referrer\.indexOf\(location\.origin \+ '\/'\) === 0\) history\.back\(\); else window\.location\.href='settings\.html'/, f);
+    }
 });
 
 console.log('\n── AR-16 · installability, judged honestly; a worker that caches only what it may ──\n');

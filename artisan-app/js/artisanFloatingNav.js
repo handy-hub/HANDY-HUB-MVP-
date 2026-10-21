@@ -180,11 +180,10 @@
       var next = !(snap && snap.data && snap.data.isAvailable);
       // Optimistic paint, then persist (rules permit owner isAvailable update).
       paintOnline(next);
-      await c.services.databaseService.updateDocument('artisans', user.uid, {
-        isAvailable: next,
-        isOnline:    next,
-        updatedAt:   new Date().toISOString(),
-      });
+      var onlinePatch = { isAvailable: next, isOnline: next, updatedAt: new Date().toISOString() };
+      await c.services.databaseService.updateDocument('artisans', user.uid, onlinePatch);
+      // Keep the guard's cached verdict in step, so the next page paints it.
+      if (window._agPatchSession) window._agPatchSession(onlinePatch);
     } catch (err) {
       console.warn('[artisanNav] online toggle failed:', err.message);
       // Roll the paint back to the real state on failure.

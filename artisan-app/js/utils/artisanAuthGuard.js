@@ -22,9 +22,12 @@
  *   // Onboarding — auth + role only (pending artisans must reach this page)
  *   const { user, artisan } = await requireArtisanAuth({ allowPending: true });
  *
- * The guard blocks all page rendering via a full-screen overlay until checks
- * complete. No content flashes before verification. All redirects use
- * location.replace() so protected pages are never in browser history.
+ * The FIRST verification in a tab blocks rendering via a full-screen overlay
+ * until checks complete. After that, navigating between artisan pages paints
+ * immediately from this tab's last verdict (same uid only) while the profile
+ * is re-read in the background; a changed verdict (suspended, role, KYC) then
+ * blocks the page. All redirects use location.replace() so protected pages are
+ * never in browser history.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -115,7 +118,7 @@ const SCREENS = {
         </svg>
       </div>
       <p class="ag-title">Account Suspended</p>
-      <p class="ag-sub">Your account has been suspended. Please contact HandyHub support to resolve this.</p>
+      <p class="ag-sub">Your account has been suspended. Please contact Fidus X support to resolve this.</p>
       <button class="ag-btn ag-btn-secondary" onclick="window.location.href='mailto:support@handyhub.app'">
         Contact Support
       </button>
@@ -241,6 +244,48 @@ function cacheSession(uid, artisanData) {
   } catch (_) {}
 }
 
+/**
+ * The verdict this tab last reached for `uid`, regardless of age — the guard
+ * revalidates it in the background on every load, so its age only bounds how
+ * stale the FIRST paint can be, never an access decision. Different uid → null.
+ */
+function readVerifiedSession(uid) {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+    return s && s.uid === uid ? s : null;
+  } catch { return null; }
+}
+
+/**
+ * Merge a write this client just made into the cached verdict, so the next
+ * page's instant paint shows it (e.g. a settings toggle, a profile edit).
+ * Shallow by design: every artisan write passes flat fields.
+ */
+export function patchArtisanSession(patch) {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+    if (!s || !patch) return;
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ...s, ...patch }));
+  } catch (_) {}
+}
+// Classic (non-module) scripts such as artisanFloatingNav.js reach it here.
+window._agPatchSession = patchArtisanSession;
+
+/**
+ * Which screen, if any, blocks this artisan on this page. null = allowed.
+ * The single gate both the instant path and the network path apply.
+ */
+function gateFor(artisan, { requireApproved, allowPending }) {
+  if (!artisan || artisan.userType !== 'artisan') return 'unauthorized';
+  const status = (artisan.status || '').toLowerCase();
+  if (status === 'suspended' || status === 'banned') return 'suspended';
+  const kycStatus = (artisan.verificationStatus || '').toLowerCase();
+  if (!allowPending && requireApproved && kycStatus !== 'approved') {
+    return kycStatus === 'rejected' ? 'rejected' : 'pending';
+  }
+  return null;
+}
+
 export function getArtisanSession() {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
@@ -354,9 +399,19 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
     return resolveDevArtisanAccess({ requireApproved, allowPending });
   }
 
+  // RENDER FIRST (CLAUDE.md §1). If this tab already verified an artisan, the
+  // page is NOT covered by "Verifying your account…" on every navigation: the
+  // verdict is confirmed against Firebase's restored user (local, no network)
+  // and the page paints at once, while the Firestore read runs behind it. Only
+  // a tab with no verdict yet — first page, after sign-out, another account —
+  // is blocked while the checks run.
+  const hadVerdict = (() => {
+    try { return !!sessionStorage.getItem(SESSION_KEY); } catch { return false; }
+  })();
+
   // Block ALL page content immediately — overlay covers the body before
   // any HTML renders visibly.
-  showOverlay('loading');
+  if (!hadVerdict) showOverlay('loading');
 
   return new Promise((resolve) => {
     // Slowness is NOT a logout. Firebase restores a session from local
@@ -374,7 +429,9 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
     // NEW DEVICE — and a legitimately signed-in artisan was redirected to login
     // on their first slow page load. Elapsed time is not evidence about
     // authentication; only Firebase resolving a null user is.
-    const timeout = setTimeout(() => showOverlay('loading'), GUARD_NOTICE_MS);
+    // With a verdict on screen the page's own loading states are showing, so a
+    // slow restore must not throw the blocking overlay over them.
+    const timeout = hadVerdict ? null : setTimeout(() => showOverlay('loading'), GUARD_NOTICE_MS);
 
     const { services: { authService, databaseService } } = getAppContainer();
 
@@ -391,6 +448,33 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
           window.location.replace(LOGIN_URL);
           return;
         }
+
+        // ── Instant path: this tab already verified THIS uid ──────
+        // The same gate the network path applies, run on the last verdict.
+        // Firestore rules and Cloud Functions remain the enforcement; this
+        // only decides what to paint while the fresh read is in flight.
+        const cached = readVerifiedSession(user.uid);
+        if (cached && !gateFor(cached, { requireApproved, allowPending })) {
+          resolve({ user, artisan: cached });
+          initializePushNotifications(user.uid, 'artisan').catch(() => {});
+          databaseService.getDocument('artisans', user.uid).then((snap) => {
+            if (!snap || !snap.exists) { showOverlay('setup'); return; }
+            const fresh = snap.data;
+            const blocked = gateFor(fresh, { requireApproved, allowPending });
+            // Suspended, role changed or KYC withdrawn since the last page:
+            // block now, exactly as the network path would have.
+            if (blocked) { showOverlay(blocked); return; }
+            cacheSession(user.uid, fresh);
+            // Pages hold this object; later reads (handlers, re-renders) see
+            // the fresh document instead of the one the paint started from.
+            Object.assign(cached, fresh);
+          }).catch((err) => {
+            // Offline: the session is valid and the page is already useful.
+            console.warn('[artisanGuard] background revalidation failed (page kept):', err.message);
+          });
+          return;
+        }
+        if (hadVerdict) showOverlay('loading');
 
         // ── Step 2: Firestore artisan document ────────────────────
         let artisanSnap;
@@ -414,30 +498,10 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
 
         const artisan = artisanSnap.data;
 
-        // ── Step 3: role check ────────────────────────────────────
-        if (artisan.userType !== 'artisan') {
-          showOverlay('unauthorized');
-          return;
-        }
-
-        // ── Step 4: suspension / ban check ───────────────────────
-        const status = (artisan.status || '').toLowerCase();
-        if (status === 'suspended' || status === 'banned') {
-          showOverlay('suspended');
-          return;
-        }
-
-        // ── Step 5: KYC check ─────────────────────────────────────
-        const kycStatus = (artisan.verificationStatus || '').toLowerCase();
-        const isApproved = kycStatus === 'approved';
-
-        if (!allowPending && requireApproved && !isApproved) {
-          // This page requires KYC approval — show appropriate screen
-          if (kycStatus === 'rejected') {
-            showOverlay('rejected');
-          } else {
-            showOverlay('pending');
-          }
+        // ── Steps 3–5: role, suspension/ban, KYC (when required) ──
+        const blocked = gateFor(artisan, { requireApproved, allowPending });
+        if (blocked) {
+          showOverlay(blocked);
           return;
         }
 
