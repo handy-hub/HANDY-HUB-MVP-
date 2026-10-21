@@ -414,6 +414,23 @@ await t('the shared legal pages go back where the reader came from (artisans wer
     }
 });
 
+await t('Profile is the professional profile; account controls have one home, in Settings', () => {
+    const pf = read('artisan-app/profile.html');
+    const code = pf.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const [what, re] of [
+        ['sign out', /signOut|sessionService\.logout|Sign [Oo]ut/],
+        ['wallet / withdraw', /Withdraw|availableBalance|totalEarned/],
+        ['email or phone editing', /type="email"|type="tel"|field-email|field-phone|phone:\s/],
+        ['settings menu rows', /pf2-row|menuRow\(/],
+    ]) assert.ok(!re.test(code), `Profile still has ${what}`);
+    assert.match(pf, /href="settings\.html" aria-label="Settings"/, 'one way to Settings');
+    assert.match(pf, /if \(!locked\) \{\s*updates\.name/, 'verified claims written only while editable');
+    const st = read('artisan-app/settings.html');
+    assert.match(st, /id="phone-row"/);
+    assert.match(st, /const patch = \{ phone: raw, updatedAt: new Date\(\)\.toISOString\(\) \}/);
+    assert.match(read('artisan-app/dashboard.html'), /profile\.html\?edit=area/, 'Edit Area opens the service area');
+});
+
 console.log('\n── AR-16 · installability, judged honestly; a worker that caches only what it may ──\n');
 
 await t('the artisan manifest is valid and in scope, and says honestly it is not installable yet', () => {

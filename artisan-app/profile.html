@@ -3,424 +3,571 @@
 <head>
   <meta charset="UTF-8" />
   <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
   <title>My Profile | Fidus X Artisan</title>
   <link rel="stylesheet" href="css/design-system.css" />
-  <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../shared/css/ui-polish.css" />
   <style>
-    /* Profile screen — built on the design system, mirroring the Customer
-       App's profile structure (identity card → stat bar → titled sections →
-       menu rows) adapted to artisan content. */
-    .pf2-header { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-3) var(--ds-gutter);
-      background:var(--ds-surface); border-bottom:1px solid var(--ds-line); position:sticky; top:0; z-index:10; }
-    .pf2-header h1 { font:800 18px/1 var(--ds-font); letter-spacing:-0.3px; color:var(--ds-ink); flex:1; }
-    .pf2-wrap { padding:var(--ds-4) var(--ds-gutter) 0; }
+    /* A professional profile: who the artisan is, what they do, where they
+       work and what customers read about them. Account controls live in
+       Settings (one gear, top right) — nothing here is a settings row. */
+    body { margin: 0; background: var(--ds-bg); font-family: var(--ds-font);
+           -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
-    /* Identity card */
-    .pf2-id { display:flex; align-items:center; gap:var(--ds-3); }
-    .pf2-av-wrap { position:relative; flex-shrink:0; }
-    .pf2-av { width:64px; height:64px; border-radius:var(--ds-r-pill); object-fit:cover; display:block; background:var(--ds-surface-2); }
-    .pf2-cam { position:absolute; bottom:-2px; right:-2px; width:26px; height:26px; border-radius:var(--ds-r-pill);
-      background:var(--ds-brand-500); border:2.5px solid var(--ds-surface); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
-    .pf2-cam svg { width:12px; height:12px; }
-    .pf2-name { font:800 19px/1.2 var(--ds-font); letter-spacing:-0.3px; color:var(--ds-ink); }
-    .pf2-role { font:500 13px/1.3 var(--ds-font); color:var(--ds-ink-2); margin-top:2px; }
+    .pf-header { display:flex; align-items:center; gap:var(--ds-2); min-height:56px;
+      padding:var(--ds-2) var(--ds-gutter); background:var(--ds-bg); position:sticky; top:0; z-index:10; }
+    .pf-header h1 { margin:0; flex:1; font:800 18px/1 var(--ds-font); letter-spacing:-0.3px; color:var(--ds-ink); }
+    .pf-header .ds-iconbtn { width:44px; height:44px; margin-right:calc(-1 * var(--ds-2)); color:var(--ds-ink-2); }   /* a link: not UA blue */
 
-    /* Stat bar */
-    .pf2-stats { display:flex; align-items:center; margin-top:var(--ds-4); padding-top:var(--ds-4); border-top:1px solid var(--ds-line); }
-    .pf2-stat { flex:1; text-align:center; }
-    .pf2-stat-val { font:800 17px/1 var(--ds-font); color:var(--ds-ink); font-variant-numeric:tabular-nums; }
-    .pf2-stat-lbl { font:500 11px/1 var(--ds-font); color:var(--ds-ink-3); margin-top:5px; display:block; }
-    .pf2-stat-sep { width:1px; height:30px; background:var(--ds-line); }
+    /* ── Identity ─────────────────────────────────────────────────────── */
+    .pf-hero { display:flex; flex-direction:column; align-items:center; text-align:center;
+      padding:var(--ds-4) var(--ds-gutter) var(--ds-2); }
+    .pf-av-wrap { position:relative; width:96px; height:96px; }
+    .pf-av { width:96px; height:96px; border-radius:var(--ds-r-pill); object-fit:cover; display:block;
+      background:var(--ds-surface-2); box-shadow:0 0 0 4px var(--ds-surface); }
+    /* No photo yet: initials in the artisan palette (the shared fallback
+       reads the customer --ui-primary, maroon). */
+    .pf-initials { position:absolute; inset:0; border-radius:var(--ds-r-pill); display:flex; align-items:center; justify-content:center;
+      background:var(--ds-brand-50); color:var(--ds-brand-text); font:800 32px/1 var(--ds-font); letter-spacing:-0.5px;
+      box-shadow:0 0 0 4px var(--ds-surface); }
+    .pf-initials[hidden], .pf-av[hidden] { display:none; }
+    .pf-cam { position:absolute; right:-2px; bottom:-2px; width:34px; height:34px; padding:0; cursor:pointer;
+      border-radius:var(--ds-r-pill); border:3px solid var(--ds-bg); background:var(--ds-ink); color:var(--ds-bg);
+      display:flex; align-items:center; justify-content:center; }
+    .pf-cam svg { width:15px; height:15px; }
+    .pf-cam:disabled { opacity:.5; cursor:default; }
+    .pf-cam:focus-visible { outline:2px solid var(--ds-brand-text); outline-offset:2px; }
+    .pf-name { margin:var(--ds-4) 0 0; display:flex; align-items:center; justify-content:center; gap:6px; max-width:100%;
+      font:800 22px/1.2 var(--ds-font); letter-spacing:-0.4px; color:var(--ds-ink); }
+    /* The full name matters most here: wrap to two lines rather than cut it. */
+    .pf-name-text { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+    .pf-tick { width:20px; height:20px; flex-shrink:0; color:var(--ds-success); }
+    .pf-trade { margin:4px 0 0; font:600 15px/1.35 var(--ds-font); color:var(--ds-ink-2); }
+    .pf-area { margin:6px 0 0; display:flex; align-items:center; justify-content:center; gap:5px;
+      font:500 13px/1.4 var(--ds-font); color:var(--ds-ink-3); }
+    .pf-area svg { width:14px; height:14px; flex-shrink:0; }
+    .pf-edit-btn { margin-top:var(--ds-4); min-width:160px; }
 
-    /* Menu rows */
-    .pf2-menu { overflow:hidden; }
-    .pf2-row { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-4); width:100%;
-      background:none; border:none; cursor:pointer; text-decoration:none; text-align:left; font-family:inherit; }
-    .pf2-row + .pf2-row { border-top:1px solid var(--ds-line); }
-    .pf2-row:active { background:var(--ds-surface-2); }
-    .pf2-row-ic { width:36px; height:36px; border-radius:var(--ds-r-control); background:var(--ds-brand-50);
-      color:var(--ds-brand-600); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .pf2-row-ic svg { width:18px; height:18px; }
-    .pf2-row-ic.danger { background:var(--ds-danger-bg); color:var(--ds-danger); }
-    .pf2-row-body { flex:1; min-width:0; }
-    .pf2-row-title { display:block; font:600 14px/1.3 var(--ds-font); color:var(--ds-ink); }
-    .pf2-row-sub { display:block; font:500 12px/1.3 var(--ds-font); color:var(--ds-ink-3); margin-top:2px; }
-    .pf2-row-chev { color:var(--ds-ink-4); flex-shrink:0; }
-    .pf2-row-chev svg { width:16px; height:16px; }
+    /* ── Reputation: three facts, not a dashboard ─────────────────────── */
+    .pf-facts { display:grid; grid-template-columns:repeat(3, 1fr); margin:var(--ds-5) var(--ds-gutter) 0;
+      background:var(--ds-surface); border:1px solid var(--ds-line); border-radius:var(--ds-r-card); }
+    .pf-fact { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+      min-height:76px; padding:var(--ds-3) var(--ds-2); text-decoration:none; color:inherit; text-align:center; }
+    .pf-fact + .pf-fact { border-left:1px solid var(--ds-line); }
+    a.pf-fact:active { background:var(--ds-surface-2); }
+    a.pf-fact:focus-visible { outline:2px solid var(--ds-brand-text); outline-offset:-2px; border-radius:var(--ds-r-card); }
+    .pf-fact-val { font:800 19px/1 var(--ds-font); color:var(--ds-ink); font-variant-numeric:tabular-nums; }
+    .pf-fact-lbl { font:500 12px/1.3 var(--ds-font); color:var(--ds-ink-3); }
 
-    /* Earnings hero (mirrors customer wallet card, dark operator surface) */
-    .pf2-earn { border-radius:var(--ds-r-card); padding:var(--ds-5);
-      background:linear-gradient(150deg,#1A1D23,#0F1216); display:flex; align-items:center; justify-content:space-between; gap:var(--ds-4); }
-    .pf2-earn-lbl { font:500 12px/1 var(--ds-font); color:rgba(255,255,255,.55); margin-bottom:var(--ds-2); }
-    .pf2-earn-val { font:800 24px/1 var(--ds-font); letter-spacing:-0.5px; color:#fff; font-variant-numeric:tabular-nums; }
-    .pf2-earn-val .cur { font:600 13px/1 var(--ds-font); color:rgba(255,255,255,.6); margin-right:3px; }
+    /* ── Notices (verification, completeness): one quiet line each ───── */
+    .pf-note { display:flex; align-items:center; gap:var(--ds-3); margin:var(--ds-3) var(--ds-gutter) 0;
+      padding:var(--ds-3) var(--ds-4); border-radius:var(--ds-r-card); background:var(--ds-surface); border:1px solid var(--ds-line); }
+    .pf-note.warn { background:var(--ds-warning-bg); border-color:transparent; }
+    .pf-note-body { flex:1; min-width:0; }
+    .pf-note-title { margin:0; font:700 14px/1.35 var(--ds-font); color:var(--ds-ink); }
+    .pf-note-sub { margin:2px 0 0; font:500 13px/1.45 var(--ds-font); color:var(--ds-ink-2); }
+    .pf-meter { height:6px; margin-top:var(--ds-2); border-radius:var(--ds-r-pill); background:var(--ds-surface-2); overflow:hidden; }
+    .pf-meter > span { display:block; height:100%; border-radius:inherit; background:var(--ds-brand-600); }
+
+    /* ── Sections ─────────────────────────────────────────────────────── */
+    .pf-sec { margin:var(--ds-6) var(--ds-gutter) 0; }
+    .pf-sec-title { margin:0 0 var(--ds-2); font:800 16px/1.3 var(--ds-font); letter-spacing:-0.2px; color:var(--ds-ink); }
+    .pf-about { margin:0; font:500 15px/1.6 var(--ds-font); color:var(--ds-ink-2); white-space:pre-line; overflow-wrap:anywhere; }
+    .pf-empty { margin:0; font:500 14px/1.5 var(--ds-font); color:var(--ds-ink-3); }
+    .pf-inline-link { padding:0; border:none; background:none; cursor:pointer; font:inherit; font-weight:700; color:var(--ds-brand-text);
+      min-height:44px; }
+    .pf-chips { display:flex; flex-wrap:wrap; gap:var(--ds-2); }
+    .pf-chip { display:inline-flex; align-items:center; min-height:32px; padding:0 var(--ds-3);
+      border-radius:var(--ds-r-pill); background:var(--ds-surface); border:1px solid var(--ds-line);
+      font:600 13px/1 var(--ds-font); color:var(--ds-ink-2); }
+    .pf-foot { height:calc(var(--ds-nav-h) + var(--ds-8, 40px)); }
+
+    /* ── Edit sheet ───────────────────────────────────────────────────── */
+    .pf-sheet-ov { position:fixed; inset:0; z-index:1900; display:flex; align-items:flex-end; justify-content:center;
+      background:var(--ui-overlay, rgba(15,18,22,0.5)); visibility:hidden; opacity:0;
+      transition:opacity var(--ds-t-base), visibility 0s linear var(--ds-t-base); }
+    .pf-sheet-ov.open { visibility:visible; opacity:1; transition:opacity var(--ds-t-base); }
+    .pf-sheet { width:100%; max-width:var(--ds-shell); max-height:90dvh; overflow-y:auto; box-sizing:border-box;
+      background:var(--ds-surface); border-radius:var(--ds-r-card) var(--ds-r-card) 0 0;
+      padding:var(--ds-3) var(--ds-5) max(var(--ds-5), env(safe-area-inset-bottom));
+      box-shadow:var(--ds-shadow-sheet); transform:translateY(100%); transition:transform var(--ds-t-slow) var(--ds-ease); }
+    .pf-sheet-ov.open .pf-sheet { transform:translateY(0); }
+    .pf-sheet:focus { outline:none; }
+    .pf-sheet-handle { width:38px; height:4px; margin:0 auto var(--ds-4); border-radius:var(--ds-r-pill); background:var(--ds-line-strong); }
+    .pf-sheet-title { margin:0 0 var(--ds-4); font:800 18px/1.25 var(--ds-font); color:var(--ds-ink); }
+    .pf-field { display:block; margin-bottom:var(--ds-4); }
+    .pf-field > span { display:flex; justify-content:space-between; gap:var(--ds-2); margin-bottom:var(--ds-1);
+      font:600 13px/1.3 var(--ds-font); color:var(--ds-ink-2); }
+    .pf-field small { font:500 12px/1.3 var(--ds-font); color:var(--ds-ink-3); }
+    .pf-field textarea.ds-input { height:auto; min-height:120px; padding:12px 14px; line-height:1.5; resize:vertical; font-family:inherit; }
+    .pf-verified { margin:0 0 var(--ds-4); padding:var(--ds-3) var(--ds-4); border-radius:var(--ds-r-control);
+      background:var(--ds-surface-2); font:500 13px/1.5 var(--ds-font); color:var(--ds-ink-2); }
+    .pf-verified strong { color:var(--ds-ink); font-weight:700; }
+    .pf-msg { margin:0 0 var(--ds-3); font:500 13px/1.45 var(--ds-font); }
+    .pf-msg.err { color:var(--ds-danger); }
+    .pf-msg.ok  { color:var(--ds-success); }
+    .pf-msg:empty { display:none; }
+    .pf-actions { display:flex; flex-direction:column; gap:var(--ds-2); }
+    .pf-field[hidden], .pf-verified[hidden], .pf-inline-link[hidden], .pf-tick[hidden] { display:none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pf-sheet-ov, .pf-sheet-ov.open, .pf-sheet { transition:none; }
+    }
   </style>
 </head>
 <body>
-<div class="phone-shell">
-  <div class="scroll-area" style="padding-bottom:80px;">
+<div class="ds-shell">
+  <div class="ds-scroll">
 
-    <div class="pf2-header">
-      <button class="ds-iconbtn" onclick="window.location.href='dashboard.html'" aria-label="Home">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+    <div class="pf-header">
       <h1>Profile</h1>
+      <a class="ds-iconbtn" href="settings.html" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
     </div>
 
-    <div id="profile-content" class="pf2-wrap">
-      <!-- Profile content rendered by JS below -->
-      <div class="ds-card" style="display:flex;gap:var(--ds-3);align-items:center;">
-        <div class="ds-skel" style="width:64px;height:64px;border-radius:999px;"></div>
-        <div style="flex:1;"><div class="ds-skel" style="width:55%;height:16px;margin-bottom:8px;"></div><div class="ds-skel" style="width:35%;height:12px;"></div></div>
+    <!-- Who they are -->
+    <section class="pf-hero" aria-labelledby="pf-name">
+      <div class="pf-av-wrap">
+        <img id="pf-avatar" class="pf-av" alt="" hidden />
+        <span class="pf-initials" id="pf-initials" aria-hidden="true"></span>
+        <button id="pf-cam" class="pf-cam" type="button" aria-label="Change profile photo">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+        <input type="file" id="pf-file" accept="image/*" hidden />
+      </div>
+      <h2 class="pf-name" id="pf-name"><span class="pf-name-text" id="pf-name-text"></span><svg class="pf-tick" id="pf-tick" viewBox="0 0 24 24" fill="none" role="img" aria-label="Verified" hidden><path d="M12 2l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 22l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2Z" fill="currentColor"/><path d="M8.5 12.2l2.3 2.3 4.7-4.8" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></h2>
+      <p class="pf-trade" id="pf-trade"></p>
+      <p class="pf-area" id="pf-area" hidden>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>
+        <span id="pf-area-text"></span>
+      </p>
+      <button class="ds-btn ds-btn--secondary ds-btn--sm pf-edit-btn" id="pf-edit" type="button" aria-haspopup="dialog">Edit profile</button>
+    </section>
+
+    <!-- What customers judge them by -->
+    <div class="pf-facts" role="list">
+      <a class="pf-fact" href="reviews.html" role="listitem" aria-describedby="pf-rating-lbl">
+        <span class="pf-fact-val" id="pf-rating"></span><span class="pf-fact-lbl" id="pf-rating-lbl"></span>
+      </a>
+      <div class="pf-fact" role="listitem">
+        <span class="pf-fact-val" id="pf-jobs"></span><span class="pf-fact-lbl">Jobs completed</span>
+      </div>
+      <div class="pf-fact" role="listitem">
+        <span class="pf-fact-val" id="pf-years"></span><span class="pf-fact-lbl">Experience</span>
       </div>
     </div>
 
-  </div>
+    <!-- Only when there is something to do -->
+    <div id="pf-notices"></div>
 
-  <!-- Bottom navigation is injected by js/artisanFloatingNav.js -->
+    <section class="pf-sec" aria-labelledby="pf-about-title">
+      <h3 class="pf-sec-title" id="pf-about-title">About</h3>
+      <p class="pf-about" id="pf-about"></p>
+      <p class="pf-empty" id="pf-about-empty" hidden>Customers read this before they book.
+        <button class="pf-inline-link" type="button" data-edit="bio">Add an introduction</button></p>
+    </section>
+
+    <section class="pf-sec" aria-labelledby="pf-svc-title" id="pf-svc" hidden>
+      <h3 class="pf-sec-title" id="pf-svc-title">Services</h3>
+      <div class="pf-chips" id="pf-chips"></div>
+    </section>
+
+    <div class="pf-foot"></div>
+  </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- Edit professional profile -->
+<div class="pf-sheet-ov" id="edit-sheet">
+  <form class="pf-sheet" id="edit-form" role="dialog" aria-modal="true" aria-labelledby="edit-title" tabindex="-1" novalidate>
+    <div class="pf-sheet-handle" aria-hidden="true"></div>
+    <p class="pf-sheet-title" id="edit-title">Edit profile</p>
 
-<script src="../shared/js/utils/global-app.js"></script>
+    <!-- Verified claims: editable only before an application is submitted
+         (firestore.rules isSafeArtisanClaimUpdate); afterwards, by request. -->
+    <label class="pf-field" id="ed-name-field"><span>Full name</span>
+      <input class="ds-input" id="ed-name" type="text" autocomplete="name" maxlength="80" /></label>
+    <label class="pf-field" id="ed-specialty-field"><span>Specialty</span>
+      <input class="ds-input" id="ed-specialty" type="text" maxlength="60" placeholder="e.g. Plumber" /></label>
+    <p class="pf-verified" id="ed-verified" hidden></p>
+
+    <label class="pf-field"><span>About you <small id="ed-bio-count"></small></span>
+      <textarea class="ds-input" id="ed-bio" maxlength="600" placeholder="Your experience, the work you take on, and what customers can expect."></textarea></label>
+    <label class="pf-field"><span>Service area</span>
+      <input class="ds-input" id="ed-location" type="text" maxlength="80" autocomplete="address-level2" placeholder="e.g. Madina, Accra" /></label>
+    <label class="pf-field"><span>Years of experience</span>
+      <input class="ds-input" id="ed-years" type="number" inputmode="numeric" min="0" max="60" step="1" /></label>
+
+    <p class="pf-msg" id="ed-msg" role="alert"></p>
+    <div class="pf-actions">
+      <button class="ds-btn ds-btn--primary ds-btn--block" type="submit" id="ed-save">Save</button>
+      <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" data-close>Cancel</button>
+    </div>
+  </form>
+</div>
+
+<!-- Request a change to verified details (AR-10) -->
+<div class="pf-sheet-ov" id="change-sheet">
+  <form class="pf-sheet" id="change-form" role="dialog" aria-modal="true" aria-labelledby="chg-title" tabindex="-1" novalidate>
+    <div class="pf-sheet-handle" aria-hidden="true"></div>
+    <p class="pf-sheet-title" id="chg-title">Change verified details</p>
+    <div id="chg-pending" hidden>
+      <p class="pf-verified" id="chg-pending-text"></p>
+      <p class="pf-msg" id="chg-pending-msg" role="alert"></p>
+      <div class="pf-actions">
+        <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" id="chg-withdraw">Withdraw request</button>
+        <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" data-close>Close</button>
+      </div>
+    </div>
+    <div id="chg-new">
+      <p class="pf-verified" id="chg-intro">An administrator checks the change before it appears on your profile. Until then you keep working under your verified details.</p>
+      <label class="pf-field"><span>Full name (as on your Ghana Card)</span>
+        <input class="ds-input" id="chg-name" type="text" maxlength="80" /></label>
+      <label class="pf-field"><span>Trade</span>
+        <select class="ds-input" id="chg-category"></select></label>
+      <label class="pf-field"><span>Specialty</span>
+        <input class="ds-input" id="chg-specialty" type="text" maxlength="60" /></label>
+      <label class="pf-field"><span>Why is this changing?</span>
+        <textarea class="ds-input" id="chg-reason" maxlength="500" placeholder="e.g. My name was misspelled during signup"></textarea></label>
+      <p class="pf-msg err" id="chg-error" role="alert"></p>
+      <div class="pf-actions">
+        <button class="ds-btn ds-btn--primary ds-btn--block" type="submit" id="chg-send">Send for review</button>
+        <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" data-close>Cancel</button>
+      </div>
+    </div>
+  </form>
+</div>
+
 <script type="module">
+import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth, patchArtisanSession } from './js/utils/artisanAuthGuard.js';
-import { avatarUrl, TRANSFORMS, fallbackAvatar } from '../shared/js/services/cloudinaryService.js';
+import { avatarUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.js';
 import { replaceProfilePhoto } from '../shared/js/services/profilePhotoService.js';
 import { ARTISAN_TRADES, claimsLocked, requestProfileChange, cancelProfileChange } from './js/utils/artisanAccount.js';
+import { showToast }          from '../shared/js/components/toast.js';
 
+const { user, artisan } = await requireArtisanAuth({ allowPending: true });
+const { services: { databaseService } } = getAppContainer();
+const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
   c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const str = (v) => String(v == null ? '' : v).trim();
 
-// Blocking guard — all artisans (including pending) can view/edit their profile
-const { user, artisan } = await requireArtisanAuth({ allowPending: true });
+// The profile as the server last said it: painted from the guard's verdict at
+// once, then kept live by the subscription at the bottom.
+const state = { ...artisan };
 
-const { services: { databaseService } } = getAppContainer();
+/* ── Sheets: focus, Escape, backdrop, scroll lock ─────────────────────── */
+let openEl = null, trigger = null, busy = false;
+function openSheet(id, focusId) {
+  closeSheet();
+  trigger = document.activeElement;
+  openEl = $(id);
+  openEl.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  const panel = openEl.querySelector('.pf-sheet');
+  requestAnimationFrame(() => {
+    const target = (focusId && $(focusId)) || panel.querySelector('input:not([readonly]), textarea, select') || panel;
+    target.focus({ preventScroll: false });
+  });
+}
+function closeSheet() {
+  if (!openEl || busy) return;
+  openEl.classList.remove('open');
+  openEl = null;
+  document.body.style.overflow = '';
+  if (trigger && document.contains(trigger)) { try { trigger.focus({ preventScroll: true }); } catch (_) {} }
+  trigger = null;
+}
+document.querySelectorAll('.pf-sheet-ov').forEach((ov) => {
+  ov.addEventListener('click', (e) => { if (e.target === ov) closeSheet(); });
+  ov.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeSheet));
+});
+document.addEventListener('keydown', (e) => {
+  if (!openEl) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeSheet(); return; }
+  if (e.key !== 'Tab') return;
+  const f = [...openEl.querySelectorAll('button:not([disabled]), input:not([disabled]), textarea, select')]
+    .filter((el) => el.offsetParent !== null);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
 
-// ── Photo upload ───────────────────────────────────────
+/* ── The profile ──────────────────────────────────────────────────────── */
+const KYC_NOTE = {
+  draft:                    { title: 'Finish your verification', sub: 'Customers can book you once your application is approved.', cta: 'Continue' },
+  rejected:                 { title: 'Your application needs changes', sub: 'See the reviewer\'s reason, correct it and resubmit.', cta: 'Review' },
+  re_verification_required: { title: 'Verify your details again', sub: 'An administrator asked for updated details before you can take jobs.', cta: 'Start' },
+  pending_review:           { title: 'Your application is under review', sub: 'We\'ll let you know when an administrator has checked it.' },
+  submitted:                { title: 'Your application is under review', sub: 'We\'ll let you know when an administrator has checked it.' },
+};
+
+// What a complete profile has — only fields customers actually see.
+function missingItems(d) {
+  const m = [];
+  if (!d.profileImageId)            m.push({ key: 'photo', label: 'a profile photo' });
+  if (str(d.bio).length < 40)       m.push({ key: 'bio',   label: 'an introduction' });
+  if (!str(d.location))             m.push({ key: 'area',  label: 'your service area' });
+  if (!(Number(d.yearsExperience) > 0)) m.push({ key: 'years', label: 'your years of experience' });
+  return m;
+}
+
+const TOTAL_ITEMS = 4;
+function render() {
+  const d = state;
+  const name = str(d.name) || 'Your name';
+  const status = String(d.verificationStatus || 'draft').toLowerCase();
+
+  const img = $('pf-avatar'), ini = $('pf-initials');
+  ini.textContent = (str(d.name).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('') || '?').toUpperCase();
+  const showInitials = () => { img.hidden = true; ini.hidden = false; };
+  if (!photoBusy) {
+    if (d.profileImageId) {
+      const src = avatarUrl(d.profileImageId, TRANSFORMS.avatarLg, d.profileImageVersion ?? null);
+      if (img.dataset.src !== src) { img.dataset.src = src; img.src = src; }
+      img.onerror = showInitials;
+      img.hidden = false; ini.hidden = true;
+    } else showInitials();
+  }
+
+  $('pf-name-text').textContent = name;
+  // An <svg> has no .hidden property; the attribute is what hides it.
+  $('pf-tick').toggleAttribute('hidden', status !== 'approved');
+  const trade = str(d.category), spec = str(d.specialty);
+  $('pf-trade').textContent = [trade, spec && spec.toLowerCase() !== trade.toLowerCase() ? spec : ''].filter(Boolean).join(' · ') || 'Trade not set';
+
+  const area = str(d.location);
+  const r = Number(d.workRadius);
+  const km = Math.min(Number.isFinite(r) && r > 0 ? r : 20, 25);   // what dispatch applies — see settings.html
+  $('pf-area').hidden = !area;
+  $('pf-area-text').textContent = area ? `${area} · within ${km} km` : '';
+
+  const rating = Number(d.rating), reviews = Number(d.reviewCount) || 0;
+  $('pf-rating').textContent = rating > 0 ? `★ ${rating.toFixed(1)}` : '—';
+  $('pf-rating-lbl').textContent = reviews ? `${reviews} review${reviews === 1 ? '' : 's'}` : 'No reviews yet';
+  $('pf-jobs').textContent = String(Number(d.jobsCompleted) || 0);
+  const yrs = Number(d.yearsExperience);
+  $('pf-years').textContent = yrs > 0 ? `${yrs} yr${yrs === 1 ? '' : 's'}` : '—';
+
+  const bio = str(d.bio);
+  $('pf-about').textContent = bio;
+  $('pf-about').hidden = !bio;
+  $('pf-about-empty').hidden = !!bio;
+
+  // Services: the verified trade, then any skills on file.
+  const chips = [...new Set([trade, ...(Array.isArray(d.skills) ? d.skills : [])].map(str).filter(Boolean)
+    .map((s) => s[0].toUpperCase() + s.slice(1)))];
+  $('pf-svc').hidden = chips.length < 2;   // one chip only repeats the trade line
+  $('pf-chips').innerHTML = chips.map((c) => `<span class="pf-chip">${esc(c)}</span>`).join('');
+
+  // Notices: verification first (it decides whether customers can book),
+  // then completeness — each only when there is something to do.
+  const notes = [];
+  const k = KYC_NOTE[status];
+  if (k) notes.push(`
+    <div class="pf-note warn">
+      <div class="pf-note-body"><p class="pf-note-title">${k.title}</p><p class="pf-note-sub">${k.sub}</p></div>
+      ${k.cta ? `<a class="ds-btn ds-btn--sm ds-btn--primary" href="onboarding.html">${k.cta}</a>` : ''}
+    </div>`);
+  const miss = missingItems(d);
+  if (miss.length) {
+    const pct = Math.round(((TOTAL_ITEMS - miss.length) / TOTAL_ITEMS) * 100);
+    notes.push(`
+    <div class="pf-note">
+      <div class="pf-note-body">
+        <p class="pf-note-title">Profile ${pct}% complete</p>
+        <p class="pf-note-sub">Add ${miss[0].label}${miss.length > 1 ? ` and ${miss.length - 1} more` : ''} so customers know who's coming.</p>
+        <div class="pf-meter" role="progressbar" aria-label="Profile completeness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></div>
+      </div>
+      <button class="ds-btn ds-btn--sm ds-btn--secondary" type="button" data-edit="${miss[0].key}">Add</button>
+    </div>`);
+  }
+  $('pf-notices').innerHTML = notes.join('');
+}
+
+/* ── Photo (shared, orphan-free lifecycle: profilePhotoService) ─────────── */
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
-
-async function handlePhotoUpload(file) {
-  if (file.size > MAX_PHOTO_BYTES) { showToast('Image must be under 5 MB.'); return; }
-  if (!file.type.startsWith('image/')) { showToast('Please choose a valid image.'); return; }
-
-  const img = document.getElementById('profile-avatar-img');
-  const prevSrc = img ? img.src : '';
-  if (img) img.src = URL.createObjectURL(file);
-
-  const btn = document.getElementById('avatar-camera-btn');
-  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
-
+let photoBusy = false;
+$('pf-cam').addEventListener('click', () => $('pf-file').click());
+$('pf-file').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Choose an image file.', 'error'); return; }
+  if (file.size > MAX_PHOTO_BYTES)     { showToast('The photo must be under 5 MB.', 'error'); return; }
+  const img = $('pf-avatar'), prev = img.src, cam = $('pf-cam');
+  photoBusy = true; cam.disabled = true;
+  const preview = URL.createObjectURL(file);
+  img.src = preview; img.hidden = false; $('pf-initials').hidden = true;
   try {
     const { publicId, version } = await replaceProfilePhoto(file, 'artisan');
-    if (img) img.src = avatarUrl(publicId, TRANSFORMS.avatarLg, version);
-    showToast('Photo updated');
+    const patch = { profileImageId: publicId, profileImageVersion: version };
+    Object.assign(state, patch); patchArtisanSession(patch);
+    img.dataset.src = avatarUrl(publicId, TRANSFORMS.avatarLg, version); img.src = img.dataset.src;
+    showToast('Photo updated.', 'success');
   } catch (err) {
-    console.error('Photo upload error:', err);
-    showToast('Upload failed. Try again.');
-    if (img && prevSrc) img.src = prevSrc;
+    img.src = prev;
+    showToast('The photo was not uploaded. Try again.', 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
-    const input = document.getElementById('avatar-file-input');
-    if (input) input.value = '';
+    photoBusy = false; cam.disabled = false; URL.revokeObjectURL(preview);
+    render();
   }
-}
+});
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  if (!t) return;
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove('show'), 2200);
-}
-
-function render(data) {
-  const name       = data.name       || '';
-  const email      = data.email      || '';
-  const phone      = data.phone      || '';
-  const specialty  = data.specialty  || data.category || '';
-  const location   = data.location   || '';
-  const bio        = data.bio        || '';
-  const kycStatus  = data.verificationStatus || 'draft';
-  // Every state the server can set (functions/artisanVerification.js) has a
-  // truthful label — re-verification, suspension and bans used to show raw ids.
-  const kycLabel   = { approved: 'Verified', pending_review: 'Under Review', submitted: 'Under Review',
-                       rejected: 'Rejected', draft: 'Not Submitted', re_verification_required: 'Action Needed',
-                       suspended: 'Suspended', banned: 'Banned' };
-  const locked     = claimsLocked(kycStatus);
-  const pendingChange = data.pendingProfileChange || null;
-  const lastChange    = data.lastProfileChange || null;
-  const avatarSrc  = data.profileImageId
-    ? avatarUrl(data.profileImageId, TRANSFORMS.avatarLg, data.profileImageVersion ?? null)
-    : fallbackAvatar(name);
-
-  // Stats + earnings (read-only; financial values are CF-owned)
-  const jobsDone   = data.jobsCompleted ?? 0;
-  const rating     = (data.rating ?? 0) > 0 ? Number(data.rating).toFixed(1) : '—';
-  const available  = Number(data.availableBalance ?? 0);
-  const totalEarned= Number(data.totalEarned ?? 0);
-  const kycPillCls = { approved:'ds-pill--success', pending_review:'ds-pill--warning', submitted:'ds-pill--warning',
-                       rejected:'ds-pill--danger', draft:'ds-pill--neutral', re_verification_required:'ds-pill--warning',
-                       suspended:'ds-pill--danger', banned:'ds-pill--danger' };
-  // The banner says what is actually true for this state, and offers the
-  // onboarding link only where onboarding can do something.
-  const kycBanner = {
-    draft:                    { title: 'Complete your verification', sub: 'Finish your application to start receiving jobs.', cta: true },
-    rejected:                 { title: 'Your application was not approved', sub: 'See the reason in onboarding, correct it and resubmit.', cta: true },
-    re_verification_required: { title: 'Re-verification requested', sub: 'An administrator asked for updated details before you can take jobs.', cta: true },
-    pending_review:           { title: 'Your application is under review', sub: 'You will be notified when an administrator has checked it.', cta: false },
-    submitted:                { title: 'Your application is under review', sub: 'You will be notified when an administrator has checked it.', cta: false },
-    suspended:                { title: 'Your account is suspended', sub: 'You cannot take jobs at the moment. Contact support for details.', cta: false },
-    banned:                   { title: 'Your account is closed', sub: 'Contact support if you believe this is a mistake.', cta: false },
-  }[kycStatus];
-
-  const CH = '<span class="pf2-row-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
-  const menuRow = (href, icon, title, sub, danger) =>
-    `<a href="${href}" class="pf2-row">
-       <span class="pf2-row-ic${danger?' danger':''}">${icon}</span>
-       <span class="pf2-row-body"><span class="pf2-row-title">${title}</span>${sub?`<span class="pf2-row-sub">${sub}</span>`:''}</span>
-       ${CH}
-     </a>`;
-
-  document.getElementById('profile-content').innerHTML = `
-    <!-- Identity card -->
-    <div class="ds-card ds-rise">
-      <div class="pf2-id">
-        <div class="pf2-av-wrap">
-          <img id="profile-avatar-img" class="pf2-av" src="${avatarSrc}" onerror="this.src='${fallbackAvatar(name)}'" />
-          <button id="avatar-camera-btn" class="pf2-cam" aria-label="Change photo">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="13" r="4" stroke="#fff" stroke-width="2"/></svg>
-          </button>
-          <input type="file" id="avatar-file-input" accept="image/*" style="display:none" />
-        </div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span class="pf2-name">${name || 'Artisan'}</span>
-            <span class="ds-pill ${kycPillCls[kycStatus]||'ds-pill--neutral'}">${kycLabel[kycStatus]||kycStatus}</span>
-          </div>
-          <p class="pf2-role">${specialty || 'Service Provider'}</p>
-        </div>
-      </div>
-      <div class="pf2-stats">
-        <div class="pf2-stat"><span class="pf2-stat-val">${jobsDone}</span><span class="pf2-stat-lbl">Jobs Done</span></div>
-        <div class="pf2-stat-sep"></div>
-        <div class="pf2-stat"><span class="pf2-stat-val">${rating}</span><span class="pf2-stat-lbl">Rating</span></div>
-        <div class="pf2-stat-sep"></div>
-        <div class="pf2-stat"><span class="pf2-stat-val">GHS ${totalEarned.toFixed(0)}</span><span class="pf2-stat-lbl">Earned</span></div>
-      </div>
-    </div>
-
-    ${kycBanner ? `
-    <div class="ds-card ds-rise ds-rise-1" style="margin-top:var(--ds-3);background:var(--ds-warning-bg);border-color:color-mix(in srgb,var(--ds-warning) 22%,transparent);">
-      <div style="display:flex;align-items:center;gap:var(--ds-3);">
-        <span class="pf2-row-ic" style="background:var(--ds-warning-bg);color:var(--ds-warning);">
-          <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </span>
-        <div style="flex:1;min-width:0;">
-          <p class="pf2-row-title" style="color:var(--ds-warning);">${kycBanner.title}</p>
-          <p class="pf2-row-sub">${kycBanner.sub}</p>
-        </div>
-        ${kycBanner.cta ? '<a href="onboarding.html" class="ds-btn ds-btn--sm" style="background:var(--ds-warning);color:#fff;">Verify</a>' : ''}
-      </div>
-    </div>` : ''}
-
-    <!-- Earnings -->
-    <div class="ds-section ds-section--tight ds-rise ds-rise-1" style="padding-inline:0;">
-      <div class="ds-section-head"><span class="ds-section-title">Earnings</span><a class="ds-link" href="wallet.html">Open wallet ›</a></div>
-      <div class="pf2-earn">
-        <div>
-          <div class="pf2-earn-lbl">Available to withdraw</div>
-          <div class="pf2-earn-val"><span class="cur">GHS</span>${available.toFixed(2)}</div>
-          <!-- Pending release lives on the wallet page, derived from held escrow (AR-13). -->
-        </div>
-        <a href="wallet.html" class="ds-btn ds-btn--primary ds-btn--sm">Withdraw</a>
-      </div>
-    </div>
-
-    <!-- Activity menu -->
-    <div class="ds-section ds-section--tight ds-rise ds-rise-2" style="padding-inline:0;">
-      <div class="ds-section-head"><span class="ds-section-title">Activity</span></div>
-      <div class="ds-card ds-card--flush pf2-menu">
-        ${menuRow('reviews.html', '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 16.78l-5.2 2.74.99-5.8-4.21-4.1 5.82-.85L12 3.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>', 'My Reviews', 'See customer ratings & feedback')}
-        ${menuRow('performance.html', '<svg viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 8-8M21 7v5M21 7h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>', 'Performance', 'Track your stats & level')}
-        ${menuRow('jobs.html', '<svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 3v4M8 3v4M4 10h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>', 'Booking History', 'View all past & active jobs')}
-      </div>
-    </div>
-
-    <!-- Editable details -->
-    <div class="ds-section ds-section--tight ds-rise ds-rise-3" style="padding-inline:0;">
-      <div class="ds-section-head"><span class="ds-section-title">Personal Details</span></div>
-      <div class="ds-card">
-        ${field('Full Name', name,      'text', 'name',      locked)}
-        ${field('Email',     email,     'email','email')}
-        ${field('Phone',     phone,     'tel',  'phone')}
-        ${field('Specialty', specialty, 'text', 'specialty', locked)}
-        ${locked ? `<p class="pf2-row-sub" style="margin:calc(-1 * var(--ds-2)) 0 var(--ds-3);">
-          Your name and trade are verified details${kycStatus === 'approved' ? ' — change them with a request below' : ' and are fixed while your application is reviewed'}.</p>` : ''}
-        ${field('Location',  location,  'text', 'location')}
-        <p class="ds-field-label" style="margin-bottom:var(--ds-2);">About You</p>
-        <textarea id="field-bio" class="ds-input" placeholder="Tell customers about your experience and services…"
-          style="height:auto;min-height:96px;padding:12px 14px;line-height:1.5;resize:vertical;">${bio}</textarea>
-        <button onclick="saveProfile()" class="ds-btn ds-btn--primary ds-btn--block" style="margin-top:var(--ds-4);">Save Changes</button>
-      </div>
-    </div>
-
-    ${kycStatus === 'approved' ? changeSection(data, pendingChange, lastChange) : ''}
-
-    <!-- Account -->
-    <div class="ds-section ds-section--tight ds-rise ds-rise-4" style="padding-inline:0;">
-      <div class="ds-section-head"><span class="ds-section-title">Account</span></div>
-      <div class="ds-card ds-card--flush pf2-menu">
-        ${menuRow('settings.html', '<svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>', 'Settings', 'Preferences, notifications & more')}
-        ${menuRow('support.html', '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .8-1 1.7M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>', 'Help & Support', 'FAQs and contact us')}
-        <button onclick="signOut()" class="pf2-row">
-          <span class="pf2-row-ic danger"><svg viewBox="0 0 24 24" fill="none"><path d="M16 17l5-5-5-5M21 12H9M12 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="pf2-row-body"><span class="pf2-row-title" style="color:var(--ds-danger);">Sign Out</span></span>
-        </button>
-      </div>
-    </div>
-
-    <div style="height:var(--ds-4);"></div>
-  `;
-}
-
-function field(label, value, type, id, readOnly = false) {
-  return `<div style="margin-bottom:var(--ds-3);">
-    <label class="ds-field-label" for="field-${id}">${label}${readOnly ? ' <span class="ds-pill ds-pill--neutral">Verified</span>' : ''}</label>
-    <input id="field-${id}" class="ds-input" type="${type}" value="${(value||'').replace(/"/g,'&quot;')}"${readOnly ? ' readonly aria-readonly="true" style="opacity:.75;"' : ''} />
-  </div>`;
-}
-
-// ── Changing a verified detail (AR-10) ─────────────────
-// The request goes to an administrator (functions/artisanAccount.js); until it
-// is approved the artisan keeps working under the details that were verified.
-function changeSection(data, pending, last) {
-  const fieldNames = { name: 'name', category: 'trade', specialty: 'specialty' };
-  const list = (fields) => (fields || []).map(f => fieldNames[f] || f).join(', ');
-  if (pending) {
-    return `
-    <div class="ds-section ds-section--tight" style="padding-inline:0;">
-      <div class="ds-section-head"><span class="ds-section-title">Verified details</span></div>
-      <div class="ds-card">
-        <p class="pf2-row-title">Change waiting for review</p>
-        <p class="pf2-row-sub" style="margin-bottom:var(--ds-3);">You asked to change your ${esc(list(pending.fields))}. Your profile shows your verified details until an administrator approves the change.</p>
-        <button class="ds-btn ds-btn--block" onclick="withdrawChange()">Withdraw request</button>
-      </div>
-    </div>`;
+/* ── Edit the professional profile ───────────────────────────────────────
+ * Bio, service area and experience are the artisan's to change at any time.
+ * Name and specialty are verified claims: editable here only before an
+ * application is submitted; afterwards an approved artisan requests a change
+ * (functions/artisanAccount.js) and the rules refuse a direct write. Phone,
+ * email, password and every other account detail live in Settings. */
+const FOCUS = { bio: 'ed-bio', area: 'ed-location', years: 'ed-years', name: 'ed-name' };
+function openEditor(focusKey) {
+  if (focusKey === 'photo') { $('pf-file').click(); return; }
+  const d = state;
+  const status = String(d.verificationStatus || 'draft').toLowerCase();
+  const locked = claimsLocked(status);
+  $('ed-name-field').hidden = locked;
+  $('ed-specialty-field').hidden = locked;
+  $('ed-name').value = str(d.name);
+  $('ed-specialty').value = str(d.specialty || d.category);
+  $('ed-bio').value = str(d.bio);
+  $('ed-location').value = str(d.location);
+  $('ed-years').value = Number(d.yearsExperience) > 0 ? String(Number(d.yearsExperience)) : '';
+  const v = $('ed-verified');
+  v.hidden = !locked;
+  if (locked) {
+    v.innerHTML = `<strong>${esc(str(d.name))}</strong> · ${esc(str(d.category) || str(d.specialty))}<br>` +
+      (status === 'approved'
+        ? 'Your name and trade are verified. <button class="pf-inline-link" type="button" id="ed-request">Request a change</button>'
+        : 'Your name and trade are fixed while your application is reviewed.');
+    const rq = $('ed-request');
+    if (rq) rq.addEventListener('click', () => { closeSheet(); openChange(); });
   }
-  const trades = ARTISAN_TRADES.map(t => `<option value="${t}"${String(data.category||'').toLowerCase() === t.toLowerCase() ? ' selected' : ''}>${t}</option>`).join('');
-  return `
-    <div class="ds-section ds-section--tight" style="padding-inline:0;">
-      <div class="ds-section-head"><span class="ds-section-title">Verified details</span></div>
-      <div class="ds-card">
-        ${last && last.status === 'rejected' ? `<p class="pf2-row-sub" style="color:var(--ds-danger);margin-bottom:var(--ds-3);">Your last change request was not approved${last.notes ? `: ${esc(last.notes)}` : '.'}</p>` : ''}
-        ${last && last.status === 'approved' ? `<p class="pf2-row-sub" style="margin-bottom:var(--ds-3);">Your change to your ${esc(list(last.fields))} was approved.</p>` : ''}
-        <p class="pf2-row-sub" style="margin-bottom:var(--ds-3);">Need to correct your name or change your trade? An administrator checks the change before it appears on your profile.</p>
-        <div id="chg-form" style="display:none;">
-          <label class="ds-field-label" for="chg-name">Full name (as on your Ghana Card)</label>
-          <input id="chg-name" class="ds-input" type="text" value="${esc(data.name)}" style="margin-bottom:var(--ds-3);" />
-          <label class="ds-field-label" for="chg-category">Trade</label>
-          <select id="chg-category" class="ds-input" style="margin-bottom:var(--ds-3);">${trades}</select>
-          <label class="ds-field-label" for="chg-specialty">Specialty</label>
-          <input id="chg-specialty" class="ds-input" type="text" value="${esc(data.specialty || '')}" style="margin-bottom:var(--ds-3);" />
-          <label class="ds-field-label" for="chg-reason">Why is this changing?</label>
-          <textarea id="chg-reason" class="ds-input" style="height:auto;min-height:72px;padding:12px 14px;" placeholder="e.g. My name was misspelled during signup"></textarea>
-          <p id="chg-error" class="pf2-row-sub" style="color:var(--ds-danger);display:none;margin-top:var(--ds-2);"></p>
-          <button class="ds-btn ds-btn--primary ds-btn--block" style="margin-top:var(--ds-3);" onclick="sendChange(this)">Send for review</button>
-        </div>
-        <button id="chg-open" class="ds-btn ds-btn--block" onclick="document.getElementById('chg-form').style.display='';this.style.display='none';">Request a change</button>
-      </div>
-    </div>`;
+  $('ed-msg').textContent = ''; $('ed-msg').className = 'pf-msg';
+  countBio();
+  openSheet('edit-sheet', FOCUS[focusKey]);
 }
+const countBio = () => { $('ed-bio-count').textContent = `${$('ed-bio').value.length}/600`; };
+$('ed-bio').addEventListener('input', countBio);
+$('pf-edit').addEventListener('click', () => openEditor());
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-edit]');
+  if (t) openEditor(t.dataset.edit);
+});
 
-window.sendChange = async function(btn) {
-  const val = id => (document.getElementById(id)?.value || '').trim();
-  const current = _latest || {};
-  // Only the fields that differ are sent; the server re-checks every one.
-  const change = { reason: val('chg-reason') };
-  if (val('chg-name') !== String(current.name || '').trim()) change.name = val('chg-name');
-  if (val('chg-category').toLowerCase() !== String(current.category || '').trim().toLowerCase()) change.category = val('chg-category');
-  if (val('chg-specialty') !== String(current.specialty || '').trim()) change.specialty = val('chg-specialty');
-  const errEl = document.getElementById('chg-error');
-  btn.disabled = true;
-  const r = await requestProfileChange(change);
-  btn.disabled = false;
-  if (!r.ok) { errEl.textContent = r.message; errEl.style.display = ''; return; }
-  showToast('Change sent for review');
-};
+$('edit-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = (t, tone = 'err') => { $('ed-msg').textContent = t; $('ed-msg').className = 'pf-msg ' + tone; };
+  const get = (id) => ($(id).value || '').trim();
+  const years = get('ed-years') === '' ? 0 : Number(get('ed-years'));
+  if (!Number.isInteger(years) || years < 0 || years > 60) { msg('Years of experience must be a whole number from 0 to 60.'); $('ed-years').focus(); return; }
 
-window.withdrawChange = async function() {
-  const r = await cancelProfileChange();
-  showToast(r.ok ? 'Request withdrawn' : r.message);
-};
-
-window.saveProfile = async function() {
-  const get = id => (document.getElementById(id)?.value || '').trim();
-  const locked = claimsLocked((_latest || {}).verificationStatus);
+  const locked = claimsLocked((state || {}).verificationStatus);
   const updates = {
-    phone:     get('field-phone'),
-    location:  get('field-location'),
-    bio:       get('field-bio'),
-    updatedAt: new Date().toISOString(),
+    bio:             get('ed-bio'),
+    location:        get('ed-location'),
+    yearsExperience: years,
+    updatedAt:       new Date().toISOString(),
   };
   // Verified details are only written while they are still editable — the
   // rules refuse them otherwise (isSafeArtisanClaimUpdate).
   if (!locked) {
-    updates.name      = get('field-name');
-    updates.specialty = get('field-specialty');
-    if (!updates.name) { showToast('Name is required.'); return; }
+    updates.name      = get('ed-name');
+    updates.specialty = get('ed-specialty');
+    if (!updates.name) { msg('Your name is required.'); $('ed-name').focus(); return; }
   }
 
-  const btn = document.querySelector('button[onclick="saveProfile()"]');
-  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
-
+  const btn = $('ed-save');
+  btn.disabled = true; btn.textContent = 'Saving…'; busy = true; msg('');
   try {
     await databaseService.updateDocument('artisans', user.uid, updates);
     patchArtisanSession(updates);   // next page paints the saved details
-    showToast('Profile saved');
-  } catch(e) {
-    showToast('Could not save. Try again.');
+    Object.assign(state, updates);
+    render();
+    busy = false; closeSheet();
+    showToast('Profile saved.', 'success');
+  } catch (err) {
+    msg(/permission/i.test(String(err && (err.code || err.message)))
+      ? 'Some of these details can\'t be changed right now. Nothing was saved.'
+      : 'Nothing was saved. Check your connection and try again.');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Save Profile'; }
-  }
-};
-
-window.signOut = async function() {
-  try {
-    const { services: { sessionService } } = getAppContainer();
-    await sessionService.logout();
-  } catch(_) {}
-  window.location.replace('login.html');
-};
-
-// Subscribe to live artisan document
-let _latest = null;
-databaseService.subscribeToDocument('artisans', user.uid, snap => {
-  if (snap && snap.exists) {
-    _latest = snap.data;
-    render(snap.data);
-    // Wire camera button each time render() rebuilds the DOM
-    const camBtn   = document.getElementById('avatar-camera-btn');
-    const fileInput = document.getElementById('avatar-file-input');
-    if (camBtn && fileInput) {
-      camBtn.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', e => {
-        const f = e.target.files[0];
-        if (f) handlePhotoUpload(f);
-      });
-    }
+    btn.disabled = false; btn.textContent = 'Save'; busy = false;
   }
 });
+
+/* ── Change verified details (AR-10) ─────────────────────────────────── */
+const FIELD_NAMES = { name: 'name', category: 'trade', specialty: 'specialty' };
+const listFields = (fields) => (fields || []).map((f) => FIELD_NAMES[f] || f).join(', ');
+function openChange() {
+  const d = state, pending = d.pendingProfileChange || null, last = d.lastProfileChange || null;
+  $('chg-pending').hidden = !pending;
+  $('chg-new').hidden = !!pending;
+  if (pending) {
+    $('chg-pending-text').textContent = `You asked to change your ${listFields(pending.fields)}. Your profile keeps your verified details until an administrator approves it.`;
+    $('chg-pending-msg').textContent = '';
+  } else {
+    const prior = last && last.status === 'rejected' ? `Your last request was not approved${last.notes ? `: ${last.notes}` : '.'} ` : '';
+    $('chg-intro').textContent = prior + 'An administrator checks the change before it appears on your profile. Until then you keep working under your verified details.';
+    $('chg-name').value = str(d.name);
+    $('chg-category').innerHTML = ARTISAN_TRADES.map((t) =>
+      `<option value="${esc(t)}"${str(d.category).toLowerCase() === t.toLowerCase() ? ' selected' : ''}>${esc(t)}</option>`).join('');
+    $('chg-specialty').value = str(d.specialty);
+    $('chg-reason').value = '';
+    $('chg-error').textContent = '';
+  }
+  openSheet('change-sheet');
+}
+
+$('change-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const val = (id) => ($(id).value || '').trim();
+  const current = state || {};
+  // Only the fields that differ are sent; the server re-checks every one.
+  const change = { reason: val('chg-reason') };
+  if (val('chg-name') !== str(current.name)) change.name = val('chg-name');
+  if (val('chg-category').toLowerCase() !== str(current.category).toLowerCase()) change.category = val('chg-category');
+  if (val('chg-specialty') !== str(current.specialty)) change.specialty = val('chg-specialty');
+  if (Object.keys(change).length === 1) { $('chg-error').textContent = 'Nothing has changed yet.'; return; }
+  const btn = $('chg-send');
+  btn.disabled = true; btn.textContent = 'Sending…'; busy = true; $('chg-error').textContent = '';
+  const r = await requestProfileChange(change);
+  btn.disabled = false; btn.textContent = 'Send for review'; busy = false;
+  if (!r.ok) { $('chg-error').textContent = r.message; return; }
+  closeSheet();
+  showToast('Change sent for review.', 'success');
+});
+
+$('chg-withdraw').addEventListener('click', async () => {
+  const btn = $('chg-withdraw');
+  btn.disabled = true; busy = true;
+  const r = await cancelProfileChange();
+  btn.disabled = false; busy = false;
+  if (!r.ok) { $('chg-pending-msg').className = 'pf-msg err'; $('chg-pending-msg').textContent = r.message; return; }
+  closeSheet();
+  showToast('Request withdrawn.', 'success');
+});
+
+/* ── First paint, then live ───────────────────────────────────────────── */
+render();
+// Deep links: the dashboard's "Edit Area" opens the service area directly.
+const deep = new URLSearchParams(location.search).get('edit');
+if (deep) openEditor(deep);
+
+const unsub = databaseService.subscribeToDocument('artisans', user.uid, (snap) => {
+  if (!snap || !snap.exists) return;
+  Object.assign(state, snap.data);
+  render();
+}, () => { /* offline: the painted profile stays */ });
+window.addEventListener('pagehide', () => { try { unsub && unsub(); } catch (_) {} }, { once: true });
 </script>
 <script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>
