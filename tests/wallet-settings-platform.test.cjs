@@ -416,10 +416,13 @@ await t('the shared legal pages go back where the reader came from (artisans wer
 
 await t('Profile is the professional profile; account controls have one home, in Settings', () => {
     const pf = read('artisan-app/profile.html');
-    const code = pf.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    // HTML comments only: a /*…*/ strip is fooled by accept="image/*" and
+    // swallows most of the page (it hid a real match while this test passed).
+    const code = pf.replace(/<!--[\s\S]*?-->/g, '');
     for (const [what, re] of [
         ['sign out', /signOut|sessionService\.logout|Sign [Oo]ut/],
-        ['wallet / withdraw', /Withdraw|availableBalance|totalEarned/],
+        // ("Withdraw request" cancels a pending profile-change request — not money.)
+        ['wallet / earnings', /wallet\.html|availableBalance|totalEarned|Available to withdraw/],
         ['email or phone editing', /type="email"|type="tel"|field-email|field-phone|phone:\s/],
         ['settings menu rows', /pf2-row|menuRow\(/],
     ]) assert.ok(!re.test(code), `Profile still has ${what}`);
