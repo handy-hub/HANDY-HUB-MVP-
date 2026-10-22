@@ -11,6 +11,8 @@
  *   4. Deadline expires → log timeout  → run dispatchRound() (scheduler every 1 min)
  *   5. No artisans left → mark unfulfilled → notify customer
  *   6. Artisan accepts  → Firestore rules handle it; bookings.js sends customer notif
+ *   7. Step 1 never ran, or a round stalled → the same scheduler rescues it
+ *      (rescueStalledBookings); claimForDispatch keeps it to one round
  *
  * Timeout constants:
  *   Standard bookings: 3 hours
@@ -67,6 +69,42 @@ const SCHEDULED_TIMEOUT_S = 20 * 60;  // 20 minutes
 // scripts/build-functions-shared.cjs. Dispatch asks it one question: does this
 // booking have an appointment, and when?
 const bookingSchedule = require('./shared/bookingSchedule');
+
+// A booking the creation trigger never reached is picked up by the sweep in
+// checkExpiredDispatches once it is this old. Long enough that a trigger which
+// is merely slow (a cold start) gets there first; the claim below makes the
+// race harmless either way.
+const RESCUE_AFTER_MS = 2 * 60 * 1000;
+// Beyond this an immediate request is stale: the customer has stopped waiting,
+// and offering it now would send an artisan to someone who has moved on. Those
+// are left for an administrator. A booked appointment is rescued for as long as
+// it is still ahead.
+const RESCUE_WINDOW_MS = 60 * 60 * 1000;
+// Bounds on one tick. Pending bookings are scanned newest first.
+const RESCUE_SCAN_LIMIT = 200;
+const RESCUE_BATCH      = 25;
+
+/** The artisan a customer chose, if any — `artisanId` on a legacy write. */
+function requestedArtisanOf(b) {
+    return b.requestedArtisanId || b.artisanId || null;
+}
+
+/**
+ * True when no dispatch step has touched the booking: no round claimed and no
+ * offer opened. dispatchStatus and currentArtisanId are server-only fields
+ * (bookingSystemFields in firestore.rules), so a client cannot fake either.
+ */
+function isUnstarted(b) {
+    return !b.dispatchStatus && !b.currentArtisanId;
+}
+
+function toMs(v) {
+    if (!v) return null;
+    if (typeof v === 'number') return v;
+    if (typeof v === 'string') { const t = Date.parse(v); return Number.isFinite(t) ? t : null; }
+    if (typeof v.toMillis === 'function') return v.toMillis();
+    return null;
+}
 
 // ── Firestore singleton ───────────────────────────────────────────────────────
 let _db;
@@ -211,13 +249,24 @@ async function dispatchRound(bookingId) {
         const booking = snap.data();
         const status  = (booking.status || '').toLowerCase();
 
-        // Guard: only dispatch if pending (not accepted/cancelled/completed)
-        if (!['pending', 'searching'].includes(status) && booking.dispatchStatus !== 'searching') {
+        // Guard: only dispatch if pending (not accepted/cancelled/completed).
+        // This used to let any booking whose dispatchStatus read 'searching'
+        // through whatever its status, so a re-delivered creation event — which
+        // reset an ACCEPTED booking to 'searching' — dispatched it again and
+        // nulled its artisanId.
+        if (!['pending', 'searching'].includes(status)) {
             return { skipped: `status_${status}` };
         }
         // Guard: prevent double-dispatch while a round is in flight
         if (booking.dispatchStatus === 'dispatched') {
             return { skipped: 'already_dispatched' };
+        }
+        // Guard: a round starts only from a claimed search, or on a booking no
+        // round has touched. A customer-chosen request is never open-dispatched:
+        // that would hand their chosen job to someone else.
+        if (booking.dispatchStatus !== 'searching'
+            && !(isUnstarted(booking) && !requestedArtisanOf(booking))) {
+            return { skipped: `dispatch_${booking.dispatchStatus || 'prematched'}` };
         }
 
         isEmergency  = booking.bookingType === 'emergency' || booking.type === 'emergency';
@@ -373,144 +422,179 @@ async function dispatchRound(bookingId) {
 // Dispatch latency matters and bookings arrive in bursts: a full vCPU (BURST_CPU).
 const onBookingCreated = onDocumentCreated(
     { document: 'bookings/{bookingId}', database: FIRESTORE_DB_ID, region: FUNCTIONS_REGION, ...BURST_CPU },
-    async (event) => {
-        const bookingId = event.params.bookingId;
-        const data      = event.data.data();
+    (event) => processNewBooking(event.params.bookingId, event.data.data())
+);
 
-        // ── Make `track` explicit, server-side, on every booking ──────────────
-        //
-        // The lifecycle resolver keys off `track`, and when it is absent a
-        // booking falls through to the WORK phase — telling a customer the job
-        // is underway before anyone has visited. Downstream code was inferring
-        // the track from symptoms (which statuses had appeared) to paper over it.
-        //
-        // The client CANNOT write this field: bookingHasNoSystemFields() in
-        // firestore.rules rejects `track` on any client create, which is what
-        // stops a fabricated inspection booking. So the stamp belongs here, on
-        // the trigger that already runs for every new booking.
-        //
-        // 'emergency' is NOT a separate commercial lifecycle. It holds escrow
-        // through the same holdBookingFunds path as everything else; it simply
-        // skips the inspection/callout/quote sub-cycle because the customer has
-        // already chosen an artisan and an amount. It is the work track without
-        // a preceding inspection — and naming it explicitly is what keeps the
-        // resolver from having to guess.
-        const isEmergency = data.type === 'emergency' || data.bookingType === 'emergency'
-                         || data.isEmergency === true;
+/**
+ * Everything the server does for a new booking: stamp its track, price an
+ * emergency, then open the customer-chosen artisan's offer or start dispatch.
+ *
+ * Every step is guarded so it can run twice. Firestore delivers an event at
+ * least once, and the sweep in checkExpiredDispatches replays this for a
+ * booking the trigger never reached. The dispatch start is a transactional
+ * claim (claimForDispatch), so two runs can never both dispatch.
+ */
+async function processNewBooking(bookingId, data) {
 
-        if (!data.track) {
-            try {
-                await db().collection('bookings').doc(bookingId).update({
-                    track:     isEmergency ? 'emergency' : 'standard',
-                    updatedAt: new Date().toISOString(),
-                });
-            } catch (err) {
-                console.error(`[dispatch] Could not stamp track on ${bookingId}: ${err?.message}`);
-            }
-        }
+    // ── Make `track` explicit, server-side, on every booking ──────────────
+    //
+    // The lifecycle resolver keys off `track`, and when it is absent a
+    // booking falls through to the WORK phase — telling a customer the job
+    // is underway before anyone has visited. Downstream code was inferring
+    // the track from symptoms (which statuses had appeared) to paper over it.
+    //
+    // The client CANNOT write this field: bookingHasNoSystemFields() in
+    // firestore.rules rejects `track` on any client create, which is what
+    // stops a fabricated inspection booking. So the stamp belongs here, on
+    // the trigger that already runs for every new booking.
+    //
+    // 'emergency' is NOT a separate commercial lifecycle. It holds escrow
+    // through the same holdBookingFunds path as everything else; it simply
+    // skips the inspection/callout/quote sub-cycle because the customer has
+    // already chosen an artisan and an amount. It is the work track without
+    // a preceding inspection — and naming it explicitly is what keeps the
+    // resolver from having to guess.
+    const isEmergency = data.type === 'emergency' || data.bookingType === 'emergency'
+                     || data.isEmergency === true;
 
-        // ── Emergency callout fee — SERVER-COMPUTED, stamped here ─────────────
-        //
-        // The emergency page used to read a fee off the ARTISAN document
-        // (`d.callOutFee`). No such field exists on artisans — they carry
-        // baseRate — so the amount was always undefined, the escrow branch was
-        // never entered, and no emergency booking ever charged anyone.
-        //
-        // Correcting the spelling would not have helped. The fee has to come
-        // from the pricing engine, and it belongs on the BOOKING, where
-        // firestore.rules already forbids client writes (bookingSystemFields).
-        // payEmergencyCallout then escrows exactly this number, so the client
-        // never names an amount.
-        //
-        // Guarded on a missing/zero fee so a re-run cannot re-price a booking
-        // whose fee is already set — including one already paid.
-        if (isEmergency && !(Number(data.calloutFee) > 0)) {
-            try {
-                // Lazily required: keeps the module graph flat in the Functions
-                // runtime, matching the existing lazy require below.
-                const pricingModule = require('./pricing');
-                const price = await pricingModule.computeEmergencyCallout({
-                    category:  data.serviceType || data.category || '',
-                    lat:       data.lat,
-                    lng:       data.lng,
-                    artisanId: data.requestedArtisanId || data.artisanId || null,
-                });
-                await db().collection('bookings').doc(bookingId).update({
-                    priceType:       'emergency',
-                    calloutFee:      price.calloutFee,
-                    travelFee:       price.travelFee,
-                    travelEstimated: price.travelEstimated,
-                    updatedAt:       new Date().toISOString(),
-                });
-                console.log(`[dispatch] Emergency priced ${bookingId}: callout=GHS${price.calloutFee} travel=GHS${price.travelFee}`);
-            } catch (err) {
-                // Leave calloutFee unset rather than writing a guessed number.
-                // payEmergencyCallout refuses to charge without it, so the
-                // failure surfaces as "not ready yet" instead of a wrong charge.
-                console.error(`[dispatch] Could not price emergency booking ${bookingId}: ${err?.message}`);
-            }
-        }
-
-        if ((data.status || '').toLowerCase() !== 'pending') return;
-
-        // Standard bookings (type:'standard') and pre-matched emergency bookings
-        // (artisanId already set by the customer choosing an artisan or the emergency
-        // page doing a frontend query) are NOT re-dispatched here. The artisan was
-        // already chosen; bookingConfirmNotify.js sent their notification. Dispatch
-        // would reassign them and send a duplicate/conflicting notification.
-        // The chosen artisan gets the same offer summary as a dispatched one —
-        // never the booking itself — with no deadline (a customer-chosen request
-        // waits for that artisan; declining tells the customer, as before).
-        //
-        // A booking that arrives with artisanId already set is a LEGACY write (a
-        // client cached from before AR-06, or one created while rules and
-        // functions were deployed apart). Re-dispatching it would hand the
-        // customer's chosen job to someone else, so it is converted instead: the
-        // artisan becomes the request, artisanId is cleared (closing the booking
-        // to them until they accept), and the same offer opens. The transaction
-        // re-reads the booking so a booking already answered is left alone.
-        const requested = data.requestedArtisanId || data.artisanId || null;
-        if (requested) {
-            try {
-                await db().runTransaction(async (txn) => {
-                    const ref  = db().collection('bookings').doc(bookingId);
-                    const snap = await txn.get(ref);
-                    const b    = snap.exists ? snap.data() : null;
-                    if (!b || (b.status || '').toLowerCase() !== 'pending') return;
-                    txn.set(jobOffers.offerRef(bookingId), jobOffers.buildOfferDoc(b, {
-                        bookingId, artisanId: requested, prematched: true,
-                    }));
-                    txn.update(ref, {
-                        requestedArtisanId: requested,
-                        artisanId:          null,
-                        currentArtisanId:   requested,
-                        updatedAt:          new Date().toISOString(),
-                    });
-                });
-            } catch (err) {
-                console.error(`[dispatch] Could not open the offer for pre-matched booking ${bookingId}: ${err?.message}`);
-            }
-            console.log(`[dispatch] Booking ${bookingId} pre-matched to ${requested} — offer opened, no dispatch.`);
-            return;
-        }
-
+    if (!data.track) {
         try {
-            // Initialise dispatch metadata (before first round)
             await db().collection('bookings').doc(bookingId).update({
-                dispatchStatus:       'searching',
-                currentDispatchRound: 0,
-                artisanCandidates:    [],
-                dispatchHistory:      [],
-                searchStartedAt:      new Date().toISOString(),
-                updatedAt:            new Date().toISOString(),
+                track:     isEmergency ? 'emergency' : 'standard',
+                updatedAt: new Date().toISOString(),
             });
-
-            await dispatchRound(bookingId);
         } catch (err) {
-            console.error(`[dispatch] onBookingCreated error (${bookingId}):`, err.message);
+            console.error(`[dispatch] Could not stamp track on ${bookingId}: ${err?.message}`);
         }
     }
-);
+
+    // ── Emergency callout fee — SERVER-COMPUTED, stamped here ─────────────
+    //
+    // The emergency page used to read a fee off the ARTISAN document
+    // (`d.callOutFee`). No such field exists on artisans — they carry
+    // baseRate — so the amount was always undefined, the escrow branch was
+    // never entered, and no emergency booking ever charged anyone.
+    //
+    // Correcting the spelling would not have helped. The fee has to come
+    // from the pricing engine, and it belongs on the BOOKING, where
+    // firestore.rules already forbids client writes (bookingSystemFields).
+    // payEmergencyCallout then escrows exactly this number, so the client
+    // never names an amount.
+    //
+    // Guarded on a missing/zero fee so a re-run cannot re-price a booking
+    // whose fee is already set — including one already paid.
+    if (isEmergency && !(Number(data.calloutFee) > 0)) {
+        try {
+            // Lazily required: keeps the module graph flat in the Functions
+            // runtime, matching the existing lazy require below.
+            const pricingModule = require('./pricing');
+            const price = await pricingModule.computeEmergencyCallout({
+                category:  data.serviceType || data.category || '',
+                lat:       data.lat,
+                lng:       data.lng,
+                artisanId: data.requestedArtisanId || data.artisanId || null,
+            });
+            await db().collection('bookings').doc(bookingId).update({
+                priceType:       'emergency',
+                calloutFee:      price.calloutFee,
+                travelFee:       price.travelFee,
+                travelEstimated: price.travelEstimated,
+                updatedAt:       new Date().toISOString(),
+            });
+            console.log(`[dispatch] Emergency priced ${bookingId}: callout=GHS${price.calloutFee} travel=GHS${price.travelFee}`);
+        } catch (err) {
+            // Leave calloutFee unset rather than writing a guessed number.
+            // payEmergencyCallout refuses to charge without it, so the
+            // failure surfaces as "not ready yet" instead of a wrong charge.
+            console.error(`[dispatch] Could not price emergency booking ${bookingId}: ${err?.message}`);
+        }
+    }
+
+    if ((data.status || '').toLowerCase() !== 'pending') return;
+
+    // Standard bookings (type:'standard') and pre-matched emergency bookings
+    // (artisanId already set by the customer choosing an artisan or the emergency
+    // page doing a frontend query) are NOT re-dispatched here. The artisan was
+    // already chosen; bookingConfirmNotify.js sent their notification. Dispatch
+    // would reassign them and send a duplicate/conflicting notification.
+    // The chosen artisan gets the same offer summary as a dispatched one —
+    // never the booking itself — with no deadline (a customer-chosen request
+    // waits for that artisan; declining tells the customer, as before).
+    //
+    // A booking that arrives with artisanId already set is a LEGACY write (a
+    // client cached from before AR-06, or one created while rules and
+    // functions were deployed apart). Re-dispatching it would hand the
+    // customer's chosen job to someone else, so it is converted instead: the
+    // artisan becomes the request, artisanId is cleared (closing the booking
+    // to them until they accept), and the same offer opens. The transaction
+    // re-reads the booking so a booking already answered is left alone.
+    const requested = data.requestedArtisanId || data.artisanId || null;
+    if (requested) {
+        let opened = false;
+        try {
+            await db().runTransaction(async (txn) => {
+                const ref  = db().collection('bookings').doc(bookingId);
+                const snap = await txn.get(ref);
+                const b    = snap.exists ? snap.data() : null;
+                if (!b || (b.status || '').toLowerCase() !== 'pending') return;
+                if (!isUnstarted(b)) return;                 // offer already open
+                opened = true;
+                txn.set(jobOffers.offerRef(bookingId), jobOffers.buildOfferDoc(b, {
+                    bookingId, artisanId: requested, prematched: true,
+                }));
+                txn.update(ref, {
+                    requestedArtisanId: requested,
+                    artisanId:          null,
+                    currentArtisanId:   requested,
+                    updatedAt:          new Date().toISOString(),
+                });
+            });
+        } catch (err) {
+            console.error(`[dispatch] Could not open the offer for pre-matched booking ${bookingId}: ${err?.message}`);
+        }
+        console.log(opened
+            ? `[dispatch] Booking ${bookingId} pre-matched to ${requested} — offer opened, no dispatch.`
+            : `[dispatch] Booking ${bookingId} pre-matched — offer already open or booking answered.`);
+        return;
+    }
+
+    try {
+        if (!(await claimForDispatch(bookingId))) {
+            console.log(`[dispatch] Booking ${bookingId} already claimed for dispatch — skipped.`);
+            return;
+        }
+        await dispatchRound(bookingId);
+    } catch (err) {
+        console.error(`[dispatch] processNewBooking error (${bookingId}):`, err.message);
+    }
+}
+
+/**
+ * Claim a booking for its first dispatch round. Succeeds only for a pending,
+ * unstarted booking with no customer-chosen artisan, and moves it to
+ * 'searching' in the same transaction — so of two callers racing (the trigger
+ * and the sweep, or a re-delivered event) exactly one gets true.
+ */
+async function claimForDispatch(bookingId) {
+    const ref = db().collection('bookings').doc(bookingId);
+    return db().runTransaction(async (txn) => {
+        const snap = await txn.get(ref);
+        if (!snap.exists) return false;
+        const b = snap.data();
+        if ((b.status || '').toLowerCase() !== 'pending') return false;
+        if (!isUnstarted(b) || requestedArtisanOf(b)) return false;
+        const n = new Date().toISOString();
+        txn.update(ref, {
+            dispatchStatus:       'searching',
+            currentDispatchRound: 0,
+            artisanCandidates:    [],
+            dispatchHistory:      [],
+            searchStartedAt:      n,
+            updatedAt:            n,
+        });
+        return true;
+    });
+}
 
 // ── Dispatch event handler (called from bookings.js onBookingStatusChanged) ───
 //
@@ -586,89 +670,168 @@ async function handleDispatchEvent(before, after, bookingId) {
     }
 }
 
-// ── Scheduler: expire timed-out dispatches → re-dispatch ─────────────────────
-// Runs every minute. Finds bookings where responseDeadline has passed.
+// ── Scheduler: the dispatch sweep ────────────────────────────────────────────
+// Runs every minute, two passes, each isolated so one failing cannot stop the
+// other:
+//   1. expire offers whose responseDeadline has passed → next round;
+//   2. rescue bookings that dispatch never started, or that stalled between
+//      rounds (rescueStalledBookings).
+// No new function: the region's CPU quota is spent (CLAUDE.md §4).
 const checkExpiredDispatches = onSchedule(
     { schedule: 'every 1 minutes', region: FUNCTIONS_REGION },
     async () => {
-        const now  = Timestamp.now();
-
-        const snap = await db().collection('bookings')
-            .where('dispatchStatus',   '==', 'dispatched')
-            .where('responseDeadline', '<=', now)
-            .get();
-
-        if (snap.empty) return;
-        console.log(`[dispatch] Expiring ${snap.size} timed-out dispatch(es)`);
-
-        await Promise.all(snap.docs.map(async (doc) => {
-            const bookingId = doc.id;
-            const booking   = doc.data();
-            try {
-                // ── Re-check the timeout inside a transaction (F4) ────────────
-                // The query snapshot is stale by the time we act on it. If the
-                // artisan ACCEPTED (or the booking was cancelled/re-dispatched)
-                // in the gap, blindly nulling artisanId here would strip the
-                // professional off an accepted booking. Claim the timeout only
-                // if the booking is still dispatched to the same round.
-                let expiredFor = null;
-                const claimed = await db().runTransaction(async (txn) => {
-                    const live = await txn.get(doc.ref);
-                    const offerSnap = await txn.get(jobOffers.offerRef(bookingId));
-                    if (!live.exists) return false;
-                    const d = live.data();
-                    if (d.dispatchStatus !== 'dispatched') return false;      // already accepted/re-dispatched
-                    if ((d.status || '').toLowerCase() !== 'pending') return false; // no longer pending
-                    // The offer as it stands, so the close records an 'expired'
-                    // event for the artisan who let it lapse (AR-12).
-                    const offer = offerSnap.exists ? offerSnap.data() : null;
-                    jobOffers.closeOffer(txn, bookingId, 'expired',
-                        offer && offer.artisanId === d.currentArtisanId ? offer : null);
-                    expiredFor = d.currentArtisanId || null;
-                    txn.update(doc.ref, {
-                        dispatchStatus:   'searching',
-                        artisanId:        null,
-                        currentArtisanId: null,
-                        responseDeadline: null,
-                        dispatchHistory:  FieldValue.arrayUnion({
-                            artisanId:  d.currentArtisanId || null,
-                            response:   'timeout',
-                            expiredAt:  new Date().toISOString(),
-                            round:      d.currentDispatchRound || 1,
-                        }),
-                        updatedAt: new Date().toISOString(),
-                    });
-                    return true;
-                });
-
-                if (!claimed) {
-                    console.log(`[dispatch] Expiry skipped — booking ${bookingId} advanced before timeout claim.`);
-                    return;
-                }
-                await jobOffers.refreshResponseStats(expiredFor);
-
-                // Notify customer
-                if (booking.customerId) {
-                    await sendNotification(booking.customerId, {
-                        type:      'Bookings',
-                        title:     'Searching for another professional…',
-                        message:   'The previous professional didn\'t respond in time. Finding another one for you.',
-                        actionUrl: 'booking.html',
-                        metadata:  { bookingId },
-                    }).catch(e => console.warn('[dispatch] timeout notif error:', e.message));
-                }
-
-                await dispatchRound(bookingId);
-            } catch (err) {
-                console.error(`[dispatch] expire error (${bookingId}):`, err.message);
-            }
-        }));
+        try { await expireTimedOutDispatches(); }
+        catch (err) { console.error('[dispatch] expiry pass failed:', err.message); }
+        try { await rescueStalledBookings(); }
+        catch (err) { console.error('[dispatch] rescue pass failed:', err.message); }
     }
 );
+
+// Finds bookings where responseDeadline has passed.
+async function expireTimedOutDispatches() {
+    const now  = Timestamp.now();
+
+    const snap = await db().collection('bookings')
+        .where('dispatchStatus',   '==', 'dispatched')
+        .where('responseDeadline', '<=', now)
+        .get();
+
+    if (snap.empty) return;
+    console.log(`[dispatch] Expiring ${snap.size} timed-out dispatch(es)`);
+
+    await Promise.all(snap.docs.map(async (doc) => {
+        const bookingId = doc.id;
+        const booking   = doc.data();
+        try {
+            // ── Re-check the timeout inside a transaction (F4) ────────────
+            // The query snapshot is stale by the time we act on it. If the
+            // artisan ACCEPTED (or the booking was cancelled/re-dispatched)
+            // in the gap, blindly nulling artisanId here would strip the
+            // professional off an accepted booking. Claim the timeout only
+            // if the booking is still dispatched to the same round.
+            let expiredFor = null;
+            const claimed = await db().runTransaction(async (txn) => {
+                const live = await txn.get(doc.ref);
+                const offerSnap = await txn.get(jobOffers.offerRef(bookingId));
+                if (!live.exists) return false;
+                const d = live.data();
+                if (d.dispatchStatus !== 'dispatched') return false;      // already accepted/re-dispatched
+                if ((d.status || '').toLowerCase() !== 'pending') return false; // no longer pending
+                // The offer as it stands, so the close records an 'expired'
+                // event for the artisan who let it lapse (AR-12).
+                const offer = offerSnap.exists ? offerSnap.data() : null;
+                jobOffers.closeOffer(txn, bookingId, 'expired',
+                    offer && offer.artisanId === d.currentArtisanId ? offer : null);
+                expiredFor = d.currentArtisanId || null;
+                txn.update(doc.ref, {
+                    dispatchStatus:   'searching',
+                    artisanId:        null,
+                    currentArtisanId: null,
+                    responseDeadline: null,
+                    dispatchHistory:  FieldValue.arrayUnion({
+                        artisanId:  d.currentArtisanId || null,
+                        response:   'timeout',
+                        expiredAt:  new Date().toISOString(),
+                        round:      d.currentDispatchRound || 1,
+                    }),
+                    updatedAt: new Date().toISOString(),
+                });
+                return true;
+            });
+
+            if (!claimed) {
+                console.log(`[dispatch] Expiry skipped — booking ${bookingId} advanced before timeout claim.`);
+                return;
+            }
+            await jobOffers.refreshResponseStats(expiredFor);
+
+            // Notify customer
+            if (booking.customerId) {
+                await sendNotification(booking.customerId, {
+                    type:      'Bookings',
+                    title:     'Searching for another professional…',
+                    message:   'The previous professional didn\'t respond in time. Finding another one for you.',
+                    actionUrl: 'booking.html',
+                    metadata:  { bookingId },
+                }).catch(e => console.warn('[dispatch] timeout notif error:', e.message));
+            }
+
+            await dispatchRound(bookingId);
+        } catch (err) {
+            console.error(`[dispatch] expire error (${bookingId}):`, err.message);
+        }
+    }));
+}
+
+/**
+ * Pending bookings dispatch has dropped. Two ways that happens:
+ *
+ *   • never started — onBookingCreated did not run or failed before its claim
+ *     (a deploy gap, an outage, a crash). Nothing else ever looked at these:
+ *     the expiry pass only sees dispatchStatus 'dispatched', so the booking
+ *     sat at "finding a professional" forever. processNewBooking is replayed.
+ *   • stalled — 'searching' with no round in flight: a round between a
+ *     rejection or a timeout and the next offer threw. dispatchRound is rerun.
+ *
+ * Both paths go through the same guards as the trigger (claimForDispatch, and
+ * dispatchRound's own transaction), so a booking the trigger or another tick
+ * reaches first is skipped, never dispatched twice.
+ */
+async function rescueStalledBookings(nowMs = Date.now()) {
+    // Newest first, over a day: covers the immediate window and booked
+    // appointments made within the last 24 hours (bookings.status +
+    // createdAt DESC index).
+    const snap = await db().collection('bookings')
+        .where('status', '==', 'pending')
+        .where('createdAt', '>=', new Date(nowMs - 24 * 60 * 60 * 1000).toISOString())
+        .orderBy('createdAt', 'desc')
+        .limit(RESCUE_SCAN_LIMIT)
+        .get();
+
+    const due = [];
+    for (const doc of snap.docs) {
+        const b = doc.data();
+        const created = toMs(b.createdAt);
+        if (created === null || nowMs - created < RESCUE_AFTER_MS) continue;
+
+        const kind = isUnstarted(b) ? 'unstarted'
+                   : b.dispatchStatus === 'searching'
+                     && nowMs - (toMs(b.updatedAt) ?? created) >= RESCUE_AFTER_MS ? 'stalled'
+                   : null;
+        if (!kind) continue;
+
+        const appointment = bookingSchedule.resolveSchedule(b, nowMs);
+        const current = appointment.scheduled
+            ? appointment.startMs > nowMs
+            : nowMs - created <= RESCUE_WINDOW_MS;
+        if (!current) continue;
+
+        due.push({ id: doc.id, data: b, kind });
+        if (due.length >= RESCUE_BATCH) break;
+    }
+    if (due.length === 0) return { rescued: 0 };
+    console.log(`[dispatch] Rescuing ${due.length} booking(s): ${due.map((d) => `${d.id}=${d.kind}`).join(', ')}`);
+
+    await Promise.all(due.map(async ({ id, data, kind }) => {
+        try {
+            if (kind === 'unstarted') await processNewBooking(id, data);
+            else await dispatchRound(id);
+        } catch (err) {
+            console.error(`[dispatch] rescue error (${id}):`, err.message);
+        }
+    }));
+    return { rescued: due.length };
+}
 
 module.exports = {
     onBookingCreated,
     checkExpiredDispatches,
     handleDispatchEvent,
     dispatchRound,
+    // For tests: the pieces the trigger and the sweep share.
+    processNewBooking,
+    claimForDispatch,
+    rescueStalledBookings,
+    RESCUE_AFTER_MS,
+    RESCUE_WINDOW_MS,
 };
