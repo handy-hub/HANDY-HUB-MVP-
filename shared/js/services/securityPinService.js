@@ -18,6 +18,8 @@
 
 import { getFunctions, httpsCallable }
     from '../../vendor/firebase/firebase-functions.js';
+    import { callable }
+        from './callable.js';
 import { firebaseApp, firebaseFunctions }
     from '../backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }
@@ -35,7 +37,7 @@ function fn() {
  * @returns {Promise<{ configured: boolean }>}
  */
 export async function setSecurityPin(pin) {
-    const call = httpsCallable(fn(), 'setSecurityPin');
+    const call = callable('setSecurityPin', fn());
     const { data } = await call({ pin });
     return data;
 }

@@ -1,4 +1,6 @@
 import { getFunctions, httpsCallable } from '../../vendor/firebase/firebase-functions.js';
+import { callable }
+    from './callable.js';
 import { getAuth }                     from '../../vendor/firebase/firebase-auth.js';
 import { firebaseApp, firebaseFunctions }                 from '../backend/providers/firebase/firebaseConfig.js';
 import { PAYSTACK_CONFIG, PLATFORM_CONFIG, FUNCTIONS_REGION } from '../config/appConfig.js';
@@ -108,7 +110,7 @@ export async function initiateWithdrawal({ amount, provider, phone, pin, request
     // pin: the customer's Security PIN (verified server-side, never stored here).
     // requestId: one idempotency key per withdrawal attempt (see walletService
     // newWithdrawalRequestId) so a retry cannot create a second payout.
-    const processWithdrawal = httpsCallable(getFirebaseFunctions(), 'processWithdrawal');
+    const processWithdrawal = callable('processWithdrawal', getFirebaseFunctions());
     const result = await processWithdrawal({ amount, provider, phone, pin, requestId });
     return result.data;
 }

@@ -53,6 +53,10 @@ const MIRRORS = [
         source: 'shared/js/domain/walletLedger.js',
         target: 'functions/shared/walletLedger.js',
     },
+    {
+        source: 'shared/js/domain/callableGroups.js',
+        target: 'functions/shared/callableGroups.js',
+    },
 ];
 
 const BANNER = [

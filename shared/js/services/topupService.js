@@ -20,6 +20,8 @@
 
 import { getFunctions, httpsCallable }
     from '../../vendor/firebase/firebase-functions.js';
+    import { callable }
+        from './callable.js';
 import { firebaseApp, firebaseFunctions }
     from '../backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION, PAYSTACK_CONFIG } from '../config/appConfig.js';
@@ -67,7 +69,7 @@ export function newIdempotencyKey() {
  * @returns {Promise<{reference, accessCode, authorizationUrl, amountPesewas, currency}>}
  */
 export async function initiateTopupCharge({ amount, pin, paymentMethodId = null, idempotencyKey = null }) {
-    const call = httpsCallable(fn(), 'initiateTopupCharge');
+    const call = callable('initiateTopupCharge', fn());
     const { data } = await call({ amount, pin, paymentMethodId, idempotencyKey });
     return data;
 }
@@ -87,7 +89,7 @@ export async function initiateTopupCharge({ amount, pin, paymentMethodId = null,
  * @returns {Promise<{status, credited, chargeStatus, amountPesewas?, transient?}>}
  */
 export async function verifyTopupNow(reference) {
-    const call = httpsCallable(fn(), 'verifyTopupNow');
+    const call = callable('verifyTopupNow', fn());
     const { data } = await call({ reference });
     return data;
 }
@@ -97,7 +99,7 @@ export async function verifyTopupNow(reference) {
  * @returns {Promise<{chargeStatus, displayText}>}
  */
 export async function submitTopupOtp({ reference, otp }) {
-    const call = httpsCallable(fn(), 'submitTopupOtp');
+    const call = callable('submitTopupOtp', fn());
     const { data } = await call({ reference, otp });
     return data;
 }

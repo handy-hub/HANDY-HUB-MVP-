@@ -190,11 +190,8 @@ export function mountQuoteComposer(opts = {}) {
 
 /** The real callable. Kept lazy so tests can inject without loading Firebase. */
 async function defaultSubmit() {
-    const [{ httpsCallable }, { firebaseFunctions }] = await Promise.all([
-        import('../../vendor/firebase/firebase-functions.js'),
-        import('../backend/providers/firebase/firebaseConfig.js'),
-    ]);
-    const fn = httpsCallable(firebaseFunctions, 'submitJobQuote');
+    const { callable } = await import('../services/callable.js');
+    const fn = callable('submitJobQuote');
     return (payload) => fn(payload).then(r => r.data);
 }
 

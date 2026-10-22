@@ -8,6 +8,8 @@ import {
 } from '../../shared/vendor/firebase/firebase-firestore.js';
 import { getFunctions, httpsCallable }
     from '../../shared/vendor/firebase/firebase-functions.js';
+    import { callable }
+        from '../../shared/js/services/callable.js';
 import { firebaseDb, firebaseApp, firebaseFunctions }
     from '../../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }
@@ -248,7 +250,7 @@ async function _approve(bookingId, due, dueKnown) {
     if (btn) { btn.disabled = true; btn.textContent = 'Securing your payment…'; }
 
     try {
-        await httpsCallable(_fn(), 'approveJobQuote')({ bookingId });
+        await callable('approveJobQuote', _fn())({ bookingId });
         // Only navigate once the backend has confirmed. The callable is the
         // authority on whether escrow moved — a resolved promise is the
         // confirmation, never the click itself.
@@ -302,7 +304,7 @@ async function _confirmReject() {
     if (btn) { btn.disabled = true; btn.textContent = 'Rejecting…'; }
 
     try {
-        await httpsCallable(_fn(), 'rejectJobQuote')({ bookingId, reason });
+        await callable('rejectJobQuote', _fn())({ bookingId, reason });
         _closeReject();
         _closeModal();
         window.location.href = 'booking.html';

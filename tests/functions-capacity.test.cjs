@@ -19,13 +19,20 @@
  * functions/index.js and reads each function's endpoint — the same object the
  * Firebase CLI deploys from — then checks the budget:
  *
- *   • only the listed burst functions get a full vCPU
+ *   • only the listed burst functions and group routers get a full vCPU
  *   • no function can ever hold more than 1 vCPU (cpu × maxInstances)
- *   • every function warm once fits under 18 vCPU (2 spare for deploys)
+ *   • every function current clients call, warm once, fits under 18 vCPU
+ *     (2 spare for deploys); the per-action functions kept for installed
+ *     Android builds are counted on top, and must still fit the quota
  *   • only the listed user-facing callables scale past one instance, and
  *     admin tools, backfills, migrations and schedulers never do
  *   • nothing under 1 vCPU asks for more than one concurrent request (Cloud Run
  *     refuses that combination at deploy time)
+ *
+ * Group routers (functions/callableGroups.js): one 1 vCPU instance serving many
+ * requests at once, in place of one small function per action. Their actions'
+ * own functions stay deployed for old clients — LEGACY below — and leave in a
+ * later release; until then this test also proves every one is still exported.
  *
  * Adding a function: it is small and single-instance by default and needs no
  * change here. Giving it BURST_CPU or USER_FACING_SCALE means adding it to the
@@ -51,6 +58,10 @@ const MAX_PER_FUNCTION = 1;   // cpu × maxInstances
 const BURST = [
     'paystackWebhook', 'onBookingStatusChanged', 'onBookingReviewed', 'onBookingCreated', 'syncArtisanIndex',
 ];
+// One source with the client: shared/js/domain/callableGroups.js (mirrored).
+const { CALLABLE_GROUPS } = require(path.join(__dirname, '..', 'functions', 'shared', 'callableGroups.js'));
+const GROUP_ROUTERS = Object.keys(CALLABLE_GROUPS);
+const LEGACY = Object.values(CALLABLE_GROUPS).flat();
 const USER_FACING = [
     'beginProfilePhotoReplacement', 'commitProfilePhotoReplacement', 'abortProfilePhotoReplacement',
     'setSecurityPin', 'initiateTopupCharge', 'verifyTopupNow', 'submitTopupOtp',
@@ -96,9 +107,9 @@ t('functions default to gen1-sized CPU (the global option is in place)', () => {
     assert.strictEqual(all.checkExpiredDispatches.cpu, GEN1_CPU[256]);
 });
 
-t('only the listed burst functions take a full vCPU', () => {
+t('only the listed burst functions and the group routers take a full vCPU', () => {
     const full = names.filter(n => all[n].cpu >= 1).sort();
-    assert.deepStrictEqual(full, [...BURST].sort());
+    assert.deepStrictEqual(full, [...BURST, ...GROUP_ROUTERS].sort());
     for (const n of BURST) {
         assert.strictEqual(all[n].cpu, 1, `${n} cpu`);
         assert.strictEqual(all[n].maxInstances, 1, `${n} maxInstances`);
@@ -112,11 +123,42 @@ t(`no function can hold more than ${MAX_PER_FUNCTION} vCPU`, () => {
     }
 });
 
-t(`every function warm once fits under ${WARM_BUDGET} of the ${QUOTA_VCPU} vCPU`, () => {
-    const warm = names.reduce((s, n) => s + all[n].cpu, 0);
-    const worst = names.reduce((s, n) => s + all[n].cpu * all[n].maxInstances, 0);
+t(`every function current clients call, warm once, fits under ${WARM_BUDGET} of the ${QUOTA_VCPU} vCPU`, () => {
+    const current = names.filter(n => !LEGACY.includes(n));
+    const warm   = current.reduce((s, n) => s + all[n].cpu, 0);
+    const worst  = current.reduce((s, n) => s + all[n].cpu * all[n].maxInstances, 0);
+    const legacy = LEGACY.reduce((s, n) => s + all[n].cpu, 0);
     console.log(`        warm once: ${fmt(warm)} vCPU · every instance at its cap: ${fmt(worst)} vCPU · quota ${QUOTA_VCPU}`);
-    assert.ok(warm <= WARM_BUDGET, `${fmt(warm)} vCPU with every function warm once`);
+    console.log(`        + ${LEGACY.length} per-action functions kept for old clients: ${fmt(legacy)} vCPU if every one is warm → ${fmt(warm + legacy)}`);
+    assert.ok(warm <= WARM_BUDGET, `${fmt(warm)} vCPU with every current function warm once`);
+    assert.ok(warm + legacy <= QUOTA_VCPU + 1e-9, `${fmt(warm + legacy)} vCPU with the old ones warm too`);
+});
+
+t('each group router is one full-vCPU instance serving many requests at once', () => {
+    for (const g of GROUP_ROUTERS) {
+        assert.ok(all[g], `${g} is not exported`);
+        assert.strictEqual(all[g].trigger, 'callableTrigger', `${g} is not a callable`);
+        assert.deepStrictEqual([all[g].cpu, all[g].maxInstances], [1, 1], `${g} cpu/maxInstances`);
+        assert.ok(all[g].concurrency > 1, `${g} concurrency ${all[g].concurrency}`);
+    }
+});
+
+t('a router covers its largest action: memory and timeout', () => {
+    for (const [g, actions] of Object.entries(CALLABLE_GROUPS)) {
+        const timeout = (n) => wire(fns[n].__endpoint.timeoutSeconds) || 60;
+        for (const a of actions) {
+            assert.ok(all[g].memory >= all[a].memory, `${g} memory ${all[g].memory} < ${a} ${all[a].memory}`);
+            assert.ok(timeout(g) >= timeout(a), `${g} timeout ${timeout(g)} < ${a} ${timeout(a)}`);
+        }
+    }
+});
+
+t('every grouped action is still deployed under its own name (installed apps call it)', () => {
+    for (const a of LEGACY) {
+        assert.ok(all[a], `${a} was removed — installed Android builds still call it`);
+        assert.strictEqual(all[a].trigger, 'callableTrigger', `${a} is not a callable`);
+    }
+    assert.strictEqual(new Set(LEGACY).size, LEGACY.length, 'an action is in two groups');
 });
 
 t('only the listed user-facing callables scale past one instance', () => {

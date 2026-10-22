@@ -135,6 +135,8 @@ import { resolveMoney, resolveArtisan, initialsOf, formatMoney, resolveQuoteDeci
                               from '../shared/js/domain/bookingTruth.js';
 import { getFunctions, httpsCallable }
     from '../shared/vendor/firebase/firebase-functions.js';
+    import { callable }
+        from '../shared/js/services/callable.js';
 import { firebaseApp, firebaseFunctions }
     from '../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }
@@ -314,7 +316,7 @@ window.approveQuote = async function() {
   btn.textContent = 'Securing your payment…';
 
   try {
-    const approveJobQuote = httpsCallable(fn(), 'approveJobQuote');
+    const approveJobQuote = callable('approveJobQuote', fn());
     await approveJobQuote({ bookingId });
     showBody(`
       <div style="text-align:center;padding:56px 24px;">
@@ -377,7 +379,7 @@ window.confirmReject = async function() {
   btn.textContent = 'Rejecting…';
 
   try {
-    const rejectJobQuote = httpsCallable(fn(), 'rejectJobQuote');
+    const rejectJobQuote = callable('rejectJobQuote', fn());
     await rejectJobQuote({ bookingId, reason });
     closeRejectDialog();
     showBody(`

@@ -35,6 +35,8 @@ const { FUNCTIONS_REGION, FIRESTORE_DB_ID, BURST_CPU, USER_FACING_SCALE } = requ
 //   BURST_CPU          1 vCPU, 80 concurrent requests — the Paystack webhook and
 //                      the booking/artisan triggers, which receive bursts
 //   USER_FACING_SCALE  up to 3 small instances — callables people wait on
+//   GROUP_ROUTER       1 vCPU, one instance, many requests at once — the group
+//                      routers at the end of this file (docs/FUNCTION_GROUPS.md)
 // Everything else (admin tools, backfills, schedulers) keeps one small instance;
 // backfills and migrations must never run in parallel anyway.
 //
@@ -1269,6 +1271,30 @@ exports.verifySignupOtp = onCall(
             throw new HttpsError('internal', err.message || 'Verification failed.');
         }
     }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GROUP ROUTERS — one function per group of actions (functions/callableGroups.js)
+//
+// Each router runs the SAME handler as the action's own export above, with the
+// same checks; current clients call these (shared/js/services/callable.js).
+// The per-action exports stay deployed for installed Android builds and cached
+// pages, and are removed in a later release (docs/FUNCTION_GROUPS.md).
+//
+// concurrency: how many requests one instance serves at once. The wallet runs
+// scrypt (~16 MiB, CPU-bound) on PIN checks, so it takes fewer at a time.
+// ─────────────────────────────────────────────────────────────────────────────
+const { createGroupRouter } = require('./callableGroups');
+const { GROUP_ROUTER } = require('./config');
+
+exports.bookingActions = onCall(
+    { region: FUNCTIONS_REGION, ...GROUP_ROUTER, concurrency: 80 },
+    createGroupRouter('bookingActions', exports),
+);
+
+exports.walletActions = onCall(
+    { region: FUNCTIONS_REGION, ...GROUP_ROUTER, concurrency: 20 },
+    createGroupRouter('walletActions', exports),
 );
 
 // ─────────────────────────────────────────────────────────────────────────────

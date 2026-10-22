@@ -265,6 +265,8 @@ import { pricingService }                    from '../shared/js/services/pricing
 import { startPresence, stopPresence }       from '../shared/js/services/presenceService.js';
 import { getFunctions, httpsCallable }
     from '../shared/vendor/firebase/firebase-functions.js';
+    import { callable }
+        from '../shared/js/services/callable.js';
 import { firebaseApp, firebaseFunctions }
     from '../shared/js/backend/providers/firebase/firebaseConfig.js';
 import { FUNCTIONS_REGION }
@@ -736,7 +738,7 @@ window.advanceJob = async function(bookingId, nextStatus, timestampField, btn) {
 window.completeInspectionJob = async function(bookingId, btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
   try {
-    await httpsCallable(_fn(), 'completeInspection')({ bookingId });
+    await callable('completeInspection', _fn())({ bookingId });
     showToast('Inspection complete. Now submit your quote.');
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Complete Inspection'; }
@@ -851,7 +853,7 @@ window.submitQuote = async function() {
   btn.textContent = 'Sending…';
 
   try {
-    const submitJobQuote = httpsCallable(_fn(), 'submitJobQuote');
+    const submitJobQuote = callable('submitJobQuote', _fn());
     await submitJobQuote({ bookingId: _quoteBookingId, labourCost, materials, note });
     closeQuoteSheet();
     showToast('Quote sent! Waiting for customer approval.');

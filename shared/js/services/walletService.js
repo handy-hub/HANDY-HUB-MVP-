@@ -9,6 +9,8 @@
 
 import { getFunctions, httpsCallable }
     from '../../vendor/firebase/firebase-functions.js';
+    import { callable }
+        from './callable.js';
 import { getAuth }
     from '../../vendor/firebase/firebase-auth.js';
 import { firebaseApp, firebaseFunctions }
@@ -26,7 +28,7 @@ function fn() {
 }
 
 function call(name) {
-    return httpsCallable(fn(), name);
+    return callable(name, fn());
 }
 
 function _currentUserId() {

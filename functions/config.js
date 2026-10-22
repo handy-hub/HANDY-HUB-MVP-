@@ -77,6 +77,14 @@ const BURST_CPU = Object.freeze({ cpu: 1 });
 /** Up to 3 small instances — callables a customer or artisan waits on. */
 const USER_FACING_SCALE = Object.freeze({ maxInstances: 3 });
 
+/**
+ * A group router (functions/callableGroups.js): one instance with a full vCPU
+ * serving many requests at once — so never more than one instance, which keeps
+ * it inside the 1 vCPU-per-function ceiling. Memory and timeout cover the
+ * largest member.
+ */
+const GROUP_ROUTER = Object.freeze({ cpu: 1, maxInstances: 1, memory: '1GiB', timeoutSeconds: 120 });
+
 // ── Cloudinary ────────────────────────────────────────────────────────────────
 // All three values come from functions/.env (gitignored).
 // To deploy: firebase deploy --only functions — the CLI bundles .env at deploy time.
@@ -89,6 +97,7 @@ module.exports = {
     FUNCTIONS_REGION,
     BURST_CPU,
     USER_FACING_SCALE,
+    GROUP_ROUTER,
     ADMIN_EMAILS,
     COMMISSION_RATE,
     MIN_WITHDRAWAL,
