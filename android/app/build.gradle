@@ -44,11 +44,21 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+// Firebase native config is REQUIRED, not optional. The app calls
+// PushNotifications.register() right after sign-in; that calls
+// FirebaseMessaging.getInstance(), which throws "Default FirebaseApp is not
+// initialized" when this file was missing at build time, and Capacitor's bridge
+// re-throws plugin exceptions on its own thread — the whole app closes on every
+// login. Capacitor's template only logged this at info level (invisible), so a
+// crashing APK built "successfully". Fail the build instead.
+def servicesJSON = file('google-services.json')
+def servicesPackages = servicesJSON.exists()
+    ? new groovy.json.JsonSlurper().parse(servicesJSON).client.collect { it.client_info?.android_client_info?.package_name }
+    : []
+if (!servicesPackages.contains(android.defaultConfig.applicationId)) {
+    throw new GradleException(
+        "android/app/google-services.json is missing or has no client for ${android.defaultConfig.applicationId}. " +
+        "Download it from Firebase Console (project lamax-4fd82) → Project settings → Android app. " +
+        "Without it the app closes on login (PushNotifications.register → FirebaseApp not initialized).")
 }
+apply plugin: 'com.google.gms.google-services'

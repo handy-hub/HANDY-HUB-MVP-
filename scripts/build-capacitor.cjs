@@ -35,7 +35,13 @@ const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const WEB_DIR = path.join(ROOT, 'build-customer-app');
-const ENTRY = 'customer-app/index.html';
+// The app opens on the startup router, not on the welcome page. index.html is
+// "Get started" (Sign up / Join as artisan) and never asks Firebase whether
+// someone is already signed in, so every cold start of the installed app showed
+// Sign up to a signed-in customer. splash-screen.html waits for Firebase to
+// restore the session (from IndexedDB, no network needed) and only then picks
+// dashboard.html or index.html. (Hosting's "/" redirect is untouched.)
+const ENTRY = 'customer-app/splash-screen.html';
 
 // Matches the Hosting redirect target. `location.replace` rather than a plain
 // assignment so the shim does not become a history entry the back button can
@@ -44,8 +50,8 @@ const SHIM = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>HandyHub</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fidus X</title>
 <script>location.replace('${ENTRY}');</script>
 <meta http-equiv="refresh" content="0;url=${ENTRY}">
 <style>html,body{margin:0;height:100%;background:#FEFEFE}</style>
@@ -89,6 +95,56 @@ function main() {
     process.exit(1);
   }
   console.log('[build-capacitor] OK — bundle is self-contained');
+
+  // Without Firebase's native config the APK builds, installs and opens — then
+  // closes on every login, when PushNotifications.register() reaches
+  // FirebaseMessaging.getInstance() (see android/app/build.gradle). Say so here,
+  // before the slow Gradle step, rather than on someone's phone.
+  // Status bar: the top inset is handled in ONE place, natively
+  // (android/.../MainActivity.java pads the WebView's container by the real
+  // system-bar insets). A page declaring viewport-fit=cover asks the WebView to
+  // draw edge-to-edge and pad itself, which nothing here does. Scans the WHOLE
+  // bundle: the root shim written above declared cover too, and the first
+  // version of this check (customer-app/ only) missed it.
+  const covers = [];
+  (function scan(dir) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) { scan(p); continue; }
+      if (/\.html$/.test(e.name) && /name="viewport"[^>]*viewport-fit=cover/.test(fs.readFileSync(p, 'utf8'))) covers.push(path.relative(WEB_DIR, p));
+    }
+  })(WEB_DIR);
+  if (covers.length) {
+    console.error(`[build-capacitor] FAIL — viewport-fit=cover would draw these pages under the Android status bar: ${covers.join(', ')}`);
+    process.exit(1);
+  }
+  console.log('[build-capacitor] OK — no page opts out of the native status-bar inset');
+
+  const problem = firebaseConfigProblem();
+  if (problem) {
+    console.error(`[build-capacitor] FAIL — ${problem}`);
+    process.exit(1);
+  }
+  console.log('[build-capacitor] OK — Firebase native config present for this app id');
 }
 
-main();
+/** null when android/app/google-services.json is usable for capacitor.config.json's appId. */
+function firebaseConfigProblem(root = ROOT) {
+  const appId = JSON.parse(fs.readFileSync(path.join(root, 'capacitor.config.json'), 'utf8')).appId;
+  const file = path.join(root, 'android', 'app', 'google-services.json');
+  if (!fs.existsSync(file)) {
+    return `android/app/google-services.json is missing. Download it from Firebase Console ` +
+           `(project lamax-4fd82) → Project settings → Android app ${appId}. A browser download named ` +
+           `"google-services (2).json" is NOT read by Gradle — it must be named exactly google-services.json.`;
+  }
+  let json;
+  try { json = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return `google-services.json is not valid JSON (${e.message})`; }
+  const packages = (json.client || []).map((c) => c.client_info && c.client_info.android_client_info &&
+    c.client_info.android_client_info.package_name);
+  if (!packages.includes(appId)) return `google-services.json has no client for ${appId} (found: ${packages.join(', ') || 'none'})`;
+  return null;
+}
+
+module.exports = { firebaseConfigProblem };
+
+if (require.main === module) main();

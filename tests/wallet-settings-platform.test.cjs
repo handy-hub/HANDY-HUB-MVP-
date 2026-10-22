@@ -500,7 +500,168 @@ await t('every artisan page links the manifest and registers the worker; hosting
 await t('the Android project is still the customer app only — untouched', () => {
     const cap = JSON.parse(read('capacitor.config.json'));
     assert.deepStrictEqual([cap.appId, cap.webDir], ['com.handyhub.customer', 'build-customer-app']);
+    // The launcher name is the brand; the package id is the Play identity and stays.
+    assert.strictEqual(cap.appName, 'Fidus X');
+    const strings = read('android/app/src/main/res/values/strings.xml');
+    assert.match(strings, /<string name="app_name">Fidus X<\/string>/);
+    assert.match(strings, /<string name="title_activity_main">Fidus X<\/string>/);
+    assert.match(strings, /<string name="package_name">com\.handyhub\.customer<\/string>/);
     assert.match(read('docs/ARTISAN_PLATFORMS.md'), /Native Android artisan app — not built, and why/);
+});
+
+await t('the customer APK cannot be built without Firebase native config (it closed on every login)', () => {
+    const os = require('os');
+    const { firebaseConfigProblem } = require(path.join(ROOT, 'scripts', 'build-capacitor.cjs'));
+    const fake = (files) => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fx-cap-'));
+        fs.mkdirSync(path.join(dir, 'android', 'app'), { recursive: true });
+        fs.writeFileSync(path.join(dir, 'capacitor.config.json'), JSON.stringify({ appId: 'com.handyhub.customer' }));
+        for (const [rel, body] of Object.entries(files)) fs.writeFileSync(path.join(dir, rel), body);
+        return dir;
+    };
+    const cfg = (...pkgs) => JSON.stringify({ project_info: { project_id: 'lamax-4fd82' },
+        client: pkgs.map((p) => ({ client_info: { android_client_info: { package_name: p } } })) });
+    assert.match(firebaseConfigProblem(fake({})), /missing/);
+    assert.match(firebaseConfigProblem(fake({ 'android/app/google-services (2).json': cfg('com.handyhub.customer') })),
+        /must be named exactly google-services\.json/, 'a browser download name is not read by Gradle');
+    assert.match(firebaseConfigProblem(fake({ 'android/app/google-services.json': cfg('com.handyhub.artisan') })), /no client for com\.handyhub\.customer/);
+    assert.strictEqual(firebaseConfigProblem(fake({ 'android/app/google-services.json': cfg('com.handyhub.artisan', 'com.handyhub.customer') })), null);
+
+    // Gradle refuses too (Android Studio builds never run build-capacitor.cjs),
+    // instead of the template's info-level "Push Notifications won't work".
+    const gradle = read('android/app/build.gradle');
+    assert.match(gradle, /throw new GradleException\(/);
+    assert.match(gradle, /servicesPackages\.contains\(android\.defaultConfig\.applicationId\)/);
+    assert.ok(!/logger\.info\("google-services\.json not found/.test(gradle), 'the silent skip is gone');
+    assert.match(gradle, /^apply plugin: 'com\.google\.gms\.google-services'$/m, 'applied unconditionally');
+
+    // Why it crashed rather than failing softly: the plugin reaches Firebase
+    // natively, and Capacitor re-throws plugin exceptions on its own thread.
+    assert.match(read('node_modules/@capacitor/push-notifications/android/src/main/java/com/capacitorjs/plugins/pushnotifications/PushNotificationsPlugin.java'),
+        /public void register\(PluginCall call\) \{\s*FirebaseMessaging\.getInstance\(\)/);
+    assert.match(read('node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/Bridge.java'),
+        /Serious error executing plugin", ex\);\s*throw new RuntimeException\(ex\);/);
+    assert.match(read('customer-app/js/authInit.js'), /initializePushNotifications\(user\.uid, 'customer'\)/, 'runs right after sign-in');
+});
+
+await t('the installed app opens on the startup router, which waits for Firebase — never a timer', () => {
+    // The native shim used to open index.html ("Get started" → Sign up), which
+    // never asks whether anyone is signed in: every relaunch looked like a new visitor.
+    const cap = read('scripts/build-capacitor.cjs');
+    assert.match(cap, /const ENTRY = 'customer-app\/splash-screen\.html';/);
+    const splash = read('customer-app/splash-screen.html');
+    const code = splash.slice(splash.indexOf('<script type="module">'));
+    assert.match(code, /await authService\.waitForUser\(\)/);
+    assert.match(code, /window\.location\.replace\(user \? 'dashboard\.html' : 'index\.html'\)/, 'same destinations as before');
+    // No timer may route: the old 2.8 s fallback sent slow restores to Sign up
+    // (reproduced in a browser with the auth IndexedDB read delayed 4.5 s).
+    const timers = [...code.matchAll(/setTimeout\(([\s\S]*?)\}?, \d+\)/g)].map((m) => m[1]);
+    assert.ok(timers.length && timers.every((t) => !/location/.test(t)), 'a timer only changes the message');
+    assert.ok(!/catch[\s\S]{0,200}location\.replace\('index\.html'\)/.test(code), 'a failure offers a retry, not Sign up');
+    assert.match(splash, /id="splash-retry"/);
+});
+
+await t('requireAuth reaches login when Firebase fails (it threw on an undefined timer)', () => {
+    const g = read('shared/js/utils/authGuard.js');
+    const tail = g.slice(g.indexOf('container.services.authService.waitForUser()'), g.indexOf('export function consumeReturnUrl'));
+    assert.ok(!/clearTimeout\(timeout\)/.test(tail));
+    assert.match(tail, /\.catch\(\(\) => \{[\s\S]*clearTimers\(\);[\s\S]*redirectToLogin\(\);/);
+});
+
+await t('the launcher icon is the supplied customer-app-icon.png, at every density, adaptive and legacy', () => {
+    const res = 'android/app/src/main/res';
+    const size = (rel) => { const b = fs.readFileSync(path.join(ROOT, rel)); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
+    assert.ok(fs.existsSync(path.join(ROOT, 'shared/assets/images/customer-app-icon.png')), 'the source image');
+    const dens = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
+    for (const [d, m] of Object.entries(dens)) {
+        for (const f of ['ic_launcher', 'ic_launcher_round']) assert.deepStrictEqual(size(`${res}/mipmap-${d}/${f}.png`), [48 * m, 48 * m], `${d}/${f}`);
+        for (const f of ['ic_launcher_foreground', 'ic_launcher_monochrome']) assert.deepStrictEqual(size(`${res}/mipmap-${d}/${f}.png`), [108 * m, 108 * m], `${d}/${f}`);
+    }
+    for (const f of ['ic_launcher', 'ic_launcher_round']) {
+        const x = read(`${res}/mipmap-anydpi-v26/${f}.xml`);
+        assert.match(x, /@mipmap\/ic_launcher_foreground/); assert.match(x, /<monochrome android:drawable="@mipmap\/ic_launcher_monochrome"\/>/);
+    }
+    assert.match(read(`${res}/values/ic_launcher_background.xml`), /#640115/, 'the artwork\'s own maroon, not white');
+    const manifest = read('android/app/src/main/AndroidManifest.xml');
+    assert.match(manifest, /android:icon="@mipmap\/ic_launcher"/); assert.match(manifest, /android:roundIcon="@mipmap\/ic_launcher_round"/);
+});
+
+await t('Android status bar: one source of top inset (native padding), readable on every version', () => {
+    // The mechanism this relies on (Capacitor 8 SystemBars): a page declaring
+    // viewport-fit=cover gets the full screen on Android 15+ and must pad itself;
+    // any other page is padded below the status bar natively.
+    const sb = read('node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/plugin/SystemBars.java');
+    assert.match(sb, /shouldPassthroughInsets = getWebViewMajorVersion\(\) >= WEBVIEW_VERSION_WITH_SAFE_AREA_FIX && hasViewportCover/);
+    assert.match(sb, /VANILLA_ICE_CREAM\) \{[\s\S]{0,160}v\.setPadding\(\s*systemBarsInsets\.left,\s*systemBarsInsets\.top/);
+    // So no Customer page may opt out (seven did; five drew under the clock).
+    const covers = fs.readdirSync(path.join(ROOT, 'customer-app')).filter((f) => f.endsWith('.html'))
+        .filter((f) => /name="viewport"[^>]*viewport-fit=cover/.test(read(`customer-app/${f}`)));
+    assert.deepStrictEqual(covers, [], 'viewport-fit=cover draws the page under the Android status bar');
+    assert.match(read('scripts/build-capacitor.cjs'), /viewport-fit=cover would draw these pages under the Android status bar/);
+
+    // Colours: the app's #FEFEFE behind the bar, dark icons — not the phone's
+    // dark mode, not Capacitor's template indigo (#303F9F) on Android 14 and below.
+    assert.match(read('android/app/src/main/res/values/colors.xml'), /<color name="fx_system_bar">#FEFEFE<\/color>/);
+    const styles = read('android/app/src/main/res/values/styles.xml');
+    const theme = styles.slice(styles.indexOf('name="AppTheme.NoActionBar"'), styles.indexOf('name="AppTheme.NoActionBarLaunch"'));
+    assert.match(theme, /parent="Theme\.AppCompat\.Light\.NoActionBar"/);
+    for (const item of ['android:windowBackground', 'android:statusBarColor', 'android:navigationBarColor']) {
+        assert.match(theme, new RegExp(`name="${item}">@color/fx_system_bar<`), item);
+    }
+    assert.match(theme, /name="android:windowLightStatusBar">true</);
+    assert.match(read('android/app/src/main/AndroidManifest.xml'), /android:theme="@style\/AppTheme\.NoActionBarLaunch"|android:theme="@style\/AppTheme\.NoActionBar"/);
+    assert.strictEqual(JSON.parse(read('capacitor.config.json')).plugins.SystemBars.style, 'LIGHT', 'dark icons on the light bar, whatever the phone theme');
+});
+
+await t('status bar: the app pads the WebView by the real insets on EVERY Android version — not Capacitor\'s 15+ only path', () => {
+    // Root cause: Capacitor 8 pads only on Android 15+ and re-decides per page
+    // from an asynchronous viewport check; a window drawn behind the status bar
+    // below 15, or a page judged "cover" (the launch shim was), got no padding.
+    const sb = read('node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/plugin/SystemBars.java');
+    assert.match(sb, /if \(Build\.VERSION\.SDK_INT >= Build\.VERSION_CODES\.VANILLA_ICE_CREAM\) \{\s*\/\/ We need to correct for a possible shown IME\s*v\.setPadding/);
+    const main = read('android/app/src/main/java/com/handyhub/customer/MainActivity.java');
+    assert.match(main, /ViewCompat\.setOnApplyWindowInsetsListener\(container,/);
+    assert.match(main, /WindowInsetsCompat\.Type\.systemBars\(\) \| WindowInsetsCompat\.Type\.displayCutout\(\)/);
+    assert.match(main, /v\.setPadding\(bars\.left, bars\.top, bars\.right, Math\.max\(bars\.bottom, ime\.bottom\)\)/);
+    assert.ok(!/SDK_INT|VERSION_CODES/.test(main.replace(/\/\*[\s\S]*?\*\//g, '')), 'no Android-version gate in our handling');
+    assert.match(main, /View container = \(View\) getBridge\(\)\.getWebView\(\)\.getParent\(\);/);
+    // Exactly one layer: Capacitor's own handling is off, so nothing else pads.
+    assert.strictEqual(JSON.parse(read('capacitor.config.json')).plugins.SystemBars.insetsHandling, 'disable');
+    // And the first page the app ever loads no longer opts out either.
+    const cap = read('scripts/build-capacitor.cjs');
+    const shim = cap.slice(cap.indexOf('const SHIM ='), cap.indexOf('function main()'));
+    assert.ok(!/viewport-fit=cover/.test(shim), 'the launch shim declared viewport-fit=cover');
+    assert.match(cap, /\}\)\(WEB_DIR\);\s*if \(covers\.length\)/, 'the guard scans the whole bundle, shim included');
+});
+
+await t('permissions: only what a feature uses, asked when it is used', () => {
+    const m = read('android/app/src/main/AndroidManifest.xml').replace(/<!--[\s\S]*?-->/g, '');
+    const perms = [...m.matchAll(/<uses-permission android:name="android\.permission\.([A-Z_]+)"/g)].map((x) => x[1]).sort();
+    assert.deepStrictEqual(perms, ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'INTERNET', 'POST_NOTIFICATIONS'],
+        'location was missing (Android refused every request without a prompt); nothing broader is needed');
+    // Capacitor's WebView asks Android for exactly these two when a page calls geolocation.
+    assert.match(read('node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/BridgeWebChromeClient.java'),
+        /geoPermissions = \{ Manifest\.permission\.ACCESS_COARSE_LOCATION, Manifest\.permission\.ACCESS_FINE_LOCATION \}/);
+    // No location dialog on page load: the dashboard and live tracking refresh
+    // only when already allowed; the explicit button is where it is asked.
+    const dash = read('customer-app/dashboard.html');
+    const auto = dash.slice(dash.indexOf('(function autoDetect(){'), dash.indexOf('Lazy-load Leaflet'));
+    assert.match(auto, /navigator\.permissions\.query\(\{ name: 'geolocation' \}\)[\s\S]*st\.state === 'granted'\) refresh\(\)/);
+    const live = read('customer-app/live-tracking.html');
+    assert.match(live, /navigator\.permissions\.query\(\{ name: 'geolocation' \}\)\.then\(\(st\) => \{\s*if \(!st \|\| st\.state !== 'granted'\) return;/);
+    // A refusal is explained, with the manual alternative.
+    assert.match(dash, /err && err\.code === 1\)\s*\? 'Location is off for Fidus X\. Tap the map to set your location/);
+    // Photos: the system picker (no media permission) — and no camera capture
+    // attribute that would need CAMERA.
+    for (const f of ['profile', 'book-request', 'messages']) {
+        const h = read(`customer-app/${f}.html`);
+        assert.ok(/<input[^>]*type="file"[^>]*accept="image/.test(h), f);
+        assert.ok(!/<input[^>]*type="file"[^>]*capture/.test(h), `${f}: capture would need CAMERA`);
+    }
+    // Notifications: Android's state shown in Settings, with the one fix possible.
+    const sn = read('customer-app/js/pages/settingsNotifications.js');
+    assert.match(sn, /initializePushNotifications\(user\.uid, 'customer', \{ prompt: false \}\)/);
+    assert.match(sn, /btn\.hidden = !\(state === 'off' \|\| state === 'failed'\)/);
 });
 
 console.log(`\nwallet-settings-platform: ${passed} passed, ${failed} failed`);

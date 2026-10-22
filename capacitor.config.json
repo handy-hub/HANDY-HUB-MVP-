@@ -1,5 +1,11 @@
 {
   "appId": "com.handyhub.customer",
-  "appName": "HandyHub",
-  "webDir": "build-customer-app"
+  "appName": "Fidus X",
+  "webDir": "build-customer-app",
+  "plugins": {
+    "SystemBars": {
+      "style": "LIGHT",
+      "insetsHandling": "disable"
+    }
+  }
 }

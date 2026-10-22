@@ -316,7 +316,10 @@ export async function requireAuth() {
         });
       })
       .catch(() => {
-        clearTimeout(timeout);
+        // `timeout` no longer exists (the timers are `notice`/`escape`), so this
+        // threw a ReferenceError and the page hung instead of reaching login.
+        clearTimers();
+        hideAuthWaiting();
         redirectToLogin();
       });
   });

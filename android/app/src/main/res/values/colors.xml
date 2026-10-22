@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- System bars: the Customer app's page background (#FEFEFE, the app-wide
+         standard), so the status bar reads as part of the page on every Android
+         version. Without it Android 14 and below showed Capacitor's template
+         indigo colorPrimaryDark (#303F9F) above every screen. -->
+    <color name="fx_system_bar">#FEFEFE</color>
+</resources>

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- The flat maroon field of shared/assets/images/customer-app-icon.png (sampled
+         from its border), so the adaptive background is the artwork's own colour. -->
+    <color name="ic_launcher_background">#640115</color>
 </resources>

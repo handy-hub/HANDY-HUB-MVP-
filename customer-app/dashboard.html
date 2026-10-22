@@ -290,15 +290,29 @@
     if (cached) updateLocationEl(cached.loc);   // instant from cache
 
     if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      function(pos){
-        reverseGeocode(pos.coords.latitude, pos.coords.longitude, function(err, loc){
-          if (!err && loc) { updateLocationEl(loc); saveToCache(loc, pos.coords.latitude, pos.coords.longitude); }
-        });
-      },
-      function(){},  // silent if denied
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 5 * 60 * 1000 }
-    );
+    // Refresh silently ONLY when location is already allowed. Asking here put
+    // the Android permission dialog in front of every customer the moment the
+    // dashboard opened after sign-in, before they had asked for anything; the
+    // "use my location" button below is where the question belongs. Without
+    // the Permissions API (or if it cannot say), nothing is asked on load.
+    var refresh = function(){
+      navigator.geolocation.getCurrentPosition(
+        function(pos){
+          reverseGeocode(pos.coords.latitude, pos.coords.longitude, function(err, loc){
+            if (!err && loc) { updateLocationEl(loc); saveToCache(loc, pos.coords.latitude, pos.coords.longitude); }
+          });
+        },
+        function(){},  // a refusal or timeout here changes nothing; the cached area stays
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 5 * 60 * 1000 }
+      );
+    };
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' })
+          .then(function(st){ if (st && st.state === 'granted') refresh(); })
+          .catch(function(){});
+      }
+    } catch (_) {}
   })();
 
   /* ── Lazy-load Leaflet ─────────────────────────────────────── */
@@ -429,8 +443,16 @@
         btn.disabled = false;
         btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.0"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg> My Location';
       },
-      function(){
+      function(err){
         btn.disabled = false;
+        // Never silent: say why, and point at the manual option (tap the map).
+        var hint = document.querySelector('#loc-sheet .loc-hint');
+        if (hint) {
+          hint.textContent = (err && err.code === 1)
+            ? 'Location is off for Fidus X. Tap the map to set your location, or allow it in your phone\u2019s Settings \u2192 Apps \u2192 Fidus X \u2192 Permissions.'
+            : 'We couldn\u2019t get your location. Check that location is on, try again, or tap the map instead.';
+          hint.setAttribute('role', 'status');
+        }
         btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.0"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2.0" stroke-linecap="round"/></svg> My Location';
       },
       { enableHighAccuracy: true, timeout: 10000 }

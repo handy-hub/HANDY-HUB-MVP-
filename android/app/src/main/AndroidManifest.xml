@@ -45,4 +45,21 @@
          it requestPermissions() resolves "denied" WITHOUT ever prompting and
          push fails silently. targetSdk here is 36. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Foreground location, asked for at RUNTIME only when a customer uses a
+         feature that needs it (setting the job address, the emergency map,
+         "use my location"). Capacitor's WebView asks Android for these two when
+         a page calls navigator.geolocation (BridgeWebChromeClient), and Android
+         refuses an undeclared permission without showing any prompt — so until
+         these were declared, every location feature in the app failed silently.
+         Fine is declared because an artisan is sent to the address; Android 12+
+         still lets the customer choose approximate. No background location: no
+         customer feature runs while the app is closed.
+
+         Deliberately NOT declared: CAMERA (photo inputs open the system picker
+         or the camera app, which need no permission while CAMERA is undeclared),
+         READ_MEDIA_IMAGES / READ_EXTERNAL_STORAGE (the picker grants only the
+         chosen image), contacts, SMS, phone, microphone. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 </manifest>

@@ -64,17 +64,15 @@ export function loadGoogleMaps(opts = {}) {
             return;
         }
 
-        // NOTE: deliberately no `loading=async`. That parameter selects Google's
-        // bootstrap loader, which requires their inline (g=>{...}) snippet; with
-        // a plain script tag it leaves google.maps as a stub whose importLibrary
-        // never yields a Map constructor. The tag below is already async+defer,
-        // so nothing blocks first paint either way.
+        // Use Google's async bootstrap so the script is non-blocking while still
+        // preserving the existing key, version, region, and language settings.
         const params = new URLSearchParams({
             key: MAPS_API_KEY,
             v: 'weekly',
             // Ghana. Affects place naming and road rendering conventions.
             region: 'GH',
             language: 'en',
+            loading: 'async',
         });
         const libs = Array.isArray(opts.libraries) ? opts.libraries.filter(Boolean) : [];
         if (libs.length) params.set('libraries', libs.join(','));

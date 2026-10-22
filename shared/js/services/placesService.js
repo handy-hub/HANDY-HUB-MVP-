@@ -52,13 +52,20 @@ function loadMaps() {
     _loader = new Promise((resolve) => {
         const s = document.createElement('script');
         s.async = true;
-        s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(MAPS_API_KEY)}`
-              + '&libraries=places&v=weekly';
-        // Wait for the places library itself. `importLibrary` is part of the
-        // bootstrap-loader pattern and appears only intermittently behind a
-        // plain script tag — depending on it produced "importLibrary is not a
-        // function" on some loads and worked on others. `libraries=places`
-        // loads it eagerly, so this is the thing that actually has to exist.
+        s.defer = true;
+
+        const params = new URLSearchParams({
+            key: MAPS_API_KEY,
+            libraries: 'places',
+            v: 'weekly',
+            region: 'GH',
+            language: 'en',
+            loading: 'async',
+        });
+        s.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
+        // Wait for the Places library itself. The async bootstrap keeps the API
+        // non-blocking while the library and AutocompleteSuggestion must still
+        // exist before we advertise the loader as ready.
         s.onload = async () => {
             for (let i = 0; i < 60; i++) {
                 if (window.google?.maps?.places?.AutocompleteSuggestion) {

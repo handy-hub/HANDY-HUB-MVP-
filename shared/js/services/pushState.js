@@ -64,3 +64,28 @@ export function workerUrl(userType, options = {}) {
     });
     return `/firebase-messaging-sw.js?${q.toString()}`;
 }
+
+/** "Not now" on the native explanation postpones asking for this long. */
+export const NATIVE_PUSH_DEFER_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * What the installed (Capacitor) app does with the OS notification permission.
+ *
+ * `receive` is the plugin's own report (checkPermissions) — Android's real
+ * state, never a remembered flag. `deferredUntil` is only the customer's
+ * "Not now" on OUR explanation, which Android knows nothing about.
+ *   granted                          → 'register'
+ *   denied                           → 'blocked'  (Android will not show its
+ *                                       dialog again; only Settings can lift it)
+ *   prompt / prompt-with-rationale   → 'explain' (say why, then ask) — unless
+ *                                       asking is not allowed now (`prompt:false`,
+ *                                       e.g. a resume recheck) or was postponed
+ *                                       → 'wait'
+ */
+export function nativePushAction(receive, { prompt = true, deferredUntil = 0, now = Date.now() } = {}) {
+    if (receive === 'granted') return 'register';
+    if (receive === 'denied') return 'blocked';
+    if (!prompt) return 'wait';
+    if (Number(deferredUntil) > now) return 'wait';
+    return 'explain';
+}

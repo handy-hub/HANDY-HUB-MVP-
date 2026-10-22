@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">HandyHub</string>
-    <string name="title_activity_main">HandyHub</string>
+    <string name="app_name">Fidus X</string>
+    <string name="title_activity_main">Fidus X</string>
     <string name="package_name">com.handyhub.customer</string>
     <string name="custom_url_scheme">com.handyhub.customer</string>
 </resources>

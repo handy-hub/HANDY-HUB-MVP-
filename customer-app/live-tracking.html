@@ -709,7 +709,11 @@ function setUserLocation(lat, lng, recenter = true) {
 }
 
 // ── Real user GPS ────────────────────────────────────────────
-if (navigator.geolocation) {
+// Shown only when location is ALREADY allowed: opening the tracking screen is
+// not a request to share position, and the artisan's position (below) does
+// not depend on it. No permission dialog on page load.
+if (navigator.geolocation && navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then((st) => {
+  if (!st || st.state !== 'granted') return;
   navigator.geolocation.getCurrentPosition(
     pos => setUserLocation(pos.coords.latitude, pos.coords.longitude),
     () => {
@@ -720,7 +724,7 @@ if (navigator.geolocation) {
     },
     { enableHighAccuracy: true, timeout: 8000 }
   );
-}
+}).catch(() => {});
 
 // ── Artisan location from Firestore ─────────────────────────
 // The artisan app writes its position to bookings/{bookingId}/live/artisan

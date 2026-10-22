@@ -1,0 +1,83 @@
+{
+  "project_info": {
+    "project_number": "1034220501833",
+    "firebase_url": "https://lamax-4fd82-default-rtdb.firebaseio.com",
+    "project_id": "lamax-4fd82",
+    "storage_bucket": "lamax-4fd82.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1034220501833:android:9adcf520aaa4635da0f898",
+        "android_client_info": {
+          "package_name": "com.handyhub.artisan"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1034220501833-e55m4e8u7dbajif524ns5h90qfsv2o66.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlEYKn5bAGLI2hc0Ho_WAibwOk63vl2Jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1034220501833-e55m4e8u7dbajif524ns5h90qfsv2o66.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1034220501833-99oot8isep0i6iddv4n198un6dahm4ph.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.handyhub.artisan"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1034220501833:android:a49e183b50f003c6a0f898",
+        "android_client_info": {
+          "package_name": "com.handyhub.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1034220501833-e55m4e8u7dbajif524ns5h90qfsv2o66.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlEYKn5bAGLI2hc0Ho_WAibwOk63vl2Jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1034220501833-e55m4e8u7dbajif524ns5h90qfsv2o66.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1034220501833-99oot8isep0i6iddv4n198un6dahm4ph.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.handyhub.artisan"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

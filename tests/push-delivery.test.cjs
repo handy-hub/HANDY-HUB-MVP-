@@ -62,7 +62,7 @@ function loadEsm(rel, names) {
     // eslint-disable-next-line no-new-func
     return new Function(`${src}\nreturn { ${names.join(', ')} };`)();
 }
-const PUSH   = loadEsm('shared/js/services/pushState.js', ['PUSH_STATE', 'describePushState', 'tokenNeedsSave', 'workerUrl']);
+const PUSH   = loadEsm('shared/js/services/pushState.js', ['PUSH_STATE', 'describePushState', 'tokenNeedsSave', 'workerUrl', 'nativePushAction', 'NATIVE_PUSH_DEFER_MS']);
 const OFFERS = loadEsm('shared/js/domain/jobOffers.js', ['offerDeadlineMs', 'offerState', 'formatTimeLeft', 'createOfferWatcher']);
 
 const SW_SRC  = fs.readFileSync(path.join(ROOT, 'shared', 'push', 'firebase-messaging-sw.js'), 'utf8');
@@ -405,6 +405,34 @@ await t('push failures are reported, not swallowed', () => {
     assert.match(svc, /catch \(err\) \{[\s\S]{0,200}setState\(PUSH_STATE\.FAILED\)/);
     assert.match(svc, /fcmPlatform:\s+platform/);
     assert.match(svc, /tokenNeedsSave\(saved, token\)/);
+});
+
+await t('installed app: Android’s real permission decides; our "Not now" only postpones the explanation', () => {
+    const A = PUSH.nativePushAction, now = 1_000_000;
+    assert.strictEqual(A('granted', { now }), 'register');
+    assert.strictEqual(A('denied', { now }), 'blocked', 'a refusal is final — never re-asked from the app');
+    assert.strictEqual(A('denied', { now, prompt: true }), 'blocked');
+    for (const r of ['prompt', 'prompt-with-rationale']) {
+        assert.strictEqual(A(r, { now }), 'explain', 'explain first, then the Android dialog');
+        assert.strictEqual(A(r, { now, prompt: false }), 'wait', 'a background recheck never prompts');
+        assert.strictEqual(A(r, { now, deferredUntil: now + 1 }), 'wait', '"Not now" is respected');
+        assert.strictEqual(A(r, { now, deferredUntil: now - 1 }), 'explain', 'and expires');
+    }
+    assert.strictEqual(PUSH.NATIVE_PUSH_DEFER_MS, 7 * 24 * 60 * 60 * 1000);
+});
+
+await t('installed app: explanation before the dialog, recheck on return from Settings, listeners wired once', () => {
+    const svc = fs.readFileSync(path.join(ROOT, 'shared', 'js', 'services', 'pushNotificationService.js'), 'utf8');
+    const nat = svc.slice(svc.indexOf('async function initNativePush'), svc.indexOf('export async function initializePushNotifications'));
+    assert.match(nat, /const action = nativePushAction\(perm\.receive/);
+    assert.ok(nat.indexOf('explainNativePush()') < nat.indexOf('PN.requestPermissions()'), 'the explanation comes first');
+    assert.ok(!/PN\.requestPermissions\(\)[\s\S]{0,40}PN\.requestPermissions\(\)/.test(nat));
+    assert.match(nat, /if \(!_nativeListenersWired\) \{/);
+    assert.match(svc, /document\.addEventListener\('visibilitychange'[\s\S]{0,200}initNativePush\(uid, userType, \{ prompt: false \}\)/);
+    assert.match(svc, /initializePushNotifications\(uid, userType, \{ prompt: true, explicit: true \}\)/, 'an explicit tap skips the deferral');
+    // Signing in never waits on, or depends on, the answer.
+    assert.match(fs.readFileSync(path.join(ROOT, 'customer-app', 'js', 'authInit.js'), 'utf8'),
+        /initializePushNotifications\(user\.uid, 'customer'\)\.catch\(/);
 });
 
 console.log(`\npush-delivery: ${passed} passed, ${failed} failed`);

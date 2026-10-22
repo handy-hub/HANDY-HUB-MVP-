@@ -19,32 +19,45 @@
         <img src="../shared/assets/images/handyhub-logo-text.png" alt="HandyHub" style="width: 220px; max-width: 90%;"
              onerror="this.onerror=null;this.style.display='none';var fb=document.getElementById('splash-logo-fb');if(fb)fb.removeAttribute('hidden');">
         <span id="splash-logo-fb" hidden style="font-weight:800;font-size:28px;color:var(--ui-primary,#730201);letter-spacing:-0.5px;">Fidus X</span>
-        <p style="margin-top: 20px; color: var(--ui-primary); font-weight: 700;">Loading Fidus X...</p>
+        <p id="splash-status" role="status" aria-live="polite" style="margin-top: 20px; color: var(--ui-primary); font-weight: 700; text-align: center; padding: 0 24px;">Loading Fidus X...</p>
+        <div id="splash-actions" style="display: none; gap: 12px; margin-top: 16px;">
+            <button type="button" id="splash-retry" style="min-height: 44px; padding: 0 20px; border-radius: 12px; border: none; background: var(--ui-primary); color: #fff; font: 700 15px/1 inherit; cursor: pointer;">Try again</button>
+            <a href="login.html" id="splash-login" style="min-height: 44px; padding: 0 20px; border-radius: 12px; display: inline-flex; align-items: center; color: var(--ui-primary); font-weight: 700; text-decoration: none;">Sign in</a>
+        </div>
     </div>
     <script src="../shared/js/utils/global-app.js"></script>
 <script src="../shared/js/components/fastLoader.js"></script>
 
 <script type="module">
-  /* ── Splash auth guard ─────────────────────────────────────────────────
-     Check Firebase auth state as quickly as possible.
-     • Logged-in user  → dashboard.html  (skip login flow)
-     • No session      → index.html      (role selection)
-     Fallback: if auth takes > 2.8s (slow device / no network) → index.html.
-  ───────────────────────────────────────────────────────────────────── */
+  /* ── Startup router (the native app's first page; see build-capacitor.cjs) ──
+     Firebase restores a saved session from IndexedDB without the network, and
+     only its answer decides where to go:
+       • signed in  → dashboard.html (its requireAuth() does the role check,
+                       exactly as after a fresh login)
+       • signed out → index.html     (Get started / Sign up)
+     There is NO timer redirect. The old 2.8 s fallback sent anyone whose
+     restore was slow (cold start, low-end phone) to Sign up as if they were a
+     new visitor; elapsed time says nothing about authentication (authGuard.js
+     makes the same rule). A slow start only changes what the user is told, and
+     a failure offers a retry instead of erasing the session. */
   import { getAppContainer } from '../shared/js/app/container.js';
 
-  const fallback = setTimeout(() => {
-    window.location.replace('index.html');
-  }, 2800);
+  const status  = document.getElementById('splash-status');
+  const actions = document.getElementById('splash-actions');
+  const say = (text, showActions) => { status.textContent = text; actions.style.display = showActions ? 'flex' : 'none'; };
+  document.getElementById('splash-retry').addEventListener('click', () => window.location.reload());
 
+  const slow = setTimeout(() => say('Still starting… this is taking longer than usual.', true), 8000);
   try {
     const { services: { authService } } = getAppContainer();
     const user = await authService.waitForUser();
-    clearTimeout(fallback);
+    clearTimeout(slow);
     window.location.replace(user ? 'dashboard.html' : 'index.html');
-  } catch (_) {
-    clearTimeout(fallback);
-    window.location.replace('index.html');
+  } catch (err) {
+    // The session (if any) is still saved; nothing here signs anyone out.
+    clearTimeout(slow);
+    console.error('[startup] could not restore the session:', err && (err.code || err.message));
+    say('Fidus X could not start. Check your connection and try again.', true);
   }
 </script>
 </body>
