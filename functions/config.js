@@ -32,6 +32,23 @@ const ADMIN_EMAILS = [
     'paakumisam@gmail.com',
 ];
 
+/**
+ * True only for an allowlisted email the caller has PROVEN they own.
+ *
+ * Firebase lets anyone create an email/password account for an address they do
+ * not control; it simply stays unverified. Matching the email alone therefore
+ * made "register an allowlisted address nobody has claimed yet" a route to full
+ * super-admin. firestore.rules and storage.rules make the same check
+ * (isSuperAdminEmail / isSuperAdmin), and tests/config-consistency.test.cjs
+ * keeps all four lists identical.
+ *
+ * @param {object|undefined} token  request.auth.token
+ */
+function isAllowlistedAdmin(token) {
+    return !!token && token.email_verified === true
+        && typeof token.email === 'string' && ADMIN_EMAILS.includes(token.email);
+}
+
 // ── Business rules ────────────────────────────────────────────────────────────
 /** Platform commission rate. Also settable via COMMISSION_RATE env var. */
 const COMMISSION_RATE = parseFloat(process.env.COMMISSION_RATE || '0.15');
@@ -99,6 +116,7 @@ module.exports = {
     USER_FACING_SCALE,
     GROUP_ROUTER,
     ADMIN_EMAILS,
+    isAllowlistedAdmin,
     COMMISSION_RATE,
     MIN_WITHDRAWAL,
     MIN_TOPUP_GHS,

@@ -16,8 +16,13 @@ service cloud.firestore {
     function incoming()    { return request.resource.data; }
     function existing()    { return resource.data; }
 
+    // email_verified: Firebase lets anyone register an address they do not own
+    // (it stays unverified), so matching the email alone let whoever claimed an
+    // allowlisted address first become super-admin. Same list and same check in
+    // storage.rules and functions/config.js (tests/config-consistency.test.cjs).
     function isSuperAdminEmail() {
-      return request.auth.token.email in [
+      return request.auth.token.email_verified == true &&
+             request.auth.token.email in [
         'silas7korda@gmail.com',
         'clasceth4traders@gmail.com',
         'paakumisam@gmail.com'
@@ -417,8 +422,10 @@ service cloud.firestore {
     // Artisan transactions subcollection  (earnings, withdrawals — CF writes only)
     match /artisans/{artisanId}/transactions/{txnId} {
       allow read:           if isOwner(artisanId) || isAdmin();
-      allow create, update: if isAdmin();
-      allow delete:         if false;
+      // Written by Cloud Functions (Admin SDK) only — no browser, not even an
+      // admin's: the dashboard only reads this, and a client write here would
+      // forge money (financial-security audit 2026-10-22).
+      allow create, update, delete: if false;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1108,9 +1115,10 @@ service cloud.firestore {
       allow read:   if isAdmin() || (
                       isSignedIn() && request.auth.uid == resource.data.userId
                     );
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isSuperAdmin();
+      // Written by Cloud Functions (Admin SDK) only — no browser, not even an
+      // admin's: the dashboard only reads this, and a client write here would
+      // forge money (financial-security audit 2026-10-22).
+      allow create, update, delete: if false;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1118,7 +1126,10 @@ service cloud.firestore {
     // ═══════════════════════════════════════════════════════════════
     match /commissions/{commissionId} {
       allow read:           if isAdmin();
-      allow create, update, delete: if isAdmin();
+      // Written by Cloud Functions (Admin SDK) only — no browser, not even an
+      // admin's: the dashboard only reads this, and a client write here would
+      // forge money (financial-security audit 2026-10-22).
+      allow create, update, delete: if false;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1128,7 +1139,9 @@ service cloud.firestore {
       allow read:   if isAdmin() || (
                       isSignedIn() && resource.data.userId == request.auth.uid
                     );
-      allow create, update, delete: if isAdmin();
+      // The Paystack recipient a withdrawal is SENT to. Rewriting it would
+      // redirect someone's payout, so only the server (getOrCreateRecipient).
+      allow create, update, delete: if false;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1136,17 +1149,32 @@ service cloud.firestore {
     // ═══════════════════════════════════════════════════════════════
     match /platform/{docId} {
       allow read:          if isAdmin();
-      allow create, update: if isAdmin();
-      allow delete:         if false;
+      // Written by Cloud Functions (Admin SDK) only — no browser, not even an
+      // admin's: the dashboard only reads this, and a client write here would
+      // forge money (financial-security audit 2026-10-22).
+      allow create, update, delete: if false;
     }
 
     // ═══════════════════════════════════════════════════════════════
     // FINANCIAL AUDIT LOG  (Cloud Functions only — immutable)
     // ═══════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    // TIPS  (functions/tips.js — one per booking, server-only)
+    // The record a tip's two ledger rows are verified against
+    // (functions/financial/walletIntegrity.js). Both parties may read it.
+    // ═══════════════════════════════════════════════════════════════
+    match /tips/{bookingId} {
+      allow read: if isAdmin() || (isSignedIn() && (
+                      resource.data.customerId == request.auth.uid ||
+                      resource.data.artisanId  == request.auth.uid));
+      allow create, update, delete: if false;
+    }
+
     match /financialAudit/{logId} {
       allow read:          if isAdmin();
-      allow create:        if isAdmin();
-      allow update, delete: if false;
+      // The audit trail is the server's record of money moving; a client-written
+      // entry would be a forged one.
+      allow create, update, delete: if false;
     }
 
     // ═══════════════════════════════════════════════════════════════

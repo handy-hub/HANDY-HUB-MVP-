@@ -316,7 +316,7 @@ await t('an unauthenticated caller cannot trigger it', async () => {
 
 await t('a super-admin call with no mode is a dry run', async () => {
     FAKE_DB._reset(); seedLegacy();
-    const r = await index.adminMigrateArtisanPrivateData({ auth: { uid: 'sa', token: { email: ADMIN_EMAILS[0] } }, data: {} });
+    const r = await index.adminMigrateArtisanPrivateData({ auth: { uid: 'sa', token: { email: ADMIN_EMAILS[0], email_verified: true } }, data: {} });
     assert.strictEqual(r.mode, 'dry-run');
     assert.strictEqual(pub('a1').ghanaCardNumber, LEGACY.ghanaCardNumber);
 });

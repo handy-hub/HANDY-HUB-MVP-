@@ -102,7 +102,7 @@ async function transition(from, to, over = {}) {
         data: { before: { data: () => beforeDoc }, after: { data: () => afterDoc } },
     });
 }
-const ADMIN_AUTH = { uid: 'adm_m1', token: { email: ADMIN_EMAILS[0] } };
+const ADMIN_AUTH = { uid: 'adm_m1', token: { email: ADMIN_EMAILS[0], email_verified: true } };
 
 (async () => {
 console.log('\n── AR-07 · one rule decides who a held callout belongs to ──\n');

@@ -34,7 +34,7 @@ process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'lamax-4fd82';
 const fns       = require(path.join(FN, 'index.js'));
 const jobOffers = require(path.join(FN, 'jobOffers.js'));
 const { createGroupRouter } = require(path.join(FN, 'callableGroups.js'));
-const { CALLABLE_GROUPS, groupOf } = require(path.join(FN, 'shared', 'callableGroups.js'));
+const { CALLABLE_GROUPS, ROUTER_ONLY, groupOf } = require(path.join(FN, 'shared', 'callableGroups.js'));
 
 let passed = 0, failed = 0;
 const failures = [];
@@ -63,14 +63,17 @@ await t('one router per group, each listing only exported callables, no action i
     assert.strictEqual(new Set(all).size, all.length);
     for (const g of GROUPS) assert.strictEqual(typeof fns[g], 'function', `${g} not exported`);
     for (const a of all) {
-        assert.strictEqual(typeof fns[a], 'function', `${a} not exported`);
+        if (ROUTER_ONLY.includes(a)) assert.strictEqual(fns[a], undefined, `${a} is router-only`);
+        else assert.strictEqual(typeof fns[a], 'function', `${a} not exported`);
         assert.ok(groupOf(a), a);
     }
     assert.strictEqual(groupOf('artisanAccount'), null);
 });
 
 for (const [group, actions] of Object.entries(CALLABLE_GROUPS)) {
-    for (const action of actions) {
+    // Router-only actions have no direct function to compare with — tested in
+    // their own suites (tipArtisan: tests/wallet-integrity.test.cjs).
+    for (const action of actions.filter((a) => !ROUTER_ONLY.includes(a))) {
         for (const [label, data] of [['empty input', {}], ['no input', null]]) {
             await t(`${group} · ${action} (${label}) = ${action} called directly`, async () => {
                 fake.db._reset();

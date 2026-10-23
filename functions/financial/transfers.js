@@ -63,6 +63,7 @@ function db() {
 }
 
 const { randomBytes } = require('crypto');
+const walletIntegrity = require('./walletIntegrity');
 
 const now   = () => new Date().toISOString();
 // Use crypto.randomBytes for cryptographically secure transaction references.
@@ -277,6 +278,15 @@ async function executeWithdrawal(kind, uid, { amountGHS, pin, requestId, provide
         if (!aSnap.exists) throw userError('not-found', 'Account not found.');
 
         const available = fmt(aSnap.data()[cfg.balance] || 0);
+        // Only money the verified ledger accounts for may leave the platform
+        // (walletIntegrity.js): a balance raised outside the server's money
+        // paths must never become a real Mobile Money payout.
+        const spend = await walletIntegrity.readSpendable(txn, kind, uid, aSnap.data()[cfg.balance]);
+        if (Math.round(amount * 100) > spend.spendableP && amount <= available) {
+            throw userError('failed-precondition',
+                'Part of your balance could not be matched to your payment history, so it cannot be ' +
+                'withdrawn yet. Contact support — your balance is unchanged.');
+        }
         if (amount > available) {
             throw userError('failed-precondition', `Insufficient balance. Available: GHS ${available.toFixed(2)}.`);
         }

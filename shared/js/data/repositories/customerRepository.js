@@ -121,7 +121,8 @@ export function createCustomerRepository({
                 if (data.profileImage !== undefined) payload.profileImage = data.profileImage;
                 // walletBalance intentionally excluded — Cloud Functions own all balance mutations.
                 // escrowBalance intentionally excluded — Cloud Functions own all balance mutations.
-                // spent intentionally excluded — Cloud Functions update this on booking completion.
+                // spent intentionally excluded — nothing maintains that field; the profile derives
+                // "Spent" from the ledger (walletLedger.js customerSpentPesewas).
                 if (data.recentSearches          !== undefined) payload.recentSearches          = data.recentSearches;
                 if (data.recentSearchesUpdatedAt !== undefined) payload.recentSearchesUpdatedAt = data.recentSearchesUpdatedAt;
                 if (data.notificationPreferences !== undefined) payload.notificationPreferences = data.notificationPreferences;

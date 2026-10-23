@@ -35,6 +35,7 @@
  */
 
 const assert = require('assert');
+const { fundCustomer, fundArtisan } = require('./support/walletEvidence.cjs');
 const fs     = require('fs');
 const path   = require('path');
 
@@ -71,6 +72,7 @@ function seed({ wallet = 1000, quote = QUOTE, track = 'inspection', artisanStatu
     fake.db._reset();
     fake.messaging._reset();
     fake.db._set(`customers/${CUSTOMER}`, { walletBalance: wallet, escrowBalance: track === 'inspection' ? CALLOUT : 0, spent: 0 });
+    fundCustomer(fake.db, CUSTOMER, wallet);
     fake.db._set(`artisans/${ARTISAN}`, { status: artisanStatus, verificationStatus: 'approved', availableBalance: 0, totalEarned: 0 });
     if (track === 'inspection') {
         fake.db._set('escrow/esc_callout', {
@@ -169,6 +171,7 @@ await t('recoverable: after a top-up the same approval succeeds', async () => {
     seed({ wallet: 100 });
     await rejects(() => quotes.approveJobQuote(AUTH, { bookingId: ID }));
     fake.db._set(`customers/${CUSTOMER}`, { ...customer(), walletBalance: 500 });
+    fundCustomer(fake.db, CUSTOMER, 500);
     const res = await quotes.approveJobQuote(AUTH, { bookingId: ID });
     assert.strictEqual(res.idempotent, false);
     assert.strictEqual(customer().walletBalance, 500 - DUE);
@@ -301,9 +304,10 @@ await t('the invariant holds across a mixed sequence of refusals, top-ups and re
     seed({ wallet: 50 });
     const steps = [
         () => quotes.approveJobQuote(AUTH, { bookingId: ID }),               // short
-        () => fake.db._set(`customers/${CUSTOMER}`, { ...customer(), walletBalance: 239.99 }),
+        // A top-up is a credit AND its evidence — a bare balance edit is not spendable.
+        () => { fake.db._set(`customers/${CUSTOMER}`, { ...customer(), walletBalance: 239.99 }); fundCustomer(fake.db, CUSTOMER, 189.99, 'TOPUP-B'); },
         () => quotes.approveJobQuote(AUTH, { bookingId: ID }),               // still short by 0.01
-        () => fake.db._set(`customers/${CUSTOMER}`, { ...customer(), walletBalance: 240 }),
+        () => { fake.db._set(`customers/${CUSTOMER}`, { ...customer(), walletBalance: 240 }); fundCustomer(fake.db, CUSTOMER, 0.01, 'TOPUP-C'); },
         () => Promise.all([quotes.approveJobQuote(AUTH, { bookingId: ID }), quotes.approveJobQuote(AUTH, { bookingId: ID })]),
         () => quotes.approveJobQuote(AUTH, { bookingId: ID }),               // replay
     ];

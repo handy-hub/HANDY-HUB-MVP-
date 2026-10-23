@@ -34,8 +34,9 @@
 const { FieldValue }    = require('firebase-admin/firestore');
 const { COMMISSION_RATE, PROVIDER_NAMES } = require('./paystack');
 const { sendNotification, sendArtisanNotification } = require('../notifications');
-const { FIRESTORE_DB_ID, ADMIN_EMAILS, ESCROW_AUTO_RELEASE_DAYS } = require('../config');
+const { FIRESTORE_DB_ID, isAllowlistedAdmin, ESCROW_AUTO_RELEASE_DAYS } = require('../config');
 const { randomBytes } = require('crypto');
+const walletIntegrity = require('./walletIntegrity');
 
 let _db;
 function db() {
@@ -58,7 +59,7 @@ const fmt = (n) => parseFloat(Number(n).toFixed(2));
  */
 async function isAdminAuth(auth) {
     if (!auth) return false;
-    if (ADMIN_EMAILS.includes(auth.token?.email)) return true;
+    if (isAllowlistedAdmin(auth.token)) return true;
     const snap = await db().collection('admins').doc(auth.uid).get().catch(() => null);
     return snap?.exists && snap.data().userType === 'admin';
 }
@@ -211,7 +212,9 @@ function planHold({ bookingId, customerId, artisanId = null, amount, kind = 'job
     const amountNum    = fmt(amount);
     // `> 0` rather than `<= 0`: a NaN amount fails every comparison, and must not
     // pass this check by failing the opposite one.
-    if (!(amountNum > 0)) throw new Error('Amount must be greater than zero.');
+    // Finite too: Infinity passes `> 0` and would plan a hold with an infinite
+    // commission and a NaN artisan share.
+    if (!(amountNum > 0) || !Number.isFinite(amountNum)) throw new Error('Amount must be greater than zero.');
     const commission   = fmt(amountNum * COMMISSION_RATE);
     const artisanShare = fmt(amountNum - commission);
 
@@ -234,7 +237,13 @@ async function readHold(txn, plan) {
         txn.get(plan.lockRef),
         txn.get(plan.customerRef),
     ]);
-    return { lockSnap, customerSnap };
+    // What of the stored balance may be spent: only what the verified ledger
+    // supports (walletIntegrity.js). Not needed for a replay of a hold that
+    // already happened — that path moves no money.
+    const spend = !lockSnap.exists && customerSnap.exists
+        ? await walletIntegrity.readSpendable(txn, 'customer', plan.customerId, customerSnap.data().walletBalance)
+        : null;
+    return { lockSnap, customerSnap, spend };
 }
 
 /**
@@ -244,7 +253,7 @@ async function readHold(txn, plan) {
  *
  * @returns {{ idempotent: boolean, escrowId: string, commission: number, artisanShare: number }}
  */
-function applyHold(txn, plan, { lockSnap, customerSnap }) {
+function applyHold(txn, plan, { lockSnap, customerSnap, spend }) {
     const { bookingId, customerId, artisanId, kind, amountNum, commission, artisanShare, at: n } = plan;
 
     // ── IDEMPOTENCY GATE (race-free — inside the transaction) ─────────────────
@@ -293,6 +302,22 @@ function applyHold(txn, plan, { lockSnap, customerSnap }) {
 
     const available     = fmt(customerSnap.data().walletBalance || 0);
     const currentEscrow = fmt(customerSnap.data().escrowBalance || 0);
+
+    // ── The balance must be backed by the ledger ──────────────────────────────
+    // readHold measured it in this transaction. A hold without that measurement
+    // is a caller that skipped readHold — refuse rather than trust the number.
+    if (!spend || !Number.isInteger(spend.spendableP)) {
+        throw holdError('integrity_unchecked', 'Payment could not be verified. Please try again.');
+    }
+    const amountP = Math.round(amountNum * 100);
+    if (amountP > spend.spendableP && amountNum <= available) {
+        // The stored balance would cover it, the evidence does not: money that
+        // no top-up, refund or payment record accounts for is never spent.
+        throw holdError('balance_unverified',
+            'Part of your wallet balance could not be matched to your payment history, so it ' +
+            'cannot be used yet. Contact support — no money has been taken.',
+            { needed: amountNum, available: spend.spendableP / 100 });
+    }
 
     if (amountNum > available) {
         throw holdError('insufficient_balance',

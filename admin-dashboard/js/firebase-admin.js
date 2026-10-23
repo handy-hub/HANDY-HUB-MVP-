@@ -24,10 +24,8 @@ import { initializeAppCheck, ReCaptchaEnterpriseProvider }
 // The ONE definition of the site key, shared with the customer and artisan
 // apps. Not copied — a second copy is how the key and the App Check
 // registration drifted apart in the first place.
-import { APP_CHECK_SITE_KEY } from '../../shared/js/config/appConfig.js';
-
-/* ── Cloud Functions region — must match functions/config.js FUNCTIONS_REGION ── */
-const FUNCTIONS_REGION = 'europe-west1';
+import { APP_CHECK_SITE_KEY, FIREBASE_CONFIG, FIRESTORE_DB_ID, FUNCTIONS_REGION }
+  from '../../shared/js/config/appConfig.js';
 
 /* ── Firebase project config ─────────────────────────────────────────────
  * Same Firebase PROJECT as the artisan/customer apps (lamax-4fd82).
@@ -35,17 +33,10 @@ const FUNCTIONS_REGION = 'europe-west1';
  * session is stored in a different localStorage key — admins must log in
  * explicitly and are never auto-signed-in by the artisan/customer session.
  * ──────────────────────────────────────────────────────────────────────── */
-export const FIREBASE_CONFIG = {
-  apiKey:            'AIzaSyBF-B48cl2jHJwcKxocpClNTYlLwK1cLiw',
-  authDomain:        'lamax-4fd82.firebaseapp.com',
-  projectId:         'lamax-4fd82',
-  storageBucket:     'lamax-4fd82.firebasestorage.app',
-  messagingSenderId: '1034220501833',
-  appId:             '1:1034220501833:web:bba9ad6f78881029a0f898',
-};
-
-/* ── Custom Firestore database ID ────────────────────────────────────────── */
-export const ADMIN_DB_ID = 'ai-studio-5589039d-72c4-40d8-ae39-f35c6c321eb6';
+// The project config, database and region come from shared/js/config/appConfig.js
+// — the one definition all three apps use (this file used to carry a copy).
+export { FIREBASE_CONFIG };
+export const ADMIN_DB_ID = FIRESTORE_DB_ID;
 
 /* ── Named app — keeps admin session isolated from artisan/customer ────── */
 const ADMIN_APP_NAME = 'handy-hub-admin';

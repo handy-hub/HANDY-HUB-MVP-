@@ -252,8 +252,8 @@ async function startServer() {
       session_timeout: 60,
       require_strong_password: true,
       gateway: {
-        public_key: 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxx',
-        secret_key: 'sk_test_xxxxxxxxxxxxxxxxxxxxxxxx'
+        public_key: '',
+        secret_key: ''  // never a key in source; the old one is in git history (e3a38b3) and must be revoked
       },
       admin_roles: [
         { name: 'Super Admin', permissions: ['all'] },

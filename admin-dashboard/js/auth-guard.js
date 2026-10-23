@@ -30,6 +30,16 @@ import { SUPER_ADMIN_EMAILS }
 // Re-export so callers that import from this file continue to work unchanged.
 export { SUPER_ADMIN_EMAILS };
 
+/**
+ * An allowlisted admin whose email is VERIFIED. The same rule as
+ * firestore.rules isSuperAdminEmail() and functions/config.js
+ * isAllowlistedAdmin(): an unverified account for an allowlisted address proves
+ * nothing about who holds it. (UI gating only — the server decides.)
+ */
+export function isAllowlistedAdminUser(user) {
+  return !!user && user.emailVerified === true && SUPER_ADMIN_EMAILS.includes(user.email);
+}
+
 /* ── Ensure sessions survive page refreshes ──────────────────────────────── */
 setPersistence(auth, browserLocalPersistence).catch(() => {});
 
@@ -49,7 +59,7 @@ export function initAdminPage(onReady) {
     }
 
     /* 1. Fast check: is the email in the hard-coded list? */
-    if (SUPER_ADMIN_EMAILS.includes(user.email)) {
+    if (isAllowlistedAdminUser(user)) {
       _populateAdminUI(user);
       onReady(user);
       return;
@@ -71,16 +81,6 @@ export function initAdminPage(onReady) {
   });
 
   return unsubscribe;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
- * requireAdmin(user)
- *
- * Synchronous check you can use inside Cloud Functions calls or wherever
- * you already have the user object.
- * ───────────────────────────────────────────────────────────────────────── */
-export function isAdminEmail(email) {
-  return SUPER_ADMIN_EMAILS.includes(email);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -111,5 +111,5 @@ function _populateAdminUI(user) {
   if (el('admin-name'))   el('admin-name').textContent   = name;
   if (el('admin-avatar')) el('admin-avatar').textContent = name.charAt(0).toUpperCase();
   if (el('admin-role'))   el('admin-role').textContent   =
-    SUPER_ADMIN_EMAILS.includes(user.email) ? 'Super Admin' : 'Admin';
+    isAllowlistedAdminUser(user) ? 'Super Admin' : 'Admin';
 }

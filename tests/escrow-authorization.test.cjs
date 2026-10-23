@@ -26,6 +26,7 @@
  */
 
 const assert = require('assert');
+const { fundCustomer, fundArtisan } = require('./support/walletEvidence.cjs');
 const fs     = require('fs');
 const path   = require('path');
 const crypto = require('crypto');
@@ -237,6 +238,7 @@ function seed({ status = 'accepted', track = 'standard', escrowStatus = 'held', 
     FAKE_DB._reset();
     FAKE_DB._set(`admins/${ADMIN}`, { userType: 'admin' });
     FAKE_DB._set(`customers/${CUSTOMER}`, { walletBalance: 400, escrowBalance: 100 + (calloutEscrow ? 50 : 0) });
+    fundCustomer(FAKE_DB, CUSTOMER, 400);
     FAKE_DB._set(`artisans/${ARTISAN}`, { availableBalance: 0, pendingBalance: 0, totalEarned: 0, jobsCompleted: 0 });
     FAKE_DB._set(`artisans/${OTHER_ARTISAN}`, { availableBalance: 0 });
     FAKE_DB._set(`bookings/${BOOKING}`, {
@@ -264,6 +266,7 @@ function seed({ status = 'accepted', track = 'standard', escrowStatus = 'held', 
 function seedEmergency({ status = 'accepted' } = {}) {
     FAKE_DB._reset();
     FAKE_DB._set(`customers/${CUSTOMER}`, { walletBalance: 400, escrowBalance: 50 });
+    fundCustomer(FAKE_DB, CUSTOMER, 400);
     FAKE_DB._set(`artisans/${ARTISAN}`, { availableBalance: 0, jobsCompleted: 0 });
     FAKE_DB._set(`bookings/${BOOKING}`, {
         customerId: CUSTOMER, artisanId: ARTISAN, status, track: 'emergency', type: 'emergency',
@@ -388,6 +391,7 @@ log('\n── The other escrow callables cannot be used to bypass the lifecycle 
 await t('holdBookingFunds is retired: a customer cannot pre-lock a booking', async () => {
     FAKE_DB._reset();
     FAKE_DB._set(`customers/${CUSTOMER}`, { walletBalance: 400, escrowBalance: 0 });
+    fundCustomer(FAKE_DB, CUSTOMER, 400);
     await rejects(
         () => call(index.holdBookingFunds, CUSTOMER, { bookingId: 'HHB-OWN', amount: 0.01, artisanId: ARTISAN }),
         { code: 'permission-denied' });
@@ -504,6 +508,7 @@ const holdArgs = (amount, customerId = CUSTOMER) => ({
 await t('a token pre-lock makes the real hold FAIL instead of passing as paid', async () => {
     FAKE_DB._reset();
     FAKE_DB._set(`customers/${CUSTOMER}`, { walletBalance: 1000, escrowBalance: 0 });
+    fundCustomer(FAKE_DB, CUSTOMER, 1000);
     await escrow.holdFundsForBooking(holdArgs(0.01));          // the attacker's pre-lock
     await rejects(() => escrow.holdFundsForBooking(holdArgs(500)), { re: /Escrow conflict/ },
         'approveJobQuote must not accept a 0.01 escrow as a 500 payment');
@@ -515,7 +520,9 @@ await t('a token pre-lock makes the real hold FAIL instead of passing as paid', 
 await t('a lock created by a different payer is a conflict, not a replay', async () => {
     FAKE_DB._reset();
     FAKE_DB._set('customers/someone_else', { walletBalance: 1000, escrowBalance: 0 });
+    fundCustomer(FAKE_DB, 'someone_else', 1000);
     FAKE_DB._set(`customers/${CUSTOMER}`, { walletBalance: 1000, escrowBalance: 0 });
+    fundCustomer(FAKE_DB, CUSTOMER, 1000);
     await escrow.holdFundsForBooking(holdArgs(500, 'someone_else'));
     await rejects(() => escrow.holdFundsForBooking(holdArgs(500)), { re: /Escrow conflict/ });
     assert.strictEqual(cust().walletBalance, 1000);
@@ -524,6 +531,7 @@ await t('a lock created by a different payer is a conflict, not a replay', async
 await t('a genuine retry (same payer, same amount) is still idempotent', async () => {
     FAKE_DB._reset();
     FAKE_DB._set(`customers/${CUSTOMER}`, { walletBalance: 1000, escrowBalance: 0 });
+    fundCustomer(FAKE_DB, CUSTOMER, 1000);
     const a = await escrow.holdFundsForBooking(holdArgs(500));
     const b = await escrow.holdFundsForBooking(holdArgs(500));
     assert.strictEqual(a.escrowId, b.escrowId);
@@ -534,6 +542,7 @@ await t('a genuine retry (same payer, same amount) is still idempotent', async (
 await t('concurrent identical holds deduct exactly once', async () => {
     FAKE_DB._reset();
     FAKE_DB._set(`customers/${CUSTOMER}`, { walletBalance: 1000, escrowBalance: 0 });
+    fundCustomer(FAKE_DB, CUSTOMER, 1000);
     await Promise.all([1, 2, 3, 4].map(() => escrow.holdFundsForBooking(holdArgs(500))));
     assert.strictEqual(cust().walletBalance, 500);
     assert.strictEqual(FAKE_DB._keys().filter((k) => k.startsWith('escrow/')).length, 1);

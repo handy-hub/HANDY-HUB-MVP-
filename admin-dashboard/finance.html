@@ -351,6 +351,7 @@
   import { db }                      from './js/firebase-admin.js';
   import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
   import { showToast, fmtGHS, setDateHeader } from './js/ui-utils.js';
+  import { PLATFORM_CONFIG }          from '../shared/js/config/appConfig.js';
   import {
     collection, doc, getDoc, getDocs, onSnapshot,
     query, where, orderBy, limit,
@@ -457,7 +458,7 @@
     commissionsBody.innerHTML = records.map(r => {
       const d = r.data;
       // Derive total from commission + artisan share (not stored directly here — use escrow amount)
-      const total = d.amount / (d.rate || 0.15);
+      const total = d.amount / (d.rate || PLATFORM_CONFIG.commissionRate);
       const artShare = total - d.amount;
       return `<tr>
         <td>${fmtRef(d.bookingId)}</td>

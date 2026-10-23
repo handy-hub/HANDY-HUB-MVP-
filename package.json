@@ -29,7 +29,7 @@
     "test:booking-truth": "node tests/booking-truth.test.cjs",
     "test:complete-booking": "node tests/complete-booking.test.cjs",
     "test:booking-router": "node tests/booking-router.test.cjs",
-    "test": "npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:escrow-auth && npm run test:payouts && npm run test:artisan-privacy && npm run test:release && npm run test:capacity && npm run test:inspection && npm run test:quote-funding && npm run test:push && npm run test:emergency-pricing && npm run test:booking-truth && npm run test:complete-booking && npm run test:booking-router && npm run test:booking-actions && npm run test:booking-tracks && npm run test:booking-schedule && npm run test:dispatch-rescue && npm run test:callable-groups && npm run test:privacy-access && npm run test:marketplace && npm run test:wallet-platform && python tests/verify_low_fixes.py",
+    "test": "npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:escrow-auth && npm run test:payouts && npm run test:artisan-privacy && npm run test:release && npm run test:capacity && npm run test:inspection && npm run test:quote-funding && npm run test:push && npm run test:emergency-pricing && npm run test:booking-truth && npm run test:complete-booking && npm run test:booking-router && npm run test:booking-actions && npm run test:booking-tracks && npm run test:booking-schedule && npm run test:dispatch-rescue && npm run test:callable-groups && npm run test:config-consistency && npm run test:wallet-integrity && npm run test:privacy-access && npm run test:marketplace && npm run test:wallet-platform && python tests/verify_low_fixes.py",
     "test:booking-actions": "node tests/booking-actions.test.cjs",
     "emulators": "firebase emulators:start --only firestore,auth,functions --project lamax-4fd82",
     "seed:e2e": "node tests/e2e/seed-emulator.cjs",
@@ -56,6 +56,8 @@
     "test:booking-schedule": "node tests/booking-schedule.test.cjs",
     "test:dispatch-rescue": "node tests/dispatch-rescue.test.cjs",
     "test:callable-groups": "node tests/callable-groups.test.cjs",
+    "test:config-consistency": "node tests/config-consistency.test.cjs",
+    "test:wallet-integrity": "node tests/wallet-integrity.test.cjs",
     "test:escrow-auth": "node tests/escrow-authorization.test.cjs",
     "test:payouts": "node tests/payout-integrity.test.cjs",
     "release:check": "node scripts/release-provenance.cjs check",
@@ -73,6 +75,7 @@
     "reconcile:wallets": "node scripts/reconcile-wallets.cjs",
     "test:marketplace-rules": "firebase emulators:exec --only firestore --project lamax-rules-test \"node tests/marketplace-rules.test.mjs\"",
     "test:access-rules": "firebase emulators:exec --only firestore --project lamax-rules-test \"node tests/privacy-access-rules.test.mjs\"",
+    "test:financial-rules": "firebase emulators:exec --only firestore --project lamax-rules-test \"node tests/financial-rules.test.mjs\"",
     "test:privacy-rules": "firebase emulators:exec --only firestore,storage --project lamax-rules-test \"node tests/artisan-privacy-rules.test.mjs\""
   },
   "devDependencies": {

@@ -457,8 +457,8 @@ exports.backfillArtisanIndex = onCall(
     { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
     async (request) => {
         _requireAuth(request);
-        const { ADMIN_EMAILS } = require('./config');
-        if (!ADMIN_EMAILS.includes(request.auth.token?.email)) {
+        const { isAllowlistedAdmin } = require('./config');
+        if (!isAllowlistedAdmin(request.auth.token)) {
             throw new HttpsError('permission-denied', 'Super-admin access required.');
         }
         try {
@@ -894,8 +894,8 @@ exports.requestAccountDeletion = onCall({ region: FUNCTIONS_REGION, ...USER_FACI
 
 exports.adminSeedPricingConfig = onCall({ region: FUNCTIONS_REGION, timeoutSeconds: 120 }, async (request) => {
     _requireAuth(request);
-    const { ADMIN_EMAILS } = require('./config');
-    if (!ADMIN_EMAILS.includes(request.auth.token?.email)) {
+    const { isAllowlistedAdmin } = require('./config');
+    if (!isAllowlistedAdmin(request.auth.token)) {
         throw new HttpsError('permission-denied', 'Super-admin access required.');
     }
     try {
@@ -954,9 +954,8 @@ exports.adminBackfillEscrowLocks = onCall(
     async (request) => {
         _requireAuth(request);
         // Restrict to super-admins only â€” backfill touches all escrow records.
-        const { ADMIN_EMAILS } = require('./config');
-        const callerEmail = request.auth.token?.email;
-        if (!ADMIN_EMAILS.includes(callerEmail)) {
+        const { isAllowlistedAdmin } = require('./config');
+        if (!isAllowlistedAdmin(request.auth.token)) {
             throw new HttpsError('permission-denied', 'Super-admin access required.');
         }
         try {
@@ -985,9 +984,8 @@ exports.backfillSearchKeywords = onCall(
     { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
     async (request) => {
         _requireAuth(request);
-        const { ADMIN_EMAILS } = require('./config');
-        const callerEmail = request.auth.token?.email;
-        if (!ADMIN_EMAILS.includes(callerEmail)) {
+        const { isAllowlistedAdmin } = require('./config');
+        if (!isAllowlistedAdmin(request.auth.token)) {
             throw new HttpsError('permission-denied', 'Super-admin access required.');
         }
         try {
@@ -1028,8 +1026,8 @@ exports.adminMigrateArtisanPrivateData = onCall(
     { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
     async (request) => {
         _requireAuth(request);
-        const { ADMIN_EMAILS } = require('./config');
-        if (!ADMIN_EMAILS.includes(request.auth.token?.email)) {
+        const { isAllowlistedAdmin } = require('./config');
+        if (!isAllowlistedAdmin(request.auth.token)) {
             throw new HttpsError('permission-denied', 'Super-admin access required.');
         }
         const mode = (request.data && request.data.mode) || 'dry-run';
@@ -1051,8 +1049,8 @@ exports.adminMigrateContactPrivacy = onCall(
     { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
     async (request) => {
         _requireAuth(request);
-        const { ADMIN_EMAILS } = require('./config');
-        if (!ADMIN_EMAILS.includes(request.auth.token?.email)) {
+        const { isAllowlistedAdmin } = require('./config');
+        if (!isAllowlistedAdmin(request.auth.token)) {
             throw new HttpsError('permission-denied', 'Super-admin access required.');
         }
         const mode = (request.data && request.data.mode) || 'dry-run';
@@ -1068,8 +1066,8 @@ exports.backfillGeohash = onCall(
     { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
     async (request) => {
         _requireAuth(request);
-        const { ADMIN_EMAILS } = require('./config');
-        if (!ADMIN_EMAILS.includes(request.auth.token?.email)) {
+        const { isAllowlistedAdmin } = require('./config');
+        if (!isAllowlistedAdmin(request.auth.token)) {
             throw new HttpsError('permission-denied', 'Super-admin access required.');
         }
 
@@ -1287,9 +1285,28 @@ exports.verifySignupOtp = onCall(
 const { createGroupRouter } = require('./callableGroups');
 const { GROUP_ROUTER } = require('./config');
 
+// tipArtisan exists only here (ROUTER_ONLY in shared/js/domain/callableGroups.js):
+// no installed app calls it by name, so it gets no per-action function.
+async function tipArtisanHandler(request) {
+    _requireAuth(request);
+    await checkRateLimit(request.auth.uid, 'tipArtisan');
+    try {
+        return await require('./tips').tipArtisan(request.auth, request.data || {});
+    } catch (err) {
+        const code = err.reason === 'invalid' ? 'invalid-argument'
+                   : err.reason === 'not_yours' ? 'permission-denied'
+                   : err.reason === 'not_found' ? 'not-found'
+                   : err.reason ? 'failed-precondition'
+                   : 'internal';
+        if (code === 'internal') console.error('[tipArtisan] Unexpected:', err.message);
+        throw new HttpsError(code, code === 'internal' ? 'Your tip could not be sent right now.' : err.message,
+            err.reason ? { reason: err.reason, needed: err.needed ?? null, available: err.available ?? null } : undefined);
+    }
+}
+
 exports.bookingActions = onCall(
     { region: FUNCTIONS_REGION, ...GROUP_ROUTER, concurrency: 80 },
-    createGroupRouter('bookingActions', exports),
+    createGroupRouter('bookingActions', { ...exports, tipArtisan: tipArtisanHandler }),
 );
 
 exports.walletActions = onCall(

@@ -143,12 +143,18 @@ import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
 import { createNotification } from '../shared/js/services/notificationRepository.js';
 import { SUPPORT_CONTACTS }   from '../shared/js/config/supportConfig.js';
+import { PLATFORM_CONFIG }    from '../shared/js/config/appConfig.js';
 import { TICKET_STATUS, validateTicket, validateReply, ticketStatusLabel, topicLabel }
                               from '../shared/js/domain/supportTickets.js';
 
 const { user, artisan } = await requireArtisanAuth({ allowPending: true });
 
 // ── FAQ data ───────────────────────────────────────────
+// Every answer states what the product does today. The figures come from
+// PLATFORM_CONFIG, which tests/config-consistency.test.cjs pins to the values
+// the server enforces (functions/config.js).
+const COMMISSION_PCT = Math.round(PLATFORM_CONFIG.commissionRate * 100);
+const MIN_WITHDRAWAL = PLATFORM_CONFIG.minWithdrawalGHS;
 const FAQS = [
   {
     q: 'How do I get paid for completed jobs?',
@@ -156,7 +162,7 @@ const FAQS = [
   },
   {
     q: 'Why can\'t I go online?',
-    a: 'You need to complete KYC verification before going online. Go to your dashboard and tap "Complete KYC" or visit the Onboarding page to submit your documents. Verification takes 1–2 business days.'
+    a: 'You need to complete KYC verification before going online. Go to your dashboard and tap "Complete KYC" or visit the Onboarding page to submit your documents. An administrator reviews your documents and you get a notification when they have been reviewed.'
   },
   {
     q: 'What happens if I miss a job request?',
@@ -164,15 +170,15 @@ const FAQS = [
   },
   {
     q: 'How is the platform fee calculated?',
-    a: 'Fidus X charges a 15% commission on completed job earnings. This covers payment processing, insurance, customer support, and platform maintenance. The commission is automatically deducted before funds reach your wallet.'
+    a: `Fidus X charges a ${COMMISSION_PCT}% commission on completed job earnings. It is deducted automatically before the funds reach your wallet, and each earning in your wallet shows the gross amount and the commission taken.`
   },
   {
     q: 'Can I cancel a booking I already accepted?',
-    a: 'Yes, but repeated cancellations affect your reliability score. Tap the booking in your Bookings tab and use the Cancel option. Please only cancel when absolutely necessary and contact the customer first.'
+    a: 'Yes. Tap the booking in your Bookings tab and use the Cancel option. The customer is relying on you, so please only cancel when absolutely necessary and contact them first.'
   },
   {
     q: 'How do I withdraw my earnings?',
-    a: 'Go to the Wallet tab, tap "Withdraw Earnings", enter the amount and your security PIN. The money goes to the payout account on your profile, and the wallet shows the withdrawal\'s status until it completes. Minimum withdrawal is GHS 5.'
+    a: `Go to the Wallet tab, tap "Withdraw Earnings", enter the amount and your security PIN. The money goes to the payout account on your profile, and the wallet shows the withdrawal's status until it completes. Minimum withdrawal is GHS ${MIN_WITHDRAWAL}.`
   },
 ];
 

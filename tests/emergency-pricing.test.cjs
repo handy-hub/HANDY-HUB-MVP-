@@ -26,6 +26,7 @@
  */
 
 const assert = require('assert');
+const { fundCustomer, fundArtisan } = require('./support/walletEvidence.cjs');
 const path   = require('path');
 const crypto = require('crypto');
 const Module = require('module');
@@ -83,8 +84,24 @@ function createFakeFirestore() {
             collection(sub) { return collectionRef(`${p}/${sub}`); },
         };
     }
+    // Equality queries over direct children — enough for the wallet-integrity
+    // reads (a ledger subcollection, payouts by userId).
+    function query(base, filters = []) {
+        return {
+            where: (f, op, v) => query(base, [...filters, [f, op, v]]),
+            async get() {
+                const depth = base.split('/').length + 1;
+                const docs = [...store.keys()]
+                    .filter((k) => k.startsWith(base + '/') && k.split('/').length === depth)
+                    .filter((k) => filters.every(([f, op, v]) => op === '==' && store.get(k)[f] === v))
+                    .map((k) => ({ id: k.split('/').pop(), exists: true, data: () => clone(store.get(k)) }));
+                return { empty: docs.length === 0, size: docs.length, docs };
+            },
+        };
+    }
     function collectionRef(base) {
         return {
+            ...query(base),
             doc(id) { return docRef(id ? `${base}/${id}` : `${base}/auto_${crypto.randomBytes(6).toString('hex')}`); },
             async add(data) {
                 const p = `${base}/auto_${crypto.randomBytes(6).toString('hex')}`;
@@ -160,6 +177,7 @@ const FAR      = { lat: 5.6757, lng: -0.1870 };   // ~8 km north
 function seedBase({ walletBalance = 5000, artisanAt = null, config = null } = {}) {
     FAKE_DB._reset();
     FAKE_DB._set(`customers/${CUSTOMER}`, { walletBalance, escrowBalance: 0, spent: 0 });
+    fundCustomer(FAKE_DB, CUSTOMER, walletBalance);
     if (artisanAt) FAKE_DB._set(`artisan_index/${ARTISAN}`, { lat: artisanAt.lat, lng: artisanAt.lng });
     if (config)    FAKE_DB._set('pricing_config/plumbing', config);
 }

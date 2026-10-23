@@ -14,9 +14,8 @@
  *   7. Step 1 never ran, or a round stalled → the same scheduler rescues it
  *      (rescueStalledBookings); claimForDispatch keeps it to one round
  *
- * Timeout constants:
- *   Standard bookings: 3 hours
- *   Emergency bookings: 30 seconds
+ * Timeout constants: STANDARD_TIMEOUT_S, EMERGENCY_TIMEOUT_S and
+ * SCHEDULED_TIMEOUT_S below (the offer notification quotes them).
  *
  * Race-condition safety:
  *   dispatchRound() runs inside a Firestore transaction. Only one round can be
@@ -363,9 +362,11 @@ async function dispatchRound(bookingId) {
         // every non-emergency booking long after STANDARD_TIMEOUT_S was cut to
         // three minutes — an artisan who believed it lost the job while they
         // finished what they were doing.
-        const timeoutTxt = isEmergency             ? 'about 1 minute'
-                         : appointment.scheduled   ? '20 minutes'
-                         :                           '3 minutes';
+        // Quoted from the constants that decide it, so the two cannot drift.
+        const mins = (s) => `${Math.round(s / 60)} minute${Math.round(s / 60) === 1 ? '' : 's'}`;
+        const timeoutTxt = isEmergency             ? `about ${mins(EMERGENCY_TIMEOUT_S)}`
+                         : appointment.scheduled   ? mins(SCHEDULED_TIMEOUT_S)
+                         :                           mins(STANDARD_TIMEOUT_S);
 
         // Name the customer so the artisan can tell one simultaneous request
         // from another. First name only — the same field the job card shows.

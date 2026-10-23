@@ -40,6 +40,8 @@ const LIMITS = Object.freeze({
   processWithdrawal:        { maxRequests: 3,  windowMs:  60 * 60_000 },
   processArtisanWithdrawal: { maxRequests: 3,  windowMs:  60 * 60_000 },
   holdBookingFunds:         { maxRequests: 5,  windowMs:  60 * 60_000 },
+  // One tip per booking is enforced in tips.js; this only stops a script.
+  tipArtisan:               { maxRequests: 10, windowMs:  60 * 60_000 },
   releaseEscrow:            { maxRequests: 5,  windowMs:  60 * 60_000 },
   refundBooking:            { maxRequests: 5,  windowMs:  60 * 60_000 },
   raiseDispute:             { maxRequests: 3,  windowMs:  24 * 60 * 60_000 },

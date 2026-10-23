@@ -27,7 +27,7 @@ import { httpsCallable }
     from '../../vendor/firebase/firebase-functions.js';
 import { firebaseFunctions }
     from '../backend/providers/firebase/firebaseConfig.js';
-import { groupOf }
+import { groupOf, ROUTER_ONLY }
     from '../domain/callableGroups.js';
 
 // Routers found missing on this page load: later calls skip straight to the
@@ -54,6 +54,10 @@ export function callable(name, functions = firebaseFunctions) {
     if (!group) return direct;
 
     const routed = httpsCallable(functions, group);
+    // A router-only action has no function of its own to fall back to.
+    if (ROUTER_ONLY.includes(name)) {
+        return (data) => routed({ action: name, payload: data === undefined ? null : data });
+    }
     return async (data) => {
         if (!_missingRouters.has(group)) {
             try {

@@ -40,7 +40,7 @@ const { FUNCTIONS_REGION, FIRESTORE_DB_ID, BURST_CPU } = require('./config');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
 const escrow    = require('./financial/escrow');
 const dispatch  = require('./dispatch');
-const { ADMIN_EMAILS } = require('./config');
+const { isAllowlistedAdmin } = require('./config');
 
 // Lazy Firestore singleton (Admin SDK)
 let _db;
@@ -604,7 +604,7 @@ const NON_CANCELLABLE_STATUSES = new Set(['completed', 'cancelled', 'rejected'])
 
 async function isAdminAuth(auth) {
     if (!auth) return false;
-    if (ADMIN_EMAILS.includes(auth.token?.email)) return true;
+    if (isAllowlistedAdmin(auth.token)) return true;
     const snap = await db().collection('admins').doc(auth.uid).get().catch(() => null);
     return snap?.exists && snap.data().userType === 'admin';
 }

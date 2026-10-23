@@ -29,8 +29,10 @@ service firebase.storage {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    // email_verified: see isSuperAdminEmail() in firestore.rules.
     function isSuperAdmin() {
-      return isSignedIn() && request.auth.token.email in [
+      return isSignedIn() && request.auth.token.email_verified == true &&
+             request.auth.token.email in [
         'silas7korda@gmail.com',
         'clasceth4traders@gmail.com',
         'paakumisam@gmail.com'

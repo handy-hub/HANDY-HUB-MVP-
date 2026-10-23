@@ -186,7 +186,7 @@
     <!-- Form -->
     <div class="field-group">
       <label class="field-label">Admin Email</label>
-      <input class="field-input" type="email" id="email" placeholder="admin@handyhub.com" autocomplete="email" />
+      <input class="field-input" type="email" id="email" placeholder="you@example.com" autocomplete="email" />
     </div>
     <div class="field-group">
       <label class="field-label">Password</label>
@@ -225,15 +225,16 @@ import { auth, db } from './js/firebase-admin.js';
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
+  sendEmailVerification,
 } from '../shared/vendor/firebase/firebase-auth.js';
 import { doc, getDoc, setDoc, serverTimestamp }
   from '../shared/vendor/firebase/firebase-firestore.js';
-import { SUPER_ADMIN_EMAILS } from './js/auth-guard.js';
+import { SUPER_ADMIN_EMAILS, isAllowlistedAdminUser } from './js/auth-guard.js';
 
 /* ── If already logged in as admin, skip to dashboard ───────────────────── */
 onAuthStateChanged(auth, async user => {
   if (!user) return;
-  if (SUPER_ADMIN_EMAILS.includes(user.email)) {
+  if (isAllowlistedAdminUser(user)) {
     location.href = 'index.html'; return;
   }
   const snap = await getDoc(doc(db, 'admins', user.uid)).catch(() => null);
@@ -258,10 +259,20 @@ window.handleLogin = async function () {
     const user = cred.user;
 
     /* Verify this is actually an admin */
-    const isHardcoded = SUPER_ADMIN_EMAILS.includes(user.email);
+    const isHardcoded = isAllowlistedAdminUser(user);
     if (!isHardcoded) {
       const snap = await getDoc(doc(db, 'admins', user.uid)).catch(() => null);
       if (!snap?.exists() || snap.data().status !== 'active') {
+        // An allowlisted address only counts once its owner has proved they
+        // hold it (the server and rules require email_verified). Send the link
+        // so the real owner can.
+        if (SUPER_ADMIN_EMAILS.includes(user.email) && !user.emailVerified) {
+          await sendEmailVerification(user).catch(() => {});
+          await auth.signOut();
+          showError('Verify your email first: we sent a link to ' + user.email + '. Open it, then sign in again.');
+          setLoading(false);
+          return;
+        }
         await auth.signOut();
         showError('Access denied. This account does not have admin privileges.');
         setLoading(false);

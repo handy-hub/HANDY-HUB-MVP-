@@ -25,7 +25,7 @@
 const { FieldValue }       = require('firebase-admin/firestore');
 const { refundEscrow, releaseEscrow } = require('./financial/escrow');
 const { sendNotification, sendArtisanNotification } = require('./notifications');
-const { FIRESTORE_DB_ID, ADMIN_EMAILS } = require('./config');
+const { FIRESTORE_DB_ID, isAllowlistedAdmin } = require('./config');
 const { randomBytes } = require('crypto');
 
 let _db;
@@ -43,7 +43,7 @@ const fmt   = (n) => parseFloat(Number(n).toFixed(2));
 
 async function isAdminAuth(auth) {
     if (!auth) return false;
-    if (ADMIN_EMAILS.includes(auth.token?.email)) return true;
+    if (isAllowlistedAdmin(auth.token)) return true;
     const snap = await db().collection('admins').doc(auth.uid).get().catch(() => null);
     return snap?.exists && snap.data().userType === 'admin';
 }

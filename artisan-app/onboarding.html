@@ -383,7 +383,7 @@
 
       <div class="trust-badge">
         <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke="#166534" stroke-width="1.8"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z" stroke="#166534" stroke-width="1.8"/><circle cx="17" cy="14" r="1" fill="#166534"/></svg>
-        <p>Your financial details are encrypted. Fidus X deducts a 15% platform commission from each completed job.</p>
+        <p>Your financial details are encrypted. Fidus X deducts a <span data-fx-commission>15%</span> platform commission from each completed job.</p>
       </div>
 
       <div class="field-group">
@@ -445,7 +445,7 @@
 
       <div style="background:var(--surface-2);border-radius:var(--radius-md);padding:14px;margin-top:4px;">
         <p style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:6px;">Commission Structure</p>
-        <p style="font-size:12px;color:var(--text-mid);line-height:1.6;">For every completed job, Fidus X takes a <strong>15% platform fee</strong>. You receive <strong>85%</strong> of the agreed job price, paid directly to your MoMo account within 24 hours.</p>
+        <p style="font-size:12px;color:var(--text-mid);line-height:1.6;">For every completed job, Fidus X takes a <strong><span data-fx-commission>15%</span> platform fee</strong>. You receive <strong><span data-fx-artisan-share>85%</span></strong> of the agreed job price in your Fidus X wallet once the customer confirms the job is done, and you can withdraw it to your payout account.</p>
       </div>
     </div>
 
@@ -527,6 +527,15 @@ import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 import { replaceProfilePhoto } from '../shared/js/services/profilePhotoService.js';
 import { coarseCoord }         from '../shared/js/domain/locationPrivacy.js';
+import { PLATFORM_CONFIG }     from '../shared/js/config/appConfig.js';
+
+// The commission as the server charges it (functions/config.js COMMISSION_RATE,
+// pinned to PLATFORM_CONFIG by tests/config-consistency.test.cjs).
+{
+  const pct = Math.round(PLATFORM_CONFIG.commissionRate * 100);
+  document.querySelectorAll('[data-fx-commission]').forEach((el) => { el.textContent = `${pct}%`; });
+  document.querySelectorAll('[data-fx-artisan-share]').forEach((el) => { el.textContent = `${100 - pct}%`; });
+}
 
 // Onboarding is accessible to ALL artisans regardless of KYC status,
 // including pending and rejected — this IS the KYC submission page.

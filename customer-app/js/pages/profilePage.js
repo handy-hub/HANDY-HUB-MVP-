@@ -11,6 +11,7 @@ import {
   fallbackAvatar,
 } from '../../../shared/js/services/cloudinaryService.js';
 import { replaceProfilePhoto } from '../../../shared/js/services/profilePhotoService.js';
+import { customerSpentPesewas } from '../../../shared/js/domain/walletLedger.js';
 
 const LOGIN_URL = 'login.html';
 
@@ -75,7 +76,9 @@ function populateProfile(data) {
     const wallet   = Number(data.walletBalance  || 0);
     const inEscrow = Number(data.escrowBalance  || 0);
     const bookings = Number(data.bookings       || 0);
-    const spent    = Number(data.spent          || 0);
+    // "Spent" is derived from the ledger (see refreshSpent) — customers.spent
+    // was a counter nothing ever updated, so it read 0 for everyone.
+    latestEscrowBalance = Number(data.escrowBalance || 0);
 
     if (greetingEl)  { greetingEl.textContent  = buildGreeting(name); removeSkel(greetingEl); }
     if (nameEl)      { nameEl.textContent       = name;               removeSkel(nameEl); }
@@ -108,7 +111,7 @@ function populateProfile(data) {
         }
     }
     if (statBookings)  statBookings.textContent  = String(bookings);
-    if (statSpent)     statSpent.textContent     = formatGHCShort(spent);
+    refreshSpent();
 
     // Hide "complete profile" banner if core fields are set
     if (completeBanner) {
@@ -222,6 +225,21 @@ function initBottomNav() {
 
 // ── Auth bootstrap ────────────────────────────────────────────────────────────
 let unsubSnapshot = null;
+let unsubLedger   = null;
+let latestLedger  = null;          // customers/{uid}/transactions rows, once loaded
+let latestEscrowBalance = 0;
+
+/**
+ * Spent = money that has gone to professionals: paid into escrow and neither
+ * refunded nor still held, plus tips (shared/js/domain/walletLedger.js
+ * customerSpentPesewas). Shown only once the ledger has loaded — never a
+ * placeholder 0 presented as a fact.
+ */
+function refreshSpent() {
+    if (!statSpent || !latestLedger) return;
+    const p = customerSpentPesewas({ transactions: latestLedger, escrowBalance: latestEscrowBalance });
+    statSpent.textContent = formatGHCShort(p / 100);
+}
 
 const { services: { authService } } = getAppContainer();
 
@@ -246,6 +264,15 @@ authService.subscribeToAuthState(user => {
             console.error('Profile snapshot error:', err);
             showToast('Could not load profile.', 'error');
         }
+    );
+
+    // The ledger the "Spent" figure is derived from (owner-readable; the server
+    // is its only writer).
+    if (unsubLedger) unsubLedger();
+    unsubLedger = databaseService.subscribeToSubCollection(
+        'customers', user.uid, 'transactions', [], {},
+        (records) => { latestLedger = records.map((r) => ({ id: r.id, ...(r.data || r) })); refreshSpent(); },
+        (err) => console.warn('[profile] spending history unavailable:', err?.message),
     );
 
     // Init payment methods modal (wires up [data-open-payments] triggers)

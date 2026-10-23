@@ -115,7 +115,11 @@ const customer = client(testEnv.authenticatedContext(CUSTOMER, { email: 'c@examp
 const artisanA = newArtisan(ARTISAN_A);
 const artisanB = newArtisan(ARTISAN_B);
 const admin    = client(testEnv.authenticatedContext(ADMIN, { email: 'ops@example.com' }));
-const superAdm = client(testEnv.authenticatedContext(SUPER, { email: SUPER_EMAIL }));
+const superAdm = client(testEnv.authenticatedContext(SUPER, { email: SUPER_EMAIL, email_verified: true }));
+// The same allowlisted address on an account that never proved it owns it —
+// anyone can register one. It must be nobody special.
+const SUPER_UNVERIFIED = 'super_unverified';
+const superUnv = client(testEnv.authenticatedContext(SUPER_UNVERIFIED, { email: SUPER_EMAIL, email_verified: false }));
 
 const privA = (ctx) => doc(ctx.firestore(), 'artisans', ARTISAN_A, 'private', 'kyc');
 const pubA  = (ctx) => doc(ctx.firestore(), 'artisans', ARTISAN_A);
@@ -371,9 +375,29 @@ await it('the artisan can read and upload their own identity documents', async (
 await it('a super-administrator can read identity documents (verification)', async () => {
     await assertSucceeds(getMetadata(kycFile(superAdm)));
 });
+await it('an UNVERIFIED account with an allowlisted email cannot read identity documents', async () => {
+    await assertFails(getMetadata(kycFile(superUnv)));
+});
 await it('a customer can still read an artisan\'s public profile photo', async () => {
     await assertSucceeds(getMetadata(ref(customer.storage(), `artisans/${ARTISAN_A}/profile/photo.jpg`)));
 });
+console.log('\nSUPER-ADMIN BY EMAIL — only once the email is verified\n');
+
+await it('a verified allowlisted admin can read an artisan\'s private record', async () => {
+    await assertSucceeds(getDoc(privA(superAdm)));
+});
+await it('an unverified account with the same email cannot', async () => {
+    await assertFails(getDoc(privA(superUnv)));
+});
+await it('an unverified account with an allowlisted email cannot make itself a super_admin record', async () => {
+    await assertFails(setDoc(doc(superUnv.firestore(), 'admins', SUPER_UNVERIFIED), {
+        id: SUPER_UNVERIFIED, name: 'Not the owner', email: SUPER_EMAIL, userType: 'admin', role: 'super_admin', status: 'active' }));
+});
+await it('a verified allowlisted admin still can (the bootstrap path keeps working)', async () => {
+    await assertSucceeds(setDoc(doc(superAdm.firestore(), 'admins', SUPER), {
+        id: SUPER, name: 'Owner', email: SUPER_EMAIL, userType: 'admin', role: 'super_admin', status: 'active' }));
+});
+
 console.log('\nPUSH TOKEN — the device a job offer is sent to (AR-04)\n');
 
 await it('an artisan can save their own push token with its platform', async () => {

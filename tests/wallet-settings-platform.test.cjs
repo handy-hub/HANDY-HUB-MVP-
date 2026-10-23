@@ -25,6 +25,7 @@ process.env.PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_test_wa
 process.env.PIN_PEPPER = process.env.PIN_PEPPER || 'test-pepper-0123456789abcdef0123456789abcdef';
 
 const assert = require('assert');
+const { fundCustomer, fundArtisan } = require('./support/walletEvidence.cjs');
 const fs     = require('fs');
 const path   = require('path');
 const vm     = require('vm');
@@ -54,7 +55,7 @@ async function rejects(fn, re) {
     throw new Error('expected a refusal, got success');
 }
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
-const ADMIN_AUTH = { uid: 'adm_w1', token: { email: ADMIN_EMAILS[0] } };
+const ADMIN_AUTH = { uid: 'adm_w1', token: { email: ADMIN_EMAILS[0], email_verified: true } };
 
 const CUST = 'cust_w1', ART = 'art_w1';
 const share = (amount) => Math.round(amount * (1 - COMMISSION_RATE) * 100) / 100;
@@ -62,6 +63,7 @@ const share = (amount) => Math.round(amount * (1 - COMMISSION_RATE) * 100) / 100
 function seedParties({ wallet = 1000 } = {}) {
     fake.db._reset(); fake.messaging._reset(); fake.auth.reset();
     fake.db._set(`customers/${CUST}`, { walletBalance: wallet, escrowBalance: 0, spent: 0 });
+    fundCustomer(fake.db, CUST, wallet);
     fake.db._set(`artisans/${ART}`, { userType: 'artisan', status: 'active', verificationStatus: 'approved',
         name: 'Kofi', availableBalance: 0, totalEarned: 0, withdrawnTotal: 0, pendingBalance: 0 });
 }
@@ -340,9 +342,11 @@ const CUST_AT = (secondsAgo) => ({ uid: CUST, token: { auth_time: Math.floor(Dat
 await t('the customer path still refuses money outstanding', async () => {
     fake.db._reset(); fake.auth.reset();
     fake.db._set(`customers/${CUST}`, { walletBalance: 5, escrowBalance: 0, name: 'Ama' });
+    fundCustomer(fake.db, CUST, 5);
     const r = await lifecycle.checkAccountDeletable({ uid: CUST, token: {} });
     assert.deepStrictEqual([r.deletable, r.blockers[0].code], [false, 'wallet_balance']);
     fake.db._set(`customers/${CUST}`, { walletBalance: 0, escrowBalance: 0, name: 'Ama', email: 'a@x.com' });
+    fundCustomer(fake.db, CUST, 0);
     await lifecycle.requestAccountDeletion(CUST_AT(30));
     assert.deepStrictEqual(fake.auth.deleted, [CUST]);
 });
@@ -350,6 +354,7 @@ await t('the customer path still refuses money outstanding', async () => {
 await t('deleting a customer needs a recent sign-in too — a bare session token cannot erase the account', async () => {
     fake.db._reset(); fake.auth.reset();
     fake.db._set(`customers/${CUST}`, { walletBalance: 0, escrowBalance: 0, name: 'Ama', email: 'a@x.com' });
+    fundCustomer(fake.db, CUST, 0);
     for (const auth of [{ uid: CUST, token: {} }, CUST_AT(3600)]) {
         const e = await rejects(() => lifecycle.requestAccountDeletion(auth), /sign in again/);
         assert.strictEqual(e.reason, 'reauth_required');

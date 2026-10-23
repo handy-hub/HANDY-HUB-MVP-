@@ -36,6 +36,7 @@ export const CALLABLE_GROUPS = Object.freeze({
         'submitJobQuote',
         'approveJobQuote',
         'rejectJobQuote',
+        'tipArtisan',
     ]),
     // The wallet: PIN, top-ups and withdrawals. Every credit still settles
     // through settleTopupByReference — the router adds no money path.
@@ -48,6 +49,14 @@ export const CALLABLE_GROUPS = Object.freeze({
         'processArtisanWithdrawal',
     ]),
 });
+
+/**
+ * Actions that exist ONLY inside their router — added after grouping, so no
+ * installed app ever called them by name and no per-action function is
+ * deployed for them (that would spend CPU quota for nothing). The client never
+ * falls back to calling these directly.
+ */
+export const ROUTER_ONLY = Object.freeze(['tipArtisan']);
 
 /** The router serving `name`, or null when it is called by its own name. */
 export function groupOf(name) {

@@ -21,7 +21,7 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { sendArtisanNotification }  = require('./notifications');
 const { buildSearchKeywords }      = require('./shared/searchKeywords');
 
-const { ADMIN_EMAILS, FIRESTORE_DB_ID } = require('./config');
+const { isAllowlistedAdmin, FIRESTORE_DB_ID } = require('./config');
 
 // ── DB reference (custom database ID) ────────────────────────────────────────
 function getDB() {
@@ -31,11 +31,13 @@ function getDB() {
 // ── Auth guard ─────────────────────────────────────────────────────────────────
 async function requireAdmin(auth) {
     if (!auth) throw new Error('Authentication required.');
-    if (ADMIN_EMAILS.includes(auth.token?.email)) return true;
+    if (isAllowlistedAdmin(auth.token)) return true;
 
     const db   = getDB();
     const snap = await db.collection('admins').doc(auth.uid).get().catch(() => null);
-    if (!snap?.exists) throw new Error('Unauthorized: Admin access only.');
+    // A suspended or pending admin is not an admin (the dashboard has always
+    // required status 'active'; this check used to accept any record).
+    if (!snap?.exists || snap.data().status !== 'active') throw new Error('Unauthorized: Admin access only.');
     return true;
 }
 

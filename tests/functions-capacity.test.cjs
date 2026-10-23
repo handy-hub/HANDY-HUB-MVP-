@@ -59,9 +59,10 @@ const BURST = [
     'paystackWebhook', 'onBookingStatusChanged', 'onBookingReviewed', 'onBookingCreated', 'syncArtisanIndex',
 ];
 // One source with the client: shared/js/domain/callableGroups.js (mirrored).
-const { CALLABLE_GROUPS } = require(path.join(__dirname, '..', 'functions', 'shared', 'callableGroups.js'));
+const { CALLABLE_GROUPS, ROUTER_ONLY } = require(path.join(__dirname, '..', 'functions', 'shared', 'callableGroups.js'));
 const GROUP_ROUTERS = Object.keys(CALLABLE_GROUPS);
-const LEGACY = Object.values(CALLABLE_GROUPS).flat();
+// Router-only actions (e.g. tipArtisan) were never a function of their own.
+const LEGACY = Object.values(CALLABLE_GROUPS).flat().filter((a) => !ROUTER_ONLY.includes(a));
 const USER_FACING = [
     'beginProfilePhotoReplacement', 'commitProfilePhotoReplacement', 'abortProfilePhotoReplacement',
     'setSecurityPin', 'initiateTopupCharge', 'verifyTopupNow', 'submitTopupOtp',
@@ -146,7 +147,7 @@ t('each group router is one full-vCPU instance serving many requests at once', (
 t('a router covers its largest action: memory and timeout', () => {
     for (const [g, actions] of Object.entries(CALLABLE_GROUPS)) {
         const timeout = (n) => wire(fns[n].__endpoint.timeoutSeconds) || 60;
-        for (const a of actions) {
+        for (const a of actions.filter((x) => !ROUTER_ONLY.includes(x))) {
             assert.ok(all[g].memory >= all[a].memory, `${g} memory ${all[g].memory} < ${a} ${all[a].memory}`);
             assert.ok(timeout(g) >= timeout(a), `${g} timeout ${timeout(g)} < ${a} ${timeout(a)}`);
         }
@@ -159,6 +160,7 @@ t('every grouped action is still deployed under its own name (installed apps cal
         assert.strictEqual(all[a].trigger, 'callableTrigger', `${a} is not a callable`);
     }
     assert.strictEqual(new Set(LEGACY).size, LEGACY.length, 'an action is in two groups');
+    for (const a of ROUTER_ONLY) assert.ok(!all[a], `${a} is router-only: deploying it alone would spend CPU quota`);
 });
 
 t('only the listed user-facing callables scale past one instance', () => {

@@ -63,9 +63,10 @@ export const PAYSTACK_CONFIG = {
 };
 
 // ── Platform business rules ───────────────────────────────────────────────────
-// These must match Cloud Functions environment variables:
-//   COMMISSION_RATE, MIN_WITHDRAWAL, MIN_TOPUP
-// They are displayed in the UI only — actual enforcement is server-side.
+// DISPLAY copies of what functions/config.js enforces (COMMISSION_RATE,
+// MIN_WITHDRAWAL, MIN_TOPUP_GHS). The server decides every amount; these only
+// tell the user. tests/config-consistency.test.cjs fails if they drift — change
+// both together (and set no env override on the server without changing these).
 export const PLATFORM_CONFIG = {
     commissionRate:   0.15,   // 15% — displayed in fee breakdowns
     minWithdrawalGHS: 5,      // GHS 5 — UI validation hint
@@ -92,8 +93,11 @@ export const FUNCTIONS_REGION = 'europe-west1';
 // failure, so no timeout may ever end a session. See shared/js/utils/authGuard.js.
 
 // ── Super admin emails ────────────────────────────────────────────────────────
-// Used in auth-guard.js and ui utils. Matches firestore.rules and Cloud Functions.
-// To change admins: update here, redeploy Firestore rules, redeploy Cloud Functions.
+// Admin dashboard UI gating only (admin-dashboard/js/auth-guard.js). Authority is
+// server-side: firestore.rules, storage.rules and functions/config.js hold the
+// same list and grant it only with a VERIFIED email. To change admins: update all
+// four (tests/config-consistency.test.cjs checks they match), then deploy rules
+// and functions.
 export const SUPER_ADMIN_EMAILS = [
     'silas7korda@gmail.com',
     'clasceth4traders@gmail.com',
@@ -147,14 +151,15 @@ export const APP_CHECK_SITE_KEY = '6LeLgJ4tAAAAADTsgsRkqR4rfcniVvHn73tlKexZ';
 
 // ── FCM Web Push VAPID Key ─────────────────────────────────────────────────────
 // Required for browser push notifications via Firebase Cloud Messaging.
-// Get your key:
+// The PUBLIC half of the Web Push key pair — safe in the bundle by design (the
+// private half never leaves Firebase). To rotate it:
 //   Firebase Console → Project Settings → Cloud Messaging
 //   → Web Push certificates → Generate key pair → copy the Key pair value
-export const FCM_VAPID_KEY = 'BMVktgapROcLKvu50GzG5hvXWRF9-9K4U8bQtMWt4rYRfvGzlvFkHiwxQRN4t9fAPTPDS892pS31nNn2D2rdZQk'; // FILL IN before deploying
+export const FCM_VAPID_KEY = 'BMVktgapROcLKvu50GzG5hvXWRF9-9K4U8bQtMWt4rYRfvGzlvFkHiwxQRN4t9fAPTPDS892pS31nNn2D2rdZQk';
 
 // ── App metadata ───────────────────────────────────────────────────────────────
 export const APP_META = {
-    name:    'HandyHub',
+    name:    'Fidus X',
     version: '1.0.0-mvp',
     country: 'GH',
     locale:  'en-GH',

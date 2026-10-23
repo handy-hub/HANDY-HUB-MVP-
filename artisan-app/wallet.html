@@ -70,7 +70,7 @@
       </div>
       <div class="info-pill">
         <p class="pill-label">Min. Withdrawal</p>
-        <p class="pill-value">GHS 5</p>
+        <p class="pill-value" id="min-withdrawal">GHS 5</p>
       </div>
       <div class="info-pill">
         <p class="pill-label">Paid to</p>
@@ -162,6 +162,12 @@
   import { createWalletRepository }    from '../shared/js/data/repositories/walletRepository.js';
   import { withdrawalStatus }          from '../shared/js/domain/walletLedger.js';
   import { formatGHS }                 from '../shared/js/utils/currency.js';
+  import { PLATFORM_CONFIG }           from '../shared/js/config/appConfig.js';
+
+  // The figures the server enforces (functions/config.js; pinned to
+  // PLATFORM_CONFIG by tests/config-consistency.test.cjs).
+  document.getElementById('commission-rate').textContent = `${Math.round(PLATFORM_CONFIG.commissionRate * 100)}%`;
+  document.getElementById('min-withdrawal').textContent  = `GHS ${PLATFORM_CONFIG.minWithdrawalGHS}`;
   import { withdrawArtisan, newWithdrawalRequestId } from '../shared/js/services/walletService.js';
   import { openSecurityPinSheet }      from '../shared/js/components/securityPinSheet.js';
   import { setSecurityPin, pinErrorMessage } from '../shared/js/services/securityPinService.js';

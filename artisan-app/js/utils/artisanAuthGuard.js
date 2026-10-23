@@ -36,6 +36,7 @@ import { initializePushNotifications } from '../../../shared/js/services/pushNot
 import { isArtisanDevAccessEnabled }   from '../../../shared/js/config/devAccess.js';
 import { getDevArtisanSession, endDevSession } from '../../../shared/dev/artisanDevSession.js';
 import { ensureArtisanAccount, nextArtisanPage } from './artisanAccount.js';
+import { SUPPORT_CONTACTS }              from '../../../shared/js/config/supportConfig.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const LOGIN_URL        = 'login.html';
@@ -93,7 +94,7 @@ const OVERLAY_CSS = `
   width: 100%; height: 50px; border: none; border-radius: 14px;
   font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
   margin-bottom: 10px; display: flex; align-items: center; justify-content: center;
-  transition: opacity .15s;
+  transition: opacity .15s; text-decoration: none; box-sizing: border-box;
 }
 .ag-btn:active { opacity: .8; }
 .ag-btn-primary   { background: #F97316; color: #fff; }
@@ -119,9 +120,7 @@ const SCREENS = {
       </div>
       <p class="ag-title">Account Suspended</p>
       <p class="ag-sub">Your account has been suspended. Please contact Fidus X support to resolve this.</p>
-      <button class="ag-btn ag-btn-secondary" onclick="window.location.href='mailto:support@handyhub.app'">
-        Contact Support
-      </button>
+      ${SUPPORT_CONTACTS.email ? `<a class="ag-btn ag-btn-secondary" href="mailto:${SUPPORT_CONTACTS.email}">Contact Support</a>` : ''}
       <button class="ag-btn ag-btn-secondary" onclick="_agSignOut()">Sign Out</button>
     </div>`,
 

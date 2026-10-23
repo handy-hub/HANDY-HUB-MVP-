@@ -25,6 +25,7 @@
  */
 
 const assert = require('assert');
+const { fundCustomer, fundArtisan } = require('./support/walletEvidence.cjs');
 const crypto = require('crypto');
 const fs     = require('fs');
 const path   = require('path');
@@ -186,11 +187,13 @@ async function seedArtisan({ available = 100, approved = true, status = 'active'
         userType: 'artisan', name: 'Kofi', availableBalance: available, withdrawnTotal: 0,
         verificationStatus: approved ? 'approved' : 'pending_review', status,
     });
+    fundArtisan(FAKE_DB, ART, available);
     if (account) FAKE_DB._set(`artisans/${ART}/private/kyc`, { artisanId: ART, payoutAccount: account });
     if (pin) await pinMod.setSecurityPin({ uid: ART }, { pin: PIN });
 }
 async function seedCustomer({ wallet = 100, toppedUpFrom = [{ provider: 'mtn', phone: '0552222222' }], pin = true } = {}) {
     FAKE_DB._set(`customers/${CUS}`, { userType: 'customer', name: 'Ama', walletBalance: wallet, escrowBalance: 0 });
+    fundCustomer(FAKE_DB, CUS, wallet);
     toppedUpFrom.forEach((s, i) => FAKE_DB._set(`topupIntents/REF-${i}`, { uid: CUS, credited: true, ...s }));
     if (pin) await pinMod.setSecurityPin({ uid: CUS }, { pin: PIN });
 }
@@ -329,6 +332,57 @@ await t('more than the available balance is refused', async () => {
 await t('two concurrent withdrawals cannot overspend the balance', async () => {
     reset(); await seedArtisan({ available: 100 });
     const r = await Promise.allSettled([artWithdraw(70), artWithdraw(70)]);
+    assert.strictEqual(r.filter((x) => x.status === 'fulfilled').length, 1);
+    assert.strictEqual(balance(), 30); assertLedger(100);
+});
+
+console.log('\n── Only VERIFIED money can be withdrawn (financial audit 2026-10-22) ──\n');
+
+// A balance raised outside the server's money paths — the Firebase console,
+// anything with project credentials — has no ledger evidence. It must never
+// become a real Mobile Money payout. (functions/financial/walletIntegrity.js)
+
+await t('an artisan balance raised in the console cannot be withdrawn; the real earnings can', async () => {
+    reset(); await seedArtisan({ available: 100 });          // GHS 100 of real, released earnings
+    FAKE_DB._set(`artisans/${ART}`, { ...FAKE_DB._get(`artisans/${ART}`), availableBalance: 1000 });   // the edit
+    await assert.rejects(() => artWithdraw(500), /could not be matched to your payment history/);
+    assert.strictEqual(payouts().length, 0, 'no payout was created');
+    assert.strictEqual(PS.calls.transfer.length, 0, 'Paystack was never asked');
+    assert.strictEqual(balance(), 1000, 'nothing moved');
+    await artWithdraw(60);                                    // genuine money still leaves
+    assert.strictEqual(payouts().length, 1);
+    assert.ok(FAKE_DB._get(`walletIntegrityAlerts/artisan_${ART}`), 'an operator alert was recorded');
+});
+
+await t('a forged earning row (no escrow behind it) does not make money withdrawable', async () => {
+    reset(); await seedArtisan({ available: 0 });
+    FAKE_DB._set(`artisans/${ART}`, { ...FAKE_DB._get(`artisans/${ART}`), availableBalance: 500, totalEarned: 500 });
+    FAKE_DB._set(`artisans/${ART}/transactions/forged`, { type: 'earning', amount: 500, status: 'completed', escrowId: 'no_such_escrow' });
+    await assert.rejects(() => artWithdraw(100), /could not be matched/);
+    assert.strictEqual(PS.calls.transfer.length, 0);
+});
+
+await t('one released escrow cannot back two earning rows', async () => {
+    reset(); await seedArtisan({ available: 100 });
+    const real = FAKE_DB._all(`artisans/${ART}/transactions/`)[0];
+    FAKE_DB._set(`artisans/${ART}/transactions/copy`, { ...real });
+    FAKE_DB._set(`artisans/${ART}`, { ...FAKE_DB._get(`artisans/${ART}`), availableBalance: 200 });
+    await assert.rejects(() => artWithdraw(150), /could not be matched/);
+    await artWithdraw(100);                                   // the real 100 is fine
+});
+
+await t('a customer wallet raised in the console (3 → 300) cannot be withdrawn to Mobile Money', async () => {
+    reset(); await seedCustomer({ wallet: 3 });
+    FAKE_DB._set(`customers/${CUS}`, { ...FAKE_DB._get(`customers/${CUS}`), walletBalance: 300 });
+    await assert.rejects(() => cusCall({ amount: 200, pin: PIN, requestId: newRid(), provider: 'mtn', phone: '0552222222' }),
+        /could not be matched/);
+    assert.strictEqual(PS.calls.transfer.length, 0);
+    assert.strictEqual(balance('customer'), 300, 'nothing moved');
+});
+
+await t('two concurrent withdrawals of verified money still cannot overspend', async () => {
+    reset(); await seedArtisan({ available: 100 });
+    const r = await Promise.allSettled([artWithdraw(70), artWithdraw(70), artWithdraw(70)]);
     assert.strictEqual(r.filter((x) => x.status === 'fulfilled').length, 1);
     assert.strictEqual(balance(), 30); assertLedger(100);
 });

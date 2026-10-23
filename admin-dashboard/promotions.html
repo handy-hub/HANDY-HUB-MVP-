@@ -459,7 +459,7 @@
 
 <script type="module">
 import { db, auth }                           from './js/firebase-admin.js';
-import { initAdminPage, signOutAdmin, SUPER_ADMIN_EMAILS } from './js/auth-guard.js';
+import { initAdminPage, signOutAdmin, isAllowlistedAdminUser } from './js/auth-guard.js';
 import { showToast, esc, fmtNum, setDateHeader } from './js/ui-utils.js';
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, serverTimestamp,
@@ -1045,7 +1045,7 @@ document.getElementById('promo-filters').querySelectorAll('.chip').forEach(chip 
    ───────────────────────────────────────────────────────────────────────── */
 initAdminPage(async user => {
   currentUser = user;
-  isSuper = SUPER_ADMIN_EMAILS.includes(user.email);
+  isSuper = isAllowlistedAdminUser(user);
   buildStaticControls();
   try {
     await loadAll();

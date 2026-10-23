@@ -202,6 +202,7 @@ import { db, auth, callAdminFunction } from './js/firebase-admin.js';
 import { initAdminPage, signOutAdmin } from './js/auth-guard.js';
 import { showToast, subscribeVerifBadge, setDateHeader } from './js/ui-utils.js';
 import { describe, TAB_STATUSES } from '../shared/js/domain/bookingStatusMeta.js';
+import { PLATFORM_CONFIG } from '../shared/js/config/appConfig.js';
 import { collection, doc, getDoc, getDocs, onSnapshot,
          query, where, orderBy }
                           from '../shared/vendor/firebase/firebase-firestore.js';
@@ -340,8 +341,15 @@ window.openBookingModal=function(id){
   document.getElementById('bm-scheduled').textContent=sch||(b.scheduledAt?.toDate?.()?.toLocaleString('en-GH'))||'As soon as possible';
   const amt=b.amount||0;
   document.getElementById('bm-amount').textContent=`GHS ${Number(amt).toFixed(2)}`;
-  document.getElementById('bm-commission').textContent=`GHS ${(amt*0.15).toFixed(2)}`;
-  document.getElementById('bm-payout').textContent=`GHS ${(amt*0.85).toFixed(2)}`;
+  /* The split the server locked on the booking (functions/quotes.js stamps
+     platformFee / artisanEarns / commissionRate when the quote is made). Only a
+     booking without them falls back to the current rate — never a literal. */
+  const num=v=>(v===null||v===undefined||v===''||!Number.isFinite(Number(v)))?null:Number(v);
+  const rate=num(b.commissionRate)??PLATFORM_CONFIG.commissionRate;
+  const fee=num(b.platformFee)??amt*rate;
+  const payout=num(b.artisanEarns)??amt-fee;
+  document.getElementById('bm-commission').textContent=`GHS ${fee.toFixed(2)}`;
+  document.getElementById('bm-payout').textContent=`GHS ${payout.toFixed(2)}`;
   document.getElementById('bm-escrow').textContent=b.escrowStatus||'none';
   document.getElementById('bm-payment').textContent=b.paymentMethod||'Wallet';
   // Timeline
