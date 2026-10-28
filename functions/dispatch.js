@@ -31,6 +31,7 @@ const { sendNotification, sendArtisanNotification } = require('./notifications')
 const { geohashQueryBounds } = require('geofire-common');
 const jobOffers = require('./jobOffers');
 const performanceMetrics = require('./shared/performanceMetrics');
+const artisanIndex = require('./artisanIndex');
 // Generated mirror of shared/js/domain/bookingSchedule.js — see
 // scripts/build-functions-shared.cjs. Dispatch asks it when a booking's
 // appointment is, and when its search must end.
@@ -233,7 +234,11 @@ async function findEligibleArtisans(booking, excludeIds) {
     // neutral value — the same for everyone — where there is not. Previously
     // `a.rating || 4.0` scored every unrated artisan as a 4.0, and response and
     // completion were never computed, so both were constants for everyone.
-    return performanceMetrics.rankCandidates(eligible).slice(0, HARD_LIMIT);
+    //
+    // Liveness (artisanIndex.applyLiveness): the "online" points go only to an
+    // artisan also seen in the app recently. Availability alone still makes
+    // them eligible — push reaches an artisan whose app is closed.
+    return performanceMetrics.rankCandidates(artisanIndex.applyLiveness(eligible)).slice(0, HARD_LIMIT);
 }
 
 // ── Core dispatch round (transaction-safe) ────────────────────────────────────

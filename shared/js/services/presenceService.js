@@ -36,6 +36,20 @@ import { getHaversineDistanceKm } from '../utils/geo.js';
 import { availabilityBlocker, createAvailabilityQueue } from '../domain/availability.js';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
+// The heartbeat WRITE is throttled to the liveness bucket the server keeps
+// (functions/artisanIndex.js LIVENESS_BUCKET_MS): more often would cost a
+// profile write + trigger run every 30 s per artisan and tell dispatch nothing.
+const HEARTBEAT_WRITE_MS    = 5 * 60 * 1000;
+// Every navigation is a new document, so the time of the last write is kept
+// for the tab — otherwise each page view would send its own heartbeat.
+const HEARTBEAT_MARK        = 'fx_presence_last_heartbeat';
+function _lastHeartbeatWrite(uid) {
+    try { const m = JSON.parse(sessionStorage.getItem(HEARTBEAT_MARK) || 'null'); return m && m.uid === uid ? Number(m.ms) || 0 : 0; }
+    catch (_) { return 0; }
+}
+function _markHeartbeatWrite(uid, ms) {
+    try { sessionStorage.setItem(HEARTBEAT_MARK, JSON.stringify({ uid, ms })); } catch (_) { /* storage blocked */ }
+}
 const GEOLOCATION_OPTIONS = {
     enableHighAccuracy: true,
     timeout: 10000,
@@ -236,6 +250,7 @@ function _stopWatcher() {
 /** Whether GPS should be running now: someone needs the position and we can send it. */
 function _shouldTrack() {
     if (!_started || !_uid) return false;
+    if (_options && _options.trackLocation === false) return false;   // heartbeat-only page
     if (typeof document !== 'undefined' && document.hidden) return false;
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
     return _available || _activeJobIds.length > 0;
@@ -262,10 +277,15 @@ async function _heartbeat() {
         _retrack();
     }
 
+    const uid = _uid;
+    const previous = _lastHeartbeatWrite(uid);
+    if (nowTime - previous < HEARTBEAT_WRITE_MS) return;
+    _markHeartbeatWrite(uid, nowTime);
     try {
         const { repositories: { artisanRepository } } = getAppContainer();
-        await artisanRepository.updatePresenceAndLocation(_uid, {});
+        await artisanRepository.updatePresenceAndLocation(uid, {});
     } catch (err) {
+        _markHeartbeatWrite(uid, previous);   // try again on the next beat
         console.warn('[presenceService] Heartbeat failed:', err?.message || err);
     }
 }
@@ -390,4 +410,14 @@ async function setOnlineState(online) {
     return setAvailability(_uid, online);
 }
 
-export { startPresence, stopPresence, syncAvailability, setAvailability, availabilityPending, setOnlineState };
+/**
+ * Heartbeat-only presence for pages that do not track location (wallet,
+ * settings, …), started by the floating nav. A page that has already started
+ * full presence (dashboard, jobs) keeps it; this never downgrades it.
+ */
+function ensurePresence(uid, databaseService, available) {
+    if (_started && _uid === uid) { syncAvailability(available); return; }
+    startPresence(uid, databaseService, available, { trackLocation: false });
+}
+
+export { startPresence, stopPresence, syncAvailability, setAvailability, availabilityPending, setOnlineState, ensurePresence };

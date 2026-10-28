@@ -241,6 +241,15 @@
             if (!snap || !snap.exists) { if (snap && snap.fromCache) paintUnconfirmed(); return; }
             _artisan = snap.data;
             if (!_toggling) paintOnline(snap.data.isAvailable === true);
+            // Liveness heartbeat on every artisan page, not only dashboard/jobs
+            // (functions/artisanIndex.js ranks a recently-seen artisan higher).
+            // From a live answer only; it never writes availability.
+            if (!snap.fromCache) {
+              var approved = String(snap.data.verificationStatus || '').toLowerCase() === 'approved';
+              import(sharedRoot() + '/js/services/presenceService.js')
+                .then(function (p) { p.ensurePresence(user.uid, c.services.databaseService, approved && snap.data.isAvailable === true); })
+                .catch(function () {});
+            }
           }, function (err) {
             console.warn('[artisanNav] availability listener:', err && err.message);
             paintUnconfirmed();

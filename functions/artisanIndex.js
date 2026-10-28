@@ -69,6 +69,52 @@ function _buildSkills(data) {
     return [...terms].filter(Boolean);
 }
 
+// ── Liveness ─────────────────────────────────────────────────────────────────
+// isAvailable is the artisan's own choice and the only thing that makes them
+// eligible (shared/js/domain/availability.js). Whether they have been SEEN
+// lately is a separate signal: an artisan who closed the app days ago is still
+// reachable by push, so they are never excluded — but dispatch ranks someone
+// active in the app above them (its "online" points need a recent heartbeat).
+//
+// Cost: the app writes a heartbeat at most every LIVENESS_BUCKET_MS, the index
+// carries it rounded down to that bucket, and a write that changed nothing but
+// presence timestamps within the same bucket is skipped here. So a heartbeat
+// costs at most one index write per bucket per artisan (CLAUDE.md §4).
+const LIVENESS_BUCKET_MS = 5 * 60 * 1000;
+const LIVENESS_WINDOW_MS = 15 * 60 * 1000;
+const PRESENCE_ONLY_FIELDS = ['lastHeartbeat', 'presenceUpdatedAt', 'lastActive', 'updatedAt'];
+
+/** artisans/{id}.lastHeartbeat (ISO) → epoch ms rounded down to the bucket, or null. */
+function heartbeatBucketMs(d) {
+    const ms = Date.parse(d && d.lastHeartbeat);
+    return Number.isFinite(ms) ? Math.floor(ms / LIVENESS_BUCKET_MS) * LIVENESS_BUCKET_MS : null;
+}
+
+/** True when before→after changed only presence timestamps inside one bucket. */
+function _presenceOnlyNoop(before, after) {
+    if (!before || !after) return false;
+    const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+    for (const k of keys) {
+        if (PRESENCE_ONLY_FIELDS.includes(k)) continue;
+        if (JSON.stringify(before[k]) !== JSON.stringify(after[k])) return false;
+    }
+    return heartbeatBucketMs(before) === heartbeatBucketMs(after);
+}
+
+/** Seen in the app within LIVENESS_WINDOW_MS (by its bucketed heartbeat). */
+function isRecentlySeen(lastHeartbeatMs, nowMs = Date.now()) {
+    return Number.isFinite(lastHeartbeatMs) && nowMs - lastHeartbeatMs <= LIVENESS_WINDOW_MS;
+}
+
+/**
+ * Dispatch candidates as ranking should see them: "online" only if also seen
+ * recently. Nobody is removed and availability is not touched.
+ */
+function applyLiveness(candidates, nowMs = Date.now()) {
+    for (const a of candidates) a.isOnline = !!a.isOnline && isRecentlySeen(a.lastHeartbeatMs, nowMs);
+    return candidates;
+}
+
 function _buildIndexDoc(artisanId, d, lat, lng) {
     // Compute the geohash HERE rather than trusting artisans/{id}.geohash.
     //
@@ -89,6 +135,7 @@ function _buildIndexDoc(artisanId, d, lat, lng) {
         skills:             _buildSkills(d),
         isAvailable:        d.isAvailable         ?? false,
         isOnline:           d.isOnline            ?? false,
+        lastHeartbeatMs:    heartbeatBucketMs(d),
         status:             d.status              || 'pending',
         verificationStatus: d.verificationStatus  || 'pending',
         rating:             d.rating              ?? 0,
@@ -147,6 +194,9 @@ const syncArtisanIndex = onDocumentWritten(
         }
 
         const d   = event.data.after.data();
+        // A heartbeat inside the bucket the index already carries changes
+        // nothing dispatch reads: skip the position read and the index write.
+        if (event.data.before && event.data.before.exists && _presenceOnlyNoop(event.data.before.data(), d)) return;
         const pos = await _positionFor(artisanId, d);
         const lat = pos ? pos.lat : null;
         const lng = pos ? pos.lng : null;
@@ -206,4 +256,8 @@ async function runBackfill() {
     return { processed, skipped, errors, total: snap.size };
 }
 
-module.exports = { syncArtisanIndex, runBackfill, _positionFor, _buildIndexDoc, _buildSkills };
+module.exports = {
+    syncArtisanIndex, runBackfill, _positionFor, _buildIndexDoc, _buildSkills,
+    applyLiveness, isRecentlySeen, heartbeatBucketMs, _presenceOnlyNoop,
+    LIVENESS_BUCKET_MS, LIVENESS_WINDOW_MS,
+};
