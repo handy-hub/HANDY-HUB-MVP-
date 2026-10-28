@@ -787,7 +787,14 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
         return {
             stageIndex, terminal: true, tone: 'ended',
             here: 'No professional available',
-            just: 'Every professional nearby was busy. Nothing was charged.',
+            // The reason and the money, as recorded — a timed-out search is not
+            // "everyone was busy", and a refunded callout is not "nothing charged".
+            just: (b.unfulfillReason === 'search_timeout'
+                    ? 'Nobody accepted your request in time.'
+                    : 'Every professional nearby was busy.') + ' ' +
+                  (m.calloutSettled === 'refunded'
+                    ? 'Your callout fee was refunded to your wallet.'
+                    : 'Nothing was charged.'),
             next: 'You can try again — availability changes through the day.',
             action: isCustomer ? { label: 'Try again', href: 'book-request.html' } : null,
         };

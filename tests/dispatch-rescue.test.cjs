@@ -94,12 +94,12 @@ await t('a booking younger than two minutes is left for the trigger', async () =
     assert.strictEqual(fake.db._has('job_offers/b1'), false);
 });
 
-await t('an immediate request older than an hour is stale — not offered to anyone', async () => {
+await t('an immediate request older than an hour is not offered to anyone — its search is over', async () => {
     reset(); seedArtisans();
     fake.db._set('bookings/b1', booking({ createdAt: ago(2 * 60 * MIN), updatedAt: ago(2 * 60 * MIN) }));
     await dispatch.checkExpiredDispatches();
-    assert.strictEqual(bk('b1').dispatchStatus, undefined);
-    assert.strictEqual(notifs('a1').length, 0);
+    assert.strictEqual(notifs('a1').length, 0, 'no artisan is sent a stale request');
+    assert.deepStrictEqual([bk('b1').status, bk('b1').unfulfillReason], ['unfulfilled', 'search_timeout']);
 });
 
 await t('a booked appointment still ahead is rescued however long ago it was made', async () => {
@@ -111,12 +111,13 @@ await t('a booked appointment still ahead is rescued however long ago it was mad
     assert.strictEqual(bk('b1').dispatchStatus, 'dispatched');
 });
 
-await t('an appointment already past is not rescued', async () => {
+await t('an appointment already past is not rescued — it is closed', async () => {
     reset(); seedArtisans();
     const earlier = Date.now() - 30 * MIN;
     fake.db._set('bookings/b1', booking({ createdAt: ago(3 * 60 * MIN), scheduledForMs: earlier, scheduleWindowMins: 120 }));
     await dispatch.checkExpiredDispatches();
-    assert.strictEqual(bk('b1').dispatchStatus, undefined);
+    assert.strictEqual(notifs('a1').length, 0);
+    assert.deepStrictEqual([bk('b1').status, bk('b1').unfulfillReason], ['unfulfilled', 'search_timeout']);
 });
 
 await t('a customer-chosen request is rescued as an OFFER to that artisan — never open-dispatched', async () => {
@@ -257,6 +258,110 @@ await t('an expired offer still moves to the next artisan (expiry pass unchanged
     const b = bk('b1');
     assert.deepStrictEqual([b.dispatchStatus, b.currentDispatchRound], ['dispatched', 2]);
     assert.notStrictEqual(b.currentArtisanId, firstArtisan);
+});
+
+console.log('\n── A search has a deadline (no more "searching for 1879 minutes") ──\n');
+
+const offerOf = (id) => fake.db._has(`job_offers/${id}`) ? fake.db._get(`job_offers/${id}`) : null;
+
+await t('the 2026-10-23 case: a request never dispatched, 44 hours old, is closed and the customer told', async () => {
+    reset(); seedArtisans();
+    fake.db._set('bookings/old', booking({ createdAt: ago(2664 * MIN), updatedAt: ago(2664 * MIN), track: 'inspection' }));
+    await dispatch.checkExpiredDispatches();
+    const b = bk('old');
+    assert.deepStrictEqual([b.status, b.dispatchStatus, b.unfulfillReason], ['unfulfilled', 'unfulfilled', 'search_timeout']);
+    assert.ok(b.searchEndedAt, 'when it ended is recorded');
+    assert.strictEqual(offerOf('old'), null, 'no offer document is invented for a request that never had one');
+    const n = notifs('cust1');
+    assert.strictEqual(n.length, 1);
+    assert.match(n[0].message, /within an hour/);
+    assert.match(n[0].message, /Nothing was charged/);
+});
+
+await t('an immediate request inside its hour keeps searching', async () => {
+    reset(); seedArtisans();
+    fake.db._set('bookings/b1', booking({ createdAt: ago(59 * MIN), updatedAt: ago(10 * 1000),
+        dispatchStatus: 'dispatched', currentArtisanId: 'a1', currentDispatchRound: 3,
+        responseDeadline: fake.Timestamp.fromMillis(Date.now() + 2 * MIN) }));
+    await dispatch.expireStaleSearches();
+    assert.strictEqual(bk('b1').status, 'pending');
+});
+
+await t('at the deadline an open offer is WITHDRAWN (not counted against the artisan) and the request closed', async () => {
+    reset(); seedArtisans();
+    fake.db._set('bookings/b1', booking({ createdAt: ago(61 * MIN), dispatchStatus: 'dispatched', currentArtisanId: 'a1',
+        currentDispatchRound: 9, responseDeadline: fake.Timestamp.fromMillis(Date.now() + MIN) }));
+    fake.db._set('job_offers/b1', jobOffers.buildOfferDoc(booking(), { bookingId: 'b1', artisanId: 'a1', expiresAtMs: Date.now() + MIN, round: 9 }));
+    await dispatch.expireStaleSearches();
+    assert.strictEqual(offerOf('b1').offerStatus, 'withdrawn');
+    const ev = fake.db._keys('offer_events/').map((k) => fake.db._get(k));
+    assert.deepStrictEqual(ev.map((e) => e.outcome), ['withdrawn']);
+    assert.strictEqual(bk('b1').status, 'unfulfilled');
+});
+
+await t('a customer-chosen request (an offer with no expiry) also ends after the hour', async () => {
+    reset(); seedArtisans();
+    const data = booking({ requestedArtisanId: 'a1', createdAt: ago(90 * MIN) });
+    fake.db._set('bookings/b1', data);
+    await dispatch.processNewBooking('b1', data);                     // opens the no-deadline offer
+    assert.strictEqual(offerOf('b1').expiresAtMs, null);
+    await dispatch.expireStaleSearches();
+    assert.deepStrictEqual([bk('b1').status, offerOf('b1').offerStatus], ['unfulfilled', 'withdrawn']);
+});
+
+await t('money already held (a paid emergency callout) is refunded when the search ends', async () => {
+    reset(); seedArtisans();
+    fake.db._set('customers/cust1', { walletBalance: 20, escrowBalance: 0, name: 'Ama' });
+    require('./support/walletEvidence.cjs').fundCustomer(fake.db, 'cust1', 20);
+    fake.db._set('bookings/em', booking({ type: 'emergency', track: 'emergency', requestedArtisanId: 'a1', currentArtisanId: 'a1',
+        createdAt: ago(70 * MIN) }));
+    const escrow = require(path.join(FN, 'financial', 'escrow.js'));
+    await escrow.holdFundsForBooking({ bookingId: 'em', customerId: 'cust1', artisanId: 'a1', amount: 20, callerAuth: null, kind: 'callout' });
+    assert.deepStrictEqual([fake.db._get('customers/cust1').walletBalance, fake.db._get('customers/cust1').escrowBalance], [0, 20]);
+    await dispatch.expireStaleSearches();
+    assert.strictEqual(bk('em').status, 'unfulfilled');
+    assert.deepStrictEqual([fake.db._get('customers/cust1').walletBalance, fake.db._get('customers/cust1').escrowBalance], [20, 0]);
+    assert.ok(notifs('cust1').some((x) => /has been refunded/.test(x.message)));
+    assert.strictEqual(bk('em').calloutSettled, 'refunded', 'the booking records it for the customer\'s screens');
+
+});
+
+await t('a booked appointment keeps searching until it starts, however long ago it was made', async () => {
+    reset(); seedArtisans();
+    const later = Date.now() + 5 * 60 * MIN;
+    fake.db._set('bookings/s1', booking({ createdAt: ago(48 * 60 * MIN), scheduledForMs: later, scheduleWindowMins: 120,
+        dispatchStatus: 'dispatched', currentArtisanId: 'a1', responseDeadline: fake.Timestamp.fromMillis(Date.now() + MIN) }));
+    await dispatch.expireStaleSearches();
+    assert.strictEqual(bk('s1').status, 'pending');
+    await dispatch.expireStaleSearches(later + 1);                    // the appointment has started
+    assert.deepStrictEqual([bk('s1').status, bk('s1').unfulfillReason], ['unfulfilled', 'search_timeout']);
+    assert.match(notifs('cust1').pop().message, /before it was due to start/);
+});
+
+await t('accepted, cancelled and completed bookings are never touched', async () => {
+    reset();
+    for (const st of ['accepted', 'cancelled', 'completed', 'in_progress']) {
+        fake.db._set(`bookings/${st}`, booking({ status: st, createdAt: ago(5 * 60 * MIN) }));
+    }
+    const before = JSON.stringify(['accepted', 'cancelled', 'completed', 'in_progress'].map(bk));
+    await dispatch.expireStaleSearches();
+    assert.strictEqual(JSON.stringify(['accepted', 'cancelled', 'completed', 'in_progress'].map(bk)), before);
+});
+
+await t('running the sweep twice closes once and notifies once', async () => {
+    reset();
+    fake.db._set('bookings/old', booking({ createdAt: ago(3 * 60 * MIN) }));
+    await dispatch.expireStaleSearches();
+    await dispatch.expireStaleSearches();
+    assert.strictEqual(notifs('cust1').length, 1);
+});
+
+await t('the deadline is one shared rule (client copy and server agree)', () => {
+    const sched = require(path.join(FN, 'shared', 'bookingSchedule.js'));
+    const created = Date.parse('2026-10-21T16:46:00Z');
+    assert.strictEqual(sched.searchDeadlineMs({ createdAt: '2026-10-21T16:46:00.000Z' }), created + sched.SEARCH_WINDOW_MS);
+    assert.strictEqual(sched.searchDeadlineMs({ createdAt: 'garbage' }), null, 'no creation time: left alone, never closed on a guess');
+    assert.strictEqual(dispatch.RESCUE_WINDOW_MS, sched.SEARCH_WINDOW_MS, 'rescue and expiry use the same window');
 });
 
 console.log(`\ndispatch-rescue: ${passed} passed, ${failed} failed`);

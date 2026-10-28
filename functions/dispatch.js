@@ -31,6 +31,10 @@ const { sendNotification, sendArtisanNotification } = require('./notifications')
 const { geohashQueryBounds } = require('geofire-common');
 const jobOffers = require('./jobOffers');
 const performanceMetrics = require('./shared/performanceMetrics');
+// Generated mirror of shared/js/domain/bookingSchedule.js — see
+// scripts/build-functions-shared.cjs. Dispatch asks it when a booking's
+// appointment is, and when its search must end.
+const bookingSchedule = require('./shared/bookingSchedule');
 
 // How long ONE artisan holds a request before it moves to the next.
 //
@@ -67,21 +71,21 @@ const SCHEDULED_TIMEOUT_S = 20 * 60;  // 20 minutes
 // Generated mirror of shared/js/domain/bookingSchedule.js — see
 // scripts/build-functions-shared.cjs. Dispatch asks it one question: does this
 // booking have an appointment, and when?
-const bookingSchedule = require('./shared/bookingSchedule');
 
 // A booking the creation trigger never reached is picked up by the sweep in
 // checkExpiredDispatches once it is this old. Long enough that a trigger which
 // is merely slow (a cold start) gets there first; the claim below makes the
 // race harmless either way.
 const RESCUE_AFTER_MS = 2 * 60 * 1000;
-// Beyond this an immediate request is stale: the customer has stopped waiting,
-// and offering it now would send an artisan to someone who has moved on. Those
-// are left for an administrator. A booked appointment is rescued for as long as
-// it is still ahead.
-const RESCUE_WINDOW_MS = 60 * 60 * 1000;
+// The search deadline (shared/js/domain/bookingSchedule.js searchDeadlineMs):
+// an immediate request is searched for at most SEARCH_WINDOW_MS, a booked
+// appointment until it starts. The rescue only works inside it; past it,
+// expireStaleSearches closes the request. Kept under its old name for callers.
+const RESCUE_WINDOW_MS = bookingSchedule.SEARCH_WINDOW_MS;
 // Bounds on one tick. Pending bookings are scanned newest first.
 const RESCUE_SCAN_LIMIT = 200;
 const RESCUE_BATCH      = 25;
+const EXPIRE_SCAN_LIMIT = 500;   // pending requests are few; oldest are the point
 
 /** The artisan a customer chose, if any — `artisanId` on a legacy write. */
 function requestedArtisanOf(b) {
@@ -676,7 +680,8 @@ async function handleDispatchEvent(before, after, bookingId) {
 // other:
 //   1. expire offers whose responseDeadline has passed → next round;
 //   2. rescue bookings that dispatch never started, or that stalled between
-//      rounds (rescueStalledBookings).
+//      rounds (rescueStalledBookings);
+//   3. close requests whose search deadline has passed (expireStaleSearches).
 // No new function: the region's CPU quota is spent (CLAUDE.md §4).
 const checkExpiredDispatches = onSchedule(
     { schedule: 'every 1 minutes', region: FUNCTIONS_REGION },
@@ -685,6 +690,8 @@ const checkExpiredDispatches = onSchedule(
         catch (err) { console.error('[dispatch] expiry pass failed:', err.message); }
         try { await rescueStalledBookings(); }
         catch (err) { console.error('[dispatch] rescue pass failed:', err.message); }
+        try { await expireStaleSearches(); }
+        catch (err) { console.error('[dispatch] search-deadline pass failed:', err.message); }
     }
 );
 
@@ -801,11 +808,8 @@ async function rescueStalledBookings(nowMs = Date.now()) {
                    : null;
         if (!kind) continue;
 
-        const appointment = bookingSchedule.resolveSchedule(b, nowMs);
-        const current = appointment.scheduled
-            ? appointment.startMs > nowMs
-            : nowMs - created <= RESCUE_WINDOW_MS;
-        if (!current) continue;
+        const deadline = bookingSchedule.searchDeadlineMs(b, nowMs);
+        if (deadline === null || nowMs >= deadline) continue;      // expireStaleSearches' job
 
         due.push({ id: doc.id, data: b, kind });
         if (due.length >= RESCUE_BATCH) break;
@@ -824,6 +828,103 @@ async function rescueStalledBookings(nowMs = Date.now()) {
     return { rescued: due.length };
 }
 
+/**
+ * End every search that has outlived its deadline (bookingSchedule
+ * searchDeadlineMs). Without this a request nobody accepted waited forever —
+ * one read "we've been searching for 1879 minutes" (2026-10-23) because it was
+ * never dispatched and nothing else ever looked at it.
+ *
+ * For each pending request past its deadline, in one transaction: re-check it
+ * is still pending and still past the deadline (an artisan may have accepted a
+ * moment ago — then nothing happens), withdraw an open offer (neutral for the
+ * artisan's response rate: the platform ended it, not them), and mark it
+ * unfulfilled with unfulfillReason 'search_timeout'. Then refund anything
+ * already held for it (an emergency callout can be paid while still waiting)
+ * and tell the customer.
+ */
+async function expireStaleSearches(nowMs = Date.now()) {
+    const snap = await db().collection('bookings').where('status', '==', 'pending').limit(EXPIRE_SCAN_LIMIT).get();
+    const due = snap.docs.filter((d) => {
+        const dl = bookingSchedule.searchDeadlineMs(d.data(), nowMs);
+        return dl !== null && nowMs >= dl;
+    }).slice(0, RESCUE_BATCH);
+    if (due.length === 0) return { expired: 0 };
+
+    let expired = 0;
+    await Promise.all(due.map(async (doc) => {
+        const bookingId = doc.id;
+        try {
+            const closed = await db().runTransaction(async (txn) => {
+                const [live, offerSnap] = await Promise.all([txn.get(doc.ref), txn.get(jobOffers.offerRef(bookingId))]);
+                if (!live.exists) return null;
+                const b = live.data();
+                if ((b.status || '').toLowerCase() !== 'pending') return null;
+                const dl = bookingSchedule.searchDeadlineMs(b, nowMs);
+                if (dl === null || nowMs < dl) return null;
+                const offer = offerSnap.exists ? offerSnap.data() : null;
+                // Only an OPEN offer is closed — closeOffer would otherwise
+                // create an offer document for a request that never had one.
+                if (offer && offer.offerStatus === 'open') jobOffers.closeOffer(txn, bookingId, 'withdrawn', offer);
+                const n = new Date(nowMs).toISOString();
+                txn.update(doc.ref, {
+                    status:           'unfulfilled',
+                    dispatchStatus:   'unfulfilled',
+                    unfulfillReason:  'search_timeout',
+                    currentArtisanId: null,
+                    responseDeadline: null,
+                    searchEndedAt:    n,
+                    updatedAt:        n,
+                });
+                return { customerId: b.customerId || null, serviceType: b.serviceType || b.service || 'service',
+                         scheduled: bookingSchedule.resolveSchedule(b, nowMs).scheduled };
+            });
+            if (!closed) return;
+            expired++;
+
+            // Money already held for this request goes back — refundEscrow is
+            // idempotent (it re-reads the escrow's status in its transaction)
+            // and tells the customer itself.
+            let refunded = false;
+            const held = await db().collection('escrow').where('bookingId', '==', bookingId).get();
+            for (const e of held.docs) {
+                if (e.data().status !== 'held') continue;      // disputed money is the admin's to decide
+                try {
+                    await require('./financial/escrow').refundEscrow(e.id, {
+                        reason: 'No professional accepted your request in time', refundedBy: 'system:search_timeout',
+                    });
+                    refunded = true;
+                    // The booking says so too: calloutSettled is what the
+                    // customer's screens read for "was I charged?".
+                    if (e.data().kind === 'callout') {
+                        await doc.ref.update({
+                            calloutSettled: 'refunded', calloutSettledAt: new Date().toISOString(),
+                            calloutSettleReason: 'search_timeout',
+                        }).catch((x) => console.warn(`[dispatch] could not mark callout refunded on ${bookingId}: ${x.message}`));
+                    }
+                } catch (err) {
+                    console.error(`[dispatch] search-timeout refund failed (${bookingId}, ${e.id}): ${err.message}`);
+                }
+            }
+
+            if (closed.customerId) {
+                await sendNotification(closed.customerId, {
+                    type:      'Bookings',
+                    title:     'No Professionals Available',
+                    message:   closed.scheduled
+                        ? `Nobody accepted your ${closed.serviceType} appointment before it was due to start.${refunded ? ' Your payment has been refunded.' : ' Nothing was charged.'} Please book another time.`
+                        : `Nobody accepted your ${closed.serviceType} request within an hour.${refunded ? ' Your payment has been refunded.' : ' Nothing was charged.'} Please try again.`,
+                    actionUrl: 'booking.html',
+                    metadata:  { bookingId },
+                }).catch((e) => console.warn('[dispatch] search-timeout notif error:', e.message));
+            }
+            console.log(`[dispatch] Search ended for ${bookingId}: deadline passed (refunded: ${refunded}).`);
+        } catch (err) {
+            console.error(`[dispatch] search-timeout error (${bookingId}):`, err.message);
+        }
+    }));
+    return { expired };
+}
+
 module.exports = {
     onBookingCreated,
     checkExpiredDispatches,
@@ -833,6 +934,7 @@ module.exports = {
     processNewBooking,
     claimForDispatch,
     rescueStalledBookings,
+    expireStaleSearches,
     RESCUE_AFTER_MS,
     RESCUE_WINDOW_MS,
 };

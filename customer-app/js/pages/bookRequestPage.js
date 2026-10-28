@@ -15,7 +15,7 @@ import { mapError } from '../../../shared/js/utils/errorCopy.js';
 import { resolveArtisan, initialsOf, resolveJourney, journeyStages } from '../../../shared/js/domain/bookingTruth.js';
 import {
     TIME_WINDOWS, availableWindowsFor, validateScheduleRequest,
-    earliestSelectableDate, latestSelectableDate, resolveSchedule,
+    earliestSelectableDate, latestSelectableDate, resolveSchedule, searchDeadlineMs,
 } from '../../../shared/js/domain/bookingSchedule.js';
 
 const MAX_PHOTOS   = 4;
@@ -828,11 +828,19 @@ async function renderTrack(b) {
         // The stated response ceiling was "3 hours" long after the dispatch
         // timeout became 3 minutes per round — a number that told a waiting
         // customer to expect an afternoon of silence that was never coming.
+        // The search has a deadline (bookingSchedule searchDeadlineMs — the same
+        // rule the server enforces), so the customer is told when it ends
+        // instead of watching a counter climb past a day.
+        const deadline = searchDeadlineMs(b);
+        const until = deadline
+            ? new Date(deadline).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+            : null;
         const patience = mins == null || mins < 2
             ? 'Sending your request to professionals nearby.'
             : mins < 15
                 ? 'Waiting for a professional to accept.'
-                : `Still looking — we've been searching for ${mins} minutes. Each professional gets a few minutes to respond before we move to the next, and we'll notify you the moment one accepts.`;
+                : `Still looking — ${mins} minutes so far. Each professional gets a few minutes to respond before we move to the next.` +
+                  (until ? ` We keep trying until ${until}; if nobody accepts by then we'll tell you, and anything you paid is refunded.` : '');
 
         body.innerHTML = `
             ${rail}
@@ -930,7 +938,11 @@ async function renderTrack(b) {
             <div class="br-search-hero br-stagger" style="padding-top:24px">
                 <div class="br-state-ico warn"><svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M12 9v4m0 4h.01M10.3 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
                 <p class="br-search-title">No professional available</p>
-                <p class="br-search-sub">Everyone nearby is busy right now. Nothing was charged — try again shortly.</p>
+                <p class="br-search-sub">${b.unfulfillReason === 'search_timeout'
+                    ? 'Nobody accepted your request in time.'
+                    : 'Everyone nearby is busy right now.'} ${String(b.calloutSettled || '').toLowerCase() === 'refunded'
+                    ? 'Your callout fee has been refunded to your wallet.'
+                    : 'Nothing was charged.'} Try again shortly.</p>
             </div>`;
         setCta('Try again', () => { sessionStorage.removeItem('hh_active_request'); location.href = 'book-request.html'; });
 

@@ -378,3 +378,33 @@ export function earliestSelectableDate(nowMs = Date.now()) {
 export function latestSelectableDate(nowMs = Date.now()) {
     return accraDateString(nowMs + MAX_HORIZON_DAYS * MS_PER_DAY);
 }
+
+// ── How long a request may wait for a professional ───────────────────────────
+//
+// A request nobody accepted used to wait forever: one sat at "Finding your
+// professional — we've been searching for 1879 minutes" because nothing ended a
+// search that was not making progress. The search now has a deadline, and the
+// customer is told it. Past it the dispatch sweep (functions/dispatch.js
+// expireStaleSearches) closes the request as unfulfilled, withdraws any open
+// offer, refunds anything held, and notifies the customer.
+//
+//   immediate request   SEARCH_WINDOW_MS after it was made
+//   booked appointment  the appointment's start — after that nobody can be
+//                       there on time, so the request is over
+
+/** An immediate request is searched for at most this long. */
+export const SEARCH_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * The moment the search for this request ends, in ms — or null when the
+ * request has no usable creation time (the caller then leaves it alone).
+ */
+export function searchDeadlineMs(booking, nowMs = Date.now()) {
+    const b = booking || {};
+    const appt = resolveSchedule(b, nowMs);
+    if (appt.scheduled) return appt.startMs;
+    const created = typeof b.createdAt === 'string' ? Date.parse(b.createdAt)
+                  : b.createdAt && typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis()
+                  : Number(b.createdAt);
+    return Number.isFinite(created) && created > 0 ? created + SEARCH_WINDOW_MS : null;
+}
