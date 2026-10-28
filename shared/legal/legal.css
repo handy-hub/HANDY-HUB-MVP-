@@ -1,0 +1,73 @@
+/* shared/legal/legal.css — the legal pages, served by both apps' sites.
+   Tokens come from shared/css/ui-polish.css (light and [data-theme="dark"]). */
+
+body {
+  margin: 0;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+}
+
+.legal {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 12px 16px 48px;
+  box-sizing: border-box;
+}
+
+.legal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+}
+
+.legal-head h1 {
+  margin: 0;
+  font-size: var(--ui-text-title);
+  font-weight: 800;
+}
+
+.legal-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ui-text);
+  cursor: pointer;
+}
+
+.legal-version {
+  margin: 0 0 16px;
+  font-size: var(--ui-text-sub);
+  color: var(--ui-faint);
+}
+
+.legal-body {
+  padding: 18px;
+  border: 1px solid var(--ui-border);
+  border-radius: 16px;
+  background: var(--ui-surface);
+  font-size: var(--ui-text-body);
+  line-height: 1.7;
+  color: var(--ui-muted);
+}
+
+.legal-body h2 {
+  margin: 20px 0 6px;
+  font-size: var(--ui-text-heading);
+  font-weight: 800;
+  color: var(--ui-text);
+}
+
+.legal-body h2:first-child { margin-top: 0; }
+.legal-body p { margin: 0 0 10px; }
+.legal-body ul { margin: 0 0 10px; padding-left: 20px; }
+.legal-body li { margin-bottom: 6px; }
+.legal-body strong { color: var(--ui-text); }
+.legal-body a { color: var(--ui-text); text-decoration: underline; }

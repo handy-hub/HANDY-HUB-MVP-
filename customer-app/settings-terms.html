@@ -4,100 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Terms and Conditions | Fidus X</title>
-  <link rel="stylesheet" href="css/settings.css" />
-  <link rel="stylesheet" href="../shared/css/pageTransitions.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
-  <script src="../shared/js/utils/themeManager.js"></script>
-
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
-  <script src="js/navContext.js"></script>
-  <script src="js/navBridge.js"></script>
+  <!-- The Terms live in shared/legal/terms.html, which both apps' sites serve.
+       This address is kept for links and app builds made before the move. -->
+  <meta http-equiv="refresh" content="0; url=../shared/legal/terms.html" />
+  <script>location.replace('../shared/legal/terms.html');</script>
 </head>
 <body>
-  <div class="phone-shell">
-    <div class="scroll-area">
-
-      <div class="page-header">
-        <!-- Also opened from the artisan app (Settings, onboarding): go back to where the
-             reader came from, not always to the customer settings page. -->
-        <button class="back-btn" aria-label="Go back"
-          onclick="sessionStorage.setItem('pageTransitionDirection','back'); if (history.length > 1 && document.referrer.indexOf(location.origin + '/') === 0) history.back(); else window.location.href='settings.html'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <h1 class="page-title">Terms & Conditions</h1>
-        <div class="header-spacer"></div>
-      </div>
-
-      <p id="last-updated" style="font-size:11.5px;color: var(--ui-faint, #737373);margin-bottom:18px;">Last updated: </p>
-
-      <div class="menu-card" style="padding:18px;">
-        <div class="static-text">
-          <h3>1. Acceptance of Terms</h3>
-          By accessing or using Fidus X, you agree to be bound by these Terms and Conditions. If you do not agree, please do not use the app.
-
-          <h3>2. Services</h3>
-          Fidus X is a platform that connects customers with independent artisans. We do not employ artisans directly and are not responsible for the quality of work performed. All service arrangements are between you and the artisan.
-
-          <h3>3. User Accounts</h3>
-          You are responsible for maintaining the security of your account credentials. You must be at least 18 years old to create an account. Accounts found to be fraudulent or abusive will be suspended.
-
-          <h3>4. Payments & Wallet</h3>
-          Payments are processed through your in-app wallet. Fidus X charges a platform fee on each transaction. Refunds are subject to our dispute resolution process and may take 3–5 business days.
-
-          <h3>5. Cancellations</h3>
-          Cancellations made more than 2 hours before a scheduled service are free. Late cancellations may incur a fee of up to 20% of the service price.
-
-          <h3>6. Prohibited Conduct</h3>
-          You may not use Fidus X for any unlawful purpose, harass artisans or other users, post false reviews, or attempt to circumvent our platform fee by dealing directly with artisans outside the app.
-
-          <h3>7. Limitation of Liability</h3>
-          Fidus X is not liable for any indirect, incidental, or consequential damages arising from your use of the platform. Our total liability shall not exceed the amount paid by you in the last 30 days.
-
-          <h3>8. Changes to Terms</h3>
-          We may update these terms at any time. Continued use of the app after changes are posted constitutes acceptance of the new terms.
-
-          <h3>9. Contact</h3>
-          For questions about these terms, contact us at <a style="color:#383737; text-decoration:underline;" href="mailto:info.handyhub101@gmail.com">info.handyhub101@gmail.com</a>.
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <script>
-    (function () {
-      try {
-        var dir = sessionStorage.getItem('pageTransitionDirection');
-        sessionStorage.removeItem('pageTransitionDirection');
-        if (dir === 'forward') document.body.classList.add('page-slide-in-right');
-        else if (dir === 'back') document.body.classList.add('page-slide-in-left');
-        document.body.addEventListener('animationend', function () {
-          document.body.classList.remove('page-slide-in-right', 'page-slide-in-left');
-        }, { once: true });
-      } catch (e) {}
-    })();
-  </script>
-  <script>
-    (function(){
-      try{
-        var raw = document.lastModified || new Date().toString();
-        var d = new Date(raw);
-        if (isNaN(d.getTime())) d = new Date();
-        var opts = { year: 'numeric', month: 'long', day: 'numeric' };
-        var formatted = d.toLocaleDateString(undefined, opts);
-        var el = document.getElementById('last-updated');
-        if(el) el.textContent = 'Last updated: ' + formatted;
-      }catch(e){}
-    })();
-  </script>
-<script src="../shared/js/components/fastLoader.js"></script>
+  <p><a href="../shared/legal/terms.html">Terms and Conditions</a></p>
 </body>
 </html>
-
-

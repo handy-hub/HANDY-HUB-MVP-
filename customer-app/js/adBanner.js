@@ -30,65 +30,49 @@ import { readCache, writeCache } from '../../shared/js/services/persistentCache.
 /* ═══════════════════════════════════════════════════
    BANNER DATA  ←  edit here to manage promotions
 ═══════════════════════════════════════════════════ */
+//
+// These show whenever no live promotion loads, so they must claim nothing the
+// product does not do. They used to offer "Get 20% OFF your first booking" (no
+// discount exists anywhere in pricing) and "500+ / 200+ / 300+ Happy clients"
+// with invented initials, when production had 29 customers and 11 completed
+// bookings. No offers, counts or testimonials here — those belong in a real
+// promotion an administrator publishes (admin-dashboard/promotions.html).
+// tests/legal-pages.test.cjs keeps it that way.
 export const BANNER_DATA = [
   {
-    id: 'promo-discount',
-    tag: 'Limited Time',
-    title: 'Get 20% OFF',
-    subtitle: 'Your first booking',
-    body: 'Trusted professionals, quality service.',
+    id: 'promo-how',
+    tag: 'How it works',
+    title: 'Book a verified pro',
+    subtitle: 'See the callout fee first',
+    body: 'Every artisan is identity-checked before they can take jobs.',
     cta: 'Book Now',
     color: 'linear-gradient(135deg, #4a8cc9 0%, #1e5a9a 100%)',
     image: 'https://i.pinimg.com/736x/44/41/9d/44419dac4fcb78aae208565099c97221.jpg',
-    clients: {
-      count: '500+',
-      label: 'Happy clients',
-      avatars: [
-        { initial: 'K', color: '#4A90D9' },
-        { initial: 'A', color: '#E8703A' },
-        { initial: 'M', color: '#2ECC71' },
-      ],
-    },
+    clients: null,
     action: { type: 'route', value: 'book-request.html' },
   },
   {
     id: 'promo-cleaning',
     tag: 'Home Cleaning',
-    title: 'Express Clean',
+    title: 'Home Cleaning',
     subtitle: 'Sparkling results',
-    body: 'Book a pro cleaner in under 2 minutes.',
-    cta: 'Check Rates',
+    body: 'Request a cleaner near you.',
+    cta: 'Book Now',
     color: 'linear-gradient(135deg, #3db87a 0%, #1a8a52 100%)',
     image: 'https://i.pinimg.com/736x/04/1a/09/041a0923ce2a5d512923d1cdffcd7e1f.jpg',
-    clients: {
-      count: '200+',
-      label: 'Happy clients',
-      avatars: [
-        { initial: 'E', color: '#9B59B6' },
-        { initial: 'F', color: '#E74C3C' },
-        { initial: 'B', color: '#1ABC9C' },
-      ],
-    },
+    clients: null,
     action: { type: 'service', value: 'Cleaning' },
   },
   {
     id: 'promo-ac',
-    tag: 'New Service',
+    tag: 'AC Repair',
     title: 'AC Repair',
     subtitle: 'Stay cool always',
-    body: 'Expert technicians at your doorstep.',
-    cta: 'Fix Now',
+    body: 'Request a technician near you.',
+    cta: 'Book Now',
     color: 'linear-gradient(135deg, #f0844a 0%, #c45520 100%)',
     image: 'https://i.pinimg.com/736x/84/fa/24/84fa2444f8cc33ef30c8813e95807bb6.jpg',
-    clients: {
-      count: '300+',
-      label: 'Happy clients',
-      avatars: [
-        { initial: 'O', color: '#E67E22' },
-        { initial: 'S', color: '#2980B9' },
-        { initial: 'J', color: '#27AE60' },
-      ],
-    },
+    clients: null,
     action: { type: 'service', value: 'AC Repair' },
   },
 ];

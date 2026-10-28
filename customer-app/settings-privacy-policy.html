@@ -4,100 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Privacy Policy | Fidus X</title>
-  <link rel="stylesheet" href="css/settings.css" />
-  <link rel="stylesheet" href="../shared/css/pageTransitions.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
-  <script src="../shared/js/utils/themeManager.js"></script>
-
-  <link rel='stylesheet' href='../shared/css/ui-polish.css' />
-  <script src="js/navContext.js"></script>
-  <script src="js/navBridge.js"></script>
+  <!-- The Privacy Policy lives in shared/legal/privacy.html, which both apps'
+       sites serve. This address is kept for links and app builds made before
+       the move. -->
+  <meta http-equiv="refresh" content="0; url=../shared/legal/privacy.html" />
+  <script>location.replace('../shared/legal/privacy.html');</script>
 </head>
 <body>
-  <div class="phone-shell">
-    <div class="scroll-area">
-
-      <div class="page-header">
-        <!-- Also opened from the artisan app (Settings, onboarding): go back to where the
-             reader came from, not always to the customer settings page. -->
-        <button class="back-btn" aria-label="Go back"
-          onclick="sessionStorage.setItem('pageTransitionDirection','back'); if (history.length > 1 && document.referrer.indexOf(location.origin + '/') === 0) history.back(); else window.location.href='settings.html'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <h1 class="page-title">Privacy Policy</h1>
-        <div class="header-spacer"></div>
-      </div>
-
-      <p id="last-updated" style="font-size:11.5px;color: var(--ui-faint, #737373);margin-bottom:18px;">Last updated: </p>
-
-      <div class="menu-card" style="padding:18px;">
-        <div class="static-text">
-          <h3>1. Information We Collect</h3>
-          We collect information you provide (name, email, phone, location), usage data (searches, bookings, messages), and device information (OS, app version, device ID).
-
-          <h3>2. How We Use Your Data</h3>
-          Your data is used to match you with artisans, process payments, personalise your experience, send service notifications, and improve our platform. We do not sell your personal data.
-
-          <h3>3. Data Sharing</h3>
-          We share limited data with artisans you book (name, phone, address for the job). We use third-party services like Firebase for authentication and data storage, which have their own privacy policies.
-
-          <h3>4. Data Storage & Security</h3>
-          Data is stored on Google Firebase servers. We use encryption and access controls to protect your data. However, no system is completely secure and we cannot guarantee absolute security.
-
-          <h3>5. Your Rights</h3>
-          You may access, update, or delete your personal information at any time via the app. To request deletion of all your data, use the Delete Account option in Settings or email info.fidusx101@gmail.com.
-
-          <h3>6. Cookies & Local Storage</h3>
-          We use browser local storage to remember your preferences (language, currency, theme). No advertising cookies are used.
-
-          <h3>7. Children's Privacy</h3>
-          Fidus X is not intended for users under 18. We do not knowingly collect data from minors.
-
-          <h3>8. Changes to This Policy</h3>
-          We may update this policy periodically. We will notify you of significant changes via the app.
-
-          <h3>9. Contact</h3>
-          Questions about privacy? Email info.fidusx101@gmail.com.
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <script>
-    (function () {
-      try {
-        var dir = sessionStorage.getItem('pageTransitionDirection');
-        sessionStorage.removeItem('pageTransitionDirection');
-        if (dir === 'forward') document.body.classList.add('page-slide-in-right');
-        else if (dir === 'back') document.body.classList.add('page-slide-in-left');
-        document.body.addEventListener('animationend', function () {
-          document.body.classList.remove('page-slide-in-right', 'page-slide-in-left');
-        }, { once: true });
-      } catch (e) {}
-    })();
-  </script>
-  <script>
-    (function(){
-      try{
-        var raw = document.lastModified || new Date().toString();
-        var d = new Date(raw);
-        if (isNaN(d.getTime())) d = new Date();
-        var opts = { year: 'numeric', month: 'long', day: 'numeric' };
-        var formatted = d.toLocaleDateString(undefined, opts);
-        var el = document.getElementById('last-updated');
-        if(el) el.textContent = 'Last updated: ' + formatted;
-      }catch(e){}
-    })();
-  </script>
-<script src="../shared/js/components/fastLoader.js"></script>
+  <p><a href="../shared/legal/privacy.html">Privacy Policy</a></p>
 </body>
 </html>
-
-

@@ -233,7 +233,7 @@ await t('support is info.fidusx101@gmail.com, from the one config, on the help a
     const help = read('customer-app/settings-help.html');
     assert.match(help, /SUPPORT_CONTACTS\.email/);
     assert.ok(!/handyhub\.(com|app)/.test(help));
-    assert.ok(!/handyhub\.(com|app)/.test(read('customer-app/settings-privacy-policy.html')));
+    assert.ok(!/handyhub\.(com|app)/.test(read('shared/legal/privacy.html')));   // the policy itself (customer-app/settings-privacy-policy.html forwards to it)
 });
 
 await t('the Android app registers the native Google plugin with Credential Manager, using the web client from google-services', () => {

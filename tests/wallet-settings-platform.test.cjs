@@ -415,8 +415,10 @@ await t('Settings pages no longer send the device location to third parties', ()
 });
 
 await t('the shared legal pages go back where the reader came from (artisans were sent into the customer app)', () => {
-    for (const f of ['customer-app/settings-terms.html', 'customer-app/settings-privacy-policy.html']) {
-        assert.match(read(f), /document\.referrer\.indexOf\(location\.origin \+ '\/'\) === 0\) history\.back\(\); else window\.location\.href='settings\.html'/, f);
+    // They now live in shared/legal/, served by both sites; with no history the
+    // fallback is the site's own home, never the customer settings page.
+    for (const f of ['shared/legal/terms.html', 'shared/legal/privacy.html']) {
+        assert.match(read(f), /document\.referrer\.indexOf\(location\.origin \+ '\/'\) === 0\) history\.back\(\); else location\.href = '\/';/, f);
     }
 });
 

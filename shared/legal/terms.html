@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms and Conditions | Fidus X</title>
+  <!--
+    THE Terms and Conditions, for customers and artisans alike. It lives in
+    shared/ because shared/ is the one folder both hosting sites serve: the
+    artisan app used to link ../customer-app/settings-terms.html, which does not
+    exist on the artisan site, so artisans asked to accept the terms got the
+    login page instead. customer-app/settings-terms.html now forwards here.
+
+    Every statement about money describes what the server does (functions/
+    pricing.js, financial/escrow.js, financial/escrowAutoRelease.js,
+    financial/transfers.js); tests/legal-pages.test.cjs holds the figures to
+    the configuration. The date below is the date of the last change to this
+    text: change it, and TERMS_VERSION in that test, with the text. It was
+    computed from document.lastModified before, so it read as today's date on
+    every visit.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <script src="../js/utils/themeManager.js"></script>
+  <link rel="stylesheet" href="../css/ui-polish.css" />
+  <link rel="stylesheet" href="legal.css" />
+</head>
+<body>
+  <main class="legal">
+    <header class="legal-head">
+      <button class="legal-back" type="button" aria-label="Go back"
+        onclick="if (history.length > 1 && document.referrer.indexOf(location.origin + '/') === 0) history.back(); else location.href = '/';">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1>Terms &amp; Conditions</h1>
+    </header>
+
+    <p class="legal-version" id="legal-version">Version 2026-10-28 · Last updated 28 October 2026</p>
+
+    <article class="legal-body">
+      <h2>1. Acceptance of Terms</h2>
+      <p>By accessing or using Fidus X, you agree to be bound by these Terms and Conditions. If you do not agree, please do not use the app.</p>
+
+      <h2>2. Services</h2>
+      <p>Fidus X is a platform that connects customers with independent artisans. We do not employ artisans directly and are not responsible for the quality of work performed. All service arrangements are between you and the artisan.</p>
+
+      <h2>3. User Accounts</h2>
+      <p>You are responsible for maintaining the security of your account credentials. You must be at least 18 years old to create an account. Accounts found to be fraudulent or abusive will be suspended.</p>
+      <p>Artisans must verify their identity and be approved by Fidus X before they can receive job requests or withdraw earnings.</p>
+
+      <h2>4. Payments &amp; Wallet</h2>
+      <p>You pay through your Fidus X wallet. You add money to it with Mobile Money or a card through our payment provider, Paystack. A top-up is added to your wallet only after Paystack confirms the payment.</p>
+      <ul>
+        <li><strong>Callout fee.</strong> When you request a visit, the callout fee shown before you confirm is taken from your wallet.</li>
+        <li><strong>Job price.</strong> After inspecting, the artisan sends you a quote. When you approve it, the quoted amount is taken from your wallet and held for the job.</li>
+        <li><strong>Release to the artisan.</strong> The held amount is released to the artisan when the job is completed. If a job is still unconfirmed 7 days after you paid, the amount is released to the artisan if the job was marked done, and otherwise refunded to you. Money for a job under dispute stays held until Fidus X resolves the dispute.</li>
+        <li><strong>Our commission.</strong> Fidus X keeps <span data-commission>15%</span> of each amount released to an artisan. You pay only the fees and the price shown in the app before you confirm.</li>
+        <li><strong>Refunds.</strong> A refund is credited to your Fidus X wallet as soon as it is decided.</li>
+        <li><strong>Withdrawals.</strong> You can withdraw your wallet balance to a Mobile Money number you have topped up from, after confirming with your security PIN. Withdrawals are sent through Paystack; how long they take to arrive depends on the Mobile Money provider.</li>
+      </ul>
+
+      <h2>5. Cancellations</h2>
+      <ul>
+        <li>If nobody accepts your request in time, it ends and anything you paid for it is refunded to your wallet.</li>
+        <li>If you cancel before the visit has taken place, your callout fee is refunded to your wallet. If you cancel after the artisan has inspected, the callout fee is paid to the artisan for the visit. An emergency request can be cancelled until the artisan sets out.</li>
+        <li>If the artisan cancels, your callout fee is refunded to your wallet.</li>
+        <li>After you have approved a quote, contact support to cancel; the held amount is settled when the problem is resolved.</li>
+      </ul>
+      <p>Fidus X charges no cancellation fee.</p>
+
+      <h2>6. Prohibited Conduct</h2>
+      <p>You may not use Fidus X for any unlawful purpose, harass artisans or other users, post false reviews, or attempt to circumvent our platform fee by dealing directly with artisans outside the app.</p>
+
+      <h2>7. Limitation of Liability</h2>
+      <p>Fidus X is not liable for any indirect, incidental, or consequential damages arising from your use of the platform. Our total liability shall not exceed the amount paid by you in the last 30 days.</p>
+
+      <h2>8. Changes to Terms</h2>
+      <p>We may update these terms at any time. The version and date at the top of this page change whenever the text does. Continued use of the app after changes are posted constitutes acceptance of the new terms.</p>
+
+      <h2>9. Contact</h2>
+      <p>For questions about these terms, or if something goes wrong with a booking or a payment, contact us at <a href="mailto:info.fidusx101@gmail.com">info.fidusx101@gmail.com</a>.</p>
+    </article>
+  </main>
+</body>
+</html>

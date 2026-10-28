@@ -221,9 +221,9 @@ async function resolveCustomerDestination(uid, { provider, phone }) {
 
 const ACCOUNT = {
     artisan:  { coll: 'artisans',  balance: 'availableBalance', trackWithdrawn: true,  prefix: 'AW',
-                reason: 'HandyHub Artisan Earnings',   notify: (...a) => sendArtisanNotification(...a), url: 'wallet.html' },
+                reason: 'Fidus X Artisan Earnings',    notify: (...a) => sendArtisanNotification(...a), url: 'wallet.html' },
     customer: { coll: 'customers', balance: 'walletBalance',    trackWithdrawn: false, prefix: 'WD',
-                reason: 'HandyHub Wallet Withdrawal',  notify: (...a) => sendNotification(...a),        url: 'transaction-history.html' },
+                reason: 'Fidus X Wallet Withdrawal',   notify: (...a) => sendNotification(...a),        url: 'transaction-history.html' },
 };
 
 /**

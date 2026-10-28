@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy | Fidus X</title>
+  <!--
+    THE Privacy Policy, for customers and artisans alike — in shared/ for the
+    reason given in terms.html (the artisan app's link reached the login page).
+    customer-app/settings-privacy-policy.html now forwards here.
+
+    It names what the apps actually collect, including the identity and payout
+    data artisans submit for verification, and who processes it. Change the
+    date below, and PRIVACY_VERSION in tests/legal-pages.test.cjs, with the text.
+
+    DEPLOY ORDER: section 3's first sentence is true only once the PL-04
+    privacy migration (adminMigrateArtisanPrivateData, mode 'strip') has taken
+    the legacy identity, payout and location fields off public artisan
+    profiles. Do not publish this page before that has run and been verified.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <script src="../js/utils/themeManager.js"></script>
+  <link rel="stylesheet" href="../css/ui-polish.css" />
+  <link rel="stylesheet" href="legal.css" />
+</head>
+<body>
+  <main class="legal">
+    <header class="legal-head">
+      <button class="legal-back" type="button" aria-label="Go back"
+        onclick="if (history.length > 1 && document.referrer.indexOf(location.origin + '/') === 0) history.back(); else location.href = '/';">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1>Privacy Policy</h1>
+    </header>
+
+    <p class="legal-version" id="legal-version">Version 2026-10-28 · Last updated 28 October 2026</p>
+
+    <article class="legal-body">
+      <h2>1. Information We Collect</h2>
+      <p>From everyone: the information you provide (name, email, phone, the addresses where you want work done), usage data (searches, bookings, messages), and device information (operating system, app version, and a notification token).</p>
+      <p>From artisans, to verify identity and pay earnings: Ghana Card number, date of birth, residential address, emergency contact, and the Mobile Money account earnings are paid to. While an artisan is available for work, the app also records their precise location so that nearby requests can be offered to them.</p>
+      <p>Payments: the amounts and references of top-ups and withdrawals, and the Mobile Money numbers you top up from or save, so that withdrawals can only go back to a number you have paid from. Card details are entered with Paystack and never reach Fidus X.</p>
+
+      <h2>2. How We Use Your Data</h2>
+      <p>Your data is used to match customers with artisans, verify artisans, process payments and withdrawals, send service notifications, provide support, and improve our platform. We do not sell your personal data.</p>
+
+      <h2>3. Data Sharing</h2>
+      <p>Artisans' identity, payout and precise location data are visible only to the artisan and to Fidus X administrators. Customers see an artisan's public profile and an approximate area, not their exact location.</p>
+      <p>When a booking goes ahead, we share with the artisan what the job needs: your name, the job address, and your phone number while the booking is active (from acceptance until the job is done).</p>
+      <p>We use service providers to run Fidus X: Google Firebase (accounts, data storage, notifications), Paystack (payments and withdrawals), Cloudinary (profile photos) and Google Maps (addresses and maps). They process data on our behalf and have their own privacy policies.</p>
+
+      <h2>4. Data Storage &amp; Security</h2>
+      <p>Data is stored on Google Firebase servers. We use encryption and access controls to protect your data. However, no system is completely secure and we cannot guarantee absolute security.</p>
+
+      <h2>5. Your Rights</h2>
+      <p>You may access, update, or delete your personal information at any time via the app. To request deletion of all your data, use the Delete Account option in Settings or email <a href="mailto:info.fidusx101@gmail.com">info.fidusx101@gmail.com</a>. An account cannot be deleted while it still holds a balance, money held for a job, or an active booking.</p>
+
+      <h2>6. Cookies &amp; Local Storage</h2>
+      <p>We use browser local storage to remember your preferences (language, currency, theme) and to show screens you have visited before quickly. No advertising cookies are used.</p>
+
+      <h2>7. Children's Privacy</h2>
+      <p>Fidus X is not intended for users under 18. We do not knowingly collect data from minors.</p>
+
+      <h2>8. Changes to This Policy</h2>
+      <p>We may update this policy periodically. The version and date at the top of this page change whenever the text does, and we will notify you of significant changes via the app.</p>
+
+      <h2>9. Contact</h2>
+      <p>Questions about privacy? Email <a href="mailto:info.fidusx101@gmail.com">info.fidusx101@gmail.com</a>.</p>
+    </article>
+  </main>
+</body>
+</html>
