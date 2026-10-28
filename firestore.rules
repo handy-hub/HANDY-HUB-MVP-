@@ -200,7 +200,8 @@ service cloud.firestore {
                       isSafeArtisanVerificationUpdate() &&
                       isSafeArtisanClaimUpdate() &&
                       isValidArtisanNotificationPrefs() &&
-                      isValidArtisanWorkRadius()
+                      isValidArtisanWorkRadius() &&
+                      isValidArtisanAvailability()
                     );
 
       allow delete: if isSuperAdmin();
@@ -562,6 +563,18 @@ service cloud.firestore {
       return !incoming().diff(existing()).affectedKeys().hasAny(['workRadius']) || (
                incoming().workRadius is number &&
                incoming().workRadius >= 1 && incoming().workRadius <= 100);
+    }
+
+    // Availability (isAvailable / isOnline) is the artisan's own switch, but it
+    // may be turned ON only by an artisan dispatch would actually use: approved
+    // and active (functions/dispatch.js filters on both). Turning it off is
+    // always allowed. Dispatch already ignored an ineligible artisan who set it,
+    // but customers saw them as "online" (customer-app nearbyPros). Approval and
+    // suspension change these fields server-side and bypass this rule.
+    function isValidArtisanAvailability() {
+      return !incoming().diff(existing()).affectedKeys().hasAny(['isAvailable', 'isOnline']) ||
+             (incoming().get('isAvailable', false) != true && incoming().get('isOnline', false) != true) ||
+             (existing().get('verificationStatus', '') == 'approved' && existing().get('status', '') == 'active');
     }
 
     // Customer payment accounts subcollection  (MoMo, etc.)

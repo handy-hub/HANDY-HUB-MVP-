@@ -238,7 +238,9 @@ export function createArtisanRepository({
                 rating:              data.rating              ?? 0,
                 reviewCount:         data.reviewCount         ?? 0,
                 jobsCompleted:       data.jobsCompleted       ?? 0,
-                isAvailable:         data.isAvailable         ?? true,
+                // Never assume "available": it is the artisan's explicit choice
+                // (shared/js/domain/availability.js), and dispatch reads it.
+                isAvailable:         data.isAvailable         ?? false,
                 commonSearchPhrases: data.commonSearchPhrases ?? [],
                 searchKeywords:      mergedKeywords,
                 updatedAt:           now()
@@ -291,8 +293,13 @@ export function createArtisanRepository({
         },
 
         /**
-         * Update the artisan's online presence and GPS coordinates.
+         * Update the artisan's presence timestamps and GPS coordinates.
          * Enforces database portability by wrapping Firestore updates.
+         *
+         * isOnline / isAvailable are written ONLY when passed. They are the
+         * artisan's explicit choice (shared/js/domain/availability.js); a
+         * heartbeat or a location update must never change them. They used to
+         * default to each other, so every presence write rewrote availability.
          */
         async updatePresenceAndLocation(artisanId, {
             isOnline,
@@ -301,16 +308,16 @@ export function createArtisanRepository({
             longitude,
             accuracy,
             source
-        }) {
+        } = {}) {
             const nowISO = now();
             const payload = {
-                isOnline: Boolean(isOnline),
-                isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : Boolean(isOnline),
                 lastActive: nowISO,
                 updatedAt: nowISO,
                 presenceUpdatedAt: nowISO,
                 lastHeartbeat: nowISO
             };
+            if (isOnline !== undefined)    payload.isOnline    = Boolean(isOnline);
+            if (isAvailable !== undefined) payload.isAvailable = Boolean(isAvailable);
 
             // Only update location fields if valid coordinate data is provided.
             //

@@ -54,8 +54,13 @@ async function main() {
   });
 
   await db.collection('artisans').doc(ARTISAN.uid).set({
+    // `id` and `name` are what firestore.rules isValidArtisanBase checks on every
+    // owner write (the real profile path, functions/artisanAccount.js, writes
+    // both). Without them each presence/availability write the artisan's own
+    // browser makes is refused, which reads like an app bug.
+    id: ARTISAN.uid, name: 'Kwame Mensah',
     uid: ARTISAN.uid, email: ARTISAN.email, fullName: 'Kwame Mensah',
-    userType: 'artisan',
+    userType: 'artisan', isAvailable: true,
     businessName: 'Mensah Plumbing & Electrical',
     phone: '+233209876543', specialty: 'Plumbing',
     verificationStatus: 'approved', status: 'active',

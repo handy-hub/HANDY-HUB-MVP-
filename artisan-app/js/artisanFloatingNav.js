@@ -140,15 +140,40 @@
     '</nav>';
 
   /* ── 5. Online toggle behaviour ───────────────────────────── */
+  // The toggle shows artisans/{uid}.isAvailable LIVE and changes it only through
+  // presenceService.setAvailability — the same path as the dashboard's status
+  // card — so the two controls can never disagree (audit FLOW-008). It used to
+  // read the profile once at load and write the field itself.
   var _toggling = false;
+  var _artisan  = null;   // the live profile, for the eligibility check
+  var _uid      = null;
 
-  function paintOnline(isOnline) {
+  function paintOnline(isOnline, label) {
     var btn = document.getElementById('hh-online-toggle');
     var lbl = document.getElementById('hh-online-label');
     if (!btn) return;
     btn.classList.toggle('is-online', !!isOnline);
-    if (lbl) lbl.textContent = isOnline ? 'Online' : 'Offline';
+    if (lbl) lbl.textContent = label || (isOnline ? 'Online' : 'Offline');
     btn.setAttribute('aria-pressed', String(!!isOnline));
+    btn.setAttribute('aria-label', isOnline ? 'You are online. Go offline' : 'You are offline. Go online');
+  }
+
+  function navToast(msg) {
+    if (typeof window.showToast === 'function') { window.showToast(msg); return; }
+    var t = document.getElementById('hh-fnav-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'hh-fnav-toast';
+      t.setAttribute('role', 'status');
+      t.style.cssText = 'position:fixed;left:16px;right:16px;bottom:96px;z-index:10001;margin:0 auto;max-width:420px;' +
+        'padding:12px 16px;border-radius:12px;background:#111827;color:#fff;font:500 14px/1.4 inherit;text-align:center;' +
+        'box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .2s;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._h);
+    t._h = setTimeout(function () { t.style.opacity = '0'; }, 3200);
   }
 
   function sharedRoot() {
@@ -171,42 +196,60 @@
         return;
       }
 
-      var mod = await import(sharedRoot() + '/js/app/container.js');
-      var c = mod.getAppContainer();
-      var user = await c.services.authService.waitForUser();
-      if (!user) { window.location.href = 'login.html'; return; }
-
-      var snap = await c.services.databaseService.getDocument('artisans', user.uid);
-      var next = !(snap && snap.data && snap.data.isAvailable);
-      // Optimistic paint, then persist (rules permit owner isAvailable update).
-      paintOnline(next);
-      var onlinePatch = { isAvailable: next, isOnline: next, updatedAt: new Date().toISOString() };
-      await c.services.databaseService.updateDocument('artisans', user.uid, onlinePatch);
-      // Keep the guard's cached verdict in step, so the next page paints it.
-      if (window._agPatchSession) window._agPatchSession(onlinePatch);
+      if (!_uid || !_artisan) { navToast('Your profile is still loading. Try again in a moment.'); return; }
+      var next = !(_artisan.isAvailable === true);
+      var presence = await import(sharedRoot() + '/js/services/presenceService.js');
+      paintOnline(next, next ? 'Locating…' : 'Saving…');
+      var res = await presence.setAvailability(_uid, next, { artisan: _artisan });
+      if (res && res.ok) {
+        navToast(res.queued ? "Saved on this phone — it reaches Fidus X when you're back online."
+          : (next ? "You're online. New jobs can reach you." : "You're offline. No new jobs will reach you."));
+      }
     } catch (err) {
-      console.warn('[artisanNav] online toggle failed:', err.message);
-      // Roll the paint back to the real state on failure.
-      refreshOnlineState();
+      console.warn('[artisanNav] online toggle failed:', err && err.message);
+      navToast((err && err.message) || 'Could not change your availability. Try again.');
     } finally {
       _toggling = false;
+      // Paint what is stored. Snapshots that arrived while saving updated
+      // _artisan but were not painted (so the label did not flicker); the
+      // save has settled, so the latest one is the confirmed state.
+      if (_artisan) paintOnline(_artisan.isAvailable === true);
     }
   }
 
+  /** Follow artisans/{uid} live: one source of truth for both availability controls. */
+  var _unsubAvail = null;
+  function stopOnlineState() {
+    if (_unsubAvail) { try { _unsubAvail(); } catch (_) {} }
+    _unsubAvail = null;
+  }
+  // When the state cannot be confirmed (listener failed, Firestore unreachable
+  // with nothing cached) the toggle must not keep claiming "Online".
+  function paintUnconfirmed() { paintOnline(false, "Can't check"); }
+
   function refreshOnlineState() {
+    stopOnlineState();   // never two listeners, however often this runs
     Promise.resolve()
       .then(function () { return import(sharedRoot() + '/js/app/container.js'); })
       .then(function (mod) {
         var c = mod.getAppContainer();
         return c.services.authService.waitForUser().then(function (user) {
           if (!user) return;
-          return c.services.databaseService.getDocument('artisans', user.uid)
-            .then(function (snap) { paintOnline(snap && snap.data && snap.data.isAvailable); });
+          _uid = user.uid;
+          stopOnlineState();
+          _unsubAvail = c.services.databaseService.subscribeToDocument('artisans', user.uid, function (snap) {
+            if (!snap || !snap.exists) { if (snap && snap.fromCache) paintUnconfirmed(); return; }
+            _artisan = snap.data;
+            if (!_toggling) paintOnline(snap.data.isAvailable === true);
+          }, function (err) {
+            console.warn('[artisanNav] availability listener:', err && err.message);
+            paintUnconfirmed();
+          });
         });
       })
-      .catch(function () {});
+      .catch(function () { paintUnconfirmed(); });
   }
-
+  window.hhRefreshOnlineState = refreshOnlineState;
   /* ── 6. Unread badge on the Jobs tab (new job requests) ───── */
   function refreshJobsBadge() {
     var el = document.getElementById('hh-fnav-jobs-badge');
@@ -229,6 +272,10 @@
 
     refreshJobsBadge();
     refreshOnlineState();
+    // Leaving the page drops the listener; a page restored from the browser's
+    // back/forward cache does not re-run this script, so it subscribes again.
+    window.addEventListener('pagehide', stopOnlineState);
+    window.addEventListener('pageshow', function (e) { if (e.persisted) refreshOnlineState(); });
   }
 
   injectCSS();

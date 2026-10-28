@@ -443,6 +443,48 @@ await it('customer cannot clear the reminder flag to farm notifications', async 
     }));
 });
 
+// ── Availability (audit FLOW-001/002, 2026-10-28) ────────────────────────────
+// isAvailable/isOnline are the artisan's own switch; presence heartbeats no
+// longer write them. Only an approved, active artisan may switch them ON.
+console.log('\nARTISAN AVAILABILITY\n');
+
+const AV_OK = 'artisan_av_ok', AV_PENDING = 'artisan_av_pending', AV_SUSP = 'artisan_av_susp';
+await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    const base = (id, extra) => ({ id, uid: id, name: 'Av ' + id, email: id + '@example.com', userType: 'artisan',
+                                   isAvailable: false, isOnline: false, rating: 0, reviewCount: 0, ...extra });
+    await setDoc(doc(db, 'artisans', AV_OK),      base(AV_OK,      { status: 'active',    verificationStatus: 'approved' }));
+    await setDoc(doc(db, 'artisans', AV_PENDING), base(AV_PENDING, { status: 'pending',   verificationStatus: 'pending_review' }));
+    await setDoc(doc(db, 'artisans', AV_SUSP),    base(AV_SUSP,    { status: 'suspended', verificationStatus: 'approved' }));
+});
+const avOk = testEnv.authenticatedContext(AV_OK).firestore();
+const avPending = testEnv.authenticatedContext(AV_PENDING).firestore();
+const avSusp = testEnv.authenticatedContext(AV_SUSP).firestore();
+const avNow = () => new Date().toISOString();
+
+await it('an approved, active artisan can go online', async () => {
+    await assertSucceeds(updateDoc(doc(avOk, 'artisans', AV_OK), { isAvailable: true, isOnline: true, updatedAt: avNow() }));
+});
+await it('the same artisan can go offline again', async () => {
+    await assertSucceeds(updateDoc(doc(avOk, 'artisans', AV_OK), { isAvailable: false, isOnline: false, updatedAt: avNow() }));
+});
+await it('an artisan under review can NOT go online', async () => {
+    await assertFails(updateDoc(doc(avPending, 'artisans', AV_PENDING), { isAvailable: true, isOnline: true, updatedAt: avNow() }));
+});
+await it('...nor show as online through isOnline alone', async () => {
+    await assertFails(updateDoc(doc(avPending, 'artisans', AV_PENDING), { isOnline: true, updatedAt: avNow() }));
+});
+await it('a suspended artisan can NOT go online', async () => {
+    await assertFails(updateDoc(doc(avSusp, 'artisans', AV_SUSP), { isAvailable: true, isOnline: true, updatedAt: avNow() }));
+});
+await it('an ineligible artisan can still switch OFF', async () => {
+    await assertSucceeds(updateDoc(doc(avPending, 'artisans', AV_PENDING), { isAvailable: false, isOnline: false, updatedAt: avNow() }));
+});
+await it('a presence heartbeat (timestamps only) needs no eligibility', async () => {
+    const n = avNow();
+    await assertSucceeds(updateDoc(doc(avPending, 'artisans', AV_PENDING), { lastHeartbeat: n, presenceUpdatedAt: n, lastActive: n, updatedAt: n }));
+});
+
 // ── Push token (AR-04, 2026-10-20) ───────────────────────────────────────────
 // pushNotificationService saves the device token with its platform, which picks
 // the message shape the server sends. If the rules refused this write, push

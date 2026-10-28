@@ -1,29 +1,39 @@
 /**
- * presenceService.js — Artisan realtime presence & GPS location management
+ * presenceService.js — artisan presence, GPS location, and the explicit
+ * availability switch.
  *
- * Responsibilities:
- *  1. Online/Offline toggle -> requests GPS and updates location fields
- *  2. Heartbeat every 30 s -> updates lastHeartbeat + presenceUpdatedAt
- *  3. watchPosition tracking -> watches movement, writes coordinate updates
- *  4. Throttling -> only writes location if moved > 15m OR > 5 mins elapsed
- *  5. Self-Healing -> detects device sleep (gap > 45s) and restarts tracking
- *  6. Visibility/Network change -> toggles online/offline automatically
- *  7. pagehide/beforeunload -> synchronously marks offline to prevent stale listings
+ * Availability (isAvailable / isOnline) is the artisan's CHOICE and changes in
+ * exactly one place: setAvailability(), called from a "Go Online" / "Go Offline"
+ * control. Nothing else in this file writes it. See shared/js/domain/availability.js
+ * for why: page lifecycle used to write it, so leaving the dashboard took the
+ * artisan out of dispatch and opening it put them back (audit FLOW-001/002).
  *
- * Usage (in artisan pages that need presence):
- *   import { startPresence, stopPresence } from '../shared/js/services/presenceService.js';
+ * What presence does do:
+ *  1. Heartbeat every 30 s while the page is visible and the artisan is
+ *     available → lastHeartbeat / presenceUpdatedAt / lastActive.
+ *  2. watchPosition while available (dispatch distance) or while a job is
+ *     en_route / in_progress (the customer's live map) → location writes,
+ *     throttled to > 15 m moved or > 5 min elapsed.
+ *  3. Pauses GPS when the tab is hidden, the network drops or the page unloads,
+ *     and resumes it when they come back. None of these change availability.
  *
- *   // After auth:
- *   startPresence(uid, databaseService, storedOnline, {
- *      onLocationError: (err) => showToast(err.message),
- *      onLocationSuccess: (coords) => console.log(coords)
+ * Usage (artisan pages that track location):
+ *   import { startPresence, stopPresence, syncAvailability, setAvailability }
+ *     from '../shared/js/services/presenceService.js';
+ *   startPresence(uid, databaseService, artisan.isAvailable === true, {
+ *     onLocationError: (err) => showToast(err.message),
  *   });
+ *   // on every live artisans/{uid} snapshot:
+ *   syncAvailability(snap.data.isAvailable === true);
+ *   // on a Go Online / Go Offline tap:
+ *   await setAvailability(uid, true, { artisan });
  */
 
 'use strict';
 
 import { getAppContainer } from '../app/container.js';
 import { getHaversineDistanceKm } from '../utils/geo.js';
+import { availabilityBlocker, createAvailabilityQueue } from '../domain/availability.js';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const GEOLOCATION_OPTIONS = {
@@ -38,7 +48,7 @@ const MAX_ACCURACY_THRESHOLD_METERS = 100;
 let _uid               = null;
 let _watchId           = null;
 let _heartbeatTimer    = null;
-let _isOnline          = false;
+let _available         = false;  // the artisan's stored choice, as last confirmed
 let _started           = false;
 let _lastWrittenCoords = null; // { latitude, longitude, accuracy, timestamp }
 let _lastHeartbeatTime = Date.now();
@@ -68,6 +78,7 @@ function _watchActiveJobs(databaseService) {
                 _activeJobIds = next;
                 // A job that just started gets the last known fix at once.
                 if (added.length && _lastWrittenCoords) _writeLive(_lastWrittenCoords, added);
+                _retrack();
             },
             (err) => console.warn('[presenceService] active-jobs subscription failed:', err?.message || err)
         );
@@ -88,27 +99,48 @@ async function _writeLive(coords, ids = _activeJobIds) {
     }).catch((err) => console.warn('[presenceService] live position write failed:', err?.message || err))));
 }
 
-/** Write presence and optional coordinates using the repository layer. */
-async function _writePresence(online, coords = null) {
-    if (!_uid) return;
-    if (online && coords) _writeLive(coords);
+/**
+ * Write a new position: to the customer's live map for active jobs, and — only
+ * while the artisan is available — to their profile location for dispatch.
+ * Never writes isAvailable / isOnline.
+ */
+async function _writeLocation(coords) {
+    if (!_uid || !coords) return;
+    _writeLive(coords);
+    if (!_available) return;
     try {
         const { repositories: { artisanRepository } } = getAppContainer();
         await artisanRepository.updatePresenceAndLocation(_uid, {
-            isOnline: online,
-            isAvailable: online,
-            latitude: coords ? coords.latitude : null,
-            longitude: coords ? coords.longitude : null,
-            accuracy: coords ? coords.accuracy : null,
-            source: coords ? 'browser_gps' : null
+            latitude:  coords.latitude,
+            longitude: coords.longitude,
+            accuracy:  coords.accuracy,
+            source:    'browser_gps',
         });
     } catch (err) {
-        console.warn('[presenceService] write failed:', err?.message || err);
+        console.warn('[presenceService] location write failed:', err?.message || err);
     }
 }
 
-/** Obtain current GPS coordinates wrapped in a Promise. */
+/** Resolve with `fallback()` if `promise` has not settled within `ms`. */
+function _within(promise, ms, fallback) {
+    let timer;
+    const guard = new Promise((resolve, reject) => {
+        timer = setTimeout(() => { try { resolve(fallback()); } catch (e) { reject(e); } }, ms);
+    });
+    return Promise.race([promise, guard]).finally(() => clearTimeout(timer));
+}
+
+const GPS_GUARD_MS   = 12_000;   // getCurrentPosition's own timeout does not always fire
+const WRITE_GUARD_MS = 15_000;   // a write is acknowledged only once Firestore is connected
+
+/** Obtain current GPS coordinates wrapped in a Promise. Always settles. */
 function _getCurrentPosition() {
+    return _within(_rawPosition(), GPS_GUARD_MS, () => {
+        throw new Error('Location retrieval timed out. Please try again or move to an open space.');
+    });
+}
+
+function _rawPosition() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
             reject(new Error("Geolocation is not supported by this browser."));
@@ -142,58 +174,51 @@ function _getCurrentPosition() {
     });
 }
 
+const _toCoords = (position) => ({
+    latitude:  position.coords.latitude,
+    longitude: position.coords.longitude,
+    accuracy:  position.coords.accuracy,
+    timestamp: Date.now(),
+});
+
 /** Handle background position updates and apply write throttling. */
 async function _handlePositionUpdate(position) {
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
     const accuracy = position.coords.accuracy;
-
     if (accuracy > MAX_ACCURACY_THRESHOLD_METERS) {
         console.warn(`[presenceService] Ignored position update due to low accuracy: ${accuracy}m`);
         return;
     }
 
-    if (!_lastWrittenCoords) {
-        _lastWrittenCoords = { latitude: lat, longitude: lng, accuracy, timestamp: Date.now() };
-        await _writePresence(true, _lastWrittenCoords);
-        if (typeof _options.onLocationSuccess === 'function') {
-            _options.onLocationSuccess(_lastWrittenCoords);
-        }
-        return;
+    if (_lastWrittenCoords) {
+        const distanceKm = getHaversineDistanceKm(
+            _lastWrittenCoords.latitude, _lastWrittenCoords.longitude,
+            position.coords.latitude, position.coords.longitude
+        );
+        const distanceM = distanceKm !== null ? distanceKm * 1000 : 0;
+        const timeElapsedMs = Date.now() - _lastWrittenCoords.timestamp;
+        if (distanceM <= MIN_DISTANCE_THRESHOLD_METERS && timeElapsedMs <= MAX_TIME_THRESHOLD_MS) return;
     }
 
-    const distanceKm = getHaversineDistanceKm(
-        _lastWrittenCoords.latitude,
-        _lastWrittenCoords.longitude,
-        lat,
-        lng
-    );
-    const distanceM = distanceKm !== null ? distanceKm * 1000 : 0;
-    const timeElapsedMs = Date.now() - _lastWrittenCoords.timestamp;
-
-    if (distanceM > MIN_DISTANCE_THRESHOLD_METERS || timeElapsedMs > MAX_TIME_THRESHOLD_MS) {
-        console.log(`[presenceService] Location updated: moved ${distanceM.toFixed(1)}m, elapsed ${(timeElapsedMs/1000).toFixed(0)}s`);
-        _lastWrittenCoords = { latitude: lat, longitude: lng, accuracy, timestamp: Date.now() };
-        await _writePresence(true, _lastWrittenCoords);
-        if (typeof _options.onLocationSuccess === 'function') {
-            _options.onLocationSuccess(_lastWrittenCoords);
-        }
+    _lastWrittenCoords = _toCoords(position);
+    await _writeLocation(_lastWrittenCoords);
+    if (typeof _options.onLocationSuccess === 'function') {
+        _options.onLocationSuccess(_lastWrittenCoords);
     }
 }
 
 /** Start tracking coordinates with watchPosition. */
 function _startWatcher() {
-    _stopWatcher();
-    if (!navigator.geolocation) return;
-
+    if (_watchId !== null || !navigator.geolocation) return;
     _watchId = navigator.geolocation.watchPosition(
-        (position) => {
-            _handlePositionUpdate(position);
-        },
+        (position) => { _handlePositionUpdate(position); },
         (error) => {
             console.warn('[presenceService] watchPosition error:', error.message);
             if (error.code === error.PERMISSION_DENIED) {
-                _handleWatchFailure("Location permission revoked. Going offline.");
+                _stopWatcher();
+                if (typeof _options.onLocationError === 'function') {
+                    _options.onLocationError(new Error(
+                        'Location access was turned off. Jobs are matched to your last known location until you allow it again.'));
+                }
             }
         },
         GEOLOCATION_OPTIONS
@@ -206,63 +231,51 @@ function _stopWatcher() {
         navigator.geolocation.clearWatch(_watchId);
         _watchId = null;
     }
-    _lastWrittenCoords = null;
 }
 
-/** Handle terminal failures from the GPS watch task. */
-async function _handleWatchFailure(message) {
-    _isOnline = false;
-    _stopWatcher();
-    await _writePresence(false);
-    if (typeof _options.onLocationError === 'function') {
-        _options.onLocationError(new Error(message));
-    }
+/** Whether GPS should be running now: someone needs the position and we can send it. */
+function _shouldTrack() {
+    if (!_started || !_uid) return false;
+    if (typeof document !== 'undefined' && document.hidden) return false;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+    return _available || _activeJobIds.length > 0;
 }
 
-/** Pulse a heartbeat to prevent the document from showing stale. */
+/** Start or stop the watcher to match _shouldTrack(). Writes nothing by itself. */
+function _retrack() {
+    if (_shouldTrack()) _startWatcher();
+    else _stopWatcher();
+}
+
+/** Refresh the presence timestamps. Never writes availability. */
 async function _heartbeat() {
-    if (!_isOnline || !_uid) return;
+    if (!_available || !_uid) return;
+    if (typeof document !== 'undefined' && document.hidden) return;
 
-    // Detect sleep recovery
+    // Detect sleep recovery: the watcher may have died with the device.
     const nowTime = Date.now();
     const gap = nowTime - _lastHeartbeatTime;
     _lastHeartbeatTime = nowTime;
-
     if (gap > 45000) {
-        console.log('[presenceService] Sleep recovery detected. Re-acquiring location...');
-        _recoverLocationState();
-        return;
+        console.log('[presenceService] Sleep recovery detected. Restarting location tracking.');
+        _stopWatcher();
+        _retrack();
     }
 
     try {
         const { repositories: { artisanRepository } } = getAppContainer();
-        // Fire-and-forget update document timestamps
-        await artisanRepository.updatePresenceAndLocation(_uid, {
-            isOnline: true,
-            isAvailable: true
-        });
+        await artisanRepository.updatePresenceAndLocation(_uid, {});
     } catch (err) {
         console.warn('[presenceService] Heartbeat failed:', err?.message || err);
     }
 }
 
-/** Recover Geolocation watcher after sleep or connection drop. */
-async function _recoverLocationState() {
-    if (!_isOnline) return;
-    try {
-        const position = await _getCurrentPosition();
-        _lastWrittenCoords = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: Date.now()
-        };
-        await _writePresence(true, _lastWrittenCoords);
-        _startWatcher();
-    } catch (err) {
-        _handleWatchFailure(err.message);
-    }
-}
+// Lifecycle: pause or resume GPS. Availability is NOT touched — a hidden tab,
+// a dropped connection or a page navigation is not the artisan going offline.
+function _onVisibilityChange() { _retrack(); if (!document.hidden) _heartbeat(); }
+function _onNetworkOffline()   { _retrack(); }
+function _onNetworkOnline()    { _retrack(); _heartbeat(); }
+function _onPageHide()         { _stopWatcher(); }
 
 /** Tear down all presence schedules and listeners. */
 function stopPresence() {
@@ -273,155 +286,108 @@ function stopPresence() {
     document.removeEventListener('visibilitychange', _onVisibilityChange);
     window.removeEventListener('online',  _onNetworkOnline);
     window.removeEventListener('offline', _onNetworkOffline);
-    window.removeEventListener('pagehide',     _onPageHide);
-    window.removeEventListener('beforeunload', _onBeforeUnload);
+    window.removeEventListener('pagehide', _onPageHide);
     _started = false;
 }
 
-/** Handle Visibility change (offline in bg, online in fg). */
-async function _onVisibilityChange() {
-    if (document.hidden) {
-        _isOnline = false;
-        _stopWatcher();
-        await _writePresence(false);
-        if (typeof _options.onStatusChange === 'function') {
-            _options.onStatusChange(false);
-        }
-    } else {
-        _isOnline = true;
-        if (typeof _options.onStatusChange === 'function') {
-            _options.onStatusChange(true);
-        }
-        try {
-            const position = await _getCurrentPosition();
-            _lastWrittenCoords = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                accuracy: position.coords.accuracy,
-                timestamp: Date.now()
-            };
-            await _writePresence(true, _lastWrittenCoords);
-            _startWatcher();
-        } catch (err) {
-            _handleWatchFailure(err.message);
-        }
-    }
-}
-
-/** Handle network offline. */
-async function _onNetworkOffline() {
-    _isOnline = false;
-    _stopWatcher();
-    await _writePresence(false);
-    if (typeof _options.onStatusChange === 'function') {
-        _options.onStatusChange(false);
-    }
-}
-
-/** Handle network online. */
-async function _onNetworkOnline() {
-    if (document.hidden) return;
-    _isOnline = true;
-    if (typeof _options.onStatusChange === 'function') {
-        _options.onStatusChange(true);
-    }
-    try {
-        const position = await _getCurrentPosition();
-        _lastWrittenCoords = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: Date.now()
-        };
-        await _writePresence(true, _lastWrittenCoords);
-        _startWatcher();
-    } catch (err) {
-        _handleWatchFailure(err.message);
-    }
-}
-
-/** Synchronous pagehide offline trigger. */
-function _onPageHide() {
-    _isOnline = false;
-    _stopWatcher();
-    _writePresence(false);
-}
-
-/** Synchronous beforeunload offline trigger. */
-function _onBeforeUnload() {
-    _isOnline = false;
-    _stopWatcher();
-    _writePresence(false);
-}
-
-/** Start presence tracker for logged-in artisan. */
-async function startPresence(uid, databaseService, initialOnline = true, options = {}) {
+/**
+ * Start presence for a signed-in artisan.
+ * @param {string}  uid
+ * @param {object}  databaseService
+ * @param {boolean} available  the artisan's STORED choice (artisans/{uid}.isAvailable === true)
+ * @param {object}  options    { onLocationError, onLocationSuccess }
+ */
+function startPresence(uid, databaseService, available = false, options = {}) {
     if (_started) stopPresence();
 
     _uid               = uid;
-    _isOnline          = initialOnline && navigator.onLine;
+    _available         = !!available;
     _options           = options;
     _started           = true;
     _lastHeartbeatTime = Date.now();
+    _lastWrittenCoords = null;
 
     _watchActiveJobs(databaseService);
 
-    // Setup heartbeat and listeners
     _heartbeatTimer = setInterval(_heartbeat, HEARTBEAT_INTERVAL_MS);
     document.addEventListener('visibilitychange', _onVisibilityChange);
     window.addEventListener('online',  _onNetworkOnline);
     window.addEventListener('offline', _onNetworkOffline);
-    window.addEventListener('pagehide',     _onPageHide);
-    window.addEventListener('beforeunload', _onBeforeUnload);
+    window.addEventListener('pagehide', _onPageHide);
 
-    if (_isOnline) {
-        try {
-            const position = await _getCurrentPosition();
-            _lastWrittenCoords = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                accuracy: position.coords.accuracy,
-                timestamp: Date.now()
-            };
-            await _writePresence(true, _lastWrittenCoords);
-            _startWatcher();
-            if (typeof _options.onLocationSuccess === 'function') {
-                _options.onLocationSuccess(_lastWrittenCoords);
-            }
-        } catch (err) {
-            _handleWatchFailure(err.message);
-        }
-    } else {
-        await _writePresence(false);
-        _stopWatcher();
-    }
+    _retrack();
+    _heartbeat();
 }
 
-/** Manually trigger online/offline change. */
+/**
+ * Tell presence the stored choice changed (a live snapshot, another tab, an
+ * admin suspension). Adjusts GPS tracking; writes nothing.
+ */
+function syncAvailability(available) {
+    _available = !!available;
+    _retrack();
+}
+
+// ── The explicit switch ───────────────────────────────────────────────────────
+const _queue = createAvailabilityQueue({
+    acquirePosition: async () => _toCoords(await _getCurrentPosition()),
+    write: async (available, coords) => {
+        const uid = _pendingUid;
+        if (!uid) throw new Error('Not signed in.');
+        const { repositories: { artisanRepository } } = getAppContainer();
+        // The write is applied locally at once; its promise settles only when the
+        // server acknowledges it. Offline or reconnecting, that can take minutes,
+        // so after WRITE_GUARD_MS the change is reported as saved-and-queued
+        // instead of leaving the switch spinning. A rejection still surfaces.
+        const ack = artisanRepository.updatePresenceAndLocation(uid, {
+            isOnline:    available,
+            isAvailable: available,
+            ...(coords ? { latitude: coords.latitude, longitude: coords.longitude,
+                           accuracy: coords.accuracy, source: 'browser_gps' } : {}),
+        });
+        const confirmed = await _within(ack.then(() => true), WRITE_GUARD_MS, () => false);
+        ack.catch((err) => console.warn('[presenceService] availability write failed:', err?.message || err));
+        if (uid === _uid) {
+            _available = available;
+            if (coords) { _lastWrittenCoords = coords; _writeLive(coords); }
+            _retrack();
+        }
+        // Keep the guard's cached verdict in step, so the next page paints it.
+        try { window._agPatchSession?.({ isAvailable: available, isOnline: available }); } catch (_) {}
+        return { queued: !confirmed };
+    },
+});
+let _pendingUid = null;
+
+/**
+ * The artisan's explicit Go Online / Go Offline. Going online needs a GPS fix
+ * and an eligible account; going offline always goes through. Requests are
+ * serialised and the last one wins (see createAvailabilityQueue).
+ *
+ * Works on any page — presence need not be started.
+ *
+ * @param {string}  uid
+ * @param {boolean} available
+ * @param {{ artisan?: object }} [opts]  the live profile, for the eligibility check
+ * @returns {Promise<{ ok: boolean, superseded: boolean, available: boolean }>}
+ *          rejects with a user-facing Error when it could not be saved
+ */
+async function setAvailability(uid, available, { artisan } = {}) {
+    if (!uid) throw new Error('Not signed in.');
+    if (available && artisan !== undefined) {
+        const blocker = availabilityBlocker(artisan);
+        if (blocker) throw Object.assign(new Error(blocker.message), { reason: blocker.reason });
+    }
+    _pendingUid = uid;
+    return _queue.request(!!available);
+}
+
+/** Whether an availability change is still being saved. */
+function availabilityPending() { return _queue.busy; }
+
+/** @deprecated use setAvailability(uid, online, { artisan }). */
 async function setOnlineState(online) {
-    _isOnline = online;
-    if (online) {
-        try {
-            const position = await _getCurrentPosition();
-            _lastWrittenCoords = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                accuracy: position.coords.accuracy,
-                timestamp: Date.now()
-            };
-            await _writePresence(true, _lastWrittenCoords);
-            _startWatcher();
-            return _lastWrittenCoords;
-        } catch (err) {
-            _isOnline = false;
-            await _writePresence(false);
-            _stopWatcher();
-            throw err;
-        }
-    } else {
-        _stopWatcher();
-        await _writePresence(false);
-    }
+    return setAvailability(_uid, online);
 }
 
-export { startPresence, stopPresence, setOnlineState };
+export { startPresence, stopPresence, syncAvailability, setAvailability, availabilityPending, setOnlineState };

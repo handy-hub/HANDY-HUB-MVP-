@@ -228,10 +228,29 @@ await it('a customer can still query artisans by category (browse)', async () =>
 await it('an unauthenticated visitor still cannot read public profiles (unchanged)', async () => {
     await assertFails(getDoc(pubA(anon)));
 });
-await it('the artisan can still toggle availability and update their bio', async () => {
+await it('the artisan can still update their bio', async () => {
     await assertSucceeds(updateDoc(pubA(artisanA), {
-        isAvailable: true, bio: 'Licensed plumber', updatedAt: new Date().toISOString(),
+        bio: 'Licensed plumber', updatedAt: new Date().toISOString(),
     }));
+});
+// Availability may be switched ON only by an approved, active artisan
+// (firestore.rules isValidArtisanAvailability, audit FLOW-001/002); OFF always.
+await it('an artisan not yet approved can NOT switch availability on', async () => {
+    await assertFails(updateDoc(pubA(artisanA), { isAvailable: true, updatedAt: new Date().toISOString() }));
+});
+await it('...but can always switch it off', async () => {
+    await assertSucceeds(updateDoc(pubA(artisanA), { isAvailable: false, isOnline: false, updatedAt: new Date().toISOString() }));
+});
+await it('once approved and active, the artisan can still toggle availability', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(doc(ctx.firestore(), 'artisans', ARTISAN_A), { status: 'active', verificationStatus: 'approved' });
+    });
+    await assertSucceeds(updateDoc(pubA(artisanA), { isAvailable: true, isOnline: true, updatedAt: new Date().toISOString() }));
+    await assertSucceeds(updateDoc(pubA(artisanA), { isAvailable: false, isOnline: false, updatedAt: new Date().toISOString() }));
+    // Back to the sign-up state the cases below expect.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(doc(ctx.firestore(), 'artisans', ARTISAN_A), signupProfile(ARTISAN_A));
+    });
 });
 await it('the artisan can still publish their presence location (coarse, AR-03)', async () => {
     // The precise fix goes to private/location; the public profile gets ~1 km
@@ -247,7 +266,7 @@ await it('a legacy profile still holding KYC fields does not block unrelated edi
         await updateDoc(doc(ctx.firestore(), 'artisans', ARTISAN_B), { ghanaCardNumber: 'GHA-LEGACY-0' });
     });
     await assertSucceeds(updateDoc(doc(artisanB.firestore(), 'artisans', ARTISAN_B), {
-        isAvailable: true, updatedAt: new Date().toISOString(),
+        bio: 'Still editable with legacy KYC fields present', updatedAt: new Date().toISOString(),
     }));
 });
 await it('the onboarding private write (exact shape) is accepted', async () => {
