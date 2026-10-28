@@ -33,7 +33,7 @@
       </div>
 
       <p class="section-label">Contact Us</p>
-      <a href="mailto:support@handyhub.com" class="contact-card" style="text-decoration:none;">
+      <a href="mailto:info.fidusx101@gmail.com" id="support-email-card" class="contact-card" style="text-decoration:none;">
         <div class="contact-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M4 4h16v16H4z" stroke="none"/>
@@ -43,7 +43,7 @@
         </div>
         <div class="contact-info">
           <p>Email Support</p>
-          <p>support@handyhub.com</p>
+          <p id="support-email-text">info.fidusx101@gmail.com</p>
         </div>
       </a>
 
@@ -112,6 +112,14 @@
 <script src="../shared/js/components/fastLoader.js"></script>
 <script type="module">
   import { requireAuth } from '../shared/js/utils/authGuard.js';
+  import { SUPPORT_CONTACTS } from '../shared/js/config/supportConfig.js';
+  // The one place support contacts are configured (shared/js/config/supportConfig.js).
+  if (SUPPORT_CONTACTS.email) {
+    document.getElementById('support-email-card').href = 'mailto:' + SUPPORT_CONTACTS.email;
+    document.getElementById('support-email-text').textContent = SUPPORT_CONTACTS.email;
+  } else {
+    document.getElementById('support-email-card').hidden = true;
+  }
   await requireAuth();
 </script>
 </body>

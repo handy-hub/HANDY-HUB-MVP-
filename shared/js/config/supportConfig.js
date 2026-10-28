@@ -8,6 +8,8 @@
  * uses, and promised "Mon–Fri, 8am–6pm" and "under 2 hours" with no process
  * behind either.
  *
+ * email: confirmed by the owner on 2026-10-23.
+ *
  * Fill a value ONLY with a channel the owner has confirmed is staffed. Each
  * card appears on the support pages only when its value is set; until then the
  * in-app request (support_tickets, answered from admin-dashboard/support.html)
@@ -19,7 +21,7 @@
  *   hours      'Mon–Fri, 8am–6pm GMT'  (only if those hours are actually staffed)
  */
 export const SUPPORT_CONTACTS = Object.freeze({
-    email:    null,
+    email:    'info.fidusx101@gmail.com',
     phone:    null,
     whatsapp: null,
     hours:    null,

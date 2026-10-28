@@ -444,7 +444,8 @@ await t('the support page saves the request BEFORE acknowledging it, and promise
     }
     assert.match(sp, /SUPPORT_CONTACTS/);
     const cfg = read('shared/js/config/supportConfig.js');
-    assert.match(cfg, /email:\s+null/);
+    // The email was confirmed by the owner on 2026-10-23; the rest still are not.
+    assert.match(cfg, /email:\s+'info\.fidusx101@gmail\.com'/);
     assert.match(cfg, /phone:\s+null/);
     assert.match(cfg, /whatsapp:\s+null/);
 });
