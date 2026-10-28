@@ -79,10 +79,12 @@
     <!-- ── Wallet Card ────────────────────────────────── -->
     <div class="wallet-card">
       <div>
-        <p class="wallet-label">Wallet Balance</p>
+        <p class="wallet-label">Wallet Balance <span id="wallet-fresh" class="wallet-fresh" hidden>· Updating…</span></p>
         <p class="wallet-balance">
           <span class="currency">GHS</span>
-          <span id="wallet-amount">0.00</span>
+          <!-- "—" until a figure is known: a placeholder of 0.00 read as a real
+               zero balance on every slow load (audit PERF-001). -->
+          <span id="wallet-amount">—</span>
         </p>
         <p class="wallet-pending">Pending release: <span id="pending-amount">GHS —</span></p>
       </div>
@@ -304,7 +306,11 @@
 import '../shared/js/utils/global-app.js';
 import { getAppContainer }                             from '../shared/js/app/container.js';
 import { createWalletRepository }                      from '../shared/js/data/repositories/walletRepository.js';
-import { startPresence, stopPresence, setOnlineState } from '../shared/js/services/presenceService.js';
+import { startPresence, stopPresence, syncAvailability, setAvailability, availabilityPending }
+                                                       from '../shared/js/services/presenceService.js';
+import { availabilityBlocker, storedAvailability }     from '../shared/js/domain/availability.js';
+import { mountInstantView }                            from '../shared/js/services/instantView.js';
+import { responseRatePercent }                         from '../shared/js/domain/performanceMetrics.js';
 import { subscribeToUnreadCount }                      from '../shared/js/services/notificationRepository.js';
 import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 import { isArtisanDevAccessEnabled } from '../shared/js/config/devAccess.js';
@@ -346,6 +352,17 @@ let uid           = null;
 // reason to go online.
 let isOnline      = null;
 let unsubs        = [];
+// Whether _currentArtisan came from a live server answer. Anything that sends
+// the artisan to onboarding requires one (audit FLOW-004): a cached or missing
+// profile is "not known", never "needs verification".
+let _profileLive      = false;
+let _cardSaving       = false;   // the status card's own availability save is in flight
+let _profileFromCache = false;
+const NEEDS_ONBOARDING = ['', 'draft', 'rejected', 're_verification_required'];
+function onboardingWarranted() {
+  return _profileLive && !!_currentArtisan &&
+         NEEDS_ONBOARDING.includes(String(_currentArtisan.verificationStatus || '').toLowerCase());
+}
 
 // ── DOM ────────────────────────────────────────────────
 const profileName     = document.getElementById('profile-name');
@@ -399,7 +416,8 @@ function applyProfile(data) {
   const photo    = resolveAvatar(data, TRANSFORMS.avatarLg);
   const jobs     = data.jobsCompleted  || 0;
   const rating   = data.rating         || 0;
-  const response = data.responseRate   ? data.responseRate + '%' : '—';
+  const ratePct  = responseRatePercent(data);
+  const response = ratePct === null ? '—' : ratePct + '%';
   const level    = getLevel(jobs);
 
   profileName.textContent     = name;
@@ -407,14 +425,15 @@ function applyProfile(data) {
   profileLocation.textContent = location;
   if (profileAvatar.src !== photo) profileAvatar.src = photo;
 
-  // Verified
-  if (data.verificationStatus === 'approved') {
-    verifiedBadge.style.display = 'inline-flex';
-  }
-
-  // KYC banner — show for every non-approved state
+  // Verified badge and KYC banner follow EVERY render, both ways: a cached
+  // pre-approval snapshot must not leave "Verification Pending" on screen after
+  // the live profile says approved, nor a badge after a revocation.
   const kycStatus  = (data.verificationStatus || '').toLowerCase();
   const isApproved = kycStatus === 'approved';
+  verifiedBadge.style.display = isApproved ? 'inline-flex' : 'none';
+  if (isApproved) kycBanner.style.display = 'none';
+
+  // KYC banner — show for every non-approved state
   if (!isApproved) {
     kycBanner.style.display = 'flex';
     const kycTitle = kycBanner.querySelector('.kyc-title');
@@ -432,9 +451,13 @@ function applyProfile(data) {
     // Default (draft / no KYC yet): shows "Verification Pending" + "Complete" button
   }
 
-  // Online status — non-approved artisans are always shown as offline and locked
-  isOnline = isApproved ? (data.isAvailable !== false) : false;
-  updateStatusUI(isOnline);
+  // Online status — the artisan's stored choice. Non-approved artisans are always
+  // shown as offline and locked. While a change is being saved the card keeps
+  // showing "Saving…" rather than flickering between the two states.
+  isOnline = isApproved ? storedAvailability(data) : false;
+  // Only THIS card's own save holds the paint; a change made from the nav (or
+  // another tab) must show here as soon as its snapshot arrives.
+  if (!_cardSaving) updateStatusUI(isOnline);
   if (!isApproved) {
     toggleBtn.textContent        = 'KYC Required';
     toggleBtn.style.background   = '#E5E7EB';
@@ -492,41 +515,46 @@ function updateStatusUI(online) {
   toggleBtn.textContent   = online ? 'Go Offline' : 'Go Online';
 }
 
+/* The artisan's explicit Go Online / Go Offline. The ONLY place this page
+   changes availability — page load, navigation, a hidden tab or a dropped
+   connection never do (shared/js/domain/availability.js, audit FLOW-001/002).
+   The live profile snapshot paints the confirmed state; this shows the saving
+   state and, on failure, puts the card back to what is actually stored. */
 window.toggleOnlineStatus = async function() {
-  if (!uid) return;
+  if (!uid || availabilityPending()) return;
+  const next = !isOnline;
 
-  // KYC gate: only approved artisans may go online
-  const _kycStatus = (_currentArtisan?.verificationStatus || '').toLowerCase();
-  if (_kycStatus !== 'approved') {
-    const msg = (_kycStatus === 'pending_review' || _kycStatus === 'submitted')
-      ? 'Your verification is under review. You\'ll be able to go online once approved.'
-      : 'Complete your KYC verification to go online and receive jobs.';
-    showToast(msg);
-    if (_kycStatus !== 'pending_review' && _kycStatus !== 'submitted') {
-      setTimeout(() => { window.location.href = 'onboarding.html'; }, 1800);
+  if (next) {
+    const blocker = availabilityBlocker(_currentArtisan);
+    if (blocker) {
+      showToast(blocker.message);
+      if (blocker.reason === 'unverified' && onboardingWarranted()) {
+        setTimeout(() => { window.location.href = 'onboarding.html'; }, 1800);
+      }
+      return;
     }
-    return;
   }
 
-  const next = !isOnline;
-  
-  // Visual feedback during Geolocation retrieval
   toggleBtn.disabled = true;
-  toggleBtn.textContent = next ? 'Getting GPS…' : 'Updating…';
-  
+  toggleBtn.textContent = next ? 'Getting GPS…' : 'Saving…';
+  statusSub.textContent = 'Saving your availability…';
+  _cardSaving = true;
+
   try {
-    // setOnlineState will acquire coordinates if next is true
-    await setOnlineState(next);
-    showToast(next ? 'You\'re now online' : 'You\'re offline');
+    const res = await setAvailability(uid, next, { artisan: _currentArtisan });
+    if (res.ok) {
+      showToast(res.queued
+        ? 'Saved on this phone — it reaches Fidus X when you\'re back online.'
+        : (next ? 'You\'re online. New jobs can reach you.' : 'You\'re offline. No new jobs will reach you.'));
+    }
   } catch (e) {
-    updateStatusUI(!next); // revert UI
-    console.error('[dashboard] Geolocation toggle error:', e);
-    // Write offline state to ensure DB availability is false
-    const { repositories: { artisanRepository } } = getAppContainer();
-    await artisanRepository.updatePresenceAndLocation(uid, { isOnline: false, isAvailable: false }).catch(()=>{});
-    showToast(e.message || 'Could not get location. Offline.');
+    console.warn('[dashboard] availability change failed:', e?.message || e);
+    showToast(e?.message || 'Could not change your availability. Try again.');
   } finally {
-    toggleBtn.disabled = false;
+    _cardSaving = false;
+    // Whatever happened, show what is stored — the live snapshot keeps
+    // _currentArtisan current (including the local echo of our own write).
+    applyProfile(_currentArtisan || {});
   }
 };
 
@@ -804,10 +832,18 @@ async function dashTransition(action, bookingId, btn, { busyLabel, okLabel, rest
 }
 
 window.acceptJob = async function(bookingId) {
-  // KYC enforcement — only approved artisans may accept jobs
+  // KYC enforcement — only approved artisans may accept jobs (the server
+  // re-checks). Onboarding only when a LIVE profile says verification is due:
+  // an unloaded profile (outage) or a suspension is not that (audit FLOW-004).
   if (!canAcceptJobs(_currentArtisan)) {
-    showToast('Complete your verification before accepting jobs.');
-    window.location.href = 'onboarding.html';
+    if (onboardingWarranted()) {
+      showToast('Complete your verification before accepting jobs.');
+      window.location.href = 'onboarding.html';
+    } else {
+      showToast(_profileLive
+        ? 'Your account cannot accept jobs right now. Contact support if this is unexpected.'
+        : 'Your profile has not loaded yet. Check your connection and try again.');
+    }
     return;
   }
   await dashTransition(ACTION.ACCEPT, bookingId,
@@ -900,7 +936,9 @@ function renderActiveJobCard(booking) {
         Complete Inspection
       </button>`;
     } else if (step && step.id === 'submit_quote') {
-      btnHtml = `<button class="btn-progress btn-progress-orange" onclick="window.location.href='jobs.html'">
+      // Opens the quote form ON THIS JOB (jobs.html reads ?quote=). The bare
+      // jobs.html link made the artisan find the job again (audit FLOW-007).
+      btnHtml = `<button class="btn-progress btn-progress-orange" onclick="window.location.href='jobs.html?quote=${encodeURIComponent(id)}'">
         <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Submit Quote
       </button>`;
@@ -936,6 +974,10 @@ function renderActiveJobCard(booking) {
   const card = document.createElement('div');
   card.className = 'active-job-card';
   card.id = `active-job-${id}`;
+  // A tap anywhere but a control opens this job (the handler at the end of the
+  // page). Offer cards had this; active cards did not (audit FLOW-006).
+  card.dataset.open = id;
+  card.style.cursor = 'pointer';
   card.innerHTML = `
     <div class="active-job-status-row">
       <span class="active-job-status-pill ${meta.pillCls}">${meta.label}</span>
@@ -1006,6 +1048,8 @@ function renderScheduleItem(booking) {
 
   const el = document.createElement('div');
   el.className = 'schedule-item';
+  el.dataset.open = booking.id;
+  el.style.cursor = 'pointer';
   el.innerHTML = `
     <div class="schedule-time">
       <div class="time">${date ? `${h12}:${mins} ${ampm}` : 'Anytime'}</div>
@@ -1077,6 +1121,9 @@ function renderDevDashboard(data) {
 // login) under Development Access Mode.
 subscribeToArtisanAuthState(async user => {
   if (!user) { window.location.replace('login.html'); return; }
+  // Wired once per page. A later callback for the same artisan (token refresh)
+  // must not start a second set of listeners.
+  if (uid === user.uid) return;
   uid = user.uid;
 
   // ── Development Access Mode ──────────────────────────────────────────────
@@ -1095,28 +1142,24 @@ subscribeToArtisanAuthState(async user => {
   _pushUid = uid;
   renderPushBanner(getPushState());
 
-  // Keep _currentArtisan in sync when profile updates
-  if (user.uid) {
-    databaseService.getDocument('artisans', user.uid)
-      .then(s => { if (s && s.exists) _currentArtisan = s.data; })
-      .catch(() => {});
-  }
-
-  // Start presence options with location error handling
+  // ── Presence: GPS + heartbeat, never availability ───────────────────────
+  // Started from the artisan's STORED choice. It used to start with `true`,
+  // which put an artisan who had chosen "Go Offline" back online on every visit
+  // (audit FLOW-002); location problems now only say so — they no longer flip
+  // the artisan offline either.
   const presenceOptions = {
-    onLocationError: (err) => {
-      showToast(err.message || 'Location error. Set to offline.');
-      updateStatusUI(false);
-      const { repositories: { artisanRepository } } = getAppContainer();
-      artisanRepository.updatePresenceAndLocation(uid, { isOnline: false, isAvailable: false }).catch(()=>{});
-    },
-    onStatusChange: (online) => {
-      updateStatusUI(online);
-    }
+    onLocationError: (err) => showToast(err.message || 'Could not read your location.'),
   };
-
-  // Start realtime presence (heartbeat + visibility/network/unload handlers)
-  startPresence(uid, databaseService, true, presenceOptions);
+  let presenceStarted = false;
+  const syncPresence = (data, live) => {
+    // Only a live snapshot starts or steers presence: a cached "available" for
+    // an artisan who went offline elsewhere must not send a location update.
+    if (!live) return;
+    const approved  = String(data.verificationStatus || '').toLowerCase() === 'approved';
+    const available = approved && storedAvailability(data);
+    if (!presenceStarted) { presenceStarted = true; startPresence(uid, databaseService, available, presenceOptions); }
+    else syncAvailability(available);
+  };
 
   // ── Realtime notification badge ──────────────────────
   const u0 = subscribeToUnreadCount(uid, (count) => {
@@ -1129,77 +1172,92 @@ subscribeToArtisanAuthState(async user => {
   });
   unsubs.push(u0);
 
-  // Live artisan profile
-  let presenceStarted = false;
-  const u1 = databaseService.subscribeToDocument('artisans', uid, snap => {
-    if (snap.exists) {
-      applyProfile(snap.data);
-      // Re-sync presence service with the stored isAvailable value
-      if (!presenceStarted) {
-        presenceStarted = true;
-        const storedOnline = snap.data.isAvailable !== false;
-        startPresence(uid, databaseService, storedOnline, presenceOptions);
-      }
-    } else {
-      // New artisan — redirect to onboarding
-      window.location.href = 'onboarding.html';
-    }
-  });
-  unsubs.push(u1);
+  // A list answered from the CACHE with nothing in it while Firestore is
+  // unreachable is "not known yet", not "none" (audit NET-001): keep what is on
+  // screen and say we are offline instead of painting an empty state.
+  const liveList = (onData) => (records, meta) => {
+    if (meta && meta.fromCache && !records.length) { showConnectionNotice(); return; }
+    hideConnectionNotice();
+    onData(records);
+  };
 
-  // Wallet figures derived from their authoritative records (AR-13).
+  // Every section below paints from the last known state first (instantView,
+  // CLAUDE.md §1), and the live listener reconciles it moments later.
+
+  // ── Profile header, wallet card, status card, stats ──────────────────────
+  unsubs.push(mountInstantView({
+    key: 'artisan-dashboard-profile',
+    version: 1,
+    render: (data, { fromCache }) => {
+      // instantView marks every listener answer as live; Firestore's own
+      // fromCache (a reconnecting client) says otherwise, and wins.
+      const cached = fromCache || _profileFromCache;
+      _currentArtisan = data;
+      _profileLive = !cached;
+      applyProfile(data);
+      setFreshness(cached);
+      syncPresence(data, !cached);
+    },
+    onEmpty: () => updateStatusUI(null),
+    subscribe: (_cachedUid, onData, onError) => databaseService.subscribeToDocument('artisans', uid, (snap) => {
+      _profileFromCache = !!snap.fromCache;
+      if (snap.exists) { if (!snap.fromCache) hideConnectionNotice(); onData(snap.data); return; }
+      // An empty answer from the CACHE (Firestore unreachable) says nothing
+      // about the account (audit FLOW-004): say we are offline. A SERVER
+      // answer that the profile is gone is the guard's to handle — its
+      // background check shows the "set up your profile" step. This page no
+      // longer navigates to onboarding on its own authority.
+      if (snap.fromCache) showConnectionNotice();
+    }, onError),
+    onError: () => showConnectionNotice(),
+    // Push tokens are not needed to paint and stay out of storage.
+    stripFields: ['fcmToken', 'fcmTokens', 'fcmPlatform', 'fcmTokenUpdatedAt'],
+  }).destroy);
+
+  // Wallet figures derived from their authoritative records (AR-13). Not
+  // cached: pending release shows "GHS —" until the server answers.
   unsubs.push(createWalletRepository({ databaseService }).subscribeToArtisanWallet(uid, (res) => {
     if (res) pendingAmount.textContent = formatGHS(res.view.pendingRelease);
   }, () => { pendingAmount.textContent = 'GHS —'; }));
 
-  // Live job requests: this artisan's OPEN offers. An offered artisan reads the
-  // offer summary (job_offers/{bookingId}) — never the booking, which opens to
-  // them only once they accept (functions/jobOffers.js, firestore.rules).
-  const u2 = databaseService.subscribeToCollection(
-    'job_offers',
-    [{ field: 'artisanId', op: '==', value: uid }, { field: 'offerStatus', op: '==', value: 'open' }],
-    { limit: 5 },
-    records => {
-      jobSkeleton?.remove();
-      // Remove existing job cards
-      jobsList.querySelectorAll('.job-request-card').forEach(c => c.remove());
-      if (!records.length) {
-        jobsEmpty.style.display = 'block';
-      } else {
-        jobsEmpty.style.display = 'none';
-        records.forEach(b => jobsList.appendChild(renderJobCard(b)));
-      }
+  // ── Live job requests: this artisan's OPEN offers ────────────────────────
+  // An offered artisan reads the offer summary (job_offers/{bookingId}) — never
+  // the booking, which opens to them only once they accept (functions/jobOffers.js).
+  unsubs.push(mountInstantView({
+    key: 'artisan-dashboard-offers',
+    version: 1,
+    render: (records, { fromCache }) => {
+      // A cached offer whose deadline has passed is dropped; it cannot be answered.
+      const list = fromCache ? records.filter((r) => !offerState(r.data).expired) : records;
+      renderOffers(list);
+      if (fromCache) return;
       // An offer that arrived while this screen is open is announced here too:
       // push may be off, blocked or broken, and the offer expires in minutes.
       _offerWatcher.next(records.map(r => r.id))
         .forEach(fid => alertNewOffer(records.find(r => r.id === fid)));
     },
-    () => { jobSkeleton?.remove(); jobsEmpty.style.display = 'block'; }
-  );
-  unsubs.push(u2);
+    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(
+      'job_offers',
+      [{ field: 'artisanId', op: '==', value: uid }, { field: 'offerStatus', op: '==', value: 'open' }],
+      { limit: 5 },
+      liveList(onData), onError),
+    onError: (_err, { hasContent }) => { showConnectionNotice(); if (!hasContent) jobSkeleton?.remove(); },
+  }).destroy);
 
   // ── Active jobs (accepted / en_route / in_progress / awaiting → need action) ──
-  const activeJobsList  = document.getElementById('active-jobs-list');
-  const activeJobsEmpty = document.getElementById('active-jobs-empty');
-
-  const u3 = databaseService.subscribeToCollection(
-    'bookings',
-    [{ field: 'artisanId', op: '==', value: uid },
-     { field: 'status',    op: 'in', value: ['accepted', 'en_route', 'in_progress', 'awaiting',
-                                             'inspection_scheduled', 'inspection_done', 'quoted'] }],
-    { orderBy: { field: 'updatedAt', direction: 'desc' }, limit: 10 },
-    records => {
-      activeJobsList.querySelectorAll('.active-job-card').forEach(c => c.remove());
-      if (!records.length) {
-        activeJobsEmpty.style.display = 'block';
-      } else {
-        activeJobsEmpty.style.display = 'none';
-        records.forEach(b => activeJobsList.appendChild(renderActiveJobCard(b)));
-      }
-    },
-    () => { activeJobsEmpty.style.display = 'block'; }
-  );
-  unsubs.push(u3);
+  unsubs.push(mountInstantView({
+    key: 'artisan-dashboard-active',
+    version: 1,
+    render: (records) => renderActiveJobs(records),
+    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(
+      'bookings',
+      [{ field: 'artisanId', op: '==', value: uid },
+       { field: 'status',    op: 'in', value: ['accepted', 'en_route', 'in_progress', 'awaiting',
+                                               'inspection_scheduled', 'inspection_done', 'quoted'] }],
+      { orderBy: { field: 'updatedAt', direction: 'desc' }, limit: 10 },
+      liveList(onData), onError),
+    onError: () => showConnectionNotice(),
+  }).destroy);
 
   // ── Schedule — what this artisan has committed to ──────────────────────────
   //
@@ -1214,36 +1272,105 @@ subscribeToArtisanAuthState(async user => {
   // doing right now is worse than one that is loosely ordered. So the ordering
   // is done here, over the same result set: real appointments first, in
   // chronological order, then the come-when-you-can jobs behind them.
-  const u4 = databaseService.subscribeToCollection(
-    'bookings',
-    [{ field: 'artisanId', op: '==', value: uid },
-     { field: 'status',    op: 'in', value: ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'awaiting'] }],
-    { orderBy: { field: 'createdAt', direction: 'asc' }, limit: 20 },
-    records => {
-      scheduleList.querySelectorAll('.schedule-item').forEach(c => c.remove());
-      if (!records.length) {
-        scheduleEmpty.style.display = 'block';
-      } else {
-        scheduleEmpty.style.display = 'none';
-        const ordered = records.slice().sort((a, b) => {
-          const sa = resolveSchedule(a.data), sb = resolveSchedule(b.data);
-          if (sa.scheduled && sb.scheduled) return sa.startMs - sb.startMs;
-          if (sa.scheduled) return -1;
-          if (sb.scheduled) return 1;
-          return 0;
-        }).slice(0, 5);
-        ordered.forEach(b => scheduleList.appendChild(renderScheduleItem(b)));
-      }
-    },
-    () => { scheduleEmpty.style.display = 'block'; }
-  );
-  unsubs.push(u4);
+  unsubs.push(mountInstantView({
+    key: 'artisan-dashboard-schedule',
+    version: 1,
+    render: (records) => renderSchedule(records),
+    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(
+      'bookings',
+      [{ field: 'artisanId', op: '==', value: uid },
+       { field: 'status',    op: 'in', value: ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'awaiting'] }],
+      { orderBy: { field: 'createdAt', direction: 'asc' }, limit: 20 },
+      liveList(onData), onError),
+    onError: () => showConnectionNotice(),
+  }).destroy);
 });
+
+// ── Section renderers (cache paint and live data use the same code) ─────────
+function renderOffers(records) {
+  jobSkeleton?.remove();
+  jobsList.querySelectorAll('.job-request-card').forEach(c => c.remove());
+  if (!records.length) {
+    jobsEmpty.style.display = 'block';
+  } else {
+    jobsEmpty.style.display = 'none';
+    records.forEach(b => jobsList.appendChild(renderJobCard(b)));
+  }
+}
+
+function renderActiveJobs(records) {
+  const activeJobsList  = document.getElementById('active-jobs-list');
+  const activeJobsEmpty = document.getElementById('active-jobs-empty');
+  activeJobsList.querySelectorAll('.active-job-card').forEach(c => c.remove());
+  if (!records.length) {
+    activeJobsEmpty.style.display = 'block';
+  } else {
+    activeJobsEmpty.style.display = 'none';
+    records.forEach(b => activeJobsList.appendChild(renderActiveJobCard(b)));
+  }
+}
+
+function renderSchedule(records) {
+  scheduleList.querySelectorAll('.schedule-item').forEach(c => c.remove());
+  if (!records.length) {
+    scheduleEmpty.style.display = 'block';
+    return;
+  }
+  scheduleEmpty.style.display = 'none';
+  const ordered = records.slice().sort((a, b) => {
+    const sa = resolveSchedule(a.data), sb = resolveSchedule(b.data);
+    if (sa.scheduled && sb.scheduled) return sa.startMs - sb.startMs;
+    if (sa.scheduled) return -1;
+    if (sb.scheduled) return 1;
+    return 0;
+  }).slice(0, 5);
+  ordered.forEach(b => scheduleList.appendChild(renderScheduleItem(b)));
+}
+
+// Figures painted from the cache are marked until the server confirms them:
+// a cached balance is shown for continuity, never as the current figure.
+function setFreshness(fromCache) {
+  const tag = document.getElementById('wallet-fresh');
+  if (tag) tag.hidden = !fromCache;
+  // The availability switch acts on the confirmed state only.
+  if (fromCache) toggleBtn.disabled = true;
+}
+
+// ── Connection notice ─────────────────────────────────────────────────────────
+// Shown when Firestore cannot be reached. Content already on screen stays.
+function showConnectionNotice() {
+  let el = document.getElementById('dash-offline');
+  if (el) { el.hidden = false; return; }
+  el = document.createElement('div');
+  el.id = 'dash-offline';
+  el.setAttribute('role', 'status');
+  el.style.cssText = 'margin:12px 16px 0;padding:12px 14px;border-radius:var(--ds-r-card,14px);display:flex;gap:12px;align-items:center;' +
+    'background:var(--ds-warning-bg,#FFF7E6);color:var(--ds-ink,#111827);font:500 13px/1.45 var(--ds-font,inherit);';
+  const p = document.createElement('p');
+  p.style.cssText = 'margin:0;flex:1;';
+  p.textContent = 'We can\'t reach Fidus X right now. Showing what we last had — it updates when you\'re back online.';
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = 'Retry';
+  b.style.cssText = 'min-height:44px;padding:0 16px;border:1px solid var(--ds-line-strong,#D1D5DB);border-radius:var(--ds-r-control,10px);' +
+    'background:var(--ds-surface,#fff);color:var(--ds-ink,#111827);font:700 13px/1 var(--ds-font,inherit);cursor:pointer;';
+  b.addEventListener('click', () => window.location.reload());
+  el.append(p, b);
+  const host = document.querySelector('.wallet-card');
+  host?.parentNode?.insertBefore(el, host);
+}
+function hideConnectionNotice() {
+  const el = document.getElementById('dash-offline');
+  if (el) el.hidden = true;
+}
 
 window.addEventListener('pagehide', () => {
   unsubs.forEach(u => u && u());
   stopPresence();
 });
+// Restored from the back/forward cache: the listeners above were torn down on
+// pagehide and this module does not run again. Reload — the cache paints it at once.
+window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
 </script>
 
 <script src="../shared/js/components/fastLoader.js"></script>

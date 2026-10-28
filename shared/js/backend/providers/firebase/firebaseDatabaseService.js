@@ -124,12 +124,16 @@ export function createFirebaseDatabaseService(dbInstance = firebaseDb) {
         /**
          * Real-time listener on a collection.
          * Returns an unsubscribe function.
+         *
+         * onChange(records, meta): meta = { fromCache, hasPendingWrites }. An
+         * empty list served from cache while offline is "not known yet", not
+         * "none" — callers that render empty states should check meta.fromCache.
          */
         subscribeToCollection(collectionName, conditions, options, onChange, onError) {
             const q = buildQuery(collection(dbInstance, collectionName), conditions, options);
             return onSnapshot(
                 q,
-                (snapshot) => onChange(snapshot.docs.map(toRecord)),
+                (snapshot) => onChange(snapshot.docs.map(toRecord), snapMeta(snapshot)),
                 (err)      => { if (onError) onError(err); }
             );
         },
@@ -163,19 +167,31 @@ export function createFirebaseDatabaseService(dbInstance = firebaseDb) {
             const q      = buildQuery(subRef, conditions, options);
             return onSnapshot(
                 q,
-                (snapshot) => onChange(snapshot.docs.map(toRecord)),
+                (snapshot) => onChange(snapshot.docs.map(toRecord), snapMeta(snapshot)),
                 (err)      => { if (onError) onError(err); }
             );
         },
 
-        /** Real-time listener on a single document. Returns an unsubscribe function. */
+        /**
+         * Real-time listener on a single document. Returns an unsubscribe function.
+         *
+         * The record carries fromCache: `exists: false` from the cache while
+         * offline does NOT mean the document is missing — only a server answer
+         * (fromCache false) does.
+         */
         subscribeToDocument(collectionName, docId, onChange, onError) {
             const docRef = doc(dbInstance, collectionName, docId);
             return onSnapshot(
                 docRef,
-                (snap) => onChange({ id: snap.id, exists: snap.exists(), data: snap.exists() ? snap.data() : null }),
+                (snap) => onChange({ id: snap.id, exists: snap.exists(), data: snap.exists() ? snap.data() : null, ...snapMeta(snap) }),
                 (err)  => { if (onError) onError(err); }
             );
         }
     };
+}
+
+/** Where a snapshot came from: { fromCache, hasPendingWrites }. */
+function snapMeta(snapshot) {
+    const m = (snapshot && snapshot.metadata) || {};
+    return { fromCache: !!m.fromCache, hasPendingWrites: !!m.hasPendingWrites };
 }

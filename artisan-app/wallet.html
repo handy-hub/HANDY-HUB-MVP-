@@ -172,6 +172,7 @@
   import { openSecurityPinSheet }      from '../shared/js/components/securityPinSheet.js';
   import { setSecurityPin, pinErrorMessage } from '../shared/js/services/securityPinService.js';
   import { requireArtisanAuth, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
+  import { mountInstantView }          from '../shared/js/services/instantView.js';
 
   // Wallet requires full auth + role + not suspended.
   // All artisans (including pending) can view their earnings.
@@ -455,31 +456,74 @@
   const { services: { authService, databaseService } } = getAppContainer();
   const walletRepo = createWalletRepository({ databaseService });
 
+  // Figures painted from the cache are shown for continuity and marked as such;
+  // Withdraw stays off until the server has answered (CLAUDE.md §1, money tier).
+  const heroLabel = document.querySelector('.hero-label');
+  function setWalletFreshness(fromCache) {
+    let tag = document.getElementById('wallet-fresh');
+    if (!tag && heroLabel) {
+      tag = document.createElement('span');
+      tag.id = 'wallet-fresh';
+      tag.style.cssText = 'margin-left:6px;font-weight:600;opacity:.8;text-transform:none;letter-spacing:0;';
+      tag.textContent = '· Updating…';
+      heroLabel.appendChild(tag);
+    }
+    if (tag) tag.hidden = !fromCache;
+    if (fromCache) withdrawBtn.disabled = true;
+  }
+
+  function showTxnsUnavailable() {
+    loadingEl.style.display = 'none';
+    if (lastTxns) return;   // keep what is on screen
+    emptyEl.style.display = 'none';
+    listEl.style.display  = '';
+    listEl.innerHTML = '<p class="txn-meta" role="status" style="padding:var(--ds-4);margin:0;text-align:center;">' +
+      'We couldn\'t load your transactions. Check your connection — they appear here once you\'re back online.</p>';
+  }
+
+  let _wired = false;
   subscribeToArtisanAuthState(user => {
     if (!user) { window.location.replace(LOGIN_URL); return; }
+    if (_wired) return;   // a token refresh is not a new session
+    _wired = true;
     currentUid = user.uid;
 
     // Live artisan doc (for name + wallet)
     loadPayoutSetup(user.uid);
 
-    walletRepo.subscribeToArtisanWallet(user.uid, (res) => {
-      if (!res) return;
-      artisanData = res.artisan || {};
-      payoutsById = new Map((res.payouts || []).map(p => [p.id, p]));
-      updateWalletDisplay(res.view);
-      if (lastTxns) renderTxns(lastTxns);   // re-label withdrawals with payout status
-    }, (err) => console.error('[wallet] Wallet error:', err.code || err.message));
-
-    // Live transactions
-    walletRepo.subscribeToArtisanTransactions(
-      user.uid,
-      records => renderTxns(records),
-      err => {
-        console.error('Transactions error:', err);
-        loadingEl.style.display = 'none';
-        emptyEl.style.display   = '';
+    // Wallet figures: last known first, then the authoritative records.
+    // Only the derived figures and each payout's status are kept — nothing
+    // else from the payout records (account numbers) is cached.
+    const walletView = mountInstantView({
+      key: 'artisan-wallet-view',
+      version: 1,
+      render: (data, { fromCache }) => {
+        payoutsById = new Map((data.payouts || []).map(p => [p.id, p]));
+        updateWalletDisplay(data.view);
+        setWalletFreshness(fromCache);
+        if (lastTxns) renderTxns(lastTxns);   // re-label withdrawals with payout status
       },
-    );
+      subscribe: (_c, onData, onError) => walletRepo.subscribeToArtisanWallet(user.uid, (res) => {
+        if (!res) return;
+        artisanData = res.artisan || {};
+        onData({ view: res.view, payouts: (res.payouts || []).map(p => ({ id: p.id, status: p.status })) });
+      }, onError),
+      onError: (err) => console.error('[wallet] Wallet error:', err?.code || err?.message),
+    });
+
+    // Transactions: last known first, then live. A failure never reads as
+    // "no transactions" (audit NET-001).
+    const txnView = mountInstantView({
+      key: 'artisan-wallet-txns',
+      version: 1,
+      render: (records) => renderTxns(records),
+      subscribe: (_c, onData, onError) => walletRepo.subscribeToArtisanTransactions(user.uid, onData, onError),
+      onError: (err) => { console.error('Transactions error:', err); showTxnsUnavailable(); },
+    });
+
+    window.addEventListener('pagehide', () => { walletView.destroy(); txnView.destroy(); });
+    // Restored from the back/forward cache with its listeners torn down: reload.
+    window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
   });
 </script>
 

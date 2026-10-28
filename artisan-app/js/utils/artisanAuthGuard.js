@@ -37,6 +37,16 @@ import { isArtisanDevAccessEnabled }   from '../../../shared/js/config/devAccess
 import { getDevArtisanSession, endDevSession } from '../../../shared/dev/artisanDevSession.js';
 import { ensureArtisanAccount, nextArtisanPage } from './artisanAccount.js';
 import { SUPPORT_CONTACTS }              from '../../../shared/js/config/supportConfig.js';
+import { clearUserSession }              from '../../../shared/js/utils/clearUserSession.js';
+// Defines window.HH_State (classic script). The guard tells it who is signed in,
+// which scopes every cache instantView keeps (CLAUDE.md §1) to this artisan and
+// lets sign-out purge exactly that artisan's cached data.
+import '../../../shared/js/services/stateService.js';
+
+/** Scope this tab's cached data to the artisan the guard just verified. */
+function setSessionUser(uid) {
+  try { window.HH_State?.setUser(uid); } catch (_) { /* storage blocked: no cache, no harm */ }
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const LOGIN_URL        = 'login.html';
@@ -358,6 +368,9 @@ window._agSignOut = async function () {
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(RETURN_KEY);
     try { localStorage.removeItem(LAST_UID_KEY); } catch (_) {}
+    // Purge this artisan's cached screens (instantView) before the next person
+    // can sign in on this device.
+    try { clearUserSession(window.HH_State?.currentUid?.() || getAppContainer().services.authService.getCurrentUser?.()?.uid); } catch (_) {}
     const { services: { authService } } = getAppContainer();
     await authService.signOut?.() || await getAppContainer().services.sessionService.logout();
   } catch (_) {}
@@ -454,6 +467,7 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
         // only decides what to paint while the fresh read is in flight.
         const cached = readVerifiedSession(user.uid);
         if (cached && !gateFor(cached, { requireApproved, allowPending })) {
+          setSessionUser(user.uid);
           resolve({ user, artisan: cached });
           initializePushNotifications(user.uid, 'artisan').catch(() => {});
           databaseService.getDocument('artisans', user.uid).then((snap) => {
@@ -506,6 +520,7 @@ export async function requireArtisanAuth({ requireApproved = false, allowPending
 
         // ── All checks passed ─────────────────────────────────────
         cacheSession(user.uid, artisan);
+        setSessionUser(user.uid);
         hideOverlay();
         initializePushNotifications(user.uid, 'artisan').catch(() => {});
         resolve({ user, artisan });

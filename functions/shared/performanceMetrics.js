@@ -124,6 +124,23 @@ function computeCompletionStats(bookings) {
     };
 }
 
+/**
+ * The response rate an artisan should be SHOWN, as a whole percentage, or null
+ * when there is not yet enough data to state one.
+ *
+ * responseRate / responseStats.rate are 0–1 fractions. The dashboard printed the
+ * fraction with a "%" after it, so a perfect record read "1%" while the
+ * Performance page said "100%" (audit FIN-001). Every screen reads it here.
+ *
+ * @param {{ responseStats?: { rate?: number, sufficient?: boolean } }} artisan
+ * @returns {number|null}
+ */
+function responseRatePercent(artisan) {
+    const rs = artisan && artisan.responseStats;
+    if (!rs || rs.sufficient !== true || typeof rs.rate !== 'number' || !Number.isFinite(rs.rate)) return null;
+    return Math.round(Math.max(0, Math.min(1, rs.rate)) * 100);
+}
+
 // ── Dispatch ranking ─────────────────────────────────────────────────────────
 //
 // The weights are the ones dispatch has always used (functions/dispatch.js
@@ -188,6 +205,7 @@ function rankCandidates(candidates) {
 module.exports = {
     computeResponseStats,
     computeCompletionStats,
+    responseRatePercent,
     scoreCandidate,
     rankCandidates,
     RESPONSE_RATE_POLICY,
