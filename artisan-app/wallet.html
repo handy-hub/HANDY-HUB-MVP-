@@ -121,12 +121,17 @@
       <div class="wd-body">
 
         <!-- Amount -->
-        <p class="wd-label">Amount (GHS)</p>
+        <label class="wd-label" for="wd-amount">Amount (GHS)</label>
         <div class="wd-amount-wrap">
           <span class="wd-ghc">GHS</span>
           <input type="number" id="wd-amount" class="wd-amount-input"
-                 placeholder="0.00" min="5" step="0.01" inputmode="decimal" />
+                 placeholder="0.00" min="5" step="0.01" inputmode="decimal"
+                 aria-describedby="wd-amount-msg" />
         </div>
+        <!-- Why Confirm is off, in words (audit FIN-003: it used to grey out
+             silently). The server re-checks every one of these. -->
+        <p class="wd-amount-msg" id="wd-amount-msg" role="status" aria-live="polite"
+           style="margin:6px 0 0;min-height:18px;font-size:13px;color:var(--ds-danger,#C2362F);"></p>
         <div class="wd-quick-row">
           <button class="wd-quick" data-amount="20">GHS 20</button>
           <button class="wd-quick" data-amount="50">GHS 50</button>
@@ -352,9 +357,28 @@
     wdOverlay.setAttribute('aria-hidden', 'true');
   }
 
+  // Why an amount cannot be withdrawn, or '' when it can. Mirrors the server's
+  // checks (minimum, available balance, whole pesewas) so the artisan is told
+  // instead of facing a greyed-out button; the server still decides.
+  const MIN_WITHDRAWAL = PLATFORM_CONFIG.minWithdrawalGHS;
+  function withdrawProblem(raw) {
+    const text = String(raw || '').trim();
+    if (!text) return '';
+    const amount = Number(text);
+    if (!Number.isFinite(amount) || amount <= 0) return 'Enter an amount in cedis, for example 50.';
+    if (!/^\d+(\.\d{1,2})?$/.test(text)) return 'Use at most 2 decimal places (pesewas).';
+    if (amount < MIN_WITHDRAWAL) return `The minimum withdrawal is ${formatGHS(MIN_WITHDRAWAL)}.`;
+    if (amount > currentWallet.available) return `That is more than you can withdraw (${formatGHS(currentWallet.available)}).`;
+    return '';
+  }
+
   function updateConfirm() {
-    const amount = parseFloat(wdAmountInput.value);
-    const ready  = !!payoutAccount && amount >= 5 && amount <= currentWallet.available;
+    const raw     = wdAmountInput.value;
+    const problem = withdrawProblem(raw);
+    const amount  = Number(raw);
+    const ready   = !!payoutAccount && String(raw).trim() !== '' && !problem;
+    const msgEl   = document.getElementById('wd-amount-msg');
+    if (msgEl) msgEl.textContent = problem;
     wdConfirmBtn.disabled    = !ready;
     wdConfirmBtn.textContent = ready
       ? `Withdraw ${formatGHS(amount)}`
@@ -411,7 +435,7 @@
 
   wdConfirmBtn.addEventListener('click', () => {
     const amount = parseFloat(wdAmountInput.value);
-    if (!payoutAccount || !amount) return;
+    if (!payoutAccount || !amount || withdrawProblem(wdAmountInput.value)) return;
     const context = `Withdrawal · ${fmtGHS(amount)}`;
 
     if (!pinConfigured) {
