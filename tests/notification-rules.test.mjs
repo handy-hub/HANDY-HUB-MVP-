@@ -35,8 +35,9 @@ const testEnv = await initializeTestEnvironment({
 });
 await testEnv.clearFirestore();
 await testEnv.withSecurityRulesDisabled(async (ctx) => {
-    await setDoc(doc(ctx.firestore(), 'admins', SUPPORT), { userType: 'admin', email: 'help@example.com', role: 'support_admin' });
-    await setDoc(doc(ctx.firestore(), 'customer_notifications', 'N1'), {
+    const db = ctx.firestore();   // once per context: a second call re-applies emulator settings and throws
+    await setDoc(doc(db, 'admins', SUPPORT), { userType: 'admin', email: 'help@example.com', role: 'support_admin' });
+    await setDoc(doc(db, 'customer_notifications', 'N1'), {
         receiverId: A, senderId: C1, type: 'General', title: 't', message: 'm',
         isRead: false, readAt: null, actionUrl: null, metadata: {}, createdAt: NOW,
     });
