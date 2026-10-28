@@ -3,6 +3,7 @@ import { getAppContainer } from "../../../shared/js/app/container.js";
 import { showToast } from "../../../shared/js/components/toast.js";
 import { consumeReturnUrl } from "../../../shared/js/utils/authGuard.js";
 import { checkAndRecord, showRateLimitToast } from "../../../shared/js/services/rateLimitService.js";
+import { socialAuthErrorCopy } from '../../../shared/js/utils/authErrorCopy.js';
 
 const DASHBOARD_REDIRECT_URL = "dashboard.html";
 const LOGIN_LOADING_TEXT = " ";
@@ -90,24 +91,7 @@ function loginErrorMessage(error) {
 }
 
 function socialErrorMessage(error, providerName) {
-  switch (error.code) {
-    case "auth/wrong-app-role":
-      return "This is an artisan account. Please sign in through the Fidus X Artisan app.";
-    case "auth/operation-not-allowed":
-      return `${providerName} sign-in is not enabled in authentication settings.`;
-    case "auth/popup-closed-by-user":
-      return `${providerName} sign-in was cancelled.`;
-    case "auth/popup-blocked":
-      return "Popup blocked by browser. Trying redirect flow...";
-    case "auth/unauthorized-domain":
-      return "This domain is not authorized for social authentication.";
-    case "auth/account-exists-with-different-credential":
-      return "This email already exists with a different sign-in method.";
-    case "auth/unsupported-provider":
-      return "That social provider is not supported yet.";
-    default:
-      return `Failed to sign in with ${providerName}. Please try again.`;
-  }
+  return socialAuthErrorCopy(error, providerName);
 }
 
 function redirectToDashboard(delayMs = 1000) {

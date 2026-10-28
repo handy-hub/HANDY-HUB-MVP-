@@ -29,6 +29,10 @@ public class MainActivity extends BridgeActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Local plugins are registered before the bridge is created.
+        // GoogleSignInPlugin: native Google sign-in (the web flow cannot run in
+        // a WebView — see that class).
+        registerPlugin(GoogleSignInPlugin.class);
         super.onCreate(savedInstanceState);
         if (getBridge() == null || getBridge().getWebView() == null) return;   // no_webview layout
 

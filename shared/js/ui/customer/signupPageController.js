@@ -4,6 +4,7 @@ import "../../utils/global-app.js";
 import { getAppContainer } from "../../app/container.js";
 import { showToast } from "../../components/toast.js";
 import { checkAndRecord, showRateLimitToast } from "../../services/rateLimitService.js";
+import { signupErrorCopy, socialAuthErrorCopy } from "../../utils/authErrorCopy.js";
 import { getFunctions, httpsCallable }
     from '../../../vendor/firebase/firebase-functions.js';
 import { getApp } from '../../../vendor/firebase/firebase-app.js';
@@ -136,42 +137,11 @@ function collectProfileInput() {
 }
 
 function signupErrorMessage(error) {
-  switch (error.code) {
-    case "auth/email-already-in-use":
-      return "This email is already registered. Please login instead.";
-    case "auth/invalid-email":
-      return "Please enter a valid email address.";
-    case "auth/weak-password":
-      return "Password should be at least 6 characters.";
-    case "auth/operation-not-allowed":
-      return "Email/password signup is disabled. Please contact support.";
-    case "firestore/permission-denied":
-    case "permission-denied":
-      return "Customer profile write was denied. Check backend rules for customers.";
-    default:
-      return "Failed to create account. Please try again.";
-  }
+  return signupErrorCopy(error);
 }
 
 function socialErrorMessage(error, providerName) {
-  switch (error.code) {
-    case "auth/wrong-app-role":
-      return "This is an artisan account. Please sign in through the Fidus X Artisan app.";
-    case "auth/operation-not-allowed":
-      return `${providerName} sign-in is not enabled in authentication settings.`;
-    case "auth/popup-closed-by-user":
-      return `${providerName} sign-in was cancelled.`;
-    case "auth/popup-blocked":
-      return "Popup blocked by browser. Trying redirect flow...";
-    case "auth/unauthorized-domain":
-      return "This domain is not authorized for social authentication.";
-    case "auth/account-exists-with-different-credential":
-      return "This email already exists with a different sign-in method.";
-    case "auth/unsupported-provider":
-      return "That social provider is not supported yet.";
-    default:
-      return `Failed to sign up with ${providerName}. Please try again.`;
-  }
+  return socialAuthErrorCopy(error, providerName);
 }
 
 /**
@@ -435,7 +405,9 @@ function setupEmailSignupForm() {
       await redirectAfterSuccess();
     } catch (error) {
       console.error("Signup failed:", error);
-      showToast(error?.message || signupErrorMessage(error), "error");
+      // By code — never the raw SDK message, which every FirebaseError has and
+      // which told a tester nothing ("Firebase: Error (auth/…)").
+      showToast(signupErrorMessage(error), "error");
       setSubmitLoading(false);
       validateForm();
     }

@@ -51,6 +51,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1034220501833-aporarelttphbvl8a4mehpeovu06tul2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.handyhub.customer",
+            "certificate_hash": "be513762a7c79a482da67f351de86bfcd186fcf7"
+          }
+        },
+        {
           "client_id": "1034220501833-e55m4e8u7dbajif524ns5h90qfsv2o66.apps.googleusercontent.com",
           "client_type": 3
         }

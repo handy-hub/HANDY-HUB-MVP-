@@ -12,6 +12,7 @@ import {
   reauthenticateWithPopup,
   reload,
   sendEmailVerification,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
@@ -19,6 +20,59 @@ import {
   updatePassword
 } from "../../../../vendor/firebase/firebase-auth.js";
 import { firebaseAuth } from "./firebaseConfig.js";
+import { isNativeShell } from "../../../config/runtimeEnv.js";
+
+/**
+ * Google sign-in inside the packaged Android app.
+ *
+ * The web flow cannot work there: signInWithPopup has no window to open in the
+ * WebView, and the signInWithRedirect fallback sends the WebView to
+ * firebaseapp.com, which Capacitor opens in the EXTERNAL browser — the customer
+ * picks their Google account in Chrome and the app never hears back (and Google
+ * refuses OAuth inside embedded WebViews anyway). So in the native shell the
+ * account is chosen by the native FxGoogleSignIn plugin
+ * (android/app/src/main/java/com/handyhub/customer/GoogleSignInPlugin.java) and
+ * only its Google ID token comes back here, where the same Firebase JS SDK signs
+ * in with it — one Firebase user and session, exactly as on the web.
+ *
+ * Errors carry auth/* codes the pages already explain; nothing falls back to
+ * the popup/redirect, which in a WebView only strands the customer in Chrome.
+ */
+function nativeGooglePlugin() {
+  try {
+    const cap = typeof window !== "undefined" ? window.Capacitor : null;
+    return (cap && cap.Plugins && cap.Plugins.FxGoogleSignIn) || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+const NATIVE_GOOGLE_ERRORS = {
+  cancelled:      "auth/popup-closed-by-user",
+  no_account:     "auth/no-google-account",
+  not_configured: "auth/native-google-not-configured",
+};
+
+async function signInWithGoogleNatively(authInstance) {
+  const plugin = nativeGooglePlugin();
+  if (!plugin) {
+    // An installed app built before native Google sign-in existed.
+    throw Object.assign(new Error("Google sign-in needs the latest version of the app."), {
+      code: "auth/native-google-unavailable",
+    });
+  }
+  let native;
+  try {
+    native = await plugin.signIn();
+  } catch (err) {
+    const code = NATIVE_GOOGLE_ERRORS[err && err.code] || "auth/native-google-failed";
+    throw Object.assign(new Error((err && err.message) || "Google sign-in failed."), { code, nativeCode: err && err.code });
+  }
+  if (!native || !native.idToken) {
+    throw Object.assign(new Error("Google did not return an account."), { code: "auth/native-google-failed" });
+  }
+  return signInWithCredential(authInstance, GoogleAuthProvider.credential(native.idToken));
+}
 
 function buildSocialProvider(providerName) {
   if (providerName === "Google") {
@@ -65,6 +119,12 @@ export function createFirebaseAuthService(authInstance = firebaseAuth) {
     },
 
     async signInWithSocial(providerName, options = {}) {
+      // Inside the native app Google goes through the native account picker;
+      // popup and redirect cannot complete in a WebView (see above).
+      if (providerName === "Google" && isNativeShell()) {
+        return signInWithGoogleNatively(authInstance);
+      }
+
       const mode = options.mode || "popup";
       const provider = buildSocialProvider(providerName);
 
