@@ -385,7 +385,12 @@ await t('job radius reads and writes the field dispatch uses, within what dispat
     assert.match(s, /RADIUS_CHOICES = \[5, 10, 15, 20, 25\]/);
     assert.match(read('functions/dispatch.js'), /25_000/, 'Settings caps at the dispatch search radius');
     assert.match(read('functions/dispatch.js'), /a\.workRadius \|\| 20/);
-    assert.match(read('firestore.rules'), /isValidArtisanWorkRadius\(\)\s*\n\s*\);/);
+    // The radius check is a clause of the artisans owner-update rule (not
+    // necessarily its last one — isValidArtisanAvailability follows it).
+    const rules = read('firestore.rules');
+    const update = rules.slice(rules.indexOf('allow update: if (isAdmin() && isSafeAdminArtisanUpdate())'), rules.indexOf('allow delete: if isSuperAdmin();', rules.indexOf('allow update: if (isAdmin() && isSafeAdminArtisanUpdate())')));
+    assert.match(update, /&&\s*isValidArtisanWorkRadius\(\)\s*(&&|\n\s*\);)/, 'the artisans update rule must apply isValidArtisanWorkRadius()');
+    assert.match(rules, /function isValidArtisanWorkRadius\(\) \{[\s\S]*?incoming\(\)\.workRadius >= 1 && incoming\(\)\.workRadius <= 100\);/);
 });
 
 await t('verification is a status for an approved artisan, not a link into onboarding', () => {
