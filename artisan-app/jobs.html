@@ -152,6 +152,7 @@
     .qs-submit { width:100%;height:52px;border-radius:var(--ds-r-control);border:none;background:var(--ds-brand-500);color:#fff;font:800 15px/1 var(--ds-font);cursor:pointer;transition:opacity .15s,background .15s; }
     .qs-submit:active:not(:disabled) { background:var(--ds-brand-600); }
     .qs-submit:disabled { opacity:.55;cursor:default; }
+    .job-countdown { align-self:center;margin-left:auto;font:700 12px/1 var(--ds-font);color:var(--ds-danger,#C2362F);font-variant-numeric:tabular-nums;white-space:nowrap; }
   </style>
 </head>
 <body>
@@ -260,6 +261,9 @@ import { resolveSchedule, canStartWork }
                             from '../shared/js/domain/bookingSchedule.js';
 import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 import { performBookingAction, ACTION }      from '../shared/js/domain/bookingActions.js';
+import { offerState, formatTimeLeft }        from '../shared/js/domain/jobOffers.js';
+import { storedAvailability }                from '../shared/js/domain/availability.js';
+import { mountInstantView }                  from '../shared/js/services/instantView.js';
 import { validateQuoteInput }                from '../shared/js/domain/quoteMoney.js';
 import { pricingService }                    from '../shared/js/services/pricingService.js';
 import { startPresence, stopPresence }       from '../shared/js/services/presenceService.js';
@@ -432,11 +436,18 @@ function buildJobCard(b) {
 
   let actionsHtml = '';
   if (isPending) {
-    actionsHtml = `
+    // The offer's deadline (job_offers.expiresAtMs), counted down by tickOffers().
+    // A lapsed offer cannot be answered — the server refuses both — so it shows
+    // as expired instead of offering buttons that can only fail (audit FLOW-003).
+    const offer = offerState(b);
+    actionsHtml = offer.expired
+      ? `<button class="job-btn job-btn-decline" disabled style="opacity:.55;cursor:default;">Expired</button>`
+      : `
       <button class="job-btn job-btn-accept"  onclick="acceptJob('${esc(b.id)}', this)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>Accept
       </button>
-      <button class="job-btn job-btn-decline" onclick="declineJob('${esc(b.id)}', this)">Decline</button>`;
+      <button class="job-btn job-btn-decline" onclick="declineJob('${esc(b.id)}', this)">Decline</button>
+      ${offer.expiresAtMs ? `<span class="job-countdown" data-expires="${offer.expiresAtMs}" role="timer">Respond in ${formatTimeLeft(offer.secondsLeft)}</span>` : ''}`;
   } else if (isActive && b.track === 'inspection' && !b.quoteApproved &&
              ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'inspection_done'].includes(st)) {
     // ── Inspection track (pre-quote-approval) ────────────────────────────────
@@ -697,8 +708,18 @@ async function runTransition(action, bookingId, btn, { busyLabel, okLabel, confi
 
 window.acceptJob = async function(bookingId, btn) {
   if (!canAcceptJobs(_currentArtisan)) {
-    showToast('Complete your KYC verification before accepting jobs.');
-    window.location.href = 'onboarding.html';
+    // Onboarding only when the verified profile says verification is due; a
+    // profile that is missing or in another state gets a message instead
+    // (audit FLOW-004). The server re-checks acceptance either way.
+    const kyc = String(_currentArtisan?.verificationStatus || '').toLowerCase();
+    if (_currentArtisan && ['', 'draft', 'rejected', 're_verification_required'].includes(kyc)) {
+      showToast('Complete your KYC verification before accepting jobs.');
+      window.location.href = 'onboarding.html';
+    } else {
+      showToast(_currentArtisan
+        ? 'Your account cannot accept jobs right now. Contact support if this is unexpected.'
+        : 'Your profile has not loaded yet. Check your connection and try again.');
+    }
     return;
   }
   await runTransition(ACTION.ACCEPT, bookingId, btn, {
@@ -710,6 +731,19 @@ window.declineJob = async function(bookingId, btn) {
     busyLabel: 'Declining…', okLabel: 'Job declined.',
     confirmMsg: 'Decline this job request?', removeCard: true });
 };
+
+// One ticker for every visible offer countdown. The time left is recomputed
+// from each card's expiresAtMs, so a reload or a long-open screen stays true.
+// When one reaches zero the list re-renders and that card turns "Expired".
+setInterval(() => {
+  let lapsed = false;
+  document.querySelectorAll('.job-countdown[data-expires]').forEach((el) => {
+    const st = offerState({ expiresAtMs: Number(el.dataset.expires) });
+    el.textContent = `Respond in ${formatTimeLeft(st.secondsLeft)}`;
+    if (st.expired) lapsed = true;
+  });
+  if (lapsed && _allJobs.length) render(_allJobs);
+}, 1000);
 
 // The status/field arguments are now advisory only — kept so existing card
 // markup keeps working — and are mapped onto a named action the layer validates.
@@ -905,30 +939,49 @@ subscribeToArtisanAuthState(async user => {
   if (_unsub) { _unsub(); _unsub = null; }
   if (_offersUnsub) { _offersUnsub(); _offersUnsub = null; }
 
+  // Both lists paint from the last known state first (instantView, CLAUDE.md §1)
+  // and the live listeners reconcile them. An empty answer from the CACHE while
+  // Firestore is unreachable is "not known yet": the skeletons or the last list
+  // stay, and the artisan is told — never "No pending requests" (audit NET-001).
+  const offlineEmpty = (records, meta) => !!(meta && meta.fromCache && !records.length);
+  const sayOffline   = () => showToast('You\'re offline — showing what we last had.', 4000);
+
   // Jobs this artisan has TAKEN (they are the booking's artisanId)…
-  _unsub = bookingRepo.subscribeByArtisanId(
-    user.uid,
-    records => {
+  _unsub = mountInstantView({
+    key: 'artisan-jobs-bookings',
+    version: 1,
+    render: (records) => {
       _bookingJobs = records.map(r => ({ id: r.id, ...(r.data || {}) }));
       _mergeAndRender();
     },
-    err => {
+    subscribe: (_c, onData, onError) => bookingRepo.subscribeByArtisanId(
+      user.uid,
+      (records, meta) => { if (offlineEmpty(records, meta)) { sayOffline(); return; } onData(records); },
+      onError),
+    onError: (err) => {
       console.error('[jobs] Subscription error:', err);
       showToast('Could not load jobs. Check your connection.', 4000);
-    }
-  );
+    },
+  }).destroy;
   // …and requests OFFERED to them: the offer summary only (job_offers), never
   // the booking — that opens to them when they accept (functions/jobOffers.js).
-  _offersUnsub = databaseService.subscribeToCollection(
-    'job_offers',
-    [{ field: 'artisanId', op: '==', value: user.uid }, { field: 'offerStatus', op: '==', value: 'open' }],
-    {},
-    records => {
-      _offerJobs = records.map(r => ({ id: r.id, ...(r.data || {}) }));
+  _offersUnsub = mountInstantView({
+    key: 'artisan-jobs-offers',
+    version: 1,
+    render: (records, { fromCache }) => {
+      // A cached offer whose deadline has passed cannot be answered: drop it.
+      const live = fromCache ? records.filter(r => !offerState(r.data).expired) : records;
+      _offerJobs = live.map(r => ({ id: r.id, ...(r.data || {}) }));
       _mergeAndRender();
     },
-    err => console.error('[jobs] Offer subscription error:', err)
-  );
+    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(
+      'job_offers',
+      [{ field: 'artisanId', op: '==', value: user.uid }, { field: 'offerStatus', op: '==', value: 'open' }],
+      {},
+      (records, meta) => { if (offlineEmpty(records, meta)) return; onData(records); },
+      onError),
+    onError: (err) => console.error('[jobs] Offer subscription error:', err),
+  }).destroy;
 
   // Re-establish GPS presence tracking so the customer's live-tracking map
   // keeps updating while the artisan is on this page advancing job status.
@@ -949,11 +1002,13 @@ subscribeToArtisanAuthState(async user => {
         _originLat = la; _originLng = ln;
         if (_allJobs.length) render(_allJobs);   // repaint with distances
       }
-      if (a.isAvailable !== false) {
-        startPresence(user.uid, databaseService, true, {
-          onLocationError: err => console.warn('[jobs] GPS:', err.message),
-        });
-      }
+      // Started from the stored choice; presence never writes availability
+      // (shared/js/domain/availability.js). It still tracks GPS for an active
+      // job's live map even when the artisan is offline for new requests.
+      const approved = String(a.verificationStatus || '').toLowerCase() === 'approved';
+      startPresence(user.uid, databaseService, approved && storedAvailability(a), {
+        onLocationError: err => console.warn('[jobs] GPS:', err.message),
+      });
     }
   } catch (e) {
     console.warn('[jobs] Could not resume presence:', e);
@@ -962,8 +1017,12 @@ subscribeToArtisanAuthState(async user => {
 
 window.addEventListener('pagehide', () => {
   if (_unsub) _unsub();
+  if (_offersUnsub) _offersUnsub();
   stopPresence();
 });
+// Restored from the back/forward cache with its listeners torn down: reload
+// (the cache paints the list at once).
+window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
 </script>
 <script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>

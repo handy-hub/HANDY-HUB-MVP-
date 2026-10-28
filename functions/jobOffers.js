@@ -209,7 +209,15 @@ async function respondToJobOffer(auth, { bookingId, decision } = {}) {
             (b.currentArtisanId && b.currentArtisanId !== uid)) {
             throw offerError('closed', 'This request is no longer open.');
         }
-        if (Number.isFinite(offer.expiresAtMs) && Date.now() >= offer.expiresAtMs) {
+        // The server clock decides, never the client's. An offer written before
+        // expiresAtMs existed falls back to the booking's responseDeadline, so a
+        // legacy offer cannot skip the expiry check altogether.
+        const rd = b.responseDeadline;
+        const deadlineMs = Number.isFinite(offer.expiresAtMs) ? offer.expiresAtMs
+            : (rd && typeof rd.toMillis === 'function') ? rd.toMillis()
+            : (typeof rd === 'string' && Number.isFinite(Date.parse(rd))) ? Date.parse(rd)
+            : null;
+        if (deadlineMs !== null && Date.now() >= deadlineMs) {
             throw offerError('expired', 'This request has expired and has been offered to another professional.');
         }
 

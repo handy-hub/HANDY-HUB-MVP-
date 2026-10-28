@@ -130,6 +130,8 @@ import { resolveSchedule, canStartWork }
 import { pricingService }   from '../shared/js/services/pricingService.js';
 import { mountQuoteComposer, quoteComposerStyles }
                             from '../shared/js/ui/quoteComposer.js';
+import { offerState, formatTimeLeft }
+                            from '../shared/js/domain/jobOffers.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -176,9 +178,21 @@ function actionsFor(brief, b) {
   });
 
   switch (brief.phase) {
-    case JOB_PHASE.REQUEST:
+    case JOB_PHASE.REQUEST: {
+      // The offer's own deadline (job_offers.expiresAtMs). Once it passes the
+      // offer is not acceptable — the server refuses it anyway — so the screen
+      // says so instead of offering a button that can only fail.
+      const offer = offerState(b);
+      if (offer.expired) {
+        return {
+          waiting: null,
+          waitLabel: 'This request has expired',
+          note: 'The response time ran out. It is being offered to another professional.',
+        };
+      }
       return {
         waiting: 'you',
+        expiresAtMs: offer.expiresAtMs,
         /* An artisan cannot decide without knowing when. This is the single
            most important fact on a scheduled request and it was not shown at
            all — the card read identically whether the job was in ten minutes
@@ -190,6 +204,7 @@ function actionsFor(brief, b) {
         primary:   { label: appt.scheduled ? 'Accept this slot' : 'Accept this job', action: ACTION.ACCEPT },
         secondary: [{ label: 'Decline', action: ACTION.DECLINE, danger: true, confirm: 'Decline this request?' }],
       };
+    }
 
     case JOB_PHASE.AWAITING_CALLOUT:
       return {
@@ -300,6 +315,7 @@ function render(b) {
         <div class="jb-waiting ${acts.waiting === 'you' ? 'you' : ''}">
           ${acts.waiting ? '<span class="dot"></span>' : ''}
           <span>${esc(acts.waitLabel)}</span>
+          ${acts.expiresAtMs ? `<span class="jb-countdown" id="jb-countdown" role="timer" aria-live="off">Respond in ${esc(formatTimeLeft(offerState(b).secondsLeft))}</span>` : ''}
         </div>` : ''}
     </div>
 
@@ -339,7 +355,11 @@ function render(b) {
       <p class="jb-card-title">Where</p>
       ${brief.location.address
         ? `<p class="jb-problem" style="font-size:14px">${esc(brief.location.address)}</p>`
-        : `<p class="jb-problem jb-unknown" style="font-size:14px">No address on this booking</p>`}
+        : b.locationApproximate
+          // An offer withholds the address by design (functions/jobOffers.js);
+          // "No address" read as a broken booking at the moment of decision.
+          ? `<p class="jb-problem" style="font-size:14px">Exact address shared once you accept</p>`
+          : `<p class="jb-problem jb-unknown" style="font-size:14px">No address on this booking</p>`}
       ${dist ? `<p class="jb-precision">${esc(dist)}</p>` : ''}
       ${brief.location.precision === 'address-only'
         ? '<p class="jb-precision">Address only — no exact GPS fix from the customer.</p>' : ''}
@@ -393,6 +413,23 @@ function render(b) {
   (acts.secondary || []).forEach((s, i) => {
     document.querySelector(`[data-sec="${i}"]`)?.addEventListener('click', () => run(s));
   });
+  tickOffer(acts.expiresAtMs ? b : null);
+}
+
+/* ── Offer countdown ───────────────────────────────────────────────────────────
+   Derived from the offer's expiresAtMs every second, never from a timer started
+   on page load, so a refresh or a screen left open shows the true time left.
+   At zero the screen re-renders into its expired state. */
+let _offerTick = null;
+function tickOffer(offer) {
+  clearInterval(_offerTick); _offerTick = null;
+  if (!offer) return;
+  _offerTick = setInterval(() => {
+    const st = offerState(offer);
+    const el = $('jb-countdown');
+    if (el) el.textContent = `Respond in ${formatTimeLeft(st.secondsLeft)}`;
+    if (st.expired) { clearInterval(_offerTick); _offerTick = null; if (!_busy) render(offer); }
+  }, 1000);
 }
 
 /* ── Act ─────────────────────────────────────────────────────────────────── */
@@ -582,7 +619,9 @@ function watchBooking() {
   );
 }
 
-window.addEventListener('pagehide', () => { try { _unsub?.(); _offerUnsub?.(); } catch (_) {} });
+window.addEventListener('pagehide', () => { try { _unsub?.(); _offerUnsub?.(); } catch (_) {} clearInterval(_offerTick); });
+// Restored from the back/forward cache with its listeners torn down: reload.
+window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
 </script>
 <script src="js/pwa.js" defer></script>
 </body>

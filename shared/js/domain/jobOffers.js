@@ -40,10 +40,20 @@ export function offerDeadlineMs(v) {
 
 /**
  * Where an offer stands right now.
+ *
+ * Reads the offer's own `expiresAtMs` first. Since AR-06 every artisan screen
+ * shows job_offers/{bookingId} documents, and those carry `expiresAtMs` — they
+ * have no `responseDeadline`. Reading only `responseDeadline` meant no countdown
+ * was ever shown and a lapsed offer stayed acceptable on screen (audit
+ * FLOW-003). A booking document (legacy callers) still answers through
+ * `responseDeadline`. The server re-checks expiry on accept regardless.
+ *
+ * @param {object} offerOrBooking  job_offers or bookings data
  * @returns {{ expiresAtMs: number|null, secondsLeft: number|null, expired: boolean }}
  */
-export function offerState(booking, nowMs = Date.now()) {
-    const expiresAtMs = offerDeadlineMs(booking && booking.responseDeadline);
+export function offerState(offerOrBooking, nowMs = Date.now()) {
+    const o = offerOrBooking || {};
+    const expiresAtMs = offerDeadlineMs(o.expiresAtMs) ?? offerDeadlineMs(o.responseDeadline);
     if (expiresAtMs === null) return { expiresAtMs: null, secondsLeft: null, expired: false };
     return {
         expiresAtMs,
