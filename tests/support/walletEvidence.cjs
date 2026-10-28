@@ -24,13 +24,16 @@ function fundCustomer(db, uid, amountGHS, ref = `TEST-TOPUP-${uid}-${Math.round(
     });
 }
 
-/** Earnings of `amountGHS` for artisan `uid` from a released escrow. */
+/**
+ * Earnings of `amountGHS` for artisan `uid` from a released escrow — one made
+ * by today's hold path, which marks it fundingVerified (escrow.js applyHold).
+ */
 function fundArtisan(db, uid, amountGHS, escrowId = `esc_fund_${uid}_${Math.round(Number(amountGHS) * 100)}`) {
     if (!(Number(amountGHS) > 0)) return;
     db._set(`escrow/${escrowId}`, {
         bookingId: `bk_${escrowId}`, customerId: 'fund_customer', artisanId: uid, kind: 'job',
         amount: Number(amountGHS), artisanShare: Number(amountGHS), commission: 0, status: 'released',
-        createdAt: '2026-10-01T00:00:00.000Z',
+        fundingVerified: true, createdAt: '2026-10-01T00:00:00.000Z',
     });
     db._set(`artisans/${uid}/transactions/earn_${escrowId}`, {
         type: 'earning', amount: Number(amountGHS), escrowId, bookingId: `bk_${escrowId}`,

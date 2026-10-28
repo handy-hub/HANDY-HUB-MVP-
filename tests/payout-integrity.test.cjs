@@ -355,6 +355,58 @@ await t('an artisan balance raised in the console cannot be withdrawn; the real 
     assert.ok(FAKE_DB._get(`walletIntegrityAlerts/artisan_${ART}`), 'an operator alert was recorded');
 });
 
+// The 2026-10-22 incident end to end: the edited customer wallet funded two
+// escrows before holds were checked against the ledger; both were RELEASED, so
+// the artisan's earnings rows are backed by real escrows — of money that never
+// came in. Only earnings whose escrow the customer's verified money paid for
+// may leave the platform. (walletLedger escrowFundingProven)
+function seedLegacyIncident() {
+    reset();
+    const PAYER = 'cust_edited';
+    // Customer: one verified GHS 6 top-up, a GHS 5 hold it covered, then (after
+    // the console edit) holds of 60 and 50 that nothing covered.
+    FAKE_DB._set(`webhookLocks/REF-OK`, { uid: PAYER, paystackRef: 'REF-OK', amountGHS: 6 });
+    const rows = [
+        ['t1', { type: 'topup', amount: 6, status: 'successful', source: 'webhook', paystackRef: 'REF-OK', createdAt: '2026-08-18T00:00:00.000Z' }],
+        ['h1', { type: 'escrow_hold', amount: 5, status: 'completed', escrowId: 'esc_backed', createdAt: '2026-08-18T00:10:00.000Z' }],
+        ['h2', { type: 'escrow_hold', amount: 60, status: 'completed', escrowId: 'esc_edit_60', createdAt: '2026-10-22T16:40:00.000Z' }],
+        ['h3', { type: 'escrow_hold', amount: 50, status: 'completed', escrowId: 'esc_edit_50', createdAt: '2026-10-22T16:44:00.000Z' }],
+    ];
+    for (const [id, r] of rows) FAKE_DB._set(`customers/${PAYER}/transactions/${id}`, r);
+    // Legacy escrows: released, no fundingVerified mark.
+    for (const [id, amount, share] of [['esc_backed', 5, 4.25], ['esc_edit_60', 60, 51], ['esc_edit_50', 50, 42.5]]) {
+        FAKE_DB._set(`escrow/${id}`, { customerId: PAYER, artisanId: ART, kind: 'job', amount, artisanShare: share, status: 'released' });
+        FAKE_DB._set(`artisans/${ART}/transactions/earn_${id}`, { type: 'earning', amount: share, escrowId: id, status: 'completed' });
+    }
+}
+
+await t('earnings from escrows the customer never really paid for cannot be withdrawn; backed earnings can', async () => {
+    seedLegacyIncident();
+    await seedArtisan({ available: 0 });                      // account, PIN; no fixture earnings
+    FAKE_DB._set(`artisans/${ART}`, { ...FAKE_DB._get(`artisans/${ART}`), availableBalance: 97.75, totalEarned: 97.75 });
+
+    await assert.rejects(() => artWithdraw(10), /could not be matched to your payment history/);
+    assert.strictEqual(PS.calls.transfer.length, 0, 'Paystack was never asked');
+    assert.strictEqual(balance(), 97.75, 'nothing moved');
+    const alert = FAKE_DB._get(`walletIntegrityAlerts/artisan_${ART}`);
+    assert.ok(alert, 'the operator is told');
+    assert.strictEqual(alert.verifiedPesewas, 425, 'only the GHS 4.25 backed earning is verified');
+    assert.strictEqual(alert.unverifiedRows.filter((r) => r.reason === 'escrow_funding_unverified').length, 2);
+});
+
+await t('an escrow made by today\'s hold path (fundingVerified) needs no replay', async () => {
+    seedLegacyIncident();
+    await seedArtisan({ available: 0 });
+    // Same released escrow, but marked as applyHold marks it — and its payer's
+    // ledger is not even present.
+    FAKE_DB._set('escrow/esc_new', { customerId: 'someone_else', artisanId: ART, kind: 'job', amount: 20, artisanShare: 17, status: 'released', fundingVerified: true });
+    FAKE_DB._set(`artisans/${ART}/transactions/earn_esc_new`, { type: 'earning', amount: 17, escrowId: 'esc_new', status: 'completed' });
+    FAKE_DB._set(`artisans/${ART}`, { ...FAKE_DB._get(`artisans/${ART}`), availableBalance: 21.25 });
+    await artWithdraw(21.25);                                 // 17 + the backed 4.25
+    assert.strictEqual(payouts().length, 1);
+    assert.strictEqual(balance(), 0);
+});
+
 await t('a forged earning row (no escrow behind it) does not make money withdrawable', async () => {
     reset(); await seedArtisan({ available: 0 });
     FAKE_DB._set(`artisans/${ART}`, { ...FAKE_DB._get(`artisans/${ART}`), availableBalance: 500, totalEarned: 500 });

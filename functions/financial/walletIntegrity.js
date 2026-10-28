@@ -44,6 +44,52 @@ function db() {
 const docs = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
 /**
+ * A customer's ledger and the records that back its credit rows — webhook
+ * locks for top-ups, escrows for refunds — read through `txn`.
+ */
+async function readCustomerEvidence(txn, uid) {
+    const firestore = db();
+    const [txSnap, payoutSnap] = await Promise.all([
+        txn.get(firestore.collection('customers').doc(uid).collection('transactions')),
+        txn.get(firestore.collection('payouts').where('userId', '==', uid)),
+    ]);
+    const transactions = docs(txSnap);
+    const lockIds = new Set(), escrowIds = new Set();
+    for (const t of transactions) {
+        if (t.type === 'topup' && t.paystackRef) lockIds.add(t.paystackRef);
+        if (t.type === 'refund' && t.escrowId) escrowIds.add(t.escrowId);
+    }
+    const lockList = [...lockIds], escrowList = [...escrowIds];
+    const [lockSnaps, escrowSnaps] = await Promise.all([
+        Promise.all(lockList.map((r) => txn.get(firestore.collection('webhookLocks').doc(r)))),
+        Promise.all(escrowList.map((e) => txn.get(firestore.collection('escrow').doc(e)))),
+    ]);
+    const locks = new Map(), escrows = new Map();
+    lockSnaps.forEach((s, i) => { if (s.exists) locks.set(lockList[i], s.data()); });
+    escrowSnaps.forEach((s, i) => { if (s.exists) escrows.set(escrowList[i], s.data()); });
+    return { customerId: uid, transactions, payouts: docs(payoutSnap), locks, escrows };
+}
+
+/**
+ * The escrows, among those an artisan's earnings came from, whose funding is
+ * proven by their customers' ledgers (walletLedger backedHoldEscrowIds). Only
+ * escrows without fundingVerified need it — those made before applyHold
+ * measured holds against the evidence — so this reads a fixed, shrinking set
+ * of customers, never a growing one.
+ */
+async function readBackedLegacyEscrows(txn, escrows) {
+    const customers = new Set();
+    for (const e of escrows.values()) {
+        if (e && e.fundingVerified !== true && e.customerId) customers.add(e.customerId);
+    }
+    const backed = new Set();
+    for (const evidence of await Promise.all([...customers].map((c) => readCustomerEvidence(txn, c)))) {
+        for (const id of ledger.backedHoldEscrowIds(evidence)) backed.add(id);
+    }
+    return backed;
+}
+
+/**
  * @param {object} txn   Firestore transaction (reads only)
  * @param {'customer'|'artisan'} kind
  * @param {string} uid
@@ -80,9 +126,13 @@ async function readSpendable(txn, kind, uid, storedGHS) {
     escrowSnaps.forEach((s, i) => { if (s.exists) escrows.set(escrowList[i], s.data()); });
     tipSnaps.forEach((s, i) => { if (s.exists) tips.set(tipList[i], s.data()); });
 
+    // An artisan's earning counts only if the escrow it came from was paid for
+    // with verified money (walletLedger escrowFundingProven).
+    const backedEscrows = kind === 'artisan' ? await readBackedLegacyEscrows(txn, escrows) : null;
+
     const v = kind === 'customer'
         ? ledger.verifiedCustomerPesewas({ customerId: uid, transactions, payouts, locks, escrows })
-        : ledger.verifiedArtisanPesewas({ artisanId: uid, transactions, payouts, escrows, tips });
+        : ledger.verifiedArtisanPesewas({ artisanId: uid, transactions, payouts, escrows, tips, backedEscrows });
     const storedP = Math.round(Number(storedGHS || 0) * 100);
     const spendableP = ledger.spendablePesewas(storedGHS, v.pesewas);
 

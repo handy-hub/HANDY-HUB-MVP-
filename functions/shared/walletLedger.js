@@ -238,11 +238,14 @@ function reconcileCustomerWallet({ customer, transactions = [], payouts = [], es
 
 /**
  * @param {{ customerId: string, transactions: object[], payouts?: object[],
- *           locks?: Map<string, object>, escrows?: Map<string, object> }} input
+ *           locks?: Map<string, object>, escrows?: Map<string, object>,
+ *           onHold?: (row: object, pesewasBefore: number) => void }} input
  *        locks: webhookLocks by paystackRef; escrows: escrow docs by id (refunded rows)
+ *        onHold: told the verified figure just before each settled escrow_hold
+ *        (backedHoldEscrowIds uses it; rows are taken in the order given)
  * @returns {{ pesewas: number, unverified: { id: string|null, type: string, reason: string }[] }}
  */
-function verifiedCustomerPesewas({ customerId, transactions = [], payouts = [], locks = new Map(), escrows = new Map() } = {}) {
+function verifiedCustomerPesewas({ customerId, transactions = [], payouts = [], locks = new Map(), escrows = new Map(), onHold = null } = {}) {
     const byId = new Map();
     for (const p of payouts) if (p && p.id) byId.set(p.id, p);
     const seenRefs = new Set();
@@ -252,7 +255,12 @@ function verifiedCustomerPesewas({ customerId, transactions = [], payouts = [], 
     for (const t of transactions) {
         if (!t) continue;
         const id = t.id || null;
-        if (t.type === 'escrow_hold' || t.type === 'tip') { if (SETTLED_ROW.has(t.status)) p -= toP(t.amount); continue; }
+        if (t.type === 'escrow_hold' || t.type === 'tip') {
+            if (!SETTLED_ROW.has(t.status)) continue;
+            if (onHold && t.type === 'escrow_hold') onHold(t, p);
+            p -= toP(t.amount);
+            continue;
+        }
         if (t.type === 'withdrawal') {
             if (withdrawalStatus(t, t.payoutId ? byId.get(t.payoutId) : null) !== 'failed') p -= toP(t.amount);
             continue;
@@ -290,17 +298,71 @@ function verifiedCustomerPesewas({ customerId, transactions = [], payouts = [], 
     return { pesewas: p, unverified };
 }
 
+// ── Was an escrow paid for with real money? ──────────────────────────────────
+//
+// A released escrow is not proof by itself: before 2026-10-23 a hold trusted
+// the stored wallet balance, and the console-edited wallet (3 → 300) funded two
+// escrows that were then released — GHS 93.50 of artisan earnings, and GHS
+// 16.50 of commission, from money no payment ever brought in. The customer side
+// already counts those holds as debits; the artisan side counted the earnings
+// as real. An escrow's funding is proven when either
+//
+//   • the escrow carries fundingVerified: true — written by escrow.js applyHold,
+//     which measures the hold against the verified ledger in the same
+//     transaction (every escrow since that change), or
+//   • replaying its customer's ledger in time order, the verified figure just
+//     before the hold covered the whole hold (backedHoldEscrowIds) — how an
+//     older escrow is judged. A hold covered only in part is not proven.
+
+const rowTimeMs = (v) => v && typeof v.toMillis === 'function' ? v.toMillis()
+                       : v instanceof Date ? v.getTime()
+                       : typeof v === 'string' ? Date.parse(v)
+                       : Number(v);
+
+/**
+ * The escrows (by id) whose escrow_hold the customer's verified money covered
+ * in full at the time it was made. Rows are replayed oldest first; a row with
+ * no usable time is taken last.
+ *
+ * @param {{ customerId: string, transactions: object[], payouts?: object[],
+ *           locks?: Map<string, object>, escrows?: Map<string, object> }} input
+ *        the same evidence verifiedCustomerPesewas reads
+ * @returns {Set<string>}
+ */
+function backedHoldEscrowIds({ customerId, transactions = [], payouts = [], locks = new Map(), escrows = new Map() } = {}) {
+    const at = (t) => { const ms = rowTimeMs(t.createdAt); return Number.isFinite(ms) ? ms : Infinity; };
+    const ordered = transactions.filter(Boolean)
+        .map((t, i) => ({ t, i, ms: at(t) }))
+        .sort((a, b) => (a.ms === b.ms ? a.i - b.i : a.ms - b.ms))
+        .map((x) => x.t);
+    const backed = new Set();
+    verifiedCustomerPesewas({
+        customerId, transactions: ordered, payouts, locks, escrows,
+        onHold: (t, beforeP) => { if (t.escrowId && beforeP >= toP(t.amount)) backed.add(t.escrowId); },
+    });
+    return backed;
+}
+
+/** Is this escrow's funding proven? (see above) */
+function escrowFundingProven(escrowId, e, backedEscrows) {
+    return e.fundingVerified === true || Boolean(backedEscrows && backedEscrows.has(escrowId));
+}
+
 /**
  * The artisan equivalent: earnings only from a real escrow (released, or a
- * partial dispute settlement), counted once per escrow and never above the
- * share it carried; tips only with their tips/{bookingId} record (server-only,
- * written in the same transaction as the tip) naming this artisan and this
- * amount; minus every withdrawal that did not fail.
+ * partial dispute settlement) whose funding is proven (escrowFundingProven),
+ * counted once per escrow and never above the share it carried; tips only with
+ * their tips/{bookingId} record (server-only, written in the same transaction
+ * as the tip) naming this artisan and this amount; minus every withdrawal that
+ * did not fail.
  *
  * @param {{ artisanId?: string, transactions: object[], payouts?: object[],
- *           escrows?: Map<string, object>, tips?: Map<string, object> }} input
+ *           escrows?: Map<string, object>, tips?: Map<string, object>,
+ *           backedEscrows?: Set<string> }} input
+ *        backedEscrows: escrow ids backedHoldEscrowIds proved for the escrows'
+ *        customers. Omitted, only escrows marked fundingVerified count.
  */
-function verifiedArtisanPesewas({ artisanId = null, transactions = [], payouts = [], escrows = new Map(), tips = new Map() } = {}) {
+function verifiedArtisanPesewas({ artisanId = null, transactions = [], payouts = [], escrows = new Map(), tips = new Map(), backedEscrows = null } = {}) {
     const byId = new Map();
     for (const p of payouts) if (p && p.id) byId.set(p.id, p);
     const earnedP = new Map();
@@ -336,6 +398,7 @@ function verifiedArtisanPesewas({ artisanId = null, transactions = [], payouts =
         const already = t.escrowId ? (earnedP.get(t.escrowId) || 0) : 0;
         const reason = !e ? 'no_escrow'
                      : cap === 0 ? 'escrow_not_paid_out'
+                     : !escrowFundingProven(t.escrowId, e, backedEscrows) ? 'escrow_funding_unverified'
                      : already + toP(t.amount) > cap ? 'earning_exceeds_escrow'
                      : null;
         if (reason) { unverified.push({ id, type: 'earning', reason }); continue; }
@@ -380,6 +443,7 @@ module.exports = {
     customerLedgerPesewas,
     reconcileCustomerWallet,
     verifiedCustomerPesewas,
+    backedHoldEscrowIds,
     verifiedArtisanPesewas,
     spendablePesewas,
     customerSpentPesewas,

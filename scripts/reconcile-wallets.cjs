@@ -40,7 +40,7 @@ const { createRequire } = require('module');
 
 const ROOT = path.join(__dirname, '..');
 const fnRequire = createRequire(path.join(ROOT, 'functions', 'package.json'));
-const { reconcileArtisanWallet, reconcileCustomerWallet, verifiedCustomerPesewas, verifiedArtisanPesewas, spendablePesewas } = require(path.join(ROOT, 'functions', 'shared', 'walletLedger.js'));
+const { reconcileArtisanWallet, reconcileCustomerWallet, verifiedCustomerPesewas, verifiedArtisanPesewas, spendablePesewas, backedHoldEscrowIds } = require(path.join(ROOT, 'functions', 'shared', 'walletLedger.js'));
 
 const DB_FOR_PROJECT = {
     'lamax-4fd82':    'ai-studio-5589039d-72c4-40d8-ae39-f35c6c321eb6',
@@ -67,6 +67,40 @@ async function main() {
         const snaps = await Promise.all(ids.map((id) => db.collection('escrow').doc(id).get()));
         return new Map(snaps.filter((x) => x.exists).map((x) => [x.id, x.data()]));
     }
+    // A customer's ledger and the records behind its credits — exactly what
+    // walletIntegrity.js readCustomerEvidence reads inside a debit.
+    const evidenceCache = new Map();
+    async function customerEvidence(uid) {
+        if (evidenceCache.has(uid)) return evidenceCache.get(uid);
+        const [txns, payouts] = await Promise.all([
+            db.collection('customers').doc(uid).collection('transactions').get(),
+            db.collection('payouts').where('userId', '==', uid).get(),
+        ]);
+        const rows = txns.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const refs = [...new Set(rows.filter((t) => t.type === 'topup' && t.paystackRef).map((t) => t.paystackRef))];
+        const lockSnaps = await Promise.all(refs.map((ref) => db.collection('webhookLocks').doc(ref).get()));
+        const ev = {
+            customerId: uid, transactions: rows,
+            payouts: payouts.docs.map((d) => ({ id: d.id, ...d.data() })),
+            locks: new Map(lockSnaps.filter((x) => x.exists).map((x) => [x.id, x.data()])),
+            escrows: await escrowsFor(rows),
+        };
+        evidenceCache.set(uid, ev);
+        return ev;
+    }
+    // Escrows made before applyHold marked fundingVerified, proven by replaying
+    // their customers' ledgers (walletLedger backedHoldEscrowIds).
+    async function backedLegacyEscrows(escrows) {
+        const backed = new Set();
+        const owners = [...new Set([...escrows.values()].filter((e) => e.fundingVerified !== true && e.customerId).map((e) => e.customerId))];
+        for (const uid of owners) for (const id of backedHoldEscrowIds(await customerEvidence(uid))) backed.add(id);
+        return backed;
+    }
+    async function tipsFor(rows) {
+        const ids = [...new Set(rows.filter((t) => t.type === 'tip' && t.bookingId).map((t) => t.bookingId))];
+        const snaps = await Promise.all(ids.map((id) => db.collection('tips').doc(id).get()));
+        return new Map(snaps.filter((x) => x.exists).map((x) => [x.id, x.data()]));
+    }
     const artisans = await db.collection('artisans').get();
     let failing = 0, stale = 0;
     for (const a of artisans.docs) {
@@ -81,9 +115,11 @@ async function main() {
         });
         const bad = r.checks.filter((c) => !c.ok).map((c) => c.name);
         if (bad.length) failing++;
-        const aEsc = await escrowsFor(txns.docs.map((d) => d.data()));
-        const av = verifiedArtisanPesewas({ transactions: txns.docs.map((d) => ({ id: d.id, ...d.data() })),
-            payouts: payouts.docs.map((d) => ({ id: d.id, ...d.data() })), escrows: aEsc });
+        const aRows = txns.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const aEsc = await escrowsFor(aRows);
+        const av = verifiedArtisanPesewas({ artisanId: a.id, transactions: aRows,
+            payouts: payouts.docs.map((d) => ({ id: d.id, ...d.data() })), escrows: aEsc,
+            tips: await tipsFor(aRows), backedEscrows: await backedLegacyEscrows(aEsc) });
         const aStored = Math.round(Number(a.data().availableBalance || 0) * 100);
         if (aStored > av.pesewas) limited++;
         spendLines.push(`${aStored > av.pesewas ? 'LIMITED' : 'ok     '} artisan  ${a.id}` + (detail

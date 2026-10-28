@@ -345,6 +345,69 @@ await t('the router reaches it: bookingActions { action: "tipArtisan" }', async 
     assert.deepStrictEqual([low.code, low.details.reason], ['failed-precondition', 'already_tipped']);
 });
 
+console.log('\n── An earning is only as real as the money that funded its escrow ──\n');
+
+// The console-edited wallet funded two escrows that were then released: the
+// artisan's GHS 93.50 was backed by real escrows of money that never came in.
+// (walletLedger backedHoldEscrowIds / escrowFundingProven)
+const FUNDER = 'cust_funder';
+const lockFor = (ref, amountGHS) => new Map([[ref, { uid: FUNDER, paystackRef: ref, amountGHS }]]);
+const topupRow = (amount, at, ref = 'REF-F') => ({ id: `tp_${at}`, type: 'topup', amount, status: 'successful', source: 'webhook', paystackRef: ref, createdAt: at });
+const holdRow  = (amount, escrowId, at) => ({ id: `h_${escrowId}`, type: 'escrow_hold', amount, status: 'completed', escrowId, createdAt: at });
+const released = (share, extra = {}) => ({ customerId: FUNDER, status: 'released', artisanShare: share, ...extra });
+const earnRow  = (amount, escrowId) => ({ id: `e_${escrowId}`, type: 'earning', amount, escrowId, status: 'completed' });
+
+await t('a hold the verified balance covered is backed; holds after a console edit are not (the incident)', () => {
+    const rows = [
+        topupRow(6, '2026-08-18T00:00:00Z'),
+        holdRow(5, 'esc_aug', '2026-08-18T00:10:00Z'),
+        holdRow(60, 'esc_60', '2026-10-22T16:40:00Z'),         // verified before: 1
+        holdRow(50, 'esc_50', '2026-10-22T16:44:00Z'),         // verified before: −59
+    ];
+    const backed = ledger.backedHoldEscrowIds({ customerId: FUNDER, transactions: rows, locks: lockFor('REF-F', 6) });
+    assert.deepStrictEqual([...backed], ['esc_aug']);
+});
+
+await t('holds are judged in time order, whatever order the rows arrive in', () => {
+    const rows = [
+        holdRow(50, 'esc_second', '2026-09-03T00:00:00Z'),
+        holdRow(60, 'esc_first',  '2026-09-02T00:00:00Z'),
+        topupRow(100, '2026-09-01T00:00:00Z'),
+    ];
+    const backed = ledger.backedHoldEscrowIds({ customerId: FUNDER, transactions: rows, locks: lockFor('REF-F', 100) });
+    assert.deepStrictEqual([...backed], ['esc_first'], 'the first GHS 60 is covered; only 40 remains for the 50');
+});
+
+await t('a hold covered only in part is not proven; an unverified top-up covers nothing', () => {
+    const partial = ledger.backedHoldEscrowIds({ customerId: FUNDER, locks: lockFor('REF-F', 30),
+        transactions: [topupRow(30, '2026-09-01T00:00:00Z'), holdRow(50, 'esc_p', '2026-09-02T00:00:00Z')] });
+    assert.strictEqual(partial.size, 0);
+    const legacy = { id: 'old', type: 'topup', amount: 900, status: 'successful', createdAt: '2026-05-01T00:00:00Z' };   // no source, no ref
+    const none = ledger.backedHoldEscrowIds({ customerId: FUNDER, transactions: [legacy, holdRow(50, 'esc_l', '2026-09-02T00:00:00Z')] });
+    assert.strictEqual(none.size, 0);
+});
+
+await t('artisan earnings count only from proven escrows; unmarked escrows fail closed', () => {
+    const escrows = new Map([
+        ['esc_aug', released(4.25)], ['esc_60', released(51)], ['esc_50', released(42.5)],
+        ['esc_new', released(17, { fundingVerified: true })],
+    ]);
+    const transactions = [earnRow(4.25, 'esc_aug'), earnRow(51, 'esc_60'), earnRow(42.5, 'esc_50'), earnRow(17, 'esc_new')];
+    const proven = ledger.verifiedArtisanPesewas({ artisanId: A, transactions, escrows, backedEscrows: new Set(['esc_aug']) });
+    assert.strictEqual(proven.pesewas, 425 + 1700);
+    assert.deepStrictEqual(proven.unverified.map((u) => [u.id, u.reason]),
+        [['e_esc_60', 'escrow_funding_unverified'], ['e_esc_50', 'escrow_funding_unverified']]);
+    // No replay supplied: only the escrow applyHold marked counts.
+    assert.strictEqual(ledger.verifiedArtisanPesewas({ artisanId: A, transactions, escrows }).pesewas, 1700);
+});
+
+await t('every escrow today\'s hold path creates is marked fundingVerified', async () => {
+    seed({ real: 50 });
+    await hold(20);
+    const [e] = holds();
+    assert.strictEqual(e.fundingVerified, true);
+});
+
 console.log('\n── "Spent" is what actually went to professionals ──\n');
 
 await t('spent = paid into escrow − refunded − still held + tips (never the dead counter)', () => {

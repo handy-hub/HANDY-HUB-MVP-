@@ -367,6 +367,12 @@ function applyHold(txn, plan, { lockSnap, customerSnap, spend }) {
         customerConfirmed: false,
         artisanConfirmed:  false,
         disputeId:         null,
+        // The hold above was measured against the verified ledger in this
+        // transaction (readHold → walletIntegrity), so this escrow is backed
+        // by real money. An artisan's earning from an escrow without this
+        // mark must be proven by replaying the customer's ledger
+        // (walletLedger escrowFundingProven) before it can be withdrawn.
+        fundingVerified:   true,
         autoReleaseAt:     new Date(
             Date.now() + ESCROW_AUTO_RELEASE_DAYS * 24 * 60 * 60 * 1000
         ).toISOString(),
