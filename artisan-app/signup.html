@@ -676,9 +676,12 @@ body {
                        aria-label="Agree to terms">
                 <label class="as-terms-label" for="as-terms">
                     I agree to the
-                    <a href="#">Terms of Service</a>
+                    <!-- The shared documents both sites serve (shared/legal/). These
+                         were href="#", so the agreement could not be read before it
+                         was given (audit AUTH-001). New tab: the form keeps its input. -->
+                    <a href="../shared/legal/terms.html" target="_blank" rel="noopener">Terms of Service</a>
                     and
-                    <a href="#">Privacy Policy</a>
+                    <a href="../shared/legal/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
                 </label>
             </div>
 

@@ -69,6 +69,28 @@ await t('artisan onboarding opens the documents in a new tab (the half-filled fo
     assert.match(on, /href="\.\.\/shared\/legal\/privacy\.html" target="_blank" rel="noopener"/);
 });
 
+await t('artisan sign-up links the documents it asks the artisan to accept (audit AUTH-001)', () => {
+    const su = read('artisan-app/signup.html');
+    assert.match(su, /<a href="\.\.\/shared\/legal\/terms\.html" target="_blank" rel="noopener">Terms of Service<\/a>/);
+    assert.match(su, /<a href="\.\.\/shared\/legal\/privacy\.html" target="_blank" rel="noopener">Privacy Policy<\/a>/);
+    // The agreement is still required: the box is unticked and gates the submit.
+    assert.match(su, /<input class="as-checkbox terms-row" type="checkbox" id="as-terms"\s/);
+    assert.ok(!/id="as-terms"[^>]*\bchecked\b/.test(su), 'the agreement must not be pre-ticked');
+    assert.match(su, /termsChk\.checked;/);
+});
+
+await t('no Terms or Privacy link anywhere is a placeholder "#"', () => {
+    // The check above resolves real links; a placeholder has no file name to
+    // resolve, so it slipped past it. This is what let sign-up ship with "#".
+    const PLACEHOLDER = /<a\b[^>]*href=["']#?["'][^>]*>\s*(?:Terms(?: of Service| and Conditions)?|Privacy(?: Policy)?)\s*<\/a>/gi;
+    for (const app of ['customer-app', 'artisan-app']) {
+        for (const f of fs.readdirSync(path.join(ROOT, app)).filter((x) => x.endsWith('.html'))) {
+            const hits = visible(read(`${app}/${f}`)).match(PLACEHOLDER);
+            assert.ok(!hits, `${app}/${f} has a legal link that goes nowhere: ${hits && hits[0]}`);
+        }
+    }
+});
+
 await t('the old customer addresses forward to the shared documents', () => {
     assert.match(read('customer-app/settings-terms.html'), /location\.replace\('\.\.\/shared\/legal\/terms\.html'\)/);
     assert.match(read('customer-app/settings-privacy-policy.html'), /location\.replace\('\.\.\/shared\/legal\/privacy\.html'\)/);
