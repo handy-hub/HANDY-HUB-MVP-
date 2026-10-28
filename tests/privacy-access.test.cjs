@@ -184,7 +184,9 @@ const fullBooking = () => ({
     customerId: 'cust1', customerFirstName: 'Ama', customerPhone: '+233241111111',
     address: '12 Ring Road East, Osu', notes: 'Gate code 4471', description: 'Leaking pipe under the kitchen sink',
     photos: ['https://res.cloudinary.com/x/a.jpg'], serviceType: 'plumbing', track: 'standard', type: 'standard',
-    status: 'pending', lat: BK.lat, lng: BK.lng, calloutFee: 60, createdAt: '2026-10-20T08:00:00.000Z',
+    // Made a few minutes ago: an immediate request is only searched for an hour
+    // (bookingSchedule searchDeadlineMs), and dispatchRound refuses one past it.
+    status: 'pending', lat: BK.lat, lng: BK.lng, calloutFee: 60, createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
 });
 
 await t('the offer summary carries what a decision needs and none of the customer\'s details', () => {

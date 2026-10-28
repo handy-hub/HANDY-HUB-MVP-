@@ -271,6 +271,14 @@ async function dispatchRound(bookingId) {
             && !(isUnstarted(booking) && !requestedArtisanOf(booking))) {
             return { skipped: `dispatch_${booking.dispatchStatus || 'prematched'}` };
         }
+        // Guard: a search past its deadline is over. A decline or a lapsed
+        // offer re-enters here, and a new offer would reach an artisan only to
+        // be withdrawn by expireStaleSearches on the next sweep, which closes
+        // the request, refunds and tells the customer.
+        const searchEnds = bookingSchedule.searchDeadlineMs(booking);
+        if (searchEnds !== null && Date.now() >= searchEnds) {
+            return { skipped: 'search_deadline' };
+        }
 
         isEmergency  = booking.bookingType === 'emergency' || booking.type === 'emergency';
         customerId   = booking.customerId;

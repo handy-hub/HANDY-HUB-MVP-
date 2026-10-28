@@ -455,10 +455,14 @@ await t('an approved plumber with an "electrical" skill is not offered an electr
     const doc = artisanIndex._buildIndexDoc(ART, { category: 'Plumbing', specialty: 'Plumber', skills: ['electrical'],
         isAvailable: true, status: 'active', verificationStatus: 'approved', name: 'Kofi' }, P.lat, P.lng);
     fake.db._set(`artisan_index/${ART}`, { ...doc, updatedAt: PAST });
-    fake.db._set('bookings/bk_el', { customerId: CUST, status: 'pending', serviceType: 'Electrical', lat: 5.61, lng: -0.18, createdAt: PAST });
-    await dispatch.dispatchRound('bk_el');
+    // Requests made just now: one made a day ago is past its search deadline,
+    // and dispatchRound would refuse it for that reason instead of the trade.
+    const JUST_NOW = new Date(Date.now() - 60 * 1000).toISOString();
+    fake.db._set('bookings/bk_el', { customerId: CUST, status: 'pending', serviceType: 'Electrical', lat: 5.61, lng: -0.18, createdAt: JUST_NOW });
+    const el = await dispatch.dispatchRound('bk_el');
+    assert.ok(el.unfulfilled, `refused for the trade, not skipped: ${JSON.stringify(el)}`);
     assert.strictEqual(fake.db._has('job_offers/bk_el'), false);
-    fake.db._set('bookings/bk_pl', { customerId: CUST, status: 'pending', serviceType: 'Plumbing', lat: 5.61, lng: -0.18, createdAt: PAST });
+    fake.db._set('bookings/bk_pl', { customerId: CUST, status: 'pending', serviceType: 'Plumbing', lat: 5.61, lng: -0.18, createdAt: JUST_NOW });
     await dispatch.dispatchRound('bk_pl');
     assert.strictEqual(fake.db._get('job_offers/bk_pl').artisanId, ART, 'and "Plumbing" (capitalised) still matches');
 });

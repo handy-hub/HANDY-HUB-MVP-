@@ -300,6 +300,30 @@ await t('at the deadline an open offer is WITHDRAWN (not counted against the art
     assert.strictEqual(bk('b1').status, 'unfulfilled');
 });
 
+await t('past the deadline a lapsed offer offers it to NOBODY new — the sweep closes it, refunds and tells the customer', async () => {
+    reset(); seedArtisans(['a1', 'a2']);
+    // Round 3 was offered to a1 inside the hour; it lapses after the deadline.
+    fake.db._set('bookings/b1', booking({ createdAt: ago(61 * MIN), dispatchStatus: 'dispatched', currentArtisanId: 'a1',
+        artisanCandidates: ['a1'], currentDispatchRound: 3, responseDeadline: fake.Timestamp.fromMillis(Date.now() - 1000) }));
+    fake.db._set('job_offers/b1', jobOffers.buildOfferDoc(booking(), { bookingId: 'b1', artisanId: 'a1', expiresAtMs: Date.now() - 1000, round: 3 }));
+    await dispatch.checkExpiredDispatches();
+    const b = bk('b1');
+    assert.deepStrictEqual([b.status, b.unfulfillReason], ['unfulfilled', 'search_timeout']);
+    assert.notStrictEqual(b.currentArtisanId, 'a2', 'a2 was never offered a request that was already over');
+    assert.notStrictEqual(offerOf('b1').artisanId, 'a2');
+    assert.strictEqual(notifs('a2').length, 0, 'a2 was not notified of a job');
+    assert.strictEqual(notifs('cust1').filter((n) => /within an hour/.test(n.message)).length, 1, 'the customer is told once');
+});
+
+await t('dispatchRound itself refuses a search past its deadline (a decline re-enters here)', async () => {
+    reset(); seedArtisans(['a1', 'a2']);
+    fake.db._set('bookings/b1', booking({ createdAt: ago(61 * MIN), dispatchStatus: 'searching', artisanCandidates: ['a1'], currentDispatchRound: 3 }));
+    const r = await dispatch.dispatchRound('b1');
+    assert.strictEqual(r.skipped, 'search_deadline');
+    assert.strictEqual(fake.db._has('job_offers/b1'), false);
+    assert.strictEqual(bk('b1').status, 'pending', 'left for expireStaleSearches, which refunds and notifies');
+});
+
 await t('a customer-chosen request (an offer with no expiry) also ends after the hour', async () => {
     reset(); seedArtisans();
     const data = booking({ requestedArtisanId: 'a1', createdAt: ago(90 * MIN) });
