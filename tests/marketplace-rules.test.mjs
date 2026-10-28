@@ -12,6 +12,7 @@
  * Run:  npm run test:marketplace-rules
  */
 
+import './support/no-production.cjs';   // must stay the first statement (npm run lint:tests)
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'node:fs';
 import { setDoc, updateDoc, doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';

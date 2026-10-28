@@ -25,6 +25,7 @@
  * with the query support those server paths use.
  */
 
+require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 const assert = require('assert');
 const { fundCustomer, fundArtisan } = require('./support/walletEvidence.cjs');
 const fs     = require('fs');

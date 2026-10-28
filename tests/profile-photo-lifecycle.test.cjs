@@ -1,5 +1,6 @@
 'use strict';
 
+require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');

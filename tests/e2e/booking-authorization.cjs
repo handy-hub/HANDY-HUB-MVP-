@@ -14,6 +14,7 @@
  */
 'use strict';
 
+require('../support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 const { createRequire } = require('module');
 const path = require('path');
 const req  = createRequire(path.join(__dirname, '..', '..', 'functions', 'package.json'));

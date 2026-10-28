@@ -19,6 +19,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 const FS_HOST   = process.env.FIRESTORE_EMULATOR_HOST     || '127.0.0.1:8199';
 const AUTH_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9299';
 const PROJECT   = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'demo-handyhub';

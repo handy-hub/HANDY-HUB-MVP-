@@ -10,6 +10,7 @@
 
 // firebase-admin lives in functions/node_modules; resolve from there rather
 // than from this scratch file's own directory.
+require('../support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 const { createRequire } = require('module');
 const req = createRequire(require('path').join(__dirname, '..', '..', 'functions', 'package.json'));
 const admin = req('firebase-admin');

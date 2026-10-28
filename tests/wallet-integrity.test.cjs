@@ -18,6 +18,7 @@
  * Client writes: tests/financial-rules.test.mjs (emulator).
  */
 
+require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 const assert = require('assert');
 const path   = require('path');
 

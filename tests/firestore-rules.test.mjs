@@ -15,6 +15,7 @@
  * Run:  npm run test:rules
  */
 
+import './support/no-production.cjs';   // must stay the first statement (npm run lint:tests)
 import {
     initializeTestEnvironment,
     assertFails,

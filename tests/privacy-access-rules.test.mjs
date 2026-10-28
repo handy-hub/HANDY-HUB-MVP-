@@ -21,6 +21,7 @@
  * Run:  npm run test:access-rules
  */
 
+import './support/no-production.cjs';   // must stay the first statement (npm run lint:tests)
 import {
     initializeTestEnvironment,
     assertFails,

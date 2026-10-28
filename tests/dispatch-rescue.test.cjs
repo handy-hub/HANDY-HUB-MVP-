@@ -18,6 +18,7 @@
  * The REAL functions/dispatch.js runs against tests/support/fake-firebase.cjs.
  */
 
+require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 const assert = require('assert');
 const path   = require('path');
 const { createRequire } = require('module');

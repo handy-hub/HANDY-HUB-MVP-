@@ -25,6 +25,7 @@
  * harness in topup-charge.test.cjs.
  */
 
+require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 const assert = require('assert');
 const { fundCustomer, fundArtisan } = require('./support/walletEvidence.cjs');
 const path   = require('path');

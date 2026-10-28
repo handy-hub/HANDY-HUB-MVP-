@@ -1,4 +1,5 @@
 /* Adversarial Firebase Storage emulator probe. Audit evidence only. */
+require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 const host = process.env.FIREBASE_STORAGE_EMULATOR_HOST || '127.0.0.1:9199';
 const project = process.env.GCLOUD_PROJECT || 'lamax-4fd82';
 const bucket = process.env.FIREBASE_CONFIG ? JSON.parse(process.env.FIREBASE_CONFIG).storageBucket : `${project}.appspot.com`;

@@ -21,6 +21,7 @@
  * The REAL functions/*.js modules run against tests/support/fake-firebase.cjs.
  */
 
+require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 process.env.PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_test_wallet_suite_only';
 process.env.PIN_PEPPER = process.env.PIN_PEPPER || 'test-pepper-0123456789abcdef0123456789abcdef';
 
