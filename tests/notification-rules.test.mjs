@@ -68,11 +68,13 @@ await it('a link with a query is accepted', async () => {
     await assertSucceeds(addDoc(inbox(cust), repoShape({ actionUrl: 'job.html?id=HHB-260820-0332-58F1' })));
 });
 await it('chatRepository message notification is accepted (no readAt, Date createdAt)', async () => {
+    // directChatId() = the two Firebase Auth uids (28 alphanumerics), sorted, joined by '_'.
+    const chatId = ['Xq3vT9bLmN2pR7sK4wY8zA1cD5eF', 'g6Hj0KkLz2Mn4Pq8Rs1Tu3Vw5Xy7'].sort().join('_');
     await assertSucceeds(addDoc(inbox(cust), {
         receiverId: A, senderId: C1, type: 'Messages', title: 'New message from Ama',
         message: 'Are you on your way?', isRead: false,
-        actionUrl: `messages.html?chatId=${[A, C1].sort().join('_')}`,
-        metadata: { chatId: [A, C1].sort().join('_'), senderId: C1 }, createdAt: new Date(),
+        actionUrl: `messages.html?chatId=${chatId}`,
+        metadata: { chatId, senderId: C1 }, createdAt: new Date(),
     }));
 });
 await it('the admin support reply notification is accepted', async () => {

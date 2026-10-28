@@ -172,6 +172,16 @@ test('customer inbox: the routed or fallback href passes safeAppUrl before navig
     assert.doesNotMatch(js, /location\.href\s*=\s*href\b/);
 });
 
+test('native push tap: the payload link passes safeAppUrl before navigation', () => {
+    const js = read('shared/js/services/pushNotificationService.js');
+    assert.match(js, /import \{ safeAppUrl \}\s+from '\.\.\/utils\/safeAppUrl\.js'/);
+    const tap = js.slice(js.indexOf("'pushNotificationActionPerformed'"));
+    const handler = tap.slice(0, tap.indexOf('});'));
+    assert.match(handler, /const href = safeAppUrl\(/);
+    assert.match(handler, /window\.location\.href = href;/);
+    assert.doesNotMatch(handler, /location\.href = String\(/, 'raw payload link is navigated');
+});
+
 // ── Report ───────────────────────────────────────────────────────────────────
 
 for (const [name, e] of failures) console.error(`  FAIL  ${name}\n        ${e.message.split('\n')[0]}`);
