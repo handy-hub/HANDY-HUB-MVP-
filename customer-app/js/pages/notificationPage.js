@@ -7,6 +7,7 @@
 } from "../../../shared/js/services/notificationRepository.js";
 import { getAppContainer } from "../../../shared/js/app/container.js";
 import { notificationHref } from "../../../shared/js/domain/bookingRouter.js";
+import { safeAppUrl } from "../../../shared/js/utils/safeAppUrl.js";
 import { wireSwipeAction, createUndoToast } from "../../../shared/js/components/swipeAction.js";
 
 // ─── Icon map ───────────────────────────────────────────────────────────────
@@ -388,7 +389,10 @@ async function handleCardClick(id) {
         return databaseService.getDocument('bookings', bookingId);
     });
 
-    if (href) window.location.href = href;
+    // A notification without a bookingId falls back to its own actionUrl, which
+    // any signed-in user can write — only a same-app page is followed (SEC-001).
+    const safe = safeAppUrl(href);
+    if (safe) window.location.href = safe;
 }
 
 // ─── Loading / error states ───────────────────────────────────────────────────

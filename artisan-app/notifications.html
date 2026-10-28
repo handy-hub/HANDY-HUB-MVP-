@@ -124,6 +124,7 @@ import '../shared/js/utils/global-app.js';
 import { requireArtisanAuth }                                          from './js/utils/artisanAuthGuard.js';
 import { subscribeToUserNotifications, markNotificationRead,
          markAllNotificationsRead, deleteNotification }                from '../shared/js/services/notificationRepository.js';
+import { safeAppUrl }                                                  from '../shared/js/utils/safeAppUrl.js';
 
 const { user } = await requireArtisanAuth({ allowPending: true });
 
@@ -209,8 +210,7 @@ function render(notifications) {
     for (const n of items) {
       const icon = iconFor(n.type);
       html += `
-      <div class="notif-item${n.isRead ? '' : ' unread'}" id="ni-${n.id}"
-           onclick="openNotif('${n.id}','${n.actionUrl || ''}')">
+      <div class="notif-item${n.isRead ? '' : ' unread'}" id="ni-${escHtml(n.id)}" data-id="${escHtml(n.id)}">
         <div class="notif-icon-wrap ${icon.bg}">${icon.svg}</div>
         <div class="notif-content">
           <p class="notif-item-title">${escHtml(n.title)}</p>
@@ -218,7 +218,7 @@ function render(notifications) {
           <span class="notif-item-time">${timeAgo(n.createdAt)}</span>
         </div>
         ${n.isRead ? '' : '<div class="notif-unread-dot"></div>'}
-        <button class="notif-delete-btn" onclick="event.stopPropagation();deleteNotif('${n.id}')" aria-label="Delete">
+        <button class="notif-delete-btn" data-delete="${escHtml(n.id)}" aria-label="Delete">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <polyline points="3 6 5 6 21 6" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/>
             <path d="M19 6l-1 14H6L5 6" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -235,19 +235,27 @@ function escHtml(str) {
 }
 
 // ── Interactions ───────────────────────────────────────
-window.openNotif = async function(id, actionUrl) {
+// Notification fields are written by other users, so none of them is built
+// into a handler string: rows carry only their id, and the link is looked up
+// and checked (safeAppUrl) at tap time (SEC-001).
+listEl.addEventListener('click', (e) => {
+  const del = e.target.closest('[data-delete]');
+  if (del) { e.stopPropagation(); deleteNotif(del.dataset.delete); return; }
+  const row = e.target.closest('.notif-item[data-id]');
+  if (row) openNotif(row.dataset.id);
+});
+
+async function openNotif(id) {
   const notif = _all.find(n => n.id === id);
   if (notif && !notif.isRead) {
     notif.isRead = true;
     const el = document.getElementById(`ni-${id}`);
-    if (el) { el.classList.remove('unread'); el.querySelector('.notif-unread-dot')?.remove(); el.querySelector('::before'); }
+    if (el) { el.classList.remove('unread'); el.querySelector('.notif-unread-dot')?.remove(); }
     await markNotificationRead(id).catch(() => {});
   }
-  if (actionUrl && actionUrl !== 'undefined' && actionUrl !== '') {
-    // Resolve relative URLs within artisan-app
-    window.location.href = actionUrl;
-  }
-};
+  const href = safeAppUrl(notif?.actionUrl);
+  if (href) window.location.href = href;
+}
 
 window.deleteNotif = async function(id) {
   const el = document.getElementById(`ni-${id}`);
