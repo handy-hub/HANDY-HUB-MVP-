@@ -64,7 +64,10 @@
     'index.html'        : 'home',
     ''                  : 'home',
     'jobs.html'         : 'jobs',
-    'wallet.html'       : 'wallet',
+    // Wallet and Notifications are opened from the Home screen (Withdraw, the
+    // header bell): they sit under Home. Notifications used to light up Jobs
+    // (audit NAV-004) and Wallet mapped to a tab that does not exist.
+    'wallet.html'       : 'home',
     'bookings.html'     : 'jobs',   // retired -> redirects to jobs.html
     'job.html'          : 'jobs',   // single-booking detail screen
     'messages.html'     : 'jobs',   // conversations belong to job work
@@ -73,7 +76,7 @@
     'reviews.html'      : 'profile',
     'support.html'      : 'profile',
     'settings.html'     : 'profile',
-    'notifications.html': 'jobs',
+    'notifications.html': 'home',
   };
   var activeTab = ROUTE_MAP[PAGE] || null;
 
