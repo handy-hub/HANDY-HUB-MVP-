@@ -28,6 +28,7 @@ import { doc, updateDoc }        from '../../vendor/firebase/firebase-firestore.
 import * as firebaseConfig from '../backend/providers/firebase/firebaseConfig.js';
 import { FCM_VAPID_KEY }         from '../config/appConfig.js';
 import { PUSH_STATE, tokenNeedsSave, workerUrl, nativePushAction, NATIVE_PUSH_DEFER_MS } from './pushState.js';
+import { safeAppUrl }            from '../utils/safeAppUrl.js';
 
 const { firebaseDb } = firebaseConfig;
 const firebaseMessaging = firebaseConfig.firebaseMessaging ?? null;
@@ -251,11 +252,14 @@ async function initNativePush(uid, userType, { prompt = true, explicit = false }
         // The user tapped a notification — from background OR a cold start.
         PN.addListener('pushNotificationActionPerformed', (action) => {
             const data = (action && action.notification && action.notification.data) || {};
-            const actionUrl = data.actionUrl;
-            if (!actionUrl) return;
+            if (!data.actionUrl) return;
             // Relative on purpose: the bundle root is the app, and an absolute
-            // '/...' would resolve against the WebView origin instead.
-            try { window.location.href = String(actionUrl).replace(/^\/+/, ''); } catch (_) {}
+            // '/...' would resolve against the WebView origin instead. Only a
+            // same-app page is followed (safeAppUrl, SEC-001) — today every push
+            // link is a Cloud Functions literal, but this is a navigation sink.
+            const href = safeAppUrl(String(data.actionUrl).replace(/^\/+/, ''));
+            if (!href) return;
+            try { window.location.href = href; } catch (_) {}
         });
         }
 

@@ -1336,7 +1336,21 @@ service cloud.firestore {
       // where user A sends a notification appearing to come from user B.
       // M4 TODO: tighten to require a booking relationship between sender and receiver.
       // For now, cap field lengths to mitigate content-spam attacks.
+      //
+      // SEC-001 (2026-10-28): the shape is closed, and actionUrl — which the apps
+      // navigate to on tap — may only name a page in the same app, the pattern
+      // shared/js/utils/safeAppUrl.js applies on the client. Before this, any
+      // signed-in user could send anyone a `javascript:` link. Writers:
+      // notificationRepository.createNotification, chatRepository (Messages),
+      // admin-dashboard/support.html. Cloud Functions (Admin SDK) bypass rules.
       allow create: if isSignedIn() &&
+                       incoming().keys().hasOnly(['receiverId', 'senderId', 'type', 'title', 'message',
+                                                  'isRead', 'readAt', 'actionUrl', 'metadata', 'createdAt']) &&
+                       (!('actionUrl' in incoming()) || incoming().actionUrl == null ||
+                        (incoming().actionUrl is string && incoming().actionUrl.size() <= 300 &&
+                         incoming().actionUrl.matches('^[A-Za-z0-9_-]+[.]html([?][A-Za-z0-9_.%=&-]*)?$'))) &&
+                       (!('readAt' in incoming()) || incoming().readAt == null) &&
+                       (!('metadata' in incoming()) || incoming().metadata is map) &&
                        incoming().receiverId is string &&
                        incoming().receiverId.size() > 0 &&
                        incoming().senderId == request.auth.uid &&
