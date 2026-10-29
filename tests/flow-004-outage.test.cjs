@@ -77,7 +77,7 @@ t('a cached profile never steers presence or unlocks the availability switch', (
 });
 
 t('jobs.html Accept sends to onboarding only for a verification state that calls for it', () => {
-    assert.ok(/\['', 'draft', 'rejected', 're_verification_required'\]\.includes\(kyc\)/.test(jobs));
+    assert.ok(/const NEEDS_ONBOARDING = \['', 'draft', 'rejected', 're_verification_required'\];/.test(jobs) && /window\.acceptJob = async function[\s\S]{0,400}if \(onboardingWarranted\(\)\) \{[^}]*onboarding\.html/.test(jobs));
 });
 
 t('(6) the guard\'s unauthenticated path is unchanged: no user → login', () => {

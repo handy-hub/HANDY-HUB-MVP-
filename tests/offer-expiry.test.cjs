@@ -169,7 +169,9 @@ await t('dashboard, jobs list and job screen all derive the countdown from offer
     const dash = read('artisan-app/dashboard.html');
     const jobs = read('artisan-app/jobs.html');
     const job  = read('artisan-app/job.html');
-    assert.ok(/offerState\(d\)/.test(dash) && /_startJobCountdown\(id, deadlineMs\)/.test(dash), 'dashboard');
+    // FLOW-005: one ticker reading each card's expiresAtMs through offerState (no per-card arithmetic).
+    assert.ok(/offerState\(d\)/.test(dash) && /card\.dataset\.expires = String\(deadlineMs\)/.test(dash) &&
+              /offerState\(\{ expiresAtMs: Number\(card\.dataset\.expires\) \}\)/.test(dash), 'dashboard');
     assert.ok(/const offer = offerState\(b\);/.test(jobs) && /data-expires=/.test(jobs) && /offerState\(\{ expiresAtMs: Number\(el\.dataset\.expires\) \}\)/.test(jobs), 'jobs');
     assert.ok(/const offer = offerState\(b\);/.test(job) && /tickOffer\(/.test(job) && /This request has expired/.test(job), 'job');
 });

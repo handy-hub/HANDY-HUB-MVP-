@@ -323,7 +323,8 @@ import { performBookingAction, ACTION }                from '../shared/js/domain
 import { serviceLabel }                                from '../shared/js/domain/bookingTruth.js';
 import { formatGHS }                                   from '../shared/js/utils/currency.js';
 import { resolveSchedule }                             from '../shared/js/domain/bookingSchedule.js';
-import { offerState, formatTimeLeft, createOfferWatcher }
+import { offerState, formatTimeLeft, createOfferWatcher,
+         LAPSED_OFFER_ATTRS, LAPSED_OFFER_LABEL, lapseOfferButtons }
                                                        from '../shared/js/domain/jobOffers.js';
 import { getPushState, enablePushNotifications }       from '../shared/js/services/pushNotificationService.js';
 import { describePushState }                          from '../shared/js/services/pushState.js';
@@ -559,50 +560,46 @@ window.toggleOnlineStatus = async function() {
 };
 
 // ── Response deadline countdown ────────────────────────
-const _activeCountdowns = {};
+// ONE ticker for every offer card on screen (FLOW-005). Each card carries its
+// offer's expiresAtMs; the time left and the moment it lapses come from
+// offerState(), the same function the jobs list and the job screen use, so all
+// three agree to the second (lapsed at now >= expiresAtMs). Each card used to
+// start its own interval with its own arithmetic, never cleared when the list
+// re-rendered or on pagehide.
+let _offerTicker = null;
 
-function _startJobCountdown(bookingId, deadlineMillis) {
-  if (_activeCountdowns[bookingId]) clearInterval(_activeCountdowns[bookingId]);
-  const el = document.getElementById(`job-countdown-${bookingId}`);
-  const bar = document.getElementById(`job-bar-${bookingId}`);
+/** Offers the server refused as gone (performBookingAction offerGone): drawn lapsed from now on. */
+const _goneOffers = new Set();
 
-  function tick() {
-    const remaining = Math.max(0, deadlineMillis - Date.now());
-    const totalSec  = Math.floor(remaining / 1000);
-    const totalMs   = deadlineMillis - Date.now();
-    const span      = deadlineMillis - (deadlineMillis - totalMs);  // full span unknown; use 3hr or 30s
+function retireOfferCard(card) {
+  delete card.dataset.expires;
+  const cd = card.querySelector('[data-countdown]');
+  if (cd) { cd.textContent = LAPSED_OFFER_LABEL; cd.style.color = '#ef4444'; }
+  lapseOfferButtons(card.querySelector('.btn-accept'), card.querySelector('.btn-decline'));
+}
 
-    if (el) {
-      if (totalSec <= 0) {
-        el.textContent = 'Expired';
-        el.style.color = '#ef4444';
-      } else {
-        const h = Math.floor(totalSec / 3600);
-        const m = Math.floor((totalSec % 3600) / 60);
-        const s = totalSec % 60;
-        el.textContent = h > 0
-          ? `${h}h ${m}m`
-          : `${m}:${String(s).padStart(2, '0')}`;
-        // Warn when under 1 minute
-        if (totalSec < 60) el.style.color = '#ef4444';
-      }
+function tickOfferCards() {
+  document.querySelectorAll('.job-request-card[data-expires]').forEach((card) => {
+    const st = offerState({ expiresAtMs: Number(card.dataset.expires) });
+    if (st.expired) { retireOfferCard(card); return; }
+    const cd = card.querySelector('[data-countdown]');
+    if (cd) {
+      cd.textContent = formatTimeLeft(st.secondsLeft);
+      if (st.secondsLeft < 60) cd.style.color = '#ef4444';
     }
+  });
+}
 
-    if (totalSec <= 0) {
-      clearInterval(_activeCountdowns[bookingId]);
-      // The card is removed by the listener once the dispatch sweep re-assigns
-      // the offer. Until then, accepting would race that sweep: withdraw it.
-      const acceptBtn = document.querySelector(`#job-${bookingId} .btn-accept`);
-      if (acceptBtn) {
-        acceptBtn.disabled = true;
-        acceptBtn.removeAttribute('onclick');
-        acceptBtn.textContent = 'Expired';
-        acceptBtn.style.opacity = '.5';
-      }
-    }
-  }
-  tick();
-  _activeCountdowns[bookingId] = setInterval(tick, 1000);
+function startOfferTicker() {
+  if (_offerTicker) return;
+  _offerTicker = setInterval(tickOfferCards, 1000);
+}
+
+/** The server says this offer cannot be answered any more: retire its card, for good. */
+function markOfferGone(bookingId) {
+  _goneOffers.add(bookingId);
+  const card = document.getElementById(`job-${bookingId}`);
+  if (card) retireOfferCard(card);
 }
 
 // ── New-offer alerts, independent of push ─────────────
@@ -714,14 +711,17 @@ function renderJobCard(booking) {
 
   // The response deadline, whatever shape it arrived in (a live Timestamp, or a
   // plain {seconds} copy from the cache) — never NaN.
+  // An offer with no deadline (prematched) has no countdown and stays answerable;
+  // the server decides, and a refusal marks it gone (_goneOffers).
   const offer       = offerState(d);
   const deadlineMs  = offer.expiresAtMs;
-  const hasDeadline = deadlineMs !== null && !offer.expired;
-  const lapsed      = deadlineMs !== null && offer.expired;
+  const lapsed      = offer.expired || _goneOffers.has(id);
+  const hasDeadline = deadlineMs !== null && !lapsed;
 
   const card = document.createElement('div');
   card.className = 'job-request-card';
   card.id = `job-${id}`;
+  if (hasDeadline) card.dataset.expires = String(deadlineMs);
   // The whole card is a way into this one job's screen.
   card.dataset.open = id;
   card.style.cursor = 'pointer';
@@ -737,7 +737,7 @@ function renderJobCard(booking) {
       ${hasDeadline
         ? `<span style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--ds-danger,#C2362F)">
             <svg viewBox="0 0 24 24" fill="none" width="11" height="11"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            Respond in <span id="job-countdown-${id}">—</span>
+            Respond in <span data-countdown${offer.secondsLeft < 60 ? ' style="color:#ef4444"' : ''}>${formatTimeLeft(offer.secondsLeft)}</span>
            </span>`
         : `<span class="job-time">${_timeAgo(d.createdAt)}</span>`
       }
@@ -779,21 +779,19 @@ function renderJobCard(booking) {
 
     <div class="job-actions">
       ${lapsed
-        // The offer has lapsed; the dispatch sweep (every minute) is moving it to
-        // the next professional. Accepting now would race that, so it is not offered.
-        ? `<button class="btn-accept" disabled style="opacity:.5;cursor:default">Expired</button>`
+        // The offer has lapsed, or the server refused it as gone; the dispatch
+        // sweep (every minute) is moving it on. Neither answer can succeed, so
+        // neither is offered (the shared lapsed look, jobOffers.js).
+        ? `<button class="btn-accept" ${LAPSED_OFFER_ATTRS}>${LAPSED_OFFER_LABEL}</button>
+           <button class="btn-decline" ${LAPSED_OFFER_ATTRS}>Decline</button>`
         : `<button class="btn-accept" onclick="acceptJob('${id}')">
         <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Accept
-      </button>`}
-      <button class="btn-decline" onclick="declineJob('${id}')">Decline</button>
+      </button>
+      <button class="btn-decline" onclick="declineJob('${id}')">Decline</button>`}
     </div>`;
 
-  // Start countdown after card is in DOM
-  if (hasDeadline) {
-    requestAnimationFrame(() => _startJobCountdown(id, deadlineMs));
-  }
-
+  if (hasDeadline) startOfferTicker();
   return card;
 }
 
@@ -803,7 +801,7 @@ function renderJobCard(booking) {
    bookings.html. They all now call the one layer, which re-reads the booking,
    validates the transition against the state it is ACTUALLY in, and explains a
    lost race instead of failing silently. */
-async function dashTransition(action, bookingId, btn, { busyLabel, okLabel, restore, removeSel } = {}) {
+async function dashTransition(action, bookingId, btn, { busyLabel, okLabel, removeSel } = {}) {
   const orig = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.textContent = busyLabel || 'Working…'; }
   try {
@@ -815,7 +813,10 @@ async function dashTransition(action, bookingId, btn, { busyLabel, okLabel, rest
     });
     if (!res.ok) {
       showToast(res.message);
-      if (btn) { btn.disabled = false; btn.innerHTML = restore || orig; }
+      // The server says the offer is gone (expired, closed, re-offered): the
+      // card is retired, never handed a live button again (FLOW-005).
+      if (res.offerGone) { markOfferGone(bookingId); return false; }
+      if (btn) { btn.disabled = false; btn.innerHTML = orig; }
       return false;
     }
     showToast(okLabel || 'Updated.');
@@ -826,7 +827,7 @@ async function dashTransition(action, bookingId, btn, { busyLabel, okLabel, rest
     return true;
   } catch (e) {
     showToast('That did not go through. Nothing was changed.');
-    if (btn) { btn.disabled = false; btn.innerHTML = restore || orig; }
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
     return false;
   }
 }
@@ -851,7 +852,6 @@ window.acceptJob = async function(bookingId) {
       busyLabel: 'Accepting…',
       okLabel:   'Job accepted. The customer will be notified.',
       removeSel: `job-${bookingId}`,
-      restore:   '<svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Accept Job',
     });
 };
 
@@ -860,7 +860,7 @@ window.declineJob = async function(bookingId) {
   await dashTransition(ACTION.DECLINE, bookingId,
     document.querySelector(`#job-${bookingId} .btn-decline`), {
       busyLabel: 'Declining…', okLabel: 'Request declined.',
-      removeSel: `job-${bookingId}`, restore: 'Decline',
+      removeSel: `job-${bookingId}`,
     });
 };
 
@@ -1366,6 +1366,7 @@ function hideConnectionNotice() {
 
 window.addEventListener('pagehide', () => {
   unsubs.forEach(u => u && u());
+  clearInterval(_offerTicker); _offerTicker = null;
   stopPresence();
 });
 // Restored from the back/forward cache: the listeners above were torn down on

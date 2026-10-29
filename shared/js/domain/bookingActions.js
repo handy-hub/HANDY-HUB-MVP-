@@ -55,6 +55,17 @@ export const RESULT = Object.freeze({
     FAILED:      'failed',       // the write itself failed (network/rules)
 });
 
+/**
+ * Why respondToJobOffer refused, when the offer is no longer this artisan's to
+ * answer (functions/jobOffers.js offerError → HttpsError details.reason):
+ *   expired      still open on the server, but past its expiresAtMs
+ *   closed       already expired, withdrawn or accepted; or the booking moved on
+ *   not_offered  re-offered to someone else
+ * A screen told `offerGone` retires the offer card for good: neither Accept nor
+ * Decline can succeed again, so neither is given back.
+ */
+export const OFFER_GONE_REASONS = Object.freeze(['expired', 'closed', 'not_offered']);
+
 const norm = (v) => String(v == null ? '' : v).toLowerCase();
 
 /**
@@ -172,7 +183,9 @@ function conflictMessage(current, action, actor) {
  * @param {object} opts.databaseService
  * @param {object} [opts.pricingService]         required for inspection-track cancel
  * @param {string} [opts.reason]                 cancellation reason
- * @returns {Promise<{ok:boolean, code:string, message?:string, booking?:object, from?:string, to?:string}>}
+ * @returns {Promise<{ok:boolean, code:string, message?:string, booking?:object, from?:string, to?:string,
+ *                    reason?:string|null, offerGone?:boolean}>}
+ *          reason/offerGone are set when answering a job offer is refused.
  */
 export async function performBookingAction(action, opts = {}) {
     const { bookingId, actor, uid, databaseService, pricingService, reason } = opts;
@@ -198,9 +211,7 @@ export async function performBookingAction(action, opts = {}) {
         try {
             await pricingService.respondToJobOffer(bookingId, action === ACTION.ACCEPT ? 'accept' : 'decline');
         } catch (e) {
-            const m = String(e?.message || '');
-            const code = /expired|no longer|already|another professional|closed/i.test(m) ? RESULT.CONFLICT : RESULT.FAILED;
-            return { ok: false, code, message: m && !/^internal$/i.test(m) ? m : friendly(e) };
+            return offerRefusal(e);
         }
         // Accepting grants the booking; declining does not, so there is nothing to re-read.
         if (action === ACTION.DECLINE) return { ok: true, code: RESULT.OK, booking: null, from: 'pending', to: 'rejected' };
@@ -294,6 +305,28 @@ export async function performBookingAction(action, opts = {}) {
     }
 
     return after(databaseService, bookingId, booking, current, spec.to);
+}
+
+/**
+ * Classify a refused offer answer by the server's own reason (HttpsError
+ * details.reason). The message is read only when no reason came back — an
+ * older deployment — and a message that says the offer has moved on is then
+ * treated as gone too, so a stale card is not handed live buttons again.
+ */
+function offerRefusal(e) {
+    const m = String(e?.message || '');
+    const reason = typeof e?.details?.reason === 'string' ? e.details.reason : null;
+    let code, offerGone;
+    if (reason) {
+        offerGone = OFFER_GONE_REASONS.includes(reason);
+        code = offerGone ? RESULT.CONFLICT
+             : (reason === 'not_eligible' || reason === 'unauthenticated') ? RESULT.NOT_ALLOWED
+             : RESULT.FAILED;
+    } else {
+        offerGone = /expired|no longer|already|another professional|closed/i.test(m);
+        code = offerGone ? RESULT.CONFLICT : RESULT.FAILED;
+    }
+    return { ok: false, code, reason, offerGone, message: m && !/^internal$/i.test(m) ? m : friendly(e) };
 }
 
 /** Re-read so the caller routes from authoritative state, not from an assumption. */
