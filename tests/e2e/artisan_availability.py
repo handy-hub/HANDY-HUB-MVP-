@@ -17,13 +17,14 @@ The database is read through the Firestore emulator's REST API with the
 emulator's admin bypass ("Bearer owner") — never production.
 """
 import json
+import os
 import sys
 import time
 import urllib.request
 
 from playwright.sync_api import sync_playwright
 
-BASE = "http://localhost:8791"
+BASE = os.environ.get("E2E_BASE", "http://localhost:8791")   # E2E_BASE: serve another tree
 PROJECT = "lamax-4fd82"
 DB_ID = "ai-studio-5589039d-72c4-40d8-ae39-f35c6c321eb6"
 ART = ("artisan@e2e.test", "Passw0rd!23", "e2e_artisan_1")
@@ -156,6 +157,30 @@ with sync_playwright() as p:
     check("the dashboard card and the nav both show it (FLOW-008)", ok, f"card={text(pg, '#status-title')!r} nav={text(pg, '#hh-online-label')!r} after {secs}s")
     go("settings.html"); go("dashboard.html")
     check("and it survives navigation", availability()[0] is True)
+
+    # ── Go Online from the card while a job is being tracked ──────────────────
+    # The seeded artisan has en_route / in_progress jobs, so the dashboard runs a
+    # watchPosition. Go Online used to start a second GPS request beside it, and
+    # that request timed out (Wallet → Dashboard → card, 3/3 on 28 Oct).
+    print("\nGo Online from the dashboard card, with a job being tracked (3 attempts)")
+    probe = """() => new Promise((res) => navigator.geolocation.getCurrentPosition(
+        () => res('answered'), (e) => res('error ' + e.code), { maximumAge: 0, timeout: 8000 }))"""
+    for attempt in (1, 2, 3):
+        write_available(False)
+        go("wallet.html"); go("dashboard.html")
+        if attempt == 1:
+            # Diagnostic only: does a second, uncached request answer beside the watch?
+            print(f"      raw getCurrentPosition beside the watch: {pg.evaluate(probe)}")
+            go("wallet.html"); go("dashboard.html")
+        logs.clear()
+        pg.click("#toggle-status-btn")
+        ok, secs = wait_for(lambda: availability()[0] is True, 20)
+        body = pg.evaluate("() => document.body.innerText")
+        check(f"attempt {attempt}: Go Online from the card is saved", ok, f"{availability()} after {secs}s")
+        check(f"attempt {attempt}: no location time-out shown", "timed out" not in body.lower())
+        if not ok:
+            pg.wait_for_timeout(100)
+            print("      console:", " || ".join(logs[-5:]) or "(nothing)")
 
     # ── FLOW-004: an outage is not a missing account ──────────────────────────
     print("\nFLOW-004 · Firestore unreachable (the audit's reproduction, 3 attempts)")

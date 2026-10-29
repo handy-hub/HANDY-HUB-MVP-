@@ -33,7 +33,7 @@
 
 import { getAppContainer } from '../app/container.js';
 import { getHaversineDistanceKm } from '../utils/geo.js';
-import { availabilityBlocker, createAvailabilityQueue } from '../domain/availability.js';
+import { availabilityBlocker, createAvailabilityQueue, reusableFix } from '../domain/availability.js';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 // The heartbeat WRITE is throttled to the liveness bucket the server keeps
@@ -65,6 +65,7 @@ let _heartbeatTimer    = null;
 let _available         = false;  // the artisan's stored choice, as last confirmed
 let _started           = false;
 let _lastWrittenCoords = null; // { latitude, longitude, accuracy, timestamp }
+let _lastFix           = null; // last accurate position seen, + the watch that saw it
 let _lastHeartbeatTime = Date.now();
 let _options           = {};   // callbacks: onLocationError, onLocationSuccess
 
@@ -188,6 +189,26 @@ function _rawPosition() {
     });
 }
 
+/**
+ * A position for "Go Online". Uses what the running watch already knows when
+ * it can (reusableFix); otherwise asks the GPS once, with the watch paused, so
+ * there is never a second request competing with it.
+ */
+async function _positionForSwitch() {
+    const fix = reusableFix(_lastFix, { nowMs: Date.now(), watchId: _watchId,
+                                         maxAccuracyM: MAX_ACCURACY_THRESHOLD_METERS });
+    if (fix) return { latitude: fix.latitude, longitude: fix.longitude, accuracy: fix.accuracy, timestamp: fix.timestamp };
+    const paused = _watchId !== null;
+    if (paused) _stopWatcher();
+    try {
+        const coords = _toCoords(await _getCurrentPosition());
+        _lastFix = { ...coords, watch: null };
+        return coords;
+    } finally {
+        if (paused) _retrack();
+    }
+}
+
 const _toCoords = (position) => ({
     latitude:  position.coords.latitude,
     longitude: position.coords.longitude,
@@ -202,6 +223,7 @@ async function _handlePositionUpdate(position) {
         console.warn(`[presenceService] Ignored position update due to low accuracy: ${accuracy}m`);
         return;
     }
+    _lastFix = { ..._toCoords(position), watch: _watchId };
 
     if (_lastWrittenCoords) {
         const distanceKm = getHaversineDistanceKm(
@@ -319,6 +341,7 @@ function stopPresence() {
  */
 function startPresence(uid, databaseService, available = false, options = {}) {
     if (_started) stopPresence();
+    if (uid !== _uid) _lastFix = null;
 
     _uid               = uid;
     _available         = !!available;
@@ -350,7 +373,7 @@ function syncAvailability(available) {
 
 // ── The explicit switch ───────────────────────────────────────────────────────
 const _queue = createAvailabilityQueue({
-    acquirePosition: async () => _toCoords(await _getCurrentPosition()),
+    acquirePosition: _positionForSwitch,
     write: async (available, coords) => {
         const uid = _pendingUid;
         if (!uid) throw new Error('Not signed in.');

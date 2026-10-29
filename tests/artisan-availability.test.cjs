@@ -42,7 +42,8 @@ function loadEsm(rel, names) {
 }
 
 const AV = loadEsm('shared/js/domain/availability.js',
-    ['availabilityBlocker', 'storedAvailability', 'createAvailabilityQueue', 'AVAILABILITY_FIELDS']);
+    ['availabilityBlocker', 'storedAvailability', 'createAvailabilityQueue', 'AVAILABILITY_FIELDS',
+     'reusableFix', 'FIX_FRESH_MS', 'FIX_WATCHED_MS']);
 
 /** A promise whose resolution the test controls (a slow GPS fix). */
 function deferred() {
@@ -252,6 +253,59 @@ await t('the dashboard card switches through the same setAvailability', () => {
     assert.ok(/setAvailability\(uid, next, \{ artisan: _currentArtisan \}\)/.test(dash));
     assert.ok(!/setOnlineState\(/.test(dash));
 });
+
+console.log('\n── Go Online reuses the running watch instead of competing with it ──\n');
+
+{
+    const NOW = Date.parse('2026-10-28T16:00:00.000Z');
+    const BAR = 100;   // presenceService MAX_ACCURACY_THRESHOLD_METERS
+    const fix = (ageMs, extra = {}) => ({ latitude: 5.6, longitude: -0.18, accuracy: 20, timestamp: NOW - ageMs, watch: 7, ...extra });
+    const reuse = (f, watchId) => AV.reusableFix(f, { nowMs: NOW, watchId, maxAccuracyM: BAR });
+
+    await t('a fix up to 30 s old is reused with or without a watch', () => {
+        assert.strictEqual(AV.FIX_FRESH_MS, 30_000);
+        assert.ok(reuse(fix(0), null));
+        assert.ok(reuse(fix(30_000), null));
+        assert.ok(reuse(fix(30_000, { watch: null }), null));
+        assert.strictEqual(reuse(fix(30_001, { watch: null }), null), null, 'one-shot fix past 30 s');
+    });
+    await t('while the same watch runs, its fix is reused up to 5 minutes, not longer', () => {
+        assert.strictEqual(AV.FIX_WATCHED_MS, 5 * 60 * 1000);
+        assert.ok(reuse(fix(4 * 60_000), 7));
+        assert.ok(reuse(fix(5 * 60_000), 7));
+        assert.strictEqual(reuse(fix(5 * 60_000 + 1), 7), null, 'past 5 min');
+    });
+    await t('an old fix from a watch that has stopped or been replaced is not reused', () => {
+        assert.strictEqual(reuse(fix(60_000), null), null, 'watch stopped');
+        assert.strictEqual(reuse(fix(60_000), 8), null, 'a different watch');
+        assert.strictEqual(reuse(fix(60_000, { watch: null }), 7), null, 'one-shot fix, watch now running');
+    });
+    await t('a reused fix meets the same accuracy bar as a new one', () => {
+        assert.ok(reuse(fix(0, { accuracy: 100 }), 7));
+        assert.strictEqual(reuse(fix(0, { accuracy: 101 }), 7), null);
+        assert.strictEqual(reuse(fix(0, { accuracy: undefined }), 7), null);
+        assert.strictEqual(AV.reusableFix(fix(0), { nowMs: NOW, watchId: 7 }), null, 'no bar given → no reuse');
+    });
+    await t('no fix, a malformed fix or a fix from the future is not reused', () => {
+        assert.strictEqual(reuse(null, 7), null);
+        assert.strictEqual(reuse(fix(0, { latitude: NaN }), 7), null);
+        assert.strictEqual(reuse(fix(-1000), 7), null);
+    });
+    await t('presence: the switch asks reusableFix first, else ONE request with the watch paused', () => {
+        const body = fnBody(presence, '_positionForSwitch');
+        assert.match(presence, /acquirePosition: _positionForSwitch,/);
+        assert.match(body, /reusableFix\(_lastFix, \{ nowMs: Date\.now\(\), watchId: _watchId,\s*maxAccuracyM: MAX_ACCURACY_THRESHOLD_METERS \}\)/);
+        const stop = body.indexOf('_stopWatcher()'), ask = body.indexOf('_getCurrentPosition()'), resume = body.indexOf('_retrack()');
+        assert.ok(stop > -1 && stop < ask && ask < resume, 'pause the watch, ask once, then resume');
+        assert.match(body, /finally \{\s*if \(paused\) _retrack\(\);/);
+    });
+    await t('presence: only an accurate watch position becomes the last fix, tagged with its watch', () => {
+        const body = fnBody(presence, '_handlePositionUpdate');
+        const bar = body.indexOf('MAX_ACCURACY_THRESHOLD_METERS'), keep = body.indexOf('_lastFix = { ..._toCoords(position), watch: _watchId };');
+        assert.ok(bar > -1 && keep > bar, 'the fix is kept only after the accuracy check');
+        assert.match(fnBody(presence, 'startPresence'), /if \(uid !== _uid\) _lastFix = null;/);
+    });
+}
 
 console.log(`\nartisan-availability: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 3).join('\n    ') : e}`);

@@ -18,6 +18,9 @@
  * Presence (heartbeat, GPS) now only refreshes timestamps and location; the
  * choice changes through requestAvailability alone.
  *
+ * reusableFix decides when "Go Online" may use the position a running
+ * watchPosition already has, instead of starting a second GPS request.
+ *
  * Pure module: no imports, no DOM, no Firestore. presenceService.js wires it to
  * the repository and the GPS; tests/artisan-availability.test.cjs drives it.
  */
@@ -58,6 +61,36 @@ export function availabilityBlocker(artisan) {
 /** The artisan's stored choice, as a strict boolean. A missing field is "not available". */
 export function storedAvailability(artisan) {
     return !!(artisan && artisan.isAvailable === true);
+}
+
+/** A fix this young is as good as a new one (the GPS request's own maximumAge). */
+export const FIX_FRESH_MS   = 30_000;
+/** While the watch that produced a fix is still running, silence means no movement. */
+export const FIX_WATCHED_MS = 5 * 60 * 1000;
+
+/**
+ * The position "Go Online" may use without asking the GPS again, or null.
+ *
+ * A page that is already tracking (an en_route job, say) has a watchPosition
+ * running. Starting a second, one-shot request beside it timed out on those
+ * pages (Wallet → Dashboard → Go Online, 28 Oct 2026), and asks the GPS for
+ * something the watch already knows. A watch reports when the position
+ * changes, so its last fix stays current for as long as that watch runs.
+ *
+ * A reused fix must meet the same accuracy bar as a new one.
+ *
+ * @param {{latitude:number, longitude:number, accuracy:number, timestamp:number, watch?:any}|null} fix
+ * @param {{ nowMs: number, watchId?: any, maxAccuracyM: number }} at
+ *        watchId: the watch running now, or null; maxAccuracyM: the GPS accuracy bar
+ */
+export function reusableFix(fix, { nowMs, watchId = null, maxAccuracyM } = {}) {
+    if (!fix || !Number.isFinite(fix.latitude) || !Number.isFinite(fix.longitude)) return null;
+    if (!(Number.isFinite(fix.accuracy) && fix.accuracy <= maxAccuracyM)) return null;
+    const age = nowMs - fix.timestamp;
+    if (!Number.isFinite(age) || age < 0) return null;
+    if (age <= FIX_FRESH_MS) return fix;
+    const sameWatch = watchId !== null && watchId !== undefined && fix.watch === watchId;
+    return sameWatch && age <= FIX_WATCHED_MS ? fix : null;
 }
 
 /**
