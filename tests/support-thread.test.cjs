@@ -99,15 +99,17 @@ test('a reply is written exactly as before: the message, then the ticket back to
 });
 
 test('a failed refresh does not blank requests already on screen', () => {
-    const sub = code.slice(code.indexOf('const _unsubTickets = databaseService.subscribeToCollection'));
-    const onErr = sub.slice(sub.indexOf('() => {'), sub.indexOf("window.addEventListener('pagehide'"));
-    assert.match(onErr, /if \(_ticketsLoaded && _tickets\.length\) return;/);
+    // PERF-002: the list is a mountInstantView; its onError keeps content on screen.
+    const view = code.slice(code.indexOf("mountInstantView({\n  key: 'artisan-support-requests'"));
+    assert.ok(view.length > 0 && code.includes("key: 'artisan-support-requests'"), 'the requests view');
+    const onErr = view.slice(view.indexOf('onError: (_err, { hasContent }) => {'), view.indexOf("window.addEventListener('pagehide'"));
+    assert.match(onErr, /^onError: \(_err, \{ hasContent \}\) => \{\s*if \(hasContent\) return;/);
     assert.doesNotMatch(onErr, /innerHTML/);
 });
 
 test('pagehide releases the request listener and every thread listener', () => {
     const ph = code.slice(code.indexOf("window.addEventListener('pagehide'"));
-    assert.match(ph, /_unsubTickets\?\.\(\)/);
+    assert.match(ph, /_ticketsView\.destroy\(\)/);
     assert.match(ph, /_threadUnsubs\.forEach\(\(u\) => \{ try \{ u\(\); \} catch \(_\) \{\} \}\);/);
     assert.match(ph, /_threadUnsubs\.clear\(\);/);
 });

@@ -128,6 +128,7 @@
 <script type="module">
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
+import { mountInstantView }   from '../shared/js/services/instantView.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
@@ -154,6 +155,14 @@ let currentOtherUid = null;
 let unsubChats = null;
 let unsubMessages = null;
 let bookingCtx = null;
+// Inbox rows as last painted (from the cache or live), by chat id: who is on
+// the other end, so a row tapped before the live list arrives still opens
+// the right conversation under the right name.
+const ROW_INFO = new Map();
+// Last-message previews, from the LIVE list only. A preview is the other
+// person's own words and can carry their phone number, so it is never cached.
+const PREVIEWS = new Map();
+let _rowsSeq = 0;
 const NAME_CACHE = new Map();
 
 const gradientFor = (id) => {
@@ -209,9 +218,27 @@ function renderJobChip() {
 }
 
 /* ── Thread list ─────────────────────────────────────────────────────────── */
-async function renderList() {
+const isoOf = (v) => (v && typeof v.toDate === 'function') ? v.toDate().toISOString() : (v ?? null);
+
+/** The inbox as display rows — what is cached. Names are resolved here, so a
+ *  cached paint needs no lookups; previews go to PREVIEWS (live only). */
+async function toRows(chats) {
+  return Promise.all(chats.map(async (c) => {
+    const o = otherOf(c.data);
+    const info = await resolveOther(o);
+    PREVIEWS.set(c.id, c.data.lastMessage || '');
+    return {
+      id: c.id, otherUid: o, name: info.name, photo: info.photo,
+      lastMessageAt: isoOf(c.data.lastMessageAt),
+      unread: Number((c.data.unreadCount || {})[uid] || 0),
+    };
+  }));
+}
+
+function paintList(rows, { fromCache = false } = {}) {
   const el = $('ms-list');
-  if (!CHATS.length) {
+  ROW_INFO.clear();
+  if (!rows.length) {
     el.innerHTML = `
       <div class="ms-state">
         <h2>No messages yet</h2>
@@ -219,27 +246,26 @@ async function renderList() {
       </div>`;
     return;
   }
-  const rows = await Promise.all(CHATS.map(async (c) => {
-    const o = otherOf(c.data);
-    const info = await resolveOther(o);
-    const unread = Number((c.data.unreadCount || {})[uid] || 0);
-    const avatar = info.photo
-      ? `<img class="ms-av" src="${esc(info.photo)}" alt="">`
-      : `<div class="ms-av-grad" style="background:${gradientFor(o || c.id)}">${esc(initialsOf(info.name))}</div>`;
+  el.innerHTML = rows.map((r) => {
+    ROW_INFO.set(r.id, r);
+    const avatar = r.photo
+      ? `<img class="ms-av" src="${esc(r.photo)}" alt="">`
+      : `<div class="ms-av-grad" style="background:${gradientFor(r.otherUid || r.id)}">${esc(initialsOf(r.name))}</div>`;
+    // A cached paint has no preview (never cached); the live list fills it in.
+    const preview = fromCache ? '' : (PREVIEWS.get(r.id) || 'No messages yet');
     return `
-      <div class="ms-row" data-chat="${esc(c.id)}">
+      <div class="ms-row" data-chat="${esc(r.id)}">
         ${avatar}
         <div class="ms-row-body">
-          <div class="ms-row-name">${esc(info.name)}</div>
-          <div class="ms-row-last">${esc(c.data.lastMessage || 'No messages yet')}</div>
+          <div class="ms-row-name">${esc(r.name)}</div>
+          <div class="ms-row-last">${esc(preview)}</div>
         </div>
         <div class="ms-row-meta">
-          <span class="ms-row-time">${esc(timeOf(c.data.lastMessageAt))}</span>
-          ${unread > 0 ? `<span class="ms-badge">${unread > 99 ? '99+' : unread}</span>` : ''}
+          <span class="ms-row-time">${esc(timeOf(r.lastMessageAt))}</span>
+          ${r.unread > 0 ? `<span class="ms-badge">${r.unread > 99 ? '99+' : r.unread}</span>` : ''}
         </div>
       </div>`;
-  }));
-  el.innerHTML = rows.join('');
+  }).join('');
   el.querySelectorAll('[data-chat]').forEach(r =>
     r.addEventListener('click', () => openChat(r.getAttribute('data-chat'))));
 }
@@ -258,10 +284,13 @@ function renderMessages(messages) {
 
 async function openChat(chatId) {
   const chat = CHATS.find(c => c.id === chatId);
+  const painted = ROW_INFO.get(chatId);   // a row tapped before the live list arrived
   currentChatId = chatId;
-  currentOtherUid = chat ? otherOf(chat.data) : currentOtherUid;
+  currentOtherUid = chat ? otherOf(chat.data) : (painted?.otherUid || currentOtherUid);
 
-  const info = await resolveOther(currentOtherUid);
+  const info = (!chat && painted && painted.otherUid === currentOtherUid)
+    ? { name: painted.name, photo: painted.photo }
+    : await resolveOther(currentOtherUid);
   $('ms-chat-name').textContent = info.name;
   $('ms-chat-sub').textContent  = 'Customer';
   renderJobChip();
@@ -316,17 +345,39 @@ $('ms-input').addEventListener('keydown', (e) => {
   uid = artisan?.uid || artisan?.id || null;
   if (!uid) return;                     // the guard has already redirected
 
-  bookingCtx = await loadBookingContext();
-
-  unsubChats = chatRepository.subscribeByUser(
-    uid,
-    (chats) => { CHATS = chats || []; renderList(); if (currentChatId) renderJobChip(); },
-    (err) => {
+  // Cache first (CLAUDE.md §1, PERF-002): a return visit paints the inbox at
+  // once and the listener refreshes it silently. Cached per row: the chat id,
+  // who is on the other end (uid, name and photo as the row shows them), the
+  // time and the unread count. Never the message preview (see PREVIEWS). The
+  // inbox is mounted BEFORE the booking context is read, so that read no longer
+  // holds the list back.
+  const inbox = mountInstantView({
+    key: 'artisan-messages-inbox',
+    version: 1,
+    render: (rows, { fromCache }) => paintList(rows || [], { fromCache }),
+    subscribe: (_c, onData, onError) => chatRepository.subscribeByUser(
+      uid,
+      async (chats) => {
+        CHATS = chats || [];
+        if (currentChatId) renderJobChip();
+        // Names resolve asynchronously; only the newest snapshot may paint.
+        const seq = ++_rowsSeq;
+        const rows = await toRows(CHATS);
+        if (seq === _rowsSeq) onData(rows);
+      },
+      onError),
+    // A failed refresh keeps the inbox already on screen.
+    onError: (err, { hasContent }) => {
       console.warn('[messages] chats error:', err?.message || err);
+      if (hasContent) return;
       $('ms-list').innerHTML =
         '<div class="ms-state"><h2>Couldn\'t load messages</h2><p>Check your connection and try again.</p></div>';
     },
-  );
+  });
+  unsubChats = () => inbox.destroy();
+
+  bookingCtx = await loadBookingContext();
+  if (currentChatId) renderJobChip();
 
   // Opened straight from a message notification.
   if (OPEN_CHAT_ID) {

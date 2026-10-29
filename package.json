@@ -30,7 +30,7 @@
     "test:booking-truth": "node tests/booking-truth.test.cjs",
     "test:complete-booking": "node tests/complete-booking.test.cjs",
     "test:booking-router": "node tests/booking-router.test.cjs",
-    "test": "npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:escrow-auth && npm run test:payouts && npm run test:artisan-privacy && npm run test:release && npm run test:capacity && npm run test:inspection && npm run test:quote-funding && npm run test:push && npm run test:emergency-pricing && npm run test:booking-truth && npm run test:complete-booking && npm run test:booking-router && npm run test:booking-actions && npm run test:booking-tracks && npm run test:booking-schedule && npm run test:dispatch-rescue && npm run test:callable-groups && npm run test:config-consistency && npm run test:wallet-integrity && npm run test:auth-signup && npm run test:privacy-access && npm run test:marketplace && npm run test:wallet-platform && npm run test:legal-pages && npm run test:availability && npm run test:offer-expiry && npm run test:flow-004 && npm run test:dispatch-liveness && npm run test:wallet-nav && npm run test:offer-refusal && npm run test:notification-safety && npm run test:support-thread && npm run test:artisan-medium-ui && python tests/verify_low_fixes.py",
+    "test": "npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:escrow-auth && npm run test:payouts && npm run test:artisan-privacy && npm run test:release && npm run test:capacity && npm run test:inspection && npm run test:quote-funding && npm run test:push && npm run test:emergency-pricing && npm run test:booking-truth && npm run test:complete-booking && npm run test:booking-router && npm run test:booking-actions && npm run test:booking-tracks && npm run test:booking-schedule && npm run test:dispatch-rescue && npm run test:callable-groups && npm run test:config-consistency && npm run test:wallet-integrity && npm run test:auth-signup && npm run test:privacy-access && npm run test:marketplace && npm run test:wallet-platform && npm run test:legal-pages && npm run test:availability && npm run test:offer-expiry && npm run test:flow-004 && npm run test:dispatch-liveness && npm run test:wallet-nav && npm run test:offer-refusal && npm run test:notification-safety && npm run test:support-thread && npm run test:artisan-medium-ui && npm run test:artisan-cache-first && python tests/verify_low_fixes.py",
     "test:booking-actions": "node tests/booking-actions.test.cjs",
     "emulators": "firebase emulators:start --only firestore,auth,functions --project lamax-4fd82",
     "seed:e2e": "node tests/e2e/seed-emulator.cjs",
@@ -90,7 +90,8 @@
     "test:notification-safety": "node tests/notification-safety.test.cjs",
     "test:notification-rules": "firebase emulators:exec --only firestore --project lamax-rules-test \"node tests/notification-rules.test.mjs\"",
     "test:support-thread": "node tests/support-thread.test.cjs",
-    "test:artisan-medium-ui": "node tests/artisan-medium-ui.test.cjs"
+    "test:artisan-medium-ui": "node tests/artisan-medium-ui.test.cjs",
+    "test:artisan-cache-first": "node tests/artisan-cache-first.test.cjs"
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.1",

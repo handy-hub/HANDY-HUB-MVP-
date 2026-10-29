@@ -137,6 +137,7 @@ import { formatGHS }          from '../shared/js/utils/currency.js';
 // that computes them and with dispatch (AR-12).
 import { computeCompletionStats, RESPONSE_RATE_POLICY, COMPLETION_RATE_POLICY, MIN_REVIEWS_FOR_RATING }
                               from '../shared/js/domain/performanceMetrics.js';
+import { mountInstantView }   from '../shared/js/services/instantView.js';
 
 const { user } = await requireArtisanAuth({ allowPending: true });
 const { services: { databaseService } } = getAppContainer();
@@ -192,7 +193,8 @@ function render() {
   // Earnings are the wallet ledger's figure (server-maintained). Summing
   // booking prices counted what customers paid, commission included, and read
   // 0 for quoted jobs whose price lives in jobQuote.
-  const totalEarned = Number(_artisan.totalEarned ?? 0);
+  // Absent on a cached paint (money is never cached): "—" until the live read.
+  const earned = _artisan.totalEarned == null ? '—' : formatGHS(Number(_artisan.totalEarned), { decimals: 0 });
 
   // Response rate: computed by the server from offer events (offer_events) —
   // null until there are enough offers to say anything (performanceMetrics.js).
@@ -212,7 +214,7 @@ function render() {
   // Score cards
   document.getElementById('pf-score-grid').innerHTML = [
     { label:'Jobs Done',  value:jobs,                icon:ICON.clipboard, unit:'',     delta: jobs > 0 ? '+' + jobs : '0 this period' },
-    { label:'Earned',     value:formatGHS(totalEarned, { decimals: 0 }), icon:ICON.wallet, unit:'', delta: 'all time, after commission' },
+    { label:'Earned',     value:earned, icon:ICON.wallet, unit:'', delta: 'all time, after commission' },
     { label:'Avg Rating', value:periodRating > 0 ? periodRating.toFixed(1) : '—', icon:ICON.star, unit:'', delta: filteredRevs.length + ' review' + (filteredRevs.length !== 1 ? 's' : '') },
     { label:'Total Jobs', value:allJobs,             icon:ICON.medal, unit:'all-time', delta: 'lifetime completed' },
   ].map(s => `
@@ -284,33 +286,62 @@ window.setPeriod = function(period, btn) {
 };
 
 // ── Load data ──────────────────────────────────────────
-try {
-  const cutoff = new Date();
-  cutoff.setFullYear(cutoff.getFullYear() - 2);
+// Cache first (CLAUDE.md §1, PERF-002): a return visit paints the last figures
+// at once and the read below refreshes them. The payload holds only what the
+// figures are computed from — each booking's status, who cancelled it, its
+// rating and dates (no prices, addresses or customer details) — and the
+// server's response stats. totalEarned is money and is stripped from the
+// cache: a cached paint shows "—" for Earned until the live read answers, so
+// staleMs is 0 (always revalidate).
+const iso = (v) => (v && typeof v.toDate === 'function') ? v.toDate().toISOString() : (v ?? null);
 
+async function loadPerformance(uid) {
   const [bookings, artisanSnap] = await Promise.all([
     databaseService.queryWithOptions('bookings',
-      [{ field:'artisanId', op:'==', value:user.uid }],
+      [{ field:'artisanId', op:'==', value:uid }],
       { orderBy:{ field:'createdAt', direction:'desc' }, limit:500 }),
-    databaseService.getDocument('artisans', user.uid),
+    databaseService.getDocument('artisans', uid),
   ]);
-
-  _bookings = bookings || [];
-  // Reviews live on the booking document (rating/review/reviewedAt) — derive
-  // them from rated bookings rather than a separate `reviews` collection.
-  _reviews  = _bookings
-    .filter(b => typeof b.data.rating === 'number' && b.data.rating > 0)
-    .map(b => ({ id: b.id, data: {
-      rating:    b.data.rating,
-      createdAt: b.data.reviewedAt || b.data.updatedAt || b.data.createdAt,
-    } }));
-  _artisan  = artisanSnap?.data || {};
-  render();
-} catch (e) {
-  document.getElementById('pf-loading').style.display = 'none';
-  document.getElementById('pf-content').style.display = 'block';
-  document.getElementById('pf-score-grid').innerHTML = '<p style="color:var(--text-light);font-size:13px;grid-column:span 2;">Could not load performance data. Try again later.</p>';
+  const a = artisanSnap?.data || {};
+  return {
+    bookings: (bookings || []).map(b => ({
+      id: b.id, status: b.data.status ?? null, cancelledBy: b.data.cancelledBy ?? null,
+      rating: typeof b.data.rating === 'number' ? b.data.rating : null,
+      createdAt: iso(b.data.createdAt), reviewedAt: iso(b.data.reviewedAt), updatedAt: iso(b.data.updatedAt),
+    })),
+    responseStats: a.responseStats || null,
+    totalEarned: Number(a.totalEarned ?? 0),
+  };
 }
+
+const perfView = mountInstantView({
+  key: 'artisan-performance',
+  version: 1,
+  staleMs: 0,
+  stripFields: ['totalEarned'],
+  render: (data) => {
+    _bookings = (data.bookings || []).map(({ id, ...d }) => ({ id, data: d }));
+    // Reviews live on the booking document (rating/review/reviewedAt) — derive
+    // them from rated bookings rather than a separate `reviews` collection.
+    _reviews  = _bookings
+      .filter(b => typeof b.data.rating === 'number' && b.data.rating > 0)
+      .map(b => ({ id: b.id, data: {
+        rating:    b.data.rating,
+        createdAt: b.data.reviewedAt || b.data.updatedAt || b.data.createdAt,
+      } }));
+    _artisan  = { responseStats: data.responseStats || null, totalEarned: data.totalEarned };
+    render();
+  },
+  fetch: () => loadPerformance(user.uid),
+  // A failed refresh keeps the figures already on screen.
+  onError: (_err, { hasContent }) => {
+    if (hasContent) return;
+    document.getElementById('pf-loading').style.display = 'none';
+    document.getElementById('pf-content').style.display = 'block';
+    document.getElementById('pf-score-grid').innerHTML = '<p style="color:var(--text-light);font-size:13px;grid-column:span 2;">Could not load performance data. Try again later.</p>';
+  },
+});
+window.addEventListener('pagehide', () => perfView.destroy());
 </script>
 <script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>
