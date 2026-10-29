@@ -34,7 +34,7 @@
  *   any track, status 'quoted'      → quote-approval.html?bookingId=ID
  *   execution (en_route/in_progress/awaiting, or accepted AFTER quote approval)
  *                                   → live-tracking.html?bookingId=ID (job stages)
- *   terminal (completed/cancelled/…)→ booking.html                 (detail/list)
+ *   terminal (completed/resolved/cancelled/…)→ booking.html        (detail/list)
  *
  * `accepted` is the fork: on the inspection track before the callout is paid it
  * means "pay your visit fee" (console); once a quote is approved `accepted`
@@ -48,7 +48,8 @@ const INSPECTION_PRE_EXECUTION = [
 
 const EXECUTION = ['en_route', 'in_progress', 'awaiting'];
 
-const TERMINAL = ['completed', 'cancelled', 'rejected', 'unfulfilled'];
+// 'resolved' is what resolveDispute writes for every outcome (functions/disputes.js).
+const TERMINAL = ['completed', 'resolved', 'cancelled', 'rejected', 'unfulfilled'];
 
 function norm(v) {
     return String(v == null ? '' : v).toLowerCase();

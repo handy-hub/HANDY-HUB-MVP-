@@ -56,9 +56,13 @@ const TARGETS = [
   'functions/quotes.js',
   'functions/bookings.js',
   'functions/dispatch.js',
+  // The only writer of 'resolved' (resolveDispute). Missing here, the status
+  // went unnoticed by every client screen until a browser check found it.
+  'functions/disputes.js',
 ];
 
 const STATUS_CTX = /(?:status|prevStatus|nextStatus|next|prev|revertTo|dispatchStatus)\b[^\n;{}]*?['"]([a-z_]{4,})['"]/g;
+const STATUS_WRITE = /\bstatus\s*:\s*['"]([a-z_]+)['"]/g;
 
 let violations = [];
 for (const rel of TARGETS) {
@@ -76,6 +80,15 @@ for (const rel of TARGETS) {
       if (!VOCAB.has(tok)) {
         violations.push(`${rel}:${i + 1}  unknown booking status "${tok}"`);
       }
+    }
+    // A status WRITE is checked strictly: the looks-like-a-status filter above
+    // skips one-word tokens, which is how 'resolved' (written by resolveDispute)
+    // stayed outside the vocabulary — and unknown to every client screen.
+    for (const m of line.matchAll(STATUS_WRITE)) {
+      const tok = m[1];
+      if (IGNORE.has(tok) || VOCAB.has(tok)) continue;
+      const v = `${rel}:${i + 1}  unknown booking status "${tok}" (written)`;
+      if (!violations.includes(v)) violations.push(v);
     }
   });
 }

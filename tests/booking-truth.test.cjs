@@ -1406,6 +1406,51 @@ test('review: submission never invents a rating and never fakes success', () => 
     });
 }
 
+// ── FIN-002c · the customer's Completed tab never says "Paid" for a refund ─────
+{
+    const page = fs.readFileSync(path.join(__dirname, '..', 'customer-app', 'booking.html'), 'utf8');
+    const fnSrc = page.slice(page.indexOf('function resolvedLabel(b) {'), page.indexOf('async function loadResolvedEscrows()'));
+    const makeLabel = (escrows) =>
+        // eslint-disable-next-line no-new-func
+        new Function('resolveReceipt', '_escrows', `${fnSrc}; return resolvedLabel;`)(T.resolveReceipt, escrows);
+
+    const AT = '2026-10-29T10:00:00.000Z';
+    const HOLD = { bookingId: REAL_ID, customerId: 'cust_1', artisanId: 'art_1', kind: 'job',
+                   amount: 200, commission: 30, artisanShare: 170, commissionRate: 0.15, status: 'held' };
+    const OUTCOMES = {                                                     // what resolveDispute leaves
+        release_artisan: [{ ...HOLD, status: 'released', releasedAt: AT }, 'Paid out'],                 // escrow.js:574
+        full_refund:     [{ ...HOLD, status: 'refunded', refundedAt: AT }, 'Refunded'],                 // escrow.js:698
+        partial_refund:  [{ ...HOLD, status: 'refunded', resolutionType: 'partial',
+                            customerAmount: 100, artisanAmount: 85, refundedAt: AT }, 'Partly refunded'], // disputes.js:255
+    };
+    const resolved = (resolution) => approved(200, { id: REAL_ID, escrowId: 'esc_c', status: 'resolved', resolution });
+
+    for (const [resolution, [escrow, label]] of Object.entries(OUTCOMES)) {
+        test(`FIN-002c customer card · resolved by ${resolution}: "${label}", never "Paid"`, () => {
+            assert.strictEqual(makeLabel(new Map([['esc_c', escrow]]))(resolved(resolution)), label);
+        });
+    }
+    test('FIN-002c customer card · resolved, escrow unread or unreadable: the neutral "Resolved"', () => {
+        assert.strictEqual(makeLabel(new Map())(resolved('full_refund')), 'Resolved', 'not read yet');
+        assert.strictEqual(makeLabel(new Map([['esc_c', null]]))(resolved('full_refund')), 'Resolved', 'read pending or failed');
+        assert.strictEqual(makeLabel(new Map([['esc_c', { status: 'weird' }]]))(resolved('full_refund')), 'Resolved',
+            'an unknown escrow state is not "Not available" on a card');
+    });
+    test('FIN-002c customer card · only a resolved booking changes label; completed still reads "Paid"', () => {
+        assert.match(page, /amountLabel: String\(b\.status \|\| ''\)\.toLowerCase\(\) === 'resolved' \? resolvedLabel\(b\) : 'Paid',/);
+    });
+    test('FIN-002c customer page · escrow reads are bounded: live list, Completed tab, resolved only, deduped, capped', () => {
+        const fn = page.slice(page.indexOf('async function loadResolvedEscrows()'), page.indexOf('function buildCompletedCard(b) {'));
+        assert.match(fn, /if \(!_bookingsLive \|\| _tab !== 'completed'\) return;/);
+        assert.match(fn, /=== 'resolved' && b\.escrowId/);
+        assert.match(fn, /\.slice\(0, ESCROW_READS\)/);
+        assert.match(fn, /if \(_escrows\.has\(b\.escrowId\)\) continue;/);
+        assert.match(page, /const ESCROW_READS = 20;/);
+        assert.match(page, /_bookingsLive = true;\s*render\(_allBookings\);/, 'set by the live subscription, not the cache paint');
+        assert.match(page, /_tab = tab;\s*loadResolvedEscrows\(\);/);
+    });
+}
+
 // ── Report ───────────────────────────────────────────────────────────────────
 console.log(`\nbooking-truth: ${pass} passed, ${fail} failed`);
 if (fail) {
