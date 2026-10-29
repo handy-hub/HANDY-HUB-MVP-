@@ -1016,6 +1016,279 @@ test('review: submission never invents a rating and never fakes success', () => 
         'success must follow backend confirmation');
 });
 
+// ═════════════════════════════════════════════════════════════════════════════
+// FIN-002 — money wording follows the escrow outcome, never the phase alone
+// ═════════════════════════════════════════════════════════════════════════════
+// Audit 28 Oct 2026: a cancelled inspection read "GHS 60.00 · Secured in escrow
+// for this visit" after the fee was refunded; a completed job read "Approved
+// and secured in escrow" after it was paid out.
+{
+    const ESC = 'esc_fin002';
+    const job = (status) => approved(250, { escrowId: ESC, artisanEarns: 212.5, commissionRate: 0.15, status });
+    // Escrow documents exactly as the server writes them. Nothing else writes
+    // escrow/{id}: firestore.rules deny every client write.
+    const AT = '2026-10-28T12:00:00.000Z';
+    const HOLD = {                                   // functions/financial/escrow.js:355-370 (hold)
+        bookingId: REAL_ID, customerId: 'cust_1', artisanId: 'art_1', kind: 'job',
+        amount: 249, commission: 37.35, artisanShare: 211.65, commissionRate: 0.15,
+        status: 'held', customerConfirmed: false, artisanConfirmed: false, disputeId: null,
+    };
+    const ESCROWS = {
+        held:     HOLD,
+        released: { ...HOLD, status: 'released', releasedBy: 'system', releasedAt: AT, updatedAt: AT },     // escrow.js:574
+        refunded: { ...HOLD, status: 'refunded', refundedBy: 'system', refundReason: 'Booking cancelled',   // escrow.js:698-704
+                    refundedAt: AT, updatedAt: AT },
+        partial:  { ...HOLD, status: 'refunded', resolutionType: 'partial', customerAmount: 125,           // disputes.js:255-265
+                    artisanAmount: 106.25, commission: 18.75, refundedBy: 'ops@example.com',
+                    refundReason: 'Dispute partial settlement: half done', refundedAt: AT, updatedAt: AT },
+        disputed: { ...HOLD, status: 'disputed', disputeId: 'dsp_1', disputedBy: 'cust_1',                 // escrow.js:857-863
+                    disputedAt: AT, updatedAt: AT },
+        missing:  null,                              // not loaded, unreadable, or still pending
+    };
+    const OPEN = ['accepted', 'en_route', 'in_progress', 'awaiting'];
+    const ALL  = [...OPEN, 'completed', 'cancelled', 'disputed'];
+    const MOVED = ['released', 'refunded', 'partial'];
+
+    test('FIN-002 payment state: a partial dispute split and a disputed escrow are named', () => {
+        assert.strictEqual(T.resolvePaymentState(job('completed'), ESCROWS.partial), T.PAYMENT_STATE.PARTIAL);
+        assert.strictEqual(T.paymentStateLabel(T.PAYMENT_STATE.PARTIAL), 'Partly refunded');
+        assert.strictEqual(T.resolvePaymentState(job('disputed'), ESCROWS.disputed), T.PAYMENT_STATE.DISPUTED);
+        assert.strictEqual(T.paymentStateLabel(T.PAYMENT_STATE.DISPUTED), 'On hold (dispute)');
+        assert.strictEqual(T.resolvePaymentState(job('completed'), ESCROWS.refunded), T.PAYMENT_STATE.REFUNDED,
+            'a whole refund is still a whole refund');
+    });
+
+    // Every escrow outcome × every status, for an approved quote.
+    for (const [name, escrow] of Object.entries(ESCROWS)) {
+        for (const status of ALL) {
+            test(`FIN-002 approved quote · escrow ${name} · status ${status}`, () => {
+                const c = T.resolveArtisanCompensation(job(status), escrow);
+                const where = `${name}/${status}: ${c.amount} "${c.note}"`;
+                assert.ok(typeof c.note === 'string' && c.note.length > 0, where);
+                if (MOVED.includes(name)) {
+                    assert.ok(!/secured/i.test(c.note), `money that moved is never "secured" — ${where}`);
+                    assert.strictEqual(c.conditional, false, where);
+                }
+                if (name === 'released') {
+                    assert.strictEqual(c.amount, 212.5, where);
+                    assert.strictEqual(c.note, 'Paid to your wallet.', where);
+                    assert.strictEqual(c.outcome, T.PAYMENT_STATE.RELEASED);
+                }
+                if (name === 'refunded') {
+                    assert.strictEqual(c.amount, 0, where);
+                    assert.match(c.note, /^No payment: .*refunded to the customer/, where);
+                    assert.strictEqual(c.outcome, T.PAYMENT_STATE.REFUNDED);
+                }
+                if (name === 'partial') {
+                    assert.strictEqual(c.amount, 106.25, `the server's artisanAmount — ${where}`);
+                    assert.match(c.note, /dispute/i, where);
+                    assert.match(c.note, /GHS 106\.25 was paid to your wallet/, where);
+                }
+                if (name === 'disputed') {
+                    assert.strictEqual(c.conditional, true, where);
+                    assert.match(c.note, /dispute/i, where);
+                    assert.ok(!/secured|paid to your wallet/i.test(c.note), where);
+                }
+                if (name === 'held' || name === 'missing') {
+                    if (OPEN.includes(status)) {
+                        // quoteApproved is stamped with the hold: an open approved job is funded.
+                        assert.strictEqual(c.note, 'Approved and secured in escrow.', where);
+                        assert.strictEqual(c.conditional, false, where);
+                    } else {
+                        assert.ok(!/secured|paid to your wallet|was released|released to/i.test(c.note),
+                            `a closed or disputed job claims neither "secured" nor "paid" — ${where}`);
+                        assert.strictEqual(c.conditional, true, where);
+                        assert.strictEqual(c.amount, 212.5, 'the figure stays, marked conditional');
+                    }
+                }
+            });
+        }
+    }
+
+    test('FIN-002 approved quote: a completed job whose escrow is still held says so', () => {
+        const c = T.resolveArtisanCompensation(job('completed'), ESCROWS.held);
+        assert.match(c.note, /held in escrow until the release completes/i);
+    });
+
+    test('FIN-002 approved quote: a completed job with the escrow not loaded points to the wallet', () => {
+        const c = T.resolveArtisanCompensation(job('completed'), null);
+        assert.match(c.note, /customer confirmed the job/i);
+        assert.match(c.note, /wallet shows the payment once it is released/i);
+        assert.strictEqual(c.outcome, T.PAYMENT_STATE.UNRESOLVED);
+    });
+
+    // The callout fee: paid? × settled? × status.
+    const insp = (status, extra = {}) => ({ ...baseInspection, calloutFee: 60, status, ...extra });
+    const CALLOUT = {
+        unpaid:   { calloutPaid: false },
+        held:     { calloutPaid: true },
+        released: { calloutPaid: true, calloutSettled: 'released' },
+        refunded: { calloutPaid: true, calloutSettled: 'refunded' },
+    };
+    const C_OPEN = ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'inspection_done'];
+    const C_ALL  = [...C_OPEN, 'completed', 'cancelled', 'rejected', 'unfulfilled', 'disputed'];
+    for (const [name, fields] of Object.entries(CALLOUT)) {
+        for (const status of C_ALL) {
+            test(`FIN-002 callout · ${name} · status ${status}`, () => {
+                const c = T.resolveArtisanCompensation(insp(status, fields));
+                const where = `${name}/${status}: ${c.amount} "${c.note}"`;
+                assert.strictEqual(c.label, 'Callout / inspection fee', where);
+                const closed = ['completed', 'cancelled', 'rejected', 'unfulfilled'].includes(status);
+                if (name === 'released') {
+                    assert.strictEqual(c.amount, 60, where);
+                    assert.strictEqual(c.note, 'Paid to your wallet.', where);
+                    assert.strictEqual(c.conditional, false, where);
+                }
+                if (name === 'refunded') {
+                    assert.strictEqual(c.amount, 0, where);
+                    assert.strictEqual(c.note, 'No payment: the callout fee was refunded to the customer.', where);
+                    assert.strictEqual(c.conditional, false, where);
+                }
+                if (name === 'unpaid') {
+                    if (closed) {
+                        assert.strictEqual(c.amount, 0, where);
+                        assert.match(c.note, /closed before the callout fee was paid/, where);
+                    } else {
+                        assert.strictEqual(c.conditional, true, where);
+                        assert.match(c.note, /^Payable once the customer funds it/, where);
+                    }
+                }
+                if (name === 'held') {
+                    if (C_OPEN.includes(status)) {
+                        assert.match(c.note, /^Secured in escrow for this visit/, where);
+                        assert.strictEqual(c.conditional, false, where);
+                    } else {
+                        assert.ok(!/secured|paid to your wallet/i.test(c.note), where);
+                        assert.strictEqual(c.conditional, true, where);
+                    }
+                }
+                if (name !== 'held' || !C_OPEN.includes(status)) {
+                    assert.ok(!/^Secured/.test(c.note), `"secured" only while the visit is live and funded — ${where}`);
+                }
+            });
+        }
+    }
+
+    test('FIN-002 the audit case: cancelled inspection, callout refunded', () => {
+        const c = T.resolveArtisanCompensation(insp('cancelled', CALLOUT.refunded));
+        assert.strictEqual(T.formatMoney(c.amount), 'GHS 0.00');
+        assert.strictEqual(c.note, 'No payment: the callout fee was refunded to the customer.');
+    });
+
+    test('FIN-002 a closed job\'s unapproved quote earns nothing: the callout outcome speaks', () => {
+        const b = { ...quoted(250, { artisanEarns: 212.5 }), calloutFee: 60, calloutPaid: true,
+                    calloutSettled: 'released', status: 'cancelled' };
+        const c = T.resolveArtisanCompensation(b);
+        assert.strictEqual(c.label, 'Callout / inspection fee');
+        assert.strictEqual(c.note, 'Paid to your wallet.');
+        const open = T.resolveArtisanCompensation({ ...b, status: 'quoted', calloutSettled: undefined });
+        assert.match(open.note, /if the customer approves/i, 'an open quote is still conditional');
+    });
+
+    // The same outcomes, as the CUSTOMER reads them (receipt label + closing line).
+    const CUSTOMER_EXPECT = {
+        held:     { label: 'Held in escrow',   line: /^You confirmed the work.$/ },
+        released: { label: 'Paid out',         line: /payment was released to Kwame Mensah/ },
+        refunded: { label: 'Refunded',         line: /Your payment was refunded to your wallet/ },
+        partial:  { label: 'Partly refunded',  line: /part of your payment was refunded to your wallet/ },
+        disputed: { label: 'On hold (dispute)', line: /on hold while a dispute is reviewed/ },
+        missing:  { label: 'Not available',    line: /^You confirmed the work.$/ },
+    };
+    const ARTISAN_EXPECT = {
+        held:     /^The customer confirmed the job.$/,
+        released: /Your payment was released to your wallet/,
+        refunded: /The payment was refunded to the customer/,
+        partial:  /part of the payment was refunded to the customer/,
+        disputed: /on hold while a dispute is reviewed/,
+        missing:  /^The customer confirmed the job.$/,
+    };
+    for (const [name, escrow] of Object.entries(ESCROWS)) {
+        test(`FIN-002 customer · escrow ${name}: receipt label and closing line`, () => {
+            const b = { ...job('completed'), artisanName: 'Kwame Mensah' };
+            assert.strictEqual(T.resolveReceipt(b, REAL_ID, escrow).paymentLabel, CUSTOMER_EXPECT[name].label);
+            const j = T.resolveJourney(b, 'customer', { escrow });
+            assert.match(j.just, CUSTOMER_EXPECT[name].line, j.just);
+            if (name !== 'released') assert.ok(!/released/i.test(j.just), `no release claimed — ${j.just}`);
+        });
+        test(`FIN-002 artisan · escrow ${name}: closing line`, () => {
+            const b = { ...job('completed'), artisanName: 'Kwame Mensah' };
+            const j = T.resolveJourney(b, 'artisan', { escrow });
+            assert.match(j.just, ARTISAN_EXPECT[name], j.just);
+            assert.ok(!/your wallet/i.test(j.just) || name === 'released', `only a release reaches the artisan's wallet — ${j.just}`);
+        });
+    }
+
+    test('FIN-002 the job brief carries the escrow through to compensation', () => {
+        const brief = T.resolveJobBrief(job('completed'), { escrow: ESCROWS.released });
+        assert.strictEqual(brief.compensation.note, 'Paid to your wallet.');
+        assert.notStrictEqual(T.resolveJobBrief(job('completed')).compensation.note, 'Paid to your wallet.',
+            'without the escrow document it cannot claim the payout');
+    });
+
+    // ── The journey's closing lines ──────────────────────────────────────────
+    const done = { ...job('completed'), artisanName: 'Kwame Mensah' };
+    test('FIN-002 journey: "payment was released" only when the escrow says so', () => {
+        const unknown = T.resolveJourney(done, 'customer');
+        assert.ok(!/released|refunded/i.test(unknown.just), unknown.just);
+        assert.match(unknown.just, /^You confirmed the work\.$/);
+        assert.match(T.resolveJourney(done, 'customer', { escrow: ESCROWS.released }).just, /payment was released to Kwame Mensah/);
+        assert.match(T.resolveJourney(done, 'customer', { escrow: ESCROWS.refunded }).just, /refunded to your wallet/);
+        assert.match(T.resolveJourney(done, 'customer', { escrow: ESCROWS.partial }).just, /part of your payment was refunded/);
+        assert.match(T.resolveJourney(done, 'customer', { escrow: ESCROWS.disputed }).just, /on hold while a dispute/);
+        assert.match(T.resolveJourney(done, 'artisan', { escrow: ESCROWS.released }).just, /Your payment was released to your wallet/);
+        assert.match(T.resolveJourney(done, 'artisan').just, /^The customer confirmed the job\.$/);
+    });
+
+    test('FIN-002 journey: a dead end speaks to its own audience', () => {
+        const b = { ...named, status: 'cancelled', calloutPaid: true, calloutSettled: 'refunded' };
+        assert.match(T.resolveJourney(b, 'customer').just, /Your callout fee was refunded to your wallet/);
+        const art = T.resolveJourney(b, 'artisan').just;
+        assert.match(art, /The callout fee was refunded to the customer/);
+        assert.ok(!/your wallet/i.test(art), 'the artisan is not told the refund went to THEIR wallet');
+        assert.match(T.resolveJourney({ ...b, calloutSettled: 'released' }, 'artisan').just, /paid to your wallet/);
+    });
+
+    test('FIN-002 journey: a cancellation reason and the money are both said', () => {
+        const j = T.resolveJourney({ ...named, status: 'cancelled', cancellationReason: 'Customer cancelled.',
+                                     calloutPaid: true, calloutSettled: 'refunded' }, 'customer');
+        assert.strictEqual(j.just, 'Customer cancelled. Your callout fee was refunded to your wallet.');
+    });
+
+    test('FIN-002 journey: a cancelled job whose escrow was refunded says so', () => {
+        const j = T.resolveJourney({ ...done, status: 'cancelled' }, 'customer', { escrow: ESCROWS.refunded });
+        assert.match(j.just, /Your payment was refunded to your wallet/);
+    });
+
+    test('FIN-002 journey: an unfulfilled request with a paid, unsettled callout is not "nothing charged"', () => {
+        const j = T.resolveJourney({ ...named, status: 'unfulfilled', calloutPaid: true }, 'customer');
+        assert.ok(!/nothing was charged/i.test(j.just), j.just);
+        assert.match(j.just, /being returned to your wallet/);
+    });
+
+    // ── The screens pass the escrow document in ──────────────────────────────
+    const jobHtml  = fs.readFileSync(path.join(__dirname, '..', 'artisan-app', 'job.html'), 'utf8');
+    const jobsHtml = fs.readFileSync(path.join(__dirname, '..', 'artisan-app', 'jobs.html'), 'utf8');
+    test('FIN-002 job.html watches the job escrow and gives it to the brief', () => {
+        assert.match(jobHtml, /subscribeToDocument\('escrow', id,/);
+        assert.match(jobHtml, /escrow: b\.escrowId && b\.escrowId === _escrowId \? _escrow : null/);
+        assert.match(jobHtml, /_escrowUnsub\?\.\(\);/);
+    });
+    test('FIN-002 jobs.html reads closed jobs\' escrows and gives them to each card', () => {
+        assert.match(jobsHtml, /getDocument\('escrow', j\.escrowId\)/);
+        assert.match(jobsHtml, /escrow: \(b\.escrowId && _escrows\.get\(b\.escrowId\)\) \|\| null/);
+    });
+    test('FIN-002 jobs.html bounds the reads: live list only, the tab on screen, a cap', () => {
+        const fn = jobsHtml.slice(jobsHtml.indexOf('async function _loadEscrows()'), jobsHtml.indexOf('async function _loadContacts()'));
+        assert.match(fn, /if \(!_bookingsLive\) return;/, 'never from the cached paint');
+        assert.match(fn, /bkGroup\(j\) === TAB_GROUP\[_tab\]/, 'only the tab on screen');
+        assert.match(fn, /\.slice\(0, ESCROW_READS_PER_TAB\)/);
+        assert.match(fn, /if \(_escrows\.has\(j\.escrowId\)\) continue;/, 'once per escrow');
+        assert.match(jobsHtml, /const ESCROW_READS_PER_TAB = 20;/);
+        assert.match(jobsHtml, /if \(!fromCache\) _bookingsLive = true;/);
+        assert.match(jobsHtml, /_tab = tab;\s*_loadEscrows\(\);/, 'switching tab reads that tab');
+    });
+}
+
 // ── Report ───────────────────────────────────────────────────────────────────
 console.log(`\nbooking-truth: ${pass} passed, ${fail} failed`);
 if (fail) {

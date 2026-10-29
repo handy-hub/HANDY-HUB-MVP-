@@ -62,6 +62,8 @@ await testEnv.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(db, 'topupIntents', 'REF2'), { uid: C, status: 'pending', amountGHS: 10, createdAt: NOW });
     await setDoc(doc(db, 'escrow', 'E1'), { bookingId: 'B1', customerId: C, artisanId: A, amount: 2, artisanShare: 1.7,
         commission: 0.3, status: 'held', createdAt: NOW });
+    await setDoc(doc(db, 'escrow', 'E_OTHER'), { bookingId: 'B2', customerId: C2, artisanId: 'art_other', amount: 5,
+        artisanShare: 4.25, commission: 0.75, status: 'refunded', createdAt: NOW });
     await setDoc(doc(db, 'payouts', 'P1'), { userId: C, userType: 'customer', amount: 1, status: 'processing', createdAt: NOW });
     await setDoc(doc(db, 'artisans', A), {
         id: A, uid: A, name: 'Kofi', email: `${A}@example.com`, userType: 'artisan', status: 'active',
@@ -79,6 +81,7 @@ const v = (uid) => ({ email: `${uid}@example.com`, email_verified: true });
 const cust  = ctx(C, v(C));
 const fresh = ctx(NEW, v(NEW));
 const art   = ctx(A, v(A));
+const art2  = ctx('art_other2', v('art_other2'));
 const adm   = ctx(ADM, { email: 'ops@example.com', email_verified: true });
 const sup   = ctx(SUP, { email: 'silas7korda@gmail.com', email_verified: true });
 
@@ -171,6 +174,19 @@ await it('cannot change where their payouts go (the Paystack recipient)', async 
 });
 await it('cannot release escrow held for their job', async () => {
     await assertFails(updateDoc(doc(art, 'escrow', 'E1'), { status: 'released' }));
+});
+// The job screens read escrow/{id} to say what happened to the money (FIN-002):
+// held, released or refunded. Only the two parties to it may read it.
+await it('reads the escrow for their own job, and no other', async () => {
+    await assertSucceeds(getDoc(doc(art, 'escrow', 'E1')));
+    await assertFails(getDoc(doc(art, 'escrow', 'E_OTHER')));
+    await assertFails(getDoc(doc(art2, 'escrow', 'E1')));
+    await assertFails(getDoc(doc(testEnv.unauthenticatedContext().firestore(), 'escrow', 'E1')));
+});
+await it('the customer reads their own escrow, another customer cannot', async () => {
+    await assertSucceeds(getDoc(doc(cust, 'escrow', 'E1')));
+    await assertFails(getDoc(doc(cust, 'escrow', 'E_OTHER')));
+    await assertFails(getDoc(doc(ctx(C2, v(C2)), 'escrow', 'E1')));
 });
 await it('still reads their own ledger and recipient', async () => {
     await assertSucceeds(getDocs(collection(art, 'artisans', A, 'transactions')));
