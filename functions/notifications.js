@@ -12,7 +12,66 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { FIRESTORE_DB_ID } = require('./config');
+const { bookingHref } = require('./shared/bookingRouter');
 const NOTIF_COL = 'customer_notifications';
+
+// ── Where a booking notification opens (ART-NOTIF-001) ───────────────────────
+// Callers write a generic page ('dashboard.html', 'jobs.html', 'booking.html')
+// because that is what they always wrote, so a tap on "Quote Approved!" opened
+// a list and the artisan had to find the job the notification was about. When
+// the notification names a booking, the generic page becomes that booking's
+// screen: job.html?id= for the artisan; for the customer, bookingHref() — the
+// same contract an in-app tap resolves through (shared/js/domain/bookingRouter.js),
+// so a push lands where the app would have sent them. Deliberate pages
+// (wallet.html, onboarding.html, quote-approval.html?…) are left alone.
+// SEC-001's pattern (shared/js/utils/safeAppUrl.js, firestore.rules): a link
+// that does not fit it is not used.
+const SAFE_APP_URL = /^[A-Za-z0-9_-]+\.html(\?[A-Za-z0-9_.%=&-]*)?$/;
+const GENERIC_LINKS = Object.freeze({
+    artisan:  new Set(['', 'dashboard.html', 'jobs.html']),
+    customer: new Set(['', 'booking.html']),
+});
+
+function bookingIdOf(data) {
+    return String((data && data.metadata && data.metadata.bookingId) || (data && data.bookingId) || '') || null;
+}
+
+/**
+ * The link a notification should carry. Pure.
+ * @param {'artisan'|'customer'} audience
+ * @param {string|null|undefined} actionUrl  what the caller wrote
+ * @param {string|null} bookingId
+ * @param {object|null} booking  bookings/{id} data (customer only)
+ */
+function bookingLink(audience, actionUrl, bookingId, booking = null) {
+    const given = typeof actionUrl === 'string' ? actionUrl : '';
+    if (!bookingId || !GENERIC_LINKS[audience] || !GENERIC_LINKS[audience].has(given)) return actionUrl ?? null;
+    const link = audience === 'artisan' ? `job.html?id=${encodeURIComponent(bookingId)}`
+               : booking               ? bookingHref({ ...booking, id: bookingId })
+               :                         null;
+    return link && SAFE_APP_URL.test(link) ? link : (actionUrl ?? null);
+}
+
+/** `data` with metadata.bookingId always set when known, and its booking link. */
+async function _withBookingLink(audience, data) {
+    const bookingId = bookingIdOf(data);
+    if (!bookingId) return data;
+    let booking = null;
+    const given = typeof data.actionUrl === 'string' ? data.actionUrl : '';
+    if (audience === 'customer' && GENERIC_LINKS.customer.has(given)) {
+        try {
+            const snap = await db().collection('bookings').doc(bookingId).get();
+            booking = snap.exists ? snap.data() : null;
+        } catch (err) {
+            console.warn(`[notif] booking ${bookingId} unreadable for its link:`, err.message);
+        }
+    }
+    return {
+        ...data,
+        metadata:  { ...(data.metadata || {}), bookingId },
+        actionUrl: bookingLink(audience, data.actionUrl, bookingId, booking),
+    };
+}
 
 const PREF_MAP = {
     Payments: 'payments',
@@ -70,6 +129,7 @@ async function sendNotification(receiverId, data) {
             }
         }
 
+        data = await _withBookingLink('customer', data);
         const notifId = await _write(receiverId, type, data);
 
         // FCM push. Awaited: on Cloud Functions (2nd gen) CPU is throttled once
@@ -114,6 +174,7 @@ async function sendArtisanNotification(artisanId, data) {
         const token    = doc ? (doc.fcmToken || null) : null;
         const platform = doc ? (doc.fcmPlatform || null) : null;
 
+        data = await _withBookingLink('artisan', data);
         const notifId = await _write(artisanId, type, data);
 
         // Awaited for the same reason as sendNotification. The in-app record
@@ -265,4 +326,6 @@ module.exports = {
     buildFcmMessage,
     artisanPushAllowed,
     ARTISAN_MANDATORY_PUSH_TYPES,
+    bookingLink,
+    SAFE_APP_URL,
 };

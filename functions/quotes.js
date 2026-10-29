@@ -501,6 +501,9 @@ async function rejectJobQuote(auth, { bookingId, reason = '' }) {
                 cancellationReason:   'quote_rejected_final',
                 cancelledBy:          'customer',
                 cancelledAt:          new Date().toISOString(),
+                // The artisan is notified below; the status trigger tells only
+                // the customer (ART-NOTIF-003).
+                cancelNotified:       ['artisan'],
             },
         });
 

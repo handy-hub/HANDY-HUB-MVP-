@@ -125,6 +125,12 @@ const TRANSITIONS = [
         // Suppressed when cancelledBy === 'system_escrow_failure' — both parties were
         // already notified with specific payment failure context by _handleEscrowHoldFailure.
         skipIfSystemCancelled: true,
+        // A server path that cancels AND notifies (cancelInspectionBooking, the
+        // timeout sweep, the final quote rejection) lists the parties it told in
+        // `cancelNotified`, in the same write as the status. This rule tells
+        // only the others: one notice per party, and nobody left with none
+        // (ART-NOTIF-003). Clients cannot write the field (firestore.rules).
+        skipPartiesAlreadyNotified: true,
     },
     {
         from: null,
@@ -457,7 +463,15 @@ const onBookingStatusChanged = onDocumentUpdated(
                 const custAction = withBooking(rule.customerActionUrl) || 'booking.html';
                 const artAction  = withBooking(rule.artisanActionUrl)  || 'dashboard.html';
 
-                if ((rule.notify === 'customer' || rule.notify === 'both') && customerId) {
+                // Honoured only when it arrives WITH the cancellation: a value that
+                // was already on the booking was not written by the cancelling
+                // path, so it can never silence anyone.
+                const alreadyTold = rule.skipPartiesAlreadyNotified && Array.isArray(after.cancelNotified) &&
+                                    before.cancelNotified === undefined
+                    ? after.cancelNotified : [];
+
+                if ((rule.notify === 'customer' || rule.notify === 'both') && customerId &&
+                    !alreadyTold.includes('customer')) {
                     promises.push(
                         sendNotification(customerId, {
                             type:      rule.type,
@@ -469,7 +483,8 @@ const onBookingStatusChanged = onDocumentUpdated(
                     );
                 }
 
-                if ((rule.notify === 'artisan' || rule.notify === 'both') && artisanId) {
+                if ((rule.notify === 'artisan' || rule.notify === 'both') && artisanId &&
+                    !alreadyTold.includes('artisan')) {
                     const artisanCopy = rule.artisanBody || rule.body;
                     promises.push(
                         sendArtisanNotification(artisanId, {

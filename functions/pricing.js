@@ -184,7 +184,11 @@ async function claimBookingTransition(bookingRef, {
             throw new Error(guardMessage || 'This action is no longer available.');
         }
 
-        txn.update(bookingRef, { ...patch, updatedAt: nowIso() });
+        // `patch` may be a function of the booking as read in THIS transaction,
+        // for fields that must agree with it (cancelNotified names the party
+        // the caller is about to notify, from the live artisanId).
+        const fields = typeof patch === 'function' ? patch(booking) : patch;
+        txn.update(bookingRef, { ...fields, updatedAt: nowIso() });
         return booking;
     });
 }
@@ -953,12 +957,15 @@ async function cancelInspectionBooking(auth, { bookingId, reason = '' }) {
         fromStatuses: cancellable,
         guard: (b) => b.track === 'inspection' && !b.quoteApproved,
         guardMessage: 'The quote is already approved — use the dispute/refund flow instead.',
-        patch: {
+        patch: (live) => ({
             status:             'cancelled',
             cancellationReason: String(reason || '').trim().slice(0, 300) || (isArtisan ? 'Cancelled by artisan' : 'Cancelled by customer'),
             cancelledBy:        isArtisan ? 'artisan' : 'customer',
             cancelledAt:        nowIso(),
-        },
+            // The party notified below, so onBookingStatusChanged tells only the
+            // others (ART-NOTIF-003: one cancellation, one notice per party).
+            cancelNotified:     isArtisan ? ['customer'] : (live.artisanId ? ['artisan'] : []),
+        }),
     });
 
     const inspectionDelivered = ['inspection_done', 'quoted'].includes(booking.status);
@@ -1140,12 +1147,14 @@ async function checkBookingTimeouts() {
                         authUid: null,
                         party:   'any',
                         fromStatuses: [booking.status],
-                        patch: {
+                        patch: (live) => ({
                             status:             'cancelled',
                             cancellationReason: sweep.label,
                             cancelledBy:        'system',
                             cancelledAt:        nowIso(),
-                        },
+                            // Notified below; the status trigger tells nobody twice.
+                            cancelNotified:     live.artisanId ? ['customer', 'artisan'] : ['customer'],
+                        }),
                     });
                 } catch {
                     // Booking advanced before we could claim it — skip; a later
@@ -1159,12 +1168,13 @@ async function checkBookingTimeouts() {
                 if (sweep.settleTo && claimed.track === 'inspection') {
                     await settleCallout(claimed, doc.id, sweep.settleTo, sweep.label);
                 }
-                await sendNotification(booking.customerId, {
+                // The claimed (live) booking, so the parties match cancelNotified.
+                await sendNotification(claimed.customerId, {
                     type: 'Bookings', title: 'Booking Closed',
                     message: sweep.customerMsg, actionUrl: 'booking.html', bookingId: doc.id,
                 }).catch(() => {});
-                if (booking.artisanId) {
-                    await sendArtisanNotification(booking.artisanId, {
+                if (claimed.artisanId) {
+                    await sendArtisanNotification(claimed.artisanId, {
                         type: 'Bookings', title: 'Booking Closed',
                         message: sweep.artisanMsg, actionUrl: 'dashboard.html', bookingId: doc.id,
                     }).catch(() => {});

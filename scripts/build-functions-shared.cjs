@@ -57,6 +57,14 @@ const MIRRORS = [
         source: 'shared/js/domain/callableGroups.js',
         target: 'functions/shared/callableGroups.js',
     },
+    {
+        // The customer's "open this booking" contract. notifications.js uses
+        // bookingHref() to give a customer's push the same destination an
+        // in-app tap resolves to (ART-NOTIF-001). Pure at import: `window` is
+        // touched only inside openBooking(), which the server never calls.
+        source: 'shared/js/domain/bookingRouter.js',
+        target: 'functions/shared/bookingRouter.js',
+    },
 ];
 
 const BANNER = [
