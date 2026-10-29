@@ -96,9 +96,9 @@
   </div>
 
   <div class="notif-body" id="notif-body">
-    <!-- Skeleton while loading -->
-    <div id="notif-loading">
-      ${[1,2,3,4].map(() => `
+    <!-- Skeleton while loading: four rows, written out. This is static HTML, so a
+         template expression here was printed as text instead of run (MED-UI). -->
+    <div id="notif-loading" aria-hidden="true">
       <div class="notif-skel">
         <div class="nsk" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;"></div>
         <div style="flex:1;">
@@ -107,7 +107,34 @@
           <div class="nsk" style="height:11px;width:70%;margin-bottom:5px;"></div>
           <div class="nsk" style="height:10px;width:30%;"></div>
         </div>
-      </div>`).join('')}
+      </div>
+      <div class="notif-skel">
+        <div class="nsk" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div class="nsk" style="height:13px;width:60%;margin-bottom:7px;"></div>
+          <div class="nsk" style="height:11px;width:90%;margin-bottom:5px;"></div>
+          <div class="nsk" style="height:11px;width:70%;margin-bottom:5px;"></div>
+          <div class="nsk" style="height:10px;width:30%;"></div>
+        </div>
+      </div>
+      <div class="notif-skel">
+        <div class="nsk" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div class="nsk" style="height:13px;width:60%;margin-bottom:7px;"></div>
+          <div class="nsk" style="height:11px;width:90%;margin-bottom:5px;"></div>
+          <div class="nsk" style="height:11px;width:70%;margin-bottom:5px;"></div>
+          <div class="nsk" style="height:10px;width:30%;"></div>
+        </div>
+      </div>
+      <div class="notif-skel">
+        <div class="nsk" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div class="nsk" style="height:13px;width:60%;margin-bottom:7px;"></div>
+          <div class="nsk" style="height:11px;width:90%;margin-bottom:5px;"></div>
+          <div class="nsk" style="height:11px;width:70%;margin-bottom:5px;"></div>
+          <div class="nsk" style="height:10px;width:30%;"></div>
+        </div>
+      </div>
     </div>
     <div id="notif-list" style="display:none;"></div>
     <div class="notif-empty" id="notif-empty" style="display:none;">
