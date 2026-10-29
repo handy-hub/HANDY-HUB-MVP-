@@ -425,6 +425,11 @@ const PHASE_COPY = {
     [JOB_PHASE.CLOSED]:           { label: 'Closed',             cycle: null,         hint: '' },
 };
 
+// A booking that will not move again. 'resolved' is what resolveDispute writes
+// for every outcome (functions/disputes.js) — release, full refund or a split —
+// so it is closed like 'completed', and its money is the escrow's to describe.
+const CLOSED_STATUSES = ['completed', 'resolved', 'cancelled', 'rejected', 'unfulfilled'];
+
 export function resolveJobPhase(booking) {
     const b = booking || {};
     const st = norm(b.status);
@@ -442,7 +447,7 @@ export function resolveJobPhase(booking) {
     const isInspection = norm(b.track) === 'inspection'
                       || ['inspection_scheduled', 'inspection_done'].includes(st);
 
-    if (['completed', 'cancelled', 'rejected', 'unfulfilled'].includes(st)) return JOB_PHASE.CLOSED;
+    if (CLOSED_STATUSES.includes(st)) return JOB_PHASE.CLOSED;
     if (['pending', 'dispatching', 'searching', 'dispatched'].includes(st))  return JOB_PHASE.REQUEST;
     if (st === 'awaiting') return JOB_PHASE.AWAITING_CONFIRM;
 
@@ -468,7 +473,6 @@ export function resolveJobPhase(booking) {
     return JOB_PHASE.WORK;
 }
 
-const CLOSED_STATUSES = ['completed', 'cancelled', 'rejected', 'unfulfilled'];
 
 /**
  * What the artisan is entitled to at this point, and what is still conditional.
@@ -857,7 +861,7 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
     const apptWhen = booked ? appt.label : null;
 
     const stageIndex = PHASE_TO_STAGE[phase] ?? 0;
-    const terminal   = ['completed', 'cancelled', 'rejected', 'unfulfilled'].includes(st);
+    const terminal   = CLOSED_STATUSES.includes(st);
 
     // ── Dead ends first: they are not points on the journey ──────────────────
     if (st === 'cancelled' || st === 'rejected') {
@@ -1029,16 +1033,20 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
     };
 
     S[JOB_PHASE.CLOSED] = isCustomer ? {
-        here: 'Completed',
+        here: st === 'resolved' ? 'Dispute resolved' : 'Completed',
         // Confirming is the customer's act; the release is the server's, and
         // can lag or fail — so the payment is named only as recorded (FIN-002).
-        just: ['You confirmed the work.', closedMoneyLine(b, opts.escrow, true, who)].filter(Boolean).join(' '),
+        just: st === 'resolved'
+            ? (closedMoneyLine(b, opts.escrow, true, who) || 'Our team resolved the dispute on this booking.')
+            : ['You confirmed the work.', closedMoneyLine(b, opts.escrow, true, who)].filter(Boolean).join(' '),
         next: null,
         action: { label: 'View receipt', kind: 'secondary', op: 'receipt' },
         tone: 'done',
     } : {
-        here: 'Completed',
-        just: ['The customer confirmed the job.', closedMoneyLine(b, opts.escrow, false, who)].filter(Boolean).join(' '),
+        here: st === 'resolved' ? 'Dispute resolved' : 'Completed',
+        just: st === 'resolved'
+            ? (closedMoneyLine(b, opts.escrow, false, who) || 'Our team resolved the dispute on this job.')
+            : ['The customer confirmed the job.', closedMoneyLine(b, opts.escrow, false, who)].filter(Boolean).join(' '),
         next: null,
         action: { label: 'View earnings', kind: 'secondary', op: 'earnings' },
         tone: 'done',

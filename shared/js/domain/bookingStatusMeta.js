@@ -53,6 +53,9 @@ export const BOOKING_STATUSES = [
     'inspection_scheduled', 'inspection_done', 'quoted',
     'en_route', 'in_progress', 'awaiting',
     'completed', 'cancelled', 'unfulfilled', 'disputed',
+    // Written by resolveDispute (functions/disputes.js) for every outcome:
+    // release, full refund or a partial split. The escrow says which.
+    'resolved',
 ];
 
 // ── Tab / group membership ───────────────────────────────────────────────────
@@ -62,7 +65,8 @@ export const TAB_STATUSES = {
     upcoming:  ['pending', 'dispatching', 'searching', 'dispatched', 'assigned'],
     ongoing:   ['accepted', 'inspection_scheduled', 'inspection_done', 'quoted',
                 'en_route', 'in_progress', 'awaiting', 'disputed'],
-    completed: ['completed'],
+    // A resolved dispute is closed: it was a job that reached settlement.
+    completed: ['completed', 'resolved'],
     cancelled: ['cancelled', 'rejected', 'unfulfilled'],
 };
 
@@ -106,6 +110,9 @@ const BASE = {
                     description: 'No professional was available. Nothing was charged.' },
     disputed:     { label: 'In dispute',     group: 'ongoing',   tone: 'awaiting',
                     description: 'A dispute is under review by our team.' },
+    // Where the money went is the escrow's to say (bookingTruth), not this label's.
+    resolved:     { label: 'Resolved',       group: 'completed', tone: 'completed',
+                    description: 'Our team resolved the dispute on this booking.' },
 };
 
 // Per-audience overrides. Only the statuses where the artisan/admin view differs
@@ -121,6 +128,7 @@ const AUDIENCE_OVERRIDE = {
         en_route:     { label: 'En route',     description: 'On your way — mark arrived when you get there.' },
         in_progress:  { label: 'In progress',  description: 'Job in progress — mark done when finished.' },
         completed:    { label: 'Completed',    description: 'You completed this job. Earnings credited.' },
+        resolved:     { label: 'Resolved',     description: 'The dispute was resolved. Your wallet shows the outcome.' },
     },
     admin: {
         pending:      { label: 'Pending' },

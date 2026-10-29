@@ -1289,6 +1289,123 @@ test('review: submission never invents a rating and never fakes success', () => 
     });
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// FIN-002 follow-up — a RESOLVED dispute is closed, and its money is the escrow's
+// ═════════════════════════════════════════════════════════════════════════════
+// resolveDispute writes booking.status = 'resolved' for every outcome
+// (functions/disputes.js:158-166). Nothing on the client knew the status: the
+// artisan's Jobs list put it under Pending, never read its escrow, and printed
+// "GHS 170.00 · Approved and secured in escrow" for a partial settlement that
+// paid the artisan GHS 85 (handy-hub-mvp-70, browser check of 76dfc9c).
+{
+    const META = (() => {
+        const src = fs.readFileSync(path.join(__dirname, '..', 'shared', 'js', 'domain', 'bookingStatusMeta.js'), 'utf8')
+            .replace(/^\s*export\s+function\s+/gm, 'function ')
+            .replace(/^\s*export\s+const\s+/gm, 'const ');
+        // eslint-disable-next-line no-new-func
+        return new Function(`${src}\nreturn { BOOKING_STATUSES, TAB_STATUSES, describe };`)();
+    })();
+
+    const AT = '2026-10-29T10:00:00.000Z';
+    const HOLD = {
+        bookingId: REAL_ID, customerId: 'cust_1', artisanId: 'art_1', kind: 'job',
+        amount: 200, commission: 30, artisanShare: 170, commissionRate: 0.15, status: 'held',
+    };
+    // The escrow each resolution leaves behind, as the server writes it.
+    const BY_RESOLUTION = {
+        release_artisan: { ...HOLD, status: 'released', releasedBy: 'system', releasedAt: AT, updatedAt: AT },           // escrow.js:574
+        full_refund:     { ...HOLD, status: 'refunded', refundedBy: 'ops@example.com', refundReason: 'Dispute resolved (admin): x',
+                           refundedAt: AT, updatedAt: AT },                                                               // escrow.js:698-704
+        partial_refund:  { ...HOLD, status: 'refunded', resolutionType: 'partial', customerAmount: 100, artisanAmount: 85,
+                           commission: 15, refundedBy: 'ops@example.com', refundReason: 'Dispute partial settlement: x',
+                           refundedAt: AT, updatedAt: AT },                                                               // disputes.js:255-265
+    };
+    // The booking as resolveDispute leaves it (disputes.js:158-166).
+    const resolvedJob = (resolution) => approved(200, {
+        escrowId: 'esc_res', artisanEarns: 170, commissionRate: 0.15, artisanName: 'Kwame Mensah',
+        status: 'resolved', resolution, resolutionNotes: 'x', resolvedAt: AT, resolvedBy: 'ops@example.com',
+    });
+
+    test('resolved: the status is in the vocabulary and closed for both apps', () => {
+        assert.ok(META.BOOKING_STATUSES.includes('resolved'));
+        assert.ok(META.TAB_STATUSES.completed.includes('resolved'), 'customer and admin tabs use TAB_STATUSES');
+        for (const audience of ['artisan', 'customer']) {
+            const d = META.describe({ status: 'resolved' }, audience);
+            assert.strictEqual(d.group, 'completed', `${audience}: not the Pending tab`);
+            assert.strictEqual(d.label, 'Resolved', audience);
+            assert.strictEqual(d.isTerminal, true, audience);
+            assert.strictEqual(d.cancellable, false, audience);
+            assert.ok(!/secured|paid|credited/i.test(d.description), `${audience}: the label claims no money — ${d.description}`);
+        }
+    });
+
+    test('resolved: the job phase is closed', () => {
+        assert.strictEqual(T.resolveJobPhase(resolvedJob('partial_refund')), T.JOB_PHASE.CLOSED);
+    });
+
+    test('resolved: the reported case — partial split, artisan paid GHS 85', () => {
+        const c = T.resolveArtisanCompensation(resolvedJob('partial_refund'), BY_RESOLUTION.partial_refund);
+        assert.strictEqual(c.amount, 85);
+        assert.match(c.note, /GHS 85\.00 was paid to your wallet/);
+        assert.ok(!/secured/i.test(c.note));
+    });
+
+    test('resolved: with its escrow not yet read, it is never "secured in escrow"', () => {
+        const c = T.resolveArtisanCompensation(resolvedJob('partial_refund'), null);
+        assert.ok(!/secured|paid to your wallet/i.test(c.note), c.note);
+        assert.strictEqual(c.conditional, true);
+    });
+
+    for (const [resolution, escrow] of Object.entries(BY_RESOLUTION)) {
+        test(`resolved · ${resolution}: artisan compensation, customer receipt and both closing lines`, () => {
+            const b = resolvedJob(resolution);
+            const c = T.resolveArtisanCompensation(b, escrow);
+            assert.ok(!/secured/i.test(c.note), c.note);
+            assert.strictEqual(c.conditional, false);
+            const cust = T.resolveJourney(b, 'customer', { escrow });
+            const art  = T.resolveJourney(b, 'artisan', { escrow });
+            assert.strictEqual(cust.here, 'Dispute resolved');
+            assert.ok(!/You confirmed the work/.test(cust.just), 'the customer did not confirm a resolved job');
+            assert.ok(!/customer confirmed the job/i.test(art.just), art.just);
+            const label = T.resolveReceipt(b, REAL_ID, escrow).paymentLabel;
+            if (resolution === 'release_artisan') {
+                assert.strictEqual(c.amount, 170);
+                assert.strictEqual(c.note, 'Paid to your wallet.');
+                assert.match(cust.just, /payment was released to Kwame Mensah/);
+                assert.match(art.just, /Your payment was released to your wallet/);
+                assert.strictEqual(label, 'Paid out');
+            }
+            if (resolution === 'full_refund') {
+                assert.strictEqual(c.amount, 0);
+                assert.match(c.note, /refunded to the customer/);
+                assert.match(cust.just, /Your payment was refunded to your wallet/);
+                assert.match(art.just, /The payment was refunded to the customer/);
+                assert.strictEqual(label, 'Refunded');
+            }
+            if (resolution === 'partial_refund') {
+                assert.strictEqual(c.amount, 85);
+                assert.match(cust.just, /part of your payment was refunded to your wallet/);
+                assert.match(art.just, /part of the payment was refunded to the customer/);
+                assert.strictEqual(label, 'Partly refunded');
+            }
+        });
+    }
+
+    test('resolved with the escrow unread: the closing line names the resolution, not the money', () => {
+        const j = T.resolveJourney(resolvedJob('release_artisan'), 'customer');
+        assert.strictEqual(j.just, 'Our team resolved the dispute on this booking.');
+        assert.strictEqual(T.resolveJourney(resolvedJob('release_artisan'), 'artisan').just,
+            'Our team resolved the dispute on this job.');
+    });
+
+    test('resolved: jobs.html reads its escrow (it is in the Completed group the reads cover)', () => {
+        const jobsHtml = fs.readFileSync(path.join(__dirname, '..', 'artisan-app', 'jobs.html'), 'utf8');
+        assert.match(jobsHtml, /const bkGroup = \(booking\) => describeStatus\(booking, 'artisan'\)\.group;/);
+        assert.match(jobsHtml, /\['completed', 'cancelled'\]\.includes\(bkGroup\(j\)\)/);
+        assert.strictEqual(META.describe({ status: 'resolved' }, 'artisan').group, 'completed');
+    });
+}
+
 // ── Report ───────────────────────────────────────────────────────────────────
 console.log(`\nbooking-truth: ${pass} passed, ${fail} failed`);
 if (fail) {
