@@ -178,8 +178,30 @@ const ICONS = {
   General:  { bg: 'ni-general',  svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#6B7280" stroke-width="1.8" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#6B7280" stroke-width="1.8" stroke-linecap="round"/></svg>` },
 };
 
+// ── Which tab a notification belongs to ────────────────
+// The server writes two vocabularies: the tab names themselves ('Bookings',
+// 'Payments', 'System'…) and the booking lifecycle's own types
+// ('booking_completed', 'booking_cancelled'… — functions/bookings.js
+// TRANSITIONS). The Jobs tab matched 'Bookings' exactly, so completions and
+// cancellations appeared under All only (audit NOTIF-002). Every type maps to
+// a tab here; a type nobody listed goes to System, so none is hidden from
+// every tab. tests/artisan-cache-first.test.cjs holds this against every type
+// the server writes.
+const NOTIF_TAB = {
+  Bookings: 'Bookings', Offers: 'Bookings', Reviews: 'Bookings',
+  Payments: 'Payments',
+  Messages: 'Messages',
+  System: 'System', Updates: 'System', General: 'System',
+};
+function tabOf(type) {
+  const t = String(type || '');
+  if (NOTIF_TAB[t]) return NOTIF_TAB[t];
+  if (/^booking_/i.test(t)) return 'Bookings';
+  return 'System';
+}
+
 function iconFor(type) {
-  return ICONS[type] || ICONS.General;
+  return ICONS[type] || ICONS[tabOf(type)] || ICONS.General;
 }
 
 // ── Time formatter ─────────────────────────────────────
@@ -212,7 +234,7 @@ function render(notifications) {
 
   const filtered = _filter === 'all'
     ? notifications
-    : notifications.filter(n => n.type === _filter);
+    : notifications.filter(n => tabOf(n.type) === _filter);
 
   if (filtered.length === 0) {
     listEl.innerHTML = '';

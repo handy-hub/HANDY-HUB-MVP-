@@ -148,6 +148,101 @@ t('messages: rows carry no preview; previews live in memory only; the inbox no l
     assert.match(code, /const painted = ROW_INFO\.get\(chatId\);/);
 });
 
+console.log('\n── NOTIF-002: every notification type lands in a tab ──\n');
+
+/** Every literal `type` the Cloud Functions write to customer_notifications. */
+function serverNotificationTypes() {
+    const files = [];
+    (function walk(d) {
+        for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) {
+            const p = `${d}/${e.name}`;
+            if (e.isDirectory()) { if (!['node_modules', 'shared'].includes(e.name)) walk(p); }
+            else if (p.endsWith('.js')) files.push(p);
+        }
+    })('functions');
+    const argsAt = (src, open) => {
+        let depth = 0;
+        for (let j = open; j < src.length; j++) {
+            if (src[j] === '(') depth++;
+            else if (src[j] === ')' && --depth === 0) return src.slice(open, j + 1);
+        }
+        return '';
+    };
+    const types = new Set();
+    for (const f of files) {
+        const src = read(f);
+        // Calls to the two writers (and the notify(...) wrappers forwarding to
+        // them) that pass an object literal; definitions and pass-throughs of a
+        // variable carry no literal and are skipped.
+        for (const m of src.matchAll(/\b(sendNotification|sendArtisanNotification|notify)\s*\(/g)) {
+            const call = argsAt(src, m.index + m[0].length - 1);
+            if (!call.includes('{')) continue;
+            const t = /\btype\s*:\s*'([^']+)'/.exec(call);
+            types.add(t ? t[1] : 'General');   // the writers default a missing type to 'General'
+        }
+        for (const m of src.matchAll(/collection\('customer_notifications'\)\.add\(/g)) {
+            const t = /\btype\s*:\s*'([^']+)'/.exec(argsAt(src, m.index + m[0].length - 1));
+            if (t) types.add(t[1]);
+        }
+    }
+    // The booking lifecycle's table (sent with type: rule.type).
+    const b = read('functions/bookings.js');
+    const table = b.slice(b.indexOf('const TRANSITIONS = ['), b.indexOf('];', b.indexOf('const TRANSITIONS = [')));
+    for (const m of table.matchAll(/type:\s*'([^']+)'/g)) types.add(m[1]);
+    return [...types].sort();
+}
+
+/** tabOf + NOTIF_TAB, evaluated from the page itself. */
+function loadTabOf() {
+    const code = moduleOf('artisan-app/notifications.html');
+    const map = /const NOTIF_TAB = \{[\s\S]*?\};/.exec(code);
+    const fn  = /function tabOf\(type\) \{[\s\S]*?\n\}/.exec(code);
+    assert.ok(map && fn, 'NOTIF_TAB / tabOf not found');
+    // eslint-disable-next-line no-new-func
+    return new Function(`${map[0]}\n${fn[0]}\nreturn tabOf;`)();
+}
+
+const TABS = (() => {
+    const html = read('artisan-app/notifications.html');
+    return [...html.matchAll(/data-filter="([^"]+)"/g)].map((m) => m[1]).filter((f) => f !== 'all');
+})();
+
+t('the scan finds the server\'s notification types (guards the scan itself)', () => {
+    const types = serverNotificationTypes();
+    for (const k of ['Bookings', 'Payments', 'System', 'Updates', 'booking_accepted', 'booking_rejected', 'booking_en_route',
+                     'booking_started', 'booking_awaiting', 'booking_completed', 'booking_cancelled', 'booking_disputed']) {
+        assert.ok(types.includes(k), `${k} not found: ${types.join(', ')}`);
+    }
+});
+
+t('every type the server writes lands in a filter tab — none falls through to hidden', () => {
+    const tabOf = loadTabOf();
+    assert.deepStrictEqual(TABS, ['Bookings', 'Payments', 'Messages', 'System']);
+    const homeless = serverNotificationTypes().filter((type) => !TABS.includes(tabOf(type)));
+    assert.deepStrictEqual(homeless, []);
+});
+
+t('booking lifecycle types (completed, cancelled…) are Jobs; the rules\' and clients\' types have their tabs', () => {
+    const tabOf = loadTabOf();
+    for (const type of serverNotificationTypes().filter((x) => /^booking_/.test(x))) assert.strictEqual(tabOf(type), 'Bookings', type);
+    // Every type firestore.rules lets a client write (chat, support, booking confirmations).
+    const rules = read('firestore.rules');
+    const block = rules.slice(rules.indexOf('match /customer_notifications/{notificationId}'));
+    const allowed = /incoming\(\)\.type in \[([^\]]+)\]/.exec(block)[1].match(/'([^']+)'/g).map((s) => s.slice(1, -1));
+    for (const type of allowed) assert.ok(TABS.includes(tabOf(type)), `${type} → ${tabOf(type)}`);
+    assert.strictEqual(tabOf('Messages'), 'Messages');
+    assert.strictEqual(tabOf('Payments'), 'Payments');
+    assert.strictEqual(tabOf('something_new'), 'System', 'an unlisted type is still shown');
+    assert.strictEqual(tabOf(undefined), 'System');
+});
+
+t('the filter and the icons use tabOf, not an exact type match', () => {
+    const code = moduleOf('artisan-app/notifications.html');
+    assert.match(code, /notifications\.filter\(n => tabOf\(n\.type\) === _filter\)/);
+    assert.doesNotMatch(code, /n\.type === _filter/);
+    assert.match(code, /return ICONS\[type\] \|\| ICONS\[tabOf\(type\)\] \|\| ICONS\.General;/);
+});
+
 console.log(`\nartisan-cache-first: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 4).join('\n    ') : e}`);
 process.exit(failed ? 1 : 0);
