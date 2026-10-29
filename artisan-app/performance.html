@@ -95,10 +95,14 @@
       <button class="pf-period-btn" onclick="setPeriod('all',this)">All Time</button>
     </div>
 
-    <!-- Loading skeleton -->
-    <div id="pf-loading">
+    <!-- Loading skeleton: four stat tiles, written out. This is static HTML, so a
+         template expression here was printed as text instead of run (MED-UI). -->
+    <div id="pf-loading" aria-hidden="true">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-        ${[1,2,3,4].map(()=>`<div class="pf-skel"><div class="psk" style="width:36px;height:36px;border-radius:10px;"></div><div class="psk" style="width:50%;height:24px;"></div><div class="psk" style="width:70%;"></div></div>`).join('')}
+        <div class="pf-skel"><div class="psk" style="width:36px;height:36px;border-radius:10px;"></div><div class="psk" style="width:50%;height:24px;"></div><div class="psk" style="width:70%;"></div></div>
+        <div class="pf-skel"><div class="psk" style="width:36px;height:36px;border-radius:10px;"></div><div class="psk" style="width:50%;height:24px;"></div><div class="psk" style="width:70%;"></div></div>
+        <div class="pf-skel"><div class="psk" style="width:36px;height:36px;border-radius:10px;"></div><div class="psk" style="width:50%;height:24px;"></div><div class="psk" style="width:70%;"></div></div>
+        <div class="pf-skel"><div class="psk" style="width:36px;height:36px;border-radius:10px;"></div><div class="psk" style="width:50%;height:24px;"></div><div class="psk" style="width:70%;"></div></div>
       </div>
       <div class="pf-skel"><div class="psk" style="height:100px;"></div></div>
       <div class="pf-skel"><div class="psk" style="height:80px;"></div></div>
