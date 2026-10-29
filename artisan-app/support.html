@@ -284,59 +284,113 @@ window.submitTicket = async function() {
 
 // ── Your requests ──────────────────────────────────────
 // Read only by their owner and support staff (firestore.rules, support_tickets).
-const ticketsEl = document.getElementById('sp-tickets');
-const _threadUnsubs = new Map();
+//
+// Each request's row is built ONCE and then updated in place (SUP-001). The
+// list used to be rebuilt with innerHTML on every snapshot — and every reply,
+// from either side, updates the ticket — so the open conversation collapsed,
+// came back empty, and stayed empty: its message listener was already
+// registered, so reopening it never asked for the messages again. A support
+// reply vanished the moment it arrived. Now the row, its open state, its
+// thread, its listener and a half-typed reply all survive ticket snapshots.
+const ticketsEl     = document.getElementById('sp-tickets');
+const ticketsState  = document.getElementById('sp-tickets-state');
+const _rows         = new Map();   // ticketId → row element
+const _threadUnsubs = new Map();   // ticketId → unsubscribe; one listener per ticket, ever
 let _tickets = [];
+let _ticketsLoaded = false;
 
 function fmtWhen(iso) {
   const d = new Date(iso);
   return isNaN(d) ? '' : d.toLocaleString('en-GH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-function renderTickets() {
-  if (!_tickets.length) {
-    ticketsEl.innerHTML = '<p class="sp-label">You have not sent any requests yet.</p>';
-    return;
-  }
-  ticketsEl.innerHTML = _tickets.map((t) => `
-    <div class="sp-faq" id="tk-${esc(t.id)}">
-      <button class="sp-faq-q" onclick="toggleTicket('${esc(t.id)}')">
-        ${esc(topicLabel(t.subject))} · ${esc(ticketStatusLabel(t.status))}
+function buildTicketRow(t) {
+  const row = document.createElement('div');
+  row.className = 'sp-faq';
+  row.id = `tk-${t.id}`;
+  row.dataset.ticket = t.id;
+  row.innerHTML = `
+      <button class="sp-faq-q" data-action="toggle">
+        <span class="tk-head"></span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <div class="sp-faq-a" id="tk-body-${esc(t.id)}">
+      <div class="sp-faq-a">
         <p style="margin:0 0 6px;"><strong>You</strong> · ${esc(fmtWhen(t.createdAt))}</p>
         <p style="margin:0 0 10px;white-space:pre-wrap;">${esc(t.message)}</p>
-        <div id="tk-thread-${esc(t.id)}"></div>
-        ${t.status === TICKET_STATUS.CLOSED
-          ? '<p class="sp-label">This request is closed. Send a new one if you still need help.</p>'
-          : `<textarea class="sp-textarea" id="tk-reply-${esc(t.id)}" placeholder="Add a reply…"></textarea>
-             <button class="sp-submit" onclick="replyTicket('${esc(t.id)}', this)">Send reply</button>`}
-      </div>
-    </div>`).join('');
+        <div class="tk-thread"></div>
+        <div class="tk-compose"></div>
+      </div>`;
+  return row;
 }
 
-window.toggleTicket = function(id) {
-  const body = document.getElementById(`tk-body-${id}`);
+/** Brings a row up to date without touching what the artisan is doing in it. */
+function updateTicketRow(row, t) {
+  row.querySelector('.tk-head').textContent = `${topicLabel(t.subject)} · ${ticketStatusLabel(t.status)}`;
+  const closed = String(t.status === TICKET_STATUS.CLOSED);
+  if (row.dataset.closed === closed) return;   // the reply box only changes when the request closes/reopens
+  row.dataset.closed = closed;
+  row.querySelector('.tk-compose').innerHTML = closed === 'true'
+    ? '<p class="sp-label">This request is closed. Send a new one if you still need help.</p>'
+    : `<textarea class="sp-textarea" placeholder="Add a reply…"></textarea>
+       <button class="sp-submit" data-action="reply">Send reply</button>`;
+}
+
+function dropTicketRow(id) {
+  _rows.get(id)?.remove();
+  _rows.delete(id);
+  const unsub = _threadUnsubs.get(id);
+  if (unsub) { try { unsub(); } catch (_) {} }
+  _threadUnsubs.delete(id);
+}
+
+function renderTickets() {
+  const live = new Set();
+  _tickets.forEach((t, i) => {
+    live.add(t.id);
+    let row = _rows.get(t.id);
+    if (!row) { row = buildTicketRow(t); _rows.set(t.id, row); }
+    updateTicketRow(row, t);
+    // Move a row only when it is out of place: moving a node blurs the reply box.
+    const at = ticketsEl.children[i + 1];   // child 0 is the state line
+    if (at !== row) ticketsEl.insertBefore(row, at || null);
+  });
+  [..._rows.keys()].filter((id) => !live.has(id)).forEach(dropTicketRow);
+
+  ticketsState.textContent = 'You have not sent any requests yet.';
+  ticketsState.style.display = _tickets.length ? 'none' : '';
+}
+
+function toggleTicket(id) {
+  const row = _rows.get(id);
+  if (!row) return;
+  const body = row.querySelector('.sp-faq-a');
   const open = !body.classList.contains('open');
   body.classList.toggle('open', open);
   if (open && !_threadUnsubs.has(id)) {
+    const threadEl = row.querySelector('.tk-thread');   // lives as long as the row
     _threadUnsubs.set(id, databaseService.subscribeToSubCollection('support_tickets', id, 'messages', [], {},
       (msgs) => {
-        const el = document.getElementById(`tk-thread-${id}`);
-        if (!el) return;
         const rows = (msgs || []).map((m) => ({ id: m.id, ...(m.data || {}) }))
           .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
-        el.innerHTML = rows.map((m) => `
+        threadEl.innerHTML = rows.map((m) => `
           <p style="margin:8px 0 4px;"><strong>${m.authorRole === 'support' ? 'Fidus X support' : 'You'}</strong> · ${esc(fmtWhen(m.createdAt))}</p>
           <p style="margin:0;white-space:pre-wrap;">${esc(m.body)}</p>`).join('');
       },
       () => {}));
   }
-};
+}
 
-window.replyTicket = async function(id, btn) {
-  const ta = document.getElementById(`tk-reply-${id}`);
+ticketsEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  const row = btn?.closest('[data-ticket]');
+  if (!row) return;
+  if (btn.dataset.action === 'toggle') toggleTicket(row.dataset.ticket);
+  else if (btn.dataset.action === 'reply') replyTicket(row.dataset.ticket, btn);
+});
+
+async function replyTicket(id, btn) {
+  const ta = _rows.get(id)?.querySelector('.tk-compose textarea');
+  if (!ta) return;
   const v = validateReply(ta.value);
   if (!v.ok) { showToast(v.error); return; }
   btn.disabled = true;
@@ -354,18 +408,28 @@ window.replyTicket = async function(id, btn) {
   } finally {
     btn.disabled = false;
   }
-};
+}
 
-databaseService.subscribeToCollection('support_tickets',
+const _unsubTickets = databaseService.subscribeToCollection('support_tickets',
   [{ field: 'userId', op: '==', value: user.uid }], {},
   (records) => {
+    _ticketsLoaded = true;
     _tickets = (records || []).map((r) => ({ id: r.id, ...(r.data || {}) }))
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     renderTickets();
   },
-  () => { ticketsEl.innerHTML = '<p class="sp-label">Could not load your requests. Check your connection.</p>'; });
+  () => {
+    // A failed refresh never blanks requests already on screen.
+    if (_ticketsLoaded && _tickets.length) return;
+    ticketsState.textContent = 'Could not load your requests. Check your connection.';
+    ticketsState.style.display = '';
+  });
 
-window.addEventListener('pagehide', () => { _threadUnsubs.forEach((u) => { try { u(); } catch (_) {} }); });
+window.addEventListener('pagehide', () => {
+  try { _unsubTickets?.(); } catch (_) {}
+  _threadUnsubs.forEach((u) => { try { u(); } catch (_) {} });
+  _threadUnsubs.clear();
+});
 
 function showToast(msg) {
   const t = document.getElementById('toast');
