@@ -310,6 +310,18 @@ const _goneOffers    = new Set();
 // (contactDisclosed) open it only once the job is committed and funded and close
 // it when the job ends; the booking itself no longer carries it.
 const _contacts      = new Map();
+// Job escrow outcomes (escrow/{id}, which the rules let the artisan read), for
+// jobs that have closed or are disputed: their money note says what happened to
+// the money, never "secured in escrow" after a refund or payout (FIN-002).
+// Read only for the tab on screen, only once the LIVE list has arrived (never
+// from the cached paint), once per escrow, and at most ESCROW_READS_PER_TAB per
+// tab — the history is unbounded. A card whose escrow is unread, pending or
+// unreadable gets wording that claims nothing about the money.
+const _escrows       = new Map();
+const ESCROW_READS_PER_TAB = 20;
+const TAB_GROUP      = { pending: 'upcoming', active: 'ongoing', completed: 'completed', cancelled: 'cancelled' };
+let _tab             = 'pending';
+let _bookingsLive    = false;
 
 function _mergeAndRender() {
   const offered = new Set(_offerJobs.map(o => o.id));
@@ -317,6 +329,23 @@ function _mergeAndRender() {
     .map(j => (_contacts.get(j.id) ? { ...j, customerPhone: _contacts.get(j.id) } : j));
   render(_allJobs);
   _loadContacts();
+  _loadEscrows();
+}
+
+async function _loadEscrows() {
+  if (!_bookingsLive) return;
+  const shown = _bookingJobs
+    .filter(j => j.escrowId && bkGroup(j) === TAB_GROUP[_tab])
+    .filter(j => ['completed', 'cancelled'].includes(bkGroup(j)) || String(j.status || '').toLowerCase() === 'disputed')
+    .slice(0, ESCROW_READS_PER_TAB);   // newest first (createdAt desc)
+  for (const j of shown) {
+    if (_escrows.has(j.escrowId)) continue;
+    _escrows.set(j.escrowId, null);
+    try {
+      const snap = await _dbService.getDocument('escrow', j.escrowId);
+      if (snap?.exists) { _escrows.set(j.escrowId, snap.data); _mergeAndRender(); }
+    } catch (_) { /* unreadable — the note then claims nothing about the money */ }
+  }
 }
 
 async function _loadContacts() {
@@ -420,7 +449,8 @@ function buildJobCard(b) {
   // ── The information contract ─────────────────────────────────────────────
   // Everything below already existed on the booking document this page's own
   // query returns. It was being received and discarded by the renderer.
-  const brief   = resolveJobBrief(b, { originLat: _originLat, originLng: _originLng });
+  const brief   = resolveJobBrief(b, { originLat: _originLat, originLng: _originLng,
+                                      escrow: (b.escrowId && _escrows.get(b.escrowId)) || null });
   const name    = brief.customer.name;
   const initials= name ? name.split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase() : '·';
   // createdAt is when the request was RAISED, not when the visit is booked.
@@ -678,6 +708,8 @@ window.switchJobTab = function(tab, btn) {
   btn.setAttribute('aria-selected', 'true');
   document.querySelectorAll('.jobs-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('jp-' + tab)?.classList.add('active');
+  _tab = tab;
+  _loadEscrows();
 };
 
 /* ── Transitions ───────────────────────────────────────────────────────────
@@ -975,8 +1007,9 @@ subscribeToArtisanAuthState(async user => {
   _unsub = mountInstantView({
     key: 'artisan-jobs-bookings',
     version: 1,
-    render: (records) => {
+    render: (records, { fromCache }) => {
       _bookingJobs = records.map(r => ({ id: r.id, ...(r.data || {}) }));
+      if (!fromCache) _bookingsLive = true;
       _mergeAndRender();
     },
     subscribe: (_c, onData, onError) => bookingRepo.subscribeByArtisanId(

@@ -142,6 +142,7 @@ const $ = (id) => document.getElementById(id);
 const BOOKING_ID = new URLSearchParams(location.search).get('id');
 
 let _uid = null, _booking = null, _busy = false, _unsub = null, _originLat = null, _originLng = null;
+let _escrow = null, _escrowId = null, _escrowUnsub = null;   // see watchEscrow()
 // The server refused an answer to this offer as gone (performBookingAction
 // offerGone): from then on the request is drawn lapsed, whatever the listener says.
 let _offerGone = false;
@@ -288,7 +289,8 @@ function actionsFor(brief, b) {
 /* ── Render ──────────────────────────────────────────────────────────────── */
 function render(b) {
   _booking = b;
-  const brief = resolveJobBrief(b, { originLat: _originLat, originLng: _originLng });
+  const brief = resolveJobBrief(b, { originLat: _originLat, originLng: _originLng,
+                                    escrow: b.escrowId && b.escrowId === _escrowId ? _escrow : null });
   const acts  = actionsFor(brief, b);
   const dist  = formatDistance(brief.distanceKm);
   const comp  = brief.compensation;
@@ -606,6 +608,22 @@ async function loadPhone(b) {
   } catch (_) { /* not disclosed in this state */ }
 }
 
+// The job escrow's outcome (held / released / refunded) lives on escrow/{id},
+// which the rules let this artisan read. The money note follows it (FIN-002);
+// without it the note claims nothing about where the money went.
+function watchEscrow(b) {
+  const id = b && b.escrowId;
+  if (!id || id === _escrowId) return;
+  _escrowId = id;
+  _escrow = null;
+  try { _escrowUnsub?.(); } catch (_) {}
+  const { services: { databaseService } } = getAppContainer();
+  _escrowUnsub = databaseService.subscribeToDocument('escrow', id, (snap) => {
+    _escrow = snap?.exists ? snap.data : null;
+    if (!_busy && _lastBooking) render(withPhone(_lastBooking));
+  }, () => { _escrow = null; });
+}
+
 function watchOffer() {
   if (_offerUnsub) return;
   const { services: { databaseService } } = getAppContainer();
@@ -635,6 +653,7 @@ function watchBooking() {
       _lastBooking = b;
       if (!_busy) render(withPhone(b));
       loadPhone(b);
+      watchEscrow(b);
     },
     (err) => {
       if (/permission/i.test(String(err?.code || err?.message || ''))) { watchOffer(); return; }
@@ -643,7 +662,7 @@ function watchBooking() {
   );
 }
 
-window.addEventListener('pagehide', () => { try { _unsub?.(); _offerUnsub?.(); } catch (_) {} clearInterval(_offerTick); });
+window.addEventListener('pagehide', () => { try { _unsub?.(); _offerUnsub?.(); _escrowUnsub?.(); } catch (_) {} clearInterval(_offerTick); });
 // Restored from the back/forward cache with its listeners torn down: reload.
 window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
 </script>

@@ -263,6 +263,9 @@ export const PAYMENT_STATE = {
     HELD:         'held',
     RELEASED:     'released',
     REFUNDED:     'refunded',
+    // A dispute split the job escrow: part to the customer, part to the artisan.
+    PARTIAL:      'partially_refunded',
+    DISPUTED:     'disputed',
     FAILED:       'failed',
 };
 
@@ -288,9 +291,13 @@ export function resolvePaymentState(booking, escrow = null) {
     if (m.escrowId) {
         const st = norm(escrow?.status);
         if (!st) return PAYMENT_STATE.UNRESOLVED;   // not loaded → say nothing
-        if (st === 'refunded') return PAYMENT_STATE.REFUNDED;
+        // resolveDispute's partial split also writes status 'refunded'; its
+        // resolutionType says only part of the money went back.
+        if (st === 'refunded') return norm(escrow.resolutionType) === 'partial'
+            ? PAYMENT_STATE.PARTIAL : PAYMENT_STATE.REFUNDED;
         if (st === 'released') return PAYMENT_STATE.RELEASED;
         if (st === 'held' || st === 'frozen') return PAYMENT_STATE.HELD;
+        if (st === 'disputed') return PAYMENT_STATE.DISPUTED;
         if (st === 'failed')   return PAYMENT_STATE.FAILED;
         return PAYMENT_STATE.UNRESOLVED;
     }
@@ -322,6 +329,8 @@ export function paymentStateLabel(state) {
         case PAYMENT_STATE.HELD:     return 'Held in escrow';
         case PAYMENT_STATE.RELEASED: return 'Paid out';
         case PAYMENT_STATE.REFUNDED: return 'Refunded';
+        case PAYMENT_STATE.PARTIAL:  return 'Partly refunded';
+        case PAYMENT_STATE.DISPUTED: return 'On hold (dispute)';
         case PAYMENT_STATE.FAILED:   return 'Payment failed';
         default:                     return 'Not available';
     }
@@ -459,6 +468,8 @@ export function resolveJobPhase(booking) {
     return JOB_PHASE.WORK;
 }
 
+const CLOSED_STATUSES = ['completed', 'cancelled', 'rejected', 'unfulfilled'];
+
 /**
  * What the artisan is entitled to at this point, and what is still conditional.
  *
@@ -466,40 +477,116 @@ export function resolveJobPhase(booking) {
  * inspection track none of those exist before a quote is raised, so the artisan
  * was shown "GHS 0" — which reads as "this job pays nothing" — while a real
  * callout fee was waiting for them. calloutFee was simply never in the chain.
+ *
+ * The note follows what HAPPENED to the money, not the phase (audit FIN-002,
+ * 28 Oct 2026). A cancelled inspection read "GHS 60.00 · Secured in escrow for
+ * this visit" after the fee had gone back to the customer, and a completed job
+ * read "Approved and secured in escrow" after it had been paid out. The
+ * callout's outcome is on the booking (calloutSettled, written by
+ * settleCallout); the job's is on escrow/{escrowId} (releaseEscrow,
+ * refundEscrow, resolveDispute). Where that outcome is not known — the escrow
+ * document not loaded — the note says what is known and claims nothing.
+ * Wording only: nothing here moves or decides money.
+ *
+ * @param {object}      booking
+ * @param {object|null} escrow  escrow/{booking.escrowId}, when loaded
+ * @returns {{ amount, gross, label, conditional, note, commissionRate, outcome }}
+ *          outcome: the PAYMENT_STATE the note was written from
  */
-export function resolveArtisanCompensation(booking) {
-    const m = resolveMoney(booking);
+export function resolveArtisanCompensation(booking, escrow = null) {
+    const b  = booking || {};
+    const m  = resolveMoney(b);
+    const st = norm(b.status);
+    const closed   = CLOSED_STATUSES.includes(st);
+    const disputed = st === 'disputed';
 
-    if (m.jobQuote !== null) {
+    // ── An approved quote: the job escrow decides ────────────────────────────
+    if (m.jobQuote !== null && m.quoteApproved) {
+        const state = resolvePaymentState(b, escrow);
+        const earns = m.artisanEarns !== null ? m.artisanEarns : null;
+        const out = (amount, conditional, note) => ({
+            amount, gross: m.jobQuote, label: 'Your earnings from this quote',
+            conditional, note, commissionRate: m.commissionRate, outcome: state,
+        });
+        switch (state) {
+            case PAYMENT_STATE.RELEASED:
+                return out(earns, false, 'Paid to your wallet.');
+            case PAYMENT_STATE.REFUNDED:
+                return out(0, false, 'No payment: the money was refunded to the customer.');
+            case PAYMENT_STATE.PARTIAL: {
+                // The split is the server's (resolveDispute writes artisanAmount).
+                const paid = money(escrow && escrow.artisanAmount);
+                return out(paid, false, paid !== null && paid > 0
+                    ? `Settled after a dispute: part was refunded to the customer and ${formatMoney(paid)} was paid to your wallet.`
+                    : 'Settled after a dispute: part was refunded to the customer.');
+            }
+            case PAYMENT_STATE.DISPUTED:
+                return out(earns, true, 'On hold in escrow while a dispute is reviewed.');
+            case PAYMENT_STATE.FAILED:
+                return out(earns, true, 'The payment did not go through. Contact support if this is not resolved.');
+            default:
+                break;
+        }
+        // Held, covered by the callout, or not loaded. quoteApproved is stamped
+        // in the same transaction that holds the funds, so an OPEN approved job
+        // is funded; a closed or disputed one may have moved since.
+        if (disputed) return out(earns, true, 'On hold in escrow while a dispute is reviewed.');
+        if (st === 'completed') {
+            return out(earns, true, state === PAYMENT_STATE.UNRESOLVED
+                ? 'The customer confirmed the job. Your wallet shows the payment once it is released.'
+                : 'The customer confirmed the job. Held in escrow until the release completes.');
+        }
+        if (closed) {
+            return out(earns, true, state === PAYMENT_STATE.UNRESOLVED
+                ? 'This job was closed. Your wallet shows how its payment was settled.'
+                : 'This job was closed. The money is still in escrow while it is settled.');
+        }
+        return out(earns, false, state === PAYMENT_STATE.NONE_DUE
+            ? 'Approved: covered by the callout fee, secured in escrow.'
+            : 'Approved and secured in escrow.');
+    }
+
+    // ── A quote awaiting approval, on a job that is still open ───────────────
+    if (m.jobQuote !== null && !closed && !disputed) {
         return {
             amount:      m.artisanEarns !== null ? m.artisanEarns : null,
             gross:       m.jobQuote,
             label:       'Your earnings from this quote',
-            conditional: !m.quoteApproved,
-            note: m.quoteApproved
-                ? 'Approved and secured in escrow.'
-                : 'If the customer approves this quote.',
+            conditional: true,
+            note:        'If the customer approves this quote.',
             commissionRate: m.commissionRate,
+            outcome:     PAYMENT_STATE.AWAITING,
         };
     }
 
+    // ── The callout fee (a closed job's unapproved quote earns nothing) ──────
     if (m.calloutFee !== null) {
-        return {
-            amount:      m.calloutFee,
-            gross:       m.calloutFee,
-            label:       'Callout / inspection fee',
+        const outcome = !m.calloutPaid                   ? PAYMENT_STATE.AWAITING
+                      : m.calloutSettled === 'released' ? PAYMENT_STATE.RELEASED
+                      : m.calloutSettled === 'refunded' ? PAYMENT_STATE.REFUNDED
+                      :                                   PAYMENT_STATE.HELD;
+        const out = (amount, conditional, note) => ({
+            amount, gross: m.calloutFee, label: 'Callout / inspection fee',
+            conditional, note, commissionRate: m.commissionRate, outcome,
+        });
+        if (outcome === PAYMENT_STATE.RELEASED) return out(m.calloutFee, false, 'Paid to your wallet.');
+        if (outcome === PAYMENT_STATE.REFUNDED) return out(0, false, 'No payment: the callout fee was refunded to the customer.');
+        if (outcome === PAYMENT_STATE.AWAITING) {
             // Before the customer pays, the fee is real but not yet secured.
-            conditional: !m.calloutPaid,
-            note: m.calloutPaid
-                ? 'Secured in escrow for this visit. The job price is quoted separately, after you inspect.'
-                : 'Payable once the customer funds it. The job price is quoted separately, after you inspect.',
-            commissionRate: m.commissionRate,
-        };
+            return closed
+                ? out(0, false, 'No payment: the request closed before the callout fee was paid.')
+                : out(m.calloutFee, true, 'Payable once the customer funds it. The job price is quoted separately, after you inspect.');
+        }
+        // Held, not yet settled.
+        if (disputed)            return out(m.calloutFee, true, 'On hold in escrow while a dispute is reviewed.');
+        if (st === 'completed')  return out(m.calloutFee, true, 'Held in escrow until it is released to your wallet.');
+        if (closed)              return out(m.calloutFee, true, 'This job was closed. The callout fee is still in escrow while it is settled.');
+        return out(m.calloutFee, false, 'Secured in escrow for this visit. The job price is quoted separately, after you inspect.');
     }
 
     // Unknown is unknown — never render it as zero.
     return { amount: null, gross: null, label: 'Compensation', conditional: true,
-             note: 'Not available yet.', commissionRate: null };
+             note: 'Not available yet.', commissionRate: null, outcome: PAYMENT_STATE.UNRESOLVED };
 }
 
 /** Straight-line km between two points, or null when either is unusable. */
@@ -537,7 +624,7 @@ export function formatDistance(km) {
  * description, photos, address and coordinates were being received and thrown
  * away by the renderer.
  */
-export function resolveJobBrief(booking, { originLat = null, originLng = null } = {}) {
+export function resolveJobBrief(booking, { originLat = null, originLng = null, escrow = null } = {}) {
     const b = booking || {};
     const phase = resolveJobPhase(b);
     const copy  = PHASE_COPY[phase] || PHASE_COPY[JOB_PHASE.CLOSED];
@@ -610,7 +697,7 @@ export function resolveJobBrief(booking, { originLat = null, originLng = null } 
                : (hasCoords ? distanceKm(originLat, originLng, lat, lng) : null))
             : (hasCoords ? distanceKm(originLat, originLng, lat, lng) : null),
 
-        compensation: resolveArtisanCompensation(b),
+        compensation: resolveArtisanCompensation(b, escrow),
 
         photos,
         photoCount: photos.length,
@@ -777,8 +864,8 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
         return {
             stageIndex, terminal: true, tone: 'ended',
             here:   'Request closed',
-            just:   text(b.cancellationReason) ||
-                    (m.calloutSettled === 'refunded' ? 'Your callout fee was refunded to your wallet.' : 'This request was cancelled.'),
+            just:   [text(b.cancellationReason), closedMoneyLine(b, opts.escrow, isCustomer, who)]
+                        .filter(Boolean).join(' ') || 'This request was cancelled.',
             next:   null,
             action: isCustomer ? { label: 'Start a new request', href: 'book-request.html' } : null,
         };
@@ -792,9 +879,8 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
             just: (b.unfulfillReason === 'search_timeout'
                     ? 'Nobody accepted your request in time.'
                     : 'Every professional nearby was busy.') + ' ' +
-                  (m.calloutSettled === 'refunded'
-                    ? 'Your callout fee was refunded to your wallet.'
-                    : 'Nothing was charged.'),
+                  (closedMoneyLine(b, opts.escrow, isCustomer, who)
+                    || (m.calloutPaid ? 'Your callout fee is being returned to your wallet.' : 'Nothing was charged.')),
             next: 'You can try again — availability changes through the day.',
             action: isCustomer ? { label: 'Try again', href: 'book-request.html' } : null,
         };
@@ -944,19 +1030,46 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
 
     S[JOB_PHASE.CLOSED] = isCustomer ? {
         here: 'Completed',
-        just: 'You confirmed the work and the payment was released.',
+        // Confirming is the customer's act; the release is the server's, and
+        // can lag or fail — so the payment is named only as recorded (FIN-002).
+        just: ['You confirmed the work.', closedMoneyLine(b, opts.escrow, true, who)].filter(Boolean).join(' '),
         next: null,
         action: { label: 'View receipt', kind: 'secondary', op: 'receipt' },
         tone: 'done',
     } : {
         here: 'Completed',
-        just: 'The customer confirmed the job.',
+        just: ['The customer confirmed the job.', closedMoneyLine(b, opts.escrow, false, who)].filter(Boolean).join(' '),
         next: null,
         action: { label: 'View earnings', kind: 'secondary', op: 'earnings' },
         tone: 'done',
     };
 
     return { stageIndex, terminal, ...(S[phase] || S[JOB_PHASE.REQUEST]) };
+}
+
+/**
+ * One sentence on where a CLOSED booking's money went, for this audience, from
+ * the recorded outcome only (FIN-002). null when nothing was paid, or when the
+ * outcome is not known — a closing line never guesses about money.
+ */
+function closedMoneyLine(b, escrow, isCustomer, who) {
+    const m = resolveMoney(b);
+    if (m.escrowId) {
+        const st = norm(escrow && escrow.status);
+        const partial = st === 'refunded' && norm(escrow && escrow.resolutionType) === 'partial';
+        if (partial)          return isCustomer ? 'The dispute was settled: part of your payment was refunded to your wallet.'
+                                                : 'The dispute was settled: part of the payment was refunded to the customer.';
+        if (st === 'refunded') return isCustomer ? 'Your payment was refunded to your wallet.'
+                                                : 'The payment was refunded to the customer.';
+        if (st === 'released') return isCustomer ? `The payment was released to ${who}.`
+                                                : 'Your payment was released to your wallet.';
+        if (st === 'disputed') return 'The payment is on hold while a dispute is reviewed.';
+    }
+    if (m.calloutSettled === 'refunded') return isCustomer ? 'Your callout fee was refunded to your wallet.'
+                                                           : 'The callout fee was refunded to the customer.';
+    if (m.calloutSettled === 'released') return isCustomer ? `The callout fee was paid to ${who} for the visit.`
+                                                           : 'The callout fee was paid to your wallet.';
+    return null;
 }
 
 /** Stage list with per-stage state, for a progress rail. */
