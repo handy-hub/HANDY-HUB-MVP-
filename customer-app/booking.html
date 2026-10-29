@@ -88,7 +88,7 @@ import {
   TAB_STATUSES, describe, getActiveProgress, isCancellable,
 }                                    from '../shared/js/domain/bookingStatusMeta.js';
 import { wireSwipeAction, createUndoToast } from '../shared/js/components/swipeAction.js';
-import { resolveArtisan, initialsOf } from '../shared/js/domain/bookingTruth.js';
+import { resolveArtisan, initialsOf, resolveReceipt } from '../shared/js/domain/bookingTruth.js';
 import { resolveSchedule }          from '../shared/js/domain/bookingSchedule.js';
 import { pricingService }           from '../shared/js/services/pricingService.js';
 import { showToast }                from '../shared/js/components/toast.js';
@@ -343,6 +343,43 @@ function buildActiveCard(b) {
   </div>`;
 }
 
+// ── A resolved dispute: what happened to the money ──────────────────────────
+// resolveDispute writes status 'resolved' for a release, a full refund or a
+// split alike, so the Completed tab's "Paid" would be false for a refunded
+// booking. The outcome lives on escrow/{escrowId} (the customer may read it):
+// read only for resolved bookings, only once the LIVE list has arrived (never
+// from the cached paint), only while the Completed tab is open, once per escrow
+// and at most ESCROW_READS of them. Unread, pending or unreadable → "Resolved",
+// which claims nothing about the money (FIN-002).
+const _escrows     = new Map();
+const ESCROW_READS = 20;
+let _tab           = 'upcoming';
+let _bookingsLive  = false;
+
+function resolvedLabel(b) {
+  const escrow = b.escrowId ? _escrows.get(b.escrowId) : null;
+  if (!escrow) return 'Resolved';
+  const label = resolveReceipt(b, b.id, escrow).paymentLabel;
+  return label && label !== 'Not available' ? label : 'Resolved';
+}
+
+async function loadResolvedEscrows() {
+  if (!_bookingsLive || _tab !== 'completed') return;
+  const wanted = _allBookings
+    .filter(b => String(b.status || '').toLowerCase() === 'resolved' && b.escrowId)
+    .slice(0, ESCROW_READS);
+  let changed = false;
+  for (const b of wanted) {
+    if (_escrows.has(b.escrowId)) continue;
+    _escrows.set(b.escrowId, null);
+    try {
+      const snap = await databaseService.getDocument('escrow', b.escrowId);
+      if (snap?.exists) { _escrows.set(b.escrowId, snap.data); changed = true; }
+    } catch (_) { /* unreadable — the card keeps the neutral "Resolved" */ }
+  }
+  if (changed) render(_allBookings);
+}
+
 function buildCompletedCard(b) {
   const hasReview = !!(b.reviewLeft || b.review);
   // An unknown date rendered as the word "Completed", which reads as a status
@@ -356,7 +393,7 @@ function buildCompletedCard(b) {
     <div class="bk-card-meta-row"><button style="background:none;border:none;color: var(--ui-primary);font-size:11.5px;font-weight:700;cursor:pointer;padding:0;" onclick="event.stopPropagation();window._rebook('${escHtml(b.id)}')">Book again</button></div>`;
   return buildSimpleCard(b, {
     metaRows,
-    amountLabel: 'Paid',
+    amountLabel: String(b.status || '').toLowerCase() === 'resolved' ? resolvedLabel(b) : 'Paid',
     amountValue: amountFor(b).value,
   });
 }
@@ -541,6 +578,8 @@ window.switchTab = function(tab, btn) {
   btn.setAttribute('aria-selected','true');
   document.querySelectorAll('.bk-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab)?.classList.add('active');
+  _tab = tab;
+  loadResolvedEscrows();
 };
 
 // Swipeable (cancellable) cards route through this guard so a swipe gesture's
@@ -693,8 +732,10 @@ authService.subscribeToAuthState(user => {
       _allBookings = records.map(r => ({ id: r.id, ...(r.data || {}) }));
       if (_allBookings.length) _hasAnyBooking = true;
       try { localStorage.setItem(BK_CACHE_KEY, JSON.stringify(_allBookings.slice(0, 30))); } catch(_) {}
+      _bookingsLive = true;
       render(_allBookings);
       applyContextualTab(_allBookings);
+      loadResolvedEscrows();
     },
     err => {
       console.error('[booking] Firestore subscription error:', err);
