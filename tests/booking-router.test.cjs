@@ -222,6 +222,16 @@ console.log(`\nbooking-router: ${passed} passed, ${failures.length} failed`);
 process.exit(failures.length ? 1 : 0);
 };
 
+// ── A resolved dispute is closed (resolveDispute writes status 'resolved') ────
+test('a resolved inspection booking opens the booking list, not the resume console', () => {
+    // The usual shape: the dispute followed an approved quote. 'resolved' was in
+    // no list, so it fell to the inspection fallback (book-request.html?resume=).
+    assert.strictEqual(bookingHref(insp({ status: 'resolved', quoteApproved: true })), 'booking.html');
+    assert.strictEqual(bookingHref(insp({ status: 'resolved' })), 'booking.html');
+    assert.strictEqual(bookingHref({ id: ID, status: 'resolved' }), 'booking.html', 'legacy/emergency track too');
+    assert.strictEqual(isResumableInspection(insp({ status: 'resolved' })), false);
+});
+
 (async () => {
     for (const [name, fn] of asyncTests) {
         try { await fn(); passed++; } catch (e) { failures.push([name, e]); }
