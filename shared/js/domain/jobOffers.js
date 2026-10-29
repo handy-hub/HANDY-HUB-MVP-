@@ -71,6 +71,36 @@ export function formatTimeLeft(secondsLeft) {
 }
 
 /**
+ * The one look of an offer that can no longer be answered — expired on the
+ * clock, or refused by the server (performBookingAction's `offerGone`). It is
+ * the dashboard's original treatment, now on every screen that shows an offer:
+ * Accept reads "Expired", Accept and Decline are both disabled, at half opacity.
+ * Neither is ever re-enabled; the card stays like this until the live listener
+ * removes it.
+ *
+ * LAPSED_OFFER_ATTRS is for markup; lapseOfferButtons() for buttons already on
+ * screen (a refusal arriving after the card was drawn). Pure: it touches only
+ * the elements it is given.
+ */
+export const LAPSED_OFFER_LABEL = 'Expired';
+export const LAPSED_OFFER_ATTRS = 'disabled aria-disabled="true" data-lapsed="true" style="opacity:.5;cursor:default"';
+
+export function lapseOfferButtons(accept, decline) {
+    for (const btn of [accept, decline]) {
+        if (!btn) continue;
+        btn.disabled = true;
+        btn.onclick = null;
+        if (typeof btn.removeAttribute === 'function') btn.removeAttribute('onclick');
+        if (typeof btn.setAttribute === 'function') btn.setAttribute('aria-disabled', 'true');
+        if (btn.dataset) btn.dataset.lapsed = 'true';
+        if (btn.style) { btn.style.opacity = '.5'; btn.style.cursor = 'default'; }
+    }
+    // Both labels are set: a refusal can arrive while either reads "Accepting…"/"Declining…".
+    if (accept)  accept.textContent  = LAPSED_OFFER_LABEL;
+    if (decline) decline.textContent = 'Decline';
+}
+
+/**
  * Tells which offers in a listener snapshot are NEW. The first snapshot after a
  * page load only primes it — those offers are already on the screen being
  * looked at. An offer that leaves and comes back (re-offered in a later round)

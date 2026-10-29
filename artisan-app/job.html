@@ -130,7 +130,7 @@ import { resolveSchedule, canStartWork }
 import { pricingService }   from '../shared/js/services/pricingService.js';
 import { mountQuoteComposer, quoteComposerStyles }
                             from '../shared/js/ui/quoteComposer.js';
-import { offerState, formatTimeLeft }
+import { offerState, formatTimeLeft, LAPSED_OFFER_ATTRS, LAPSED_OFFER_LABEL }
                             from '../shared/js/domain/jobOffers.js';
 
 const $ = (id) => document.getElementById(id);
@@ -142,6 +142,9 @@ const $ = (id) => document.getElementById(id);
 const BOOKING_ID = new URLSearchParams(location.search).get('id');
 
 let _uid = null, _booking = null, _busy = false, _unsub = null, _originLat = null, _originLng = null;
+// The server refused an answer to this offer as gone (performBookingAction
+// offerGone): from then on the request is drawn lapsed, whatever the listener says.
+let _offerGone = false;
 
 function toast(msg) {
   const t = $('jb-toast');
@@ -179,15 +182,20 @@ function actionsFor(brief, b) {
 
   switch (brief.phase) {
     case JOB_PHASE.REQUEST: {
-      // The offer's own deadline (job_offers.expiresAtMs). Once it passes the
-      // offer is not acceptable — the server refuses it anyway — so the screen
-      // says so instead of offering a button that can only fail.
+      // The offer's own deadline (job_offers.expiresAtMs). Once it passes — or
+      // the server refuses an answer as gone (_offerGone) — the offer cannot be
+      // answered, so the screen shows the shared lapsed look (both answers
+      // disabled) instead of buttons that can only fail. No deadline
+      // (prematched): no countdown, and the server decides.
       const offer = offerState(b);
-      if (offer.expired) {
+      if (offer.expired || _offerGone) {
         return {
           waiting: null,
           waitLabel: 'This request has expired',
-          note: 'The response time ran out. It is being offered to another professional.',
+          note: offer.expired
+            ? 'The response time ran out. It is being offered to another professional.'
+            : 'This request is no longer open to you.',
+          lapsed: true,
         };
       }
       return {
@@ -379,7 +387,12 @@ function render(b) {
     ${acts.mountQuote ? '<div class="jb-card jb-quote"><p class="jb-card-title">Send your quote</p><div id="jb-quote-mount"></div></div>' : ''}
 
     <div class="jb-actions">
-      ${acts.primary
+      ${acts.lapsed
+        ? `<p class="jb-nothing">${esc(acts.note)}</p>
+           <button class="jb-primary" ${LAPSED_OFFER_ATTRS}>${LAPSED_OFFER_LABEL}</button>
+           <div class="jb-secondary"><button class="jb-sec-btn danger" ${LAPSED_OFFER_ATTRS}>Decline</button></div>`
+        : ''}
+      ${acts.lapsed ? '' : acts.primary
         ? `<button class="jb-primary ${acts.primary.danger ? 'danger' : ''}" id="jb-primary">${esc(acts.primary.label)}</button>`
         : (acts.note ? `<p class="jb-nothing">${esc(acts.note)}</p>` : '')}
       ${acts.secondary && acts.secondary.length
@@ -452,6 +465,7 @@ async function run(spec) {
   _busy = true;
   const btn = $('jb-primary');
   const orig = btn ? btn.textContent : '';
+  let giveBack = true;                     // false once the offer is gone: never re-arm it
   if (btn) { btn.disabled = true; btn.textContent = 'Working…'; }
 
   try {
@@ -469,6 +483,16 @@ async function run(spec) {
         // A booking that moved under us is explained with the state it is
         // ACTUALLY in — never "try again" at someone whose job was taken.
         toast(res.message);
+        if (res.offerGone) {
+          // Expired, closed or re-offered: the request is retired on this
+          // screen and its buttons are not given back (FLOW-005).
+          _offerGone = true;
+          giveBack = false;
+          tickOffer(null);
+          _busy = false;
+          if (_booking) render(_booking);
+          return;
+        }
         if (res.booking) render(res.booking);
         return;
       }
@@ -495,7 +519,7 @@ async function run(spec) {
     toast(e?.message || 'That did not go through. Nothing was changed.');
   } finally {
     _busy = false;
-    if (btn) { btn.disabled = false; btn.textContent = orig; }
+    if (btn && giveBack) { btn.disabled = false; btn.textContent = orig; }
   }
 }
 

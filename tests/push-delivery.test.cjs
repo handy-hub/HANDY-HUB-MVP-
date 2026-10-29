@@ -396,8 +396,8 @@ await t('the dashboard announces new offers, states push status, and withdraws A
     assert.match(dash, /\.forEach\(fid => alertNewOffer\(/);
     assert.match(dash, /renderPushBanner\(getPushState\(\)\)/);
     assert.match(dash, /window\.addEventListener\('fx:push-state'/);
-    assert.match(dash, /lapsed\s*\n?\s*\/\/[^\n]*\n[^\n]*\n\s*\? `<button class="btn-accept" disabled/);
-    assert.match(dash, /acceptBtn\.disabled = true;/);
+    assert.match(dash, /\? `<button class="btn-accept" \$\{LAPSED_OFFER_ATTRS\}>\$\{LAPSED_OFFER_LABEL\}<\/button>\s*<button class="btn-decline" \$\{LAPSED_OFFER_ATTRS\}>Decline<\/button>`/);
+    assert.match(dash, /lapseOfferButtons\(card\.querySelector\('\.btn-accept'\), card\.querySelector\('\.btn-decline'\)\);/);
     assert.match(dash, /const offer\s+= offerState\(d\);/);
 });
 

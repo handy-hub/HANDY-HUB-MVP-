@@ -261,7 +261,8 @@ import { resolveSchedule, canStartWork }
                             from '../shared/js/domain/bookingSchedule.js';
 import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 import { performBookingAction, ACTION }      from '../shared/js/domain/bookingActions.js';
-import { offerState, formatTimeLeft }        from '../shared/js/domain/jobOffers.js';
+import { offerState, formatTimeLeft, LAPSED_OFFER_ATTRS, LAPSED_OFFER_LABEL, lapseOfferButtons }
+                                             from '../shared/js/domain/jobOffers.js';
 import { storedAvailability }                from '../shared/js/domain/availability.js';
 import { mountInstantView }                  from '../shared/js/services/instantView.js';
 import { validateQuoteInput }                from '../shared/js/domain/quoteMoney.js';
@@ -303,6 +304,8 @@ let _allJobs         = [];
 let _bookingJobs     = [];
 let _offerJobs       = [];
 let _offersUnsub     = null;
+// Offers the server refused as gone (performBookingAction offerGone): drawn lapsed from now on.
+const _goneOffers    = new Set();
 // The customer's phone, read from bookings/{id}/private/contact. firestore.rules
 // (contactDisclosed) open it only once the job is committed and funded and close
 // it when the job ends; the booking itself no longer carries it.
@@ -436,12 +439,15 @@ function buildJobCard(b) {
 
   let actionsHtml = '';
   if (isPending) {
-    // The offer's deadline (job_offers.expiresAtMs), counted down by tickOffers().
-    // A lapsed offer cannot be answered — the server refuses both — so it shows
-    // as expired instead of offering buttons that can only fail (audit FLOW-003).
+    // The offer's deadline (job_offers.expiresAtMs), counted down by the one
+    // ticker below. A lapsed offer — on the clock, or refused by the server as
+    // gone — cannot be answered, so it wears the shared lapsed look (both
+    // buttons disabled) instead of offering buttons that can only fail
+    // (audits FLOW-003, FLOW-005). No deadline (prematched): no countdown.
     const offer = offerState(b);
-    actionsHtml = offer.expired
-      ? `<button class="job-btn job-btn-decline" disabled style="opacity:.55;cursor:default;">Expired</button>`
+    actionsHtml = (offer.expired || _goneOffers.has(b.id))
+      ? `<button class="job-btn job-btn-accept" ${LAPSED_OFFER_ATTRS}>${LAPSED_OFFER_LABEL}</button>
+         <button class="job-btn job-btn-decline" ${LAPSED_OFFER_ATTRS}>Decline</button>`
       : `
       <button class="job-btn job-btn-accept"  onclick="acceptJob('${esc(b.id)}', this)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>Accept
@@ -680,9 +686,19 @@ window.switchJobTab = function(tab, btn) {
    in, routes server-owned transitions to their Cloud Function, and hands back
    the authoritative result. A booking taken by another surface now produces
    "This request is no longer available" instead of a silent failed write. */
+/** The server says this offer cannot be answered any more: retire its card, for good. */
+function markOfferGone(bookingId) {
+  _goneOffers.add(bookingId);
+  const card = document.getElementById(`jcard-${bookingId}`);
+  if (!card) return;
+  card.querySelector('.job-countdown')?.remove();
+  lapseOfferButtons(card.querySelector('.job-btn-accept'), card.querySelector('.job-btn-decline'));
+}
+
 async function runTransition(action, bookingId, btn, { busyLabel, okLabel, confirmMsg, removeCard } = {}) {
   if (confirmMsg && !confirm(confirmMsg)) return;
-  const orig = btn ? btn.textContent : '';
+  // innerHTML, not textContent: the Accept button carries an icon.
+  const orig = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.textContent = busyLabel || 'Working…'; }
   try {
     const res = await performBookingAction(action, {
@@ -692,7 +708,9 @@ async function runTransition(action, bookingId, btn, { busyLabel, okLabel, confi
     });
     if (!res.ok) {
       showToast(res.message);
-      if (btn) { btn.disabled = false; btn.textContent = orig; }
+      // Gone (expired, closed, re-offered): retire the card, never re-arm it.
+      if (res.offerGone) { markOfferGone(bookingId); return; }
+      if (btn) { btn.disabled = false; btn.innerHTML = orig; }
       return;
     }
     showToast(okLabel || 'Updated.');
@@ -702,21 +720,28 @@ async function runTransition(action, bookingId, btn, { busyLabel, okLabel, confi
     }
   } catch (e) {
     showToast('That did not go through. Nothing was changed.');
-    if (btn) { btn.disabled = false; btn.textContent = orig; }
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
   }
+}
+
+// The dashboard's rule (audit FLOW-004): onboarding only when a LIVE profile —
+// this page's own server read, below — says verification is due. The guard's
+// object can be a cached verdict, and `{}` when none; neither is "needs KYC".
+const NEEDS_ONBOARDING = ['', 'draft', 'rejected', 're_verification_required'];
+let _profileLive = false;
+function onboardingWarranted() {
+  return _profileLive && !!_currentArtisan &&
+         NEEDS_ONBOARDING.includes(String(_currentArtisan.verificationStatus || '').toLowerCase());
 }
 
 window.acceptJob = async function(bookingId, btn) {
   if (!canAcceptJobs(_currentArtisan)) {
-    // Onboarding only when the verified profile says verification is due; a
-    // profile that is missing or in another state gets a message instead
-    // (audit FLOW-004). The server re-checks acceptance either way.
-    const kyc = String(_currentArtisan?.verificationStatus || '').toLowerCase();
-    if (_currentArtisan && ['', 'draft', 'rejected', 're_verification_required'].includes(kyc)) {
+    // The server re-checks acceptance either way.
+    if (onboardingWarranted()) {
       showToast('Complete your KYC verification before accepting jobs.');
       window.location.href = 'onboarding.html';
     } else {
-      showToast(_currentArtisan
+      showToast(_profileLive
         ? 'Your account cannot accept jobs right now. Contact support if this is unexpected.'
         : 'Your profile has not loaded yet. Check your connection and try again.');
     }
@@ -735,7 +760,7 @@ window.declineJob = async function(bookingId, btn) {
 // One ticker for every visible offer countdown. The time left is recomputed
 // from each card's expiresAtMs, so a reload or a long-open screen stays true.
 // When one reaches zero the list re-renders and that card turns "Expired".
-setInterval(() => {
+const _offerTicker = setInterval(() => {
   let lapsed = false;
   document.querySelectorAll('.job-countdown[data-expires]').forEach((el) => {
     const st = offerState({ expiresAtMs: Number(el.dataset.expires) });
@@ -988,6 +1013,11 @@ subscribeToArtisanAuthState(async user => {
   try {
     const snap = await databaseService.getDocument('artisans', user.uid);
     if (snap?.exists) {
+      // A server answer (the Firestore cache is memory-only, so a fresh page
+      // cannot read this offline): from here the profile is live, and the
+      // object the handlers read is brought up to date.
+      _currentArtisan = Object.assign(_currentArtisan || {}, snap.data || {});
+      _profileLive = true;
       // Distance origin. Only a REAL stored fix is used; when the artisan has no
       // position the job card omits distance entirely rather than printing
       // "0.0 km", which reads as a factual zero.
@@ -1018,6 +1048,7 @@ subscribeToArtisanAuthState(async user => {
 window.addEventListener('pagehide', () => {
   if (_unsub) _unsub();
   if (_offersUnsub) _offersUnsub();
+  clearInterval(_offerTicker);
   stopPresence();
 });
 // Restored from the back/forward cache with its listeners torn down: reload
