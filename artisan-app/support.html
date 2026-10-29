@@ -146,6 +146,7 @@ import { SUPPORT_CONTACTS }   from '../shared/js/config/supportConfig.js';
 import { PLATFORM_CONFIG }    from '../shared/js/config/appConfig.js';
 import { TICKET_STATUS, validateTicket, validateReply, ticketStatusLabel, topicLabel }
                               from '../shared/js/domain/supportTickets.js';
+import { mountInstantView }   from '../shared/js/services/instantView.js';
 
 const { user, artisan } = await requireArtisanAuth({ allowPending: true });
 
@@ -297,7 +298,6 @@ const ticketsState  = document.getElementById('sp-tickets-state');
 const _rows         = new Map();   // ticketId → row element
 const _threadUnsubs = new Map();   // ticketId → unsubscribe; one listener per ticket, ever
 let _tickets = [];
-let _ticketsLoaded = false;
 
 function fmtWhen(iso) {
   const d = new Date(iso);
@@ -410,23 +410,37 @@ async function replyTicket(id, btn) {
   }
 }
 
-const _unsubTickets = databaseService.subscribeToCollection('support_tickets',
-  [{ field: 'userId', op: '==', value: user.uid }], {},
-  (records) => {
-    _ticketsLoaded = true;
-    _tickets = (records || []).map((r) => ({ id: r.id, ...(r.data || {}) }))
+// Cache first (CLAUDE.md §1, PERF-002): a return visit paints the last list of
+// requests at once and the listener refreshes it silently. Only what a row
+// shows is cached — topic, the artisan's own message, status and dates; never
+// the ticket's userEmail, userName or userId. Threads are not cached: a
+// conversation is read live when it is opened.
+const cacheableTicket = (r) => {
+  const d = r.data || {};
+  return { id: r.id, subject: d.subject, message: d.message, status: d.status,
+           createdAt: d.createdAt ?? null, updatedAt: d.updatedAt ?? null };
+};
+const _ticketsView = mountInstantView({
+  key: 'artisan-support-requests',
+  version: 1,
+  render: (items) => {
+    _tickets = (items || []).slice()
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     renderTickets();
   },
-  () => {
-    // A failed refresh never blanks requests already on screen.
-    if (_ticketsLoaded && _tickets.length) return;
+  subscribe: (_c, onData, onError) => databaseService.subscribeToCollection('support_tickets',
+    [{ field: 'userId', op: '==', value: user.uid }], {},
+    (records) => onData((records || []).map(cacheableTicket)), onError),
+  // A failed refresh never blanks requests already on screen.
+  onError: (_err, { hasContent }) => {
+    if (hasContent) return;
     ticketsState.textContent = 'Could not load your requests. Check your connection.';
     ticketsState.style.display = '';
-  });
+  },
+});
 
 window.addEventListener('pagehide', () => {
-  try { _unsubTickets?.(); } catch (_) {}
+  try { _ticketsView.destroy(); } catch (_) {}
   _threadUnsubs.forEach((u) => { try { u(); } catch (_) {} });
   _threadUnsubs.clear();
 });

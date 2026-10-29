@@ -146,6 +146,7 @@
 import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
+import { mountInstantView }   from '../shared/js/services/instantView.js';
 
 const { user } = await requireArtisanAuth({ allowPending: true });
 const { services: { databaseService } } = getAppContainer();
@@ -259,14 +260,20 @@ window.setFilter = function(f, btn) {
 // artisan's completed bookings and keep only those that carry a rating, then
 // normalise the shape the renderers expect ({ rating, comment, customerName,
 // serviceType, createdAt }).
-try {
+//
+// Cache first (CLAUDE.md §1, PERF-002): a return visit paints the last reviews
+// at once and the read below refreshes them. Only that review shape is cached
+// — the rating, the review text, the reviewer's name as the card shows it, the
+// service and the date; never the booking's prices, address or contact fields.
+const iso = (v) => (v && typeof v.toDate === 'function') ? v.toDate().toISOString() : (v ?? null);
+
+async function loadReviews(uid) {
   const bookings = await databaseService.queryWithOptions(
     'bookings',
-    [{ field: 'artisanId', op: '==', value: user.uid }],
+    [{ field: 'artisanId', op: '==', value: uid }],
     { orderBy: { field: 'createdAt', direction: 'desc' }, limit: 200 }
   );
-
-  _all = (bookings || [])
+  return (bookings || [])
     .filter(b => typeof b.data.rating === 'number' && b.data.rating > 0)
     .map(b => ({
       id:   b.id,
@@ -275,17 +282,30 @@ try {
         comment:      b.data.review || '',
         customerName: b.data.customerName || 'Customer',
         serviceType:  b.data.serviceType || b.data.service || 'Service',
-        createdAt:    b.data.reviewedAt || b.data.updatedAt || b.data.createdAt,
+        createdAt:    iso(b.data.reviewedAt || b.data.updatedAt || b.data.createdAt),
       },
     }));
-
-  renderSummary(_all);
-  renderList(_all);
-} catch (e) {
-  loadEl.style.display = 'none';
-  sumSkelEl.style.display = 'none';
-  emptyEl.style.display = 'block';
 }
+
+const reviewsView = mountInstantView({
+  key: 'artisan-reviews',
+  version: 1,
+  staleMs: 0,   // a new review should appear on the visit after it was left
+  render: (items) => {
+    _all = items || [];
+    renderSummary(_all);
+    renderList(_all);
+  },
+  fetch: () => loadReviews(user.uid),
+  // A failed refresh keeps the reviews already on screen.
+  onError: (_err, { hasContent }) => {
+    if (hasContent) return;
+    loadEl.style.display = 'none';
+    sumSkelEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+  },
+});
+window.addEventListener('pagehide', () => reviewsView.destroy());
 </script>
 <script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>
