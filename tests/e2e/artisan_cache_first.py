@@ -154,7 +154,11 @@ def dataset(v):
     return {
         'notifs': [{'id': 'n1', 'type': 'System', 'title': t, 'message': 'Your account is ready.', 'isRead': False,
                     'actionUrl': None, 'metadata': {'secretMeta': 'META-SECRET'}, 'senderId': 'S9', 'receiverId': 'A1',
-                    'readAt': None, 'createdAt': NOW}],
+                    'readAt': None, 'createdAt': NOW},
+                   # A chat notification: its text is the other person's words (here with a phone number).
+                   {'id': 'n2', 'type': 'Messages', 'title': 'New message from Ama', 'message': 'Call me on 0555000111',
+                    'isRead': False, 'actionUrl': 'messages.html?chatId=A1_C1', 'metadata': {}, 'senderId': 'C1',
+                    'receiverId': 'A1', 'readAt': None, 'createdAt': NOW}],
         'bookings': bookings,
         'artisan': {'totalEarned': 1234.5, 'responseStats': {'sufficient': True, 'rate': 0.9, 'responded': 9, 'counted': 10, 'windowDays': 90}},
         'tickets': [{'id': 'T1', 'data': {'subject': 'payment', 'message': 'My withdrawal has not arrived since Monday.',
@@ -236,6 +240,8 @@ with sync_playwright() as pw:
             refreshed = 'Call me on 0555000111' in body   # the preview arrives with the LIVE list
         else:
             refreshed = refreshed_text in body
+        if name == 'notifications':
+            check('notifications: the live list shows the chat text', 'Call me on 0555000111' in body)
         check(f'{name}: the refresh arrives silently (content updated, skeleton not back)',
               refreshed and ((skel is None) or not visible(pg, skel)), body[:160])
 
@@ -255,6 +261,11 @@ with sync_playwright() as pw:
         if name == 'performance':
             earned = pg.evaluate("[...document.querySelectorAll('.pf-score-card')].find(c => /Earned/.test(c.textContent))?.querySelector('.pf-sc-value')?.textContent")
             check('performance: on a cached paint Earned is "—" (money is never cached)', earned == '—', earned)
+        if name == 'notifications':
+            row = pg.evaluate("""() => { const r = document.getElementById('ni-n2');
+                return r && { title: r.querySelector('.notif-item-title')?.textContent, msg: !!r.querySelector('.notif-item-msg') }; }""")
+            check('notifications: a cached chat notification shows its title alone (no chat text cached)',
+                  row and row['title'] == 'New message from Ama' and row['msg'] is False, row)
         if name == 'messages':
             prev = pg.evaluate("document.querySelector('#ms-list .ms-row-last')?.textContent")
             check('messages: a cached row shows no preview (never cached)', prev == '', prev)

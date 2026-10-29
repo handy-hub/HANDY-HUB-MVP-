@@ -53,21 +53,22 @@ function viewOf(code, key) {
 }
 
 const SCREENS = [
-    { file: 'artisan-app/notifications.html', key: 'artisan-notifications',    mode: 'subscribe' },
-    { file: 'artisan-app/performance.html',   key: 'artisan-performance',      mode: 'fetch' },
-    { file: 'artisan-app/reviews.html',       key: 'artisan-reviews',          mode: 'fetch' },
-    { file: 'artisan-app/support.html',       key: 'artisan-support-requests', mode: 'subscribe' },
-    { file: 'artisan-app/messages.html',      key: 'artisan-messages-inbox',   mode: 'subscribe' },
+    // notifications is v2: a v1 payload could hold chat text, so it is never painted.
+    { file: 'artisan-app/notifications.html', key: 'artisan-notifications',    mode: 'subscribe', version: 2 },
+    { file: 'artisan-app/performance.html',   key: 'artisan-performance',      mode: 'fetch',     version: 1 },
+    { file: 'artisan-app/reviews.html',       key: 'artisan-reviews',          mode: 'fetch',     version: 1 },
+    { file: 'artisan-app/support.html',       key: 'artisan-support-requests', mode: 'subscribe', version: 1 },
+    { file: 'artisan-app/messages.html',      key: 'artisan-messages-inbox',   mode: 'subscribe', version: 1 },
 ];
 
 console.log('\n── Every screen: the one cache path, keyed and versioned ──\n');
 
 for (const s of SCREENS) {
-    t(`${path.basename(s.file)}: mountInstantView '${s.key}' v1, ${s.mode}, failed refresh keeps content, pagehide teardown`, () => {
+    t(`${path.basename(s.file)}: mountInstantView '${s.key}' v${s.version}, ${s.mode}, failed refresh keeps content, pagehide teardown`, () => {
         const code = moduleOf(s.file);
         assert.match(code, /import \{ mountInstantView \}\s+from '\.\.\/shared\/js\/services\/instantView\.js';/);
         const v = viewOf(code, s.key);
-        assert.match(v, /version: 1,/);
+        assert.match(v, new RegExp(`version: ${s.version},`));
         assert.match(v, new RegExp(`\\b${s.mode}: `));
         // A failed refresh keeps content: the handler bails out when content is showing.
         assert.match(v, /onError: \((?:_err|err), \{ hasContent \}\) => \{[\s\S]*?if \(hasContent\) return;/);
@@ -90,13 +91,42 @@ t('the five keys are unique across the artisan app', () => {
 
 console.log('\n── What each screen caches ──\n');
 
-t('notifications: a row\'s fields only — no metadata, sender, receiver or readAt', () => {
+/** cacheable() and its live-text map, evaluated from the page. */
+function loadCacheable() {
     const code = moduleOf('artisan-app/notifications.html');
-    const shape = /const cacheable = \(n\) => \(\{([\s\S]*?)\}\);/.exec(code);
-    assert.ok(shape, 'cacheable()');
-    for (const f of ['id', 'type', 'title', 'message', 'isRead', 'actionUrl', 'createdAt']) assert.match(shape[1], new RegExp(`\\b${f}:`));
-    for (const f of ['metadata', 'senderId', 'receiverId', 'readAt']) assert.doesNotMatch(shape[1], new RegExp(`\\b${f}\\b`));
+    const src = code.slice(code.indexOf('const LIVE_CHAT_TEXT = new Map();'), code.indexOf('const view = mountInstantView'));
+    assert.ok(src.includes('const cacheable = (n) =>'), 'cacheable()');
+    // eslint-disable-next-line no-new-func
+    return new Function(`${src}\nreturn { cacheable, LIVE_CHAT_TEXT };`)();
+}
+const NOTE = (over) => ({ id: 'n1', type: 'Bookings', title: 'Job accepted', message: 'Kofi accepted your plumbing job.',
+    isRead: false, readAt: null, actionUrl: 'booking.html', metadata: { bookingId: 'HHB-1' }, senderId: 'S', receiverId: 'A1',
+    createdAt: new Date('2026-10-28T09:00:00Z'), ...over });
+
+t('notifications: a row\'s fields only — no metadata, sender, receiver or readAt', () => {
+    const { cacheable } = loadCacheable();
+    assert.deepStrictEqual(cacheable(NOTE()), {
+        id: 'n1', type: 'Bookings', title: 'Job accepted', isRead: false, message: 'Kofi accepted your plumbing job.',
+        actionUrl: 'booking.html', createdAt: '2026-10-28T09:00:00.000Z',
+    });
+    const code = moduleOf('artisan-app/notifications.html');
     assert.match(viewOf(code, 'artisan-notifications'), /onData\(notifications\.map\(cacheable\)\)/);
+});
+
+t('notifications: no chat text in the cache — a Messages row keeps its title; its text lives in memory, live only', () => {
+    const { cacheable, LIVE_CHAT_TEXT } = loadCacheable();
+    const chat = NOTE({ id: 'n2', type: 'Messages', title: 'New message from Ama', message: 'Call me on 0555000111', actionUrl: 'messages.html?chatId=A1_C1' });
+    const row = cacheable(chat);
+    assert.ok(!('message' in row), 'a chat preview would be cached');
+    assert.ok(!JSON.stringify(row).includes('0555000111'));
+    assert.deepStrictEqual([row.title, row.type, row.actionUrl, row.createdAt],
+        ['New message from Ama', 'Messages', 'messages.html?chatId=A1_C1', '2026-10-28T09:00:00.000Z']);
+    assert.strictEqual(LIVE_CHAT_TEXT.get('n2'), 'Call me on 0555000111', 'the live list still shows it');
+    // The renderer puts the live text back, and a cached paint (empty map) shows the title alone.
+    const code = moduleOf('artisan-app/notifications.html');
+    assert.match(viewOf(code, 'artisan-notifications'),
+        /message: n\.type === 'Messages' \? \(LIVE_CHAT_TEXT\.get\(n\.id\) \|\| ''\) : n\.message,/);
+    assert.match(code, /\$\{n\.message \? `<p class="notif-item-msg">\$\{escHtml\(n\.message\)\}<\/p>` : ''\}/);
 });
 
 t('performance: money stripped (totalEarned), always revalidated, bookings reduced to what the figures need', () => {
