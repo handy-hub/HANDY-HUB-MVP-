@@ -4,6 +4,7 @@
  * the 28 Oct audit, run against the page's own code.
  *
  *   NAV-002  Back from an open conversation left Messages entirely.
+ *   MSG-001  Every conversation was named "Customer".
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -67,6 +68,71 @@ await t('the page wires it: open pushes, Back pops, popstate opens or closes', (
     assert.match(page, /if \(history\.state && history\.state\.chat\) history\.back\(\);\s*else closeChat\(\);/);
     assert.match(page, /window\.addEventListener\('popstate', \(\) => \{\s*const chatId = new URLSearchParams\(location\.search\)\.get\('chat'\);\s*if \(chatId\) openChat\(chatId, \{ fromHistory: true \}\)/);
     assert.match(page, /\|\| new URLSearchParams\(location\.search\)\.get\('chat'\) \|\| null;/, 'a reload reopens the thread');
+});
+
+console.log('\n── MSG-001 · a thread names the customer, from a first name set at creation ──\n');
+
+/** chatRepository's own code, imports stubbed, over a fake database. */
+function chatRepo(existing = null) {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'shared', 'js', 'data', 'repositories', 'chatRepository.js'), 'utf8')
+        .replace(/\r\n/g, '\n')
+        .replace(/^import[\s\S]*?;\n/gm, '')
+        .replace(/^export\s+(async\s+)?function\s+/gm, (_m, a) => `${a || ''}function `)
+        .replace(/^export\s+const\s+/gm, 'const ');
+    const writes = [];
+    const db = {
+        getDocument: async () => (existing ? { exists: true, data: existing } : { exists: false }),
+        setDocument: async (col, id, data) => writes.push({ op: 'set', col, id, data }),
+        updateDocument: async (col, id, data) => writes.push({ op: 'update', col, id, data }),
+    };
+    const noop = () => {};
+    // eslint-disable-next-line no-new-func
+    const mod = new Function('writeBatch', 'doc', 'collection', 'addDoc', 'increment', 'getDocs', 'query', 'where', 'fsLimit', 'firebaseDb',
+        `${src}\nreturn { createChatRepository, firstNameOnly };`)(noop, noop, noop, noop, noop, noop, noop, noop, noop, {});
+    return { repo: mod.createChatRepository({ databaseService: db }), firstNameOnly: mod.firstNameOnly, writes };
+}
+
+await t('only a first name is ever stored: the first word, at most 40 characters', () => {
+    const { firstNameOnly } = chatRepo();
+    assert.strictEqual(firstNameOnly('Ama Serwaa Owusu'), 'Ama');
+    assert.strictEqual(firstNameOnly('  Kofi  '), 'Kofi');
+    assert.strictEqual(firstNameOnly('A'.repeat(60)), 'A'.repeat(40));
+    for (const none of ['', '   ', null, undefined]) assert.strictEqual(firstNameOnly(none), null);
+});
+await t('a NEW chat is created with it', async () => {
+    const { repo, writes } = chatRepo(null);
+    await repo.getOrCreateDirectChat('cust_1', 'art_1', { bookingId: 'HHB-1', customerFirstName: 'Ama Owusu' });
+    assert.strictEqual(writes.length, 1);
+    assert.strictEqual(writes[0].op, 'set');
+    assert.strictEqual(writes[0].data.customerFirstName, 'Ama');
+});
+await t('without a name, the chat is created exactly as before (no field)', async () => {
+    const { repo, writes } = chatRepo(null);
+    await repo.getOrCreateDirectChat('cust_1', 'art_1', {});
+    assert.ok(!('customerFirstName' in writes[0].data));
+});
+await t('an EXISTING chat is never given the name later (no backfill)', async () => {
+    const { repo, writes } = chatRepo({ participants: ['art_1', 'cust_1'], bookingId: 'HHB-1' });
+    await repo.getOrCreateDirectChat('cust_1', 'art_1', { bookingId: 'HHB-1', customerFirstName: 'Ama' });
+    assert.ok(writes.every((w) => !('customerFirstName' in w.data)), JSON.stringify(writes));
+});
+await t('the artisan inbox and header read the chat\'s name before the "Customer" fallback', () => {
+    const src = page.slice(page.indexOf('function withChatName(chatData, info) {'), page.indexOf('async function resolveOther('));
+    // eslint-disable-next-line no-new-func
+    const withChatName = new Function(`${src}; return withChatName;`)();
+    const fallback = { name: 'Customer', photo: null };
+    assert.deepStrictEqual(withChatName({ customerFirstName: 'Ama' }, fallback), { name: 'Ama', photo: null });
+    assert.deepStrictEqual(withChatName({}, fallback), fallback, 'an older chat keeps the fallback');
+    assert.deepStrictEqual(withChatName(null, fallback), fallback);
+    assert.match(page, /const info = withChatName\(c\.data, await resolveOther\(o\)\);/);
+    assert.match(page, /: withChatName\(chat && chat\.data, await resolveOther\(currentOtherUid\)\);/);
+});
+await t('both apps pass the name when they create a thread; nothing reads customers/{uid} newly', () => {
+    assert.match(page, /customerFirstName: \(bookingCtx && bookingCtx\.customerId === openWith\) \? bookingCtx\.customerFirstName : undefined,/);
+    const cust = fs.readFileSync(path.join(__dirname, '..', 'customer-app', 'messages.html'), 'utf8');
+    assert.match(cust, /customerFirstName: _bookingCtx\.customerFirstName,/);
+    assert.match(cust, /getOrCreateDirectChat\(uid, artisanId, \{ customerFirstName: ownName \}\)/);
+    assert.match(cust, /customerRepository\.getById\(uid\)/, 'the customer reads only their OWN profile');
 });
 
 console.log(`\nartisan-messages-page: ${passed} passed, ${failed} failed`);

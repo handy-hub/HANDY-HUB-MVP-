@@ -210,6 +210,13 @@ const otherOf = (c) => (c.participants || []).find(p => p !== uid) || null;
 
 /** Who is on the other end. Artisans talk to customers, so that repository is
  *  tried first — the mirror of the customer screen, which tries artisans first. */
+/** The chat's own customerFirstName (MSG-001) wins over the lookup, which
+ *  can only fall back to "Customer": the artisan may not read customers/{uid}. */
+function withChatName(chatData, info) {
+  const name = chatData && typeof chatData.customerFirstName === 'string' ? chatData.customerFirstName.trim() : '';
+  return name ? { ...info, name } : info;
+}
+
 async function resolveOther(otherUid) {
   if (!otherUid) return { name: 'Customer', photo: null };
   if (NAME_CACHE.has(otherUid)) return NAME_CACHE.get(otherUid);
@@ -250,7 +257,7 @@ const isoOf = (v) => (v && typeof v.toDate === 'function') ? v.toDate().toISOStr
 async function toRows(chats) {
   return Promise.all(chats.map(async (c) => {
     const o = otherOf(c.data);
-    const info = await resolveOther(o);
+    const info = withChatName(c.data, await resolveOther(o));
     PREVIEWS.set(c.id, c.data.lastMessage || '');
     return {
       id: c.id, otherUid: o, name: info.name, photo: info.photo,
@@ -316,7 +323,7 @@ async function openChat(chatId, { fromHistory = false } = {}) {
 
   const info = (!chat && painted && painted.otherUid === currentOtherUid)
     ? { name: painted.name, photo: painted.photo }
-    : await resolveOther(currentOtherUid);
+    : withChatName(chat && chat.data, await resolveOther(currentOtherUid));
   $('ms-chat-name').textContent = info.name;
   $('ms-chat-sub').textContent  = 'Customer';
   renderJobChip();
@@ -431,6 +438,8 @@ $('ms-input').addEventListener('keydown', (e) => {
     try {
       const chatId = await chatRepository.getOrCreateDirectChat(uid, openWith, {
         bookingId: CTX_BOOKING_ID || undefined,
+        // Server-written on the booking (createInspectionBooking), first word only.
+        customerFirstName: (bookingCtx && bookingCtx.customerId === openWith) ? bookingCtx.customerFirstName : undefined,
       });
       currentOtherUid = openWith;
       for (let i = 0; i < 12 && !CHATS.find(c => c.id === chatId); i++) {

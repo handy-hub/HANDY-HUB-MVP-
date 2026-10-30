@@ -590,6 +590,9 @@ async function handleDeepLink() {
       try {
         const chatId = await chatRepository.getOrCreateDirectChat(uid, artisanFromBooking, {
           bookingId: MSG_BOOKING_ID,
+          // So the artisan's inbox can name this thread (MSG-001): the first
+          // name the server already wrote on the booking. Used only at creation.
+          customerFirstName: _bookingCtx.customerFirstName,
         });
         // Give the live subscription a chance to include the thread; openChat
         // needs it present locally. If it has not arrived yet the chip still
@@ -612,7 +615,12 @@ async function handleDeepLink() {
   try {
     const { id: artisanId } = JSON.parse(raw);
     if (!artisanId) return;
-    const chatId = await chatRepository.getOrCreateDirectChat(uid, artisanId);
+    // The customer's own first name (their own profile — they may read it), so
+    // the artisan's inbox can name the thread (MSG-001). Used only at creation;
+    // if the read fails the thread is simply created without it.
+    const me = await customerRepository.getById(uid).catch(() => null);
+    const ownName = me?.exists ? (me.data.firstName || me.data.name || me.data.fullName || null) : null;
+    const chatId = await chatRepository.getOrCreateDirectChat(uid, artisanId, { customerFirstName: ownName });
     // Give the live subscription a moment to include the new/existing chat.
     await new Promise(r => setTimeout(r, 300));
     await openChat(chatId);

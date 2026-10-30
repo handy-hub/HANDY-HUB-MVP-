@@ -1403,10 +1403,20 @@ service cloud.firestore {
       // Any signed-in user can start a new chat, provided they include themselves
       // and at least one other participant. bookingId is optional (null for a
       // freeform chat, set for a booking-linked thread).
+      //
+      // customerFirstName (audit MSG-001): the customer's FIRST name, so the
+      // artisan's inbox can say who a thread is with — the artisan may not read
+      // customers/{uid}. Optional, a string of 1–40 characters, and set ONLY
+      // here, at creation: the update rule below does not list it, so neither
+      // participant can change it afterwards.
       allow create: if isSignedIn() &&
                        incoming().participants is list &&
                        incoming().participants.hasAll([request.auth.uid]) &&
-                       incoming().participants.size() >= 2;
+                       incoming().participants.size() >= 2 &&
+                       (!('customerFirstName' in incoming()) ||
+                        (incoming().customerFirstName is string &&
+                         incoming().customerFirstName.size() >= 1 &&
+                         incoming().customerFirstName.size() <= 40));
 
       // Either participant may update the inbox-preview fields, the unreadCount
       // map (sendMessage() increments the recipient's key; markChatRead() zeros

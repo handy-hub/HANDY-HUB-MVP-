@@ -12,6 +12,8 @@
  * ────────────
  * participants    string[]    Auth UIDs of both users
  * bookingId       string|null Optional — links this thread to a specific booking
+ * customerFirstName string   Optional — the customer's first name, set at creation only
+ *                             (immutable; the artisan cannot read customers/{uid})
  * lastMessage     string      text preview of the most recent message
  * lastSenderId    string      UID who sent the last message
  * lastMessageAt   string      ISO timestamp of the last message
@@ -40,6 +42,12 @@ import { firebaseDb }
     from '../../backend/providers/firebase/firebaseConfig.js';
 
 const CHATS_COLLECTION    = "chats";
+
+/** A first name only: the first word, at most 40 characters, or null. */
+export function firstNameOnly(name) {
+    const first = String(name == null ? '' : name).trim().split(/\s+/)[0] || '';
+    return first ? first.slice(0, 40) : null;
+}
 const MESSAGES_SUBCOLLECTION = "messages";
 
 function now() {
@@ -93,7 +101,8 @@ export function createChatRepository({
          *
          * @param {string} uidA
          * @param {string} uidB
-         * @param {{ bookingId?: string }} [opts]
+         * @param {{ bookingId?: string, customerFirstName?: string }} [opts]
+         *        customerFirstName: written only when the chat is created
          * @returns {Promise<string>} chatId
          */
         async getOrCreateDirectChat(uidA, uidB, opts = {}) {
@@ -109,9 +118,16 @@ export function createChatRepository({
                 }
                 return chatId;
             }
+            // The customer's FIRST name, so the artisan's inbox can say who a
+            // thread is with (audit MSG-001) — the artisan may not read
+            // customers/{uid}, by design. Taken from the booking (written
+            // server-side) or the customer's own profile, written ONLY here,
+            // at creation; firestore.rules make it immutable afterwards.
+            const firstName = firstNameOnly(opts.customerFirstName);
             await databaseService.setDocument(collectionName, chatId, {
                 participants:  [uidA, uidB],
                 bookingId:     opts.bookingId || null,
+                ...(firstName ? { customerFirstName: firstName } : {}),
                 lastMessage:   "",
                 lastSenderId:  null,
                 lastMessageAt: now(),
