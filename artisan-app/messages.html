@@ -142,7 +142,32 @@ const OPEN_WITH      = new URLSearchParams(location.search).get('with') || null;
 // Message notifications deep-link with ?chatId= (see chatRepository's
 // notification writer). Without this, tapping "New message from …" opened the
 // list instead of the conversation it was announcing.
-const OPEN_CHAT_ID   = new URLSearchParams(location.search).get('chatId') || null;
+// ?chat= is this page's own record of the open thread (NAV-002): a reload
+// lands back in the conversation.
+const OPEN_CHAT_ID   = new URLSearchParams(location.search).get('chatId')
+                    || new URLSearchParams(location.search).get('chat') || null;
+
+// ── An open thread is a history entry (audit NAV-002) ────────────────────────
+// Back from a conversation used to leave Messages entirely, because opening a
+// thread changed nothing in the history. Opening one now pushes ?chat=<id>, so
+// Back (the phone's or the page's) returns to the inbox.
+function inboxUrl() {
+  const url = new URL(location.href);
+  url.searchParams.delete('chat');
+  url.searchParams.delete('chatId');     // a notification's link is spent once opened
+  return url;
+}
+function pushThread(chatId) {
+  try {
+    if (new URLSearchParams(location.search).get('chat') === chatId) return;
+    // Opened from a link (a notification, a reload): make the entry under it the
+    // inbox, so Back lands there rather than wherever the link came from.
+    if (!history.state || !history.state.inbox) history.replaceState({ inbox: true }, '', inboxUrl());
+    const url = inboxUrl();
+    url.searchParams.set('chat', chatId);
+    history.pushState({ chat: chatId }, '', url);
+  } catch (_) { /* history unavailable: the thread still opens */ }
+}
 
 const { repositories, services } = getAppContainer();
 const { chatRepository, customerRepository } = repositories;
@@ -185,6 +210,13 @@ const otherOf = (c) => (c.participants || []).find(p => p !== uid) || null;
 
 /** Who is on the other end. Artisans talk to customers, so that repository is
  *  tried first — the mirror of the customer screen, which tries artisans first. */
+/** The chat's own customerFirstName (MSG-001) wins over the lookup, which
+ *  can only fall back to "Customer": the artisan may not read customers/{uid}. */
+function withChatName(chatData, info) {
+  const name = chatData && typeof chatData.customerFirstName === 'string' ? chatData.customerFirstName.trim() : '';
+  return name ? { ...info, name } : info;
+}
+
 async function resolveOther(otherUid) {
   if (!otherUid) return { name: 'Customer', photo: null };
   if (NAME_CACHE.has(otherUid)) return NAME_CACHE.get(otherUid);
@@ -225,7 +257,7 @@ const isoOf = (v) => (v && typeof v.toDate === 'function') ? v.toDate().toISOStr
 async function toRows(chats) {
   return Promise.all(chats.map(async (c) => {
     const o = otherOf(c.data);
-    const info = await resolveOther(o);
+    const info = withChatName(c.data, await resolveOther(o));
     PREVIEWS.set(c.id, c.data.lastMessage || '');
     return {
       id: c.id, otherUid: o, name: info.name, photo: info.photo,
@@ -282,7 +314,8 @@ function renderMessages(messages) {
   box.scrollTop = box.scrollHeight;
 }
 
-async function openChat(chatId) {
+async function openChat(chatId, { fromHistory = false } = {}) {
+  if (!fromHistory) pushThread(chatId);
   const chat = CHATS.find(c => c.id === chatId);
   const painted = ROW_INFO.get(chatId);   // a row tapped before the live list arrived
   currentChatId = chatId;
@@ -290,7 +323,7 @@ async function openChat(chatId) {
 
   const info = (!chat && painted && painted.otherUid === currentOtherUid)
     ? { name: painted.name, photo: painted.photo }
-    : await resolveOther(currentOtherUid);
+    : withChatName(chat && chat.data, await resolveOther(currentOtherUid));
   $('ms-chat-name').textContent = info.name;
   $('ms-chat-sub').textContent  = 'Customer';
   renderJobChip();
@@ -330,7 +363,17 @@ async function send() {
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */
 $('ms-back').addEventListener('click', () => { location.href = 'dashboard.html'; });
-$('ms-chat-back').addEventListener('click', closeChat);
+// The in-page Back goes through the history too, so it and the phone's Back
+// agree. With no thread entry to pop (history unavailable), just close.
+$('ms-chat-back').addEventListener('click', () => {
+  if (history.state && history.state.chat) history.back();
+  else closeChat();
+});
+window.addEventListener('popstate', () => {
+  const chatId = new URLSearchParams(location.search).get('chat');
+  if (chatId) openChat(chatId, { fromHistory: true }).catch(() => {});
+  else if (currentChatId) closeChat();
+});
 $('ms-send').addEventListener('click', send);
 $('ms-input').addEventListener('input', (e) => {
   e.target.style.height = 'auto';
@@ -395,6 +438,8 @@ $('ms-input').addEventListener('keydown', (e) => {
     try {
       const chatId = await chatRepository.getOrCreateDirectChat(uid, openWith, {
         bookingId: CTX_BOOKING_ID || undefined,
+        // Server-written on the booking (createInspectionBooking), first word only.
+        customerFirstName: (bookingCtx && bookingCtx.customerId === openWith) ? bookingCtx.customerFirstName : undefined,
       });
       currentOtherUid = openWith;
       for (let i = 0; i < 12 && !CHATS.find(c => c.id === chatId); i++) {

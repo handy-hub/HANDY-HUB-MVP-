@@ -508,6 +508,49 @@ await it('a push-token write cannot carry a wallet change with it', async () => 
     }));
 });
 
+console.log('\nCHATS — the customer\'s first name (MSG-001): set at creation only\n');
+
+const CHAT_ARTISAN = 'artisan_chat';
+const artisanChatDb = testEnv.authenticatedContext(CHAT_ARTISAN).firestore();
+const chatDoc = (over = {}) => ({
+    participants: [VICTIM, CHAT_ARTISAN], bookingId: null, lastMessage: '', lastSenderId: null,
+    lastMessageAt: '2026-10-30T10:00:00.000Z', unreadCount: { [VICTIM]: 0, [CHAT_ARTISAN]: 0 },
+    createdAt: '2026-10-30T10:00:00.000Z', ...over,
+});
+
+await it('a participant creates a chat carrying the customer\'s first name', async () => {
+    await assertSucceeds(setDoc(doc(victimDb, 'chats', 'chat_ok_customer'), chatDoc({ customerFirstName: 'Ama' })));
+    await assertSucceeds(setDoc(doc(artisanChatDb, 'chats', 'chat_ok_artisan'), chatDoc({ customerFirstName: 'Ama' })));
+});
+await it('a chat without the name is still created (existing behaviour)', async () => {
+    await assertSucceeds(setDoc(doc(victimDb, 'chats', 'chat_no_name'), chatDoc()));
+});
+await it('the name must be a string of 1–40 characters', async () => {
+    await assertFails(setDoc(doc(victimDb, 'chats', 'chat_long'),  chatDoc({ customerFirstName: 'A'.repeat(41) })));
+    await assertFails(setDoc(doc(victimDb, 'chats', 'chat_empty'), chatDoc({ customerFirstName: '' })));
+    await assertFails(setDoc(doc(victimDb, 'chats', 'chat_num'),   chatDoc({ customerFirstName: 42 })));
+    await assertSucceeds(setDoc(doc(victimDb, 'chats', 'chat_40'), chatDoc({ customerFirstName: 'A'.repeat(40) })));
+});
+await it('a non-participant cannot create a chat carrying it', async () => {
+    await assertFails(setDoc(doc(attackerDb, 'chats', 'chat_forged'), chatDoc({ customerFirstName: 'Ama' })));
+});
+await it('neither participant can change it afterwards (it is immutable)', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();      // once: a second call re-applies settings and throws
+        await setDoc(doc(db, 'chats', 'chat_fixed'), chatDoc({ customerFirstName: 'Ama' }));
+        await setDoc(doc(db, 'chats', 'chat_unnamed'), chatDoc());
+    });
+    await assertFails(updateDoc(doc(victimDb, 'chats', 'chat_fixed'), { customerFirstName: 'Kofi' }));
+    await assertFails(updateDoc(doc(artisanChatDb, 'chats', 'chat_fixed'), { customerFirstName: 'Kofi' }));
+    await assertFails(updateDoc(doc(victimDb, 'chats', 'chat_unnamed'), { customerFirstName: 'Ama' }), 'not added later either');
+    await assertFails(updateDoc(doc(artisanChatDb, 'chats', 'chat_unnamed'), { customerFirstName: 'Ama' }));
+});
+await it('the inbox-preview updates a message makes still work', async () => {
+    await assertSucceeds(updateDoc(doc(artisanChatDb, 'chats', 'chat_fixed'), {
+        lastMessage: 'On my way', lastSenderId: CHAT_ARTISAN, lastMessageAt: '2026-10-30T10:05:00.000Z',
+    }));
+});
+
 console.log('\n' + '─'.repeat(52));
 console.log(`  ${passed} passed, ${failed} failed`);
 console.log('─'.repeat(52) + '\n');
