@@ -120,7 +120,10 @@
     .jobs-empty-sub { font: 500 13px/1.5 var(--ds-font); color: var(--ds-ink-3); margin: 0; max-width: 260px; margin-inline: auto; }
 
     /* ── Error toast ── */
-    .jobs-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--ds-ink); color: var(--ds-bg); font: 600 13px/1.3 var(--ds-font); padding: var(--ds-3) var(--ds-5); border-radius: var(--ds-r-pill); display: none; z-index: var(--ui-z-toast); box-shadow: var(--ds-shadow-pop); }
+    /* left:50% alone capped the toast at half the viewport, so a short message
+       wrapped to 2–3 lines in a narrow column (audit UI-006). It now sizes to its
+       text, up to the screen minus the 16px gutters, and stays a centred pill. */
+    .jobs-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); text-align: center; background: var(--ds-ink); color: var(--ds-bg); font: 600 13px/1.3 var(--ds-font); padding: var(--ds-3) var(--ds-5); border-radius: var(--ds-r-pill); display: none; z-index: var(--ui-z-toast); box-shadow: var(--ds-shadow-pop); }
 
     /* ── Quote sheet (DS bottom-sheet language) ── */
     .qs-overlay { position:fixed;inset:0;background:rgba(15,18,22,.5);z-index:900;opacity:0;pointer-events:none;transition:opacity var(--ds-t-base); }

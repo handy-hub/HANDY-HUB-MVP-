@@ -5,6 +5,7 @@
  *
  *   STATE-001  The selected tab was lost on reload or return.
  *   FORM-001   The quote form disabled Send without saying why.
+ *   UI-006     (jobs) The toast wrapped short messages onto 2–3 lines.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -99,6 +100,17 @@ await t('job.html\'s composer (shared/js/ui/quoteComposer.js) does the same', ()
     assert.match(c, /<p id="qc-msg" class="qc-msg" role="status" aria-live="polite"><\/p>\s*<button type="button" id="qc-submit"/);
     const recalc = c.slice(c.indexOf('function recalc() {'), c.indexOf('function setMaterials('));
     assert.match(recalc, /\$\('qc-msg'\)\.textContent = \(!checked\.ok && touched\) \? checked\.message : '';/);
+});
+
+console.log('\n── UI-006 (jobs) · the toast is one readable pill ──\n');
+
+await t('the toast sizes to its text, within the 16px gutters, centred', () => {
+    const rule = (page.match(/\.jobs-toast \{[^}]*\}/) || [''])[0];
+    assert.match(rule, /width: max-content;/);
+    assert.match(rule, /max-width: calc\(100vw - 32px\);/);
+    assert.match(rule, /text-align: center;/);
+    assert.match(rule, /left: 50%; transform: translateX\(-50%\);/, 'still centred');
+    assert.match(rule, /border-radius: var\(--ds-r-pill\);/, 'still a pill');
 });
 
 console.log(`\nartisan-jobs-page: ${passed} passed, ${failed} failed`);
