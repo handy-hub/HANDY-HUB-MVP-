@@ -368,11 +368,22 @@ window.handleGoogleLogin = async function() {
   catch(e) { if(e.code!=='auth/popup-closed-by-user') showError('Google sign-in failed: '+e.message); }
 };
 
+// The answer is the same whether or not the email has an account (audit
+// AUTH-002): saying an address had no account told anyone which addresses
+// are registered artisans. Only a fault the user can act on is reported.
+const RESET_SENT = (email) =>
+  `If an artisan account uses ${email}, a reset link is on its way. Check your inbox and spam folder.`;
 window.sendPasswordReset = async function() {
+  clearBanners();
   const email=document.getElementById('login-email').value.trim();
   if (!email||!email.includes('@')) { showError('Enter your email above, then tap "Forgot password?"'); return; }
-  try { await sendPasswordResetEmail(auth,email); showSuccess(`Reset email sent to ${email}`); }
-  catch(e) { showError(e.code==='auth/user-not-found'?'No account with that email.':e.message); }
+  try { await sendPasswordResetEmail(auth,email); showSuccess(RESET_SENT(email)); }
+  catch(e) {
+    if (e.code==='auth/user-not-found') showSuccess(RESET_SENT(email));
+    else if (e.code==='auth/invalid-email') showError('Enter a valid email address.');
+    else if (e.code==='auth/too-many-requests') showError('Too many attempts. Please wait a few minutes and try again.');
+    else showError('We could not send the reset email. Check your connection and try again.');
+  }
 };
 
 window.togglePw = function(id, btn) {
