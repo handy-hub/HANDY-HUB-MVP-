@@ -49,6 +49,9 @@ export const QUOTE_LIMITS = Object.freeze({
 // A plain decimal with at most two places: "120", "120.5", "120.50".
 // No sign, exponent, hex, thousands separator or currency symbol.
 const DECIMAL_2DP = /^\d+(\.\d{1,2})?$/;
+// The same shape with 3+ decimals: a number, only too precise. Used to choose
+// the message, never to accept anything.
+const TOO_MANY_DECIMALS = /^\d+\.\d{3,}$/;
 
 /**
  * Read one amount as whole hundredths (pesewas for money, hundredths of a unit
@@ -64,6 +67,10 @@ export function toHundredths(value, label) {
         n = Number(value.trim());
     } else if (value === undefined || value === null || value === '') {
         return { ok: false, message: `${label} is required.` };
+    } else if (typeof value === 'string' && TOO_MANY_DECIMALS.test(value.trim())) {
+        // A number, but finer than a pesewa: say THAT, not "must be a number"
+        // (audit QM-COPY-001). Rejected exactly as before — only the message differs.
+        return { ok: false, message: `${label} can have at most 2 decimal places.` };
     } else {
         return { ok: false, message: `${label} must be a number.` };
     }
