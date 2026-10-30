@@ -111,6 +111,33 @@ t('serviceLabel: stored ids become labels, typed text is kept', () => {
     assert.strictEqual(serviceLabel(''), null);
 });
 
+console.log('\n── NOTIF-005 · lapsed offer alerts; a delete control a finger can reach ──\n');
+
+t('an offer alert past its deadline is drawn lapsed with the shared label', () => {
+    const html = read('artisan-app/notifications.html');
+    assert.match(html, /import \{ offerState, LAPSED_OFFER_LABEL \}\s+from '\.\.\/shared\/js\/domain\/jobOffers\.js';/);
+    assert.match(html, /const lapsed = n\.expiresAtMs != null && offerState\(\{ expiresAtMs: n\.expiresAtMs \}\)\.expired;/);
+    assert.match(html, /\$\{lapsed \? `<span class="notif-lapsed">\$\{LAPSED_OFFER_LABEL\}<\/span>` : ''\}/);
+    // The deadline reaches the row: cacheable() keeps metadata.expiresAtMs, as a number.
+    assert.match(html, /expiresAtMs: offerState\(\{ expiresAtMs: n\.metadata\?\.expiresAtMs \}\)\.expiresAtMs,/);
+});
+
+t('one lapse timer, re-armed per render and cleared on pagehide', () => {
+    const html = read('artisan-app/notifications.html');
+    assert.match(html, /listEl\.innerHTML = html;\s*scheduleLapse\(notifications\);/);
+    assert.match(html, /function scheduleLapse\(notifications\) \{\s*clearTimeout\(_lapseTimer\); _lapseTimer = null;/);
+    assert.match(html, /addEventListener\('pagehide', \(\) => \{ _unsub\?\.\(\); clearTimeout\(_lapseTimer\); \}\);/);
+});
+
+t('delete: a 44px target, always shown where there is no hover, focusable by keyboard', () => {
+    const html = read('artisan-app/notifications.html');
+    const rule = /\.notif-delete-btn \{([^}]*)\}/.exec(html)[1];
+    assert.match(rule, /width: 44px; height: 44px;/);
+    assert.doesNotMatch(rule, /display: none/, 'display:none takes it out of the tab order');
+    assert.match(html, /@media \(hover: none\) \{\s*\.notif-delete-btn \{ opacity: 1; \}/);
+    assert.match(html, /\.notif-item:hover \.notif-delete-btn, \.notif-delete-btn:focus-visible \{ opacity: 1; \}/);
+});
+
 console.log(`\nartisan-polish: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 4).join('\n    ') : e}`);
 process.exit(failed ? 1 : 0);

@@ -96,8 +96,11 @@ function loadCacheable() {
     const code = moduleOf('artisan-app/notifications.html');
     const src = code.slice(code.indexOf('const LIVE_CHAT_TEXT = new Map();'), code.indexOf('const view = mountInstantView'));
     assert.ok(src.includes('const cacheable = (n) =>'), 'cacheable()');
+    // cacheable() reads an offer alert's deadline through jobOffers' offerState.
+    const offers = read('shared/js/domain/jobOffers.js')
+        .replace(/^\s*export\s+function\s+/gm, 'function ').replace(/^\s*export\s+const\s+/gm, 'const ');
     // eslint-disable-next-line no-new-func
-    return new Function(`${src}\nreturn { cacheable, LIVE_CHAT_TEXT };`)();
+    return new Function(`${offers}\n${src}\nreturn { cacheable, LIVE_CHAT_TEXT };`)();
 }
 const NOTE = (over) => ({ id: 'n1', type: 'Bookings', title: 'Job accepted', message: 'Kofi accepted your plumbing job.',
     isRead: false, readAt: null, actionUrl: 'booking.html', metadata: { bookingId: 'HHB-1' }, senderId: 'S', receiverId: 'A1',
@@ -107,8 +110,12 @@ t('notifications: a row\'s fields only — no metadata, sender, receiver or read
     const { cacheable } = loadCacheable();
     assert.deepStrictEqual(cacheable(NOTE()), {
         id: 'n1', type: 'Bookings', title: 'Job accepted', isRead: false, message: 'Kofi accepted your plumbing job.',
-        actionUrl: 'booking.html', createdAt: '2026-10-28T09:00:00.000Z',
+        actionUrl: 'booking.html', expiresAtMs: null, createdAt: '2026-10-28T09:00:00.000Z',
     });
+    // An offer alert keeps its deadline (a number) — and still nothing else of metadata (NOTIF-005).
+    const offer = cacheable(NOTE({ metadata: { bookingId: 'HHB-2', expiresAtMs: 1761642180000, round: 1 } }));
+    assert.strictEqual(offer.expiresAtMs, 1761642180000);
+    assert.ok(!('metadata' in offer) && !JSON.stringify(offer).includes('HHB-2'));
     const code = moduleOf('artisan-app/notifications.html');
     assert.match(viewOf(code, 'artisan-notifications'), /onData\(notifications\.map\(cacheable\)\)/);
 });
