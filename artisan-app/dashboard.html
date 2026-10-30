@@ -205,10 +205,12 @@
     <!-- ── Performance ────────────────────────────────── -->
     <div class="section-header mt-10">
       <span class="section-title">Your Performance</span>
-      <button class="perf-period-select" id="perf-period-btn">
-        This Week
-        <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#6B7280" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
+      <!-- The "This Week" selector here did nothing (audit FUNC-001). Performance
+           has working period tabs, so this links there instead. -->
+      <a href="performance.html" class="view-all-link">
+        See Performance
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </a>
     </div>
     <div class="performance-card">
       <div class="perf-grid">
