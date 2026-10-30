@@ -368,7 +368,14 @@ let _dbService       = null;
 let _pricingService  = null;
 // Artisan's own position, used ONLY to describe distance to the job. Null until
 // a real fix arrives — distance is then omitted rather than shown as 0.0 km.
-let _autoTabDone = false;   // the auto-focus below runs once, then the artisan is in control
+let _autoTabDone = false;
+// The tab is mirrored in ?tab= (switchJobTab), so a reload or a return to this
+// page lands where the artisan left it instead of being re-chosen (STATE-001).
+const JOB_TABS      = ['pending', 'active', 'completed', 'cancelled'];
+const REQUESTED_TAB = (() => {
+  const t = new URLSearchParams(location.search).get('tab');
+  return JOB_TABS.includes(t) ? t : null;
+})();   // the auto-focus below runs once, then the artisan is in control
 let _originLat = null;
 let _originLng = null;
 
@@ -684,7 +691,10 @@ function render(jobs) {
     _autoTabDone = true;
     // A new request is the most time-critical thing an artisan can see (it
     // expires), so Pending still wins when one exists. Otherwise follow the work.
-    const target = pending.length ? 'pending'
+    // A tab the URL already names (a reload, Back, a shared link) is the
+    // artisan's own choice and wins over all of that (audit STATE-001).
+    const target = REQUESTED_TAB ? REQUESTED_TAB
+                 : pending.length ? 'pending'
                  : active.length  ? 'active'
                  : completed.length ? 'completed'
                  : 'pending';
@@ -708,6 +718,12 @@ window.switchJobTab = function(tab, btn) {
   btn.setAttribute('aria-selected', 'true');
   document.querySelectorAll('.jobs-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('jp-' + tab)?.classList.add('active');
+  // Keep the choice in the URL (other parameters, e.g. ?quote=, are kept).
+  try {
+    const url = new URL(location.href);
+    url.searchParams.set('tab', tab);
+    history.replaceState(history.state, '', url);
+  } catch (_) { /* URL unavailable: the tab still switches */ }
   _tab = tab;
   _loadEscrows();
 };
