@@ -1,15 +1,31 @@
 # HandyHub -- L1-L4 Low Priority Fix Verification
 # encoding: utf-8
 
-import os, time, json, re
+import os, sys, time, json, re, tempfile, urllib.request
 from playwright.sync_api import sync_playwright
 
 # Customer-app server for JS tests; project-root for asset resolution tests
-BASE_CA = "http://localhost:8765"
-BASE_PR = "http://localhost:8766/customer-app"
+# (npm run serve:ca / npm run dev). Overridable, so a checkout can be verified
+# against servers started from that checkout on free ports (TEST-001).
+BASE_CA = os.environ.get("VERIFY_LOW_CA_URL", "http://localhost:8765")
+BASE_PR = os.environ.get("VERIFY_LOW_PR_URL", "http://localhost:8766/customer-app")
 
-SHOTS = "tests/screenshots/low_verify"
+# Screenshots and the JSON report are run output, not source: they go to a
+# temp folder (override with VERIFY_LOW_OUT). Writing them into tests/ rewrote
+# tracked files on every `npm test` (TEST-001).
+OUT   = os.environ.get("VERIFY_LOW_OUT", os.path.join(tempfile.gettempdir(), "fidusx-verify-low"))
+SHOTS = os.path.join(OUT, "screenshots")
 os.makedirs(SHOTS, exist_ok=True)
+
+# Without the two servers the browser checks cannot run: say so plainly and fail,
+# rather than a Playwright traceback (and never report a check as passed).
+for _base in (BASE_CA, BASE_PR):
+    try:
+        urllib.request.urlopen(_base + "/login.html", timeout=5)
+    except Exception as _e:
+        print(f"verify_low_fixes: {_base} is not reachable ({_e}).")
+        print("Start the dev servers first: npm run serve:ca (8765) and npm run dev (8766).")
+        sys.exit(1)
 
 results = []
 
@@ -121,16 +137,13 @@ with sync_playwright() as p:
     TITLE_PATTERN = re.compile(r'<title>([^<]*)</title>')
     FORBIDDEN = ['–', '—', '·']  # en dash, em dash, middle dot
 
-    title_pages = [
-        "customer-app/login.html",
-        "customer-app/signup.html",
-        "customer-app/dashboard.html",
-        "customer-app/booking.html",
-        "customer-app/settings.html",
-        "customer-app/settings-security.html",
-        "customer-app/book-step1.html",
-        "customer-app/notification.html",
-    ]
+    # Every customer page, not a hand-kept sample. The sample listed
+    # book-step1.html, which was deliberately deleted in the booking rebuild
+    # (2 Jul; never restore it), so this check failed on a missing file rather
+    # than on a title (TEST-001).
+    title_pages = sorted(
+        os.path.join("customer-app", f).replace("\\", "/")
+        for f in os.listdir("customer-app") if f.endswith(".html"))
 
     all_titles_ok = True
     bad_titles = []
@@ -154,7 +167,7 @@ with sync_playwright() as p:
             bad_titles.append(f"{fname}: error {e}")
             all_titles_ok = False
 
-    rec("L2-T1", "All sampled page titles use Fidus X branding with | separator",
+    rec("L2-T1", f"All {len(title_pages)} customer page titles use Fidus X branding with | separator",
         all_titles_ok, str(bad_titles[:3]), "")
 
     # Browser test: titles render without garbled characters
@@ -172,11 +185,14 @@ with sync_playwright() as p:
         settings_title == "Settings | Fidus X",
         f"Got: {settings_title!r}", "")
 
-    go(page, f"{BASE_CA}/book-step1.html")
-    step1_title = page.title()
-    rec("L2-T4", "Book Step 1 title uses pipe separator",
-        "|" in step1_title and "Fidus X" in step1_title,
-        f"Got: {step1_title!r}", "")
+    # book-step1.html was deleted in the booking rebuild (2 Jul) and must not
+    # come back; book-request.html is the booking entry that replaced it, so it
+    # carries this check (TEST-001).
+    go(page, f"{BASE_CA}/book-request.html")
+    booking_title = page.title()
+    rec("L2-T4", "Booking entry (book-request) title uses pipe separator",
+        "|" in booking_title and "Fidus X" in booking_title,
+        f"Got: {booking_title!r}", "")
     page.close(); ctx.close()
 
     # ==========================================================================
@@ -205,17 +221,21 @@ with sync_playwright() as p:
     rec("L3-T2", "No <script src> tags reference history.js",
         len(refs) == 0, f"Still referenced in: {refs}", "")
 
-    # tracking.html comment cleaned up
+    # The search page: tracking.html was renamed search-page.html on 7 Jun
+    # (50f55ea). These checks still opened tracking.html, so the file check
+    # failed ("tracking.html readable") and the browser checks below passed
+    # vacuously on the server's 404 page (TEST-001).
+    SEARCH_PAGE = "search-page.html"
     try:
-        with open("customer-app/tracking.html", "r", encoding="utf-8") as f:
+        with open(f"customer-app/{SEARCH_PAGE}", "r", encoding="utf-8") as f:
             tracking_content = f.read()
         comment_gone = "history.js intentionally omitted" not in tracking_content
-        rec("L3-T3", "Stale history.js comment removed from tracking.html",
+        rec("L3-T3", f"Stale history.js comment removed from {SEARCH_PAGE}",
             comment_gone, "Comment still present", "")
     except Exception as e:
-        rec("L3-T3", "tracking.html readable", False, str(e), "")
+        rec("L3-T3", f"{SEARCH_PAGE} readable", False, str(e), "")
 
-    # Browser: tracking.html loads without 404 for history.js
+    # Browser: the search page loads without 404 for history.js
     ctx = browser.new_context(viewport={"width":390,"height":844})
     page = ctx.new_page()
     history_404s = []
@@ -223,10 +243,12 @@ with sync_playwright() as p:
             if "history.js" in r.url else None)
     page.on("console", lambda m: history_404s.append(m.text[:80])
             if "history.js" in m.text and "404" in m.text else None)
-    go(page, f"{BASE_CA}/tracking.html")
-    sc_t = shot(page, "l3_tracking_no_history")
-    rec("L3-T4", "tracking.html loads without any history.js 404",
-        len(history_404s) == 0, str(history_404s[:2]), sc_t)
+    resp = page.goto(f"{BASE_CA}/{SEARCH_PAGE}", wait_until="domcontentloaded", timeout=15000)
+    time.sleep(1.5)
+    sc_t = shot(page, "l3_search_no_history")
+    rec("L3-T4", f"{SEARCH_PAGE} loads (200) without any history.js 404",
+        bool(resp and resp.ok) and len(history_404s) == 0,
+        f"status {resp.status if resp else None}; {history_404s[:2]}", sc_t)
     page.close(); ctx.close()
 
     # ==========================================================================
@@ -259,15 +281,21 @@ with sync_playwright() as p:
     # From project-root server: shared/ CSS and JS resolve, no 404 for shared assets
     ctx = browser.new_context(viewport={"width":390,"height":844})
     page = ctx.new_page()
+    # A 404 is a RESPONSE, not a failed request: listen to responses (the
+    # requestfailed listener could never see one), and match the server in use
+    # rather than a hard-coded port (TEST-001).
+    PR_ORIGIN = re.match(r"https?://[^/]+", BASE_PR).group(0)
     shared_404s = []
+    page.on("response", lambda r: shared_404s.append(r.url)
+            if r.url.startswith(PR_ORIGIN) and "/shared/" in r.url and r.status >= 400 else None)
     page.on("requestfailed", lambda r: shared_404s.append(r.url)
-            if "localhost:8766" in r.url and "shared/" in r.url else None)
+            if r.url.startswith(PR_ORIGIN) and "/shared/" in r.url else None)
     try:
         go(page, f"{BASE_PR}/login.html", timeout=12000)
         sc_pr = shot(page, "l4_login_project_root")
         rec("L4-T5", "login.html loads shared/ assets without 404 from project-root server",
             len(shared_404s) == 0,
-            f"404s: {[u.replace('http://localhost:8766','') for u in shared_404s[:3]]}", sc_pr)
+            f"404s: {[u.replace(PR_ORIGIN, '') for u in shared_404s[:3]]}", sc_pr)
     except Exception as e:
         rec("L4-T5", "login.html from project-root server", False, str(e)[:80], "")
     page.close(); ctx.close()
@@ -283,7 +311,7 @@ with sync_playwright() as p:
         ("login.html",    "Login"),
         ("signup.html",   "Sign Up"),
         ("dashboard.html","Dashboard"),
-        ("tracking.html", "Search (tracking)"),
+        (SEARCH_PAGE,     "Search"),   # was tracking.html (renamed 7 Jun)
         ("saved.html",    "Saved"),
     ]
     for path, label in reg_pages:
@@ -291,13 +319,18 @@ with sync_playwright() as p:
         page = ctx.new_page()
         exc = []
         page.on("pageerror", lambda e: exc.append(str(e)))
+        status = None
         try:
-            go(page, f"{BASE_CA}/{path}")
-        except Exception:
-            pass
+            resp = page.goto(f"{BASE_CA}/{path}", wait_until="domcontentloaded", timeout=15000)
+            status = resp.status if resp else None
+            time.sleep(1.5)
+        except Exception as e:
+            exc.append(f"load failed: {e}")
         sc_r = shot(page, f"reg_{path.replace('.html','')}")
-        rec(f"REG-{label.replace(' ','')}", f"{label} -- no new JS exceptions",
-            len(exc) == 0, str([e[:70] for e in exc[:2]]), sc_r)
+        # The page must actually be served: a 404 page raises no exceptions and
+        # used to pass this check for a page that no longer existed.
+        rec(f"REG-{label.replace(' ','')}", f"{label} -- served (200), no new JS exceptions",
+            status == 200 and len(exc) == 0, f"status {status}; {[e[:70] for e in exc[:2]]}", sc_r)
         page.close(); ctx.close()
 
     browser.close()
@@ -346,6 +379,12 @@ else:
     verdict = "NOT RESOLVED -- LOW SEVERITY ISSUES REMAIN"
 
 print(f"VERDICT: {verdict}")
-with open("tests/verify_low_results.json", "w", encoding="utf-8") as f:
+report = os.path.join(OUT, "verify_low_results.json")
+with open(report, "w", encoding="utf-8") as f:
     json.dump({"verdict": verdict, "total": total, "passed": passed,
                "failed": failed, "tests": results}, f, indent=2, ensure_ascii=False)
+print(f"Report and screenshots: {OUT}")
+
+# A failed check fails the run. The script used to end with exit 0 whatever it
+# found, so its failures never failed `npm test` (TEST-001).
+sys.exit(0 if failed == 0 else 1)
