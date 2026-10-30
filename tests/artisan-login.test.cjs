@@ -5,6 +5,7 @@
  *
  *   AUTH-002  "Forgot password?" said "No account with that email", which told
  *             anyone whether an address belongs to a registered artisan.
+ *   NAV-003   The back chevron always opened sign-up.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -59,6 +60,33 @@ await t('faults the user can act on are still reported, without Firebase interna
     const other = await loadReset(fbErr('auth/network-request-failed')).run('a@b.co');
     assert.match(other.error, /could not send/i);
     assert.ok(!/auth\//.test(other.error));
+});
+
+console.log('\n── NAV-003 · the back chevron is a real back ──\n');
+
+/** Run the page's inline back-button script for a given referrer. */
+function backShown({ referrer, historyLength = 2, origin = 'https://artisan.fidusx.app' }) {
+    const at = page.indexOf("<button id=\"login-back\"");
+    const script = page.slice(page.indexOf('<script>', at) + 8, page.indexOf('</script>', at));
+    const btn = { style: { display: 'none' } };
+    // eslint-disable-next-line no-new-func
+    new Function('document', 'location', 'history', 'URL', script)(
+        { referrer, getElementById: () => btn }, { origin }, { length: historyLength }, URL);
+    return btn.style.display === 'flex';
+}
+
+await t('it goes back, never to sign-up, and is hidden until there is somewhere to go', () => {
+    const tag = page.slice(page.indexOf('<button id="login-back"'), page.indexOf('</button>', page.indexOf('<button id="login-back"')));
+    assert.match(tag, /onclick="history\.back\(\)"/);
+    assert.match(tag, /display:none;/);
+    assert.match(tag, /aria-label="Back"/);
+    assert.ok(!/signup\.html/.test(tag), 'no longer opens sign-up');
+});
+await t('shown after a page of this site; hidden for a fresh tab, no referrer, or another site', () => {
+    assert.strictEqual(backShown({ referrer: 'https://artisan.fidusx.app/artisan-app/signup.html' }), true);
+    assert.strictEqual(backShown({ referrer: '' }), false);
+    assert.strictEqual(backShown({ referrer: 'https://evil.example/x' }), false);
+    assert.strictEqual(backShown({ referrer: 'https://artisan.fidusx.app/x', historyLength: 1 }), false);
 });
 
 console.log(`\nartisan-login: ${passed} passed, ${failed} failed`);
