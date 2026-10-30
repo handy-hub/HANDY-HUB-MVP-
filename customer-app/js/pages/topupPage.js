@@ -415,6 +415,15 @@ function openCreatePinFlow(amount) {
 // as proof of payment — so closing the tab mid-payment still settles correctly.
 const AUTH_TIMEOUT_MS = 180_000;   // MoMo prompts can legitimately take minutes
 
+// What a pending charge says when we stop waiting on screen. 'approved' is the
+// sheet's no-retry state: its button closes, it never re-opens a charge.
+const STILL_CONFIRMING = Object.freeze({
+    title:   'Still confirming your payment',
+    message: "We haven't heard back from your provider yet. Please don't pay again: if money left your Mobile Money account, your wallet is credited automatically and we'll notify you.",
+    live:    'Still confirming your payment. Please do not pay again.',
+    action:  'Close',
+});
+
 // Guards against a second charge being opened while one is already in flight
 // (double-tap, or Confirm pressed again behind the sheet).
 let chargeInFlight = false;
@@ -687,6 +696,13 @@ function openAuthorizationView(amount, controls, init) {
             return;
         }
 
+        // Paystack's answer did not arrive (a timeout, a network error): the
+        // charge may exist, and the prompt may still reach the handset. The
+        // server left it pending, so say exactly that — never "failed" (F-1).
+        if (init.confirming) {
+            api.setState('waiting', { hint: "We're confirming your payment with your provider. If a prompt appears on your phone, approve it." });
+        }
+
         // Surface the network's own wording when it sends any ("Dial *170#…").
         if (init.displayText) api.setState('waiting', { hint: init.displayText });
 
@@ -711,8 +727,17 @@ function openAuthorizationView(amount, controls, init) {
         // once. Polling stops the moment either path reaches a terminal state.
         startVerifyPolling(init.reference, api, () => settled, (v) => { settled = v; }, amount, init);
 
+        // Still unsettled after AUTH_TIMEOUT_MS means still PENDING on the server
+        // — a slow approval or an uncertain charge, which the webhook can still
+        // credit. "Your wallet was not charged" is not something this page can
+        // know, and the timed_out state's Try Again opened a NEW charge under a
+        // new idempotency key while this one might complete (F-1). So: say we are
+        // still confirming, ask them not to pay again, and offer Close only. The
+        // intent listener keeps running while the sheet is open, so a late
+        // credit still turns this into 'confirmed'. "Not charged" + Try Again
+        // stay for what the server has CONFIRMED is no charge (failed above).
         timer = setTimeout(() => {
-            if (!settled && api.getState() !== 'confirmed') api.setState('timed_out');
+            if (!settled && api.getState() !== 'confirmed') api.setState('approved', STILL_CONFIRMING);
         }, AUTH_TIMEOUT_MS);
     }).catch((err) => {
         // The sheet itself failed to open. Without this the in-flight guard

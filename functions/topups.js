@@ -223,6 +223,8 @@ async function initiateTopupCharge(auth, data = {}) {
                     amountPesewas: d.amountPesewas,
                     currency:      'GHS',
                     replayed:      true,
+                    // Still waiting on an uncertain charge — no second charge opened.
+                    confirming:    d.chargeStatus === 'unknown',
                 };
             }
             // A settled (or vanished) intent must not be resurrected under the
@@ -325,6 +327,40 @@ async function initiateTopupCharge(auth, data = {}) {
             },
         });
     } catch (err) {
+        // ── Did Paystack act? (financial/paystack.js classifies every error) ──
+        // 'unknown' — a timeout, network error, 5xx or duplicate reference: the
+        // charge MAY exist at Paystack, and the customer may already be paying.
+        // Calling that a failure told a paying customer it failed, stopped
+        // verifyTopupNow from ever looking (it returns early on
+        // initialization_failed), and released the idempotency claim so a retry
+        // opened a second charge (audit F-1). So the intent stays PENDING, the
+        // claim is kept, and the customer is told we are confirming. The ONE
+        // settlement path (financial/webhooks.js settleTopupByReference — the
+        // webhook, or verifyTopupNow) decides: credited once under its lock, or
+        // failed. Nothing here credits.
+        if (err && err.outcome === 'unknown') {
+            await intentRef.set({
+                chargeStatus:        'unknown',
+                initiationUncertain: true,
+                initiationError:     String(err.message || 'outcome unknown').slice(0, 300),
+                updatedAt:           nowIso(),
+            }, { merge: true });
+            console.warn(`[topup][${correlationId}] Charge outcome unknown uid=${uid} ref=${reference}: ${err.message} — left pending`);
+            audit('topup_initiation_unknown', uid, err.message, correlationId, { reference, amountPesewas });
+            return {
+                reference,
+                chargeStatus:  'unknown',
+                confirming:    true,
+                displayText:   null,
+                provider,
+                phone,
+                amountPesewas,
+                currency:      'GHS',
+            };
+        }
+        // Anything else is a definite non-charge: Paystack refused the request
+        // ('rejected'), or the error carries no outcome because it was raised
+        // here before any request was sent (an amount check, a missing key).
         await intentRef.set({
             status:        STATUS.INIT_FAILED,
             failureReason: String(err.message || 'charge failed').slice(0, 300),
