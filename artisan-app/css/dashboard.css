@@ -366,13 +366,6 @@ body {
   border-radius: var(--ds-r-card); padding: var(--ds-4);
 }
 .performance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--ds-4); }
-.perf-period-select {
-  display: flex; align-items: center; gap: 4px;
-  border: 1px solid var(--ds-line-strong); border-radius: var(--ds-r-control);
-  padding: 6px 10px; font: 600 12px/1 var(--ds-font); color: var(--ds-ink-2);
-  cursor: pointer; background: var(--ds-surface);
-}
-.perf-period-select svg { width: 12px; height: 12px; }
 .perf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-3); }
 .perf-item { background: var(--ds-surface-2); border-radius: var(--ds-r-control); padding: var(--ds-3); }
 .perf-icon-row { display: flex; align-items: center; gap: var(--ds-2); margin-bottom: var(--ds-2); }
