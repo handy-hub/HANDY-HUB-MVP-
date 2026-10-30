@@ -246,7 +246,7 @@
             <svg viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
           </button>
         </div>
-        <p class="field-error" id="login-pw-err">Incorrect email or password.</p>
+        <p class="field-error" id="login-pw-err">Enter your password.</p>
       </div>
       <a href="#" class="forgot-link" onclick="sendPasswordReset();return false;">Forgot password?</a>
       <button class="btn-submit" id="login-btn" onclick="handleLogin()">Sign In</button>
@@ -375,8 +375,9 @@ window.handleLogin = async function() {
 };
 
 window.handleGoogleLogin = async function() {
+  clearBanners();
   try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch(e) { if(e.code!=='auth/popup-closed-by-user') showError('Google sign-in failed: '+e.message); }
+  catch(e) { if(e.code!=='auth/popup-closed-by-user') showError('Google sign-in did not complete. Please try again.'); }
 };
 
 // The answer is the same whether or not the email has an account (audit
@@ -406,8 +407,10 @@ window.togglePw = function(id, btn) {
 function setBtn(id, loading, txt) { const b=document.getElementById(id); b.disabled=loading; b.classList.toggle('loading',loading); b.textContent=txt; }
 function showFE(eid,iid) { document.getElementById(eid).classList.add('show'); document.getElementById(iid).classList.add('error'); }
 function clearBanners() { ['error-banner','offline-banner','success-banner'].forEach(id=>document.getElementById(id).classList.remove('show')); document.querySelectorAll('.field-error').forEach(e=>e.classList.remove('show')); document.querySelectorAll('.field-input.error').forEach(e=>e.classList.remove('error')); }
-function showError(m) { const b=document.getElementById('error-banner'); b.textContent=m; b.classList.add('show'); }
-function showSuccess(m) { const b=document.getElementById('success-banner'); b.textContent=m; b.classList.add('show'); }
+// One message at a time (audit AUTH-004): an error and a success used to sit
+// on screen together, saying opposite things.
+function showError(m) { document.getElementById('success-banner').classList.remove('show'); const b=document.getElementById('error-banner'); b.textContent=m; b.classList.add('show'); }
+function showSuccess(m) { document.getElementById('error-banner').classList.remove('show'); const b=document.getElementById('success-banner'); b.textContent=m; b.classList.add('show'); }
 </script>
 
 <!-- ── Development Access Mode entry point ──────────────────────────────────

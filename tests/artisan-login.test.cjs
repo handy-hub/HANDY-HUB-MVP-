@@ -6,6 +6,8 @@
  *   AUTH-002  "Forgot password?" said "No account with that email", which told
  *             anyone whether an address belongs to a registered artisan.
  *   NAV-003   The back chevron always opened sign-up.
+ *   AUTH-004  Messages stacked and contradicted each other; an empty password
+ *             read "Incorrect email or password".
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -87,6 +89,41 @@ await t('shown after a page of this site; hidden for a fresh tab, no referrer, o
     assert.strictEqual(backShown({ referrer: '' }), false);
     assert.strictEqual(backShown({ referrer: 'https://evil.example/x' }), false);
     assert.strictEqual(backShown({ referrer: 'https://artisan.fidusx.app/x', historyLength: 1 }), false);
+});
+
+console.log('\n── AUTH-004 · one message at a time, and the right one ──\n');
+
+/** The page's banner functions over a minimal DOM. */
+function banners() {
+    const el = (id) => ({ id, textContent: '', classList: { s: new Set(), add(c) { this.s.add(c); }, remove(c) { this.s.delete(c); }, contains(c) { return this.s.has(c); } } });
+    const dom = { 'error-banner': el('error-banner'), 'success-banner': el('success-banner'), 'offline-banner': el('offline-banner') };
+    const src = page.slice(page.indexOf('function clearBanners()'), page.indexOf('</script>', page.indexOf('function clearBanners()')));
+    // eslint-disable-next-line no-new-func
+    const api = new Function('document', `${src}; return { clearBanners, showError, showSuccess };`)(
+        { getElementById: (id) => dom[id], querySelectorAll: () => [] });
+    const shown = (id) => dom[id].classList.contains('show');
+    return { ...api, shown };
+}
+
+await t('an error replaces a success and a success replaces an error — never both', () => {
+    const b = banners();
+    b.showSuccess('sent');
+    b.showError('failed');
+    assert.strictEqual(b.shown('error-banner'), true);
+    assert.strictEqual(b.shown('success-banner'), false);
+    b.showSuccess('sent');
+    assert.strictEqual(b.shown('error-banner'), false);
+    assert.strictEqual(b.shown('success-banner'), true);
+});
+await t('an empty password says "Enter your password", not "Incorrect email or password"', () => {
+    assert.match(page, /<p class="field-error" id="login-pw-err">Enter your password\.<\/p>/);
+});
+await t('every action clears earlier messages first, and Google errors carry no raw Firebase text', () => {
+    for (const fn of ['window.handleLogin', 'window.handleGoogleLogin', 'window.sendPasswordReset']) {
+        const body = page.slice(page.indexOf(`${fn} = async function() {`), page.indexOf('};', page.indexOf(`${fn} = async function() {`)));
+        assert.match(body, /clearBanners\(\);/, `${fn} clears first`);
+    }
+    assert.ok(!/Google sign-in failed: '\+e\.message/.test(page));
 });
 
 console.log(`\nartisan-login: ${passed} passed, ${failed} failed`);
