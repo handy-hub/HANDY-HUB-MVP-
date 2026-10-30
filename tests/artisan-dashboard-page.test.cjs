@@ -4,6 +4,7 @@
  * 28 Oct audit, checked against the page itself.
  *
  *   FUNC-001  The "This Week" selector under Your Performance did nothing.
+ *   COPY-003  (link only) The schedule's "View all" opened a tab that does not exist.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -39,6 +40,19 @@ await t('the dead "This Week" selector is gone; a link goes to Performance', () 
     assert.ok(!/>\s*This Week\s*</.test(page));
     assert.deepStrictEqual(sectionLink('Your Performance'), { href: 'performance.html', text: 'See Performance' });
     assert.ok(fs.existsSync(path.join(ROOT, 'artisan-app', 'performance.html')));
+});
+
+console.log('\n── COPY-003 · every "View all" opens a tab that exists ──\n');
+
+await t("the schedule's \"View all\" opens Jobs on the Active tab", () => {
+    assert.strictEqual(sectionLink("Today's Schedule").href, 'jobs.html?tab=active');
+});
+await t('every dashboard link into Jobs names a tab Jobs actually has', () => {
+    const jobs = read('artisan-app/jobs.html');
+    const tabs = JSON.parse(jobs.match(/const JOB_TABS\s*=\s*(\[[^\]]*\])/)[1].replace(/'/g, '"'));
+    const links = [...page.matchAll(/href="jobs\.html\?tab=([a-z]+)"/g)].map((m) => m[1]);
+    assert.ok(links.length >= 2);
+    for (const tab of links) assert.ok(tabs.includes(tab), `jobs.html?tab=${tab} — Jobs has ${tabs.join(', ')}`);
 });
 
 console.log(`\nartisan-dashboard-page: ${passed} passed, ${failed} failed`);
