@@ -18,6 +18,8 @@
  */
 
 import { getAppContainer } from "../app/container.js";
+import { writeBatch, doc } from "../vendor/firebase/firebase-firestore.js";
+import { firebaseDb } from "../backend/providers/firebase/firebaseConfig.js";
 
 function getDb()   { return getAppContainer().services.databaseService; }
 function getAuth() { return getAppContainer().services.authService; }
@@ -147,14 +149,27 @@ export async function markAllNotificationsRead(userId) {
 
     if (!unread.length) return;
 
-    // Fire all updates concurrently — no batched write needed at this scale
+    // ONE batched write (audit NOTIF-004). Up to UNREAD_LIMIT separate updates
+    // used to fly at once, and leaving the page cut them off part-way, so "Mark
+    // all read" could leave some unread. A batch commits as a unit (≤ 500 writes;
+    // UNREAD_LIMIT is 200). If the commit fails — a single document the rules
+    // refuse fails the whole batch — fall back to marking each one separately,
+    // so whatever can be marked read still is.
     const readAt = nowIso();
-    await Promise.all(
-        unread.map(({ id }) =>
-            db.updateDocument(COLLECTION, id, { isRead: true, readAt })
-              .catch(err => console.warn(`[notifRepo] Failed to mark ${id} read:`, err.message))
-        )
-    );
+    const fields = { isRead: true, readAt };
+    try {
+        const batch = writeBatch(firebaseDb);
+        unread.forEach(({ id }) => batch.update(doc(firebaseDb, COLLECTION, id), fields));
+        await batch.commit();
+    } catch (err) {
+        console.warn('[notifRepo] Batched mark-all-read failed, marking one by one:', err?.message || err);
+        await Promise.all(
+            unread.map(({ id }) =>
+                db.updateDocument(COLLECTION, id, fields)
+                  .catch(e => console.warn(`[notifRepo] Failed to mark ${id} read:`, e.message))
+            )
+        );
+    }
 }
 
 /**

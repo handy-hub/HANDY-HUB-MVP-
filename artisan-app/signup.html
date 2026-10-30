@@ -705,14 +705,6 @@ body {
                 <img src="https://img.icons8.com/color/48/google-logo.png" alt="Google">
                 Google
             </button>
-            <button type="button" class="as-social-btn" disabled
-                    aria-label="More options coming soon"
-                    title="More options coming soon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
-                </svg>
-                More
-            </button>
         </div>
 
         <!-- Footer -->
@@ -952,6 +944,23 @@ if (googleBtn) {
                 alert(err.message || 'Google sign-in failed.');
             }
         }
+    });
+}
+
+/* ── Already signed in (audit IA-005) ─────────────────────── *
+ * A signed-in visitor has nothing to do on sign-up. login.html is the router
+ * that knows where each account belongs (an artisan → their next page, a
+ * customer → the customer app, an outage → a retry), so send them there.
+ * Only the FIRST auth answer counts, and never while this page is signing
+ * someone up: that signs them in mid-flow, and the flow routes itself. */
+{
+    const { services: { authService } } = getAppContainer();
+    let firstAnswer = true;
+    authService.subscribeToAuthState((user) => {
+        if (!firstAnswer) return;
+        firstAnswer = false;
+        const signingUp = submitting || (googleBtn && googleBtn.disabled);
+        if (user && !signingUp) window.location.replace('login.html');
     });
 }
 </script>
