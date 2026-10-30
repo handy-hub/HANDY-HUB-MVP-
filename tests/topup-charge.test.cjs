@@ -128,10 +128,18 @@ function createFakeFirestore() {
 // ── Module interception ───────────────────────────────────────────────────────
 const FN_DIR = path.join(__dirname, '..', 'functions');
 const FAKE_DB = createFakeFirestore();
-const paystackMock = { verifyCharge: null, initializeTransaction: null };
+const NOT_STUBBED = (name) => async () => { throw new Error(`paystack.${name} called without a test stub`); };
+const paystackMock = {
+    verifyCharge: null, initializeTransaction: null,
+    // Never the real client: a test that forgets to stub a charge fails loudly.
+    chargeMobileMoney: NOT_STUBBED('chargeMobileMoney'),
+    submitChargeOtp:   NOT_STUBBED('submitChargeOtp'),
+};
+const pinMock = { verifySecurityPinForCharge: async () => {} };
 
 const origLoad = Module._load;
 Module._load = function (request, parent, isMain) {
+    if (request === './securityPin') return { verifySecurityPinForCharge: (...a) => pinMock.verifySecurityPinForCharge(...a) };
     if (request === 'firebase-admin/firestore') {
         return { getFirestore: () => FAKE_DB, FieldValue: { increment: (n) => ({ __inc: n }) } };
     }
@@ -144,18 +152,22 @@ Module._load = function (request, parent, isMain) {
     return origLoad.apply(this, arguments);
 };
 
-// Load modules under test AFTER interception is installed.
-const topups   = require(path.join(FN_DIR, 'topups.js'));
-const wallets  = require(path.join(FN_DIR, 'financial', 'wallets.js'));
-
-// Patch the paystack module in cache so webhooks.js picks up our stubs.
+// Patch the paystack module in cache BEFORE anything that uses it loads, so
+// topups.js (which calls paystack.chargeMobileMoney through the module object)
+// and webhooks.js both get the stubs.
 const paystackPath = require.resolve(path.join(FN_DIR, 'financial', 'paystack.js'));
 const realPaystack = require(paystackPath);
 require.cache[paystackPath].exports = {
     ...realPaystack,
     verifyCharge:          (...a) => paystackMock.verifyCharge(...a),
     initializeTransaction: (...a) => paystackMock.initializeTransaction(...a),
+    chargeMobileMoney:     (...a) => paystackMock.chargeMobileMoney(...a),
+    submitChargeOtp:       (...a) => paystackMock.submitChargeOtp(...a),
 };
+
+// Load modules under test AFTER interception is installed.
+const topups   = require(path.join(FN_DIR, 'topups.js'));
+const wallets  = require(path.join(FN_DIR, 'financial', 'wallets.js'));
 
 const webhooks = require(path.join(FN_DIR, 'financial', 'webhooks.js'));
 

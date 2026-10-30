@@ -36,7 +36,9 @@ const { getFirestore } = require('firebase-admin/firestore');
 const { HttpsError } = require('firebase-functions/v2/https');
 
 const { FIRESTORE_DB_ID, MIN_TOPUP_GHS, MAX_TOPUP_GHS } = require('./config');
-const { chargeMobileMoney, submitChargeOtp } = require('./financial/paystack');
+// Called through the module object (paystack.chargeMobileMoney), not bound at
+// load, so tests can stand in for Paystack. Same calls in production.
+const paystack = require('./financial/paystack');
 const { verifySecurityPinForCharge } = require('./securityPin');
 
 // ── Lazy singleton ────────────────────────────────────────────────────────────
@@ -306,7 +308,7 @@ async function initiateTopupCharge(auth, data = {}) {
     // The secret key never leaves the server.
     let charge;
     try {
-        charge = await chargeMobileMoney({
+        charge = await paystack.chargeMobileMoney({
             email,
             amountPesewas,
             reference,
@@ -392,7 +394,7 @@ async function submitTopupOtp(auth, data = {}) {
 
     let result;
     try {
-        result = await submitChargeOtp({ reference, otp });
+        result = await paystack.submitChargeOtp({ reference, otp });
     } catch (err) {
         console.error(`[topup] OTP submit failed uid=${uid} ref=${reference}: ${err.message}`);
         throw new HttpsError('invalid-argument', 'That code was not accepted. Please check and try again.');
