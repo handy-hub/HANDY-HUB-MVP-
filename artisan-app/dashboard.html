@@ -410,6 +410,20 @@ function getLevel(jobs) {
 }
 
 // ── Apply artisan profile ──────────────────────────────
+/** The KYC banner for a non-approved verification status: one answer per state. */
+function kycBannerCopy(status) {
+  switch (status) {
+    case 'pending_review':
+    case 'submitted':
+      return { title: 'Under Review', sub: 'We\'re reviewing your documents. This takes 1–2 business days.', button: null };
+    case 'rejected':
+    case 're_verification_required':
+      return { title: 'Verification Rejected', sub: 'Review the feedback and resubmit your documents.', button: 'Resubmit' };
+    default:   // draft / no KYC yet
+      return { title: 'Verification Pending', sub: 'Complete KYC to start receiving jobs', button: 'Complete' };
+  }
+}
+
 function applyProfile(data) {
   const name     = data.name     || 'Artisan';
   const role     = data.specialty || data.category || 'Service Provider';
@@ -434,22 +448,19 @@ function applyProfile(data) {
   verifiedBadge.style.display = isApproved ? 'inline-flex' : 'none';
   if (isApproved) kycBanner.style.display = 'none';
 
-  // KYC banner — show for every non-approved state
+  // KYC banner — show for every non-approved state, its title, text and button
+  // derived from the CURRENT status on every render. Only some states used to
+  // set them, so a change between non-approved states (rejected → draft, or
+  // under review → rejected) kept the previous state's copy, or its hidden
+  // button (COPY-KYC).
   if (!isApproved) {
+    const copy = kycBannerCopy(kycStatus);
     kycBanner.style.display = 'flex';
-    const kycTitle = kycBanner.querySelector('.kyc-title');
-    const kycSub   = kycBanner.querySelector('.kyc-sub');
-    const kycBtn   = kycBanner.querySelector('.kyc-btn');
-    if (kycStatus === 'pending_review' || kycStatus === 'submitted') {
-      kycTitle.textContent    = 'Under Review';
-      kycSub.textContent      = 'We\'re reviewing your documents. This takes 1–2 business days.';
-      kycBtn.style.display    = 'none';
-    } else if (kycStatus === 'rejected' || kycStatus === 're_verification_required') {
-      kycTitle.textContent    = 'Verification Rejected';
-      kycSub.textContent      = 'Review the feedback and resubmit your documents.';
-      kycBtn.textContent      = 'Resubmit';
-    }
-    // Default (draft / no KYC yet): shows "Verification Pending" + "Complete" button
+    kycBanner.querySelector('.kyc-title').textContent = copy.title;
+    kycBanner.querySelector('.kyc-sub').textContent   = copy.sub;
+    const kycBtn = kycBanner.querySelector('.kyc-btn');
+    kycBtn.style.display = copy.button ? '' : 'none';
+    kycBtn.textContent   = copy.button || '';
   }
 
   // Online status — the artisan's stored choice. Non-approved artisans are always
