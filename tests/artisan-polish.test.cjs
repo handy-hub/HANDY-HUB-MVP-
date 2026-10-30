@@ -45,6 +45,32 @@ t('period tiles follow the period; lifetime tiles never do', () => {
     assert.match(html, /const PERIOD_LABEL = \{ week: 'This week', month: 'This month', year: 'This year', all: 'All time' \};/);
 });
 
+console.log('\n── UI-006 · the artisan toast stays on screen ──\n');
+
+/** The declarations of the `.toast {` rule in a stylesheet. */
+function toastRule(file) {
+    const css = read(file);
+    const at = css.search(/^\.toast \{/m);
+    assert.ok(at >= 0, `${file}: no .toast rule`);
+    return css.slice(at, css.indexOf('}', at)).replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+for (const file of ['artisan-app/css/dashboard.css', 'artisan-app/css/onboarding.css']) {
+    t(`${file}: one line when it fits, wraps within a 16px gutter, never nowrap`, () => {
+        const rule = toastRule(file);
+        assert.doesNotMatch(rule, /white-space:\s*nowrap/, 'nowrap runs a long message off-screen');
+        assert.match(rule, /width:\s*max-content/);
+        assert.match(rule, /max-width:\s*calc\(100vw - 32px\)/);
+        assert.match(rule, /box-sizing:\s*border-box/, 'the padding stays inside the cap');
+        assert.match(rule, /text-align:\s*center/);
+    });
+}
+
+t('the shared toast (toast.js) is untouched: it already wraps inside its gutter', () => {
+    const js = read('shared/js/components/toast.js');
+    assert.match(js, /width: min\(92vw, 400px\);/);
+});
+
 console.log(`\nartisan-polish: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 4).join('\n    ') : e}`);
 process.exit(failed ? 1 : 0);

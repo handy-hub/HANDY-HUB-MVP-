@@ -458,7 +458,10 @@ body {
   padding: var(--ds-3) var(--ds-5); border-radius: var(--ds-r-pill);
   font: 600 13px/1.3 var(--ds-font); opacity: 0;
   transition: opacity var(--ds-t-base), transform var(--ds-t-base) var(--ds-ease);
-  z-index: 999; white-space: nowrap; pointer-events: none; box-shadow: var(--ds-shadow-pop);
+  z-index: 999; pointer-events: none; box-shadow: var(--ds-shadow-pop);
+  /* One line when it fits; otherwise it wraps inside a 16px gutter. nowrap ran
+     a long message off both edges of a phone screen (UI-006). */
+  box-sizing: border-box; width: max-content; max-width: calc(100vw - 32px); text-align: center;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
