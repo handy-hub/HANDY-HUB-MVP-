@@ -4,6 +4,7 @@
  * 28 Oct audit, run against the page's own code.
  *
  *   STATE-001  The selected tab was lost on reload or return.
+ *   FORM-001   The quote form disabled Send without saying why.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -55,6 +56,49 @@ await t('switching tab writes ?tab= with replaceState, keeping other parameters'
 await t('the one-time auto-tab yields to a tab the URL already names', () => {
     const block = page.slice(page.indexOf('if (!_autoTabDone) {'), page.indexOf('openQuoteFromDeepLink();'));
     assert.match(block, /const target = REQUESTED_TAB \? REQUESTED_TAB\s*: pending\.length \? 'pending'/);
+});
+
+console.log('\n── FORM-001 · the quote form says why Send is off ──\n');
+
+const { validateQuoteInput } = require(path.join(__dirname, '..', 'functions', 'shared', 'quoteMoney.js'));
+
+/** The page's own readQuoteInput + recalcQuote over a stub DOM. */
+function quoteSheet() {
+    const els = {};
+    const el = (id) => (els[id] = els[id] || { id, value: '', textContent: '', disabled: false });
+    for (const id of ['qs-labour', 'qs-note', 'qs-s-labour', 'qs-s-mats', 'qs-s-total', 'qs-submit', 'qs-msg']) el(id);
+    const src = page.slice(page.indexOf('function readQuoteInput() {'), page.indexOf('window.recalcQuote = recalcQuote;'));
+    // eslint-disable-next-line no-new-func
+    const recalc = new Function('document', 'validateQuoteInput', '_needsMaterials', `${src}; return recalcQuote;`)(
+        { getElementById: (id) => el(id), querySelectorAll: () => [] }, validateQuoteInput, false);
+    return { set: (v) => { els['qs-labour'].value = v; recalc(); }, msg: () => els['qs-msg'].textContent, off: () => els['qs-submit'].disabled };
+}
+
+await t('an untouched form says nothing, though Send is off', () => {
+    const q = quoteSheet(); q.set('');
+    assert.strictEqual(q.off(), true);
+    assert.strictEqual(q.msg(), '');
+});
+await t('an invalid amount says why, in the validator\'s own words', () => {
+    const q = quoteSheet(); q.set('0');
+    assert.strictEqual(q.off(), true);
+    assert.strictEqual(q.msg(), 'Labour cost must be greater than 0.');
+    q.set('abc');
+    assert.ok(q.msg().length > 0, 'a non-number is explained too');
+});
+await t('a valid quote clears the reason and enables Send', () => {
+    const q = quoteSheet(); q.set('0'); q.set('150');
+    assert.strictEqual(q.off(), false);
+    assert.strictEqual(q.msg(), '');
+});
+await t('the sheet has a polite live region above Send', () => {
+    assert.match(page, /<p id="qs-msg" class="qs-msg" role="status" aria-live="polite"><\/p>\s*<button id="qs-submit"/);
+});
+await t('job.html\'s composer (shared/js/ui/quoteComposer.js) does the same', () => {
+    const c = fs.readFileSync(path.join(__dirname, '..', 'shared', 'js', 'ui', 'quoteComposer.js'), 'utf8');
+    assert.match(c, /<p id="qc-msg" class="qc-msg" role="status" aria-live="polite"><\/p>\s*<button type="button" id="qc-submit"/);
+    const recalc = c.slice(c.indexOf('function recalc() {'), c.indexOf('function setMaterials('));
+    assert.match(recalc, /\$\('qc-msg'\)\.textContent = \(!checked\.ok && touched\) \? checked\.message : '';/);
 });
 
 console.log(`\nartisan-jobs-page: ${passed} passed, ${failed} failed`);

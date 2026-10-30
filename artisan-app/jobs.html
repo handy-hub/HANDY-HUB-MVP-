@@ -152,6 +152,8 @@
     .qs-submit { width:100%;height:52px;border-radius:var(--ds-r-control);border:none;background:var(--ds-brand-500);color:#fff;font:800 15px/1 var(--ds-font);cursor:pointer;transition:opacity .15s,background .15s; }
     .qs-submit:active:not(:disabled) { background:var(--ds-brand-600); }
     .qs-submit:disabled { opacity:.55;cursor:default; }
+    .qs-msg { margin:0 0 10px; min-height:1.2em; font:500 13px/1.4 var(--ds-font); color:var(--ds-danger); }
+    .qs-msg:empty { display:none; }
     .job-countdown { align-self:center;margin-left:auto;font:700 12px/1 var(--ds-font);color:var(--ds-danger,#C2362F);font-variant-numeric:tabular-nums;white-space:nowrap; }
   </style>
 </head>
@@ -246,6 +248,7 @@
     <textarea id="qs-note" class="qs-note" placeholder="e.g. Price may vary if additional parts are needed…" maxlength="300"></textarea>
   </div>
 
+  <p id="qs-msg" class="qs-msg" role="status" aria-live="polite"></p>
   <button id="qs-submit" class="qs-submit" onclick="submitQuote()">Send Quote to Customer</button>
 </div>
 
@@ -944,6 +947,13 @@ function recalcQuote() {
   document.getElementById('qs-s-mats').textContent   = q ? q.materialsCost.toFixed(2) : '—';
   document.getElementById('qs-s-total').textContent  = q ? q.jobQuote.toFixed(2)      : '—';
   document.getElementById('qs-submit').disabled      = !q;
+  // Say WHY Send is off (audit FORM-001) — the reason used to surface only on
+  // a submit that the disabled button could never make. Nothing is said until
+  // the artisan has typed something: an empty form is not an error.
+  const input   = readQuoteInput();
+  const touched = input.labourCost !== '' ||
+                  input.materials.some(m => m.name || m.qty || m.unitPrice);
+  document.getElementById('qs-msg').textContent = (!checked.ok && touched) ? checked.message : '';
 }
 window.recalcQuote = recalcQuote;
 

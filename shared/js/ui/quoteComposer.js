@@ -85,6 +85,7 @@ export function mountQuoteComposer(opts = {}) {
                     placeholder="e.g. price may change if extra parts are needed"></textarea>
         </div>
 
+        <p id="qc-msg" class="qc-msg" role="status" aria-live="polite"></p>
         <button type="button" id="qc-submit" class="qc-submit" disabled>Send quote to customer</button>
         ${onCancel ? '<button type="button" id="qc-cancel" class="qc-cancel">Cancel</button>' : ''}
       </div>`;
@@ -124,6 +125,12 @@ export function mountQuoteComposer(opts = {}) {
         $('qc-s-mat').textContent = q ? money(q.materialsCost) : '—';
         $('qc-s-tot').textContent = q ? money(q.jobQuote) : '—';
         $('qc-submit').disabled = !q || busy;
+        // Say WHY Send is off (audit FORM-001), once the artisan has typed
+        // something — an empty form is not an error.
+        const input   = readInput();
+        const touched = input.labourCost !== '' ||
+                        input.materials.some(m => m.name || m.qty || m.unitPrice);
+        $('qc-msg').textContent = (!checked.ok && touched) ? checked.message : '';
     }
 
     function setMaterials(yes) {
@@ -240,6 +247,8 @@ export function quoteComposerStyles() {
     .qc-submit { width:100%; height:52px; border:none; border-radius:14px; background: var(--ds-brand-500, #F97316);
                  color:#fff; font:800 15.5px/1 var(--ds-font, inherit); cursor:pointer; }
     .qc-submit:disabled { opacity:.5; cursor:default; }
+    .qc-msg { margin:0 0 10px; font:500 13px/1.4 var(--ds-font); color:var(--ds-danger); }
+    .qc-msg:empty { display:none; }
     .qc-cancel { width:100%; height:44px; margin-top:8px; border:none; background:none;
                  font:700 14px/1 var(--ds-font, inherit); color: var(--ds-ink-3, #8A93A6); cursor:pointer; }`;
 }
