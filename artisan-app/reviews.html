@@ -50,6 +50,11 @@
     .rv-card-right { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; }
     .rv-card-stars { display:flex; gap:1px; }
     .rv-cs { font-size:13px; }
+    /* A star filled to the rating's fraction (UI-010): the empty star, with the
+       filled one laid over it and clipped to the fraction's width. */
+    .rv-star { position:relative; display:inline-block; line-height:1; }
+    .rv-star-bg { color:var(--border); }
+    .rv-star-fill { position:absolute; top:0; left:0; bottom:0; overflow:hidden; white-space:nowrap; color:var(--primary); }
     .rv-card-time { font-size:10.5px; color:var(--text-light); }
     .rv-comment { font-size:13px; color:var(--text-mid); line-height:1.55; margin:0; padding:10px 12px; background:var(--surface-2); border-radius:10px; font-style:italic; }
 
@@ -147,6 +152,7 @@ import '../shared/js/utils/global-app.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
 import { mountInstantView }   from '../shared/js/services/instantView.js';
+import { serviceLabel }       from '../shared/js/domain/bookingTruth.js';
 
 const { user } = await requireArtisanAuth({ allowPending: true });
 const { services: { databaseService } } = getAppContainer();
@@ -160,10 +166,16 @@ const emptyEl  = document.getElementById('rv-empty');
 const sumEl    = document.getElementById('rv-summary');
 const sumSkelEl = document.getElementById('rv-sum-skel');
 
+/** Five stars filled to the exact rating — 4.4 shows four and two-fifths, not
+ *  four (rounded down) or five (rounded up) — and read out as the number. */
 function stars(rating, size = 14) {
-  return [1,2,3,4,5].map(i =>
-    `<i class="fa-solid fa-star rv-cs" style="font-size:${size}px;color:${i <= Math.round(rating) ? '#F97316' : '#D1D5DB'};"></i>`
-  ).join('');
+  const r = Math.max(0, Math.min(5, Number(rating) || 0));
+  const row = [1,2,3,4,5].map(i => {
+    const fill = Math.round(Math.max(0, Math.min(1, r - (i - 1))) * 100);
+    return `<span class="rv-star" style="font-size:${size}px"><i class="fa-solid fa-star rv-star-bg"></i>` +
+           `<span class="rv-star-fill" style="width:${fill}%"><i class="fa-solid fa-star"></i></span></span>`;
+  }).join('');
+  return `<span role="img" aria-label="${r.toFixed(1)} out of 5 stars" style="display:inline-flex;gap:inherit">${row}</span>`;
 }
 
 function timeAgo(iso) {
@@ -230,7 +242,7 @@ function renderList(reviews) {
         <div class="rv-av">${initials(name)}</div>
         <div class="rv-card-info">
           <p class="rv-reviewer">${esc(name)}</p>
-          <p class="rv-service">${esc(d.serviceType || d.service || 'Service')}</p>
+          <p class="rv-service">${esc(serviceLabel(d.serviceType || d.service) || 'Service')}</p>
         </div>
         <div class="rv-card-right">
           <div class="rv-card-stars">${Number.isFinite(Number(d.rating)) && Number(d.rating) > 0

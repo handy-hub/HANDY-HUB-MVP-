@@ -71,6 +71,46 @@ t('the shared toast (toast.js) is untouched: it already wraps inside its gutter'
     assert.match(js, /width: min\(92vw, 400px\);/);
 });
 
+console.log('\n── UI-010 · trades named by serviceLabel; stars filled to the rating ──\n');
+
+t('reviews: stars() fills each star to the rating\'s fraction and reads out the number', () => {
+    const html = read('artisan-app/reviews.html');
+    const src = /function stars\(rating, size = 14\) \{[\s\S]*?\n\}/.exec(html);
+    assert.ok(src, 'stars()');
+    // eslint-disable-next-line no-new-func
+    const stars = new Function(`${src[0]}\nreturn stars;`)();
+    const fills = (r) => [...stars(r).matchAll(/rv-star-fill" style="width:(\d+)%"/g)].map((m) => Number(m[1]));
+    assert.deepStrictEqual(fills(4.4), [100, 100, 100, 100, 40]);
+    assert.deepStrictEqual(fills(4.5), [100, 100, 100, 100, 50]);
+    assert.deepStrictEqual(fills(5),   [100, 100, 100, 100, 100]);
+    assert.deepStrictEqual(fills(0),   [0, 0, 0, 0, 0]);
+    assert.deepStrictEqual(fills(7),   [100, 100, 100, 100, 100], 'clamped');
+    assert.match(stars(4.4), /role="img" aria-label="4\.4 out of 5 stars"/);
+    assert.doesNotMatch(html, /Math\.round\(rating\)/, 'the rounded stars are gone');
+});
+
+t('reviews and profile name the trade with serviceLabel', () => {
+    const reviews = read('artisan-app/reviews.html');
+    assert.match(reviews, /import \{ serviceLabel \}\s+from '\.\.\/shared\/js\/domain\/bookingTruth\.js';/);
+    assert.match(reviews, /esc\(serviceLabel\(d\.serviceType \|\| d\.service\) \|\| 'Service'\)/);
+    const profile = read('artisan-app/profile.html');
+    assert.match(profile, /import \{ serviceLabel \}\s+from '\.\.\/shared\/js\/domain\/bookingTruth\.js';/);
+    assert.match(profile, /const trade = serviceLabel\(d\.category\) \|\| '', spec = serviceLabel\(d\.specialty\) \|\| '';/);
+});
+
+t('serviceLabel: stored ids become labels, typed text is kept', () => {
+    const src = read('shared/js/domain/bookingTruth.js');
+    const block = src.slice(src.indexOf('function text(v)'), src.indexOf('const norm ='))
+        .replace(/^export /gm, '');
+    // eslint-disable-next-line no-new-func
+    const serviceLabel = new Function(`${block}\nreturn serviceLabel;`)();
+    assert.strictEqual(serviceLabel('plumbing'), 'Plumbing');
+    assert.strictEqual(serviceLabel('ac-repair'), 'AC Repair');
+    assert.strictEqual(serviceLabel('ac'), 'AC Repair');
+    assert.strictEqual(serviceLabel('Borehole pump repair'), 'Borehole pump repair');
+    assert.strictEqual(serviceLabel(''), null);
+});
+
 console.log(`\nartisan-polish: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 4).join('\n    ') : e}`);
 process.exit(failed ? 1 : 0);
