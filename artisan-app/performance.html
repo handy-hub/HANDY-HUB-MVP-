@@ -28,6 +28,7 @@
 
     /* Score cards */
     .pf-score-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+    .pf-group-label { font-size:11px; font-weight:700; color:var(--text-light); text-transform:uppercase; letter-spacing:.6px; margin:0 0 8px; }
     .pf-score-card { background:var(--surface); border-radius:var(--radius-md); padding:16px; box-shadow:var(--shadow-sm); }
     .pf-sc-label { font-size:11.5px; font-weight:600; color:var(--text-light); margin:0 0 6px; }
     .pf-sc-value { font-size:26px; font-weight:800; color:var(--text-dark); margin:0 0 4px; line-height:1; }
@@ -111,8 +112,12 @@
     <!-- Content (hidden until loaded) -->
     <div id="pf-content" style="display:none;">
 
-      <!-- Stat cards -->
+      <!-- Stat cards: what the selected period covers, then what never changes
+           with it (IA-004 — the two used to sit mixed in one grid). -->
+      <p class="pf-group-label" id="pf-period-label">This week</p>
       <div class="pf-score-grid" id="pf-score-grid"></div>
+      <p class="pf-group-label">Lifetime</p>
+      <div class="pf-score-grid" id="pf-lifetime-grid"></div>
 
       <!-- Level card -->
       <div class="pf-level-card" id="pf-level-card"></div>
@@ -146,6 +151,7 @@ let _bookings = [];
 let _reviews  = [];
 let _artisan  = {};
 let _period   = 'week';
+const PERIOD_LABEL = { week: 'This week', month: 'This month', year: 'This year', all: 'All time' };
 
 // ── Period filter ──────────────────────────────────────
 function periodStart(period) {
@@ -211,19 +217,24 @@ function render() {
     ? { pct: Math.round(cs.rate * 100), sub: `${cs.completed} completed, ${cs.cancelledByArtisan} cancelled by you` }
     : { pct: null, sub: `Shown after ${COMPLETION_RATE_POLICY.minEnded} finished jobs (${cs.ended} so far). Cancellations by customers don't count.` };
 
-  // Score cards
-  document.getElementById('pf-score-grid').innerHTML = [
-    { label:'Jobs Done',  value:jobs,                icon:ICON.clipboard, unit:'',     delta: jobs > 0 ? '+' + jobs : '0 this period' },
-    { label:'Earned',     value:earned, icon:ICON.wallet, unit:'', delta: 'all time, after commission' },
-    { label:'Avg Rating', value:periodRating > 0 ? periodRating.toFixed(1) : '—', icon:ICON.star, unit:'', delta: filteredRevs.length + ' review' + (filteredRevs.length !== 1 ? 's' : '') },
-    { label:'Total Jobs', value:allJobs,             icon:ICON.medal, unit:'all-time', delta: 'lifetime completed' },
-  ].map(s => `
+  // Score cards, in two groups (IA-004): the selected period's, then the
+  // lifetime figures that the period buttons never change.
+  const card = (s) => `
     <div class="pf-score-card">
       <div class="pf-sc-icon">${s.icon}</div>
       <p class="pf-sc-label">${s.label}</p>
       <p class="pf-sc-value">${s.value}</p>
       <p class="pf-sc-delta flat">${s.delta}</p>
-    </div>`).join('');
+    </div>`;
+  document.getElementById('pf-period-label').textContent = PERIOD_LABEL[_period] || 'This period';
+  document.getElementById('pf-score-grid').innerHTML = [
+    { label:'Jobs Done',  value:jobs,                icon:ICON.clipboard, delta: jobs > 0 ? '+' + jobs : '0 this period' },
+    { label:'Avg Rating', value:periodRating > 0 ? periodRating.toFixed(1) : '—', icon:ICON.star, delta: filteredRevs.length + ' review' + (filteredRevs.length !== 1 ? 's' : '') },
+  ].map(card).join('');
+  document.getElementById('pf-lifetime-grid').innerHTML = [
+    { label:'Earned',     value:earned,              icon:ICON.wallet, delta: 'after commission' },
+    { label:'Total Jobs', value:allJobs,             icon:ICON.medal,  delta: 'completed' },
+  ].map(card).join('');
 
   // Level card
   const level = getLevel(allJobs);
