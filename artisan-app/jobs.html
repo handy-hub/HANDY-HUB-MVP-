@@ -24,6 +24,11 @@
     .jobs-shell { max-width: var(--ds-shell); margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; background: var(--ds-bg); }
     .jobs-header { background: var(--ds-surface); padding: var(--ds-3) var(--ds-gutter) 0; border-bottom: 1px solid var(--ds-line); flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
     .jobs-header-row { display: flex; align-items: center; gap: var(--ds-3); margin-bottom: var(--ds-3); }
+    /* The four tabs (with their counts) scrolled sideways with no visible
+       scrollbar, so on phones up to ~420px the last tab was cut off unseen
+       (audit RESP-001). They wrap onto a second row instead — only when they
+       do not fit, so wide screens are unchanged. */
+    .jobs-header .ui-tabs { flex-wrap: wrap; overflow-x: visible; row-gap: var(--ds-2); }
     .jobs-back { width: 40px; height: 40px; border: 1px solid var(--ds-line); background: var(--ds-surface); border-radius: var(--ds-r-control); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
     .jobs-back svg { stroke: var(--ds-ink-2); }
     .jobs-title { font: 800 18px/1.2 var(--ds-font); letter-spacing: -0.3px; color: var(--ds-ink); flex: 1; }

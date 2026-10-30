@@ -5,6 +5,7 @@
  *
  *   FUNC-001  The "This Week" selector under Your Performance did nothing.
  *   COPY-003  (link only) The schedule's "View all" opened a tab that does not exist.
+ *   RESP-001  (dashboard) Quick Access was cut off on narrow phones.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -53,6 +54,15 @@ await t('every dashboard link into Jobs names a tab Jobs actually has', () => {
     const links = [...page.matchAll(/href="jobs\.html\?tab=([a-z]+)"/g)].map((m) => m[1]);
     assert.ok(links.length >= 2);
     for (const tab of links) assert.ok(tabs.includes(tab), `jobs.html?tab=${tab} — Jobs has ${tabs.join(', ')}`);
+});
+
+console.log('\n── RESP-001 · Quick Access fits a narrow phone ──\n');
+
+await t('on screens up to 400px Quick Access is a 3 + 2 grid, not a hidden sideways scroll', () => {
+    const rule = page.match(/@media \(max-width: 400px\) \{[\s\S]*?\.quick-access-row \{([^}]*)\}[\s\S]*?\.quick-item \{([^}]*)\}/);
+    assert.ok(rule, 'narrow-screen rule missing');
+    assert.match(rule[1], /display: grid; grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); overflow-x: visible;/);
+    assert.match(rule[2], /min-width: 0;/);
 });
 
 console.log(`\nartisan-dashboard-page: ${passed} passed, ${failed} failed`);

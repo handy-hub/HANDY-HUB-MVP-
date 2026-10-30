@@ -6,6 +6,7 @@
  *   STATE-001  The selected tab was lost on reload or return.
  *   FORM-001   The quote form disabled Send without saying why.
  *   UI-006     (jobs) The toast wrapped short messages onto 2–3 lines.
+ *   RESP-001   (jobs) The tabs were cut off on narrow phones.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -111,6 +112,12 @@ await t('the toast sizes to its text, within the 16px gutters, centred', () => {
     assert.match(rule, /text-align: center;/);
     assert.match(rule, /left: 50%; transform: translateX\(-50%\);/, 'still centred');
     assert.match(rule, /border-radius: var\(--ds-r-pill\);/, 'still a pill');
+});
+
+console.log('\n── RESP-001 · the tabs wrap instead of hiding off-screen ──\n');
+
+await t('the Jobs tabs wrap when they do not fit, never scroll unseen', () => {
+    assert.match(page, /\.jobs-header \.ui-tabs \{ flex-wrap: wrap; overflow-x: visible; row-gap: var\(--ds-2\); \}/);
 });
 
 console.log(`\nartisan-jobs-page: ${passed} passed, ${failed} failed`);

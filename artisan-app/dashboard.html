@@ -9,6 +9,15 @@
   <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
+  <style>
+    /* Quick Access scrolled sideways with its scrollbar hidden, so on a
+       320–400px phone the last items were cut off with nothing to say there
+       was more (audit RESP-001). Narrow screens get a 3 + 2 grid instead. */
+    @media (max-width: 400px) {
+      .quick-access-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow-x: visible; }
+      .quick-item { min-width: 0; }
+    }
+  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
