@@ -128,10 +128,18 @@ function createFakeFirestore() {
 // ── Module interception ───────────────────────────────────────────────────────
 const FN_DIR = path.join(__dirname, '..', 'functions');
 const FAKE_DB = createFakeFirestore();
-const paystackMock = { verifyCharge: null, initializeTransaction: null };
+const NOT_STUBBED = (name) => async () => { throw new Error(`paystack.${name} called without a test stub`); };
+const paystackMock = {
+    verifyCharge: null, initializeTransaction: null,
+    // Never the real client: a test that forgets to stub a charge fails loudly.
+    chargeMobileMoney: NOT_STUBBED('chargeMobileMoney'),
+    submitChargeOtp:   NOT_STUBBED('submitChargeOtp'),
+};
+const pinMock = { verifySecurityPinForCharge: async () => {} };
 
 const origLoad = Module._load;
 Module._load = function (request, parent, isMain) {
+    if (request === './securityPin') return { verifySecurityPinForCharge: (...a) => pinMock.verifySecurityPinForCharge(...a) };
     if (request === 'firebase-admin/firestore') {
         return { getFirestore: () => FAKE_DB, FieldValue: { increment: (n) => ({ __inc: n }) } };
     }
@@ -144,18 +152,22 @@ Module._load = function (request, parent, isMain) {
     return origLoad.apply(this, arguments);
 };
 
-// Load modules under test AFTER interception is installed.
-const topups   = require(path.join(FN_DIR, 'topups.js'));
-const wallets  = require(path.join(FN_DIR, 'financial', 'wallets.js'));
-
-// Patch the paystack module in cache so webhooks.js picks up our stubs.
+// Patch the paystack module in cache BEFORE anything that uses it loads, so
+// topups.js (which calls paystack.chargeMobileMoney through the module object)
+// and webhooks.js both get the stubs.
 const paystackPath = require.resolve(path.join(FN_DIR, 'financial', 'paystack.js'));
 const realPaystack = require(paystackPath);
 require.cache[paystackPath].exports = {
     ...realPaystack,
     verifyCharge:          (...a) => paystackMock.verifyCharge(...a),
     initializeTransaction: (...a) => paystackMock.initializeTransaction(...a),
+    chargeMobileMoney:     (...a) => paystackMock.chargeMobileMoney(...a),
+    submitChargeOtp:       (...a) => paystackMock.submitChargeOtp(...a),
 };
+
+// Load modules under test AFTER interception is installed.
+const topups   = require(path.join(FN_DIR, 'topups.js'));
+const wallets  = require(path.join(FN_DIR, 'financial', 'wallets.js'));
 
 const webhooks = require(path.join(FN_DIR, 'financial', 'webhooks.js'));
 
@@ -586,6 +598,155 @@ await test('verify rejects a malformed reference', async () => {
             () => topups.verifyTopupNow({ uid: 'v1' }, { reference: bad }),
             (e) => e.code === 'invalid-argument' || e.code === 'not-found',
         );
+    }
+});
+
+// ── 7. F-1 · a charge whose outcome is unknown stays PENDING ─────────────────
+// Paystack's reply did not arrive (timeout, network, 5xx): the charge MAY exist.
+// It used to be recorded as initialization_failed, the idempotency claim was
+// released, verifyTopupNow returned early on that status, and the customer was
+// told it failed — so a paying customer could pay twice. Now it stays pending
+// and the ONE settlement path (settleTopupByReference) decides.
+console.log('\nF-1 · an unknown charge outcome is pending, never failed');
+
+const F1_KEY = 'f1-key-0001';
+const unknownErr = () => Object.assign(new Error('Paystack POST /charge timed out after 20000 ms'), { outcome: 'unknown' });
+const rejectedErr = () => Object.assign(new Error('Invalid phone number'), { outcome: 'rejected', httpStatus: 400 });
+let chargeCalls = 0, lastRef = null;
+function stubCharge(impl) {
+    chargeCalls = 0; lastRef = null;
+    paystackMock.chargeMobileMoney = async (args) => { chargeCalls++; lastRef = args.reference; return impl(args); };
+}
+const startCharge = (uid, key = F1_KEY) => topups.initiateTopupCharge(
+    { uid, token: { email: `${uid}@example.com` } },
+    { amount: 50, pin: '1234', provider: 'mtn', phone: '0551234567', idempotencyKey: key });
+async function f1Pending(uid) {
+    FAKE_DB._reset();
+    await seedCustomer(uid, 0);
+    stubCharge(() => { throw unknownErr(); });
+    return startCharge(uid);
+}
+
+await test('unknown outcome → intent pending, claim kept, customer told we are confirming, nothing credited', async () => {
+    const r = await f1Pending('f1a');
+    assert.strictEqual(r.confirming, true);
+    assert.strictEqual(r.chargeStatus, 'unknown');
+    const intent = await getDoc('topupIntents', r.reference);
+    assert.strictEqual(intent.status, 'pending', 'never initialization_failed');
+    assert.strictEqual(intent.credited, false);
+    assert.strictEqual(intent.initiationUncertain, true);
+    assert.ok(await getDoc('topupIdempotency', `f1a_${F1_KEY}`), 'the idempotency claim is retained');
+    assert.strictEqual((await getDoc('customers', 'f1a')).walletBalance, 0);
+});
+
+await test('unknown → pending, then the webhook says success → exactly ONE credit', async () => {
+    const r = await f1Pending('f1b');
+    paystackMock.verifyCharge = async () => ({ status: 'success', amount: 5000, currency: 'GHS' });
+    const req = () => signedRequest({ event: 'charge.success', data: { reference: r.reference, metadata: {} } });
+    await webhooks.handlePaystackWebhook(req(), fakeRes());
+    await webhooks.handlePaystackWebhook(req(), fakeRes());              // Paystack redelivers
+    const v = await topups.verifyTopupNow({ uid: 'f1b' }, { reference: r.reference });   // and the app asks
+    await drain();
+    assert.strictEqual((await getDoc('customers', 'f1b')).walletBalance, 50, 'credited once, not three times');
+    assert.strictEqual(v.status, 'successful');
+    const intent = await getDoc('topupIntents', r.reference);
+    assert.strictEqual(intent.status, 'successful');
+    assert.strictEqual(intent.credited, true);
+});
+
+await test('unknown → pending, then verify finds Paystack failed → failed, no credit', async () => {
+    const r = await f1Pending('f1c');
+    paystackMock.verifyCharge = async () => ({ status: 'failed', amount: 5000, currency: 'GHS' });
+    const v = await topups.verifyTopupNow({ uid: 'f1c' }, { reference: r.reference });
+    assert.strictEqual(v.status, 'failed');
+    assert.strictEqual(v.credited, false);
+    assert.strictEqual((await getDoc('topupIntents', r.reference)).status, 'failed');
+    assert.strictEqual((await getDoc('customers', 'f1c')).walletBalance, 0);
+});
+
+await test('unknown → pending, a retry with the same idempotency key opens NO second charge', async () => {
+    const r1 = await f1Pending('f1d');
+    const r2 = await startCharge('f1d');
+    assert.strictEqual(chargeCalls, 1, 'Paystack was asked to charge exactly once');
+    assert.strictEqual(r2.reference, r1.reference);
+    assert.strictEqual(r2.replayed, true);
+    assert.strictEqual(r2.confirming, true, 'the replay still says we are confirming');
+});
+
+await test('unknown → pending, verify while Paystack has no record yet (404) → stays pending, no credit', async () => {
+    const r = await f1Pending('f1e');
+    paystackMock.verifyCharge = async () => { throw Object.assign(new Error('Transaction reference not found'), { outcome: 'rejected', httpStatus: 404 }); };
+    const v = await topups.verifyTopupNow({ uid: 'f1e' }, { reference: r.reference });
+    assert.strictEqual(v.status, 'pending');
+    assert.strictEqual(v.credited, false);
+    assert.strictEqual((await getDoc('topupIntents', r.reference)).status, 'pending');
+    assert.strictEqual((await getDoc('customers', 'f1e')).walletBalance, 0);
+});
+
+await test('unknown → pending, verify while the customer is still approving → pending', async () => {
+    const r = await f1Pending('f1f');
+    paystackMock.verifyCharge = async () => ({ status: 'ongoing', amount: 5000, currency: 'GHS' });
+    const v = await topups.verifyTopupNow({ uid: 'f1f' }, { reference: r.reference });
+    assert.strictEqual(v.status, 'pending');
+    assert.strictEqual((await getDoc('topupIntents', r.reference)).status, 'pending');
+});
+
+await test('a definite Paystack rejection → initialization_failed, claim released, as before', async () => {
+    FAKE_DB._reset();
+    await seedCustomer('f1g', 0);
+    stubCharge(() => { throw rejectedErr(); });
+    await throwsAsync(() => startCharge('f1g'), (e) => e.code === 'unavailable');
+    const intent = await getDoc('topupIntents', lastRef);
+    assert.ok(intent, 'the intent exists');
+    assert.strictEqual(intent.status, 'initialization_failed');
+    assert.strictEqual(await getDoc('topupIdempotency', `f1g_${F1_KEY}`), undefined, 'the claim is released');
+    assert.strictEqual((await getDoc('customers', 'f1g')).walletBalance, 0);
+});
+
+await test('an error raised before any request was sent (no outcome) → initialization_failed', async () => {
+    FAKE_DB._reset();
+    await seedCustomer('f1h', 0);
+    stubCharge(() => { throw new Error('chargeMobileMoney: amountPesewas must be a positive integer.'); });
+    await throwsAsync(() => startCharge('f1h'), (e) => e.code === 'unavailable');
+    assert.strictEqual((await getDoc('topupIntents', lastRef)).status, 'initialization_failed');
+});
+
+await test('a normal charge is untouched: pending with Paystack\'s own status, not "confirming"', async () => {
+    FAKE_DB._reset();
+    await seedCustomer('f1i', 0);
+    stubCharge(() => ({ status: 'pay_offline', display_text: 'Approve on your phone' }));
+    const r = await startCharge('f1i');
+    assert.strictEqual(r.chargeStatus, 'pay_offline');
+    assert.ok(!r.confirming);
+    assert.strictEqual((await getDoc('topupIntents', r.reference)).status, 'pending');
+});
+
+// ── The customer screen: a pending charge is never "not charged" + Try Again ──
+const topupSrc = require('fs').readFileSync(path.join(__dirname, '..', 'customer-app', 'js', 'pages', 'topupPage.js'), 'utf8');
+const sheetSrc = require('fs').readFileSync(path.join(__dirname, '..', 'shared', 'js', 'components', 'financialAuthorizationSheet.js'), 'utf8');
+
+await test('topupPage: an uncertain charge says we are confirming', () => {
+    assert.match(topupSrc, /if \(init\.confirming\) \{\s*api\.setState\('waiting', \{ hint: "We're confirming your payment/);
+});
+await test('topupPage: no timeout path offers a new-key retry while the intent is pending', () => {
+    assert.ok(!/setState\('timed_out'/.test(topupSrc), "the timed_out state (Try Again → a new charge) is never set");
+    assert.ok(!/setState\('unreachable'/.test(topupSrc), 'nor unreachable');
+    assert.match(topupSrc, /timer = setTimeout\(\(\) => \{\s*if \(!settled && api\.getState\(\) !== 'confirmed'\) api\.setState\('approved', STILL_CONFIRMING\);/);
+    assert.match(topupSrc, /action:\s+'Close'/);
+    assert.match(topupSrc, /Please don't pay again/);
+    // 'approved' is not a retry state in the sheet: its button closes.
+    assert.match(sheetSrc, /currentState === 'failed' \|\| currentState === 'timed_out' \|\| currentState === 'unreachable'\) \{\s*if \(typeof onRetry === 'function'\) onRetry\(api\);/);
+    assert.ok(!/currentState === 'approved'[^\n]*onRetry/.test(sheetSrc));
+});
+await test('topupPage: "failed" (with Try Again) is shown only for server-confirmed non-charges', () => {
+    // Every setState('failed') sits behind a confirmed status: the verify result,
+    // the intent document, or Paystack's own charge status.
+    const lines = topupSrc.split('\n');
+    const at = lines.map((l, i) => (/setState\('failed'\)/.test(l) ? i : -1)).filter((i) => i >= 0);
+    assert.ok(at.length >= 3);
+    for (const i of at) {
+        const ctx = lines.slice(Math.max(0, i - 8), i + 1).join('\n');
+        assert.match(ctx, /'failed'|initialization_failed|abandoned/, `setState('failed') at line ${i + 1} without a confirmed status`);
     }
 });
 
