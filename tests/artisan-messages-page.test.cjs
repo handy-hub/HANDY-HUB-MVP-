@@ -5,6 +5,7 @@
  *
  *   NAV-002  Back from an open conversation left Messages entirely.
  *   MSG-001  Every conversation was named "Customer".
+ *   MSG-UI-001  The inbox header painted over the open thread's header.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -133,6 +134,20 @@ await t('both apps pass the name when they create a thread; nothing reads custom
     assert.match(cust, /customerFirstName: _bookingCtx\.customerFirstName,/);
     assert.match(cust, /getOrCreateDirectChat\(uid, artisanId, \{ customerFirstName: ownName \}\)/);
     assert.match(cust, /customerRepository\.getById\(uid\)/, 'the customer reads only their OWN profile');
+});
+
+console.log('\n── MSG-UI-001 · the open thread paints above the inbox header ──\n');
+
+await t('.ms-chat has a z-index above .ms-top (browser check: tests/e2e/messages_thread_stacking.py)', () => {
+    const z = (sel) => {
+        const rule = page.match(new RegExp(`\.${sel} \{[^}]*\}`));
+        assert.ok(rule, `.${sel} rule not found`);
+        const m = rule[0].match(/z-index:\s*(\d+)/);
+        return m ? Number(m[1]) : null;
+    };
+    const top = z('ms-top'), chat = z('ms-chat');
+    assert.ok(top !== null, '.ms-top keeps its z-index');
+    assert.ok(chat !== null && chat > top, `.ms-chat z-index ${chat} must exceed .ms-top's ${top}`);
 });
 
 console.log(`\nartisan-messages-page: ${passed} passed, ${failed} failed`);

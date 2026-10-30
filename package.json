@@ -73,6 +73,7 @@
     "test:notification-mark-all": "node tests/notification-mark-all.test.cjs",
     "test:artisan-messages-page": "node tests/artisan-messages-page.test.cjs",
     "test:artisan-dashboard-page": "node tests/artisan-dashboard-page.test.cjs",
+    "test:messages-stacking-e2e": "python tests/e2e/messages_thread_stacking.py",
     "test:availability-e2e": "python tests/e2e/artisan_availability.py",
     "test:escrow-auth": "node tests/escrow-authorization.test.cjs",
     "test:payouts": "node tests/payout-integrity.test.cjs",
