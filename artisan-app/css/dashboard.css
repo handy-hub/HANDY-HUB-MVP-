@@ -290,10 +290,6 @@ body {
   font: 700 11px/1 var(--ds-font); letter-spacing: 0.2px;
   height: 22px; padding-inline: var(--ds-2); border-radius: var(--ds-r-pill);
 }
-.pill-accepted    { background: var(--ds-brand-50);   color: var(--ds-brand-700); }
-.pill-en_route    { background: var(--ds-info-bg);    color: var(--ds-info); }
-.pill-in_progress { background: var(--ds-success-bg); color: var(--ds-success); }
-.pill-awaiting    { background: var(--ds-warning-bg); color: var(--ds-warning); }
 .active-job-title { font: 700 15px/1.3 var(--ds-font); color: var(--ds-ink); margin-bottom: 3px; }
 .active-job-meta {
   font: 500 12px/1.3 var(--ds-font); color: var(--ds-ink-3);
@@ -355,9 +351,6 @@ body {
   font: 700 11px/1 var(--ds-font); padding: 4px 9px;
   border-radius: var(--ds-r-pill); flex-shrink: 0;
 }
-.status-upcoming { background: var(--ds-brand-50);   color: var(--ds-brand-700); }
-.status-progress { background: var(--ds-success-bg); color: var(--ds-success); }
-.status-pending  { background: var(--ds-warning-bg); color: var(--ds-warning); }
 
 /* ── Performance card ──────────────────────────────────────────────────── */
 .performance-card {

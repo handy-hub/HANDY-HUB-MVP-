@@ -89,6 +89,11 @@ await t('the dashboard and Jobs both load it; Jobs keeps no pill palette of its 
     const dashCss = page.indexOf('href="css/dashboard.css"'), pills = page.indexOf('booking-pill.css');
     assert.ok(dashCss > -1 && pills > dashCss, 'loaded after dashboard.css, so it wins');
 });
+await t('css/dashboard.css keeps no pill or status-chip palette of its own (UI-003 cleanup)', () => {
+    const css = read('artisan-app/css/dashboard.css');
+    assert.ok(!/^\s*\.pill-[a-z_]+\s*\{/m.test(css), 'a .pill-* rule is back in dashboard.css');
+    assert.ok(!/\.status-(upcoming|progress|pending)\s*\{/.test(css), 'a hand-coloured status chip rule is back');
+});
 await t("the schedule chip is coloured by the status's tone, not a hand-written check", () => {
     assert.match(page, /const statusClass = sm\.pillCls;/);
     assert.ok(!/d\.status === 'accepted' \? 'status-upcoming'/.test(page));
