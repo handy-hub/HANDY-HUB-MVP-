@@ -1090,6 +1090,19 @@ async function submitApplication() {
       }, { merge: true });
     }
 
+    // 2a″. Phone and email (CONTACT-001): the artisan's private contact record,
+    // readable by the artisan and admins only. Never on the public profile below,
+    // which every signed-in account can read; a customer gets the phone only
+    // inside a booking's window.
+    // Only well-formed values: firestore.rules refuse an invalid email, and a
+    // refused write here would stop the whole submission.
+    await databaseService.setDocument(`artisans/${uid}/private`, 'contact', {
+      artisanId: uid,
+      ...(phone ? { phone: phone.slice(0, 32) } : {}),
+      ...(/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(email) ? { email: email.slice(0, 254) } : {}),
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+
     // 2b. Public profile (merge — preserves registration fields like walletBalance)
     // NOTE: Financial/reputation fields (rating, reviewCount, jobsCompleted, totalEarned,
     //       availableBalance, pendingBalance) are intentionally OMITTED here — they were
@@ -1098,12 +1111,11 @@ async function submitApplication() {
       // Core identity (must always be present for Firestore rules validation)
       id:        uid,
       name:      `${firstName} ${lastName}`,
-      email,
       userType:  'artisan',
       status:    'pending',
       // Personal details. Date of birth, residential address and Ghana Post GPS
-      // code are in the private record (2a), not here.
-      phone,
+      // code are in the private record (2a), not here; phone and email in
+      // private/contact (2a″).
       gender,
       // Work-location coordinates, COARSE (~1 km). Dispatch matches on the
       // precise pin in private/location (2a′); syncArtisanIndex reads that and

@@ -889,12 +889,9 @@
             </svg>
             Reviews
           </button>
-          <button class="hero-icon-btn" id="hero-call-btn" aria-label="Call artisan">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.59 1.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
-                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </button>
+          <!-- No Call button (CONTACT-001): an artisan's phone is never shown to
+               someone browsing. A customer gets it inside a booking, once the
+               artisan has accepted; until then, Message. -->
           <button class="hero-icon-btn" id="hero-msg-btn" aria-label="Message artisan">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
@@ -914,10 +911,6 @@
       const artisan = a;
       document.getElementById('hero-reviews-btn')?.addEventListener('click', () => {
         document.getElementById('ap-body')?.scrollIntoView({ behavior: 'smooth' });
-      });
-      document.getElementById('hero-call-btn')?.addEventListener('click', () => {
-        if (artisan.phone) window.location.href = `tel:${artisan.phone}`;
-        else showToast('No phone number available');
       });
       document.getElementById('hero-msg-btn')?.addEventListener('click', () => {
         sessionStorage.setItem('hh_msg_artisan', JSON.stringify({ id: artisan.id, name: artisan.name }));
@@ -1046,7 +1039,6 @@
       jobsCompleted: a.jobsCompleted || 0,
       yearsExperience: a.yearsExperience || null,
       isAvailable:  Boolean(a.isAvailable),
-      phone:        a.phone        || null,
       profileImageId:      a.profileImageId      || null,
       profileImageVersion: a.profileImageVersion || null,
       profileImage:        a.profileImage        || null,

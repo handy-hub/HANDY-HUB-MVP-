@@ -416,6 +416,9 @@ const onBookingStatusChanged = onDocumentUpdated(
                 // Until the contact migration has copied a legacy profile's phone
                 // into private/contact, fall back to the public field — it is
                 // only ever written HERE, into the windowed private record.
+                // TRANSITION ONLY: once the contact STRIP migration has run, no
+                // public profile holds a phone and legacyPhone is always empty —
+                // this fallback is dead and can be removed then.
                 const cSnap = await db().collection('artisans').doc(artisanId)
                     .collection('private').doc('contact').get();
                 const legacyPhone  = aSnap.exists ? aSnap.data().phone : '';

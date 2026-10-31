@@ -915,7 +915,9 @@ body {
 
   /* ── State vars ── */
   let foundArtisan     = null;
-  let artisanPhone     = null;
+  let artisanPhone     = null;   // tel: link, only from the booking's private/artisanContact
+  let _contactDb       = null;
+  let _contactRef      = null;
   let artisanQueryDone = false;
   let etaSeconds       = 10 * 60;
   let etaInterval      = null;
@@ -1161,8 +1163,6 @@ body {
     const revs   = Number.isFinite(Number(d.reviewCount)) ? Math.max(0, Number(d.reviewCount)) : 0;
     const rating = revs > 0 && Number.isFinite(Number(d.rating)) && Number(d.rating) > 0
                      ? Number(d.rating).toFixed(1) : null;
-    artisanPhone = d.phone ? `tel:${d.phone}` : null;
-
     document.getElementById('em-con-name').textContent  = name;
     document.getElementById('em-con-role').textContent  = role;
     document.getElementById('em-con-stars').innerHTML = rating ? `<i class="fa-solid fa-star"></i> ${rating} (${revs} reviews)` : '<i class="fa-solid fa-star"></i> Verified';
@@ -1263,8 +1263,8 @@ body {
         id: bookRef, bookingId: bookRef,
         service: svcName + ' (Emergency)', services: [{name: svcName + ' (Emergency)'}],
         status: 'pending', type: 'emergency', isEmergency: true, artisanId,
-        artisan:      {id:artisanId, name:proName, type:proType, phone:d.phone||null, photo:_emPhoto(d)},
-        professional: {id:artisanId, uid:artisanId, name:proName, type:proType, phone:d.phone?`tel:${d.phone}`:null, photo:_emPhoto(d)},
+        artisan:      {id:artisanId, name:proName, type:proType, photo:_emPhoto(d)},
+        professional: {id:artisanId, uid:artisanId, name:proName, type:proType, photo:_emPhoto(d)},
         total: 0, ts: _now.toISOString(),
       }));
       const hist = JSON.parse(localStorage.getItem('hh_booking_history') || '[]');
@@ -1358,6 +1358,8 @@ body {
         const st = (snap.data.status || '').toLowerCase();
         if (st === 'accepted') {
           cleanupSubs();
+          _contactDb = db; _contactRef = bookRef;
+          loadArtisanContact(4);
           populateConfirmedState(artisan);
           showState('state-confirmed');
           setProgress(3);
@@ -1472,7 +1474,23 @@ body {
   }, 3500);
 
   /* ── Actions ── */
-  window.callPro = function () {
+  /* CONTACT-001: the artisan's phone is never on their public profile or the
+     booking. Once they accept, the server writes it to
+     bookings/{id}/private/artisanContact, which the rules let this customer
+     read. The trigger runs just after the status flips, so retry briefly. */
+  async function loadArtisanContact(tries) {
+    if (!_contactDb || !_contactRef) return null;
+    try {
+      const snap = await _contactDb.getDocument(`bookings/${_contactRef}/private`, 'artisanContact');
+      const p = snap && snap.exists && snap.data ? String(snap.data.artisanPhone || '').trim() : '';
+      if (p) { artisanPhone = 'tel:' + p; return artisanPhone; }
+    } catch (_) {}
+    if (tries > 1) { await new Promise(r => setTimeout(r, 2000)); return loadArtisanContact(tries - 1); }
+    return null;
+  }
+
+  window.callPro = async function () {
+    if (!artisanPhone) await loadArtisanContact(1);
     if (artisanPhone) { window.location.href = artisanPhone; return; }
     const btn = document.getElementById('em-call-btn');
     if (btn) { const o = btn.style.background; btn.style.background='#d4edda'; setTimeout(()=>{btn.style.background=o;},1500); }

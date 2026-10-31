@@ -156,7 +156,6 @@ export async function onBookingConfirmed(booking) {
             service:     booking.service,       // alias for display layer
             proName:     booking.proName     || '',
             proPhoto:    booking.proPhoto    || null,
-            proPhone:    booking.proPhone    || null,
             proRating:   booking.proRating   || null,
             proType:     booking.proType     || '',
             category:    booking.category    || '',

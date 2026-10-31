@@ -403,7 +403,14 @@ await t('verification is a status for an approved artisan, not a link into onboa
 await t('the payout account is shown masked and never edited from Settings', () => {
     const s = read('artisan-app/settings.html');
     assert.match(s, /digits\.slice\(-4\)/);
-    assert.ok(!/(update|set)Document\(`artisans\/\$\{user\.uid\}\/private`/.test(s));
+    // The payout record (private/kyc) is never written from Settings; the only
+    // private write is the phone, to private/contact (CONTACT-001).
+    assert.ok(!/(update|set)Document\(`artisans\/\$\{user\.uid\}\/private`,\s*'kyc'/.test(s), 'Settings writes private/kyc');
+    const privateWrites = s.match(/(update|set)Document\(`artisans\/\$\{user\.uid\}\/private`,\s*'[^']+'/g) || [];
+    assert.deepStrictEqual(privateWrites.map((w) => w.match(/'([^']+)'$/)[1]), ['contact'], "Settings' only private write is to contact");
+    for (const w of s.match(/(update|set)Document\([^;]*;/g) || []) {
+        assert.ok(!/payoutAccount|momoPhone|momoProvider|momoAccountName/.test(w), `a Settings write carries payout fields: ${w.slice(0, 80)}`);
+    }
 });
 
 await t('changing the password proves the current one first, and only for password accounts', () => {
@@ -443,7 +450,8 @@ await t('Profile is the professional profile; account controls have one home, in
     assert.match(pf, /if \(!locked\) \{\s*updates\.name/, 'verified claims written only while editable');
     const st = read('artisan-app/settings.html');
     assert.match(st, /id="phone-row"/);
-    assert.match(st, /const patch = \{ phone: raw, updatedAt: new Date\(\)\.toISOString\(\) \}/);
+    assert.match(st, /const patch = \{ artisanId: user\.uid, phone: raw, updatedAt: new Date\(\)\.toISOString\(\) \}/);
+    assert.match(st, /databaseService\.setDocument\(`artisans\/\$\{user\.uid\}\/private`, 'contact', patch, \{ merge: true \}\)/);
     assert.match(read('artisan-app/dashboard.html'), /profile\.html\?edit=area/, 'Edit Area opens the service area');
 });
 

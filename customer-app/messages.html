@@ -228,7 +228,7 @@ function otherParticipant(chatData) {
 async function resolveParticipant(otherUid) {
   if (PARTICIPANT_CACHE.has(otherUid)) return PARTICIPANT_CACHE.get(otherUid);
 
-  let info = { name: 'Fidus X User', photo: null, isOnline: false, phone: null };
+  let info = { name: 'Fidus X User', photo: null, isOnline: false };
   try {
     const a = await artisanRepository.getById(otherUid);
     if (a.exists) {
@@ -237,7 +237,6 @@ async function resolveParticipant(otherUid) {
         name: d.name || 'Professional',
         photo: d.profileImageId ? avatarUrl(d.profileImageId, '', d.profileImageVersion ?? null) : (d.profileImage || null),
         isOnline: d.isAvailable === true || d.isOnline === true,
-        phone: d.phone || null,
       };
       PARTICIPANT_CACHE.set(otherUid, info);
       return info;
@@ -252,7 +251,6 @@ async function resolveParticipant(otherUid) {
         name: d.name || 'Customer',
         photo: d.profileImageId ? avatarUrl(d.profileImageId, '', d.profileImageVersion ?? null) : null,
         isOnline: false,
-        phone: d.phone || null,
       };
     }
   } catch (e) { /* neither — keep default */ }
@@ -493,13 +491,26 @@ window.searchConversations = function(query) {
 };
 
 /* ── Helpers ── */
+/* CONTACT-001: an artisan's phone is never on their profile. It is disclosed
+   per booking, in bookings/{id}/private/artisanContact, which the rules let the
+   customer read only while that booking is live — so a call needs this
+   thread's booking context, and only for the artisan on that booking. */
 window.callConversation = async function() {
   if (!currentOtherUid) return;
-  const info = await resolveParticipant(currentOtherUid);
-  if (info.phone) {
-    window.location.href = 'tel:' + info.phone;
+  let phone = '';
+  if (_bookingCtx && _bookingCtx.artisanId === currentOtherUid) {
+    try {
+      const { services: { databaseService } } = getAppContainer();
+      const snap = await databaseService.getDocument(`bookings/${_bookingCtx.id}/private`, 'artisanContact');
+      phone = snap?.exists ? String(snap.data?.artisanPhone || '').trim() : '';
+    } catch (_) { /* not disclosed for this booking */ }
+  }
+  if (phone) {
+    window.location.href = 'tel:' + phone;
   } else {
-    showToast('No phone number on file for this contact');
+    showToast(_bookingCtx
+      ? 'The phone number is shared once the artisan accepts this booking.'
+      : 'Calls are available from an active booking. Send a message instead.');
   }
 };
 

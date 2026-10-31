@@ -100,6 +100,56 @@ await t('no phone anywhere → no artisanContact record (nothing invented)', asy
     assert.strictEqual(contact, undefined);
 });
 
+console.log('\n── CONTACT-001 · the clients ──\n');
+
+const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
+const between = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, `missing: ${a}`); const j = s.indexOf(b, i + a.length); return s.slice(i, j < 0 ? undefined : j); };
+const READS_CONTACT = /getDocument\(`bookings\/\$\{[^}]+\}\/private`,\s*'artisanContact'\)/;
+
+await t('artisan onboarding: phone and email go to private/contact, not the public profile', () => {
+    const s = read('artisan-app/onboarding.html');
+    assert.match(s, /setDocument\(`artisans\/\$\{uid\}\/private`, 'contact', \{\s*artisanId: uid,/);
+    const pub = between(s, "await databaseService.setDocument('artisans', uid, {", '}, { merge: true });');
+    assert.ok(!/^\s*(email|phone)\s*[,:]/m.test(pub), 'the public profile still carries email/phone');
+});
+await t('artisan Settings: the phone is read from and saved to private/contact only', () => {
+    const s = read('artisan-app/settings.html');
+    assert.match(s, /getDocument\(`artisans\/\$\{user\.uid\}\/private`, 'contact'\)/);
+    assert.match(s, /setDocument\(`artisans\/\$\{user\.uid\}\/private`, 'contact', patch, \{ merge: true \}\)/);
+    assert.ok(!/updateDocument\('artisans', user\.uid, \{[^}]*phone/.test(s));
+});
+await t('customer artisan profile: no Call button, and the booking hand-off carries no phone', () => {
+    const s = read('customer-app/artisan-profile.html');
+    assert.ok(!/hero-call-btn|tel:/.test(s));
+    assert.ok(!/phone:\s*a\.phone/.test(s));
+    assert.match(s, /id="hero-msg-btn"/, 'Message stays');
+});
+await t('customer pages never read an artisan phone from a profile, a booking or the cache', () => {
+    for (const [f, re] of [
+        ['customer-app/book-emergency.html', /d\.phone|phone:\s*d\./],
+        ['customer-app/live-tracking.html',  /pro\.phone/],
+        ['customer-app/booking.html',        /proPhone/],
+        ['customer-app/messages.html',       /d\.phone|info\.phone/],
+        ['customer-app/professionals.html',  /phone:\s*d\.phone/],
+        ['shared/js/services/bookingService.js',      /proPhone/],
+        ['shared/js/utils/bookingConfirmNotify.js',   /proPhone/],
+        ['customer-app/js/authInit.js',               /proPhone/],
+    ]) assert.ok(!re.test(read(f)), `${f} still reads ${re}`);
+});
+await t('artisanRepository.upsert() never writes a phone or email onto the public profile', () => {
+    const s = read('shared/js/data/repositories/artisanRepository.js');
+    const payload = between(s, 'async upsert(', '\n        },');
+    assert.ok(payload.length > 200, 'upsert() not found');
+    assert.ok(!/\b(phone|email|phoneNumber|contactEmail|whatsapp)\s*:/.test(payload), 'upsert() writes a contact field');
+});
+await t('the Call buttons read the booking\'s private/artisanContact', () => {
+    assert.match(read('customer-app/book-emergency.html'), READS_CONTACT);
+    assert.match(between(read('customer-app/live-tracking.html'), 'async function callArtisan()', '\n}\n'), READS_CONTACT);
+    const ms = between(read('customer-app/messages.html'), 'window.callConversation = async function()', '\n};');
+    assert.match(ms, READS_CONTACT);
+    assert.match(ms, /_bookingCtx\.artisanId === currentOtherUid/, 'only for the artisan on this thread\'s booking');
+});
+
 console.log(`\nartisan-contact: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 3).join('\n    ') : e}`);
 process.exit(failed ? 1 : 0);

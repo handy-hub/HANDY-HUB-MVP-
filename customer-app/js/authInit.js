@@ -66,7 +66,6 @@ if (user && user.uid) {
                             proName:     d.artisanName  || d.proName     || '',
                             proType:     d.artisanCategory || d.proType  || '',
                             proPhoto:    d.artisanPhoto || d.proPhoto    || null,
-                            proPhone:    d.proPhone     || null,
                             proRating:   d.artisanRating ?? d.proRating  ?? null,
                             artisanId:   d.artisanId    || null,
                             dateDisplay: d.dateDisplay  || '',

@@ -12,7 +12,7 @@
  * location              string      e.g. "Accra, Ghana"
  * profileImage          string | null   (Storage download URL)
  * bio                   string
- * phone                 string
+ * (no phone/email: they live in artisans/{uid}/private/contact — CONTACT-001)
  * rating                number      0–5, updated after each review
  * reviewCount           number
  * jobsCompleted         number
@@ -234,7 +234,6 @@ export function createArtisanRepository({
                 location:            data.location            ?? "",
                 profileImage:        data.profileImage        ?? null,
                 bio:                 data.bio                 ?? "",
-                phone:               data.phone               ?? "",
                 rating:              data.rating              ?? 0,
                 reviewCount:         data.reviewCount         ?? 0,
                 jobsCompleted:       data.jobsCompleted       ?? 0,

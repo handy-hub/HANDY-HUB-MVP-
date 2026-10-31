@@ -76,7 +76,6 @@
       proName:     pro.name    || 'Professional',
       proType:     pro.type    || '',
       proPhoto:    pro.photo   || null,
-      proPhone:    pro.phone   || null,
       proRating:   pro.rating  || null,
       proId:       pro.id      || null,
       dateDisplay: sched.dateDisplay || sched.dateShort || '',
@@ -206,7 +205,6 @@
       proName:     pro.name    || 'Professional',
       proType:     pro.type    || '',
       proPhoto:    pro.photo   || null,
-      proPhone:    pro.phone   || null,
       proRating:   pro.rating  || null,
       proId:       pro.id      || null,
       // Deliberately no dateDisplay/date/time: this is the EMERGENCY creator and

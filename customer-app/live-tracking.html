@@ -511,11 +511,23 @@ async function confirmCompletion() {
   }
 }
 
-function callArtisan() {
-  const b   = window.HH_State ? window.HH_State.booking.get() : {};
-  const pro = b.artisan || b.professional || {};
-  if (pro.phone) {
-    window.location.href = pro.phone;
+// CONTACT-001: the artisan's phone is never on their public profile, the
+// booking or the local cache. The server writes it to
+// bookings/{id}/private/artisanContact on acceptance; the rules let the
+// customer read it only while the booking is live.
+async function callArtisan() {
+  let phone = '';
+  const bkId = window._trkBookingId;
+  if (bkId) {
+    try {
+      const mod  = await import('../shared/js/app/container.js');
+      const snap = await mod.getAppContainer().services.databaseService
+        .getDocument(`bookings/${bkId}/private`, 'artisanContact');
+      phone = snap && snap.exists && snap.data ? String(snap.data.artisanPhone || '').trim() : '';
+    } catch (_) { /* not disclosed (yet), or offline */ }
+  }
+  if (phone) {
+    window.location.href = 'tel:' + phone;
   } else {
     // Show a visual feedback instead of alert
     const btns = document.querySelectorAll('.trk-action-btn');

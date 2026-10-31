@@ -549,9 +549,17 @@ window.addEventListener('fx:push-state', () => describeDevice());
  * the professional profile). Owner-writable on the profile document
  * (firestore.rules isSafeArtisanProfileUpdate). ─────────────────────────── */
 const phoneDigits = (v) => String(v || '').replace(/[^\d+]/g, '');
-function renderPhone() { $('phone-value').textContent = String(state.phone || '').trim() || 'Not added'; }
+// The phone lives in artisans/{uid}/private/contact (CONTACT-001), readable by
+// the artisan and admins only — never on the public profile. A legacy profile
+// not yet migrated still shows its old public value until the migration copies it.
+let contact = null;
+const currentPhone = () => String((contact && contact.phone) || state.phone || '').trim();
+databaseService.getDocument(`artisans/${user.uid}/private`, 'contact')
+  .then((snap) => { contact = snap?.exists ? snap.data : {}; renderPhone(); })
+  .catch(() => { /* unreadable: keep showing what we have */ });
+function renderPhone() { $('phone-value').textContent = currentPhone() || 'Not added'; }
 $('phone-row').addEventListener('click', () => {
-  $('phone-input').value = String(state.phone || '').trim();
+  $('phone-input').value = currentPhone();
   $('phone-msg').textContent = ''; $('phone-msg').className = 'st-msg';
   openSheet('phone-sheet');
 });
@@ -564,10 +572,9 @@ $('phone-form').addEventListener('submit', async (e) => {
   const btn = $('phone-save');
   btn.disabled = true; btn.textContent = 'Saving…'; sheetBusy = true; msg('');
   try {
-    const patch = { phone: raw, updatedAt: new Date().toISOString() };
-    await databaseService.updateDocument('artisans', user.uid, patch);
-    patchArtisanSession(patch);
-    Object.assign(state, patch);
+    const patch = { artisanId: user.uid, phone: raw, updatedAt: new Date().toISOString() };
+    await databaseService.setDocument(`artisans/${user.uid}/private`, 'contact', patch, { merge: true });
+    contact = { ...(contact || {}), ...patch };
     renderPhone();
     sheetBusy = false; closeSheet();
     showToast('Phone number saved.', 'success');
