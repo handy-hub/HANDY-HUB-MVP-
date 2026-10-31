@@ -252,6 +252,7 @@ import { avatarUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.j
 import { replaceProfilePhoto } from '../shared/js/services/profilePhotoService.js';
 import { ARTISAN_TRADES, claimsLocked, requestProfileChange, cancelProfileChange } from './js/utils/artisanAccount.js';
 import { showToast }          from '../shared/js/components/toast.js';
+import { serviceLabel }       from '../shared/js/domain/bookingTruth.js';
 
 const { user, artisan } = await requireArtisanAuth({ allowPending: true });
 const { services: { databaseService } } = getAppContainer();
@@ -342,7 +343,10 @@ function render() {
   $('pf-name-text').textContent = name;
   // An <svg> has no .hidden property; the attribute is what hides it.
   $('pf-tick').toggleAttribute('hidden', status !== 'approved');
-  const trade = str(d.category), spec = str(d.specialty);
+  // Named the way every other screen names a trade (serviceLabel): a stored id
+  // such as "plumbing" or "ac" reads "Plumbing" / "AC Repair"; what the artisan
+  // typed with its own capitals is shown as typed (UI-010).
+  const trade = serviceLabel(d.category) || '', spec = serviceLabel(d.specialty) || '';
   $('pf-trade').textContent = [trade, spec && spec.toLowerCase() !== trade.toLowerCase() ? spec : ''].filter(Boolean).join(' · ') || 'Trade not set';
 
   const area = str(d.location);

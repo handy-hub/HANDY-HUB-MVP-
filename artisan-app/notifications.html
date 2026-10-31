@@ -69,9 +69,22 @@
     .notif-empty-title { font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0 0 6px; }
     .notif-empty-sub { font-size: 13px; color: var(--text-light); margin: 0; }
 
-    /* Swipe-to-delete hint (visual only) */
-    .notif-delete-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: var(--danger-bg); border: none; cursor: pointer; display: none; align-items: center; justify-content: center; }
-    .notif-item:hover .notif-delete-btn { display: flex; }
+    /* Delete: a 44px target (NOTIF-005). With a mouse it appears on hover, by
+       keyboard on focus (it stays in the tab order), and where there is no
+       hover — a phone — it is always shown. It used to be display:none until
+       :hover, so on a touch screen a notification could not be deleted. */
+    .notif-delete-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: transparent; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .12s; }
+    .notif-delete-btn::before { content: ''; position: absolute; inset: 7px; border-radius: 50%; background: var(--danger-bg); }
+    .notif-delete-btn svg { position: relative; }
+    .notif-item:hover .notif-delete-btn, .notif-delete-btn:focus-visible { opacity: 1; }
+    @media (hover: none) {
+      .notif-delete-btn { opacity: 1; }
+      .notif-item { padding-right: 56px; }
+    }
+
+    /* An offer alert whose offer has lapsed: still listed, plainly no longer actionable. */
+    .notif-item.lapsed .notif-content { opacity: .6; }
+    .notif-lapsed { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--surface-3); color: var(--text-mid); font-size: 10.5px; font-weight: 700; }
   </style>
 </head>
 <body>
@@ -153,6 +166,7 @@ import { subscribeToUserNotifications, markNotificationRead,
          markAllNotificationsRead, deleteNotification }                from '../shared/js/services/notificationRepository.js';
 import { safeAppUrl }                                                  from '../shared/js/utils/safeAppUrl.js';
 import { mountInstantView }                                            from '../shared/js/services/instantView.js';
+import { offerState, LAPSED_OFFER_LABEL }                              from '../shared/js/domain/jobOffers.js';
 
 const { user } = await requireArtisanAuth({ allowPending: true });
 
@@ -259,13 +273,16 @@ function render(notifications) {
     html += `<div class="notif-day">${day}</div>`;
     for (const n of items) {
       const icon = iconFor(n.type);
+      // An offer alert carries its offer's deadline; past it, the offer cannot
+      // be answered, so the row says so (offerState: lapsed at now >= expiresAtMs).
+      const lapsed = n.expiresAtMs != null && offerState({ expiresAtMs: n.expiresAtMs }).expired;
       html += `
-      <div class="notif-item${n.isRead ? '' : ' unread'}" id="ni-${escHtml(n.id)}" data-id="${escHtml(n.id)}">
+      <div class="notif-item${n.isRead ? '' : ' unread'}${lapsed ? ' lapsed' : ''}" id="ni-${escHtml(n.id)}" data-id="${escHtml(n.id)}">
         <div class="notif-icon-wrap ${icon.bg}">${icon.svg}</div>
         <div class="notif-content">
           <p class="notif-item-title">${escHtml(n.title)}</p>
           ${n.message ? `<p class="notif-item-msg">${escHtml(n.message)}</p>` : ''}
-          <span class="notif-item-time">${timeAgo(n.createdAt)}</span>
+          <span class="notif-item-time">${timeAgo(n.createdAt)}</span>${lapsed ? `<span class="notif-lapsed">${LAPSED_OFFER_LABEL}</span>` : ''}
         </div>
         ${n.isRead ? '' : '<div class="notif-unread-dot"></div>'}
         <button class="notif-delete-btn" data-delete="${escHtml(n.id)}" aria-label="Delete">
@@ -278,6 +295,20 @@ function render(notifications) {
     }
   }
   listEl.innerHTML = html;
+  scheduleLapse(notifications);
+}
+
+// One timer, re-armed on every render, that redraws the list when the next
+// offer alert on it lapses — so an alert does not stay "live" while the
+// screen is open. Cleared on pagehide.
+let _lapseTimer = null;
+function scheduleLapse(notifications) {
+  clearTimeout(_lapseTimer); _lapseTimer = null;
+  const next = Math.min(...notifications
+    .map((n) => offerState({ expiresAtMs: n.expiresAtMs }))
+    .filter((st) => st.expiresAtMs !== null && !st.expired)
+    .map((st) => st.expiresAtMs));
+  if (Number.isFinite(next)) _lapseTimer = setTimeout(() => render(_all), Math.max(0, next - Date.now()) + 50);
 }
 
 function escHtml(str) {
@@ -352,6 +383,9 @@ const cacheable = (n) => {
     id: n.id, type: n.type, title: n.title, isRead: !!n.isRead,
     ...(chat ? {} : { message: n.message }),
     actionUrl: n.actionUrl ?? null,
+    // An offer alert's deadline (dispatch writes metadata.expiresAtMs): a
+    // number, kept so the row can show the offer has lapsed (NOTIF-005).
+    expiresAtMs: offerState({ expiresAtMs: n.metadata?.expiresAtMs }).expiresAtMs,
     createdAt: n.createdAt instanceof Date ? n.createdAt.toISOString() : n.createdAt,
   };
 };
@@ -379,7 +413,7 @@ const view = mountInstantView({
 });
 _unsub = () => view.destroy();
 
-window.addEventListener('pagehide', () => _unsub?.());
+window.addEventListener('pagehide', () => { _unsub?.(); clearTimeout(_lapseTimer); });
 </script>
 <script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>
