@@ -178,6 +178,8 @@
   import { setSecurityPin, pinErrorMessage } from '../shared/js/services/securityPinService.js';
   import { requireArtisanAuth, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
   import { mountInstantView }          from '../shared/js/services/instantView.js';
+  import { serviceLabel }              from '../shared/js/domain/bookingTruth.js';
+  import { esc }                       from '../shared/js/utils/escapeHtml.js';
 
   // Wallet requires full auth + role + not suspended.
   // All artisans (including pending) can view their earnings.
@@ -299,6 +301,43 @@
     return map[s] || 'pending';
   }
 
+  // ── Which job paid (audit UI-009) ─────────────────────────────────────────
+  // An earning row said only "Booking payment received". The service and the
+  // customer's first name come from bookings/{bookingId} (the artisan's own
+  // jobs; rules allow the read): read once per booking, only after the LIVE
+  // list has arrived (never from the cached paint), at most TXN_BOOKING_READS,
+  // newest first. Display only — no figure here comes from the booking.
+  const _txnBookings      = new Map();   // bookingId → { service, name } | null
+  const TXN_BOOKING_READS = 20;
+  let   _txnLive          = false;
+
+  async function loadTxnBookings(records) {
+    if (!_txnLive) return;
+    const ids = [...new Set(records.map(r => r.data && r.data.bookingId).filter(Boolean))].slice(0, TXN_BOOKING_READS);
+    let changed = false;
+    for (const id of ids) {
+      if (_txnBookings.has(id)) continue;
+      _txnBookings.set(id, null);
+      try {
+        const snap = await databaseService.getDocument('bookings', id);
+        if (snap?.exists) {
+          const b = snap.data || {};
+          _txnBookings.set(id, { service: serviceLabel(b.serviceType) || serviceLabel(b.service) || null,
+                                 name: typeof b.customerFirstName === 'string' ? b.customerFirstName : null });
+          changed = true;
+        }
+      } catch (_) { /* unreadable: the row keeps its own description */ }
+    }
+    if (changed && lastTxns) renderTxns(lastTxns);
+  }
+
+  /** "Plumbing · Ama" when the booking is known, else the record's own description. */
+  function txnTitle(d) {
+    const info = d.bookingId ? _txnBookings.get(d.bookingId) : null;
+    if (info && info.service) return info.name ? `${info.service} · ${info.name}` : info.service;
+    return d.description || 'Transaction';
+  }
+
   function buildTxnHTML(t, isLast) {
     const d        = t.data.type === 'withdrawal'
       ? { ...t.data, status: withdrawalStatus(t.data, payoutsById.get(t.data.payoutId)) }
@@ -315,9 +354,10 @@
       <div class="txn-item">
         ${txnIcon(d.type)}
         <div class="txn-details">
-          <p class="txn-title">${d.description || 'Transaction'}</p>
+          <p class="txn-title">${esc(txnTitle(d))}</p>
           <p class="txn-meta">${fmtDate(d.createdAt)}</p>
           ${commissionNote}
+          ${d.bookingId ? `<a class="txn-ref" href="job.html?id=${encodeURIComponent(d.bookingId)}">View job</a>` : ''}
         </div>
         <div class="txn-amount-col">
           <p class="txn-amount ${amtClass}">${sign} ${formatGHS(d.amount)}</p>
@@ -540,7 +580,11 @@
     const txnView = mountInstantView({
       key: 'artisan-wallet-txns',
       version: 1,
-      render: (records) => renderTxns(records),
+      render: (records, { fromCache }) => {
+        if (!fromCache) _txnLive = true;
+        renderTxns(records);
+        loadTxnBookings(records);
+      },
       subscribe: (_c, onData, onError) => walletRepo.subscribeToArtisanTransactions(user.uid, onData, onError),
       onError: (err) => { console.error('Transactions error:', err); showTxnsUnavailable(); },
     });
