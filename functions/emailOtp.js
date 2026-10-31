@@ -821,14 +821,14 @@ async function _activateArtisanAccount(uid, payload, correlationId, { emailVerif
     await getAuth().updateUser(uid, { disabled: false, emailVerified });
     console.log(`[OTP][${correlationId}] Firebase Auth artisan enabled uid=${uid} emailVerified=${emailVerified}`);
 
-    // 2. Write Firestore artisan document (matches artisanAuthGuard required schema)
+    // 2. Write Firestore artisan document (matches artisanAuthGuard required schema).
+    // No phone or email here (CONTACT-001): this document is readable by every
+    // signed-in account. They go to artisans/{uid}/private/contact below.
     const artisanDoc = {
         id:                 uid,
         uid,
         name:               name.trim(),
         fullName:           name.trim(),
-        email:              email.toLowerCase(),
-        phone:              phone ? phone.replace(/\s/g, '') : '',
         userType:           'artisan',
         status:             'pending',
         category:           effectiveCategory,
@@ -854,6 +854,13 @@ async function _activateArtisanAccount(uid, payload, correlationId, { emailVerif
 
     const batch = db().batch();
     batch.set(db().collection('artisans').doc(uid), artisanDoc);
+    batch.set(db().collection('artisans').doc(uid).collection('private').doc('contact'), {
+        artisanId: uid,
+        email:     email.toLowerCase(),
+        phone:     phone ? phone.replace(/\s/g, '').slice(0, 32) : '',
+        createdAt: now,
+        updatedAt: now,
+    }, { merge: true });
 
     // 3. Welcome notification
     batch.set(db().collection('artisan_notifications').doc(), {

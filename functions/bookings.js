@@ -408,6 +408,27 @@ const onBookingStatusChanged = onDocumentUpdated(
                         updatedAt: new Date().toISOString(),
                     });
                 }
+                // The artisan's phone for THIS booking's customer (CONTACT-001).
+                // Never on the booking or the public profile: it comes from
+                // artisans/{uid}/private/contact, and firestore.rules let the
+                // customer read it only while contactDisclosed(booking) — the
+                // same window the artisan gets the customer's phone.
+                // Until the contact migration has copied a legacy profile's phone
+                // into private/contact, fall back to the public field — it is
+                // only ever written HERE, into the windowed private record.
+                const cSnap = await db().collection('artisans').doc(artisanId)
+                    .collection('private').doc('contact').get();
+                const legacyPhone  = aSnap.exists ? aSnap.data().phone : '';
+                const artisanPhone = String((cSnap.exists && cSnap.data().phone) || legacyPhone || '').trim();
+                if (artisanPhone) {
+                    await db().collection('bookings').doc(bookingId)
+                        .collection('private').doc('artisanContact').set({
+                            bookingId,
+                            artisanId,
+                            artisanPhone: artisanPhone.slice(0, 32),
+                            updatedAt: new Date().toISOString(),
+                        });
+                }
             } catch (err) {
                 // Non-fatal: the customer UI renders an honest "Your professional"
                 // rather than a fabricated identity if this could not be stamped.

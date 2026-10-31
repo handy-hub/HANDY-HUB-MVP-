@@ -39,16 +39,19 @@ function accountError(reason, message) {
     return err;
 }
 
-/** The base profile — the same rule-valid shape the email signup writes. Pure. */
-function baseArtisanProfile({ uid, email, name, phone = '' }, nowIso) {
+/**
+ * The base profile — the same rule-valid shape the email signup writes. Pure.
+ * It carries NO phone or email (CONTACT-001): this document is readable by every
+ * signed-in account. Those go to artisans/{uid}/private/contact
+ * (baseArtisanContact), and a customer gets the phone only inside a booking.
+ */
+function baseArtisanProfile({ uid, email, name }, nowIso) {
     const display = String(name || '').trim() || String(email || '').split('@')[0] || 'Artisan';
     return {
         id:                 uid,
         uid,
         name:               display.slice(0, 120),
         fullName:           String(name || '').trim().slice(0, 120),
-        email:              String(email || ''),
-        phone:              String(phone || '').slice(0, 32),
         userType:           'artisan',
         status:             'pending',
         verificationStatus: 'draft',
@@ -64,6 +67,17 @@ function baseArtisanProfile({ uid, email, name, phone = '' }, nowIso) {
         walletBalance:      0,
         createdAt:          nowIso,
         updatedAt:          nowIso,
+    };
+}
+
+/** The artisan's private contact record (CONTACT-001): owner and admins only. Pure. */
+function baseArtisanContact({ uid, email, phone = '' }, nowIso) {
+    return {
+        artisanId: uid,
+        email:     String(email || '').slice(0, 254),
+        phone:     String(phone || '').slice(0, 32),
+        createdAt: nowIso,
+        updatedAt: nowIso,
     };
 }
 
@@ -97,9 +111,11 @@ async function ensureArtisanProfile(auth) {
         if (ad.exists) {
             throw accountError('admin_account', 'Administrator accounts cannot also be artisan accounts.');
         }
-        txn.create(artisanRef, baseArtisanProfile({
-            uid, email, name: token.name || '', phone: token.phone_number || '',
-        }, new Date().toISOString()));
+        const now = new Date().toISOString();
+        txn.create(artisanRef, baseArtisanProfile({ uid, email, name: token.name || '' }, now));
+        // Phone and email in the private record, in the same transaction.
+        txn.set(artisanRef.collection('private').doc('contact'),
+            baseArtisanContact({ uid, email, phone: token.phone_number || '' }, now), { merge: true });
         return { result: 'created', verificationStatus: 'draft' };
     });
     return { ...outcome, emailVerified: token.email_verified === true };
@@ -279,7 +295,7 @@ async function handleArtisanAccount(auth, data = {}) {
 }
 
 module.exports = {
-    ensureArtisanProfile, baseArtisanProfile,
+    ensureArtisanProfile, baseArtisanProfile, baseArtisanContact,
     requestProfileChange, cancelProfileChange, reviewProfileChange, validateProfileChange,
     handleArtisanAccount, ARTISAN_TRADES,
 };
