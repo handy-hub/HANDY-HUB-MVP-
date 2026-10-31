@@ -334,6 +334,7 @@ import { resolveAvatar, TRANSFORMS }                   from '../shared/js/servic
 import { pricingService }                              from '../shared/js/services/pricingService.js';
 import { describe as describeStatus, artisanInspectionStep }
                                                        from '../shared/js/domain/bookingStatusMeta.js';
+import { confirmSheet } from '../shared/js/ui/confirmSheet.js';
 import { performBookingAction, ACTION }                from '../shared/js/domain/bookingActions.js';
 import { serviceLabel }                                from '../shared/js/domain/bookingTruth.js';
 import { formatGHS }                                   from '../shared/js/utils/currency.js';
@@ -882,7 +883,9 @@ window.acceptJob = async function(bookingId) {
 };
 
 window.declineJob = async function(bookingId) {
-  if (!confirm('Decline this job request?')) return;
+  // The app's own sheet, not the browser's confirm() (audit UI-011).
+  if (!(await confirmSheet({ title: 'Decline this job request?', message: 'It goes to another professional nearby.',
+                             confirmLabel: 'Decline', danger: true }))) return;
   await dashTransition(ACTION.DECLINE, bookingId,
     document.querySelector(`#job-${bookingId} .btn-decline`), {
       busyLabel: 'Declining…', okLabel: 'Request declined.',

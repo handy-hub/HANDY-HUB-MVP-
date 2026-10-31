@@ -270,6 +270,7 @@ import { offerState, formatTimeLeft, LAPSED_OFFER_ATTRS, LAPSED_OFFER_LABEL, lap
                                              from '../shared/js/domain/jobOffers.js';
 import { storedAvailability }                from '../shared/js/domain/availability.js';
 import { mountInstantView }                  from '../shared/js/services/instantView.js';
+import { confirmSheet } from '../shared/js/ui/confirmSheet.js';
 import { validateQuoteInput, artisanEarningsPreview } from '../shared/js/domain/quoteMoney.js';
 import { PLATFORM_CONFIG }                   from '../shared/js/config/appConfig.js';
 import { pricingService }                    from '../shared/js/services/pricingService.js';
@@ -757,8 +758,9 @@ function markOfferGone(bookingId) {
   lapseOfferButtons(card.querySelector('.job-btn-accept'), card.querySelector('.job-btn-decline'));
 }
 
-async function runTransition(action, bookingId, btn, { busyLabel, okLabel, confirmMsg, removeCard } = {}) {
-  if (confirmMsg && !confirm(confirmMsg)) return;
+async function runTransition(action, bookingId, btn, { busyLabel, okLabel, confirmMsg, confirmLabel, removeCard } = {}) {
+  // The app's own sheet, not the browser's confirm() (audit UI-011).
+  if (confirmMsg && !(await confirmSheet({ title: confirmMsg, confirmLabel: confirmLabel || 'Confirm', danger: true }))) return;
   // innerHTML, not textContent: the Accept button carries an icon.
   const orig = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.textContent = busyLabel || 'Working…'; }
@@ -816,7 +818,7 @@ window.acceptJob = async function(bookingId, btn) {
 window.declineJob = async function(bookingId, btn) {
   await runTransition(ACTION.DECLINE, bookingId, btn, {
     busyLabel: 'Declining…', okLabel: 'Job declined.',
-    confirmMsg: 'Decline this job request?', removeCard: true });
+    confirmMsg: 'Decline this job request?', confirmLabel: 'Decline', removeCard: true });
 };
 
 // One ticker for every visible offer countdown. The time left is recomputed
@@ -853,7 +855,7 @@ const ADVANCE_OK = {
 window.cancelJob = async function(bookingId, btn) {
   await runTransition(ACTION.CANCEL, bookingId, btn, {
     busyLabel: 'Cancelling…', okLabel: 'Booking cancelled.',
-    confirmMsg: 'Cancel this job? The customer will be told.' });
+    confirmMsg: 'Cancel this job? The customer will be told.', confirmLabel: 'Cancel job' });
 };
 
 window.advanceJob = async function(bookingId, nextStatus, timestampField, btn) {

@@ -130,6 +130,7 @@ import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
 import { getAppContainer }  from '../shared/js/app/container.js';
 import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
                             from '../shared/js/domain/bookingTruth.js';
+import { confirmSheet } from '../shared/js/ui/confirmSheet.js';
 import { performBookingAction, ACTION }
                             from '../shared/js/domain/bookingActions.js';
 import { resolveSchedule, canStartWork }
@@ -457,7 +458,9 @@ function tickOffer(offer) {
 /* ── Act ─────────────────────────────────────────────────────────────────── */
 async function run(spec) {
   if (_busy) return;                       // duplicate taps do nothing
-  if (spec.confirm && !confirm(spec.confirm)) return;
+  // The app's own sheet, not the browser's confirm() (audit UI-011).
+  if (spec.confirm && !(await confirmSheet({ title: spec.confirm, confirmLabel: spec.label || 'Confirm',
+                                             danger: !!spec.danger }))) return;
 
   // Non-transition destinations
   if (spec.action === 'earnings')    { location.href = 'wallet.html'; return; }
