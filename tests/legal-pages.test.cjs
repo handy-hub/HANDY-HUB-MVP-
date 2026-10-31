@@ -76,7 +76,10 @@ await t('artisan sign-up links the documents it asks the artisan to accept (audi
     // The agreement is still required: the box is unticked and gates the submit.
     assert.match(su, /<input class="as-checkbox terms-row" type="checkbox" id="as-terms"\s/);
     assert.ok(!/id="as-terms"[^>]*\bchecked\b/.test(su), 'the agreement must not be pre-ticked');
-    assert.match(su, /termsChk\.checked;/);
+    // Since FORM-003 the readiness rules are one list; an unticked box is a
+    // problem, and any problem keeps Create Account disabled.
+    assert.match(su, /if \(!termsChk\.checked\)\s+out\.push\(\{ key: 'terms'/);
+    assert.match(su, /submitBtn\.disabled = problems\.length > 0;/);
 });
 
 await t('no Terms or Privacy link anywhere is a placeholder "#"', () => {
