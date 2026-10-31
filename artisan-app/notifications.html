@@ -68,6 +68,7 @@
     .notif-empty-icon svg { width:26px; height:26px; }
     .notif-empty-title { font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0 0 6px; }
     .notif-empty-sub { font-size: 13px; color: var(--text-light); margin: 0; }
+    .notif-retry { margin-top: 14px; min-height: 44px; padding: 0 20px; border: none; border-radius: 12px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
 
     /* Delete: a 44px target (NOTIF-005). With a mouse it appears on hover, by
        keyboard on focus (it stays in the tab order), and where there is no
@@ -154,6 +155,13 @@
       <div class="notif-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
       <p class="notif-empty-title">No notifications yet</p>
       <p class="notif-empty-sub">You'll see job requests, payments, and updates here</p>
+    </div>
+    <!-- Nothing cached and the list could not be read: say that, not "No
+         notifications yet", which the page cannot know (NET-001). -->
+    <div class="notif-empty" id="notif-error" role="alert" style="display:none;">
+      <p class="notif-empty-title">Couldn't load your notifications</p>
+      <p class="notif-empty-sub">Check your connection and try again.</p>
+      <button type="button" class="notif-retry" onclick="location.reload()">Try again</button>
     </div>
   </div>
 
@@ -244,6 +252,7 @@ function dayLabel(date) {
 // ── Render ─────────────────────────────────────────────
 function render(notifications) {
   loadingEl.style.display = 'none';
+  document.getElementById('notif-error').style.display = 'none';   // the list arrived after all
   listEl.style.display    = 'block';
 
   const filtered = _filter === 'all'
@@ -408,7 +417,8 @@ const view = mountInstantView({
   onError: (_err, { hasContent }) => {
     if (hasContent) return;
     loadingEl.style.display = 'none';
-    emptyEl.style.display   = 'block';
+    emptyEl.style.display   = 'none';
+    document.getElementById('notif-error').style.display = 'block';
   },
 });
 _unsub = () => view.destroy();

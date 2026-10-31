@@ -138,6 +138,19 @@ t('delete: a 44px target, always shown where there is no hover, focusable by key
     assert.match(html, /\.notif-item:hover \.notif-delete-btn, \.notif-delete-btn:focus-visible \{ opacity: 1; \}/);
 });
 
+console.log('\n── NET-001 · notifications offline with nothing cached ──\n');
+
+t('a failed first load says it could not load (with Try again), never "No notifications yet"', () => {
+    const html = read('artisan-app/notifications.html');
+    assert.match(html, /<div class="notif-empty" id="notif-error" role="alert" style="display:none;">\s*<p class="notif-empty-title">Couldn't load your notifications<\/p>[\s\S]*?onclick="location\.reload\(\)">Try again<\/button>/);
+    const onErr = /onError: \(_err, \{ hasContent \}\) => \{([\s\S]*?)\n  \},/.exec(html)[1];
+    assert.match(onErr, /if \(hasContent\) return;/, 'cached content is kept');
+    assert.match(onErr, /emptyEl\.style\.display   = 'none';/);
+    assert.match(onErr, /getElementById\('notif-error'\)\.style\.display = 'block';/);
+    assert.match(html, /function render\(notifications\) \{\s*loadingEl\.style\.display = 'none';\s*document\.getElementById\('notif-error'\)\.style\.display = 'none';/,
+        'a list that arrives later clears the error');
+});
+
 console.log(`\nartisan-polish: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 4).join('\n    ') : e}`);
 process.exit(failed ? 1 : 0);
