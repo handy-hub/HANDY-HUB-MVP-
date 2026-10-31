@@ -480,6 +480,14 @@ function buildJobCard(b) {
   const comp    = brief.compensation;
   const distTxt = formatDistance(brief.distanceKm);
 
+  // Card actions (audit IA-002). "Dashboard" buttons sent the artisan away from
+  // the job; the secondary action now opens THIS job, whose screen holds its
+  // full set of actions. Cancel is offered exactly where the shared transition
+  // layer lets an artisan cancel (ACTION.CANCEL: accepted, quoted) — job.html
+  // already offered it there; the list did not.
+  const openBtn   = `<a class="job-btn job-btn-outline" href="job.html?id=${encodeURIComponent(b.id)}">Open job</a>`;
+  const cancelBtn = isActive && ['accepted', 'quoted'].includes(st)
+    ? `<button class="job-btn job-btn-outline" onclick="cancelJob('${esc(b.id)}', this)">Cancel job</button>` : '';
   let actionsHtml = '';
   if (isPending) {
     // The offer's deadline (job_offers.expiresAtMs), counted down by the one
@@ -505,33 +513,32 @@ function buildJobCard(b) {
     // mark arrived, THEN complete the inspection. artisanInspectionStep is the
     // single rule; this only draws it.
     const step = artisanInspectionStep(b, { schedule: appt });
-    const dashBtn = `<button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
     const tickSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`;
     if (!step || step.blocked) {
       // Nothing the artisan can do yet (callout unpaid, or the slot has not
       // come round): state it instead of offering a control that would fail.
       actionsHtml = `
         <button class="job-btn ${step && step.id === 'scheduled' ? 'job-btn-outline' : 'job-btn-decline'}" disabled style="opacity:.5;cursor:default;">${esc(step ? step.label : 'Inspection visit')}</button>
-        ${dashBtn}`;
+        ${openBtn}`;
     } else if (step.id === 'submit_quote') {
       actionsHtml = `
         <button class="job-btn job-btn-track" onclick="openQuoteSheet('${esc(b.id)}')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
           Submit Quote
         </button>
-        ${dashBtn}`;
+        ${openBtn}`;
     } else if (step.id === 'complete_inspection') {
       actionsHtml = `
         <button class="job-btn job-btn-track" onclick="completeInspectionJob('${esc(b.id)}', this)">${tickSvg}Complete Inspection</button>
-        ${dashBtn}`;
+        ${openBtn}`;
     } else if (step.id === 'arrived') {
       actionsHtml = `
         <button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','in_progress','arrivedAt',this)">${tickSvg}Mark Arrived</button>
-        ${dashBtn}`;
+        ${openBtn}`;
     } else {
       actionsHtml = `
         <button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','en_route','enRouteAt',this)">Mark En Route</button>
-        ${dashBtn}`;
+        ${openBtn}`;
     }
   } else if (isActive && action) {
     if (st === 'accepted' && !b.quoteApproved) {
@@ -541,7 +548,7 @@ function buildJobCard(b) {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
           Submit Quote
         </button>
-        <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
+        ${openBtn}`;
     } else {
       const disabled = action.next === null ? 'disabled style="opacity:.5;cursor:default;"' : '';
       // Setting out is the one advance an appointment gates. Arriving and
@@ -552,13 +559,14 @@ function buildJobCard(b) {
         ${gatedByClock
           ? `<button class="job-btn job-btn-outline" disabled style="opacity:.5;cursor:default;">Booked · ${esc(appt.label)}</button>`
           : action.next ? `<button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','${action.next}','${action.field}',this)" ${disabled}>${esc(action.label)}</button>` : `<button class="job-btn job-btn-decline" disabled style="opacity:.5;">Awaiting Customer…</button>`}
-        <button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>`;
+        ${openBtn}`;
     }
   } else if (isActive) {
-    actionsHtml = `<button class="job-btn job-btn-outline" onclick="window.location.href='dashboard.html'">View on Dashboard</button>`;
+    actionsHtml = openBtn;
   } else if (st === 'completed') {
     actionsHtml = `<button class="job-btn job-btn-outline" onclick="window.location.href='wallet.html'">View Earnings</button>`;
   }
+  if (cancelBtn) actionsHtml += cancelBtn;
 
   // ── Problem description — the single most valuable field in the product ──
   // Rendered in full into the DOM and clamped to 3 lines by CSS, with a
@@ -603,7 +611,7 @@ function buildJobCard(b) {
       ${brief.location.precision === 'address-only'
         ? `<p class="job-warn">No GPS fix on this booking — navigation searches the address text.</p>` : ''}
       <div class="job-brief-actions">
-        ${brief.location.mapUrl
+        ${brief.location.mapUrl && (isPending || isActive)
           ? `<a class="job-linkbtn job-linkbtn--strong" href="${esc(brief.location.mapUrl)}" target="_blank" rel="noopener noreferrer">Navigate</a>` : ''}
         ${brief.customer.phone
           ? `<a class="job-linkbtn" href="tel:${esc(brief.customer.phone)}">Call ${esc(name || 'customer')}</a>` : ''}
@@ -837,6 +845,15 @@ const ADVANCE_OK = {
   in_progress: 'Job started.',
   awaiting:    'Marked done. Waiting for the customer to confirm.',
   cancelled:   'Booking cancelled.',
+};
+
+// Through the same transition layer as every other action: it re-reads the
+// booking, refuses a state the artisan may not cancel from, and sends an
+// inspection booking to the server's cancelInspectionBooking (callout settled).
+window.cancelJob = async function(bookingId, btn) {
+  await runTransition(ACTION.CANCEL, bookingId, btn, {
+    busyLabel: 'Cancelling…', okLabel: 'Booking cancelled.',
+    confirmMsg: 'Cancel this job? The customer will be told.' });
 };
 
 window.advanceJob = async function(bookingId, nextStatus, timestampField, btn) {

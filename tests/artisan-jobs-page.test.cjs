@@ -8,6 +8,7 @@
  *   UI-006     (jobs) The toast wrapped short messages onto 2–3 lines.
  *   RESP-001   (jobs) The tabs were cut off on narrow phones.
  *   FORM-002   (part 1) The quote form never showed the artisan's net earnings.
+ *   IA-002     Card actions: "Dashboard" buttons, Navigate on closed jobs, no Cancel when quoted.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -145,6 +146,26 @@ await t("job.html's composer shows the same line, from the same helper and confi
     assert.match(c, /You receive after \$\{Math\.round\(PLATFORM_CONFIG\.commissionRate \* 100\)\}% commission/);
     assert.match(c, /artisanEarningsPreview\(q\.jobQuote, PLATFORM_CONFIG\.commissionRate\)/);
     assert.match(c, /import \{ PLATFORM_CONFIG \} from '\.\.\/config\/appConfig\.js';/);
+});
+
+console.log('\n── IA-002 · job card actions match what the artisan can do ──\n');
+
+const cardSrc = page.slice(page.indexOf('// Card actions (audit IA-002).'), page.indexOf('// ── Problem description'));
+
+await t('no card sends the artisan to the dashboard; the secondary action opens THIS job', () => {
+    assert.ok(!/dashboard\.html/.test(cardSrc), 'a card still links to the dashboard');
+    assert.match(cardSrc, /const openBtn\s+= `<a class="job-btn job-btn-outline" href="job\.html\?id=\$\{encodeURIComponent\(b\.id\)\}">Open job<\/a>`;/);
+});
+await t('Cancel is offered exactly where the transition layer lets an artisan cancel', () => {
+    const actions = fs.readFileSync(path.join(__dirname, '..', 'shared', 'js', 'domain', 'bookingActions.js'), 'utf8');
+    const artisanFrom = JSON.parse(actions.match(/actorFrom:\s*\{\s*artisan:\s*(\[[^\]]*\])/)[1].replace(/'/g, '"'));
+    const cardFrom = JSON.parse(cardSrc.match(/const cancelBtn = isActive && (\[[^\]]*\])\.includes\(st\)/)[1].replace(/'/g, '"'));
+    assert.deepStrictEqual(cardFrom.sort(), artisanFrom.sort());
+    assert.match(page, /window\.cancelJob = async function\(bookingId, btn\) \{\s*await runTransition\(ACTION\.CANCEL, bookingId, btn,/);
+    assert.match(cardSrc, /if \(cancelBtn\) actionsHtml \+= cancelBtn;/);
+});
+await t('Navigate is shown only for jobs that are still open', () => {
+    assert.match(page, /\$\{brief\.location\.mapUrl && \(isPending \|\| isActive\)\s*\? `<a class="job-linkbtn job-linkbtn--strong"/);
 });
 
 console.log(`\nartisan-jobs-page: ${passed} passed, ${failed} failed`);
