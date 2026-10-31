@@ -179,7 +179,8 @@ await t('a dry run writes nothing and names the fields it would move', async () 
     assert.strictEqual(JSON.stringify(pub('a1')), before, 'public profile unchanged');
     assert.ok(!FAKE_DB._has('artisans/a1/private/kyc'), 'no private record created');
     assert.strictEqual(r.affected, 1);
-    assert.deepStrictEqual(r.artisans[0].wouldCopy.sort(), Object.keys(LEGACY).sort());
+    // PUBLIC's phone and email are legacy contact fields too (CONTACT-001).
+    assert.deepStrictEqual(r.artisans[0].wouldCopy.sort(), [...Object.keys(LEGACY), 'phone', 'email'].sort());
     assert.strictEqual(r.copied, 0);
 });
 
@@ -262,7 +263,15 @@ await t('strip keeps the newer private value and still removes the stale public 
 await t('strip leaves every public profile field alone', async () => {
     FAKE_DB._reset(); seedLegacy();
     await run('strip');
-    for (const [k, v] of Object.entries(PUBLIC)) assert.deepStrictEqual(pub('a1')[k], v, `${k} changed`);
+    for (const [k, v] of Object.entries(PUBLIC)) {
+        if (k === 'email' || k === 'phone') continue;   // contact details move (CONTACT-001), below
+        assert.deepStrictEqual(pub('a1')[k], v, `${k} changed`);
+    }
+    const contact = FAKE_DB._get('artisans/a1/private/contact');
+    for (const k of ['email', 'phone']) {
+        assert.ok(!(k in pub('a1')), `${k} still on the public profile`);
+        assert.strictEqual(contact[k], PUBLIC[k], `${k} not moved to private/contact`);
+    }
 });
 
 await t('running strip again finds nothing to do', async () => {
@@ -274,11 +283,14 @@ await t('running strip again finds nothing to do', async () => {
 
 await t('an artisan with no private fields is scanned but never touched', async () => {
     FAKE_DB._reset();
-    FAKE_DB._set('artisans/clean', { ...PUBLIC, id: 'clean' });
+    // A post-CONTACT-001 profile: no contact fields either.
+    const { email: _e, phone: _p, ...clean } = PUBLIC;
+    FAKE_DB._set('artisans/clean', { ...clean, id: 'clean' });
     const r = await run('strip');
     assert.strictEqual(r.scanned, 1);
     assert.strictEqual(r.affected, 0);
     assert.ok(!FAKE_DB._has('artisans/clean/private/kyc'));
+    assert.ok(!FAKE_DB._has('artisans/clean/private/contact'));
 });
 
 await t('every artisan is processed across pages', async () => {

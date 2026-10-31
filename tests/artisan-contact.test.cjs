@@ -162,6 +162,124 @@ await t('admin artisans: list, search, drawer and CSV read private/contact (lega
     assert.match(s, /loadContacts\(allArtisans\.map\(a => a\.id\)\)\.then\(added => \{ if \(added\) applyAndRender\(\); \}\)/);
 });
 
+console.log('\n── CONTACT-001 · the migration (dry-run → copy → strip) ──\n');
+
+const privacy = require(path.join(FN, 'artisanPrivacy.js'));
+const contactMig = require(path.join(FN, 'contactPrivacy.js'));
+const migrate = (mode, extra) => privacy.migrateArtisanPrivateData({ mode, ...extra });
+const PHONE = '+233201234567', EMAIL = 'kofi@example.com';
+const VALUES = [PHONE, EMAIL, '0559998888', 'not an email', 'ama@example.com'];
+const noValues = (r) => { const j = JSON.stringify(r); for (const v of VALUES) assert.ok(!j.includes(v), `report leaks a value`); };
+const legacyArtisan = (id, extra = {}) => fake.db._set(`artisans/${id}`,
+    { id, userType: 'artisan', name: 'Kofi Boateng', category: 'plumbing', phone: PHONE, email: EMAIL, ...extra });
+
+await t('the migration and firestore.rules name exactly the same contact fields', () => {
+    const m = read('firestore.rules').match(/function artisanContactFields\(\)\s*\{\s*return\s*\[([^\]]*)\]/);
+    assert.ok(m, 'artisanContactFields() not found');
+    assert.deepStrictEqual(m[1].match(/'([^']+)'/g).map((x) => x.slice(1, -1)).sort(), [...privacy.CONTACT_FIELDS].sort());
+});
+await t('dry run: writes nothing, names the contact fields, reports no values', async () => {
+    fake.db._reset(); legacyArtisan('a1');
+    const before = JSON.stringify(fake.db._get('artisans/a1'));
+    const r = await migrate('dry-run');
+    assert.strictEqual(JSON.stringify(fake.db._get('artisans/a1')), before);
+    assert.ok(!fake.db._has('artisans/a1/private/contact'));
+    assert.deepStrictEqual(r.artisans[0].wouldCopy.sort(), ['email', 'phone']);
+    noValues(r);
+});
+await t('copy: private/contact gets phone and email; the public profile still has them', async () => {
+    fake.db._reset(); legacyArtisan('a1');
+    await migrate('copy');
+    const c = fake.db._get('artisans/a1/private/contact');
+    assert.deepStrictEqual({ phone: c.phone, email: c.email, artisanId: c.artisanId }, { phone: PHONE, email: EMAIL, artisanId: 'a1' });
+    assert.strictEqual(fake.db._get('artisans/a1').phone, PHONE, 'copy never strips');
+    assert.ok(!fake.db._has('artisans/a1/private/kyc'), 'contact details do not go to kyc');
+});
+await t('strip: the profile loses them only once private/contact holds them; everything else stays', async () => {
+    fake.db._reset(); legacyArtisan('a1');
+    const r = await migrate('strip');
+    const p = fake.db._get('artisans/a1');
+    for (const f of privacy.CONTACT_FIELDS) assert.ok(!(f in p), f);
+    assert.strictEqual(p.name, 'Kofi Boateng'); assert.strictEqual(p.category, 'plumbing');
+    assert.strictEqual(fake.db._get('artisans/a1/private/contact').phone, PHONE);
+    noValues(r);
+});
+await t('an existing private/contact is never overwritten (the newer value wins, conflict reported)', async () => {
+    fake.db._reset(); legacyArtisan('a1');
+    fake.db._set('artisans/a1/private/contact', { artisanId: 'a1', phone: '0559998888' });
+    const r = await migrate('strip');
+    const c = fake.db._get('artisans/a1/private/contact');
+    assert.strictEqual(c.phone, '0559998888');
+    assert.strictEqual(c.email, EMAIL, 'the empty email slot is filled');
+    assert.deepStrictEqual(r.artisans[0].conflicts, ['phone']);
+    assert.strictEqual(fake.db._get('artisans/a1/private/contactLegacy').phone, PHONE, 'the older number is kept, privately');
+    assert.ok(!('phone' in fake.db._get('artisans/a1')));
+});
+await t('aliases fill an empty slot only when valid; the rest go to private/contactLegacy, and contact stays rule-valid', async () => {
+    fake.db._reset();
+    fake.db._set('artisans/a2', { id: 'a2', userType: 'artisan', name: 'Ama',
+        phoneNumber: PHONE, whatsapp: '0559998888', contactEmail: 'not an email', email: '' });
+    await migrate('strip');
+    const c = fake.db._get('artisans/a2/private/contact');
+    assert.deepStrictEqual(Object.keys(c).filter((k) => !['artisanId', 'createdAt', 'updatedAt'].includes(k)), ['phone']);
+    assert.strictEqual(c.phone, PHONE);
+    const kept = fake.db._get('artisans/a2/private/contactLegacy');
+    assert.deepStrictEqual({ whatsapp: kept.whatsapp, contactEmail: kept.contactEmail }, { whatsapp: '0559998888', contactEmail: 'not an email' });
+    assert.ok(!('email' in kept), 'an empty placeholder is not kept');
+    for (const f of privacy.CONTACT_FIELDS) assert.ok(!(f in fake.db._get('artisans/a2')), f);
+});
+await t('idempotent: a second strip finds nothing; an already-migrated artisan is skipped', async () => {
+    fake.db._reset(); legacyArtisan('a1');
+    await migrate('strip');
+    const snap = JSON.stringify([fake.db._get('artisans/a1'), fake.db._get('artisans/a1/private/contact')]);
+    const r = await migrate('strip');
+    assert.strictEqual(r.affected, 0);
+    assert.strictEqual(JSON.stringify([fake.db._get('artisans/a1'), fake.db._get('artisans/a1/private/contact')]), snap);
+});
+await t('a profile whose KYC was already copied (the production state) gets its contact moved too', async () => {
+    fake.db._reset(); legacyArtisan('a1', { ghanaCardNumber: 'GHA-1' });
+    fake.db._set('artisans/a1/private/kyc', { artisanId: 'a1', ghanaCardNumber: 'GHA-1' });
+    const r = await migrate('copy');
+    assert.deepStrictEqual(r.artisans[0].copied.sort(), ['email', 'phone'], 'KYC is not re-copied');
+    assert.strictEqual(fake.db._get('artisans/a1/private/kyc').ghanaCardNumber, 'GHA-1');
+});
+
+console.log('\n── CONTACT-001 · the migration of booking copies ──\n');
+
+const seedBooking = (id, extra) => fake.db._set(`bookings/${id}`, { customerId: 'c1', artisanId: 'art_1', status: 'completed', ...extra });
+await t('dry run: names the bookings carrying an artisan phone; writes nothing; no values', async () => {
+    fake.db._reset();
+    seedBooking('B1', { proPhone: PHONE });
+    seedBooking('B2', { artisan: { id: 'art_1', name: 'Kofi', phone: PHONE } });
+    seedBooking('B3', {});
+    const r = await contactMig.migrateContactPrivacy({ mode: 'dry-run' });
+    assert.deepStrictEqual(r.artisanPhones.ids.sort(), ['B1', 'B2']);
+    assert.ok(!fake.db._has('bookings/B1/private/artisanContact'));
+    noValues(r);
+});
+await t('strip: every copy leaves the booking, nested maps keep their other fields, the phone lands in artisanContact', async () => {
+    fake.db._reset();
+    seedBooking('B1', { proPhone: PHONE, artisan: { id: 'art_1', name: 'Kofi', phone: PHONE },
+        professional: { id: 'art_1', name: 'Kofi', phone: `tel:${PHONE}` } });
+    await contactMig.migrateContactPrivacy({ mode: 'strip' });
+    const b = fake.db._get('bookings/B1');
+    assert.ok(!('proPhone' in b));
+    assert.deepStrictEqual(b.artisan, { id: 'art_1', name: 'Kofi' });
+    assert.deepStrictEqual(b.professional, { id: 'art_1', name: 'Kofi' });
+    const c = fake.db._get('bookings/B1/private/artisanContact');
+    assert.deepStrictEqual({ artisanId: c.artisanId, artisanPhone: c.artisanPhone }, { artisanId: 'art_1', artisanPhone: PHONE }, 'tel: prefix removed');
+});
+await t('the accept trigger\'s artisanContact is never overwritten; a re-run does nothing', async () => {
+    fake.db._reset();
+    seedBooking('B1', { proPhone: '0559998888' });
+    fake.db._set('bookings/B1/private/artisanContact', { bookingId: 'B1', artisanId: 'art_1', artisanPhone: PHONE });
+    await contactMig.migrateContactPrivacy({ mode: 'strip' });
+    assert.strictEqual(fake.db._get('bookings/B1/private/artisanContact').artisanPhone, PHONE);
+    assert.ok(!('proPhone' in fake.db._get('bookings/B1')));
+    const r = await contactMig.migrateContactPrivacy({ mode: 'strip' });
+    assert.strictEqual(r.artisanPhones.exposed, 0);
+});
+
 console.log(`\nartisan-contact: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 3).join('\n    ') : e}`);
 process.exit(failed ? 1 : 0);

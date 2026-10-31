@@ -9,6 +9,9 @@
  *                           → artisans/{id}/private/location; the profile keeps
  *                           a ~1 km copy (shared/js/domain/locationPrivacy.js).
  *   bookings/{id}           customerPhone → bookings/{id}/private/contact.
+ *   bookings/{id}           the ARTISAN's phone copied by clients (proPhone,
+ *                           artisanPhone, artisan.phone, professional.phone)
+ *                           → bookings/{id}/private/artisanContact (CONTACT-001).
  *
  * New writes already go to the private records; this moves what is already
  * there. Same contract as functions/artisanPrivacy.js:
@@ -144,6 +147,70 @@ async function migrateBookingContacts(mode, pageSize, report) {
     }
 }
 
+// CONTACT-001: copies of the ARTISAN's phone that clients wrote onto bookings
+// (bookingService proPhone; book-emergency artisan.phone / professional.phone,
+// the latter as a tel: link). Each booking reads like a public profile to its
+// customer, outside the disclosure window, so they move to
+// bookings/{id}/private/artisanContact — the record the accept trigger writes
+// and firestore.rules disclose only while the job is live.
+const BOOKING_ARTISAN_PHONE_PATHS = Object.freeze(['proPhone', 'artisanPhone', 'artisan.phone', 'professional.phone']);
+
+function readPath(d, p) {
+    return p.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), d);
+}
+function bookingArtisanPhones(d) {
+    return BOOKING_ARTISAN_PHONE_PATHS.filter((p) => readPath(d, p) !== undefined);
+}
+const asPhone = (v) => (typeof v === 'string' || typeof v === 'number')
+    ? String(v).trim().replace(/^tel:/i, '').trim() : '';
+
+async function migrateBookingArtisanPhones(mode, pageSize, report) {
+    for await (const docs of pages('bookings', pageSize)) {
+        for (const doc of docs) {
+            if (!bookingArtisanPhones(doc.data()).length) continue;
+            report.artisanPhones.exposed++;
+            const contactRef = doc.ref.collection('private').doc('artisanContact');
+            if (mode === 'dry-run') { report.artisanPhones.ids.push(doc.id); continue; }
+            await db().runTransaction(async (txn) => {
+                const [live, contact] = await Promise.all([txn.get(doc.ref), txn.get(contactRef)]);
+                if (!live.exists) return;
+                const cur   = live.data();
+                const found = bookingArtisanPhones(cur);
+                if (!found.length) return;
+                const phone = found.map((p) => asPhone(readPath(cur, p))).find((v) => v && v.length <= 32) || '';
+                const held  = contact.exists && asPhone(contact.data().artisanPhone) !== '';
+                // Never overwrites: the accept trigger's record reads the artisan's
+                // own private/contact and is newer than any client copy.
+                if (!held && phone && cur.artisanId) {
+                    txn.set(contactRef, {
+                        bookingId: doc.id, artisanId: cur.artisanId,
+                        artisanPhone: phone, updatedAt: nowIso(),
+                    });
+                    report.artisanPhones.copied++;
+                }
+                // A copy with no home (no artisan on the booking, or no usable
+                // number) is still stripped: the artisan's own private/contact
+                // is the source of truth, and the booking copy is never needed.
+                if (mode === 'strip') {
+                    // A nested copy goes by rewriting its map without the phone:
+                    // the transaction holds the version read above, so nothing
+                    // else in the map can be lost.
+                    const patch = {};
+                    for (const p of found) {
+                        const [top, sub] = p.split('.');
+                        if (!sub) { patch[top] = FieldValue.delete(); continue; }
+                        const { [sub]: _gone, ...rest } = patch[top] || cur[top];
+                        patch[top] = rest;
+                    }
+                    txn.update(doc.ref, patch);
+                    report.artisanPhones.stripped++;
+                }
+            });
+            report.artisanPhones.ids.push(doc.id);
+        }
+    }
+}
+
 /**
  * @param {{ mode?: 'dry-run'|'copy'|'strip', pageSize?: number }} opts
  * @returns {Promise<object>} counts and document ids — no values
@@ -155,10 +222,12 @@ async function migrateContactPrivacy({ mode = 'dry-run', pageSize = 200 } = {}) 
         mode,
         artisans: { exposed: 0, copied: 0, stripped: 0, ids: [] },
         bookings: { exposed: 0, copied: 0, stripped: 0, ids: [] },
+        artisanPhones: { exposed: 0, copied: 0, stripped: 0, ids: [] },
     };
     await migrateArtisanLocations(mode, size, report);
     await migrateBookingContacts(mode, size, report);
+    await migrateBookingArtisanPhones(mode, size, report);
     return report;
 }
 
-module.exports = { migrateContactPrivacy, exposesLocation, publicLocationPatch, legacyPosition };
+module.exports = { migrateContactPrivacy, exposesLocation, publicLocationPatch, legacyPosition, BOOKING_ARTISAN_PHONE_PATHS };

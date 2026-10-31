@@ -34,6 +34,14 @@
  * artisan is handled in its own transaction: the private write and the public
  * delete commit together or not at all.
  *
+ * CONTACT-001 adds the artisan's phone and email (CONTACT_FIELDS), which go to
+ * artisans/{id}/private/contact instead of private/kyc. That record may hold
+ * only a valid phone and email (firestore.rules), so an alias or a malformed
+ * value that cannot fill a slot is kept in private/contactLegacy (server-
+ * written; artisan + admin read) rather than lost or left public. Artisans
+ * already migrated (KYC copied, private records present, public fields gone)
+ * are skipped or only stripped: every mode stays safe to repeat.
+ *
  * Reports contain artisan ids and FIELD NAMES only, never values: the output
  * of a migration is itself a log, and must not become a second copy of the
  * data it is protecting.
@@ -60,6 +68,30 @@ const ARTISAN_PRIVATE_FIELDS = Object.freeze([
     'payoutAccount', 'momoProvider', 'momoPhone', 'momoAccountName',
     'address', 'gpsAddress', 'businessRegNumber',
 ]);
+
+/**
+ * Contact details (CONTACT-001): never on the public profile; they move to
+ * artisans/{id}/private/contact. Mirrors artisanContactFields() in
+ * firestore.rules — keep the two lists identical.
+ */
+const CONTACT_FIELDS = Object.freeze(['phone', 'email', 'phoneNumber', 'contactEmail', 'whatsapp']);
+
+// The private/contact slot each field fills. Order in CONTACT_FIELDS is the
+// priority: the canonical field first, then its aliases.
+const CONTACT_SLOT = Object.freeze({
+    phone: 'phone', phoneNumber: 'phone', whatsapp: 'phone',
+    email: 'email', contactEmail: 'email',
+});
+
+// What the rules accept in private/contact (isOptionalString(…, 32), isValidEmail).
+const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+const clean = (v) => (v == null ? '' : String(v).trim());
+function slotValid(slot, raw) {
+    if (typeof raw !== 'string' && typeof raw !== 'number') return false;
+    const v = clean(raw);
+    if (!v) return false;
+    return slot === 'phone' ? v.length <= 32 : v.length <= 254 && EMAIL_RE.test(v);
+}
 
 const MODES = new Set(['dry-run', 'copy', 'strip']);
 
@@ -92,7 +124,7 @@ async function migrateArtisanPrivateData({ mode = 'dry-run', pageSize = 200 } = 
 
         for (const doc of page.docs) {
             report.scanned++;
-            const legacy = ARTISAN_PRIVATE_FIELDS.filter((f) => doc.data()[f] !== undefined);
+            const legacy = [...ARTISAN_PRIVATE_FIELDS, ...CONTACT_FIELDS].filter((f) => doc.data()[f] !== undefined);
             if (!legacy.length) continue;
             report.affected++;
 
@@ -116,24 +148,29 @@ async function migrateArtisanPrivateData({ mode = 'dry-run', pageSize = 200 } = 
 }
 
 async function processOne(publicRef, mode, entry) {
-    const privateRef = publicRef.collection('private').doc('kyc');
+    const privateCol = publicRef.collection('private');
+    const kycRef     = privateCol.doc('kyc');
+    const contactRef = privateCol.doc('contact');
+    const keptRef    = privateCol.doc('contactLegacy');
 
     await db().runTransaction(async (txn) => {
-        const [pubSnap, privSnap] = await Promise.all([txn.get(publicRef), txn.get(privateRef)]);
-        const pub  = pubSnap.exists  ? pubSnap.data()  : {};
-        const priv = privSnap.exists ? privSnap.data() : {};
+        const [pubSnap, kycSnap, contactSnap, keptSnap] = await Promise.all(
+            [txn.get(publicRef), txn.get(kycRef), txn.get(contactRef), txn.get(keptRef)]);
+        const pub     = pubSnap.exists     ? pubSnap.data()     : {};
+        const kyc     = kycSnap.exists     ? kycSnap.data()     : {};
+        const contact = contactSnap.exists ? contactSnap.data() : {};
+        const kept    = keptSnap.exists    ? keptSnap.data()    : {};
 
         // Reset per attempt: a transaction callback may run more than once.
         entry.copied = []; entry.stripped = []; entry.conflicts = [];
 
-        const toCopy  = {};
-        const toStrip = {};
+        const toKyc = {}, toContact = {}, toKept = {}, toStrip = {};
         for (const f of ARTISAN_PRIVATE_FIELDS) {
             if (pub[f] === undefined) continue;
-            if (priv[f] === undefined) {
-                toCopy[f] = pub[f];          // never overwrites: only fills a gap
+            if (kyc[f] === undefined) {
+                toKyc[f] = pub[f];           // never overwrites: only fills a gap
                 entry.copied.push(f);
-            } else if (!sameValue(priv[f], pub[f])) {
+            } else if (!sameValue(kyc[f], pub[f])) {
                 entry.conflicts.push(f);     // private wins; reported, not copied
             }
             // Once this transaction commits, the private record holds a value
@@ -141,18 +178,48 @@ async function processOne(publicRef, mode, entry) {
             toStrip[f] = FieldValue.delete();
             entry.stripped.push(f);
         }
+
+        // Contact details. private/contact may hold only a valid phone and email
+        // (firestore.rules), or the artisan's next Settings save is refused — so
+        // a value fills its slot only when the slot is empty and the value valid.
+        // Anything else (a second number, a malformed email, an alias that
+        // disagrees) is kept in private/contactLegacy: server-written, readable
+        // by the artisan and admins only. Nothing is lost; nothing stays public.
+        const held = { phone: clean(contact.phone), email: clean(contact.email) };
+        for (const f of CONTACT_FIELDS) {
+            if (pub[f] === undefined) continue;
+            const slot = CONTACT_SLOT[f];
+            const v    = clean(pub[f]);
+            if (v === '') {
+                // An empty placeholder ("" / null): nothing to keep.
+            } else if (held[slot] === '' && slotValid(slot, pub[f])) {
+                toContact[slot] = v; held[slot] = v;
+                entry.copied.push(f);
+            } else if (held[slot] !== v) {
+                if (held[slot] !== '') entry.conflicts.push(f);   // the private value wins
+                if (kept[f] === undefined) { toKept[f] = pub[f]; if (!entry.copied.includes(f)) entry.copied.push(f); }
+                else if (!sameValue(kept[f], pub[f]) && !entry.conflicts.includes(f)) entry.conflicts.push(f);
+            }
+            toStrip[f] = FieldValue.delete();
+            entry.stripped.push(f);
+        }
+
         if (mode !== 'strip') entry.stripped = [];
         if (mode === 'dry-run') return;
 
         const now = new Date().toISOString();
-        if (Object.keys(toCopy).length) {
-            txn.set(privateRef, {
-                ...toCopy,
+        const put = (ref, snap, data) => {
+            if (!Object.keys(data).length) return;
+            txn.set(ref, {
+                ...data,
                 artisanId: publicRef.id,
-                ...(privSnap.exists ? {} : { createdAt: now }),
+                ...(snap.exists ? {} : { createdAt: now }),
                 updatedAt: now,
             }, { merge: true });
-        }
+        };
+        put(kycRef, kycSnap, toKyc);
+        put(contactRef, contactSnap, toContact);
+        put(keptRef, keptSnap, toKept);
         if (mode === 'strip') {
             txn.update(publicRef, { ...toStrip, updatedAt: now });
         }
@@ -162,4 +229,4 @@ async function processOne(publicRef, mode, entry) {
     if (mode === 'dry-run') { entry.wouldCopy = entry.copied; entry.copied = []; }
 }
 
-module.exports = { migrateArtisanPrivateData, ARTISAN_PRIVATE_FIELDS };
+module.exports = { migrateArtisanPrivateData, ARTISAN_PRIVATE_FIELDS, CONTACT_FIELDS };
