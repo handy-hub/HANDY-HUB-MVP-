@@ -212,7 +212,9 @@ await it('a new artisan profile cannot be created with a Ghana Card number in it
 await it('a new artisan profile without private data can still be created', async () => {
     const uid = 'artisan_new2';
     const ctx = newArtisan(uid);
-    await assertSucceeds(setDoc(doc(ctx.firestore(), 'artisans', uid), signupProfile(uid)));
+    // Without the contact fields too: since CONTACT-001 they live in private/contact.
+    const { email: _e, phone: _p, ...profile } = signupProfile(uid);
+    await assertSucceeds(setDoc(doc(ctx.firestore(), 'artisans', uid), profile));
 });
 
 console.log('\nARTISAN PRIVACY — Firestore: discovery, booking and self-service still work\n');
@@ -434,6 +436,53 @@ await it('a customer cannot write an artisan\'s push token', async () => {
 });
 await it('a push-token write cannot carry a protected field with it', async () => {
     await assertFails(updateDoc(pubA(artisanA), { fcmToken: 'tok-web-2', fcmPlatform: 'web', rating: 5 }));
+});
+
+console.log('\nCONTACT-001 · the artisan\'s phone and email are never public\n');
+
+const contactA = (ctx) => doc(ctx.firestore(), 'artisans', ARTISAN_A, 'private', 'contact');
+const NEW_ART  = 'artisan_new_contact';
+const newArt   = newArtisan(NEW_ART);
+const publicProfile = (uid, over = {}) => {
+    const p = { ...signupProfile(uid) };
+    delete p.email; delete p.phone;          // stripped FIRST, so an override can add one back
+    return { ...p, ...over };
+};
+
+await it('a new public profile carrying a phone or an email is refused; without them it is accepted', async () => {
+    await assertFails(setDoc(doc(newArt.firestore(), 'artisans', NEW_ART), publicProfile(NEW_ART, { phone: '0201234567' })));
+    await assertFails(setDoc(doc(newArt.firestore(), 'artisans', NEW_ART), publicProfile(NEW_ART, { email: `${NEW_ART}@example.com` })));
+    for (const alias of ['phoneNumber', 'contactEmail', 'whatsapp']) {
+        await assertFails(setDoc(doc(newArt.firestore(), 'artisans', NEW_ART), publicProfile(NEW_ART, { [alias]: 'x' })), alias);
+    }
+    await assertSucceeds(setDoc(doc(newArt.firestore(), 'artisans', NEW_ART), publicProfile(NEW_ART)));
+});
+await it('the public profile cannot gain or change a phone or email', async () => {
+    await assertFails(updateDoc(doc(newArt.firestore(), 'artisans', NEW_ART), { phone: '0209999999' }));
+    await assertFails(updateDoc(pubA(artisanA), { phone: '0209999999' }), 'a legacy profile cannot change it');
+    await assertFails(updateDoc(pubA(artisanA), { email: 'new@example.com' }));
+});
+await it('a legacy profile that still holds them (until the strip migration) can save everything else', async () => {
+    await assertSucceeds(updateDoc(pubA(artisanA), { bio: 'Plumber in Accra', updatedAt: '2026-10-31T10:00:00.000Z' }));
+});
+await it('the artisan keeps their phone and email in private/contact', async () => {
+    await assertSucceeds(setDoc(contactA(artisanA), { artisanId: ARTISAN_A, phone: '0201234567', email: 'kofi@example.com', updatedAt: '2026-10-31T10:00:00.000Z' }));
+    await assertSucceeds(updateDoc(contactA(artisanA), { phone: '0207654321', updatedAt: '2026-10-31T10:05:00.000Z' }));
+    await assertSucceeds(getDoc(contactA(artisanA)));
+});
+await it('private/contact holds only phone and email, valid, in the owner\'s name', async () => {
+    await assertFails(setDoc(contactA(artisanA), { artisanId: ARTISAN_A, phone: '0201234567', ghanaCardNumber: 'GHA-1' }));
+    await assertFails(setDoc(contactA(artisanA), { artisanId: ARTISAN_A, email: 'not-an-email' }));
+    await assertFails(setDoc(contactA(artisanA), { artisanId: ARTISAN_A, phone: '0'.repeat(40) }));
+    await assertFails(setDoc(contactA(artisanA), { artisanId: ARTISAN_B, phone: '0201234567' }), 'artisanId must be the owner');
+});
+await it('nobody else reads or writes an artisan\'s private/contact; an admin reads it', async () => {
+    await assertFails(getDoc(contactA(customer)));
+    await assertFails(getDoc(contactA(artisanB)));
+    await assertFails(getDoc(contactA(anon)));
+    await assertFails(setDoc(contactA(artisanB), { artisanId: ARTISAN_B, phone: '0201234567' }));
+    await assertFails(setDoc(contactA(customer), { artisanId: CUSTOMER, phone: '0201234567' }));
+    await assertSucceeds(getDoc(contactA(admin)));
 });
 
 console.log('\n' + '─'.repeat(52));

@@ -166,6 +166,10 @@ service cloud.firestore {
                       isZeroOrAbsent(incoming(), 'withdrawnTotal') &&
                       // Private identity/payout/home data never enters the public doc.
                       !incoming().keys().hasAny(artisanPrivateFields()) &&
+                      // Nor the artisan's phone or email (CONTACT-001): a customer
+                      // sees the phone only inside a booking's window
+                      // (bookings/{id}/private/artisanContact), never by browsing.
+                      !incoming().keys().hasAny(artisanContactFields()) &&
                       // Nor a reviewer's decision (AR-14): a self-created profile
                       // cannot arrive "verified" or name who approved it.
                       !incoming().keys().hasAny(artisanDecisionFields()) &&
@@ -197,6 +201,7 @@ service cloud.firestore {
                       isSafeArtisanStatusUpdate() &&
                       isSafeArtisanProfileUpdate() &&
                       isPublicLocationSafe(incoming().diff(existing()).affectedKeys()) &&
+                      !incoming().diff(existing()).affectedKeys().hasAny(artisanContactFields()) &&
                       isSafeArtisanVerificationUpdate() &&
                       isSafeArtisanClaimUpdate() &&
                       isValidArtisanNotificationPrefs() &&
@@ -217,6 +222,13 @@ service cloud.firestore {
       return ['ghanaCardNumber', 'tin', 'dob', 'dateOfBirth', 'emergencyContact',
               'payoutAccount', 'momoProvider', 'momoPhone', 'momoAccountName',
               'address', 'gpsAddress', 'businessRegNumber'];
+    }
+
+    // The artisan's contact details (CONTACT-001). Never on the public profile;
+    // kept in artisans/{id}/private/contact. Mirrors CONTACT_FIELDS in
+    // functions/artisanPrivacy.js — keep the two lists identical.
+    function artisanContactFields() {
+      return ['phone', 'email', 'phoneNumber', 'contactEmail', 'whatsapp'];
     }
 
     function isArtisanAccount(uid) {
@@ -294,6 +306,17 @@ service cloud.firestore {
                        // re-verification.
                        (!artisanClaimsLocked(artisanId) ||
                         !incoming().diff(existing()).affectedKeys().hasAny(artisanIdentityFields()));
+      // The artisan's phone and email (CONTACT-001): readable by the artisan and
+      // admins only (read rule above). Customers get the phone only through
+      // bookings/{id}/private/artisanContact, written server-side on acceptance.
+      allow create, update: if isOwner(artisanId) &&
+                               docId == 'contact' &&
+                               isArtisanAccount(artisanId) &&
+                               incoming().keys().hasOnly(['phone', 'email', 'artisanId', 'createdAt', 'updatedAt']) &&
+                               incoming().artisanId == request.auth.uid &&
+                               isOptionalString(incoming(), 'phone', 32) &&
+                               (!('email' in incoming()) || incoming().email == null ||
+                                (isValidEmail(incoming().email) && incoming().email.size() <= 254));
       // The precise position (presence, onboarding's work pin). Readable by the
       // artisan and admins only (read rule above); syncArtisanIndex copies it into
       // the server-only artisan_index for dispatch and pricing.
@@ -373,9 +396,10 @@ service cloud.firestore {
 
     // Base validity: id, name, email, userType, status must always be correct
     function isValidArtisanBase(data) {
+      // No email here (CONTACT-001): it lives in private/contact. It used to be
+      // REQUIRED on this world-readable document.
       return data.id       == request.auth.uid &&
              data.name     is string && data.name.size() > 0 &&
-             isValidEmail(data.email) &&
              data.userType == 'artisan' &&
              data.status   in ['active', 'pending', 'suspended', 'banned'];
     }
@@ -760,6 +784,9 @@ service cloud.firestore {
         // Server-only so neither party can present a fabricated identity — the
         // artisan app previously wrote artisanName itself on accept.
         'customerFirstName', 'customerPhone',
+        // The artisan's phone never rides on the booking (CONTACT-001): it is
+        // disclosed through bookings/{id}/private/artisanContact, in a window.
+        'proPhone', 'artisanPhone',
         'artisanName', 'artisanPhoto', 'artisanRating', 'artisanCategory',
         'artisanVerified', 'artisanJobsCompleted',
         // Job quote lifecycle
@@ -795,7 +822,11 @@ service cloud.firestore {
 
     // CREATE guard: none of the system fields may be present.
     function bookingHasNoSystemFields(data) {
-      return !data.keys().hasAny(bookingSystemFields());
+      return !data.keys().hasAny(bookingSystemFields()) &&
+             // Nor a copy of the artisan's phone inside the artisan/professional
+             // summaries the customer app attached (CONTACT-001).
+             !(('artisan' in data) && data.artisan is map && ('phone' in data.artisan)) &&
+             !(('professional' in data) && data.professional is map && ('phone' in data.professional));
     }
 
     // UPDATE guard: the diff may not touch any system field.
@@ -1732,6 +1763,13 @@ service cloud.firestore {
                      isSignedIn() && docId == 'contact' && (
                        request.auth.uid == contactBooking().customerId ||
                        (request.auth.uid == contactBooking().get('artisanId', null) &&
+                        contactDisclosed(contactBooking())))) || (
+                     // The ARTISAN's phone (CONTACT-001), the same window in
+                     // reverse: the customer reads it only while the job is
+                     // committed, funded and not ended; the artisan always.
+                     isSignedIn() && docId == 'artisanContact' && (
+                       request.auth.uid == contactBooking().get('artisanId', null) ||
+                       (request.auth.uid == contactBooking().customerId &&
                         contactDisclosed(contactBooking()))));
       allow write: if false;
     }

@@ -57,7 +57,8 @@ const testEnv = await initializeTestEnvironment({
 
 function profile(uid, over = {}) {
     return {
-        id: uid, uid, name: 'Kofi Boateng', fullName: 'Kofi Boateng', email: `${uid}@example.com`,
+        // No email: since CONTACT-001 a public profile carries no contact fields.
+        id: uid, uid, name: 'Kofi Boateng', fullName: 'Kofi Boateng',
         userType: 'artisan', status: 'active', verificationStatus: 'approved', category: 'plumbing',
         isOnline: false, isAvailable: true, rating: 0, reviewCount: 0,
         availableBalance: 0, pendingBalance: 0, totalEarned: 0, withdrawnTotal: 0,
@@ -97,11 +98,13 @@ await testEnv.withSecurityRulesDisabled(async (ctx) => {
     for (const s of STATES) {
         await setDoc(doc(db, 'bookings', `BK-${s}`), booking(s));
         await setDoc(doc(db, 'bookings', `BK-${s}`, 'private', 'contact'), { bookingId: `BK-${s}`, customerId: C1, customerPhone: '+233241111111' });
+        await setDoc(doc(db, 'bookings', `BK-${s}`, 'private', 'artisanContact'), { bookingId: `BK-${s}`, artisanId: A, artisanPhone: '+233209999999' });
         await setDoc(doc(db, 'bookings', `BK-${s}`, 'live', 'artisan'), { artisanId: A, ...PRECISE, accuracy: 6, updatedAt: NOW });
     }
     for (const [id, paid] of [['BK-INSP-UNPAID', false], ['BK-INSP-PAID', true]]) {
         await setDoc(doc(db, 'bookings', id), booking('accepted', { track: 'inspection', calloutPaid: paid }));
         await setDoc(doc(db, 'bookings', id, 'private', 'contact'), { bookingId: id, customerId: C1, customerPhone: '+233241111111' });
+        await setDoc(doc(db, 'bookings', id, 'private', 'artisanContact'), { bookingId: id, artisanId: A, artisanPhone: '+233209999999' });
     }
 
     // An open offer to A: the booking does not name A until A accepts.
@@ -439,6 +442,39 @@ await it('support can tell the user a reply is waiting (the admin page\'s notifi
         message: 'There is a reply to your request about "Payments". Open Support to read it.',
         isRead: false, readAt: null, actionUrl: 'support.html', metadata: { ticketId: 'T-OPEN' }, createdAt: NOW,
     }));
+});
+
+console.log('\nCONTACT-001 · the ARTISAN\'s phone, by booking state (the same window in reverse)\n');
+
+for (const s of STATES) {
+    const open = CONTACT_OPEN.includes(s);
+    await it(`${s}: the booking's customer ${open ? 'CAN' : 'can NOT'} read the artisan's phone; the artisan always; strangers never`, async () => {
+        const c = (db) => getDoc(doc(db, 'bookings', `BK-${s}`, 'private', 'artisanContact'));
+        if (open) await assertSucceeds(c(c1)); else await assertFails(c(c1));
+        await assertSucceeds(c(a));
+        await assertFails(c(c2));
+        await assertFails(c(b));
+        await assertSucceeds(c(admin));
+    });
+}
+await it('an inspection the customer has not funded keeps the artisan\'s phone closed too', async () => {
+    await assertFails(getDoc(doc(c1, 'bookings', 'BK-INSP-UNPAID', 'private', 'artisanContact')));
+    await assertSucceeds(getDoc(doc(c1, 'bookings', 'BK-INSP-PAID', 'private', 'artisanContact')));
+});
+await it('nobody writes the artisan-contact record from a client', async () => {
+    await assertFails(setDoc(doc(a, 'bookings', 'BK-accepted', 'private', 'artisanContact'), { artisanPhone: '+233200000000' }, { merge: true }));
+    await assertFails(setDoc(doc(c1, 'bookings', 'BK-accepted', 'private', 'artisanContact'), { artisanPhone: '+233200000000' }, { merge: true }));
+});
+await it('a new booking cannot carry a copy of the artisan\'s phone', async () => {
+    await assertFails(setDoc(doc(c1, 'bookings', 'BK-P1'), newBooking({ requestedArtisanId: A, artisanId: null, proPhone: '0241234567' })));
+    await assertFails(setDoc(doc(c1, 'bookings', 'BK-P2'), newBooking({ requestedArtisanId: A, artisanId: null, artisanPhone: '0241234567' })));
+    await assertFails(setDoc(doc(c1, 'bookings', 'BK-P3'), newBooking({ type: 'emergency', bookingType: 'emergency', artisanId: null,
+        artisan: { id: A, name: 'Kofi', phone: '0241234567' } })));
+    await assertFails(setDoc(doc(c1, 'bookings', 'BK-P4'), newBooking({ type: 'emergency', bookingType: 'emergency', artisanId: null,
+        professional: { id: A, name: 'Kofi', phone: 'tel:0241234567' } })));
+    // The same summaries without the phone are still accepted.
+    await assertSucceeds(setDoc(doc(c1, 'bookings', 'BK-P5'), newBooking({ type: 'emergency', bookingType: 'emergency', artisanId: null,
+        artisan: { id: A, name: 'Kofi' }, professional: { id: A, name: 'Kofi' } })));
 });
 
 console.log('\n' + '─'.repeat(52));
