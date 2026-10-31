@@ -7,6 +7,7 @@
  *   FORM-001   The quote form disabled Send without saying why.
  *   UI-006     (jobs) The toast wrapped short messages onto 2–3 lines.
  *   RESP-001   (jobs) The tabs were cut off on narrow phones.
+ *   FORM-002   (part 1) The quote form never showed the artisan's net earnings.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -62,18 +63,22 @@ await t('the one-time auto-tab yields to a tab the URL already names', () => {
 
 console.log('\n── FORM-001 · the quote form says why Send is off ──\n');
 
-const { validateQuoteInput } = require(path.join(__dirname, '..', 'functions', 'shared', 'quoteMoney.js'));
+const { validateQuoteInput, artisanEarningsPreview } = require(path.join(__dirname, '..', 'functions', 'shared', 'quoteMoney.js'));
+// The display rate, read from the real config (an ES module) without a loader.
+const PLATFORM_CONFIG = { commissionRate: Number(fs.readFileSync(path.join(__dirname, '..', 'shared', 'js', 'config', 'appConfig.js'), 'utf8')
+    .match(/commissionRate:\s*([0-9.]+)/)[1]) };
 
 /** The page's own readQuoteInput + recalcQuote over a stub DOM. */
 function quoteSheet() {
     const els = {};
     const el = (id) => (els[id] = els[id] || { id, value: '', textContent: '', disabled: false });
-    for (const id of ['qs-labour', 'qs-note', 'qs-s-labour', 'qs-s-mats', 'qs-s-total', 'qs-submit', 'qs-msg']) el(id);
+    for (const id of ['qs-labour', 'qs-note', 'qs-s-labour', 'qs-s-mats', 'qs-s-total', 'qs-submit', 'qs-msg', 'qs-s-net', 'qs-net-label']) el(id);
     const src = page.slice(page.indexOf('function readQuoteInput() {'), page.indexOf('window.recalcQuote = recalcQuote;'));
     // eslint-disable-next-line no-new-func
-    const recalc = new Function('document', 'validateQuoteInput', '_needsMaterials', `${src}; return recalcQuote;`)(
-        { getElementById: (id) => el(id), querySelectorAll: () => [] }, validateQuoteInput, false);
-    return { set: (v) => { els['qs-labour'].value = v; recalc(); }, msg: () => els['qs-msg'].textContent, off: () => els['qs-submit'].disabled };
+    const recalc = new Function('document', 'validateQuoteInput', 'artisanEarningsPreview', 'PLATFORM_CONFIG', '_needsMaterials', `${src}; return recalcQuote;`)(
+        { getElementById: (id) => el(id), querySelectorAll: () => [] }, validateQuoteInput, artisanEarningsPreview, PLATFORM_CONFIG, false);
+    return { set: (v) => { els['qs-labour'].value = v; recalc(); }, msg: () => els['qs-msg'].textContent, off: () => els['qs-submit'].disabled,
+             net: () => els['qs-s-net'].textContent, netLabel: () => els['qs-net-label'].textContent };
 }
 
 await t('an untouched form says nothing, though Send is off', () => {
@@ -118,6 +123,28 @@ console.log('\n── RESP-001 · the tabs wrap instead of hiding off-screen ─
 
 await t('the Jobs tabs wrap when they do not fit, never scroll unseen', () => {
     assert.match(page, /\.jobs-header \.ui-tabs \{ flex-wrap: wrap; overflow-x: visible; row-gap: var\(--ds-2\); \}/);
+});
+
+console.log('\n── FORM-002 (part 1) · the quote form shows what the artisan takes home ──\n');
+
+await t('a valid quote shows the net after commission; an invalid one shows a dash', () => {
+    const q = quoteSheet();
+    q.set('150');
+    assert.strictEqual(q.net(), '127.50', 'GHS 150 at 15% commission');
+    assert.strictEqual(q.netLabel(), 'You receive after 15% commission');
+    q.set('0');
+    assert.strictEqual(q.net(), '—');
+});
+await t('the rate comes from PLATFORM_CONFIG, never a literal in the page', () => {
+    const recalc = page.slice(page.indexOf('function recalcQuote() {'), page.indexOf('window.recalcQuote = recalcQuote;'));
+    assert.match(recalc, /artisanEarningsPreview\(q\.jobQuote, PLATFORM_CONFIG\.commissionRate\)/);
+    assert.ok(!/0\.15|15%/.test(recalc), 'no hard-coded rate');
+});
+await t("job.html's composer shows the same line, from the same helper and config", () => {
+    const c = fs.readFileSync(path.join(__dirname, '..', 'shared', 'js', 'ui', 'quoteComposer.js'), 'utf8');
+    assert.match(c, /You receive after \$\{Math\.round\(PLATFORM_CONFIG\.commissionRate \* 100\)\}% commission/);
+    assert.match(c, /artisanEarningsPreview\(q\.jobQuote, PLATFORM_CONFIG\.commissionRate\)/);
+    assert.match(c, /import \{ PLATFORM_CONFIG \} from '\.\.\/config\/appConfig\.js';/);
 });
 
 console.log(`\nartisan-jobs-page: ${passed} passed, ${failed} failed`);

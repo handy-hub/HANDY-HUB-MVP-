@@ -18,7 +18,8 @@
 
 // The same validator submitJobQuote runs (AR-08): the artisan sees the
 // server's own verdict and totals before sending, and nothing here is trusted.
-import { validateQuoteInput } from '../domain/quoteMoney.js';
+import { validateQuoteInput, artisanEarningsPreview } from '../domain/quoteMoney.js';
+import { PLATFORM_CONFIG } from '../config/appConfig.js';
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -77,6 +78,7 @@ export function mountQuoteComposer(opts = {}) {
           <div class="qc-sum-row"><span>Labour</span><span>GHS <span id="qc-s-lab">0.00</span></span></div>
           <div class="qc-sum-row" id="qc-s-matrow" style="display:none"><span>Materials</span><span>GHS <span id="qc-s-mat">0.00</span></span></div>
           <div class="qc-sum-row qc-total"><span>Total quote</span><span>GHS <span id="qc-s-tot">0.00</span></span></div>
+          <div class="qc-sum-row"><span>You receive after ${Math.round(PLATFORM_CONFIG.commissionRate * 100)}% commission</span><span>GHS <span id="qc-s-net">—</span></span></div>
         </div>
 
         <div class="qc-field">
@@ -124,6 +126,10 @@ export function mountQuoteComposer(opts = {}) {
         $('qc-s-lab').textContent = q ? money(q.labourCost) : '—';
         $('qc-s-mat').textContent = q ? money(q.materialsCost) : '—';
         $('qc-s-tot').textContent = q ? money(q.jobQuote) : '—';
+        // What the artisan takes home (audit FORM-002): a preview with the
+        // server's own formula; the server stores the real figure on send.
+        const net = q ? artisanEarningsPreview(q.jobQuote, PLATFORM_CONFIG.commissionRate) : null;
+        $('qc-s-net').textContent = net === null ? '—' : money(net);
         $('qc-submit').disabled = !q || busy;
         // Say WHY Send is off (audit FORM-001), once the artisan has typed
         // something — an empty form is not an error.

@@ -6,6 +6,8 @@
  *   QM-COPY-001  "12.345" was told it "must be a number"; it is a number with
  *                too many decimals. Message routing only: what is accepted or
  *                rejected, and how amounts round, are pinned unchanged below.
+ *   FORM-002     artisanEarningsPreview, the quote form's take-home line, is
+ *                the server's own artisanEarns formula.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -53,6 +55,27 @@ await t('the quote form shows the new message for a too-precise labour cost', ()
     const r = QM.validateQuoteInput({ labourCost: '120.555' });
     assert.strictEqual(r.ok, false);
     assert.strictEqual(r.message, 'Labour cost can have at most 2 decimal places.');
+});
+
+console.log('\n── FORM-002 · the take-home preview matches the server exactly ──\n');
+
+await t('artisanEarningsPreview is the formula functions/quotes.js stores as artisanEarns', () => {
+    const fs = require('fs');
+    const quotesSrc = fs.readFileSync(path.join(__dirname, '..', 'functions', 'quotes.js'), 'utf8');
+    assert.match(quotesSrc, /const artisanEarns\s*=\s*fmt\(jobQuote \* \(1 - COMMISSION_RATE\)\);/,
+        'the server formula this preview mirrors has changed — update both together');
+    assert.match(quotesSrc, /const fmt = \(n\) => parseFloat\(Number\(n\)\.toFixed\(2\)\);/);
+    const { COMMISSION_RATE } = require(path.join(__dirname, '..', 'functions', 'config.js'));
+    const serverFmt = (n) => parseFloat(Number(n).toFixed(2));
+    for (let p = 1; p <= 200000; p += 37) {                 // GHS 0.01 … 2,000 in uneven steps
+        const q = p / 100;
+        assert.strictEqual(QM.artisanEarningsPreview(q, COMMISSION_RATE), serverFmt(q * (1 - COMMISSION_RATE)), `GHS ${q}`);
+    }
+});
+await t('nonsense inputs give no preview rather than a wrong number', () => {
+    for (const [q, r] of [[0, 0.15], [-5, 0.15], [NaN, 0.15], ['abc', 0.15], [100, -0.1], [100, 1], [100, NaN]]) {
+        assert.strictEqual(QM.artisanEarningsPreview(q, r), null, `${q} @ ${r}`);
+    }
 });
 
 console.log(`\nquote-money-copy: ${passed} passed, ${failed} failed`);

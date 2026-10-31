@@ -96,6 +96,22 @@ function toHundredths(value, label) {
     return { ok: true, hundredths };
 }
 
+/**
+ * What the artisan receives from a quote after the platform's commission — a
+ * PREVIEW for the quote form (audit FORM-002). The same formula
+ * functions/quotes.js applies when it stores artisanEarns
+ * (fmt(jobQuote × (1 − COMMISSION_RATE)), 2dp); the server's figure is the one
+ * that counts. Pass the display rate (PLATFORM_CONFIG.commissionRate, which
+ * tests/config-consistency keeps equal to the server's).
+ *
+ * @returns {number|null} GHS, or null when the inputs make no sense
+ */
+function artisanEarningsPreview(jobQuote, commissionRate) {
+    const q = Number(jobQuote), r = Number(commissionRate);
+    if (!Number.isFinite(q) || q <= 0 || !Number.isFinite(r) || r < 0 || r >= 1) return null;
+    return parseFloat((q * (1 - r)).toFixed(2));
+}
+
 const toGHS = (pesewas) => pesewas / 100;
 const fmtGHS = (ghs) => `GHS ${Number(ghs).toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
@@ -242,6 +258,7 @@ function checkStoredQuote(booking, opts = {}) {
 // ── CommonJS surface ─────────────────────────────────────────────────────────
 module.exports = {
     toHundredths,
+    artisanEarningsPreview,
     validateQuoteInput,
     checkStoredQuote,
     QUOTE_LIMITS,

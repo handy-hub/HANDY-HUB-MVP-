@@ -248,6 +248,7 @@
     <div class="qs-sum-row"><span>Labour</span><span>GHS <span id="qs-s-labour">0.00</span></span></div>
     <div class="qs-sum-row" id="qs-s-mat-row" style="display:none;"><span>Materials</span><span>GHS <span id="qs-s-mats">0.00</span></span></div>
     <div class="qs-sum-row total"><span>Total Quote</span><span>GHS <span id="qs-s-total">0.00</span></span></div>
+    <div class="qs-sum-row"><span id="qs-net-label">You receive after commission</span><span>GHS <span id="qs-s-net">—</span></span></div>
   </div>
 
   <!-- Optional note -->
@@ -276,7 +277,8 @@ import { offerState, formatTimeLeft, LAPSED_OFFER_ATTRS, LAPSED_OFFER_LABEL, lap
                                              from '../shared/js/domain/jobOffers.js';
 import { storedAvailability }                from '../shared/js/domain/availability.js';
 import { mountInstantView }                  from '../shared/js/services/instantView.js';
-import { validateQuoteInput }                from '../shared/js/domain/quoteMoney.js';
+import { validateQuoteInput, artisanEarningsPreview } from '../shared/js/domain/quoteMoney.js';
+import { PLATFORM_CONFIG }                   from '../shared/js/config/appConfig.js';
 import { pricingService }                    from '../shared/js/services/pricingService.js';
 import { startPresence, stopPresence }       from '../shared/js/services/presenceService.js';
 import { getFunctions, httpsCallable }
@@ -954,6 +956,13 @@ function recalcQuote() {
   document.getElementById('qs-s-labour').textContent = q ? q.labourCost.toFixed(2)    : '—';
   document.getElementById('qs-s-mats').textContent   = q ? q.materialsCost.toFixed(2) : '—';
   document.getElementById('qs-s-total').textContent  = q ? q.jobQuote.toFixed(2)      : '—';
+  // What the artisan actually takes home (audit FORM-002): a preview with the
+  // server's own formula and the displayed commission rate. The server computes
+  // and stores the real figure when the quote is sent.
+  const net = q ? artisanEarningsPreview(q.jobQuote, PLATFORM_CONFIG.commissionRate) : null;
+  document.getElementById('qs-s-net').textContent    = net === null ? '—' : net.toFixed(2);
+  document.getElementById('qs-net-label').textContent =
+    `You receive after ${Math.round(PLATFORM_CONFIG.commissionRate * 100)}% commission`;
   document.getElementById('qs-submit').disabled      = !q;
   // Say WHY Send is off (audit FORM-001) — the reason used to surface only on
   // a submit that the disabled button could never make. Nothing is said until
