@@ -474,6 +474,9 @@ body {
     }
     .as-card { border-radius: var(--ds-r-card); margin-top: -28px; }
 }
+/* Inline validation and errors (FORM-003): what is missing, and what went wrong. */
+.as-form-msg, .as-form-err { margin: 0 0 10px; font: 500 13px/1.4 var(--ds-font); color: var(--ds-danger); }
+.as-form-msg:empty, .as-form-err:empty { display: none; }
 </style>
 </head>
 <body>
@@ -687,6 +690,8 @@ body {
 
             <!-- Submit -->
             <div class="as-a5">
+                <p id="as-form-msg" class="as-form-msg" role="status" aria-live="polite"></p>
+                <p id="as-form-err" class="as-form-err" role="alert"></p>
                 <button type="submit" id="as-submit-btn" class="as-btn" disabled>
                     Create Account
                     <span class="as-btn-arrow" aria-hidden="true">→</span>
@@ -797,23 +802,53 @@ const nameInp   = document.getElementById('as-name');
 const emailInp  = document.getElementById('as-email');
 const catInp    = document.getElementById('as-category');
 
-function checkReady() {
-    const isOther  = catInp.value === 'other';
+/* ── What is still missing (audit FORM-003) ─────────────────── *
+ * Create Account used to grey out with no reason, and errors arrived as
+ * browser alert() boxes. The SAME rules as before now also say, inline, what
+ * is still missing — but only for a field the artisan has already touched, so
+ * a fresh form is not a wall of red. The field at fault is marked aria-invalid. */
+const formMsg = document.getElementById('as-form-msg');
+const formErr = document.getElementById('as-form-err');
+const touched = new Set();
+
+function signupProblems() {
+    const isOther     = catInp.value === 'other';
     const otherDesc   = document.getElementById('as-other-desc');
     const otherBucket = document.getElementById('as-other-bucket');
-    const otherOk  = !isOther || (
-        otherDesc   && otherDesc.value.trim().length > 0 &&
-        otherBucket && otherBucket.value !== ''
-    );
-    const ready =
-        nameInp.value.trim().length > 0 &&
-        emailInp.value.includes('@') &&
-        catInp.value !== '' &&
-        otherOk &&
-        pwInput.value.length >= 8 &&
-        termsChk.checked;
-    submitBtn.disabled = !ready;
+    const out = [];
+    if (nameInp.value.trim().length === 0) out.push({ key: 'name',  el: nameInp,  message: 'Enter your full name.' });
+    if (!emailInp.value.includes('@'))     out.push({ key: 'email', el: emailInp, message: 'Enter a valid email address.' });
+    if (catInp.value === '')               out.push({ key: 'category', el: catInp, message: 'Choose your trade.' });
+    if (isOther && !(otherDesc && otherDesc.value.trim().length > 0 && otherBucket && otherBucket.value !== '')) {
+        out.push({ key: 'other', el: otherDesc, message: 'Describe your trade and choose the closest category.' });
+    }
+    if (pwInput.value.length < 8)          out.push({ key: 'password', el: pwInput, message: 'Use a password of at least 8 characters.' });
+    if (!termsChk.checked)                 out.push({ key: 'terms', el: termsChk, message: 'Agree to the Terms and Privacy Policy to continue.' });
+    return out;
 }
+
+function checkReady() {
+    const problems = signupProblems();
+    submitBtn.disabled = problems.length > 0;
+    const shown = problems.find(p => touched.has(p.key)) || null;
+    if (formMsg) formMsg.textContent = shown ? shown.message : '';
+    for (const el of [nameInp, emailInp, catInp, pwInput, termsChk, document.getElementById('as-other-desc')]) {
+        if (el) el.removeAttribute('aria-invalid');
+    }
+    if (shown && shown.el) shown.el.setAttribute('aria-invalid', 'true');
+}
+
+/** A sign-up or Google error, shown in the page rather than a browser dialog. */
+function showFormError(message) {
+    if (formErr) formErr.textContent = message || '';
+}
+
+const touch = (key) => () => { touched.add(key); checkReady(); };
+nameInp.addEventListener('blur',  touch('name'));
+emailInp.addEventListener('blur', touch('email'));
+pwInput.addEventListener('blur',  touch('password'));
+catInp.addEventListener('change', touch('category'));
+termsChk.addEventListener('change', touch('terms'));
 
 [nameInp, emailInp, pwInput, termsChk].forEach(el => {
     el.addEventListener('input',  checkReady);
@@ -835,6 +870,7 @@ form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (submitting) return;
     submitting = true;
+    showFormError('');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="as-spin"></span>';
 
@@ -906,7 +942,7 @@ form.addEventListener('submit', async (e) => {
             (err.message || '').includes('8 characters')   ? 'Password must be at least 8 characters.' :
             (err.message || '').includes('network')        ? 'Network error. Check your connection and try again.' :
             (err.message || 'Sign-up failed. Please try again.');
-        alert(msg);
+        showFormError(msg);
     }
 });
 
@@ -931,7 +967,7 @@ if (googleBtn) {
             if (!acct.ok) {
                 await authService.signOut().catch(() => {});
                 googleBtn.disabled = false;
-                alert(acct.message);
+                showFormError(acct.message);
                 return;
             }
             window.location.replace(nextArtisanPage(acct.verificationStatus));
@@ -941,7 +977,7 @@ if (googleBtn) {
             googleBtn.disabled = false;
             if (err.code !== 'auth/popup-closed-by-user' &&
                 err.code !== 'auth/cancelled-popup-request') {
-                alert(err.message || 'Google sign-in failed.');
+                showFormError('Google sign-up did not complete. Please try again.');
             }
         }
     });
