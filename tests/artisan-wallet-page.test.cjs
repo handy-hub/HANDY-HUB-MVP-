@@ -4,6 +4,7 @@
  * 28 Oct audit, run against the page's own code.
  *
  *   UI-009  A wallet history row did not say which job paid.
+ *   (tips)  A tip received showed as "− GHS x", a debit.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -67,6 +68,32 @@ await t('the row escapes its title and links the job; no money figure comes from
     assert.ok(!/amount|artisanEarns|jobQuote|escrow/i.test(loader), 'the booking read is for names only');
 });
 
+
+console.log('\n── A tip is money IN (display) ──\n');
+
+/** The page's own row builder, with its helpers stubbed. */
+function rowFor(data) {
+    const start = wallet.indexOf('  const CREDIT_TYPES');
+    const end   = wallet.indexOf('  function renderTxns(records) {');
+    // eslint-disable-next-line no-new-func
+    const build = new Function('formatGHS', 'fmtDate', 'withdrawalStatus', 'payoutsById', 'esc', 'databaseService', 'serviceLabel', 'renderTxns', 'lastTxns',
+        `${wallet.slice(start, end)}; return buildTxnHTML;`)(
+        (n) => `GHS ${Number(n).toFixed(2)}`, () => '31 Oct', () => 'completed', new Map(), (s) => s, {}, () => null, () => {}, null);
+    return build({ id: 'x', data }, true);
+}
+
+await t('a tip row reads "+ GHS x" with the money-in arrow, like an earning', () => {
+    const tip = rowFor({ type: 'tip', amount: 10, description: 'Tip from your customer', status: 'completed' });
+    assert.match(tip, /txn-amount credit">\+ GHS 10\.00/);
+    assert.match(tip, /class="txn-icon earning"/);
+    const earning = rowFor({ type: 'earning', amount: 85, description: 'Booking payment received', status: 'completed' });
+    assert.match(earning, /txn-amount credit">\+ GHS 85\.00/);
+});
+await t('a withdrawal is still money out', () => {
+    const w = rowFor({ type: 'withdrawal', amount: 50, description: 'Withdrawal', status: 'completed' });
+    assert.match(w, /txn-amount debit">− GHS 50\.00/);
+    assert.match(w, /class="txn-icon debit"/);
+});
 
 console.log(`\nartisan-wallet-page: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 3).join('\n    ') : e}`);

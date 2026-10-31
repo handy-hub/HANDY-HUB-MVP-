@@ -283,8 +283,13 @@
   let lastTxns    = null;
 
   // ── Transaction list ────────────────────────────────────────────────────────
+  // Money IN to the artisan: job earnings and tips (functions/tips.js writes
+  // type 'tip'). A tip used to show as "− GHS x" with the debit arrow.
+  // Display only: the balance itself is computed elsewhere.
+  const CREDIT_TYPES = ['earning', 'tip'];
+
   function txnIcon(type) {
-    if (type === 'earning') {
+    if (CREDIT_TYPES.includes(type)) {
       return `<div class="txn-icon earning">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
           <path d="M12 19V5M5 12l7-7 7 7" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -342,7 +347,7 @@
     const d        = t.data.type === 'withdrawal'
       ? { ...t.data, status: withdrawalStatus(t.data, payoutsById.get(t.data.payoutId)) }
       : t.data;
-    const isCredit = d.type === 'earning';
+    const isCredit = CREDIT_TYPES.includes(d.type);
     const sign     = isCredit ? '+' : '−';
     const amtClass = isCredit ? 'credit' : 'debit';
 
