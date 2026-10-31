@@ -433,6 +433,30 @@ let allArtisans = [], filtered = [], currentFilter='all', currentCat='', current
 const PAGE_SIZE = 15;
 let activeArtisan = null;
 
+/* CONTACT-001: an artisan's phone and email live in artisans/{uid}/private/contact
+   (artisan + admins only), not on the public profile. Read once per artisan
+   for the list, search and CSV; legacy values still on the profile (until the
+   strip migration) are the fallback. */
+const contacts = new Map();          // uid → { phone, email } (empty object = none)
+const contactOf = (a) => {
+  const c = contacts.get(a.id) || {};
+  return { phone: c.phone || a.phone || '', email: c.email || a.email || '' };
+};
+async function loadContacts(ids) {
+  const missing = ids.filter(id => !contacts.has(id));
+  for (let i = 0; i < missing.length; i += 20) {
+    await Promise.all(missing.slice(i, i + 20).map(async (id) => {
+      try {
+        const cs = await getDoc(doc(db, 'artisans', id, 'private', 'contact'));
+        contacts.set(id, cs.exists() ? cs.data() : {});
+      } catch (e) {
+        console.warn('[artisans] Could not load contact record:', e.code || e.message);
+      }
+    }));
+  }
+  return missing.length > 0;
+}
+
 /* ── Init ──────────────────────────────────────────── */
 function init() {
   subscribeArtisans();
@@ -445,6 +469,7 @@ function subscribeArtisans() {
     buildCategoryFilter();
     updateKPIs();
     applyAndRender();
+    loadContacts(allArtisans.map(a => a.id)).then(added => { if (added) applyAndRender(); });
   }, err => { showToast('Error: '+err.message,'error'); });
 }
 
@@ -487,8 +512,8 @@ function applyAndRender() {
   // search
   if (searchQ) list = list.filter(a =>
     (a.fullName||'').toLowerCase().includes(searchQ) ||
-    (a.phone||'').includes(searchQ) ||
-    (a.email||'').toLowerCase().includes(searchQ) ||
+    contactOf(a).phone.includes(searchQ) ||
+    contactOf(a).email.toLowerCase().includes(searchQ) ||
     (a.category||'').toLowerCase().includes(searchQ)
   );
   // sort
@@ -527,12 +552,12 @@ function renderTable() {
           <div class="artisan-avatar">${initials}</div>
           <div>
             <p style="font-size:13px;font-weight:600;color:var(--text-dark);">${esc(a.fullName||'—')}${a.isFeatured?'<i class="fa-solid fa-star" style="color:#F59E0B;margin-left:4px;font-size:10px;"></i>':''}</p>
-            <p style="font-size:11px;color:var(--text-light);">${esc(a.email||'—')}</p>
+            <p style="font-size:11px;color:var(--text-light);">${esc(contactOf(a).email||'—')}</p>
           </div>
         </div>
       </td>
       <td><span class="badge badge-info" style="font-size:11px;">${esc(a.category||'—')}</span></td>
-      <td style="font-size:12px;">${esc(a.phone||'—')}</td>
+      <td style="font-size:12px;">${esc(contactOf(a).phone||'—')}</td>
       <td style="font-size:12px;">${rating}</td>
       <td style="font-size:13px;font-weight:600;">${a.jobsCompleted||0}</td>
       <td style="font-size:12px;font-weight:600;color:var(--text-dark);">${wallet}</td>
@@ -614,8 +639,8 @@ window.openDrawer = async function(uid) {
   document.getElementById('d-rating').innerHTML = a.rating ? Number(a.rating).toFixed(1)+' <i class="fa-solid fa-star"></i>' : '—';
   document.getElementById('d-wallet').textContent = a.walletBalance!=null ? `GHS ${Number(a.walletBalance).toFixed(2)}` : '—';
 
-  document.getElementById('d-email').textContent   = a.email||'—';
-  document.getElementById('d-phone').textContent   = a.phone||'—';
+  document.getElementById('d-email').textContent   = contactOf(a).email||'—';
+  document.getElementById('d-phone').textContent   = contactOf(a).phone||'—';
   document.getElementById('d-address').textContent = pv('address')||'—';
   document.getElementById('d-ghana').textContent   = pv('ghanaCardNumber')||'Not verified';
   const ts = a.createdAt?.toDate?.();
@@ -731,7 +756,7 @@ window.toggleBan = async function() {
 window.exportCSV = function() {
   const headers = ['Name','Email','Phone','Category','Status','Rating','Jobs','Wallet','Joined'];
   const rows = filtered.map(a => [
-    a.fullName||'',a.email||'',a.phone||'',a.category||'',
+    a.fullName||'',contactOf(a).email,contactOf(a).phone,a.category||'',
     a.verificationStatus||'',a.rating||'0',a.jobsCompleted||'0',
     a.walletBalance||'0',
     a.createdAt?.toDate?.()?.toLocaleDateString('en-GH')||''

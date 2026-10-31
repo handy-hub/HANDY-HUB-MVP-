@@ -150,6 +150,18 @@ await t('the Call buttons read the booking\'s private/artisanContact', () => {
     assert.match(ms, /_bookingCtx\.artisanId === currentOtherUid/, 'only for the artisan on this thread\'s booking');
 });
 
+console.log('\n── CONTACT-001 · the admin dashboard ──\n');
+
+await t('admin artisans: list, search, drawer and CSV read private/contact (legacy profile values as fallback)', () => {
+    const s = read('admin-dashboard/artisans.html');
+    assert.match(s, /getDoc\(doc\(db, 'artisans', id, 'private', 'contact'\)\)/);
+    assert.match(s, /return \{ phone: c\.phone \|\| a\.phone \|\| '', email: c\.email \|\| a\.email \|\| '' \};/);
+    const rest = s.replace(/const contactOf = [\s\S]*?\n\};/, '');
+    assert.ok(!/\ba\.(phone|email)\b/.test(rest), 'a direct read of the public phone/email remains');
+    assert.match(between(s, 'window.exportCSV', '\n};'), /contactOf\(a\)\.email,contactOf\(a\)\.phone/);
+    assert.match(s, /loadContacts\(allArtisans\.map\(a => a\.id\)\)\.then\(added => \{ if \(added\) applyAndRender\(\); \}\)/);
+});
+
 console.log(`\nartisan-contact: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 3).join('\n    ') : e}`);
 process.exit(failed ? 1 : 0);
