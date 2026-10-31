@@ -9,6 +9,8 @@
   <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
+  <!-- One colour per status tone, shared with Jobs (UI-003); after dashboard.css so it wins. -->
+  <link rel="stylesheet" href="../shared/css/components/booking-pill.css" />
   <style>
     /* Quick Access scrolled sideways with its scrollbar hidden, so on a
        320–400px phone the last items were cut off with nothing to say there
@@ -1067,7 +1069,9 @@ function renderScheduleItem(booking) {
   const today = new Date();
   const isToday = date ? date.toDateString() === today.toDateString() : false;
   const sm = statusMeta(d);
-  const statusClass = d.status === 'accepted' ? 'status-upcoming' : d.status === 'in_progress' ? 'status-progress' : 'status-pending';
+  // The colour is the status's own tone from describe(), the same pill the Jobs
+  // screen paints (UI-003) — not a hand-written accepted/in_progress/else check.
+  const statusClass = sm.pillCls;
   const statusLabel = sm.label || d.status || 'Pending';
 
   const el = document.createElement('div');

@@ -1,0 +1,25 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   booking-pill.css — ONE colour per booking status tone (audit UI-003).
+
+   Every status chip on the artisan screens reads its label and tone from
+   shared/js/domain/bookingStatusMeta.js describe(), and paints itself with the
+   class `pill-${tone}` defined here. Before this file the dashboard and the
+   Jobs page each defined their own .pill-* rules, so the same status showed in
+   different colours on two screens (accepted: brand on one, green on the other).
+
+   The palette is the dashboard's (the artisan design system's reference
+   screen); tones the dashboard never needed take the Jobs page's colours.
+   Design tokens only (artisan-app/css/design-system.css) — no raw colours.
+   tests/artisan-dashboard-page.test.cjs fails if describe() can return a tone
+   that has no rule here.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.pill-pending     { background: var(--ds-brand-50);   color: var(--ds-brand-700); }
+.pill-accepted    { background: var(--ds-brand-50);   color: var(--ds-brand-700); }
+.pill-quoted      { background: var(--ds-info-bg);    color: var(--ds-info); }
+.pill-en_route    { background: var(--ds-info-bg);    color: var(--ds-info); }
+.pill-in_progress { background: var(--ds-success-bg); color: var(--ds-success); }
+.pill-awaiting    { background: var(--ds-warning-bg); color: var(--ds-warning); }
+.pill-completed   { background: var(--ds-success-bg); color: var(--ds-success); }
+.pill-cancelled   { background: var(--ds-danger-bg);  color: var(--ds-danger); }
+.pill-rejected    { background: var(--ds-danger-bg);  color: var(--ds-danger); }

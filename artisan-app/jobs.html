@@ -15,6 +15,8 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../shared/css/ui-polish.css" />
   <link rel="stylesheet" href="../shared/css/components/tabs.css" />
+  <!-- One colour per status tone, shared with the dashboard (UI-003). -->
+  <link rel="stylesheet" href="../shared/css/components/booking-pill.css" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     /* jobs.html — unified to the design system (artisan-app/css/design-system.css).
@@ -94,15 +96,6 @@
       font-size: 20px; cursor: pointer; }
     .job-amount { font: 800 15px/1 var(--ds-font); color: var(--ds-ink); font-variant-numeric: tabular-nums; }
     .job-status-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 var(--ds-2); border-radius: var(--ds-r-pill); font: 700 10px/1 var(--ds-font); text-transform: uppercase; letter-spacing: .4px; }
-    .pill-pending     { background: var(--ds-brand-50);   color: var(--ds-brand-700); }
-    .pill-accepted    { background: var(--ds-success-bg); color: var(--ds-success); }
-    .pill-en_route    { background: var(--ds-info-bg);    color: var(--ds-info); }
-    .pill-in_progress { background: var(--ds-info-bg);    color: var(--ds-info); }
-    .pill-awaiting    { background: var(--ds-warning-bg); color: var(--ds-warning); }
-    .pill-completed   { background: var(--ds-success-bg); color: var(--ds-success); }
-    .pill-cancelled   { background: var(--ds-danger-bg);  color: var(--ds-danger); }
-    .pill-rejected    { background: var(--ds-danger-bg);  color: var(--ds-danger); }
-    .pill-quoted      { background: var(--ds-info-bg);    color: var(--ds-info); }
     .job-actions { display: flex; gap: var(--ds-2); flex-wrap: wrap; }
     .job-btn { height: 40px; padding: 0 var(--ds-4); border-radius: var(--ds-r-control); font: 700 13px/1 var(--ds-font); border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .15s, opacity .15s, transform .12s var(--ds-ease); }
     .job-btn:active { transform: scale(0.97); }

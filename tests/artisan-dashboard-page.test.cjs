@@ -6,6 +6,7 @@
  *   FUNC-001  The "This Week" selector under Your Performance did nothing.
  *   COPY-003  (link only) The schedule's "View all" opened a tab that does not exist.
  *   RESP-001  (dashboard) Quick Access was cut off on narrow phones.
+ *   UI-003    The same status showed in different colours on different screens.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
@@ -63,6 +64,35 @@ await t('on screens up to 400px Quick Access is a 3 + 2 grid, not a hidden sidew
     assert.ok(rule, 'narrow-screen rule missing');
     assert.match(rule[1], /display: grid; grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); overflow-x: visible;/);
     assert.match(rule[2], /min-width: 0;/);
+});
+
+console.log('\n── UI-003 · one colour per status, on every screen ──\n');
+
+const pillCss = read('shared/css/components/booking-pill.css');
+const metaSrc = read('shared/js/domain/bookingStatusMeta.js');
+
+await t('every tone describe() can return has a rule in booking-pill.css', () => {
+    const tones = new Set([...metaSrc.matchAll(/tone:\s*'([a-z_]+)'/g)].map((m) => m[1]));
+    assert.ok(tones.size >= 9, `only ${tones.size} tones found — the scan is broken`);
+    for (const tone of tones) assert.match(pillCss, new RegExp(`\\.pill-${tone}\\s*\\{`), `no rule for tone "${tone}"`);
+});
+await t('booking-pill.css uses design tokens only — no raw colours', () => {
+    const decls = pillCss.replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/.test(decls), 'a raw colour crept in');
+    for (const m of decls.matchAll(/(?:background|color):\s*([^;]+);/g)) assert.match(m[1], /^var\(--ds-[a-z0-9-]+\)$/, m[1]);
+});
+await t('the dashboard and Jobs both load it; Jobs keeps no pill palette of its own', () => {
+    assert.match(page, /<link rel="stylesheet" href="\.\.\/shared\/css\/components\/booking-pill\.css" \/>/);
+    const jobs = read('artisan-app/jobs.html');
+    assert.match(jobs, /<link rel="stylesheet" href="\.\.\/shared\/css\/components\/booking-pill\.css" \/>/);
+    assert.ok(!/^\s*\.pill-[a-z_]+\s*\{/m.test(jobs), 'jobs.html still defines .pill-* rules');
+    const dashCss = page.indexOf('href="css/dashboard.css"'), pills = page.indexOf('booking-pill.css');
+    assert.ok(dashCss > -1 && pills > dashCss, 'loaded after dashboard.css, so it wins');
+});
+await t("the schedule chip is coloured by the status's tone, not a hand-written check", () => {
+    assert.match(page, /const statusClass = sm\.pillCls;/);
+    assert.ok(!/d\.status === 'accepted' \? 'status-upcoming'/.test(page));
+    assert.match(page, /pillCls: `pill-\$\{d\.tone\}`/);
 });
 
 console.log(`\nartisan-dashboard-page: ${passed} passed, ${failed} failed`);
