@@ -199,6 +199,15 @@ html.dark .ui-tab[aria-selected="true"] {
   color: #ffffff;
 }
 
+/* The artisan app's active tab stays its own brand colour in dark mode. The
+   rule above has the same specificity as the artisan override and comes
+   later, so artisan tabs turned the customer maroon in dark mode (UI-004). */
+[data-theme="dark"] .ui-tabs--artisan .ui-tab.ui-tab--active,
+[data-theme="dark"] .ui-tabs--artisan .ui-tab.active,
+[data-theme="dark"] .ui-tabs--artisan .ui-tab[aria-selected="true"] {
+  background: var(--ds-brand-500);
+}
+
 [data-theme="dark"] .ui-tabs--underline,
 html.dark .ui-tabs--underline {
   border-bottom-color: rgba(255, 255, 255, 0.08);
