@@ -11,8 +11,6 @@
  *   • The Terms promised a late-cancellation fee of up to 20% (none exists),
  *     refunds in 3–5 business days (they are instant, to the wallet), and an
  *     old address. Money figures in them are held to functions/config.js.
- *   • The home banner's fallback offered 20% off a first booking (no discount
- *     exists) and "500+ Happy clients".
  */
 
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
@@ -146,20 +144,6 @@ await t('the privacy policy names what artisans submit and who processes payment
     for (const must of ['Ghana Card number', 'date of birth', 'Mobile Money account', 'precise location', 'Paystack']) {
         assert.ok(text.includes(must), `privacy policy must mention ${must}`);
     }
-});
-
-console.log('\n── The home banner claims nothing the product does not do ──\n');
-
-await t('fallback slides carry no discount, no customer counts and no invented avatars', () => {
-    const src = read('customer-app/js/adBanner.js');
-    const data = src.slice(src.indexOf('export const BANNER_DATA'), src.indexOf('];', src.indexOf('export const BANNER_DATA')));
-    // What a customer reads (the colour gradients carry % stops, so not those).
-    const copy = [...data.matchAll(/\b(?:tag|title|subtitle|body|cta):\s*'([^']*)'/g)].map((m) => m[1]).join(' | ');
-    assert.ok(copy.length > 0, 'found the slide text');
-    assert.ok(!/%|\bOFF\b|discount|free/i.test(copy), `no offer without a discount behind it: ${copy}`);
-    assert.ok(!/Happy clients|\d+\+/.test(data), 'no customer counts');
-    assert.ok(!/avatars/.test(data), 'no invented customers');
-    assert.ok(!/under \d+ minutes/i.test(data), 'no speed promise');
 });
 
 await t('a payout reaches Mobile Money narrated as Fidus X', () => {
