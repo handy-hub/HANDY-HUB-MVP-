@@ -18,7 +18,7 @@
  */
 
 import { getAppContainer } from "../app/container.js";
-import { writeBatch, doc } from "../vendor/firebase/firebase-firestore.js";
+import { writeBatch, doc } from "../../vendor/firebase/firebase-firestore.js";
 import { firebaseDb } from "../backend/providers/firebase/firebaseConfig.js";
 
 function getDb()   { return getAppContainer().services.databaseService; }
