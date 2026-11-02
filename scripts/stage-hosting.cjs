@@ -39,6 +39,16 @@ const outDir  = path.join(root, `build-${appDir}`);
 if (!fs.existsSync(srcApp))    { console.error(`[stage-hosting] App dir not found: ${srcApp}`); process.exit(1); }
 if (!fs.existsSync(srcShared)) { console.error(`[stage-hosting] shared/ not found: ${srcShared}`); process.exit(1); }
 
+// A module that fails to load stops every page that imports it, and nothing
+// else catches that before production (release-2026-11-01.1 shipped one).
+// This runs as every hosting target's predeploy, so a broken import cannot be
+// staged, whichever deploy command is used.
+const { scan: scanImports, report: reportImports } = require('./check-imports.cjs');
+if (reportImports(scanImports({ root, apps: [appDir] }), appDir)) {
+  console.error('[stage-hosting] Refusing to stage: fix the imports above first.');
+  process.exit(1);
+}
+
 // Skip these heavy/irrelevant entries when copying shared/.
 const SKIP = new Set(['node_modules', '.git', '.DS_Store']);
 

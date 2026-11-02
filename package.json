@@ -23,14 +23,14 @@
     "lint:instant": "node scripts/check-instant-ux.cjs",
     "lint:syntax": "node scripts/check-syntax.cjs",
     "lint:tests": "node scripts/check-test-safety.cjs",
-    "lint": "npm run lint:syntax && npm run lint:filters && npm run lint:tokens && npm run lint:status && npm run lint:instant && npm run lint:shared && npm run lint:tests",
+    "lint": "npm run lint:syntax && npm run lint:imports && npm run lint:filters && npm run lint:tokens && npm run lint:status && npm run lint:instant && npm run lint:shared && npm run lint:tests",
     "test:settings-overlays": "node tests/settings-overlay-architecture.test.cjs",
     "test:transaction-receipt": "node tests/transaction-receipt-modal.test.cjs",
     "test:topup-charge": "node tests/topup-charge.test.cjs",
     "test:booking-truth": "node tests/booking-truth.test.cjs",
     "test:complete-booking": "node tests/complete-booking.test.cjs",
     "test:booking-router": "node tests/booking-router.test.cjs",
-    "test": "npm run lint && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:escrow-auth && npm run test:payouts && npm run test:artisan-privacy && npm run test:release && npm run test:capacity && npm run test:inspection && npm run test:quote-funding && npm run test:push && npm run test:emergency-pricing && npm run test:booking-truth && npm run test:complete-booking && npm run test:booking-router && npm run test:booking-actions && npm run test:booking-tracks && npm run test:booking-schedule && npm run test:dispatch-rescue && npm run test:callable-groups && npm run test:config-consistency && npm run test:wallet-integrity && npm run test:auth-signup && npm run test:privacy-access && npm run test:marketplace && npm run test:wallet-platform && npm run test:legal-pages && npm run test:availability && npm run test:offer-expiry && npm run test:flow-004 && npm run test:dispatch-liveness && npm run test:wallet-nav && npm run test:notification-links && npm run test:artisan-login && npm run test:artisan-signup-page && npm run test:artisan-jobs-page && npm run test:notification-mark-all && npm run test:artisan-messages-page && npm run test:artisan-dashboard-page && npm run test:quote-money-copy && npm run test:artisan-wallet-page && npm run test:confirm-sheet && npm run test:artisan-contact && npm run test:offer-refusal && npm run test:notification-safety && npm run test:support-thread && npm run test:artisan-medium-ui && npm run test:artisan-cache-first && npm run test:login-outage && npm run test:artisan-polish && npm run test:artisan-dark-tab && python tests/verify_low_fixes.py",
+    "test": "npm run lint && npm run test:imports && npm run test:settings-overlays && npm run test:transaction-receipt && npm run test:topup-charge && npm run test:escrow-auth && npm run test:payouts && npm run test:artisan-privacy && npm run test:release && npm run test:capacity && npm run test:inspection && npm run test:quote-funding && npm run test:push && npm run test:emergency-pricing && npm run test:booking-truth && npm run test:complete-booking && npm run test:booking-router && npm run test:booking-actions && npm run test:booking-tracks && npm run test:booking-schedule && npm run test:dispatch-rescue && npm run test:callable-groups && npm run test:config-consistency && npm run test:wallet-integrity && npm run test:auth-signup && npm run test:privacy-access && npm run test:marketplace && npm run test:wallet-platform && npm run test:legal-pages && npm run test:availability && npm run test:offer-expiry && npm run test:flow-004 && npm run test:dispatch-liveness && npm run test:wallet-nav && npm run test:notification-links && npm run test:artisan-login && npm run test:artisan-signup-page && npm run test:artisan-jobs-page && npm run test:notification-mark-all && npm run test:artisan-messages-page && npm run test:artisan-dashboard-page && npm run test:quote-money-copy && npm run test:artisan-wallet-page && npm run test:confirm-sheet && npm run test:artisan-contact && npm run test:offer-refusal && npm run test:notification-safety && npm run test:support-thread && npm run test:artisan-medium-ui && npm run test:artisan-cache-first && npm run test:login-outage && npm run test:artisan-polish && npm run test:artisan-dark-tab && python tests/verify_low_fixes.py",
     "test:booking-actions": "node tests/booking-actions.test.cjs",
     "emulators": "firebase emulators:start --only firestore,auth,functions --project lamax-4fd82",
     "seed:e2e": "node tests/e2e/seed-emulator.cjs",
@@ -106,7 +106,9 @@
     "test:artisan-cache-first": "node tests/artisan-cache-first.test.cjs",
     "test:login-outage": "node tests/login-outage.test.cjs",
     "test:artisan-polish": "node tests/artisan-polish.test.cjs",
-    "test:artisan-dark-tab": "node tests/artisan-dark-tab.test.cjs"
+    "test:artisan-dark-tab": "node tests/artisan-dark-tab.test.cjs",
+    "lint:imports": "node scripts/check-imports.cjs",
+    "test:imports": "node tests/import-paths.test.cjs"
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.1",
