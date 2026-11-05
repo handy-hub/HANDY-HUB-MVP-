@@ -246,6 +246,24 @@ await test('pricing_config overrides the code default without a deploy', async (
     assert.strictEqual(p.calloutFee, 120);
 });
 
+console.log('\n── The code defaults are the production preset (Phase 0 BE-02) ──\n');
+
+// With pricing_config empty, the code defaults ARE the price. PRICING_TEST_1_CEDI
+// (a one-cedi callout for payment tests) reached real bookings once that way,
+// before 2026-09-09. These hold the defaults at the production preset, so a
+// test swap left in place fails here before it can ship.
+await test('an empty pricing_config prices a standard visit at the production default (50 + flat 10)', async () => {
+    seedBase();
+    const q = await pricing.getPricingQuote(AUTH, { category: 'plumbing', lat: ACCRA.lat, lng: ACCRA.lng });
+    assert.strictEqual(q.inspectionFee, 50);
+    assert.strictEqual(q.travelFee, 10);
+    assert.strictEqual(q.calloutFee, 60);
+});
+test('PRICING_DEFAULTS is assigned PRICING_PRODUCTION', () => {
+    const src = require('fs').readFileSync(path.join(__dirname, '..', 'functions', 'pricing.js'), 'utf8');
+    assert.match(src, /^const PRICING_DEFAULTS = PRICING_PRODUCTION;\r?$/m);
+});
+
 console.log('\n── A bad fee must NEVER become a silent charge ──\n');
 
 // loadPricingConfig sanitises before this code ever sees the value. A negative

@@ -69,19 +69,11 @@ const nowIso = () => new Date().toISOString();
 // Used when a pricing_config/{category} doc is missing a field (or entirely).
 // All values are GHS. Admin-editable per category in the pricing_config
 // collection — these are only the safety floor.
-// ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  TEMPORARY TEST PRICING — GHS 1 CALLOUT FEE                              ║
-// ║                                                                          ║
-// ║  Set deliberately so a real end-to-end booking can be paid for with one  ║
-// ║  cedi instead of fifty. Every component is zeroed rather than just the   ║
-// ║  inspection fee, because the formula is                                  ║
-// ║      calloutFee = ceil(min(inspectionFeeGHS + travelFee, maxCalloutGHS)) ║
-// ║  and any travel component would push the total above 1. maxCalloutGHS: 1 ║
-// ║  is the backstop that holds even if a travel value is reintroduced.      ║
-// ║                                                                          ║
-// ║  ⚠ REVERT BEFORE REAL CUSTOMERS. Production values are preserved below  ║
-// ║  in PRICING_PRODUCTION — swap the two assignments back.                  ║
-// ╚══════════════════════════════════════════════════════════════════════════╝
+//
+// PRICING_PRODUCTION is the preset in force (PRICING_DEFAULTS, below). The
+// banner that stood here described the one-cedi test preset as active; it had
+// been stale since 2026-09-09 (Phase 0 BE-02). tests/emergency-pricing.test.cjs
+// holds the defaults at this preset.
 const PRICING_PRODUCTION = Object.freeze({
     // ⚠ AWAITING BUSINESS APPROVAL — provisional.
     // The urgency base for an emergency callout, used in place of
@@ -98,6 +90,11 @@ const PRICING_PRODUCTION = Object.freeze({
     maxCalloutGHS:    150,  // absolute callout ceiling
 });
 
+// TEST PRESET — GHS 1 callout, for a deliberate end-to-end payment test only.
+// Every component is zeroed, not just the inspection fee, because the formula is
+//     calloutFee = ceil(min(inspectionFeeGHS + travelFee, maxCalloutGHS))
+// and any travel component would push the total above 1; maxCalloutGHS: 1 is
+// the backstop. Never the default for real customers.
 const PRICING_TEST_1_CEDI = Object.freeze({
     emergencyCalloutGHS: 1,
     inspectionFeeGHS: 1,
