@@ -150,6 +150,21 @@ import { mountInstantView }   from '../shared/js/services/instantView.js';
 
 const { user, artisan } = await requireArtisanAuth({ allowPending: true });
 
+// ── Help with a specific job ───────────────────────────
+// job.html sends approved work here ("Get help with this job"): once a quote is
+// approved the server refuses an artisan cancellation, and Support is the route
+// out (Phase 0 WF-01). The booking reference is pre-filled so the team knows
+// which job; it travels in the message text, the ticket's own fields unchanged.
+{
+  const ref = new URLSearchParams(location.search).get('bookingId') || '';
+  if (/^[A-Za-z0-9_-]{4,64}$/.test(ref)) {
+    const subject = document.getElementById('sp-subject');
+    const message = document.getElementById('sp-message');
+    if (subject && !subject.value) subject.value = 'booking';
+    if (message && !message.value) message.value = `About booking ${ref}: `;
+  }
+}
+
 // ── FAQ data ───────────────────────────────────────────
 // Every answer states what the product does today. The figures come from
 // PLATFORM_CONFIG, which tests/config-consistency.test.cjs pins to the values

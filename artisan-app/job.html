@@ -131,8 +131,10 @@ import { getAppContainer }  from '../shared/js/app/container.js';
 import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
                             from '../shared/js/domain/bookingTruth.js';
 import { confirmSheet } from '../shared/js/ui/confirmSheet.js';
-import { performBookingAction, ACTION }
+import { performBookingAction, ACTION, artisanCanCancel }
                             from '../shared/js/domain/bookingActions.js';
+import { needsQuoteBeforeTravel }
+                            from '../shared/js/domain/bookingStatusMeta.js';
 import { resolveSchedule, canStartWork }
                             from '../shared/js/domain/bookingSchedule.js';
 import { pricingService }   from '../shared/js/services/pricingService.js';
@@ -182,11 +184,17 @@ function actionsFor(brief, b) {
      the artisan cannot act on. */
   const appt = resolveSchedule(b);
   const gate = canStartWork(b);
+  /* Cancel only where the server accepts it (artisanCanCancel): approved
+     inspection work leaves through Support, never through a Cancel button the
+     server always refuses (Phase 0 WF-01). */
+  const cancelOrHelp = () => artisanCanCancel(b)
+    ? { label:'Cancel job', action: ACTION.CANCEL, danger:true, confirm:'Cancel this job?' }
+    : { label:'Get help with this job', action:'support' };
   const notYet = (waitLabel) => ({
     waiting: null,
     waitLabel,
     note: gate.reason,
-    secondary: [{ label:'Cancel job', action: ACTION.CANCEL, danger:true, confirm:'Cancel this job?' }],
+    secondary: [cancelOrHelp()],
   });
 
   switch (brief.phase) {
@@ -237,7 +245,7 @@ function actionsFor(brief, b) {
         if (!gate.allowed) return notYet(`Booked for ${appt.label}`);
         return { waiting:'you', waitLabel:'Head to the customer',
                  primary:{ label:"I'm on my way", action: ACTION.EN_ROUTE },
-                 secondary:[{ label:'Cancel job', action: ACTION.CANCEL, danger:true, confirm:'Cancel this job?' }] };
+                 secondary:[cancelOrHelp()] };
       }
       if (st === 'en_route')
         return { waiting:'you', waitLabel:'Travelling to the job',
@@ -262,11 +270,19 @@ function actionsFor(brief, b) {
                note:'If the customer asks for a different price you can send one revision.' };
 
     case JOB_PHASE.WORK:
+      // Off the inspection track an accepted job has no approved quote until the
+      // artisan sends one, and the rules refuse travel before it (WF-02). The
+      // composer is the action, exactly as on the inspection track's QUOTING.
+      if (needsQuoteBeforeTravel(b)) {
+        return { waiting:'you', waitLabel:'Send your price before you set out',
+                 note:'You can set out once the customer approves your quote.',
+                 mountQuote: true, secondary:[cancelOrHelp()] };
+      }
       if (st === 'accepted' || st === 'quoted') {
         if (!gate.allowed) return notYet(`Booked for ${appt.label}`);
         return { waiting:'you', waitLabel:'Ready to start the work',
                  primary:{ label:"I'm on my way", action: ACTION.EN_ROUTE },
-                 secondary:[{ label:'Cancel job', action: ACTION.CANCEL, danger:true, confirm:'Cancel this job?' }] };
+                 secondary:[cancelOrHelp()] };
       }
       if (st === 'en_route')
         return { waiting:'you', waitLabel:'Travelling to the job',
@@ -464,6 +480,7 @@ async function run(spec) {
 
   // Non-transition destinations
   if (spec.action === 'earnings')    { location.href = 'wallet.html'; return; }
+  if (spec.action === 'support')     { location.href = `support.html?bookingId=${encodeURIComponent(BOOKING_ID)}`; return; }
   if (spec.action === 'open_quote')  {
     // The quote composer (materials rows, labour, commission preview) lives in
     // the jobs.html sheet and works. Duplicating it here would be a second

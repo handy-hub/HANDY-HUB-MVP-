@@ -149,6 +149,35 @@ const TRANSITIONS = {
 /** Statuses that mean the booking is over — nothing further can be requested. */
 const TERMINAL = ['completed', 'cancelled', 'rejected', 'unfulfilled'];
 
+// The statuses functions/pricing.js cancelInspectionBooking accepts from an
+// artisan (`pending` is left out: an offered artisan is not yet the booking's).
+const INSPECTION_ARTISAN_CANCELLABLE = ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'inspection_done', 'quoted'];
+
+/**
+ * Will the server accept this artisan cancelling the booking right now?
+ *
+ * Two authorities, one per track:
+ *   inspection  cancelInspectionBooking (functions/pricing.js) — any state up to
+ *               the quote decision; refused once the quote is approved ("use the
+ *               dispute/refund flow instead").
+ *   any other   the artisan cancel clause of firestore.rules — accepted or quoted.
+ *
+ * Screens offered "Cancel job" on approved inspection work, where the server
+ * always refuses (Phase 0 WF-01). A screen offers Cancel only where this says
+ * yes; it may offer it in fewer places, never in more.
+ *
+ * @param {object} booking
+ * @returns {boolean}
+ */
+export function artisanCanCancel(booking) {
+    const b = booking || {};
+    const st = norm(b.status);
+    if (norm(b.track) === 'inspection') {
+        return b.quoteApproved !== true && INSPECTION_ARTISAN_CANCELLABLE.includes(st);
+    }
+    return ['accepted', 'quoted'].includes(st);
+}
+
 /**
  * Explain, in the customer's or artisan's own terms, why an action no longer
  * applies — using the state the booking is ACTUALLY in.

@@ -157,10 +157,16 @@ await t('no card sends the artisan to the dashboard; the secondary action opens 
     assert.match(cardSrc, /const openBtn\s+= `<a class="job-btn job-btn-outline" href="job\.html\?id=\$\{encodeURIComponent\(b\.id\)\}">Open job<\/a>`;/);
 });
 await t('Cancel is offered exactly where the transition layer lets an artisan cancel', () => {
+    // The transition layer's answer for an artisan is artisanCanCancel(): the
+    // client-write list (accepted, quoted) off the inspection track, and
+    // cancelInspectionBooking's pre-approval states on it. The card used the bare
+    // list, which offered Cancel on approved inspection work the server refuses
+    // (Phase 0 WF-01). tests/artisan-actions-consistency.test.cjs proves the
+    // function against the real function code and the rules.
     const actions = fs.readFileSync(path.join(__dirname, '..', 'shared', 'js', 'domain', 'bookingActions.js'), 'utf8');
-    const artisanFrom = JSON.parse(actions.match(/actorFrom:\s*\{\s*artisan:\s*(\[[^\]]*\])/)[1].replace(/'/g, '"'));
-    const cardFrom = JSON.parse(cardSrc.match(/const cancelBtn = isActive && (\[[^\]]*\])\.includes\(st\)/)[1].replace(/'/g, '"'));
-    assert.deepStrictEqual(cardFrom.sort(), artisanFrom.sort());
+    assert.match(actions, /export function artisanCanCancel\(booking\)/);
+    assert.match(cardSrc, /const cancelBtn = isActive && artisanCanCancel\(b\)/);
+    assert.match(page, /import \{ performBookingAction, ACTION, artisanCanCancel \} from '\.\.\/shared\/js\/domain\/bookingActions\.js';/);
     assert.match(page, /window\.cancelJob = async function\(bookingId, btn\) \{\s*await runTransition\(ACTION\.CANCEL, bookingId, btn,/);
     assert.match(cardSrc, /if \(cancelBtn\) actionsHtml \+= cancelBtn;/);
 });

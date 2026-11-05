@@ -265,7 +265,7 @@ import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
 import { resolveSchedule, canStartWork }
                             from '../shared/js/domain/bookingSchedule.js';
 import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
-import { performBookingAction, ACTION }      from '../shared/js/domain/bookingActions.js';
+import { performBookingAction, ACTION, artisanCanCancel } from '../shared/js/domain/bookingActions.js';
 import { offerState, formatTimeLeft, LAPSED_OFFER_ATTRS, LAPSED_OFFER_LABEL, lapseOfferButtons }
                                              from '../shared/js/domain/jobOffers.js';
 import { storedAvailability }                from '../shared/js/domain/availability.js';
@@ -487,7 +487,9 @@ function buildJobCard(b) {
   // layer lets an artisan cancel (ACTION.CANCEL: accepted, quoted) — job.html
   // already offered it there; the list did not.
   const openBtn   = `<a class="job-btn job-btn-outline" href="job.html?id=${encodeURIComponent(b.id)}">Open job</a>`;
-  const cancelBtn = isActive && ['accepted', 'quoted'].includes(st)
+  // Only where the server accepts it (artisanCanCancel): never on approved
+  // inspection work, which leaves through Support (Phase 0 WF-01).
+  const cancelBtn = isActive && artisanCanCancel(b)
     ? `<button class="job-btn job-btn-outline" onclick="cancelJob('${esc(b.id)}', this)">Cancel job</button>` : '';
   let actionsHtml = '';
   if (isPending) {

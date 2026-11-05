@@ -274,7 +274,11 @@ export function getAllowedActions(booking, audience = 'customer', opts = {}) {
         }
         if (!isInspection || booking?.quoteApproved) {
             if (status === 'accepted') {
-                if (dueNow) out.push({ id: 'en_route', label: 'Mark En Route', kind: 'primary' });
+                // Off the inspection track an accepted job has no approved quote
+                // until the artisan sends one, and the rules refuse travel before
+                // it (see needsQuoteBeforeTravel).
+                if (needsQuoteBeforeTravel(booking)) out.push({ id: 'submit_quote', label: 'Submit Quote', kind: 'primary' });
+                else if (dueNow) out.push({ id: 'en_route', label: 'Mark En Route', kind: 'primary' });
                 else out.push({ id: 'scheduled', label: `Booked · ${schedule.label}`, kind: 'info', disabled: true });
             }
             if (status === 'en_route') out.push({ id: 'arrived', label: 'Mark Arrived', kind: 'primary' });
@@ -326,6 +330,25 @@ export function artisanInspectionStep(booking, opts = {}) {
         case 'quoted':          return { id: 'await_decision', label: 'Waiting for customer decision…', blocked: true };
         default:                return null;
     }
+}
+
+/**
+ * Must the artisan send a quote before they may set out?
+ *
+ * firestore.rules lets an artisan move accepted → en_route only when the booking
+ * carries an approved quote (the inspection track's pre-quote visit goes
+ * inspection_scheduled → en_route instead). Off the inspection track — emergency
+ * and standard bookings — nothing approves a quote until the artisan submits one,
+ * so "Mark En Route" on an accepted, unquoted job was a button the rules always
+ * refused (Phase 0 WF-02). This is the rule as written; whether emergencies
+ * SHOULD travel before quoting is a business decision this function does not make.
+ *
+ * @param {object} booking
+ * @returns {boolean}
+ */
+export function needsQuoteBeforeTravel(booking) {
+    const b = booking || {};
+    return norm(b.status) === 'accepted' && norm(b.track) !== 'inspection' && b.quoteApproved !== true;
 }
 
 // ── Legacy-compatible wrappers (existing callers) ─────────────────────────────

@@ -863,6 +863,21 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
     const stageIndex = PHASE_TO_STAGE[phase] ?? 0;
     const terminal   = CLOSED_STATUSES.includes(st);
 
+    // ── A dispute stops the journey for both sides ───────────────────────────
+    // A disputed booking fell into the phase its other fields described, and the
+    // artisan was offered "Mark job done" or "Complete inspection", which the
+    // server refuses on a disputed booking. Nothing moves until resolveDispute
+    // settles it, so neither side is offered an action (Phase 0 consistency).
+    if (st === 'disputed') {
+        return {
+            stageIndex, terminal: false, tone: 'waiting',
+            here: 'In dispute',
+            just: 'This booking is being reviewed by our team.',
+            next: 'The payment stays on hold until the review ends. Support will be in touch.',
+            action: null,
+        };
+    }
+
     // ── Dead ends first: they are not points on the journey ──────────────────
     if (st === 'cancelled' || st === 'rejected') {
         return {
@@ -951,18 +966,24 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
             ? `You committed to arriving ${apptWhen}. Nothing to do until then.`
             : st === 'en_route'
                 ? 'Mark yourself arrived when you reach the customer, then assess the problem.'
-                : 'Assess the problem on site, then complete the inspection.',
+                : st === 'inspection_scheduled'
+                    ? 'Set out when you are ready, and mark yourself en route as you go.'
+                    : 'Assess the problem on site, then complete the inspection.',
         // Acceptance is not commencement. Offering "Mark en route" days before
         // the slot proposes an action firestore.rules (scheduleWindowOpen) will
         // refuse — so the action is withheld rather than made to fail. The same
-        // goes for completing before arrival: completeInspection refuses it.
+        // goes for completing before arrival: completeInspection refuses it, so
+        // it is offered on in_progress only — never as a fallthrough for any
+        // other status.
         action: notYet
             ? null
             : st === 'inspection_scheduled'
                 ? { label: 'Mark en route', kind: 'primary', op: 'enRoute' }
                 : st === 'en_route'
                     ? { label: 'Mark arrived', kind: 'primary', op: 'arrived' }
-                    : { label: 'Complete inspection', kind: 'primary', op: 'completeInspection' },
+                    : st === 'in_progress'
+                        ? { label: 'Complete inspection', kind: 'primary', op: 'completeInspection' }
+                        : null,
         tone: notYet ? 'waiting' : 'action',
     };
 
@@ -996,12 +1017,25 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
         tone: 'waiting',
     };
 
+    // Off the inspection track an accepted job carries no approved quote until
+    // the artisan sends one, and firestore.rules refuses accepted → en_route
+    // without it (bookingStatusMeta.needsQuoteBeforeTravel states the same rule;
+    // this module takes no imports). Offering "Mark en route" here was a button
+    // the rules always refused (Phase 0 WF-02).
+    const quoteFirst = st === 'accepted' && norm(b.track) !== 'inspection' && !m.quoteApproved;
+
     S[JOB_PHASE.WORK] = isCustomer ? {
         here: st === 'en_route' ? `${who} is on the way` : 'Work in progress',
         just: 'You approved the quote and the payment is held safely in escrow.',
         next: `${who} will carry out the work, then you confirm it is done.`,
         action: { label: 'Track', kind: 'secondary', op: 'track' },
         tone: 'live',
+    } : quoteFirst ? {
+        here: 'Quote needed',
+        just: 'You accepted this job.',
+        next: 'Send the customer a fixed price for the work. You can set out once they approve it.',
+        action: { label: 'Submit quote', kind: 'primary', op: 'submitQuote' },
+        tone: 'action',
     } : {
         here: st === 'in_progress' ? 'Working'
             : (st === 'accepted' && notYet) ? 'Booked'
@@ -1012,9 +1046,13 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
             : 'Do the job, then mark it done so the customer can release payment.',
         // Same gate as the inspection cycle: only SETTING OUT waits for the
         // slot. Arriving and finishing record things that already happened.
+        // Each step names the one status the rules accept it from — no
+        // fallthrough, so an unexpected status offers nothing rather than a
+        // button the server refuses.
         action: st === 'accepted'    ? (notYet ? null : { label: 'Mark en route',  kind: 'primary', op: 'enRoute' })
               : st === 'en_route'    ? { label: 'Mark arrived',   kind: 'primary', op: 'arrived' }
-              :                        { label: 'Mark job done',  kind: 'primary', op: 'markDone' },
+              : st === 'in_progress' ? { label: 'Mark job done',  kind: 'primary', op: 'markDone' }
+              :                        null,
         tone: (st === 'accepted' && notYet) ? 'waiting' : 'action',
     };
 
