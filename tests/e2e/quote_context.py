@@ -82,8 +82,10 @@ with sync_playwright() as p:
     check("composer is bound to booking B", s["boundTo"] == B[0], f"bound to {s['boundTo']!r}")
     check("composer names B's service", s["forText"] and B[1].lower() in s["forText"].lower(),
           f"{(s['forText'] or '')[:48]!r}")
+    # An empty form's total is "—", not "0.00", since 307b37c (2026-10-20): no
+    # amount is shown until the quote is valid. A value carried over would be "250.00".
     check("B's form starts clean — no value carried over from A",
-          s["total"] == "0.00" and s["submitOff"] is True, f"total={s['total']}")
+          s["total"] == "—" and s["submitOff"] is True, f"total={s['total']}")
 
     # ── refresh keeps the binding ────────────────────────────────────────────
     pg.reload(wait_until="domcontentloaded")

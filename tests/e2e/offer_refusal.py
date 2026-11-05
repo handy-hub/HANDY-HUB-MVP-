@@ -199,6 +199,9 @@ with sync_playwright() as pw:
 
     pg.evaluate("window.__fx.refuse = { code: 'failed-precondition', reason: 'closed', message: 'This request is no longer open.' }")
     pg.click('#job-B3 .btn-decline')
+    # Decline asks first in the app's own sheet since UI-011 (fc9c188, after this
+    # test was written); the window.confirm stub above no longer answers it.
+    pg.click('.ui-sheet-overlay.open .ui-sheet .ds-btn--danger, .ui-sheet-overlay.open .ui-sheet .ds-btn--primary')
     pg.wait_for_timeout(600)
     a, d = btn_state(pg, '#job-B3 .btn-accept'), btn_state(pg, '#job-B3 .btn-decline')
     check('dashboard: a prematched offer refused on DECLINE ("closed") → lapsed; Decline label not left "Declining…"',
