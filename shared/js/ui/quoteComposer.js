@@ -226,7 +226,7 @@ export function quoteComposerStyles() {
     .qc-input { width:100%; height:48px; border:1.5px solid transparent; border-radius:12px; padding:0 14px;
                 font:500 15px/1 var(--ds-font, inherit); color: var(--ds-ink, #0F1216);
                 background: var(--ds-surface-2, #F2F4F7); box-sizing:border-box; outline:none; }
-    .qc-input:focus { background: var(--ds-surface, #fff); border-color: var(--ds-brand-500, #F97316); }
+    .qc-input:focus, .qc-note:focus { background: var(--ds-surface, #fff); border-color: var(--ds-brand-500, #F97316); }
     .qc-toggle { display:flex; gap:8px; }
     .qc-tog { flex:1; height:44px; border-radius:12px; font:700 14px/1 var(--ds-font, inherit);
               border:1px solid var(--ds-line-strong, #E2E5EA); background: var(--ds-surface, #fff);

@@ -362,6 +362,9 @@
 }
 .ds-switch input:checked ~ .ds-switch-track { background: var(--ds-success); }
 .ds-switch input:checked ~ .ds-switch-thumb { transform: translateX(18px); }
+/* The input is invisible, so keyboard focus has to show on the track; without
+   this a focused switch looked exactly like an unfocused one (Phase 0 a11y). */
+.ds-switch input:focus-visible ~ .ds-switch-track { outline: 2px solid var(--ds-brand-text); outline-offset: 2px; }
 
 /* ============================================================================
    SKELETON LOADING  — contextual, not spinners.

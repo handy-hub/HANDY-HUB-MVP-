@@ -205,7 +205,9 @@
   <img id="job-lightbox-img" src="" alt="Photo from the customer" />
 </div>
 
-<div id="qs-sheet" class="qs-sheet" role="dialog" aria-modal="true" aria-label="Submit Job Quote">
+<!-- inert while closed: the sheet only slides off-screen, so without it Tab
+     walked into its six hidden controls (Phase 0 accessibility). -->
+<div id="qs-sheet" class="qs-sheet" role="dialog" aria-modal="true" aria-label="Submit Job Quote" inert>
   <div class="qs-handle"></div>
   <div class="qs-header">
     <h3 class="qs-title">Submit Job Quote</h3>
@@ -405,9 +407,14 @@ window.closePhoto = function () {
   const box = document.getElementById('job-lightbox');
   if (box) { box.classList.remove('open'); document.getElementById('job-lightbox-img').src = ''; }
 };
-document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closePhoto(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  window.closePhoto();
+  if (document.getElementById('qs-sheet').classList.contains('open')) window.closeQuoteSheet();
+});
 let _quoteBookingId  = null;
 let _needsMaterials  = false;
+let _quoteOpener     = null;   // the control that opened the quote sheet; focus returns to it
 
 let _fnInstance = null;
 function _fn() {
@@ -913,14 +920,22 @@ window.openQuoteSheet = function(bookingId) {
   document.getElementById('qs-s-mat-row').style.display   = 'none';
   recalcQuote();
 
+  _quoteOpener = document.activeElement;
   document.getElementById('qs-overlay').classList.add('open');
-  document.getElementById('qs-sheet').classList.add('open');
+  const sheet = document.getElementById('qs-sheet');
+  sheet.inert = false;
+  sheet.classList.add('open');
   document.getElementById('qs-labour').focus();
 };
 
 window.closeQuoteSheet = function() {
   document.getElementById('qs-overlay').classList.remove('open');
-  document.getElementById('qs-sheet').classList.remove('open');
+  const sheet = document.getElementById('qs-sheet');
+  sheet.classList.remove('open');
+  sheet.inert = true;
+  // Back to where the artisan was, if that control is still on the page.
+  if (_quoteOpener && _quoteOpener.isConnected && typeof _quoteOpener.focus === 'function') _quoteOpener.focus();
+  _quoteOpener = null;
 };
 
 window.setMaterials = function(yes) {
