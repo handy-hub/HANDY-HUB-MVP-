@@ -94,7 +94,8 @@ t('reviews and profile name the trade with serviceLabel', () => {
     assert.match(reviews, /import \{ serviceLabel \}\s+from '\.\.\/shared\/js\/domain\/bookingTruth\.js';/);
     assert.match(reviews, /esc\(serviceLabel\(d\.serviceType \|\| d\.service\) \|\| 'Service'\)/);
     const profile = read('artisan-app/profile.html');
-    assert.match(profile, /import \{ serviceLabel \}\s+from '\.\.\/shared\/js\/domain\/bookingTruth\.js';/);
+    // Profile also imports resolveRating from the same module (Phase 0 IX-02).
+    assert.match(profile, /import \{ serviceLabel(?:, \w+)* \}\s+from '\.\.\/shared\/js\/domain\/bookingTruth\.js';/);
     assert.match(profile, /const trade = serviceLabel\(d\.category\) \|\| '', spec = serviceLabel\(d\.specialty\) \|\| '';/);
 });
 

@@ -505,13 +505,20 @@ const DEVICE_LINE = {
   failed:      "This device couldn't be registered for push. Try again later.",
   pending:     'Checking this device…',
 };
+// States in which THIS device will not receive a push whatever the preference
+// says. The switch used to read "on" beside "Blocked by this browser" (Phase 0
+// IX-01); it now shows whether pushes reach this device. The saved preference
+// is unchanged by this, and still governs the artisan's other devices.
+const DEVICE_CANNOT_RECEIVE = ['blocked', 'unsupported'];
 async function describeDevice() {
+  const { getPushState } = await import('../shared/js/services/pushNotificationService.js');
+  const device = getPushState();
+  notifToggle.checked = pushPref && !DEVICE_CANNOT_RECEIVE.includes(device);
   if (!pushPref) {
     notifSub.textContent = 'Off. New job requests show only while the app is open. Payment notifications are still pushed.';
     return;
   }
-  const { getPushState } = await import('../shared/js/services/pushNotificationService.js');
-  notifSub.textContent = DEVICE_LINE[getPushState()] || DEVICE_LINE.pending;
+  notifSub.textContent = DEVICE_LINE[device] || DEVICE_LINE.pending;
 }
 function renderPush() {
   if (pushSaving) return;   // never fight a save in flight

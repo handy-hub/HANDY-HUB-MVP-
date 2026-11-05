@@ -137,7 +137,7 @@
         <div class="stat-icon-wrap">
           <svg viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <span class="stat-value" id="stat-rating">0.0</span>
+        <span class="stat-value" id="stat-rating">—</span>
         <span class="stat-label">Rating</span>
       </div>
       <div class="stat-card">
@@ -264,7 +264,7 @@
             </div>
             <span class="perf-label">Rating</span>
           </div>
-          <span class="perf-value" id="perf-rating">0.0</span>
+          <span class="perf-value" id="perf-rating">—</span>
           <p class="perf-delta" id="perf-rating-delta">+0.0</p>
         </div>
       </div>
@@ -336,7 +336,7 @@ import { describe as describeStatus, artisanInspectionStep, needsQuoteBeforeTrav
                                                        from '../shared/js/domain/bookingStatusMeta.js';
 import { confirmSheet } from '../shared/js/ui/confirmSheet.js';
 import { performBookingAction, ACTION }                from '../shared/js/domain/bookingActions.js';
-import { serviceLabel }                                from '../shared/js/domain/bookingTruth.js';
+import { serviceLabel, resolveRating }                 from '../shared/js/domain/bookingTruth.js';
 import { formatGHS }                                   from '../shared/js/utils/currency.js';
 import { resolveSchedule }                             from '../shared/js/domain/bookingSchedule.js';
 import { offerState, formatTimeLeft, createOfferWatcher,
@@ -446,7 +446,10 @@ function applyProfile(data) {
   const location = data.location || 'Accra, Ghana';
   const photo    = resolveAvatar(data, TRANSFORMS.avatarLg);
   const jobs     = data.jobsCompleted  || 0;
-  const rating   = data.rating         || 0;
+  // A score only when there are reviews behind it (resolveRating, Phase 0 IX-02):
+  // an artisan nobody has rated yet saw "0.0", the lowest score there is.
+  const rated    = resolveRating(data);
+  const rating   = rated.hasReviews ? rated.short : '—';
   const ratePct  = responseRatePercent(data);
   const response = ratePct === null ? '—' : ratePct + '%';
   const level    = getLevel(jobs);
@@ -495,7 +498,7 @@ function applyProfile(data) {
 
   // Stats
   statJobs.textContent     = jobs;
-  statRating.textContent   = Number(rating).toFixed(1);
+  statRating.textContent   = rating;
   statResponse.textContent = response;
   statLevel.textContent    = level;
 
@@ -509,7 +512,7 @@ function applyProfile(data) {
   document.getElementById('perf-jobs').textContent     = jobs;
   document.getElementById('perf-earnings').textContent = formatGHS(data.totalEarned, { decimals: 0 });
   document.getElementById('perf-response').textContent = response;
-  document.getElementById('perf-rating').textContent   = Number(rating).toFixed(1);
+  document.getElementById('perf-rating').textContent   = rating;
 }
 
 function updateStatusUI(online) {

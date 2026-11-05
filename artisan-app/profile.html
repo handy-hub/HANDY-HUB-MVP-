@@ -252,7 +252,7 @@ import { avatarUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.j
 import { replaceProfilePhoto } from '../shared/js/services/profilePhotoService.js';
 import { ARTISAN_TRADES, claimsLocked, requestProfileChange, cancelProfileChange } from './js/utils/artisanAccount.js';
 import { showToast }          from '../shared/js/components/toast.js';
-import { serviceLabel }       from '../shared/js/domain/bookingTruth.js';
+import { serviceLabel, resolveRating } from '../shared/js/domain/bookingTruth.js';
 
 const { user, artisan } = await requireArtisanAuth({ allowPending: true });
 const { services: { databaseService } } = getAppContainer();
@@ -355,9 +355,11 @@ function render() {
   $('pf-area').hidden = !area;
   $('pf-area-text').textContent = area ? `${area} · within ${km} km` : '';
 
-  const rating = Number(d.rating), reviews = Number(d.reviewCount) || 0;
-  $('pf-rating').textContent = rating > 0 ? `★ ${rating.toFixed(1)}` : '—';
-  $('pf-rating-lbl').textContent = reviews ? `${reviews} review${reviews === 1 ? '' : 's'}` : 'No reviews yet';
+  // resolveRating: a score only when there are reviews behind it (Phase 0 IX-02).
+  const rated = resolveRating(d);
+  $('pf-rating').textContent = rated.hasReviews ? `★ ${rated.short}` : '—';
+  $('pf-rating-lbl').textContent = rated.hasReviews
+    ? `${rated.reviewCount} review${rated.reviewCount === 1 ? '' : 's'}` : rated.label;
   $('pf-jobs').textContent = String(Number(d.jobsCompleted) || 0);
   const yrs = Number(d.yearsExperience);
   $('pf-years').textContent = yrs > 0 ? `${yrs} yr${yrs === 1 ? '' : 's'}` : '—';
