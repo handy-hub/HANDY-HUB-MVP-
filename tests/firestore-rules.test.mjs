@@ -510,45 +510,102 @@ await it('a push-token write cannot carry a wallet change with it', async () => 
 
 console.log('\nCHATS — the customer\'s first name (MSG-001): set at creation only\n');
 
-const CHAT_ARTISAN = 'artisan_chat';
-const artisanChatDb = testEnv.authenticatedContext(CHAT_ARTISAN).firestore();
-const chatDoc = (over = {}) => ({
-    participants: [VICTIM, CHAT_ARTISAN], bookingId: null, lastMessage: '', lastSenderId: null,
-    lastMessageAt: '2026-10-30T10:00:00.000Z', unreadCount: { [VICTIM]: 0, [CHAT_ARTISAN]: 0 },
+// A thread is one customer and one artisan under the pair's id
+// (chatRepository.directChatId), so each case below uses its own artisan and
+// gets its own thread, as it would in the app.
+const CHAT_ARTISANS = ['artisan_chat_1', 'artisan_chat_2', 'artisan_chat_3', 'artisan_chat_4',
+                       'artisan_chat_5', 'artisan_chat_6', 'artisan_chat_7', 'artisan_chat_8'];
+const [A1, A2, A3, A4, A5, A6, A7, A8] = CHAT_ARTISANS;
+const OTHER_CUSTOMER = 'customer_chat_other';
+const pairId = (a, b) => [a, b].sort().join('_');
+const dbOf = (uid) => testEnv.authenticatedContext(uid).firestore();
+const chatDoc = (artisan, over = {}) => ({
+    participants: [VICTIM, artisan], bookingId: null, lastMessage: '', lastSenderId: null,
+    lastMessageAt: '2026-10-30T10:00:00.000Z', unreadCount: { [VICTIM]: 0, [artisan]: 0 },
     createdAt: '2026-10-30T10:00:00.000Z', ...over,
+});
+await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    for (const a of CHAT_ARTISANS) {
+        await setDoc(doc(db, 'artisans', a), { uid: a, userType: 'artisan', status: 'active', verificationStatus: 'approved', name: a });
+    }
+    await setDoc(doc(db, 'customers', OTHER_CUSTOMER), { name: 'Other', userType: 'customer', status: 'active', walletBalance: 0, escrowBalance: 0, spent: 0 });
+    await setDoc(doc(db, 'bookings', 'bk_chat_pair'),    { customerId: VICTIM, artisanId: A6, status: 'accepted', track: 'inspection' });
+    await setDoc(doc(db, 'bookings', 'bk_chat_offered'), { customerId: VICTIM, artisanId: null, currentArtisanId: A8, status: 'pending', track: 'inspection' });
+    await setDoc(doc(db, 'bookings', 'bk_chat_other'),   { customerId: OTHER_CUSTOMER, artisanId: A7, status: 'accepted', track: 'inspection' });
+    await setDoc(doc(db, 'bookings', 'bk_chat_later'),   { customerId: VICTIM, artisanId: A2, status: 'accepted', track: 'inspection' });
 });
 
 await it('a participant creates a chat carrying the customer\'s first name', async () => {
-    await assertSucceeds(setDoc(doc(victimDb, 'chats', 'chat_ok_customer'), chatDoc({ customerFirstName: 'Ama' })));
-    await assertSucceeds(setDoc(doc(artisanChatDb, 'chats', 'chat_ok_artisan'), chatDoc({ customerFirstName: 'Ama' })));
+    await assertSucceeds(setDoc(doc(victimDb, 'chats', pairId(VICTIM, A1)), chatDoc(A1, { customerFirstName: 'Ama' })));
+    await assertSucceeds(setDoc(doc(dbOf(A2), 'chats', pairId(VICTIM, A2)), chatDoc(A2, { customerFirstName: 'Ama' })));
 });
 await it('a chat without the name is still created (existing behaviour)', async () => {
-    await assertSucceeds(setDoc(doc(victimDb, 'chats', 'chat_no_name'), chatDoc()));
+    await assertSucceeds(setDoc(doc(victimDb, 'chats', pairId(VICTIM, A3)), chatDoc(A3)));
 });
 await it('the name must be a string of 1–40 characters', async () => {
-    await assertFails(setDoc(doc(victimDb, 'chats', 'chat_long'),  chatDoc({ customerFirstName: 'A'.repeat(41) })));
-    await assertFails(setDoc(doc(victimDb, 'chats', 'chat_empty'), chatDoc({ customerFirstName: '' })));
-    await assertFails(setDoc(doc(victimDb, 'chats', 'chat_num'),   chatDoc({ customerFirstName: 42 })));
-    await assertSucceeds(setDoc(doc(victimDb, 'chats', 'chat_40'), chatDoc({ customerFirstName: 'A'.repeat(40) })));
+    const id = pairId(VICTIM, A4);
+    await assertFails(setDoc(doc(victimDb, 'chats', id), chatDoc(A4, { customerFirstName: 'A'.repeat(41) })));
+    await assertFails(setDoc(doc(victimDb, 'chats', id), chatDoc(A4, { customerFirstName: '' })));
+    await assertFails(setDoc(doc(victimDb, 'chats', id), chatDoc(A4, { customerFirstName: 42 })));
+    await assertSucceeds(setDoc(doc(victimDb, 'chats', id), chatDoc(A4, { customerFirstName: 'A'.repeat(40) })));
 });
 await it('a non-participant cannot create a chat carrying it', async () => {
-    await assertFails(setDoc(doc(attackerDb, 'chats', 'chat_forged'), chatDoc({ customerFirstName: 'Ama' })));
+    await assertFails(setDoc(doc(attackerDb, 'chats', pairId(VICTIM, A5)), chatDoc(A5, { customerFirstName: 'Ama' })));
 });
 await it('neither participant can change it afterwards (it is immutable)', async () => {
-    await testEnv.withSecurityRulesDisabled(async (ctx) => {
-        const db = ctx.firestore();      // once: a second call re-applies settings and throws
-        await setDoc(doc(db, 'chats', 'chat_fixed'), chatDoc({ customerFirstName: 'Ama' }));
-        await setDoc(doc(db, 'chats', 'chat_unnamed'), chatDoc());
-    });
-    await assertFails(updateDoc(doc(victimDb, 'chats', 'chat_fixed'), { customerFirstName: 'Kofi' }));
-    await assertFails(updateDoc(doc(artisanChatDb, 'chats', 'chat_fixed'), { customerFirstName: 'Kofi' }));
-    await assertFails(updateDoc(doc(victimDb, 'chats', 'chat_unnamed'), { customerFirstName: 'Ama' }), 'not added later either');
-    await assertFails(updateDoc(doc(artisanChatDb, 'chats', 'chat_unnamed'), { customerFirstName: 'Ama' }));
+    const named = pairId(VICTIM, A1), unnamed = pairId(VICTIM, A3);
+    await assertFails(updateDoc(doc(victimDb, 'chats', named), { customerFirstName: 'Kofi' }));
+    await assertFails(updateDoc(doc(dbOf(A1), 'chats', named), { customerFirstName: 'Kofi' }));
+    await assertFails(updateDoc(doc(victimDb, 'chats', unnamed), { customerFirstName: 'Ama' }), 'not added later either');
+    await assertFails(updateDoc(doc(dbOf(A3), 'chats', unnamed), { customerFirstName: 'Ama' }));
 });
 await it('the inbox-preview updates a message makes still work', async () => {
-    await assertSucceeds(updateDoc(doc(artisanChatDb, 'chats', 'chat_fixed'), {
-        lastMessage: 'On my way', lastSenderId: CHAT_ARTISAN, lastMessageAt: '2026-10-30T10:05:00.000Z',
+    await assertSucceeds(updateDoc(doc(dbOf(A1), 'chats', pairId(VICTIM, A1)), {
+        lastMessage: 'On my way', lastSenderId: A1, lastMessageAt: '2026-10-30T10:05:00.000Z',
     }));
+});
+
+console.log('\nCHATS — who a thread can be between (Phase 0 PS-01)\n');
+
+await it('a customer may still message an artisan before booking (the enquiry flow is kept)', async () => {
+    await assertSucceeds(setDoc(doc(victimDb, 'chats', pairId(VICTIM, A5)), chatDoc(A5)));
+});
+await it('a thread cannot include a third person', async () => {
+    await assertFails(setDoc(doc(victimDb, 'chats', pairId(VICTIM, A6)), { ...chatDoc(A6), participants: [VICTIM, A6, A7] }));
+    await assertFails(setDoc(doc(victimDb, 'chats', 'group_thread'), { ...chatDoc(A6), participants: [VICTIM, A6, A7] }));
+});
+await it('a customer cannot open a thread with another customer, nor an artisan with another artisan', async () => {
+    await assertFails(setDoc(doc(victimDb, 'chats', pairId(VICTIM, OTHER_CUSTOMER)), { ...chatDoc(A6), participants: [VICTIM, OTHER_CUSTOMER] }));
+    await assertFails(setDoc(doc(dbOf(A6), 'chats', pairId(A6, A7)), { ...chatDoc(A6), participants: [A6, A7] }));
+});
+await it('a thread must live at its pair id', async () => {
+    await assertFails(setDoc(doc(victimDb, 'chats', 'chat_made_up_id'), chatDoc(A6)));
+    await assertFails(setDoc(doc(victimDb, 'chats', pairId(VICTIM, A7)), chatDoc(A6)), 'another pair\'s id');
+});
+await it('a thread may be linked at creation to the pair\'s own booking, never to someone else\'s', async () => {
+    await assertFails(setDoc(doc(victimDb, 'chats', pairId(VICTIM, A6)), chatDoc(A6, { bookingId: 'bk_chat_other' })));
+    await assertFails(setDoc(doc(victimDb, 'chats', pairId(VICTIM, A6)), chatDoc(A6, { bookingId: 'bk_chat_offered' })), 'offered to another artisan');
+    await assertSucceeds(setDoc(doc(dbOf(A6), 'chats', pairId(VICTIM, A6)), chatDoc(A6, { bookingId: 'bk_chat_pair' })));
+});
+await it('a booking still being offered links to the artisan it is offered to (customer-app opens that thread)', async () => {
+    await assertSucceeds(setDoc(doc(victimDb, 'chats', pairId(VICTIM, A8)), chatDoc(A8, { bookingId: 'bk_chat_offered' })));
+});
+await it('a booking linked later must also be the pair\'s own', async () => {
+    const enquiry = pairId(VICTIM, A5);
+    await assertFails(updateDoc(doc(victimDb, 'chats', enquiry), { bookingId: 'bk_chat_other' }));
+    await assertFails(updateDoc(doc(victimDb, 'chats', enquiry), { bookingId: 'bk_chat_pair' }), 'that booking is with another artisan');
+    await assertFails(updateDoc(doc(dbOf(A5), 'chats', enquiry), { bookingId: 'bk_chat_pair' }));
+    // The same two people booking later still attaches (getOrCreateDirectChat).
+    await assertSucceeds(updateDoc(doc(victimDb, 'chats', pairId(VICTIM, A2)), { bookingId: 'bk_chat_later' }));
+});
+await it('a message is capped at 4 000 characters, and only a participant posts', async () => {
+    const thread = pairId(VICTIM, A1);
+    const msg = (text, sender) => ({ senderId: sender, text, attachment: null, isRead: false, createdAt: '2026-10-30T10:06:00.000Z' });
+    await assertSucceeds(setDoc(doc(victimDb, 'chats', thread, 'messages', 'm_ok'), msg('x'.repeat(4000), VICTIM)));
+    await assertFails(setDoc(doc(victimDb, 'chats', thread, 'messages', 'm_long'), msg('x'.repeat(4001), VICTIM)));
+    await assertFails(setDoc(doc(attackerDb, 'chats', thread, 'messages', 'm_stranger'), msg('hello', ATTACKER)));
+    await assertFails(setDoc(doc(dbOf(A1), 'chats', thread, 'messages', 'm_spoof'), msg('hello', VICTIM)), 'not in another person\'s name');
 });
 
 console.log('\n' + '─'.repeat(52));

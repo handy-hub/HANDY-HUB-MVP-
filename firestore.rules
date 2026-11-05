@@ -1417,6 +1417,34 @@ service cloud.firestore {
     // are the only mutable top-level fields (inbox preview update).
     // ═══════════════════════════════════════════════════════════════
     match /chats/{chatId} {
+      // ── Who a thread can be between (Phase 0 PS-01) ──────────────────────
+      // Creation used to require only that the creator was among ≥2 uids, so
+      // anyone could open a thread with anyone, add strangers to it, or link it
+      // to another person's booking. A thread is now exactly what the apps make
+      // it: ONE customer and ONE artisan, under their deterministic pair id
+      // (chatRepository.directChatId), and a linked booking must be theirs.
+      // Whether a thread also needs a booking, and whether it closes when the
+      // job ends, are product decisions not taken here: a customer may still
+      // message an artisan from their profile before booking.
+      function chatPair(p) {
+        return p is list && p.size() == 2 && p[0] != p[1] &&
+               (chatId == p[0] + '_' + p[1] || chatId == p[1] + '_' + p[0]);
+      }
+      function customerAndArtisan(p) {
+        return (exists(/databases/$(database)/documents/customers/$(p[0])) &&
+                exists(/databases/$(database)/documents/artisans/$(p[1]))) ||
+               (exists(/databases/$(database)/documents/artisans/$(p[0])) &&
+                exists(/databases/$(database)/documents/customers/$(p[1])));
+      }
+      // The booking's customer and its artisan, or the artisan it is offered
+      // to right now (currentArtisanId): customer-app/messages.html opens a
+      // booking's thread with either.
+      function bookingOfPair(bookingId, p) {
+        let bk = get(/databases/$(database)/documents/bookings/$(bookingId)).data;
+        return bk.customerId in p &&
+               (bk.get('artisanId', null) in p || bk.get('currentArtisanId', null) in p);
+      }
+
       // Either participant may read the chat thread.
       //
       // `resource == null` is REQUIRED, not defensive padding. Chat ids are
@@ -1431,9 +1459,10 @@ service cloud.firestore {
                      (resource == null ||
                       resource.data.participants.hasAny([request.auth.uid]));
 
-      // Any signed-in user can start a new chat, provided they include themselves
-      // and at least one other participant. bookingId is optional (null for a
-      // freeform chat, set for a booking-linked thread).
+      // A signed-in customer or artisan may start a thread between themselves
+      // and one person of the other role, under the pair's id. bookingId is
+      // optional (null for a freeform chat); when set it must be the pair's own
+      // booking.
       //
       // customerFirstName (audit MSG-001): the customer's FIRST name, so the
       // artisan's inbox can say who a thread is with — the artisan may not read
@@ -1441,9 +1470,11 @@ service cloud.firestore {
       // here, at creation: the update rule below does not list it, so neither
       // participant can change it afterwards.
       allow create: if isSignedIn() &&
-                       incoming().participants is list &&
+                       chatPair(incoming().participants) &&
                        incoming().participants.hasAll([request.auth.uid]) &&
-                       incoming().participants.size() >= 2 &&
+                       customerAndArtisan(incoming().participants) &&
+                       (incoming().get('bookingId', null) == null ||
+                        bookingOfPair(incoming().bookingId, incoming().participants)) &&
                        (!('customerFirstName' in incoming()) ||
                         (incoming().customerFirstName is string &&
                          incoming().customerFirstName.size() >= 1 &&
@@ -1462,7 +1493,8 @@ service cloud.firestore {
                          'lastMessage', 'lastSenderId', 'lastMessageAt', 'unreadCount', 'bookingId'
                        ]) &&
                        (!incoming().diff(existing()).affectedKeys().hasAny(['bookingId']) ||
-                        !('bookingId' in existing()) || existing().bookingId == null);
+                        ((!('bookingId' in existing()) || existing().bookingId == null) &&
+                         bookingOfPair(incoming().bookingId, existing().participants)));
 
       allow delete: if isSuperAdmin();
 
@@ -1473,12 +1505,15 @@ service cloud.firestore {
                        get(/databases/$(database)/documents/chats/$(chatId))
                            .data.participants.hasAny([request.auth.uid]);
 
-        // A participant may create a message only as themselves.
+        // A participant may create a message only as themselves. The text is
+        // capped (4 000 characters; the composers allow 1 000) so a thread
+        // cannot be filled with megabyte documents.
         allow create: if isSignedIn() &&
                          get(/databases/$(database)/documents/chats/$(chatId))
                              .data.participants.hasAny([request.auth.uid]) &&
                          incoming().senderId  == request.auth.uid &&
                          incoming().text      is string &&
+                         incoming().text.size() <= 4000 &&
                          incoming().isRead    == false &&
                          incoming().createdAt is string;
 
