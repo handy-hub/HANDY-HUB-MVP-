@@ -186,8 +186,9 @@ await t('the artisan\'s job record says the address was removed, and why; nothin
     assert.strictEqual(brief.location.address, null);
     assert.strictEqual(brief.location.mapUrl, null);
     assert.match(brief.location.note, /removed 14 days after the job ended/);
-    const job = fs.readFileSync(path.join(ROOT, 'artisan-app', 'job.html'), 'utf8');
-    assert.match(job, /brief\.location\.precision === 'removed'/);
+    // Phase 2: the job screen's drawing lives in artisan-app/js/jobScreen.js.
+    const job = fs.readFileSync(path.join(ROOT, 'artisan-app', 'js', 'jobScreen.js'), 'utf8');
+    assert.match(job, /loc\.precision === 'removed' \? `<p class="fx-body fx-ink-3">\$\{esc\(loc\.note\)\}<\/p>`/);
 });
 await t('admins still see it, from the private record', () => {
     const admin = fs.readFileSync(path.join(ROOT, 'admin-dashboard', 'bookings.html'), 'utf8');

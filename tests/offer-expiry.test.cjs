@@ -181,7 +181,13 @@ await t('Today, jobs list and job screen all derive the countdown from offerStat
               /if \(left === 0\) \{/.test(view), 'Today: the countdown');
     assert.ok(/const lapsed = paintCountdowns\(dom\.main, Date\.now\(\)\);/.test(dash), 'Today: the ticker');
     assert.ok(/const offer = offerState\(b\);/.test(jobs) && /data-expires=/.test(jobs) && /offerState\(\{ expiresAtMs: Number\(el\.dataset\.expires\) \}\)/.test(jobs), 'jobs');
-    assert.ok(/const offer = offerState\(b\);/.test(job) && /tickOffer\(/.test(job) && /This request has expired/.test(job), 'job');
+    // The job screen (Phase 2): offerView's countdown (offerState) drawn by
+    // jobScreen.js; job.html's one ticker repaints it and redraws at expiry.
+    const jobView = read('artisan-app/js/jobScreen.js');
+    assert.ok(/const offer = offerView\(b, nowMs\);/.test(jobView) && /const lapsed = !offer\.answerable \|\| offerGone;/.test(jobView) &&
+              /This request has expired/.test(jobView), 'job: plan');
+    assert.ok(/tickOffer\(/.test(job) && /const ranOut = paintCountdown\(dom\.body, Date\.now\(\)\);/.test(job) &&
+              /if \(ranOut \|\| offerState\(offer\)\.expired\)/.test(job), 'job: ticker');
 });
 
 console.log(`\noffer-expiry: ${passed} passed, ${failed} failed`);

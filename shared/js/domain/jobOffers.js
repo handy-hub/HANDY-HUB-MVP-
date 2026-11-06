@@ -83,9 +83,11 @@ export function formatTimeLeft(secondsLeft) {
  * the elements it is given.
  */
 export const LAPSED_OFFER_LABEL = 'Expired';
-export const LAPSED_OFFER_ATTRS = 'disabled aria-disabled="true" data-lapsed="true" style="opacity:.5;cursor:default"';
+/** The state alone, for screens on the artisan design system: `.fx-btn:disabled` is the look, and those pages carry no inline style. */
+export const LAPSED_OFFER_STATE_ATTRS = 'disabled aria-disabled="true" data-lapsed="true"';
+export const LAPSED_OFFER_ATTRS = LAPSED_OFFER_STATE_ATTRS + ' style="opacity:.5;cursor:default"';
 
-export function lapseOfferButtons(accept, decline) {
+export function lapseOfferButtons(accept, decline, { inlineStyle = true } = {}) {
     for (const btn of [accept, decline]) {
         if (!btn) continue;
         btn.disabled = true;
@@ -93,7 +95,7 @@ export function lapseOfferButtons(accept, decline) {
         if (typeof btn.removeAttribute === 'function') btn.removeAttribute('onclick');
         if (typeof btn.setAttribute === 'function') btn.setAttribute('aria-disabled', 'true');
         if (btn.dataset) btn.dataset.lapsed = 'true';
-        if (btn.style) { btn.style.opacity = '.5'; btn.style.cursor = 'default'; }
+        if (inlineStyle && btn.style) { btn.style.opacity = '.5'; btn.style.cursor = 'default'; }
     }
     // Both labels are set: a refusal can arrive while either reads "Accepting…"/"Declining…".
     if (accept)  accept.textContent  = LAPSED_OFFER_LABEL;

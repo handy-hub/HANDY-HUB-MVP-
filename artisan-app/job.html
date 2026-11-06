@@ -6,144 +6,72 @@
 <link rel="manifest" href="manifest.webmanifest" />
 <meta name="theme-color" content="#F97316" />
 <title>Job | Fidus X Artisan</title>
-<!-- The artisan pages' head, as dashboard.html has it: the saved theme applied
-     before first paint (design-system.css keys dark mode to data-theme), and
-     DM Sans, which --ds-font names but nothing here loaded (MED-UI). -->
 <script src="../shared/js/utils/themeManager.js"></script>
-<link rel="stylesheet" href="css/design-system.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
-<style>
-  /* ── This screen is ONE booking, from request to closed. ────────────────────
-     Everything below is phase-driven: the same DOM re-renders as the booking
-     moves, so the artisan never loses their place by "finishing" a stage. */
-  body { margin:0; background:var(--ds-bg); font-family:var(--ds-font); color:var(--ds-ink);
-         padding-bottom:calc(var(--ds-9) + env(safe-area-inset-bottom)); }
-  .jb-shell { max-width:var(--ds-shell); margin:0 auto; padding:0 var(--ds-gutter); }
-
-  .jb-top { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-4) 0 var(--ds-3); }
-  .jb-back { width:40px; height:40px; border:none; border-radius:var(--ds-r-pill); background:var(--ds-surface-2);
-             display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ds-ink); flex-shrink:0; }
-  .jb-top-title { font:800 17px/1.2 var(--ds-font); letter-spacing:-.3px; flex:1; }
-  .jb-ref { font:500 11px/1 var(--ds-font); color:var(--ds-ink-3); font-variant-numeric:tabular-nums; }
-
-  /* ── Phase banner: the dominant element. Where am I, what happens next. ── */
-  .jb-phase { background:var(--ds-surface); border-radius:var(--ds-r-card); padding:var(--ds-5);
-              margin-bottom:var(--ds-4); border:1px solid var(--ds-line); }
-  .jb-cycle { font:700 10.5px/1 var(--ds-font); letter-spacing:.7px; text-transform:uppercase;
-              color:var(--ds-brand-600); margin-bottom:var(--ds-2); }
-  .jb-phase-label { font:800 22px/1.2 var(--ds-font); letter-spacing:-.5px; margin:0 0 var(--ds-2); }
-  .jb-phase-hint { font:500 14px/1.5 var(--ds-font); color:var(--ds-ink-2); margin:0; }
-  .jb-waiting { display:flex; align-items:center; gap:var(--ds-2); margin-top:var(--ds-3);
-                padding-top:var(--ds-3); border-top:1px solid var(--ds-line);
-                font:600 13px/1.4 var(--ds-font); color:var(--ds-ink-2); }
-  .jb-waiting .dot { width:7px; height:7px; border-radius:50%; background:var(--ds-warning); flex-shrink:0; }
-  .jb-waiting.you .dot { background:var(--ds-brand-500); }
-
-  .jb-countdown { font:700 13px/1 var(--ds-font); color:var(--ds-danger); font-variant-numeric:tabular-nums; }
-
-  /* ── Content blocks ── */
-  .jb-card { background:var(--ds-surface); border-radius:var(--ds-r-card); padding:var(--ds-4);
-             margin-bottom:var(--ds-3); border:1px solid var(--ds-line); }
-  .jb-card-title { font:700 12px/1 var(--ds-font); letter-spacing:.5px; text-transform:uppercase;
-                   color:var(--ds-ink-3); margin:0 0 var(--ds-3); }
-  .jb-row { display:flex; justify-content:space-between; gap:var(--ds-4); padding:var(--ds-2) 0; }
-  .jb-row dt { font:500 13.5px/1.45 var(--ds-font); color:var(--ds-ink-2); flex-shrink:0; }
-  .jb-row dd { font:600 13.5px/1.45 var(--ds-font); color:var(--ds-ink); margin:0; text-align:right; }
-  .jb-unknown { color:var(--ds-ink-4); font-weight:500; font-style:italic; }
-
-  .jb-problem { font:500 15px/1.6 var(--ds-font); color:var(--ds-ink); margin:0; white-space:pre-wrap; }
-  .jb-photos { display:flex; gap:var(--ds-2); overflow-x:auto; padding-bottom:var(--ds-1); }
-  .jb-photos img { width:96px; height:96px; border-radius:var(--ds-r-control); object-fit:cover; flex-shrink:0;
-                   border:1px solid var(--ds-line); }
-
-  .jb-money { font:800 26px/1.1 var(--ds-font); letter-spacing:-.6px; font-variant-numeric:tabular-nums; }
-  .jb-money-note { font:500 12.5px/1.45 var(--ds-font); color:var(--ds-ink-3); margin:var(--ds-2) 0 0; }
-  .jb-cond { display:inline-block; font:700 10px/1 var(--ds-font); letter-spacing:.4px; text-transform:uppercase;
-             color:var(--ds-warning); background:var(--ds-warning-bg); border-radius:var(--ds-r-pill);
-             padding:4px 7px; margin-left:6px; vertical-align:2px; }
-
-  .jb-maplink { display:inline-flex; align-items:center; gap:6px; font:700 13px/1 var(--ds-font);
-                color:var(--ds-brand-600); text-decoration:none; margin-top:var(--ds-2);
-                min-height:44px; }  /* tap floor; the 13px line box was the whole target */
-  .jb-precision { font:500 12px/1.4 var(--ds-font); color:var(--ds-ink-3); margin:var(--ds-1) 0 0; }
-
-  /* ── Actions: exactly one dominant, the rest subordinate ── */
-  .jb-actions { position:sticky; bottom:0; background:linear-gradient(to top, var(--ds-bg) 62%, transparent);
-                padding:var(--ds-4) 0 calc(var(--ds-4) + env(safe-area-inset-bottom)); margin-top:var(--ds-5); }
-  .jb-primary { width:100%; height:54px; border:none; border-radius:var(--ds-r-control);
-                background:var(--ds-brand-500); color:#fff; font:800 16px/1 var(--ds-font); cursor:pointer;
-                display:flex; align-items:center; justify-content:center; gap:8px; }
-  .jb-primary:disabled { opacity:.55; cursor:default; }
-  .jb-primary.danger { background:var(--ds-danger); }
-  .jb-secondary { display:flex; gap:var(--ds-2); margin-top:var(--ds-2); }
-  .jb-sec-btn { flex:1; height:46px; border:1px solid var(--ds-line-strong); border-radius:var(--ds-r-control);
-                background:var(--ds-surface); color:var(--ds-ink-2); font:700 14px/1 var(--ds-font); cursor:pointer; }
-  .jb-sec-btn.danger { color:var(--ds-danger); border-color:var(--ds-danger-bg); }
-
-  .jb-nothing { text-align:center; font:500 14px/1.5 var(--ds-font); color:var(--ds-ink-3);
-                padding:var(--ds-4); background:var(--ds-surface-2); border-radius:var(--ds-r-control); }
-
-  /* ── States ── */
-  .jb-skel { background:var(--ds-surface-2); border-radius:var(--ds-r-card); height:120px; margin-bottom:var(--ds-3);
-             animation:jbpulse 1.4s ease-in-out infinite; }
-  @keyframes jbpulse { 0%,100%{opacity:1} 50%{opacity:.55} }
-  .jb-msg { text-align:center; padding:var(--ds-9) var(--ds-4); }
-  .jb-msg h2 { font:800 19px/1.3 var(--ds-font); margin:0 0 var(--ds-2); }
-  .jb-msg p { font:500 14px/1.55 var(--ds-font); color:var(--ds-ink-2); margin:0 0 var(--ds-5); }
-
-  .jb-toast { position:fixed; left:50%; bottom:calc(var(--ds-8) + env(safe-area-inset-bottom));
-              transform:translateX(-50%) translateY(16px); background:var(--ds-ink); color:var(--ds-surface);
-              padding:12px 18px; border-radius:var(--ds-r-pill); font:600 13.5px/1 var(--ds-font);
-              opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:999; max-width:88vw;
-              text-align:center; }
-  .jb-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-
-  /* The quote composer is mounted INSIDE this screen — the artisan prices the
-     job they are looking at, without being sent to a list to find it again. */
-  .jb-quote { background:var(--ds-surface); border-radius:var(--ds-r-card); padding:var(--ds-4);
-              margin-bottom:var(--ds-3); border:1px solid var(--ds-brand-500); }
-</style>
+<!-- The variable axes: fixed weights would snap 550 and 650 to the nearest file. -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/fx/job.css">
 </head>
-<body>
+<body class="fx-app">
+<a class="fx-skip" href="#jb-main">Skip to content</a>
+<div class="fx-shell">
+  <!-- This screen is ONE booking, from request to closed. Everything is
+       phase-driven (artisan-app/js/jobScreen.js): the same screen redraws as the
+       booking moves, so the artisan never loses their place. -->
+  <header class="fx-appbar fx-appbar--push">
+    <a class="fx-iconbtn" href="jobs.html" id="jb-back" aria-label="Back to jobs"><span data-icon="back"></span></a>
+    <div class="fx-appbar__titles">
+      <p class="fx-appbar__title">Job</p>
+      <p class="fx-appbar__sub fx-num" id="jb-ref"></p>
+    </div>
+  </header>
 
-<div class="jb-shell">
-  <div class="jb-top">
-    <button class="jb-back" id="jb-back" aria-label="Back to jobs">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-    <span class="jb-top-title">Job</span>
-    <span class="jb-ref" id="jb-ref"></span>
-  </div>
+  <main class="fx-main" id="jb-main" tabindex="-1">
+    <div id="jb-body">
+      <section class="fx-job__head fx-stack--4" aria-busy="true">
+        <span class="fx-skel fx-skel--title"></span><span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span>
+      </section>
+    </div>
+  </main>
 
-  <div id="jb-body">
-    <div class="jb-skel"></div>
-    <div class="jb-skel" style="height:200px"></div>
+  <div class="fx-bottom">
+    <div class="fx-dock" id="jb-dock" hidden></div>
   </div>
 </div>
 
-<div class="jb-toast" id="jb-toast" role="status" aria-live="polite"></div>
+<!-- Confirmations: the app's own sheet, never the browser's native dialog (audit UI-011). -->
+<div class="fx-overlay" id="confirm-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-body" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="confirm-title"></h2></header>
+    <div class="fx-sheet__body"><p class="fx-body" id="confirm-body"></p></div>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close data-autofocus>Go back</button>
+      <button class="fx-btn fx-btn--l" type="button" data-confirm></button>
+    </footer>
+  </section>
+</div>
 
 <script type="module">
+import { icon }             from './js/fx/icons.js';
+import { openSheet }        from './js/fx/sheet.js';
+import { showToast }        from './js/fx/toast.js';
+import { jobPlan, renderJob, renderMessage, paintCountdown } from './js/jobScreen.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
 import { getAppContainer }  from '../shared/js/app/container.js';
-import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
-                            from '../shared/js/domain/bookingTruth.js';
-import { confirmSheet } from '../shared/js/ui/confirmSheet.js';
-import { performBookingAction, ACTION, artisanCanCancel }
+import { resolveJobBrief }  from '../shared/js/domain/bookingTruth.js';
+import { performBookingAction, ACTION }
                             from '../shared/js/domain/bookingActions.js';
-import { needsQuoteBeforeTravel, needsQuoteOnSite, quotesOnSite }
-                            from '../shared/js/domain/bookingStatusMeta.js';
-import { resolveSchedule, canStartWork }
-                            from '../shared/js/domain/bookingSchedule.js';
 import { pricingService }   from '../shared/js/services/pricingService.js';
 import { mountQuoteComposer, quoteComposerStyles }
                             from '../shared/js/ui/quoteComposer.js';
-import { offerState, formatTimeLeft, LAPSED_OFFER_ATTRS, LAPSED_OFFER_LABEL }
-                            from '../shared/js/domain/jobOffers.js';
+import { offerState }       from '../shared/js/domain/jobOffers.js';
 
 const $ = (id) => document.getElementById(id);
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon);
 
 // ── Booking identity comes from the URL and nowhere else ─────────────────────
 // artisan-app/bookings.html linked to `jobs.html?id=…` for months and jobs.html
@@ -151,427 +79,175 @@ const $ = (id) => document.getElementById(id);
 // list. This screen exists to make that impossible: no id, no screen.
 const BOOKING_ID = new URLSearchParams(location.search).get('id');
 
-let _uid = null, _booking = null, _busy = false, _unsub = null, _originLat = null, _originLng = null;
+const dom = { body: $('jb-body'), dock: $('jb-dock'), sub: $('jb-ref') };
+let _uid = null, _booking = null, _busy = null, _unsub = null, _originLat = null, _originLng = null;
 let _escrow = null, _escrowId = null, _escrowUnsub = null;   // see watchEscrow()
 // The server refused an answer to this offer as gone (performBookingAction
 // offerGone): from then on the request is drawn lapsed, whatever the listener says.
 let _offerGone = false;
+let _message = false;   // a whole-screen message is showing; snapshots do not redraw over it
 
-function toast(msg) {
-  const t = $('jb-toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3400);
-}
-
-function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g,
-    c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-}
-
-/* ── What the artisan can do right now ────────────────────────────────────────
-   One dominant action per phase. Everything else is subordinate or absent.
-   Phases where the ball is in the customer's court have NO primary action —
-   an enabled button that does nothing is worse than an honest wait state. */
-function actionsFor(brief, b) {
-  const st = String(b.status || '').toLowerCase();
-
-  /* ── The appointment, if there is one ──────────────────────────────────────
-     An unscheduled booking answers isDue:true and everything below behaves
-     exactly as it always has. A scheduled one that has not come round replaces
-     the "set out now" controls with the fact: you committed to a slot, and it
-     is not this one. firestore.rules would refuse the write anyway
-     (scheduleWindowOpen), so offering the button would only produce a failure
-     the artisan cannot act on. */
-  const appt = resolveSchedule(b);
-  const gate = canStartWork(b);
-  /* Cancel only where the server accepts it (artisanCanCancel): approved
-     inspection work leaves through Support, never through a Cancel button the
-     server always refuses (Phase 0 WF-01). */
-  const cancelOrHelp = () => artisanCanCancel(b)
-    ? { label:'Cancel job', action: ACTION.CANCEL, danger:true, confirm:'Cancel this job?' }
-    : { label:'Get help with this job', action:'support' };
-  const notYet = (waitLabel) => ({
-    waiting: null,
-    waitLabel,
-    note: gate.reason,
-    secondary: [cancelOrHelp()],
-  });
-
-  switch (brief.phase) {
-    case JOB_PHASE.REQUEST: {
-      // The offer's own deadline (job_offers.expiresAtMs). Once it passes — or
-      // the server refuses an answer as gone (_offerGone) — the offer cannot be
-      // answered, so the screen shows the shared lapsed look (both answers
-      // disabled) instead of buttons that can only fail. No deadline
-      // (prematched): no countdown, and the server decides.
-      const offer = offerState(b);
-      if (offer.expired || _offerGone) {
-        return {
-          waiting: null,
-          waitLabel: 'This request has expired',
-          note: offer.expired
-            ? 'The response time ran out. It is being offered to another professional.'
-            : 'This request is no longer open to you.',
-          lapsed: true,
-        };
-      }
-      return {
-        waiting: 'you',
-        expiresAtMs: offer.expiresAtMs,
-        /* An artisan cannot decide without knowing when. This is the single
-           most important fact on a scheduled request and it was not shown at
-           all — the card read identically whether the job was in ten minutes
-           or in ten days. */
-        waitLabel: appt.scheduled ? `Your decision · ${appt.label}` : 'Your decision',
-        note: appt.scheduled
-          ? 'Accepting commits you to this arrival window. You will not be asked to travel before then.'
-          : null,
-        primary:   { label: appt.scheduled ? 'Accept this slot' : 'Accept this job', action: ACTION.ACCEPT },
-        secondary: [{ label: 'Decline', action: ACTION.DECLINE, danger: true, confirm: 'Decline this request?' }],
-      };
-    }
-
-    case JOB_PHASE.AWAITING_CALLOUT:
-      return {
-        waiting: 'customer',
-        waitLabel: appt.scheduled
-          ? `Booked for ${appt.label} · awaiting callout fee`
-          : 'Waiting for the customer to pay the callout fee',
-        note: 'You will be notified the moment it is paid. Nothing to do until then.',
-      };
-
-    case JOB_PHASE.INSPECTION:
-      if (st === 'inspection_scheduled') {
-        if (!gate.allowed) return notYet(`Booked for ${appt.label}`);
-        return { waiting:'you', waitLabel:'Head to the customer',
-                 primary:{ label:"I'm on my way", action: ACTION.EN_ROUTE },
-                 secondary:[cancelOrHelp()] };
-      }
-      if (st === 'en_route')
-        return { waiting:'you', waitLabel:'Travelling to the job',
-                 primary:{ label:"I've arrived", action: ACTION.START } };
-      if (st === 'in_progress')
-        return { waiting:'you', waitLabel:'Inspecting the problem',
-                 primary:{ label:'Complete inspection', action:'complete_inspection' } };
-      return { waiting:'you', waitLabel:'Inspection visit' };
-
-    case JOB_PHASE.QUOTING:
-      // The composer mounts into this screen (see render()). No primary button:
-      // the form itself IS the action, and a button that merely scrolls to a
-      // form below it is ceremony.
-      return {
-        waiting: 'you',
-        waitLabel: 'The customer is waiting for your price',
-        mountQuote: true,
-      };
-
-    case JOB_PHASE.AWAITING_QUOTE:
-      return { waiting:'customer', waitLabel:'Quote sent — waiting for approval',
-               note:'If the customer asks for a different price you can send one revision.' };
-
-    case JOB_PHASE.WORK:
-      // Off the inspection track an accepted job has no approved quote until the
-      // artisan sends one, and the rules refuse travel before it (WF-02). The
-      // composer is the action, exactly as on the inspection track's QUOTING.
-      if (needsQuoteBeforeTravel(b)) {
-        return { waiting:'you', waitLabel:'Send your price before you set out',
-                 note:'You can set out once the customer approves your quote.',
-                 mountQuote: true, secondary:[cancelOrHelp()] };
-      }
-      // A paid emergency is priced on site (decision Q1): the artisan sets out
-      // now and quotes after arriving; "Mark job done" waits for the approval.
-      if (needsQuoteOnSite(b)) {
-        return { waiting:'you', waitLabel:'Send your price for the work',
-                 note:'You can mark the job done once the customer approves your quote.',
-                 mountQuote: true, secondary:[cancelOrHelp()] };
-      }
-      if (st === 'accepted' || st === 'quoted') {
-        if (!gate.allowed) return notYet(`Booked for ${appt.label}`);
-        return { waiting:'you', waitLabel: quotesOnSite(b) ? 'Set out now' : 'Ready to start the work',
-                 ...(quotesOnSite(b) ? { note:'The emergency fee is secured. You price the work once you have seen it.' } : {}),
-                 primary:{ label:"I'm on my way", action: ACTION.EN_ROUTE },
-                 secondary:[cancelOrHelp()] };
-      }
-      if (st === 'en_route')
-        return { waiting:'you', waitLabel:'Travelling to the job',
-                 primary:{ label:"I've arrived", action: ACTION.START } };
-      if (st === 'in_progress')
-        return { waiting:'you', waitLabel:'Work in progress',
-                 primary:{ label:'Mark job done', action: ACTION.JOB_DONE } };
-      return { waiting:'you', waitLabel:'Work visit' };
-
-    case JOB_PHASE.AWAITING_CONFIRM:
-      return { waiting:'customer', waitLabel:'Waiting for the customer to confirm and release payment',
-               note:'Payment lands in your wallet as soon as they confirm. If they do not, it releases automatically.' };
-
-    default: { // CLOSED
-      const why = st === 'completed'   ? 'This job is complete.'
-                : st === 'cancelled'   ? 'This job was cancelled.'
-                : st === 'rejected'    ? 'You declined this request.'
-                : st === 'unfulfilled' ? 'This request expired before it was accepted.'
-                : 'This job is closed.';
-      return {
-        waiting: null, waitLabel: why,
-        secondary: st === 'completed' ? [{ label:'View earnings', action:'earnings' }] : [],
-      };
-    }
-  }
+function showMessage(title, body, cta) {
+  _message = true;
+  tickOffer(null);
+  renderMessage(dom, title, body, cta);
 }
 
 /* ── Render ──────────────────────────────────────────────────────────────── */
 function render(b) {
+  if (!b) return;
   _booking = b;
-  const brief = resolveJobBrief(b, { originLat: _originLat, originLng: _originLng,
-                                    escrow: b.escrowId && b.escrowId === _escrowId ? _escrow : null });
-  const acts  = actionsFor(brief, b);
-  const dist  = formatDistance(brief.distanceKm);
-  const comp  = brief.compensation;
-
-  $('jb-ref').textContent = brief.bookingId || '';
-
-  // Schedule is shown ONLY when a real one exists. book-emergency writes
-  // scheduledAt:null while the UI used to fall back to today's date, which told
-  // the artisan an appointment had been agreed when none had.
-  /* The appointment, as a sentence. brief.scheduledFor is the raw ISO instant;
-     resolveSchedule turns it into the window the two parties actually agreed,
-     relative to now, so "Today, 2-5pm" reads as itself rather than as a
-     timestamp the artisan has to decode. Null when there is no appointment,
-     and the row is omitted entirely — book-emergency writes no schedule, and
-     the UI used to fall back to today's date, which told the artisan an
-     appointment had been agreed when none had. */
-  const apptNow   = resolveSchedule(b);
-  const schedule  = apptNow.scheduled ? apptNow.label : null;
-
-  const money = comp && comp.amount !== null && comp.amount !== undefined
-    ? `<div class="jb-money">${esc(formatMoney(comp.amount))}${comp.conditional ? '<span class="jb-cond">Not yet confirmed</span>' : ''}</div>
-       ${comp.note ? `<p class="jb-money-note">${esc(comp.note)}</p>` : ''}`
-    : `<div class="jb-money jb-unknown" style="font-size:16px">Not set yet</div>
-       ${comp && comp.note ? `<p class="jb-money-note">${esc(comp.note)}</p>` : ''}`;
-
-  $('jb-body').innerHTML = `
-    <div class="jb-phase">
-      ${brief.cycle ? `<div class="jb-cycle">${esc(brief.cycle)}</div>` : ''}
-      <h1 class="jb-phase-label">${esc(brief.phaseLabel)}</h1>
-      <p class="jb-phase-hint">${esc(brief.phaseHint || '')}</p>
-      ${acts.waitLabel ? `
-        <div class="jb-waiting ${acts.waiting === 'you' ? 'you' : ''}">
-          ${acts.waiting ? '<span class="dot"></span>' : ''}
-          <span>${esc(acts.waitLabel)}</span>
-          ${acts.expiresAtMs ? `<span class="jb-countdown" id="jb-countdown" role="timer" aria-live="off">Respond in ${esc(formatTimeLeft(offerState(b).secondsLeft))}</span>` : ''}
-        </div>` : ''}
-    </div>
-
-    <div class="jb-card">
-      <p class="jb-card-title">The job</p>
-      <dl style="margin:0">
-        <div class="jb-row"><dt>Service</dt><dd>${brief.service ? esc(brief.service) : '<span class="jb-unknown">Not specified</span>'}</dd></div>
-        <div class="jb-row"><dt>Customer</dt><dd>${brief.customer.name ? esc(brief.customer.name) : '<span class="jb-unknown">Not shared</span>'}</dd></div>
-        ${schedule ? `<div class="jb-row"><dt>Scheduled</dt><dd>${esc(schedule)}</dd></div>` : ''}
-      </dl>
-      ${brief.problem ? `
-        <div style="margin-top:var(--ds-3);padding-top:var(--ds-3);border-top:1px solid var(--ds-line)">
-          <p class="jb-card-title">What they described</p>
-          <p class="jb-problem">${esc(brief.problem)}</p>
-        </div>` : ''}
-      ${brief.notes ? `
-        <div style="margin-top:var(--ds-3)">
-          <p class="jb-card-title">Extra notes</p>
-          <p class="jb-problem">${esc(brief.notes)}</p>
-        </div>` : ''}
-    </div>
-
-    ${brief.photoCount ? `
-      <div class="jb-card">
-        <p class="jb-card-title">Photos from the customer (${brief.photoCount})</p>
-        <div class="jb-photos">
-          ${brief.photos.map(u => `<img src="${esc(u)}" alt="Customer photo" loading="lazy">`).join('')}
-        </div>
-      </div>` : ''}
-
-    <div class="jb-card">
-      <p class="jb-card-title">${brief.phase === JOB_PHASE.REQUEST ? 'What you earn for this' : 'Your payment'}</p>
-      ${money}
-    </div>
-
-    <div class="jb-card">
-      <p class="jb-card-title">Where</p>
-      ${brief.location.address
-        ? `<p class="jb-problem" style="font-size:14px">${esc(brief.location.address)}</p>`
-        : b.locationApproximate
-          // An offer withholds the address by design (functions/jobOffers.js);
-          // "No address" read as a broken booking at the moment of decision.
-          ? `<p class="jb-problem" style="font-size:14px">Exact address shared once you accept</p>`
-          : brief.location.precision === 'removed'
-            // Kept 14 days after the job ended, then removed (decision Q6).
-            ? `<p class="jb-problem jb-unknown" style="font-size:14px">${esc(brief.location.note)}</p>`
-            : `<p class="jb-problem jb-unknown" style="font-size:14px">No address on this booking</p>`}
-      ${dist ? `<p class="jb-precision">${esc(dist)}</p>` : ''}
-      ${brief.location.precision === 'address-only'
-        ? '<p class="jb-precision">Address only — no exact GPS fix from the customer.</p>' : ''}
-      ${brief.location.mapUrl
-        ? `<a class="jb-maplink" href="${esc(brief.location.mapUrl)}" target="_blank" rel="noopener">
-             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="2"/></svg>
-             Open in Maps</a>` : ''}
-      ${brief.customer.phone
-        ? `<div style="margin-top:var(--ds-3);padding-top:var(--ds-3);border-top:1px solid var(--ds-line);display:flex;gap:var(--ds-4);flex-wrap:wrap">
-             <a class="jb-maplink" href="tel:${esc(brief.customer.phone)}">Call the customer</a>
-             <a class="jb-maplink" href="messages.html?bookingId=${encodeURIComponent(BOOKING_ID)}">Message the customer</a>
-           </div>`
-        : (brief.customer.contactUnlocked ? '' :
-           '<p class="jb-precision" style="margin-top:var(--ds-3)">The customer\'s number unlocks once the visit is funded.</p>')}
-    </div>
-
-    ${acts.mountQuote ? '<div class="jb-card jb-quote"><p class="jb-card-title">Send your quote</p><div id="jb-quote-mount"></div></div>' : ''}
-
-    <div class="jb-actions">
-      ${acts.lapsed
-        ? `<p class="jb-nothing">${esc(acts.note)}</p>
-           <button class="jb-primary" ${LAPSED_OFFER_ATTRS}>${LAPSED_OFFER_LABEL}</button>
-           <div class="jb-secondary"><button class="jb-sec-btn danger" ${LAPSED_OFFER_ATTRS}>Decline</button></div>`
-        : ''}
-      ${acts.lapsed ? '' : acts.primary
-        ? `<button class="jb-primary ${acts.primary.danger ? 'danger' : ''}" id="jb-primary">${esc(acts.primary.label)}</button>`
-        : (acts.note ? `<p class="jb-nothing">${esc(acts.note)}</p>` : '')}
-      ${acts.secondary && acts.secondary.length
-        ? `<div class="jb-secondary">${acts.secondary.map((s, i) =>
-            `<button class="jb-sec-btn ${s.danger ? 'danger' : ''}" data-sec="${i}">${esc(s.label)}</button>`).join('')}</div>`
-        : ''}
-    </div>`;
-
-  if (acts.mountQuote) {
-    const host = $('jb-quote-mount');
-    if (host) {
-      try {
-        mountQuoteComposer({
-          bookingId: BOOKING_ID,              // this screen's booking, explicitly
-          mount: host,
-          serviceLabel: brief.service,
-          toast,
-          onSubmitted: () => {
-            // The live subscription will re-render this screen from the new
-            // authoritative state; no local guess about what comes next.
-            toast('Quote sent. Waiting for the customer to approve.');
-          },
-        });
-      } catch (e) {
-        host.innerHTML = '<p class="jb-nothing">The quote form could not be opened. Reload and try again.</p>';
-      }
-    }
-  }
-
-  if (acts.primary) $('jb-primary').addEventListener('click', () => run(acts.primary));
-  (acts.secondary || []).forEach((s, i) => {
-    document.querySelector(`[data-sec="${i}"]`)?.addEventListener('click', () => run(s));
+  _message = false;
+  const plan = jobPlan(b, { offerGone: _offerGone });
+  // The quote form survives a redraw: a snapshot arriving while the artisan
+  // types (callout paid, escrow loaded) must not wipe what they entered.
+  const keep = plan.mountQuote ? $('jb-quote-mount') : null;
+  if (keep) keep.remove();
+  const hadFocus = dom.body.contains(document.activeElement) || dom.dock.contains(document.activeElement);
+  renderJob(dom, b, plan, {
+    nowMs: Date.now(), bookingId: BOOKING_ID, busy: _busy, originLat: _originLat, originLng: _originLng,
+    escrow: b.escrowId && b.escrowId === _escrowId ? _escrow : null,
   });
-  tickOffer(acts.expiresAtMs ? b : null);
+  if (plan.mountQuote) {
+    const slot = $('jb-quote-mount');
+    if (slot && keep) slot.replaceWith(keep);
+    else if (slot) mountComposer(slot, b);
+  }
+  if (hadFocus && (!document.activeElement || document.activeElement === document.body)) $('jb-title')?.focus({ preventScroll: true });
+  tickOffer(plan.kind === 'offer' && !plan.lapsed && plan.offer.countdown ? b : null);
+}
+
+function mountComposer(host, b) {
+  try {
+    mountQuoteComposer({
+      bookingId: BOOKING_ID,              // this screen's booking, explicitly
+      mount: host,
+      serviceLabel: resolveJobBrief(b).service,
+      toast: (m) => showToast(m),
+      onSubmitted: () => {
+        // The live subscription redraws this screen from the new authoritative
+        // state; no local guess about what comes next.
+        showToast('Quote sent. Waiting for the customer to approve.', { tone: 'ok' });
+      },
+    });
+  } catch (e) {
+    host.innerHTML = '<p class="fx-meta">The quote form could not be opened. Reload and try again.</p>';
+  }
 }
 
 /* ── Offer countdown ───────────────────────────────────────────────────────────
    Derived from the offer's expiresAtMs every second, never from a timer started
    on page load, so a refresh or a screen left open shows the true time left.
-   At zero the screen re-renders into its expired state. */
+   At zero the screen redraws into its expired state. */
 let _offerTick = null;
 function tickOffer(offer) {
   clearInterval(_offerTick); _offerTick = null;
   if (!offer) return;
   _offerTick = setInterval(() => {
-    const st = offerState(offer);
-    const el = $('jb-countdown');
-    if (el) el.textContent = `Respond in ${formatTimeLeft(st.secondsLeft)}`;
-    if (st.expired) { clearInterval(_offerTick); _offerTick = null; if (!_busy) render(offer); }
+    const ranOut = paintCountdown(dom.body, Date.now());
+    if (ranOut || offerState(offer).expired) { clearInterval(_offerTick); _offerTick = null; if (!_busy) render(offer); }
   }, 1000);
 }
 
 /* ── Act ─────────────────────────────────────────────────────────────────── */
+// Each control jobScreen.js draws names one of these (data-act).
+const RUN = {
+  'accept':   { action: ACTION.ACCEPT,   ok: 'Job accepted. The customer has been notified.' },
+  'decline':  { action: ACTION.DECLINE,
+                confirm: { title: 'Decline this request?', body: 'It goes to another professional nearby.', label: 'Decline', danger: true } },
+  'en-route': { action: ACTION.EN_ROUTE, ok: 'Marked as en route. Customer notified.' },
+  'arrived':  { action: ACTION.START,    ok: 'Marked arrived. Customer notified.' },
+  'complete-inspection': { inspection: true, ok: 'Inspection complete. Send your quote next.' },
+  'job-done': { action: ACTION.JOB_DONE, ok: 'Marked done. Waiting for the customer to confirm.' },
+  // Offered only where artisanCanCancel says the server accepts it.
+  'cancel':   { action: ACTION.CANCEL,   ok: 'Job cancelled. The customer has been told.',
+                confirm: { title: 'Cancel this job?', body: 'The customer is told and the job ends. This cannot be undone.', label: 'Cancel job', danger: true } },
+  // Approved work, travel or a dispute: Support, with this booking's reference.
+  'help':     { href: () => `support.html?bookingId=${encodeURIComponent(BOOKING_ID)}` },
+  'earnings': { href: () => 'wallet.html' },
+};
+
+function confirmIn({ title, body, label, danger }) {
+  return new Promise((resolve) => {
+    const overlay = $('confirm-sheet');
+    $('confirm-title').textContent = title;
+    $('confirm-body').textContent = body;
+    const btn = overlay.querySelector('[data-confirm]');
+    btn.textContent = label;
+    btn.className = `fx-btn fx-btn--l ${danger ? 'fx-btn--danger' : 'fx-btn--primary'}`;
+    let yes = false;
+    const onYes = () => { yes = true; sheet.close('confirm'); };
+    const sheet = openSheet(overlay, { onClose: () => { btn.removeEventListener('click', onYes); resolve(yes); } });
+    btn.addEventListener('click', onYes);
+  });
+}
+
 async function run(spec) {
   if (_busy) return;                       // duplicate taps do nothing
-  // The app's own sheet, not the browser's confirm() (audit UI-011).
-  if (spec.confirm && !(await confirmSheet({ title: spec.confirm, confirmLabel: spec.label || 'Confirm',
-                                             danger: !!spec.danger }))) return;
+  if (spec.href) { location.href = spec.href(); return; }
+  if (spec.confirm && !(await confirmIn(spec.confirm))) return;
 
-  // Non-transition destinations
-  if (spec.action === 'earnings')    { location.href = 'wallet.html'; return; }
-  if (spec.action === 'support')     { location.href = `support.html?bookingId=${encodeURIComponent(BOOKING_ID)}`; return; }
-  if (spec.action === 'open_quote')  {
-    // The quote composer (materials rows, labour, commission preview) lives in
-    // the jobs.html sheet and works. Duplicating it here would be a second
-    // implementation of the thing this screen exists to consolidate — so the
-    // booking id travels with the link and the sheet opens on this job.
-    // REMAINING WORK: extract that sheet into a shared component and mount it here.
-    location.href = `jobs.html?quote=${encodeURIComponent(BOOKING_ID)}`;
-    return;
-  }
-
-  _busy = true;
-  const btn = $('jb-primary');
-  const orig = btn ? btn.textContent : '';
-  let giveBack = true;                     // false once the offer is gone: never re-arm it
-  if (btn) { btn.disabled = true; btn.textContent = 'Working…'; }
-
+  _busy = spec.action === ACTION.ACCEPT ? 'accept' : spec.action === ACTION.DECLINE ? 'decline' : 'step';
+  render(_booking);
+  let redraw = true;
   try {
-    if (spec.action === 'complete_inspection') {
+    if (spec.inspection) {
       await pricingService.completeInspection(BOOKING_ID);
-      toast('Inspection complete. Send your quote next.');
-    } else {
-      const { services: { databaseService } } = getAppContainer();
-      const res = await performBookingAction(spec.action, {
-        bookingId: BOOKING_ID, actor: 'artisan', uid: _uid,
-        databaseService, pricingService, reason: 'Cancelled by artisan',
-      });
-
-      if (!res.ok) {
-        // A booking that moved under us is explained with the state it is
-        // ACTUALLY in — never "try again" at someone whose job was taken.
-        toast(res.message);
-        if (res.offerGone) {
-          // Expired, closed or re-offered: the request is retired on this
-          // screen and its buttons are not given back (FLOW-005).
-          _offerGone = true;
-          giveBack = false;
-          tickOffer(null);
-          _busy = false;
-          if (_booking) render(_booking);
-          return;
-        }
-        if (res.booking) render(res.booking);
-        return;
-      }
-      if (spec.action === ACTION.DECLINE) {
-        // Declining closes the offer to this artisan: there is nothing left to show.
-        try { _offerUnsub?.(); } catch (_) {}
-        showMessage('Request declined', 'It has been offered to another professional, or the customer has been told.');
-        return;
-      }
-      if (spec.action === ACTION.ACCEPT) {
-        // Accepting is what opens the booking to this artisan: follow it now.
-        try { _offerUnsub?.(); } catch (_) {}
-        _offerUnsub = null;
-        watchBooking();
-      }
-      toast(
-        spec.action === ACTION.ACCEPT   ? 'Job accepted. The customer has been notified.' :
-        spec.action === ACTION.DECLINE  ? 'Request declined.' :
-        spec.action === ACTION.JOB_DONE ? 'Marked done. Waiting for the customer to confirm.' :
-        'Updated.');
-      render(res.booking);
+      showToast(spec.ok, { tone: 'ok' });
+      return;
     }
+    const { services: { databaseService } } = getAppContainer();
+    const res = await performBookingAction(spec.action, {
+      bookingId: BOOKING_ID, actor: 'artisan', uid: _uid,
+      databaseService, pricingService, reason: 'Cancelled by artisan',
+    });
+    if (!res.ok) {
+      // A booking that moved under us is explained with the state it is
+      // ACTUALLY in — never "try again" at someone whose job was taken.
+      showToast(res.message, { tone: 'bad' });
+      if (res.offerGone) {
+        // Expired, closed or re-offered: the request is retired on this
+        // screen and its answers are not given back (FLOW-005).
+        _offerGone = true;
+        tickOffer(null);
+        return;
+      }
+      if (res.booking) _booking = { id: BOOKING_ID, ...res.booking };
+      return;
+    }
+    if (spec.action === ACTION.DECLINE) {
+      // Declining closes the offer to this artisan: there is nothing left to show.
+      try { _offerUnsub?.(); } catch (_) {}
+      _offerUnsub = null;
+      redraw = false;
+      showMessage('Request declined', 'It has been offered to another professional, or the customer has been told.');
+      return;
+    }
+    if (spec.action === ACTION.ACCEPT) {
+      // Accepting is what opens the booking to this artisan: follow it now.
+      // The offer stays drawn as "Accepting…" until the booking's first snapshot
+      // replaces it, so there is no moment with a live Accept to tap twice.
+      try { _offerUnsub?.(); } catch (_) {}
+      _offerUnsub = null;
+      redraw = false;
+      watchBooking();
+    }
+    if (res.booking) _booking = { id: BOOKING_ID, ...res.booking };
+    showToast(spec.ok, { tone: 'ok' });
   } catch (e) {
-    toast(e?.message || 'That did not go through. Nothing was changed.');
+    showToast(e?.message || 'That did not go through. Nothing was changed.', { tone: 'bad' });
   } finally {
-    _busy = false;
-    if (btn && giveBack) { btn.disabled = false; btn.textContent = orig; }
+    _busy = null;
+    // Redrawn from the authoritative state: a lapsed offer stays lapsed (_offerGone).
+    if (redraw && !_message) render(_booking);
   }
 }
 
-/* ── Boot ────────────────────────────────────────────────────────────────── */
-function showMessage(title, body, cta) {
-  $('jb-body').innerHTML = `
-    <div class="jb-msg">
-      <h2>${esc(title)}</h2>
-      <p>${esc(body)}</p>
-      <button class="jb-primary" onclick="location.href='jobs.html'">${esc(cta || 'Back to my jobs')}</button>
-    </div>`;
-}
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el || el.disabled || !RUN[el.dataset.act]) return;
+  run(RUN[el.dataset.act]);
+});
 
 // One stylesheet for the composer, injected once.
 (() => {
@@ -580,8 +256,7 @@ function showMessage(title, body, cta) {
   document.head.appendChild(st);
 })();
 
-$('jb-back').addEventListener('click', () => { location.href = 'jobs.html'; });
-
+/* ── Boot ────────────────────────────────────────────────────────────────── */
 (async () => {
   if (!BOOKING_ID) {
     showMessage('No job selected', 'Open a job from your jobs list to see it here.');
@@ -591,10 +266,7 @@ $('jb-back').addEventListener('click', () => { location.href = 'jobs.html'; });
   // requireArtisanAuth — not the customer guard. It sends a real artisan to the
   // ARTISAN login and, locally, honours the dev-access session (unless the
   // emulators are in use, where a real sign-in is available and better).
-  //
-  // It resolves to { artisan, ... }, NOT a Firebase user. Reading `.uid` off
-  // the wrapper yields undefined, and this screen used to bail on that — a
-  // silent early return that rendered nothing but the skeleton forever.
+  // It resolves to { artisan, ... }, NOT a Firebase user.
   const { artisan } = await requireArtisanAuth({ allowPending: true });
   _uid = artisan?.uid || artisan?.id || null;
   if (!_uid) return;   // the guard has already redirected
@@ -695,12 +367,12 @@ function watchBooking() {
     },
     (err) => {
       if (/permission/i.test(String(err?.code || err?.message || ''))) { watchOffer(); return; }
-      showMessage('Could not load this job', 'Check your connection and try again.');
+      showMessage('Could not load this job', 'Check your connection and try again.', { label: 'Try again', href: location.href });
     }
   );
 }
 
-window.addEventListener('pagehide', () => { try { _unsub?.(); _offerUnsub?.(); _escrowUnsub?.(); } catch (_) {} clearInterval(_offerTick); });
+window.addEventListener('pagehide', () => { try { _unsub?.(); _offerUnsub?.(); _escrowUnsub?.(); } catch (_) {} clearInterval(_offerTick); _offerTick = null; });
 // Restored from the back/forward cache with its listeners torn down: reload.
 window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
 </script>

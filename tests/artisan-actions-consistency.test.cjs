@@ -214,14 +214,19 @@ await t('Q1: the two copies of the on-site rule agree (bookingStatusMeta, bookin
 
 console.log('\n── The screens use the shared answers ──\n');
 
-await t('job.html: Cancel or "Get help" from artisanCanCancel; the quote first where travel needs one', () => {
-    const src = page('job.html');
-    assert.match(src, /import \{ performBookingAction, ACTION, artisanCanCancel \}/);
-    assert.match(src, /const cancelOrHelp = \(\) => artisanCanCancel\(b\)/);
-    assert.ok(!/secondary:\s*\[\{ label:'Cancel job'/.test(src), 'a bare Cancel offer remains');
-    assert.match(src, /if \(needsQuoteBeforeTravel\(b\)\) \{[\s\S]{0,300}mountQuote: true/);
-    assert.match(src, /if \(needsQuoteOnSite\(b\)\) \{[\s\S]{0,300}mountQuote: true/, 'on site, the composer is the step (Q1)');
-    assert.match(src, /spec\.action === 'support'\)\s*\{ location\.href = `support\.html\?bookingId=\$\{encodeURIComponent\(BOOKING_ID\)\}`/);
+await t('job screen: Cancel or "Get help" from artisanCanCancel; its one step is resolveJourney\u2019s; the quote is the composer', () => {
+    // Phase 2: job.html runs what artisan-app/js/jobScreen.js plans. The step is
+    // resolveJourney's (proved above against the rules), so a quote-first or an
+    // on-site emergency (Q1) shows the composer, exactly where Today does.
+    const src = page('job.html'), plan = page('js/jobScreen.js');
+    assert.match(plan, /import \{ artisanCanCancel \} from '\.\.\/\.\.\/shared\/js\/domain\/bookingActions\.js';/);
+    assert.match(plan, /const help = artisanCanCancel\(b\)\s*\? \{ act: 'cancel', label: 'Cancel job', danger: true \}\s*: \{ act: 'help', label: 'Get help with this job' \};/);
+    assert.match(plan, /secondary: \[help\],/, 'every live job offers its way out: Cancel where allowed, otherwise Get help');
+    assert.match(plan, /const journey = resolveJourney\(b, 'artisan', \{ schedule \}\);/);
+    assert.match(plan, /mountQuote: op === 'submitQuote',/);
+    assert.deepStrictEqual([...plan.matchAll(/^    (\w+):\s+'[a-z-]+',$/gm)].map((m) => m[1]), ['enRoute', 'arrived', 'completeInspection', 'markDone']);
+    assert.doesNotMatch(src + plan, /status === '(accepted|en_route|in_progress|inspection_scheduled)'/, 'no status branch of its own');
+    assert.match(src, /'help':\s+\{ href: \(\) => `support\.html\?bookingId=\$\{encodeURIComponent\(BOOKING_ID\)\}` \}/);
 });
 
 await t('Today (dashboard.html): every step comes from resolveJourney; Submit Quote opens the composer; a booked slot is listed, not offered', () => {

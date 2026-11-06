@@ -1,0 +1,48 @@
+/* artisan-app/css/fx/job.css — one booking, from request to closed (Phase 2). Tokens only (npm run lint:fx). */
+
+.fx-job__head { padding: var(--fx-space-5) var(--fx-gutter) var(--fx-space-0); }
+
+/* The customer's own words, set apart from what Fidus X says about the job. */
+.fx-job__words {
+  padding-left: var(--fx-space-3);
+  border-left: var(--fx-stroke) solid var(--fx-line-2);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.fx-job__inline { display: flex; align-items: center; gap: var(--fx-space-2); }
+.fx-job__inline > svg { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); }
+.fx-job__note { display: block; }
+
+/* Photos wrap into a grid: nothing on this screen scrolls sideways. */
+.fx-job__photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--fx-space-2); }
+.fx-job__photo {
+  display: block; width: 100%; aspect-ratio: 1;
+  object-fit: cover; border-radius: var(--fx-r-control);
+  border: var(--fx-hairline) solid var(--fx-line);
+}
+
+/* ── The shared quote composer (shared/js/ui/quoteComposer.js) ─────────────
+   It reads the legacy --ds-* names, with fallbacks. On this screen they are
+   pointed at the artisan tokens, and its two accent-filled controls get the
+   near-black label the system requires on orange (white is 2.8:1). The
+   composer's own layout is unchanged: it is shared with Jobs. */
+.fx-job__quote {
+  --ds-font: var(--fx-font);
+  --ds-ink: var(--fx-ink);
+  --ds-ink-2: var(--fx-ink-2);
+  --ds-ink-3: var(--fx-ink-3);
+  --ds-brand-500: var(--fx-accent);
+  --ds-brand-600: var(--fx-accent-text);
+  --ds-surface: var(--fx-paper);
+  --ds-surface-2: var(--fx-well);
+  --ds-line: var(--fx-line);
+  --ds-line-strong: var(--fx-edge);
+  --ds-danger: var(--fx-bad);
+  --ds-danger-bg: var(--fx-bad-wash);
+}
+.fx-job__quote .qc-submit,
+.fx-job__quote .qc-tog.active { color: var(--fx-on-accent); }
+/* Inputs had no boundary until focused (WCAG 1.4.11). */
+.fx-job__quote .qc-input,
+.fx-job__quote .qc-note { border-color: var(--fx-edge); }

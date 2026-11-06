@@ -351,6 +351,9 @@ with sync_playwright() as pw:
     pg.context.close()
 
     # ═══ JOB SCREEN ═══════════════════════════════════════════════════════════
+    # job.html (Phase 2, on the design system): the offer summary until the
+    # artisan accepts, then the booking itself.
+    JACC = '#jb-dock [data-act="accept"]'
     def job_screen(bid, offer_doc, refuse):
         pg, errs = open_page(b, f'/artisan-app/job.html?id={bid}')
         pg.wait_for_function(f"(window.__fx.docErrs['bookings/{bid}'] || []).length > 0", timeout=15000)
@@ -358,35 +361,84 @@ with sync_playwright() as pw:
         pg.wait_for_function(f"(window.__fx.docCbs['job_offers/{bid}'] || []).length > 0", timeout=5000)
         emit = lambda: pg.evaluate("([k, d]) => window.__fx.docCbs[k].forEach(cb => cb({ exists: true, id: d.bookingId, data: d }))", [f'job_offers/{bid}', offer_doc])
         emit()
-        pg.wait_for_selector('#jb-primary')
-        before = btn_state(pg, '#jb-primary')
+        pg.wait_for_selector(JACC)
+        before = btn_state(pg, JACC)
+        body = text_of(pg, '#jb-body')
         pg.evaluate(f"window.__fx.refuse = {json.dumps(refuse)}")
-        pg.click('#jb-primary')
+        pg.click(JACC)
         pg.wait_for_timeout(700)
-        return pg, errs, before, emit
+        return pg, errs, before, emit, body
 
     t = int(__import__('time').time() * 1000)
-    pg, errs, before, emit = job_screen('K1', offer('K1', t, 120), {'code': 'failed-precondition', 'reason': 'expired', 'message': 'This request has expired and has been offered to another professional.'})
-    a, d = btn_state(pg, '.jb-actions .jb-primary'), btn_state(pg, '.jb-actions .jb-sec-btn')
+    pg, errs, before, emit, body = job_screen('K1', offer('K1', t, 120), {'code': 'failed-precondition', 'reason': 'expired', 'message': 'This request has expired and has been offered to another professional.'})
+    a, d = btn_state(pg, '#jb-dock .fx-btn--primary'), btn_state(pg, '#jb-dock .fx-btn--secondary')
     live_accept = pg.evaluate("[...document.querySelectorAll('button')].some(x => !x.disabled && /Accept/.test(x.textContent))")
     check('job: before, "Accept this job" is live', before['text'].startswith('Accept') and not before['disabled'], before)
-    check('job: refused as expired → the SAME lapsed look, both disabled; finally does NOT re-enable Accept',
-          a['text'] == 'Expired' and a['disabled'] and d['disabled'] and a['opacity'] == '0.5' and not live_accept, (a, d, live_accept))
+    check('job: an unaccepted offer names nobody and shows no address (the document carries "Ama")',
+          'Ama' not in body and 'Exact address shared once you accept.' in body, body[:200])
+    check('job: refused as expired → the shared lapsed state, both disabled; the finally does NOT re-enable Accept',
+          a['text'] == 'Expired' and a['disabled'] and d['disabled'] and not live_accept, (a, d, live_accept))
+    check('job: the lapsed look is the design system\'s disabled state (no inline style)', a['opacity'] == '' and d['opacity'] == '', (a, d))
     emit(); pg.wait_for_timeout(300)
-    check('job: the next offer snapshot keeps it lapsed', btn_state(pg, '.jb-actions .jb-primary')['text'] == 'Expired')
+    check('job: the next offer snapshot keeps it lapsed', btn_state(pg, '#jb-dock .fx-btn--primary')['text'] == 'Expired')
     check('job: the countdown stopped (no live offer ticker)', pg.query_selector('#jb-countdown') is None)
     check('job: no page errors', not errs, errs[:3])
     pg.context.close()
 
-    pg, errs, before, emit = job_screen('K2', offer('K2', t, prematched=True), {'code': 'failed-precondition', 'reason': 'closed', 'message': 'This request is no longer open.'})
-    check('job: a prematched offer shows no countdown before answering', before and not before['disabled'])
-    a = btn_state(pg, '.jb-actions .jb-primary')
+    pg, errs, before, emit, body = job_screen('K2', offer('K2', t, prematched=True), {'code': 'failed-precondition', 'reason': 'closed', 'message': 'This request is no longer open.'})
+    check('job: a prematched offer shows no countdown before answering', before and not before['disabled'] and 'No countdown' in body, body[:160])
+    a = btn_state(pg, '#jb-dock .fx-btn--primary')
     check('job: a prematched offer refused ("closed") is retired too', a['text'] == 'Expired' and a['disabled'], a)
     pg.context.close()
 
-    pg, errs, before, emit = job_screen('K3', offer('K3', t, 120), {'code': 'unavailable', 'reason': None, 'message': 'unavailable'})
-    a = btn_state(pg, '#jb-primary')
-    check('job: a network failure gives "Accept this job" back (not gone)', a and a['text'].startswith('Accept') and not a['disabled'], a)
+    pg, errs, before, emit, body = job_screen('K3', offer('K3', t, 120), {'code': 'unavailable', 'reason': None, 'message': 'unavailable'})
+    a = btn_state(pg, JACC)
+    check('job: a network failure gives "Accept this job" back (not gone)', a and (a['text'] or '').startswith('Accept') and not a['disabled'], a)
+    pg.context.close()
+
+    # Accepted: the offer stays "Accepting…" until the booking arrives, then the
+    # booking is the screen — now naming the customer, with Cancel where allowed.
+    pg, errs = open_page(b, '/artisan-app/job.html?id=K4')
+    pg.wait_for_function("(window.__fx.docErrs['bookings/K4'] || []).length > 0", timeout=15000)
+    pg.evaluate("window.__fx.docErrs['bookings/K4'].forEach(e => e({ code: 'permission-denied', message: 'permission-denied' }))")
+    pg.wait_for_function("(window.__fx.docCbs['job_offers/K4'] || []).length > 0", timeout=5000)
+    pg.evaluate("(d) => window.__fx.docCbs['job_offers/K4'].forEach(cb => cb({ exists: true, id: 'K4', data: d }))", offer('K4', t, 120))
+    pg.wait_for_selector(JACC)
+    pg.evaluate("window.__fx.refuse = null; window.__fx.delay = 0; window.__fx.calls.length = 0")
+    pg.click(JACC); pg.wait_for_timeout(500)
+    a = btn_state(pg, '#jb-dock .fx-btn--primary')
+    check('job: after a successful accept, Accept is not handed back before the booking arrives', a['text'] == 'Accepting…' and a['disabled'], a)
+    pg.wait_for_function("(window.__fx.docCbs['bookings/K4'] || []).length > 1", timeout=5000)
+    K4 = {'artisanId': 'A1', 'status': 'accepted', 'track': 'inspection', 'calloutPaid': False, 'serviceType': 'plumbing',
+          'calloutFee': 60, 'customerFirstName': 'Ama', 'address': '12 Ring Road', 'lat': 5.61, 'lng': -0.19}
+    pg.evaluate("(d) => window.__fx.docCbs['bookings/K4'].forEach(cb => cb({ exists: true, id: 'K4', data: d }))", K4)
+    pg.wait_for_selector('#jb-dock [data-act="cancel"]')
+    check('job: the accepted booking takes over: the customer is named, Cancel is offered (visit fee unpaid)',
+          'Ama' in text_of(pg, '#jb-body') and text_of(pg, '#jb-dock [data-act="cancel"]') == 'Cancel job')
+    check('job: one accept call', pg.evaluate('window.__fx.calls.slice()') == [['K4', 'accept']], pg.evaluate('window.__fx.calls.slice()'))
+    check('job: before the visit fee is paid, no Call or Message', pg.query_selector('a[href^="tel:"], a[href^="messages.html"]') is None
+          and "The customer's number unlocks once the visit is funded." in text_of(pg, '#jb-body'))
+    pg.click('#jb-dock [data-act="cancel"]')
+    pg.wait_for_selector('#confirm-sheet:not([hidden]) [data-confirm]')
+    check('job: Cancel asks first, in the app\'s own sheet', text_of(pg, '#confirm-title') == 'Cancel this job?')
+    pg.click('#confirm-sheet [data-sheet-close]'); pg.wait_for_timeout(450)
+    check('job: "Go back" cancels nothing', pg.evaluate('window.__fx.calls.slice()') == [['K4', 'accept']] and pg.query_selector('#jb-dock [data-act="cancel"]') is not None)
+    # On the way to the inspection (quote not yet approved): the server still lets the artisan cancel.
+    pg.evaluate("(d) => window.__fx.docCbs['bookings/K4'].forEach(cb => cb({ exists: true, id: 'K4', data: d }))", dict(K4, status='en_route', calloutPaid=True))
+    pg.wait_for_selector('#jb-dock [data-act="arrived"]')
+    check('job: en route to the inspection → Mark arrived, and Cancel (artisanCanCancel allows it before approval)',
+          text_of(pg, '#jb-dock [data-act="arrived"]') == 'Mark arrived' and text_of(pg, '#jb-dock [data-act="cancel"]') == 'Cancel job')
+    # On the way to approved work: the way out is Support — never a Cancel the server refuses.
+    pg.evaluate("(d) => window.__fx.docCbs['bookings/K4'].forEach(cb => cb({ exists: true, id: 'K4', data: d }))", dict(K4, status='en_route', calloutPaid=True, quoteApproved=True, jobQuote=300))
+    pg.wait_for_selector('#jb-dock [data-act="help"]')
+    check('job: en route to approved work → Mark arrived, and "Get help with this job" instead of Cancel',
+          text_of(pg, '#jb-dock [data-act="arrived"]') == 'Mark arrived' and text_of(pg, '#jb-dock [data-act="help"]') == 'Get help with this job'
+          and pg.query_selector('#jb-dock [data-act="cancel"]') is None)
+    check('job: funded and under way → Message the customer, inside the booking; Maps by link only',
+          pg.get_attribute('a[href^="messages.html"]', 'href') == 'messages.html?bookingId=K4'
+          and (pg.get_attribute('a[target="_blank"][href^="https://www.google.com/maps/"]', 'rel') or '') == 'noopener'
+          and pg.query_selector('iframe') is None)
+    check('job (accepted path): no page errors', not errs, errs[:3])
     pg.context.close()
 
     b.close()

@@ -259,7 +259,10 @@ await t('Today never draws an offer that cannot be answered: expired and refused
 await t('every other screen draws a lapsed offer with the shared look on BOTH answers', () => {
     const d = code(SCREENS.dashboard), j = code(SCREENS.jobs), o = code(SCREENS.job);
     assert.match(j, /<button class="job-btn job-btn-accept" \$\{LAPSED_OFFER_ATTRS\}>\$\{LAPSED_OFFER_LABEL\}<\/button>\s*<button class="job-btn job-btn-decline" \$\{LAPSED_OFFER_ATTRS\}>Decline<\/button>/);
-    assert.match(o, /<button class="jb-primary" \$\{LAPSED_OFFER_ATTRS\}>\$\{LAPSED_OFFER_LABEL\}<\/button>[\s\S]{0,120}<button class="jb-sec-btn danger" \$\{LAPSED_OFFER_ATTRS\}>Decline<\/button>/);
+    // The job screen is on the design system: the shared lapsed state without
+    // the inline style (LAPSED_OFFER_STATE_ATTRS; .fx-btn:disabled is the look).
+    const jobView = read('artisan-app/js/jobScreen.js');
+    assert.match(jobView, /<button class="fx-btn fx-btn--secondary fx-btn--l" type="button" \$\{LAPSED_OFFER_STATE_ATTRS\}>Decline<\/button>` \+\s*`<button class="fx-btn fx-btn--primary fx-btn--l" type="button" \$\{LAPSED_OFFER_STATE_ATTRS\}>\$\{LAPSED_OFFER_LABEL\}<\/button>`/);
     // The private variants are gone: jobs' decline-styled "Expired", the dashboard's inline one.
     assert.doesNotMatch(j, /job-btn-decline" disabled style="opacity:\.55;cursor:default;">Expired/);
     assert.doesNotMatch(d, /class="btn-accept" disabled style="opacity:\.5;cursor:default">Expired/);
@@ -268,7 +271,8 @@ await t('every other screen draws a lapsed offer with the shared look on BOTH an
 await t('a lapsed render covers both the clock and a server refusal, on every screen', () => {
     // Today: the clock through offerState (answerable), a refusal through _goneOffers — above.
     assert.match(code(SCREENS.jobs), /\(offer\.expired \|\| _goneOffers\.has\(b\.id\)\)/);
-    assert.match(code(SCREENS.job), /if \(offer\.expired \|\| _offerGone\) \{/);
+    assert.match(read('artisan-app/js/jobScreen.js'), /const lapsed = !offer\.answerable \|\| offerGone;/);
+    assert.match(code(SCREENS.job), /const plan = jobPlan\(b, \{ offerGone: _offerGone \}\);/);
 });
 
 await t('Today: offerGone takes the offer off the screen for good, before anything is redrawn', () => {
@@ -295,11 +299,13 @@ await t('jobs list: offerGone retires the card and returns BEFORE any button is 
     assert.match(j, /lapseOfferButtons\(card\.querySelector\('\.job-btn-accept'\), card\.querySelector\('\.job-btn-decline'\)\)/);
 });
 
-await t('job screen: offerGone redraws it lapsed and the finally does not re-enable the button', () => {
+await t('job screen: offerGone redraws it lapsed and the finally never re-enables an answer', () => {
     const o = code(SCREENS.job);
-    const fn = o.slice(o.indexOf('async function run(spec)'), o.indexOf('function showMessage'));
-    assert.match(fn, /if \(res\.offerGone\) \{\s*_offerGone = true;\s*giveBack = false;/);
-    assert.match(fn, /finally \{\s*_busy = false;\s*if \(btn && giveBack\) \{ btn\.disabled = false;/);
+    const fn = o.slice(o.indexOf('async function run(spec)'), o.indexOf("document.addEventListener('click'"));
+    assert.match(fn, /if \(res\.offerGone\) \{[\s\S]{0,200}_offerGone = true;\s*tickOffer\(null\);\s*return;/);
+    // The finally redraws from state, and _offerGone keeps the request lapsed.
+    assert.match(fn, /finally \{\s*_busy = null;[\s\S]{0,140}if \(redraw && !_message\) render\(_booking\);/);
+    assert.match(fn, /if \(_busy\) return;\s*\/\/ duplicate taps do nothing/);
 });
 
 await t('one countdown source: every screen ticks from offerState / formatTimeLeft, one ticker each, cleared on pagehide', () => {
