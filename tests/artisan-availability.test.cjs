@@ -241,11 +241,16 @@ await t('jobs.html starts presence from the stored choice too', () => {
 
 console.log('\n── FLOW-008 · one source of truth for both controls ──\n');
 
-await t('the nav toggle follows the profile live and switches through setAvailability', () => {
+await t('availability has ONE control, on Today: the nav follows the profile for presence only and never writes it', () => {
+    // Phase 2 (design decision 02): the nav's centre toggle is gone; going online
+    // and stopping offers happen on Today. Two controls can no longer disagree
+    // (FLOW-008) because there is one.
     const nav = code(read('artisan-app/js/artisanFloatingNav.js'));
-    assert.ok(/subscribeToDocument\('artisans'/.test(nav), 'nav subscribes to the live profile');
-    assert.ok(/presence\.setAvailability\(_uid, next, \{ artisan: _artisan \}\)/.test(nav));
-    assert.ok(!/updateDocument\('artisans'/.test(nav), 'nav no longer writes the profile itself');
+    assert.ok(/subscribeToDocument\('artisans'/.test(nav), 'nav follows the live profile (for the heartbeat)');
+    assert.ok(!/setAvailability|updateDocument\('artisans'|hh-online-toggle/.test(nav), 'the nav changes no availability');
+    for (const f of ['jobs.html', 'wallet.html', 'settings.html', 'profile.html', 'notifications.html']) {
+        assert.ok(!/setAvailability\(/.test(code(read(`artisan-app/${f}`))), `${f} changes availability`);
+    }
 });
 
 await t('the dashboard card switches through the same setAvailability', () => {

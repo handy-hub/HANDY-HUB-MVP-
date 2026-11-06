@@ -13,6 +13,8 @@ from a server at the repo root (`python -m http.server 8791`, then
 | `artisan-app/js/fx/sheet.js` | Bottom-sheet behaviour: modal, focus trap, Escape, focus return. |
 | `artisan-app/js/fx/toast.js` | Toasts in a live region. |
 | `artisan-app/js/fx/controls.js` | Segmented control, countdown, the four-tab bar. |
+| `artisan-app/css/fx/today.css`, `job.css` | The Today and job screens (Phase 2). |
+| `artisan-app/css/fx/legacy-shell.css` | The tab bar on screens not yet migrated: fixed to the bottom, with room under the content. Injected only by `js/artisanFloatingNav.js`; holds the system's one documented exception (legacy `ui-polish.css` forces body padding with `!important`). Delete with the last legacy screen. |
 | `scripts/check-fx-design-system.cjs` | The gate (`npm run lint:fx`, part of `npm run lint`). |
 | `tests/fx-design-system.test.cjs` | Tokens, contrast, the gate itself, pure behaviour. |
 | `tests/e2e/fx_design_system.py` | The rendered system at 360 / 390 / 768 / 1280 px. |
@@ -109,6 +111,10 @@ from a server at the repo root (`python -m http.server 8791`, then
    replacement.
 6. Keep the shared contracts (§3 of the boundaries doc): the screen draws; the
    domain modules decide.
+7. The tab bar: a migrated screen draws its own `<nav class="fx-tabbar">` in its
+   `.fx-bottom` (with `renderTabbar`); `js/artisanFloatingNav.js` sees it and draws
+   nothing, but keep loading the script on tab screens — it also keeps the presence
+   heartbeat alive between pages. Availability is changed on Today only.
 
 ## Open
 

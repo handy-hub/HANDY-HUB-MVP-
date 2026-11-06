@@ -81,11 +81,13 @@ ARTISAN = {'uid': 'A1', 'id': 'A1', 'userType': 'artisan', 'status': 'active', '
 
 SPECIFIC = {
     '/shared/js/app/container.js':
-        "export function getAppContainer(){ const fx = window.__fx; return { services: new Proxy({ databaseService: fx.db, pricingService: fx.pricing }, { get:(t,k)=> k in t ? t[k] : fx.any() }) }; }",
+        "export function getAppContainer(){ const fx = window.__fx; return { services: new Proxy({ databaseService: fx.db, pricingService: fx.pricing,"
+        " authService: { waitForUser: async () => ({ uid: 'A1' }) } }, { get:(t,k)=> k in t ? t[k] : fx.any() }) }; }",
     '/shared/js/services/pricingService.js': "export const pricingService = window.__fx.pricing; export default window.__fx.pricing;",
     # Availability is the artisan's explicit choice: record what the page asks for.
     '/shared/js/services/presenceService.js':
-        "export function startPresence(){} export function stopPresence(){} export function syncAvailability(){} export function ensurePresence(){}"
+        "export function startPresence(){} export function stopPresence(){} export function syncAvailability(){}"
+        " export function ensurePresence(uid, db, available){ (window.__fx.ensure ||= []).push([uid, available]); }"
         " export function availabilityPending(){ return false; }"
         " export async function setAvailability(uid, next){ window.__fx.avail.push(next); return { ok: true }; } export default {};",
     '/artisan-app/js/utils/artisanAuthGuard.js': f"""
@@ -101,7 +103,7 @@ export function signOutArtisan(){{}}
 CATCH_ALL = re.compile(r'^/shared/(vendor/firebase/|js/backend/|dev/)|^/shared/js/services/(callable|pushNotificationService|cloudinaryService|notificationRepository)\.js$'
                        r'|^/shared/js/data/repositories/|^/shared/js/ui/quoteComposer\.js$')
 EMPTY = {'/shared/js/utils/global-app.js', '/shared/js/utils/themeManager.js', '/shared/js/components/fastLoader.js',
-         '/artisan-app/js/artisanFloatingNav.js', '/artisan-app/js/pwa.js'}
+         '/artisan-app/js/pwa.js'}
 
 def import_names(page_src, module_tail):
     names = set()
@@ -316,6 +318,21 @@ with sync_playwright() as pw:
     # ═══ JOBS LIST ════════════════════════════════════════════════════════════
     pg, errs = open_page(b, '/artisan-app/jobs.html')
     pg.wait_for_function("(window.__fx.colCbs.job_offers || []).length > 0", timeout=15000)
+    # The four tabs on a screen not yet on the design system (artisanFloatingNav.js).
+    pg.wait_for_selector('#fx-tabbar .fx-tab', timeout=5000)
+    check('nav (jobs.html): the four tabs, Jobs current, fixed at the bottom with room left for it',
+          pg.eval_on_selector_all('#fx-tabbar .fx-tab', 'els => els.map(e => [e.textContent.trim(), e.getAttribute("href")])')
+          == [['Today', 'dashboard.html'], ['Jobs', 'jobs.html'], ['Earnings', 'wallet.html'], ['Account', 'settings.html']]
+          and text_of(pg, '#fx-tabbar [aria-current="page"]') == 'Jobs'
+          and pg.evaluate("getComputedStyle(document.querySelector('.fx-bottom--fixed')).position === 'fixed' && parseFloat(getComputedStyle(document.body).paddingBottom) >= 64"),
+          pg.eval_on_selector_all('#fx-tabbar .fx-tab', 'els => els.map(e => e.textContent.trim())'))
+    check('nav: no availability control outside Today (decision 02)', pg.query_selector('#hh-online-toggle, #hh-floating-nav, .hh-fnav') is None)
+    # The heartbeat: a live profile snapshot keeps presence alive on this page too.
+    pg.wait_for_function("(window.__fx.docCbs['artisans/A1'] || []).length > 0", timeout=5000)
+    pg.evaluate("(a) => window.__fx.docCbs['artisans/A1'].forEach(cb => cb({ id: 'A1', exists: true, data: a, fromCache: false }))", ARTISAN)
+    pg.wait_for_timeout(300)
+    check('nav: on a live profile it keeps the presence heartbeat (ensurePresence, available = approved && isAvailable)',
+          ['A1', True] in (pg.evaluate('window.__fx.ensure || []') or []), pg.evaluate('window.__fx.ensure || []'))
     t = now(pg)
     emit_offers(pg, [offer('J1', t, 120), offer('J2', t, 2), offer('J3', t, prematched=True)])
     pg.wait_for_selector('#jcard-J1 .job-btn-accept')

@@ -1,0 +1,15 @@
+/* artisan-app/css/fx/legacy-shell.css — the four tabs on screens not yet on the
+   design system (Phase 2). Injected only by js/artisanFloatingNav.js, never by a
+   screen on the system, which draws its tab bar in its own .fx-bottom. Remove
+   with the last legacy screen. Tokens only (npm run lint:fx). */
+
+/* The tab bar, fixed to the bottom: a legacy screen has no .fx-shell for the
+   sticky .fx-bottom to sit at the end of. */
+.fx-bottom--fixed { position: fixed; left: 0; right: 0; }
+
+/* Room for it under the content, wherever the legacy screen scrolls. */
+.fx-has-tabbar,
+.fx-has-tabbar .app,
+.fx-has-tabbar .phone-shell .scroll-area {
+  padding-bottom: calc(var(--fx-tab) + var(--fx-space-6) + env(safe-area-inset-bottom, 0px)) !important; /* fx-allow: legacy shared/css/ui-polish.css forces body padding with !important on screens not yet on the system */
+}

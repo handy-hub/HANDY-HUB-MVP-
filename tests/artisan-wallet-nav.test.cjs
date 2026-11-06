@@ -69,10 +69,19 @@ const nav = read('artisan-app/js/artisanFloatingNav.js');
 const mapSrc = nav.slice(nav.indexOf('var ROUTE_MAP = {'), nav.indexOf('};', nav.indexOf('var ROUTE_MAP = {')) + 2);
 // eslint-disable-next-line no-new-func
 const ROUTE_MAP = new Function(`${mapSrc} return ROUTE_MAP;`)();
-const TABS = ['home', 'jobs', 'profile'];
+// The four tabs (design decision 02), as the tab bar itself defines them.
+const controls = read('artisan-app/js/fx/controls.js');
+const TABS = [...controls.matchAll(/\{ id: '([a-z]+)',\s+label: '[A-Za-z]+',/g)].map((m) => m[1]);
 
-t('Notifications sits under Home (it is opened from the Home header bell)', () => {
-    assert.strictEqual(ROUTE_MAP['notifications.html'], 'home');
+t('the tab bar is the four tabs: Today, Jobs, Earnings, Account', () => {
+    assert.deepStrictEqual(TABS, ['today', 'jobs', 'earnings', 'account']);
+});
+t('Notifications sits under Today (it is opened from the Today header bell)', () => {
+    assert.strictEqual(ROUTE_MAP['notifications.html'], 'today');
+});
+t('the wallet lights Earnings, and the job screens light Jobs', () => {
+    assert.strictEqual(ROUTE_MAP['wallet.html'], 'earnings');
+    for (const p of ['jobs.html', 'job.html', 'messages.html']) assert.strictEqual(ROUTE_MAP[p], 'jobs', p);
 });
 t('every mapped page lights a tab that exists', () => {
     for (const [page, tab] of Object.entries(ROUTE_MAP)) assert.ok(TABS.includes(tab), `${page} → ${tab}`);

@@ -1,296 +1,127 @@
 /* ════════════════════════════════════════════════════════════════════
-   HandyHub Artisan · Floating Navigation
+   Fidus X Artisan · the four tabs, on screens not yet on the design system
    artisan-app/js/artisanFloatingNav.js
 
    Usage: <script src="js/artisanFloatingNav.js"></script>
    Place as the LAST <script> before </body>.
 
-   This is the artisan sibling of the Customer App's shared floatingNav.js.
-   It reuses the EXACT same glass-pill markup, structure, sizing, motion,
-   active glow and badge system (shared/css/floatingNav.css) so both apps
-   read as one product family. The only differences are role-specific:
-     • routes + labels  →  artisan workflow
-     • accent colour    →  artisan orange (via the .hh-fnav--artisan scope)
-     • centre item      →  a "Go Online" availability toggle (the artisan's
-                           most frequent action), in place of the customer's
-                           SOS/Emergency button.
+   Phase 2 (design decision 02): every artisan screen shows the same four tabs
+     Today | Jobs | Earnings | Account
+   drawn by the design system's own tab bar (js/fx/controls.js renderTabbar).
+   Screens already on the system (body.fx-app with their own nav.fx-tabbar —
+   Today) draw it themselves; this script draws it on the rest, fixed to the
+   bottom, until each screen moves.
 
-   Nav layout (every page):
-     Home | Jobs | [ Go Online ] | Bookings | Profile
+   Availability is no longer a nav control: going online and stopping offers
+   happen on Today, where the state they change is shown. What this script
+   keeps is the liveness heartbeat: on every artisan page it follows the live
+   profile and calls presenceService.ensurePresence, so moving between screens
+   never drops an available artisan out of dispatch. It never writes
+   availability.
 ════════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
   var _scriptEl = document.currentScript;
 
-  /* ── 1. Inject the SHARED nav CSS (single source of truth) + orange skin ── */
-  function injectCSS() {
-    // Reuse the customer/shared glass-pill stylesheet verbatim.
-    if (!document.querySelector('link[href*="floatingNav.css"]')) {
-      var href = '../shared/css/floatingNav.css';
-      if (_scriptEl && _scriptEl.src) {
-        href = _scriptEl.src.replace(/\/artisan-app\/js\/artisanFloatingNav\.js(\?.*)?$/,
-                                     '/shared/css/floatingNav.css');
-      }
-      var l = document.createElement('link');
-      l.rel = 'stylesheet'; l.href = href;
-      document.head.appendChild(l);
+  function root(sub) {
+    if (_scriptEl && _scriptEl.src) {
+      return _scriptEl.src.replace(/\/artisan-app\/js\/artisanFloatingNav\.js.*$/, sub);
     }
-    // Go-Online toggle dot — artisan-only UI element not present in the shared nav CSS.
-    // Brand colours come from --nav-brand* tokens declared in design-system.css; no
-    // hardcoded hex overrides here.
-    if (!document.getElementById('hh-fnav-artisan-skin')) {
-      var s = document.createElement('style');
-      s.id = 'hh-fnav-artisan-skin';
-      s.textContent = [
-        '.hh-fnav-online .hh-fnav-online-dot{position:absolute;top:1px;right:calc(50% - 16px);',
-        '  width:9px;height:9px;border-radius:50%;background:#9CA3AF;border:2px solid rgba(255,255,255,0.95);',
-        '  transition:background .25s ease;}',
-        '.hh-fnav-online.is-online .hh-fnav-online-dot{background:#22C55E;}',
-        '.hh-fnav-online.is-online{color:var(--nav-brand);}',
-        '.hh-fnav-online.is-online .hh-fnav-icon{transform:scale(1.10) translateY(-1px);}',
-        '@media (prefers-color-scheme: dark){',
-        '  .hh-fnav-online .hh-fnav-online-dot{border-color:rgba(18,18,24,0.95);} }'
-      ].join('\n');
-      document.head.appendChild(s);
-    }
+    return '..' + sub;
   }
 
-  /* ── 2. Page & active-tab detection ──────────────────────── */
+  /* ── 1. Which tab this page belongs to ──────────────────────────── */
   var PAGE = (location.pathname.split('/').pop() || '').toLowerCase();
-
   var ROUTE_MAP = {
-    'dashboard.html'    : 'home',
-    'index.html'        : 'home',
-    ''                  : 'home',
+    'dashboard.html'    : 'today',
+    'index.html'        : 'today',
+    ''                  : 'today',
+    // Opened from Today's header bell.
+    'notifications.html': 'today',
     'jobs.html'         : 'jobs',
-    // Wallet and Notifications are opened from the Home screen (Withdraw, the
-    // header bell): they sit under Home. Notifications used to light up Jobs
-    // (audit NAV-004) and Wallet mapped to a tab that does not exist.
-    'wallet.html'       : 'home',
-    'bookings.html'     : 'jobs',   // retired -> redirects to jobs.html
-    'job.html'          : 'jobs',   // single-booking detail screen
-    'messages.html'     : 'jobs',   // conversations belong to job work
-    'profile.html'      : 'profile',
-    'performance.html'  : 'profile',   // secondary screens map to nearest tab
-    'reviews.html'      : 'profile',
-    'support.html'      : 'profile',
-    'settings.html'     : 'profile',
-    'notifications.html': 'home',
+    'bookings.html'     : 'jobs',      // retired -> redirects to jobs.html
+    'job.html'          : 'jobs',      // single-booking screen
+    'messages.html'     : 'jobs',      // conversations belong to job work
+    'wallet.html'       : 'earnings',
+    'settings.html'     : 'account',
+    'profile.html'      : 'account',
+    'performance.html'  : 'account',
+    'reviews.html'      : 'account',
+    'support.html'      : 'account',
   };
   var activeTab = ROUTE_MAP[PAGE] || null;
 
-  /* ── 3. SVG icons — same stroke language as the customer nav ─ */
-  var IC = {
-    home:
-      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none">' +
-      '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    jobs:
-      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none">' +
-      '<path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/>' +
-      '<rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.85"/>' +
-      '<path d="M3 11h18M12 11v3" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/></svg>',
-    wallet:
-      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none">' +
-      '<rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.85"/>' +
-      '<path d="M3 9h13a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2H3" stroke="currentColor" stroke-width="1.85"/>' +
-      '<circle cx="16.5" cy="12" r="1.1" fill="currentColor"/></svg>',
-    bookings:
-      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none">' +
-      '<rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.85"/>' +
-      '<path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/>' +
-      '<path d="M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
-    profile:
-      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none">' +
-      '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.85"/></svg>',
-    power:
-      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none">' +
-      '<path d="M12 3v9" stroke="currentColor" stroke-width="1.95" stroke-linecap="round"/>' +
-      '<path d="M7.4 6.4a7 7 0 1 0 9.2 0" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/></svg>',
-  };
-
-  function mkItem(tab, label, href, badgeId) {
-    var cls = 'hh-fnav-item' + (tab === activeTab ? ' hh-fnav-active' : '');
-    var badge = badgeId
-      ? '<span class="hh-fnav-badge" id="' + badgeId + '" style="display:none;"></span>'
-      : '';
-    return (
-      '<a href="' + href + '" class="' + cls + '" data-tab="' + tab + '" aria-label="' + label + '" style="position:relative;">' +
-        '<span class="hh-fnav-icon">' + IC[tab] + '</span>' + badge +
-        '<span class="hh-fnav-label">' + label + '</span>' +
-      '</a>'
-    );
+  /* ── 2. The tab bar ──────────────────────────────────────────────── */
+  function injectCSS() {
+    // The system's tokens and components; every selector in them is scoped to
+    // an .fx- class, so they style nothing else on a legacy page. legacy-shell.css
+    // fixes the bar to the bottom and leaves room for it.
+    ['/artisan-app/css/tokens.css', '/artisan-app/css/app.css', '/artisan-app/css/fx/legacy-shell.css'].forEach(function (p) {
+      if (document.querySelector('link[href$="' + p.split('/').slice(-2).join('/') + '"]')) return;
+      var l = document.createElement('link');
+      l.rel = 'stylesheet'; l.href = root(p);
+      document.head.appendChild(l);
+    });
   }
 
-  /* ── 4. Centre item: Go Online toggle ─────────────────────── */
-  var ONLINE_ITEM =
-    '<button class="hh-fnav-item hh-fnav-online" id="hh-online-toggle" data-tab="online" aria-label="Toggle availability" style="position:relative;">' +
-      '<span class="hh-fnav-icon">' + IC.power + '</span>' +
-      '<span class="hh-fnav-online-dot"></span>' +
-      '<span class="hh-fnav-label" id="hh-online-label">Offline</span>' +
-    '</button>';
-
-  var NAV_HTML =
-    '<nav id="hh-floating-nav" class="hh-fnav hh-fnav--artisan" aria-label="Main navigation">' +
-      '<div class="hh-fnav-pill">' +
-        mkItem('home',     'Home',     'dashboard.html') +
-        mkItem('jobs',     'Jobs',     'jobs.html', 'hh-fnav-jobs-badge') +
-        ONLINE_ITEM +
-        mkItem('profile',  'Profile',  'profile.html') +
-      '</div>' +
-    '</nav>';
-
-  /* ── 5. Online toggle behaviour ───────────────────────────── */
-  // The toggle shows artisans/{uid}.isAvailable LIVE and changes it only through
-  // presenceService.setAvailability — the same path as the dashboard's status
-  // card — so the two controls can never disagree (audit FLOW-008). It used to
-  // read the profile once at load and write the field itself.
-  var _toggling = false;
-  var _artisan  = null;   // the live profile, for the eligibility check
-  var _uid      = null;
-
-  function paintOnline(isOnline, label) {
-    var btn = document.getElementById('hh-online-toggle');
-    var lbl = document.getElementById('hh-online-label');
-    if (!btn) return;
-    btn.classList.toggle('is-online', !!isOnline);
-    if (lbl) lbl.textContent = label || (isOnline ? 'Online' : 'Offline');
-    btn.setAttribute('aria-pressed', String(!!isOnline));
-    btn.setAttribute('aria-label', isOnline ? 'You are online. Go offline' : 'You are offline. Go online');
+  function drawTabs() {
+    if (document.querySelector('nav.fx-tabbar')) return;     // the screen draws its own
+    var host = document.createElement('div');
+    host.className = 'fx-bottom fx-bottom--fixed';
+    host.innerHTML = '<nav class="fx-tabbar" aria-label="Main" id="fx-tabbar"></nav>';
+    document.body.appendChild(host);
+    document.body.classList.add('fx-has-tabbar');
+    import(root('/artisan-app/js/fx/controls.js'))
+      .then(function (m) { m.renderTabbar(document.getElementById('fx-tabbar'), { current: activeTab }); })
+      .catch(function (err) { console.warn('[artisanNav] tab bar:', err && err.message); });
   }
 
-  function navToast(msg) {
-    if (typeof window.showToast === 'function') { window.showToast(msg); return; }
-    var t = document.getElementById('hh-fnav-toast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = 'hh-fnav-toast';
-      t.setAttribute('role', 'status');
-      t.style.cssText = 'position:fixed;left:16px;right:16px;bottom:96px;z-index:10001;margin:0 auto;max-width:420px;' +
-        'padding:12px 16px;border-radius:12px;background:#111827;color:#fff;font:500 14px/1.4 inherit;text-align:center;' +
-        'box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .2s;';
-      document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.style.opacity = '1';
-    clearTimeout(t._h);
-    t._h = setTimeout(function () { t.style.opacity = '0'; }, 3200);
+  /* ── 3. Liveness heartbeat on every page ─────────────────────────── */
+  var _unsub = null;
+  function stopPresenceFollow() {
+    if (_unsub) { try { _unsub(); } catch (_) {} }
+    _unsub = null;
   }
-
-  function sharedRoot() {
-    if (_scriptEl && _scriptEl.src) {
-      return _scriptEl.src.replace(/\/artisan-app\/js\/artisanFloatingNav\.js.*$/, '/shared');
-    }
-    return '../shared';
-  }
-
-  async function toggleOnline() {
-    if (_toggling) return;
-    _toggling = true;
-    try {
-      // Development Access Mode: paint the toggle only — never bounce to login
-      // and never write to real Firestore under the mock session.
-      var dev = await import('../../shared/js/config/devAccess.js').catch(function () { return null; });
-      if (dev && dev.isArtisanDevAccessEnabled()) {
-        var cur = document.getElementById('hh-online-toggle');
-        paintOnline(!(cur && cur.classList.contains('is-online')));
-        return;
-      }
-
-      if (!_uid || !_artisan) { navToast('Your profile is still loading. Try again in a moment.'); return; }
-      var next = !(_artisan.isAvailable === true);
-      var presence = await import(sharedRoot() + '/js/services/presenceService.js');
-      paintOnline(next, next ? 'Locating…' : 'Saving…');
-      var res = await presence.setAvailability(_uid, next, { artisan: _artisan });
-      if (res && res.ok) {
-        navToast(res.queued ? "Saved on this phone — it reaches Fidus X when you're back online."
-          : (next ? "You're online. New jobs can reach you." : "You're offline. No new jobs will reach you."));
-      }
-    } catch (err) {
-      console.warn('[artisanNav] online toggle failed:', err && err.message);
-      navToast((err && err.message) || 'Could not change your availability. Try again.');
-    } finally {
-      _toggling = false;
-      // Paint what is stored. Snapshots that arrived while saving updated
-      // _artisan but were not painted (so the label did not flicker); the
-      // save has settled, so the latest one is the confirmed state.
-      if (_artisan) paintOnline(_artisan.isAvailable === true);
-    }
-  }
-
-  /** Follow artisans/{uid} live: one source of truth for both availability controls. */
-  var _unsubAvail = null;
-  function stopOnlineState() {
-    if (_unsubAvail) { try { _unsubAvail(); } catch (_) {} }
-    _unsubAvail = null;
-  }
-  // When the state cannot be confirmed (listener failed, Firestore unreachable
-  // with nothing cached) the toggle must not keep claiming "Online".
-  function paintUnconfirmed() { paintOnline(false, "Can't check"); }
-
-  function refreshOnlineState() {
-    stopOnlineState();   // never two listeners, however often this runs
-    Promise.resolve()
-      .then(function () { return import(sharedRoot() + '/js/app/container.js'); })
+  function followPresence() {
+    stopPresenceFollow();   // never two listeners, however often this runs
+    import(root('/shared/js/app/container.js'))
       .then(function (mod) {
         var c = mod.getAppContainer();
         return c.services.authService.waitForUser().then(function (user) {
           if (!user) return;
-          _uid = user.uid;
-          stopOnlineState();
-          _unsubAvail = c.services.databaseService.subscribeToDocument('artisans', user.uid, function (snap) {
-            if (!snap || !snap.exists) { if (snap && snap.fromCache) paintUnconfirmed(); return; }
-            _artisan = snap.data;
-            if (!_toggling) paintOnline(snap.data.isAvailable === true);
-            // Liveness heartbeat on every artisan page, not only dashboard/jobs
+          stopPresenceFollow();
+          _unsub = c.services.databaseService.subscribeToDocument('artisans', user.uid, function (snap) {
+            if (!snap || !snap.exists) return;
+            // Liveness heartbeat on every artisan page, not only Today/Jobs
             // (functions/artisanIndex.js ranks a recently-seen artisan higher).
             // From a live answer only; it never writes availability.
             if (!snap.fromCache) {
               var approved = String(snap.data.verificationStatus || '').toLowerCase() === 'approved';
-              import(sharedRoot() + '/js/services/presenceService.js')
+              import(root('/shared/js/services/presenceService.js'))
                 .then(function (p) { p.ensurePresence(user.uid, c.services.databaseService, approved && snap.data.isAvailable === true); })
                 .catch(function () {});
             }
           }, function (err) {
-            console.warn('[artisanNav] availability listener:', err && err.message);
-            paintUnconfirmed();
+            console.warn('[artisanNav] presence listener:', err && err.message);
           });
         });
       })
-      .catch(function () { paintUnconfirmed(); });
+      .catch(function () {});
   }
-  window.hhRefreshOnlineState = refreshOnlineState;
-  /* ── 6. Unread badge on the Jobs tab (new job requests) ───── */
-  function refreshJobsBadge() {
-    var el = document.getElementById('hh-fnav-jobs-badge');
-    if (!el) return;
-    var count = 0;
-    try { count = parseInt(localStorage.getItem('artisan_unread_alerts') || '0', 10); } catch (_) {}
-    if (count > 0) { el.textContent = count > 99 ? '99+' : String(count); el.style.display = 'flex'; }
-    else { el.style.display = 'none'; }
-  }
-  window.hhRefreshArtisanBadge = refreshJobsBadge;
 
-  /* ── 7. Init ──────────────────────────────────────────────── */
+  /* ── 4. Init ─────────────────────────────────────────────────────── */
   function init() {
-    if (document.getElementById('hh-floating-nav')) return;
-    document.body.insertAdjacentHTML('beforeend', NAV_HTML);
-    document.body.classList.add('hh-has-fnav');
-
-    var toggle = document.getElementById('hh-online-toggle');
-    if (toggle) toggle.addEventListener('click', toggleOnline);
-
-    refreshJobsBadge();
-    refreshOnlineState();
+    if (document.getElementById('fx-tabbar')) return;
+    injectCSS();
+    drawTabs();
+    followPresence();
     // Leaving the page drops the listener; a page restored from the browser's
     // back/forward cache does not re-run this script, so it subscribes again.
-    window.addEventListener('pagehide', stopOnlineState);
-    window.addEventListener('pageshow', function (e) { if (e.persisted) refreshOnlineState(); });
+    window.addEventListener('pagehide', stopPresenceFollow);
+    window.addEventListener('pageshow', function (e) { if (e.persisted) followPresence(); });
   }
 
-  injectCSS();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
