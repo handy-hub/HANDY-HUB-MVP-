@@ -51,6 +51,8 @@ their own copy of a list. A rebuilt screen asks the shared function.
 | May this artisan cancel now? | `artisanCanCancel(b)` | `shared/js/domain/bookingActions.js` | `test:artisan-actions` (vs the real `cancelInspectionBooking`), `test:workflow-rules` |
 | Perform a transition | `performBookingAction()` | same | `test:booking-actions` — routes inspection cancels to the Cloud Function |
 | Must the artisan quote before travelling? | `needsQuoteBeforeTravel(b)` | `bookingStatusMeta.js` | `test:artisan-actions`, `test:workflow-rules` |
+| Is this a paid emergency priced on site, and is the quote the step now? | `quotesOnSite(b)`, `needsQuoteOnSite(b)` (`emergencyPricedOnSite(b)` in `bookingTruth.js`) | `bookingStatusMeta.js` | `test:artisan-actions` (holds the two copies equal), `test:emergency-onsite` |
+| Was the customer's location removed (14 days after close)? | `resolveJobBrief(b).location.precision === 'removed'` | `bookingTruth.js` | `test:location-retention` |
 | Which actions apply? | `getAllowedActions(b, 'artisan')` | same | `test:artisan-actions` (property test over every status) |
 | Where are we, what next, which button? | `resolveJourney(b, 'artisan')` | `bookingTruth.js` | `test:booking-truth`, `test:artisan-actions` |
 | Rating, or "No reviews yet" | `resolveRating(a)` | `bookingTruth.js` | `test:artisan-push-rating` |
@@ -102,20 +104,21 @@ Browser checks that must stay green across Phase 1 (local emulators, see
 
 ## 5. Decisions that shape Phase 1 screens
 
-Today's behaviour is the behaviour the screens now follow. Each decision changes
-a specific screen; none is taken on the product owner's behalf.
+Q1–Q6 were decided on 2026-11-06 and are implemented on this branch (local,
+not deployed). The screens a rebuild produces must follow them; the guard tests
+named here hold them.
 
-| Decision | Behaviour now | Screen it shapes |
-|---|---|---|
-| Q1 Emergency: quote before travel? | Required by the rules; every artisan surface now asks for the quote first | Active Job (emergency), Today dock |
-| Q2 Escrow timer on long jobs | `runAutoRelease` refunds the customer 7 days after the hold unless the job is awaiting/completed | Active Job payment block (states the date) |
-| Q3 Offers while on a job | Offered with the full window | Today (offer over an active job) |
-| Q4 Cancel a future booking | Server allows until approval; the job screen offers it (WF-05 was a false finding) | Active Job ⋯ menu |
-| Q5 Leaving after approval | Only through support/dispute; the screen now offers "Get help with this job" → support with the booking reference | Active Job ⋯ menu |
-| Q6 Address retention | The artisan reads the exact address and GPS forever | Job history, Active Job |
-| PS-01 remainder: chat bound to bookings, contact window | Enquiries before booking and chats after the job are still allowed | Messages inside the job (decision 10) |
-| 01 accent, 02 tabs, 03 reputation, 04 dark mode, 05 wordmark, 07 net figure, 08 neighbourhood, 09 map | Workbench proposals | Tokens, navigation, Offer, Active Job |
-| Emergency base GHS 80 | In `PRICING_PRODUCTION`, marked "awaiting business approval" | Offer and quote figures |
+| Decision | Behaviour | Screen it shapes | Guard |
+|---|---|---|---|
+| Q1 Emergency: a paid emergency sets out at once and is priced on site; "done" waits for the approved quote | `quotesOnSite`, `needsQuoteOnSite` (bookingStatusMeta), `emergencyPricedOnSite` (bookingTruth), rules, `quotes.js` | Active Job (emergency), Today dock | `test:emergency-onsite`, `test:artisan-actions`, `test:workflow-rules` |
+| Q2 Escrow timer: work en route or in progress is never refunded by the timer; held, support alerted, re-checked daily | `escrowAutoRelease.js` | Active Job payment block | `test:escrow-work-hold` |
+| Q3 Offers while on a job: keep sending, full window | unchanged dispatch | Today (offer over an active job) | `test:dispatch-liveness` |
+| Q4 Cancel a future booking: no cut-off | server allows until approval; job screen offers it | Active Job ⋯ menu | `test:artisan-actions` |
+| Q5 Leaving after approval: support decides | "Get help with this job" → Support with the booking | Active Job ⋯ menu | `test:artisan-actions` |
+| Q6 Address retention: 14 days after the job closes | `locationRetention.js`; job record says it was removed | Job history, Active Job | `test:location-retention`, rules suite |
+| PS-01 remainder: chat bound to bookings, contact window | **Undecided.** Enquiries before booking and chats after the job are still allowed | Messages inside the job (decision 10) | — |
+| 01 accent, 02 tabs, 03 reputation, 04 dark mode, 05 wordmark, 07 net figure, 08 neighbourhood, 09 map | **Undecided.** Workbench proposals | Tokens, navigation, Offer, Active Job | — |
+| Emergency base GHS 80 | **Undecided.** In `PRICING_PRODUCTION`, marked "awaiting business approval" | Offer and quote figures | — |
 
 Messaging inside the job (decision 10) is blocked until the PS-01 remainder is
 decided: the thread is per customer–artisan pair, not per booking.
@@ -124,41 +127,22 @@ decided: the thread is per customer–artisan pair, not per booking.
 
 ## 6. Prepared changes awaiting approval
 
-Specified, not applied. Each lands as its own reviewed change with tests.
+Specified, not applied. Each lands as its own reviewed change with tests. (Q1,
+Q2 and Q6 were specified here and are now implemented; Q3, Q4 and Q5 were
+decided as today's behaviour.)
 
-**Q1 — emergency travel before a quote.** `firestore.rules` artisan clause
-`accepted → en_route` (≈ line 973) gains a branch for `track == 'emergency' &&
-calloutPaid == true`; `needsQuoteBeforeTravel()` returns false for paid
-emergencies; `resolveJourney` quoteFirst follows. Tests: flip the two
-emergency cases in `tests/artisan-workflow-rules.test.mjs` and
-`tests/artisan-actions-consistency.test.cjs` (stated as a policy change, not a
-loosened assertion). Risk: a quote is still needed before work is paid; on-site
-quote flow must exist.
+**Privacy policy wording (Q6).** `shared/legal/privacy.html` §3 says the job
+address is shared "while the booking is active". With Q6 the true statement is
+that the artisan sees the job address from acceptance until 14 days after the
+job ends. Legal text, so it changes only with approval. Proposed: "When a
+booking goes ahead, we share with the artisan what the job needs: your name and
+the job address, from acceptance until 14 days after the job ends, and your
+phone number while the booking is active (from acceptance until the job is
+done)."
 
-**Q2 — escrow timer.** `functions/financial/escrowAutoRelease.js` (≈ lines 40–50,
-120–140): for `en_route`/`in_progress`, hold and alert support instead of
-refunding (or extend by N days). Tests on the fake harness beside
-`tests/` escrow suites; `npm run test:topup-charge` and `test:payouts` stay green.
-Money path: one settlement path rule (CLAUDE.md §2) still applies.
-
-**Q3 — dispatch and busy artisans.** `functions/dispatch.js`
-`findEligibleArtisans()` (≈ line 154) reads `artisan_index` only. Proposed: skip
-artisans with a booking in `en_route`/`in_progress`, via a `busy` flag written to
-`artisan_index` by the existing status trigger (no new function — CPU budget).
-Test: the `_tmp_p0_fn.cjs` reproduction becomes a dispatch test.
-
-**Q4 — future-cancel cutoff.** If a cutoff is chosen (e.g. 24 h before the
-window): `cancelInspectionBooking` (`functions/pricing.js` ≈ 929–969) enforces it,
-`artisanCanCancel()` mirrors it, both tested against each other as today.
-
-**Q5 — "Get help" raises a dispute.** Rules already allow an artisan to set
-`disputed`. Proposed: the help action opens a dispute with the booking attached
-instead of the support form. Holds the customer's money, so policy first.
-
-**Q6 — address retention.** Move exact address/GPS/notes to
-`bookings/{id}/private/location` (pattern of CONTACT-001), disclosed in a window,
-coarsened N days after closure; privacy policy updated. Rules test + migration
-(dry run first).
+**Q6 backfill run.** `adminMigrateContactPrivacy` now also stamps bookings closed
+before retention existed (and removes the address from old reminders). Run it
+dry-run first, after the release, with approval; never automatically.
 
 **PS-01 remainder.** Require a booking link for artisan-initiated threads and/or
 close threads N days after the job ends. Rules + the chat section of
