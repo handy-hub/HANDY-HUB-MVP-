@@ -90,6 +90,6 @@ export function renderTabbar(nav, { current, badges = {}, tabs = ARTISAN_TABS } 
     nav.innerHTML = tabs.map((t) => {
         const isCurrent = t.id === current;
         const badge = badges[t.id] ? `<span class="fx-tab__badge"></span><span class="fx-sr">, ${esc(badges[t.id])}</span>` : '';
-        return `<a class="fx-tab" href="${esc(t.href)}"${isCurrent ? ' aria-current="page"' : ''}>${icon(t.icon)}<span>${esc(t.label)}</span>${badge}</a>`;
+        return `<a class="fx-tab" href="${esc(t.href)}"${isCurrent ? ' aria-current="page"' : ''}>${icon(t.icon)}<span class="fx-tab__label">${esc(t.label)}</span>${badge}</a>`;
     }).join('');
 }

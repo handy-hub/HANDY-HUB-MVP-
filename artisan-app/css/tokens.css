@@ -124,6 +124,7 @@
   --fx-input-multi: 88px;   /* textarea minimum */
   --fx-shell-max: 560px;    /* content column on tablets and desktops */
   --fx-measure: 36ch;       /* lead paragraphs */
+  --fx-title-min: 10rem;    /* the narrowest an app-bar title gets before its actions wrap below (scales with text) */
 
   /* ── Elevation: only for things that sit above the page ───────────────── */
   --fx-e-none:  none;

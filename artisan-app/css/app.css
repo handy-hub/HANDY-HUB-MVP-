@@ -105,16 +105,17 @@
    --push  a screen reached from another: back button, title, hairline        */
 .fx-appbar {
   position: sticky; top: 0; z-index: var(--fx-z-bar);
-  display: flex; align-items: center; gap: var(--fx-space-2);
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--fx-space-2);
   min-height: var(--fx-bar);
   padding: var(--fx-space-1) var(--fx-space-1) var(--fx-space-1) var(--fx-gutter);
   padding-top: max(var(--fx-space-1), env(safe-area-inset-top, 0px));
   background: var(--fx-paper);
 }
-.fx-appbar__titles { flex: 1; min-width: 0; }
-.fx-appbar__title { margin: var(--fx-space-0); font: var(--fx-t-heading); letter-spacing: var(--fx-track-heading); overflow-wrap: anywhere; }
+/* Words never break to make room: with large text the actions wrap below instead. */
+.fx-appbar__titles { flex: 1 1 var(--fx-title-min); min-width: 0; }
+.fx-appbar__title { margin: var(--fx-space-0); font: var(--fx-t-heading); letter-spacing: var(--fx-track-heading); overflow-wrap: break-word; hyphens: auto; }
 .fx-appbar__sub   { margin: var(--fx-space-0); font: var(--fx-t-meta); color: var(--fx-ink-3); }
-.fx-appbar__actions { flex: none; display: flex; align-items: center; gap: var(--fx-space-1); }
+.fx-appbar__actions { flex: none; display: flex; align-items: center; gap: var(--fx-space-1); margin-left: auto; }
 .fx-appbar--root { align-items: flex-start; padding-top: max(var(--fx-space-3), env(safe-area-inset-top, 0px)); }
 .fx-appbar--root .fx-appbar__title { font: var(--fx-t-title); letter-spacing: var(--fx-track-title); }
 .fx-appbar--push { padding-left: var(--fx-space-1); box-shadow: var(--fx-e-bar); }
@@ -171,7 +172,7 @@
   margin: var(--fx-space-0); padding: var(--fx-space-2) var(--fx-space-5);
   border: 0; border-radius: var(--fx-r-control);
   font: var(--fx-t-button); letter-spacing: var(--fx-track-none);
-  text-align: center; text-decoration: none; overflow-wrap: anywhere;
+  text-align: center; text-decoration: none; overflow-wrap: break-word; hyphens: auto;
   cursor: pointer; user-select: none; appearance: none;
   transition: background-color var(--fx-d-press) var(--fx-ease-io),
               color var(--fx-d-state) var(--fx-ease-io),
@@ -273,8 +274,8 @@ a.fx-row:active, button.fx-row:active { background: var(--fx-well); }
 .fx-row__lead svg { width: var(--fx-icon-m); height: var(--fx-icon-m); }
 .fx-row__main { flex: 1; min-width: 0; }
 /* Block-level even as <span>s, which is what a row inside an <a> or <button> must use. */
-.fx-row__title { display: block; margin: var(--fx-space-0); font: var(--fx-t-body-strong); overflow-wrap: anywhere; }
-.fx-row__meta  { display: block; margin: var(--fx-space-h) 0 0; font: var(--fx-t-meta); color: var(--fx-ink-3); overflow-wrap: anywhere; }
+.fx-row__title { display: block; margin: var(--fx-space-0); font: var(--fx-t-body-strong); overflow-wrap: break-word; hyphens: auto; }
+.fx-row__meta  { display: block; margin: var(--fx-space-h) 0 0; font: var(--fx-t-meta); color: var(--fx-ink-3); overflow-wrap: break-word; hyphens: auto; }
 .fx-row__trail { flex: none; display: flex; align-items: center; gap: var(--fx-space-2); color: var(--fx-ink-2); }
 .fx-row__trail > svg { width: var(--fx-icon-s); height: var(--fx-icon-s); color: var(--fx-ink-3); }
 .fx-row__value { font: var(--fx-t-label); color: var(--fx-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -423,7 +424,7 @@ textarea.fx-input { min-height: var(--fx-input-multi); padding-top: var(--fx-spa
   margin: var(--fx-space-0); padding: var(--fx-space-1) var(--fx-space-2);
   border: 0; border-radius: var(--fx-r-chip);
   background: transparent; color: var(--fx-ink-2);
-  font: var(--fx-t-label); overflow-wrap: anywhere;
+  font: var(--fx-t-label); overflow-wrap: break-word; hyphens: auto;
   cursor: pointer;
   transition: background-color var(--fx-d-state) var(--fx-ease-io), color var(--fx-d-state) var(--fx-ease-io);
 }
@@ -542,9 +543,13 @@ textarea.fx-input { min-height: var(--fx-input-multi); padding-top: var(--fx-spa
   min-width: 0; min-height: var(--fx-tab);
   padding: var(--fx-space-2) var(--fx-space-1);
   color: var(--fx-ink-3); font: var(--fx-t-caption);
-  text-align: center; text-decoration: none; overflow-wrap: anywhere;
+  text-align: center; text-decoration: none; overflow-wrap: break-word; hyphens: auto;
 }
 .fx-tab svg { flex: none; width: var(--fx-icon-m); height: var(--fx-icon-m); }
+/* A label may shrink below its longest word only when that word cannot fit the
+   tab at all (very large text on a narrow phone); then it hyphenates where the
+   platform can, and breaks where it cannot, rather than spilling into the next tab. */
+.fx-tab__label { min-width: 0; max-width: 100%; overflow-wrap: anywhere; hyphens: auto; }
 .fx-tab:focus-visible { outline-offset: var(--fx-focus-offset-inset); }
 .fx-tab[aria-current="page"] { color: var(--fx-ink); font-weight: var(--fx-w-strong); }
 .fx-tab[aria-current="page"]::before {

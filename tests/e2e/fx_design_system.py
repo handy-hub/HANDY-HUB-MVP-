@@ -249,6 +249,10 @@ with sync_playwright() as p:
     check('200% text at 360px: no horizontal page scroll', o['doc'] <= o['vw'], o)
     clip = pg.evaluate(CLIP_JS)
     check('200% text at 360px: no component clips its content', not clip, clip)
+    lines = pg.evaluate("""() => { const t = document.querySelector('[data-test="phone-root"] .fx-appbar__title');
+        const r = document.createRange(); r.selectNodeContents(t);
+        const rows = new Set([...r.getClientRects()].map((x) => Math.round(x.top))); return { text: t.textContent, rows: rows.size }; }""")
+    check('200% text: a title is never broken mid-word — the app bar wraps its actions instead', lines['rows'] == 1, lines)
     grow = pg.evaluate("() => { const b = document.querySelector('[data-test=\"button-variants\"] .fx-btn--primary').getBoundingClientRect(); const c = document.querySelector('[data-test=\"chips\"] .fx-chip').getBoundingClientRect(); return { btn: b.height, chip: c.height }; }")
     check('200% text: controls grow with their text (no fixed heights)', grow['btn'] > 56 and grow['chip'] > 24, grow)
     shot(pg, 'text-200-360')
