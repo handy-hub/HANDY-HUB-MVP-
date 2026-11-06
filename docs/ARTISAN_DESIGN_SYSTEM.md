@@ -35,7 +35,12 @@ from a server at the repo root (`python -m http.server 8791`, then
    tabs). On ink surfaces a component re-points `--fx-focus-color`. Never remove
    it without replacing it (inputs thicken their edge to 2px of ink instead).
 5. **Sizes grow with text.** Type is in rem; controls use `min-height`, never a
-   fixed height; money never wraps inside itself but moves whole to its own line.
+   fixed height; money never wraps inside itself but moves whole to its own line;
+   labels break between words, never inside one, except a tab label whose single
+   word is wider than its tab (very large text on a narrow phone), which breaks
+   inside the tab — hyphenated where the platform supports it — rather than
+   spilling into the next. The app bar wraps its actions below the title once
+   the title would drop under `--fx-title-min`.
 6. **Hover only where hover exists** (`@media (hover: hover)`).
 7. **Scope.** Every selector in the system targets an `.fx-` class, so nothing
    leaks into a screen that has not migrated. Specificity is capped at three
