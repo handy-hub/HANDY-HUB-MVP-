@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fidus X Artisan · Design system</title>
+<!-- DM Sans, variable: the axis range is what makes weights 550 and 650 real. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../artisan-app/css/tokens.css">
+<link rel="stylesheet" href="../../artisan-app/css/app.css">
+<style>
+  /* Gallery chrome only — never product UI. Tokens throughout. */
+  .gal { max-width: 960px; margin: 0 auto; padding: var(--fx-space-6) var(--fx-gutter) var(--fx-space-12); }
+  .gal h2 { margin: var(--fx-space-12) 0 var(--fx-space-1); padding-top: var(--fx-space-6); border-top: var(--fx-hairline) solid var(--fx-line); font: var(--fx-t-title); letter-spacing: var(--fx-track-title); }
+  .gal h3 { margin: var(--fx-space-8) 0 var(--fx-space-3); font: var(--fx-t-heading); }
+  .gal p.note { margin: var(--fx-space-1) 0 var(--fx-space-4); font: var(--fx-t-meta); color: var(--fx-ink-3); max-width: 64ch; }
+  .gal-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--fx-space-3); margin: var(--fx-space-3) 0; }
+  .gal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--fx-space-4); }
+  .gal-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: var(--fx-space-3); }
+  .gal-swatch { border: var(--fx-hairline) solid var(--fx-line); border-radius: var(--fx-r-control); overflow: hidden; }
+  .gal-swatch__chip { height: var(--fx-space-12); border-bottom: var(--fx-hairline) solid var(--fx-line); }
+  .gal-swatch__text { padding: var(--fx-space-2) var(--fx-space-3); font: var(--fx-t-caption); color: var(--fx-ink-2); }
+  .gal-swatch__text b { display: block; font: var(--fx-t-label); color: var(--fx-ink); overflow-wrap: anywhere; }
+  .gal-tbl { overflow-x: auto; border: var(--fx-hairline) solid var(--fx-line); border-radius: var(--fx-r-control); }
+  .gal-tbl table { width: 100%; border-collapse: collapse; font: var(--fx-t-meta); }
+  .gal-tbl th, .gal-tbl td { padding: var(--fx-space-2) var(--fx-space-3); border-bottom: var(--fx-hairline) solid var(--fx-line); text-align: left; vertical-align: top; }
+  .gal-tbl th { font: var(--fx-t-caption); color: var(--fx-ink-3); background: var(--fx-well); }
+  .gal-tbl tr:last-child td { border-bottom: 0; }
+  .gal-tbl code { font: var(--fx-t-caption); }
+  .gal-phone { position: relative; max-width: 390px; height: 640px; overflow: auto; border: var(--fx-hairline) solid var(--fx-line-2); border-radius: var(--fx-r-sheet); }
+  .gal-phone > .fx-shell { min-height: 100%; }
+  .gal-box { padding: var(--fx-space-4); border: var(--fx-hairline) solid var(--fx-line); border-radius: var(--fx-r-control); }
+  .gal-flush { margin: 0 calc(-1 * var(--fx-gutter)); }
+  .gal-spacer { display: inline-block; height: var(--fx-space-4); background: var(--fx-accent); }
+  .gal-radius { width: var(--fx-space-12); height: var(--fx-space-12); background: var(--fx-well); border: var(--fx-hairline) solid var(--fx-edge); }
+  .gal-elev { padding: var(--fx-space-6); border-radius: var(--fx-r-control); background: var(--fx-paper); }
+  .gal-toc { columns: 2 200px; margin: var(--fx-space-4) 0 0; padding-left: var(--fx-space-5); font: var(--fx-t-meta); }
+</style>
+</head>
+<body class="fx-app">
+<a class="fx-skip" href="#gallery">Skip to the components</a>
+<main class="gal" id="gallery">
+  <p class="fx-caption fx-ink-3">Fidus X · Artisan app · Phase 1 · not deployed</p>
+  <h1 class="fx-display">Design system</h1>
+  <p class="fx-lead">Every token and component the artisan screens are built from, in every state. Nothing here is a screen; this page exists to build and test the system.</p>
+  <ul class="gal-toc">
+    <li><a class="fx-link" href="#tokens">Tokens</a></li>
+    <li><a class="fx-link" href="#buttons">Buttons</a></li>
+    <li><a class="fx-link" href="#status">Chips, dots, availability</a></li>
+    <li><a class="fx-link" href="#lists">Sections and rows</a></li>
+    <li><a class="fx-link" href="#ledger">Ledger</a></li>
+    <li><a class="fx-link" href="#progress">Journey rail and countdown</a></li>
+    <li><a class="fx-link" href="#notices">Notices</a></li>
+    <li><a class="fx-link" href="#fields">Form fields</a></li>
+    <li><a class="fx-link" href="#segmented">Segmented control</a></li>
+    <li><a class="fx-link" href="#avatars">Avatars and loading</a></li>
+    <li><a class="fx-link" href="#overlays">Sheet and toast</a></li>
+    <li><a class="fx-link" href="#shell">Shell: app bars, dock, tab bar</a></li>
+  </ul>
+
+  <!-- ═══ Tokens ═══ -->
+  <h2 id="tokens">Tokens</h2>
+  <p class="note">Read live from css/tokens.css. Ratios are against paper unless noted; tests/fx-design-system.test.cjs recomputes them.</p>
+  <h3>Colour</h3>
+  <div class="gal-swatches" id="swatches"></div>
+  <h3>Type: six sizes, three weights</h3>
+  <div class="gal-box fx-stack">
+    <p class="fx-display">34 Display · state</p>
+    <p class="fx-title">24 Title · screen titles</p>
+    <p class="fx-heading">18 Heading · section subjects</p>
+    <p class="fx-body">16 Body · everything read, at weight 400</p>
+    <p class="fx-label">14 Label · metadata and labels, at weight 550</p>
+    <p class="fx-caption">12 Caption · the floor: timestamps and tab labels</p>
+    <p class="fx-body fx-num">GHS 1,204.50 · 12:05 · tabular figures align: 111.11 / 888.88</p>
+  </div>
+  <h3>Space, radius, elevation</h3>
+  <div class="gal-row" id="space-scale" aria-label="Spacing scale"></div>
+  <div class="gal-row">
+    <div class="gal-radius" style="border-radius: var(--fx-r-chip)" title="chip 6"></div>
+    <div class="gal-radius" style="border-radius: var(--fx-r-control)" title="control 8"></div>
+    <div class="gal-radius" style="border-radius: var(--fx-r-sheet)" title="sheet 16"></div>
+    <div class="gal-radius" style="border-radius: var(--fx-r-round)" title="round"></div>
+  </div>
+  <div class="gal-grid">
+    <div class="gal-elev" style="box-shadow: var(--fx-e-pop)"><p class="fx-label">--fx-e-pop</p><p class="fx-meta">Toasts, menus</p></div>
+    <div class="gal-elev" style="box-shadow: var(--fx-e-sheet)"><p class="fx-label">--fx-e-sheet</p><p class="fx-meta">Bottom sheets</p></div>
+  </div>
+  <div class="gal-tbl" style="margin-top: var(--fx-space-4)"><table id="token-table"><thead><tr><th scope="col">Token</th><th scope="col">Value</th></tr></thead><tbody></tbody></table></div>
+
+  <!-- ═══ Buttons ═══ -->
+  <h2 id="buttons">Buttons</h2>
+  <p class="note">One primary per screen. Near-black on orange (6.6:1). Loading keeps the label and says what is happening.</p>
+  <div class="gal-row" data-test="button-variants">
+    <button class="fx-btn fx-btn--primary" type="button">Accept job</button>
+    <button class="fx-btn fx-btn--secondary" type="button">Decline</button>
+    <button class="fx-btn fx-btn--tertiary" type="button">See details</button>
+    <button class="fx-btn fx-btn--danger" type="button">Cancel job</button>
+    <button class="fx-btn fx-btn--danger-solid" type="button">Cancel booking</button>
+    <a class="fx-btn fx-btn--secondary" href="#buttons">A link styled as a button</a>
+  </div>
+  <div class="gal-row" data-test="button-states">
+    <button class="fx-btn fx-btn--primary" type="button" disabled>Disabled</button>
+    <button class="fx-btn fx-btn--secondary" type="button" aria-disabled="true">Unavailable</button>
+    <button class="fx-btn fx-btn--primary" type="button" aria-busy="true"><span class="fx-spin" aria-hidden="true"></span>Sending quote…</button>
+    <button class="fx-btn fx-btn--tertiary" type="button" disabled>Disabled link</button>
+  </div>
+  <div class="gal-row" data-test="button-sizes">
+    <button class="fx-btn fx-btn--primary fx-btn--l" type="button">Large · 56</button>
+    <button class="fx-btn fx-btn--primary" type="button">Default · 48</button>
+    <button class="fx-btn fx-btn--secondary fx-btn--s" type="button">Small · 36 (44 hit)</button>
+    <button class="fx-btn fx-btn--secondary" type="button" id="btn-icon"><span data-icon="navigate"></span>Navigate</button>
+  </div>
+  <div class="gal-row">
+    <button class="fx-iconbtn" type="button" aria-label="Back"><span data-icon="back"></span></button>
+    <button class="fx-iconbtn" type="button" aria-label="Notifications, 2 unread"><span data-icon="bell"></span><span class="fx-iconbtn__badge"></span></button>
+    <button class="fx-iconbtn" type="button" aria-label="More" disabled><span data-icon="more"></span></button>
+  </div>
+  <div class="gal-box"><button class="fx-btn fx-btn--primary fx-btn--l fx-btn--block" type="button">Block · Mark job done</button></div>
+
+  <!-- ═══ Status ═══ -->
+  <h2 id="status">Chips, dots, availability</h2>
+  <div class="gal-row" data-test="chips">
+    <span class="fx-chip">Scheduled</span>
+    <span class="fx-chip fx-chip--ok"><span class="fx-chip__dot"></span>Paid</span>
+    <span class="fx-chip fx-chip--info">In escrow</span>
+    <span class="fx-chip fx-chip--warn">Needs quote</span>
+    <span class="fx-chip fx-chip--bad">Expired</span>
+    <span class="fx-chip fx-chip--accent">New offer</span>
+  </div>
+  <div class="gal-row">
+    <span class="fx-dot fx-dot--live" role="img" aria-label="Live"></span>
+    <span class="fx-dot fx-dot--off" role="img" aria-label="Offline"></span>
+    <span class="fx-dot fx-dot--warn" role="img" aria-label="Attention"></span>
+    <span class="fx-dot fx-dot--bad" role="img" aria-label="Problem"></span>
+  </div>
+  <p class="note">Availability: a toggle button whose label states the state in words.</p>
+  <div class="gal-row" data-test="avail">
+    <button class="fx-avail" type="button" aria-pressed="true" id="avail-demo"><span class="fx-dot fx-dot--live" aria-hidden="true"></span>Online</button>
+    <button class="fx-avail" type="button" aria-pressed="false"><span class="fx-dot fx-dot--off" aria-hidden="true"></span>Offline</button>
+    <button class="fx-avail" type="button" aria-pressed="false" aria-busy="true"><span class="fx-spin" aria-hidden="true"></span>Going online…</button>
+    <button class="fx-avail" type="button" aria-pressed="false" aria-disabled="true"><span data-icon="lock"></span>Verification needed</button>
+  </div>
+
+  <!-- ═══ Lists ═══ -->
+  <h2 id="lists">Sections and rows</h2>
+  <div class="gal-phone" style="height: auto">
+    <section class="fx-sect" aria-labelledby="sect-a" style="margin-top: var(--fx-space-4)">
+      <div class="fx-sect__head"><h3 class="fx-sect__title" id="sect-a">Today</h3><a class="fx-btn fx-btn--tertiary fx-btn--s" href="#lists">See all</a></div>
+      <ul class="fx-list">
+        <li><a class="fx-row" href="#lists"><span class="fx-row__lead"><span class="fx-avatar">AM</span></span><span class="fx-row__main"><span class="fx-row__title">Kitchen tap leaking</span><span class="fx-row__meta">Ama · East Legon · 2.4 km</span></span><span class="fx-row__trail"><span class="fx-row__value">GHS 54.00</span><span data-icon="next"></span></span></a></li>
+        <li><button class="fx-row" type="button"><span class="fx-row__lead"><span data-icon="clock"></span></span><span class="fx-row__main"><span class="fx-row__title">Booked for Saturday 10:00–13:00</span><span class="fx-row__meta">A row that is a button</span></span><span class="fx-chip fx-chip--info">Scheduled</span></button></li>
+        <li><div class="fx-row"><span class="fx-row__main"><span class="fx-row__title">A plain row with a long title that wraps rather than overflowing the screen at 360 pixels</span><span class="fx-row__meta">Static content</span></span></div></li>
+        <li><div class="fx-row" aria-disabled="true"><span class="fx-row__main"><span class="fx-row__title">Unavailable row</span><span class="fx-row__meta">aria-disabled</span></span></div></li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- ═══ Ledger ═══ -->
+  <h2 id="ledger">Ledger</h2>
+  <div class="gal-box" style="max-width: 390px">
+    <dl class="fx-ledger" data-test="ledger">
+      <div class="fx-ledger__row"><dt class="fx-ledger__k">Labour</dt><dd class="fx-ledger__v">GHS 250.00</dd></div>
+      <div class="fx-ledger__row"><dt class="fx-ledger__k">Materials</dt><dd class="fx-ledger__v">GHS 84.50</dd></div>
+      <div class="fx-ledger__row fx-ledger__row--sub"><dt class="fx-ledger__k">Commission (15%)</dt><dd class="fx-ledger__v">− GHS 50.18</dd></div>
+      <div class="fx-ledger__row fx-ledger__row--pending"><dt class="fx-ledger__k">Visit fee (pending)</dt><dd class="fx-ledger__v">GHS 60.00</dd></div>
+      <div class="fx-ledger__row fx-ledger__row--total"><dt class="fx-ledger__k">You receive</dt><dd class="fx-ledger__v">GHS 284.32</dd></div>
+    </dl>
+    <p class="fx-ledger__note">Released when the customer confirms the job.</p>
+  </div>
+
+  <!-- ═══ Progress ═══ -->
+  <h2 id="progress">Journey rail and countdown</h2>
+  <div class="gal-grid">
+    <div class="gal-box">
+      <div class="fx-rail" data-test="rail">
+        <ol class="fx-rail__track" aria-hidden="true">
+          <li class="fx-rail__seg fx-rail__seg--done"></li><li class="fx-rail__seg fx-rail__seg--done"></li><li class="fx-rail__seg fx-rail__seg--current"></li><li class="fx-rail__seg"></li><li class="fx-rail__seg"></li><li class="fx-rail__seg"></li>
+        </ol>
+        <p class="fx-rail__cap"><span class="fx-rail__now">Inspection</span><span>Step 3 of 6</span></p>
+      </div>
+    </div>
+    <div class="gal-box">
+      <div class="fx-countdown" id="cd-live" data-urgency="normal" role="timer" aria-label="Time left to answer">
+        <div class="fx-countdown__bar" aria-hidden="true"><div class="fx-countdown__fill"></div></div>
+        <p class="fx-countdown__text"><span class="fx-countdown__value">3:00</span><span class="fx-countdown__label">left to answer (live)</span></p>
+      </div>
+    </div>
+  </div>
+  <div class="gal-grid" style="margin-top: var(--fx-space-4)" data-test="countdowns">
+    <div class="fx-countdown" data-urgency="soon" role="timer"><div class="fx-countdown__bar" aria-hidden="true"><div class="fx-countdown__fill" style="--fx-countdown: 0.15"></div></div><p class="fx-countdown__text"><span class="fx-countdown__value">27s</span><span class="fx-countdown__label">soon</span></p></div>
+    <div class="fx-countdown" data-urgency="now" role="timer"><div class="fx-countdown__bar" aria-hidden="true"><div class="fx-countdown__fill" style="--fx-countdown: 0.05"></div></div><p class="fx-countdown__text"><span class="fx-countdown__value">8s</span><span class="fx-countdown__label">now</span></p></div>
+    <div class="fx-countdown" data-urgency="done" role="timer"><div class="fx-countdown__bar" aria-hidden="true"><div class="fx-countdown__fill" style="--fx-countdown: 0"></div></div><p class="fx-countdown__text"><span class="fx-countdown__value">0s</span><span class="fx-countdown__label">expired</span></p></div>
+  </div>
+
+  <!-- ═══ Notices ═══ -->
+  <h2 id="notices">Notices</h2>
+  <div class="fx-stack" style="max-width: 560px" data-test="notices">
+    <div class="fx-notice" role="note"><span data-icon="info" data-icon-class="fx-notice__icon"></span><div class="fx-notice__body"><p>Customers see you only while you are online.</p></div></div>
+    <div class="fx-notice fx-notice--info" role="note"><span data-icon="shield" data-icon-class="fx-notice__icon"></span><div class="fx-notice__body"><p class="fx-notice__title">Payment held safely</p><p>The customer's money is in escrow until the job is done.</p></div></div>
+    <div class="fx-notice fx-notice--ok" role="status"><span data-icon="check" data-icon-class="fx-notice__icon"></span><div class="fx-notice__body"><p>Quote approved. You can start the work.</p></div></div>
+    <div class="fx-notice fx-notice--warn" role="note"><span data-icon="alert" data-icon-class="fx-notice__icon"></span><div class="fx-notice__body"><p class="fx-notice__title">Job alerts are off on this device</p><p>Offers expire within minutes.</p><div class="fx-notice__actions"><button class="fx-btn fx-btn--secondary fx-btn--s" type="button">Turn on alerts</button></div></div></div>
+    <div class="fx-notice fx-notice--bad" role="alert"><span data-icon="alert" data-icon-class="fx-notice__icon"></span><div class="fx-notice__body"><p>We can't reach the server. Your last profile is shown.</p><div class="fx-notice__actions"><button class="fx-btn fx-btn--tertiary fx-btn--s" type="button">Retry</button></div></div></div>
+  </div>
+
+  <!-- ═══ Fields ═══ -->
+  <h2 id="fields">Form fields</h2>
+  <form class="gal-box" style="max-width: 420px" novalidate data-test="fields" onsubmit="return false">
+    <div class="fx-field"><label class="fx-field__label" for="f-name">Business name</label><input class="fx-input" id="f-name" type="text" placeholder="e.g. Mensah Plumbing" autocomplete="organization"></div>
+    <div class="fx-field"><label class="fx-field__label" for="f-phone">Phone</label><input class="fx-input" id="f-phone" type="tel" inputmode="tel" value="024 000 0000" aria-describedby="f-phone-hint"><p class="fx-field__hint" id="f-phone-hint">Customers see it only during a booking.</p></div>
+    <div class="fx-field"><label class="fx-field__label" for="f-labour">Labour charge</label><input class="fx-input" id="f-labour" type="text" value="0" aria-invalid="true" aria-describedby="f-labour-err"><p class="fx-field__error" id="f-labour-err">Labour cost must be greater than 0.</p></div>
+    <div class="fx-field"><label class="fx-field__label" for="f-dis">Ghana Card</label><input class="fx-input" id="f-dis" type="text" value="GHA-123456789-0" disabled></div>
+    <div class="fx-field"><label class="fx-field__label" for="f-ro">Booking reference</label><input class="fx-input" id="f-ro" type="text" value="HHB-261106-0930-A1B2" readonly></div>
+    <div class="fx-field"><label class="fx-field__label" for="f-note">Note to customer</label><textarea class="fx-input" id="f-note" placeholder="What the price covers"></textarea></div>
+    <div class="fx-field"><label class="fx-field__label" for="f-trade">Trade</label><div class="fx-select"><select class="fx-input" id="f-trade"><option>Plumbing</option><option>Electrical</option><option>Carpentry</option></select><span data-icon="down" data-icon-class="fx-select__chev"></span></div></div>
+    <div class="fx-field"><label class="fx-field__label" for="f-amount">Your price</label><div class="fx-money"><span class="fx-money__cur" aria-hidden="true">GHS</span><input class="fx-input" id="f-amount" type="text" inputmode="decimal" value="250.00"></div></div>
+  </form>
+
+  <!-- ═══ Segmented ═══ -->
+  <h2 id="segmented">Segmented control</h2>
+  <div class="fx-seg" role="group" aria-label="Show jobs" id="seg-demo" style="max-width: 420px">
+    <button class="fx-seg__btn" type="button" data-value="active" aria-pressed="true">Active</button>
+    <button class="fx-seg__btn" type="button" data-value="upcoming" aria-pressed="false">Upcoming</button>
+    <button class="fx-seg__btn" type="button" data-value="done" aria-pressed="false">Done</button>
+  </div>
+  <p class="fx-meta" id="seg-out" style="margin-top: var(--fx-space-2)">Showing: active</p>
+  <div class="fx-seg" role="group" aria-label="Materials" style="max-width: 420px; margin-top: var(--fx-space-4)">
+    <button class="fx-seg__btn" type="button" data-value="no" aria-pressed="true">No materials</button>
+    <button class="fx-seg__btn" type="button" data-value="yes" aria-pressed="false" disabled>Materials (unavailable)</button>
+  </div>
+
+  <!-- ═══ Avatars, loading ═══ -->
+  <h2 id="avatars">Avatars and loading</h2>
+  <div class="gal-row">
+    <span class="fx-avatar fx-avatar--s" aria-hidden="true">KM</span>
+    <span class="fx-avatar" aria-hidden="true">KM</span>
+    <span class="fx-avatar fx-avatar--l" aria-hidden="true">KM</span>
+    <span class="fx-avatar" role="img" aria-label="No photo"><span data-icon="account"></span></span>
+  </div>
+  <div class="gal-box fx-stack--2" style="max-width: 390px" aria-busy="true" aria-label="Loading">
+    <span class="fx-skel fx-skel--title" style="width: 60%"></span>
+    <span class="fx-skel" style="width: 90%"></span>
+    <span class="fx-skel" style="width: 75%"></span>
+    <span class="fx-skel fx-skel--row"></span>
+  </div>
+
+  <!-- ═══ Overlays ═══ -->
+  <h2 id="overlays">Sheet and toast</h2>
+  <p class="note">The sheet is modal: the page behind is inert, Tab stays inside, Escape or the scrim closes it, and focus returns to the button.</p>
+  <div class="gal-row">
+    <button class="fx-btn fx-btn--secondary" type="button" id="open-sheet">Open the offer sheet</button>
+    <button class="fx-btn fx-btn--secondary" type="button" id="toast-ok">Show a toast</button>
+    <button class="fx-btn fx-btn--secondary" type="button" id="toast-bad">Show an error toast</button>
+  </div>
+
+  <!-- ═══ Shell ═══ -->
+  <h2 id="shell">Shell: app bars, dock, tab bar</h2>
+  <p class="note">The foundation only, to validate the system: a tab's root app bar with the availability control, the bottom dock with the screen's one primary action, and the four-tab bar. Not the Today screen.</p>
+  <div class="gal-grid">
+    <div class="gal-phone" data-test="phone-root">
+      <div class="fx-shell">
+        <header class="fx-appbar fx-appbar--root">
+          <div class="fx-appbar__titles"><h3 class="fx-appbar__title">Today</h3><p class="fx-appbar__sub">Thursday 6 November</p></div>
+          <div class="fx-appbar__actions">
+            <button class="fx-avail" type="button" aria-pressed="true"><span class="fx-dot fx-dot--live" aria-hidden="true"></span>Online</button>
+            <button class="fx-iconbtn" type="button" aria-label="Notifications, 1 unread"><span data-icon="bell"></span><span class="fx-iconbtn__badge"></span></button>
+          </div>
+        </header>
+        <div class="fx-main fx-pad fx-stack--4">
+          <p class="fx-lead">Shell content scrolls under the sticky bars.</p>
+          <span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span>
+        </div>
+        <div class="fx-bottom">
+          <div class="fx-dock">
+            <p class="fx-dock__note">You are on site. Send your price for the work.</p>
+            <div class="fx-dock__actions"><button class="fx-btn fx-btn--primary fx-btn--l" type="button">Send quote</button></div>
+          </div>
+          <nav class="fx-tabbar" aria-label="Main" id="tabbar-demo"></nav>
+        </div>
+      </div>
+    </div>
+    <div class="gal-phone" data-test="phone-push">
+      <div class="fx-shell">
+        <header class="fx-appbar fx-appbar--push">
+          <a class="fx-iconbtn" href="#shell" aria-label="Back"><span data-icon="back"></span></a>
+          <div class="fx-appbar__titles"><h3 class="fx-appbar__title">Kitchen tap leaking</h3><p class="fx-appbar__sub">HHB-261106-0930-A1B2</p></div>
+          <div class="fx-appbar__actions"><button class="fx-iconbtn" type="button" aria-label="More actions"><span data-icon="more"></span></button></div>
+        </header>
+        <div class="fx-main fx-pad fx-stack--4" style="padding-top: var(--fx-space-5)">
+          <span class="fx-chip fx-chip--info">On the way</span>
+          <p class="fx-title">Heading to Ama</p>
+          <p class="fx-lead">A pushed screen: back, title, hairline. Its dock is the last thing in the bottom stack, so it takes the safe-area inset.</p>
+        </div>
+        <div class="fx-bottom">
+          <div class="fx-dock"><div class="fx-dock__actions"><button class="fx-btn fx-btn--secondary" type="button">Navigate</button><button class="fx-btn fx-btn--primary" type="button">I've arrived</button></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- The offer sheet (opened from #open-sheet). -->
+<div class="fx-overlay" id="sheet-demo" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1">
+    <div class="fx-countdown" data-urgency="normal" role="timer" aria-label="Time left to answer">
+      <div class="fx-countdown__bar" aria-hidden="true"><div class="fx-countdown__fill" style="--fx-countdown: 0.7"></div></div>
+    </div>
+    <header class="fx-sheet__head">
+      <h2 class="fx-sheet__title" id="sheet-title">New job · Plumbing</h2>
+      <button class="fx-iconbtn" type="button" aria-label="Close" data-sheet-close><span data-icon="close"></span></button>
+    </header>
+    <div class="fx-sheet__body fx-stack--4">
+      <dl class="fx-ledger">
+        <div class="fx-ledger__row"><dt class="fx-ledger__k">Distance</dt><dd class="fx-ledger__v">2.4 km</dd></div>
+        <div class="fx-ledger__row"><dt class="fx-ledger__k">Visit fee</dt><dd class="fx-ledger__v">GHS 60.00</dd></div>
+      </dl>
+      <p class="fx-body">"Water under the sink every time the tap runs."</p>
+      <div class="fx-field"><label class="fx-field__label" for="sheet-note">Reply (optional)</label><input class="fx-input" id="sheet-note" type="text" data-autofocus></div>
+    </div>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close>Decline</button>
+      <button class="fx-btn fx-btn--primary fx-btn--l" type="button" data-sheet-close>Accept</button>
+    </footer>
+  </section>
+</div>
+
+<script type="module">
+  import { icon } from '../../artisan-app/js/fx/icons.js';
+  import { openSheet } from '../../artisan-app/js/fx/sheet.js';
+  import { showToast } from '../../artisan-app/js/fx/toast.js';
+  import { bindSegmented, bindCountdown, renderTabbar } from '../../artisan-app/js/fx/controls.js';
+
+  for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon, el.dataset.iconClass || '');
+
+  // Tokens, read from the live stylesheet.
+  const css = getComputedStyle(document.documentElement);
+  const COLOURS = ['ink','ink-2','ink-3','ink-4','paper','well','well-2','line','line-2','edge','accent','accent-press','on-accent','accent-text','indicator','ok','ok-wash','info','info-wash','warn','warn-wash','bad','bad-wash'];
+  document.getElementById('swatches').innerHTML = COLOURS.map((n) => {
+    const v = css.getPropertyValue(`--fx-${n}`).trim();
+    return `<div class="gal-swatch"><div class="gal-swatch__chip" style="background: var(--fx-${n})"></div><div class="gal-swatch__text"><b>--fx-${n}</b>${v}</div></div>`;
+  }).join('');
+  document.getElementById('space-scale').innerHTML = ['1','2','3','4','5','6','8','10','12'].map((n) =>
+    `<span title="--fx-space-${n}"><span class="gal-spacer" style="width: var(--fx-space-${n})"></span><span class="fx-caption fx-ink-3"> ${n}</span></span>`).join('');
+  const names = [...document.styleSheets].flatMap((s) => { try { return [...s.cssRules]; } catch { return []; } })
+    .filter((r) => r.selectorText === ':root').flatMap((r) => [...r.style]).filter((p) => p.startsWith('--fx-'));
+  document.querySelector('#token-table tbody').innerHTML = [...new Set(names)].map((n) =>
+    `<tr><td><code>${n}</code></td><td><code>${css.getPropertyValue(n).trim().replace(/</g, '&lt;')}</code></td></tr>`).join('');
+
+  renderTabbar(document.getElementById('tabbar-demo'), { current: 'today', badges: { jobs: '1 new offer' } });
+  const out = document.getElementById('seg-out');
+  bindSegmented(document.getElementById('seg-demo'), (v) => { out.textContent = `Showing: ${v}`; });
+  bindCountdown(document.getElementById('cd-live'), { deadlineMs: Date.now() + 180_000, totalMs: 180_000 });
+
+  const avail = document.getElementById('avail-demo');
+  avail.addEventListener('click', () => {
+    const on = avail.getAttribute('aria-pressed') === 'true';
+    avail.setAttribute('aria-pressed', on ? 'false' : 'true');
+    avail.innerHTML = on ? '<span class="fx-dot fx-dot--off" aria-hidden="true"></span>Offline' : '<span class="fx-dot fx-dot--live" aria-hidden="true"></span>Online';
+  });
+  document.getElementById('open-sheet').addEventListener('click', () => openSheet(document.getElementById('sheet-demo')));
+  document.getElementById('toast-ok').addEventListener('click', () => showToast('Quote sent to the customer.', { tone: 'ok' }));
+  document.getElementById('toast-bad').addEventListener('click', () => showToast('Could not save. Check your connection.', { tone: 'bad', action: { label: 'Retry', onClick() {} } }));
+  document.documentElement.dataset.ready = 'true';
+</script>
+</body>
+</html>
