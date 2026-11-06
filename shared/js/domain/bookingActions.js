@@ -110,7 +110,10 @@ const TRANSITIONS = {
         // Mirrored by scheduleWindowOpen() in firestore.rules, which is what
         // actually enforces it — this check exists so the artisan gets a
         // sentence instead of a permission-denied.
-        requires: (b) => norm(b.status) === 'inspection_scheduled' || b.quoteApproved === true,
+        // A paid emergency also sets out unpriced and quotes on site (decision
+        // Q1; bookingStatusMeta.quotesOnSite, firestore.rules).
+        requires: (b) => norm(b.status) === 'inspection_scheduled' || b.quoteApproved === true
+                      || (norm(b.track) === 'emergency' && b.calloutPaid === true),
         requiresWhy: 'The customer has not approved your quote yet.',
         scheduleGated: true,
     },
@@ -125,6 +128,10 @@ const TRANSITIONS = {
         from:  ['in_progress'],
         to:    'awaiting',
         stamp: 'jobDoneAt',
+        // An emergency reaches the site before it is priced (decision Q1);
+        // firestore.rules refuse "done" until its quote is approved.
+        requires: (b) => norm(b.track) !== 'emergency' || b.quoteApproved === true,
+        requiresWhy: 'Send your quote first. The customer approves it before the job can be marked done.',
     },
     [ACTION.CONFIRM_COMPLETE]: {
         actor: 'customer',

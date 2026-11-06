@@ -34,7 +34,7 @@ function stripEsm(src) {
 }
 const domain = (f) => stripEsm(fs.readFileSync(path.join(ROOT, 'shared', 'js', 'domain', f), 'utf8'));
 // eslint-disable-next-line no-new-func
-const { artisanCanCancel } = new Function(`${domain('bookingSchedule.js')}\n${domain('bookingActions.js')}\nreturn { artisanCanCancel };`)();
+const { artisanCanCancel, performBookingAction, ACTION } = new Function(`${domain('bookingSchedule.js')}\n${domain('bookingActions.js')}\nreturn { artisanCanCancel, performBookingAction, ACTION };`)();
 // eslint-disable-next-line no-new-func
 const { needsQuoteBeforeTravel, needsQuoteOnSite, quotesOnSite, getAllowedActions } = new Function(`${domain('bookingStatusMeta.js')}\nreturn { needsQuoteBeforeTravel, needsQuoteOnSite, quotesOnSite, getAllowedActions };`)();
 // eslint-disable-next-line no-new-func
@@ -124,6 +124,25 @@ await t('resolveJourney(artisan) never offers a client transition the rules refu
     for (const b of FIXTURES) {
         const op = resolveJourney(b, 'artisan').action?.op;
         if (RULES_ALLOW[op] && !RULES_ALLOW[op](b)) bad.push(`${b.track}/${b.status}/approved=${b.quoteApproved} → ${op}`);
+    }
+    assert.deepStrictEqual(bad, []);
+});
+
+await t('performBookingAction lets through exactly what the rules accept (set out, arrive, done)', async () => {
+    // The client action table had its own copy of "needs an approved quote to
+    // set out", so a paid emergency's "I'm on my way" was stopped before the
+    // write (found in the browser, Q1). Every fixture, every step.
+    const ops = { [ACTION.EN_ROUTE]: 'enRoute', [ACTION.START]: 'arrived', [ACTION.JOB_DONE]: 'markDone' };
+    const bad = [];
+    for (const b of FIXTURES) {
+        for (const [action, op] of Object.entries(ops)) {
+            const fx = { ...b, artisanId: 'art', customerId: 'c1' };
+            const databaseService = { async getDocument() { return { exists: true, data: { ...fx } }; }, async updateDocument() {} };
+            const r = await performBookingAction(action, { bookingId: 'B', actor: 'artisan', uid: 'art', databaseService });
+            if ((r.ok === true) !== RULES_ALLOW[op](fx)) {
+                bad.push(`${fx.track}/${fx.status}/approved=${fx.quoteApproved}/paid=${fx.calloutPaid} ${action}: client ${r.ok === true}`);
+            }
+        }
     }
     assert.deepStrictEqual(bad, []);
 });
