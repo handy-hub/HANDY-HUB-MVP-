@@ -153,9 +153,16 @@ export function mountInstantView({
         if (data == null) return;
         if (!cacheEmpty && Array.isArray(data) && data.length === 0) return;
         let payload = data;
-        if (stripFields.length && !Array.isArray(data) && typeof data === 'object') {
-            payload = { ...data };
-            for (const f of stripFields) delete payload[f];
+        if (stripFields.length && typeof data === 'object') {
+            const omit = (o) => { const c = { ...o }; for (const f of stripFields) delete c[f]; return c; };
+            // A list is records ({ id, data }): each record's data is stripped,
+            // so contact details and money stay out of a cached list as they
+            // stay out of a cached document.
+            payload = Array.isArray(data)
+                ? data.map((r) => (r && typeof r === 'object'
+                    ? (r.data && typeof r.data === 'object' ? { ...r, data: omit(r.data) } : omit(r))
+                    : r))
+                : omit(data);
         }
         try { writeCache(key, payload, opts); }
         catch (err) { console.warn(`[instantView:${key}] cache write failed:`, err?.message || err); }

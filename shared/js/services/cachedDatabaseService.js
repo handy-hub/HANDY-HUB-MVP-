@@ -177,7 +177,7 @@ export function createCachedDatabaseService(databaseService, { defaultTtlMs = DE
     }
 
     function subscribeToCollection(collectionName, conditions, options, onChange, onError) {
-        return databaseService.subscribeToCollection(collectionName, conditions, options, (records) => {
+        return databaseService.subscribeToCollection(collectionName, conditions, options, (records, meta) => {
             // Warm individual doc entries so getDocument() is instant afterwards
             const ttl = ttlFor(collectionName);
             records.forEach(r => {
@@ -187,7 +187,12 @@ export function createCachedDatabaseService(databaseService, { defaultTtlMs = DE
                     ttl
                 );
             });
-            onChange(records);
+            // The snapshot's metadata ({ fromCache }) travels with the records.
+            // Dropping it made every "an empty answer from the cache is not
+            // known yet, not none" guard (audit NET-001) blind: during an outage
+            // an empty cached list was taken as the truth, painted, and written
+            // over the last known list (found by tests/e2e/artisan_availability.py).
+            onChange(records, meta);
         }, onError);
     }
 
