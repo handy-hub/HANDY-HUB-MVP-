@@ -401,7 +401,10 @@ function render(b) {
           // An offer withholds the address by design (functions/jobOffers.js);
           // "No address" read as a broken booking at the moment of decision.
           ? `<p class="jb-problem" style="font-size:14px">Exact address shared once you accept</p>`
-          : `<p class="jb-problem jb-unknown" style="font-size:14px">No address on this booking</p>`}
+          : brief.location.precision === 'removed'
+            // Kept 14 days after the job ended, then removed (decision Q6).
+            ? `<p class="jb-problem jb-unknown" style="font-size:14px">${esc(brief.location.note)}</p>`
+            : `<p class="jb-problem jb-unknown" style="font-size:14px">No address on this booking</p>`}
       ${dist ? `<p class="jb-precision">${esc(dist)}</p>` : ''}
       ${brief.location.precision === 'address-only'
         ? '<p class="jb-precision">Address only — no exact GPS fix from the customer.</p>' : ''}

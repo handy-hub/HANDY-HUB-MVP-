@@ -1241,6 +1241,13 @@ async function checkBookingTimeouts() {
             }
         }
     }
+
+    // ── Location retention (decision Q6) ─────────────────────────────────────
+    // 14 days after a booking closed, its exact location leaves the document
+    // the artisan can read (functions/locationRetention.js). Rides this hourly
+    // sweep rather than a new deployed function (CPU budget).
+    await require('./locationRetention').moveExpiredLocations()
+        .catch((err) => console.error('[pricing] Location retention sweep failed:', err.message));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1307,7 +1314,10 @@ async function sendAppointmentReminders(bookings) {
             await sendArtisanNotification(b.artisanId, {
                 type:      'Bookings',
                 title:     'Appointment coming up',
-                message:   `You committed to a ${svc} visit for ${when}. ${b.address ? `Address: ${String(b.address).slice(0, 120)}` : ''}`.trim(),
+                // No address in the text: a notification outlives the 14 days
+                // the artisan keeps the location (decision Q6), and shows on a
+                // lock screen. The job screen has it while it is needed.
+                message:   `You committed to a ${svc} visit for ${when}. Open the job for the address.`,
                 actionUrl: `job.html?id=${doc.id}`,
                 metadata:  { bookingId: doc.id },
             }).catch(() => {});

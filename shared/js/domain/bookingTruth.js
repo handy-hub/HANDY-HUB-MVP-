@@ -701,6 +701,17 @@ export function resolveJobBrief(booking, { originLat = null, originLng = null, e
             mapUrl: null,
             precision: 'approximate',
             note: 'Exact address shared once you accept.',
+        } : b.locationRemovedAt ? {
+            // 14 days after the booking closed, the exact location left this
+            // record for the customer's own (decision Q6,
+            // functions/locationRetention.js). Said plainly, never guessed at.
+            address:   null,
+            hasCoords: false,
+            lat: null,
+            lng: null,
+            mapUrl: null,
+            precision: 'removed',
+            note: 'The address was removed 14 days after the job ended, to protect the customer’s privacy.',
         } : {
             address,
             hasCoords,

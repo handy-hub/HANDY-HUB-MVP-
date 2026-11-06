@@ -608,6 +608,43 @@ await it('a message is capped at 4 000 characters, and only a participant posts'
     await assertFails(setDoc(doc(dbOf(A1), 'chats', thread, 'messages', 'm_spoof'), msg('hello', VICTIM)), 'not in another person\'s name');
 });
 
+console.log('\nBOOKINGS — the customer\'s location 14 days after the job (decision Q6)\n');
+
+// functions/locationRetention.js moves address/lat/lng/notes to
+// bookings/{id}/private/location 14 days after a booking closes.
+await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'bookings', 'bk_loc_closed'), {
+        customerId: VICTIM, artisanId: A1, status: 'completed', track: 'inspection', serviceType: 'Plumbing',
+        locationRemovedAt: '2026-11-20T00:00:00.000Z',
+    });
+    await setDoc(doc(db, 'bookings', 'bk_loc_closed', 'private', 'location'), {
+        bookingId: 'bk_loc_closed', customerId: VICTIM, address: '14 Example Street', lat: 5.6366, lng: -0.1618,
+    });
+});
+const locDoc = (db) => doc(db, 'bookings', 'bk_loc_closed', 'private', 'location');
+
+await it('the customer reads their own location record', async () => {
+    await assertSucceeds(getDoc(locDoc(victimDb)));
+});
+await it('the booking\'s artisan cannot: their access ended with the move', async () => {
+    await assertFails(getDoc(locDoc(dbOf(A1))));
+});
+await it('nor can anyone else', async () => {
+    await assertFails(getDoc(locDoc(attackerDb)));
+    await assertFails(getDoc(locDoc(anonDb)));
+});
+await it('no client writes it, not even the customer', async () => {
+    await assertFails(setDoc(locDoc(victimDb), { address: 'Somewhere else' }));
+    await assertFails(setDoc(locDoc(dbOf(A1)), { address: 'Somewhere else' }));
+});
+await it('no client can stop or reset the clock on the booking', async () => {
+    const at = '2026-11-21T00:00:00.000Z';
+    await assertSucceeds(updateDoc(doc(dbOf(A1), 'bookings', 'bk_loc_closed'), { artisanNotes: 'ok', updatedAt: at }));
+    await assertFails(updateDoc(doc(dbOf(A1), 'bookings', 'bk_loc_closed'), { artisanNotes: 'x', updatedAt: at, locationRetainUntilMs: 9e15 }));
+    await assertFails(updateDoc(doc(dbOf(A1), 'bookings', 'bk_loc_closed'), { artisanNotes: 'x', updatedAt: at, locationRemovedAt: null }));
+});
+
 console.log('\n' + '─'.repeat(52));
 console.log(`  ${passed} passed, ${failed} failed`);
 console.log('─'.repeat(52) + '\n');

@@ -328,7 +328,13 @@ window.openBookingModal=function(id){
   document.getElementById('bm-aphone').textContent=b.artisanPhone||'—';
   document.getElementById('bm-cat').textContent=b.category||b.serviceType||'—';
   document.getElementById('bm-desc').textContent=b.description||b.notes||'—';
-  document.getElementById('bm-loc').textContent=b.location||b.address||'—';
+  const loc=document.getElementById('bm-loc');
+  loc.textContent=b.location||b.address||'—';
+  // 14 days after a booking closes its exact location moves to
+  // bookings/{id}/private/location (decision Q6), which admins may read.
+  if(b.locationRemovedAt) getDoc(doc(db,'bookings',b.id,'private','location'))
+    .then(s=>{ if(s.exists()&&s.data().address&&activeBooking===b) loc.textContent=s.data().address+' (kept privately)'; })
+    .catch(()=>{});
   /* The booked arrival window. scheduledDate/preferredDate/scheduledAt were
      three guesses at a field nothing ever wrote, so this cell read '—' on every
      booking ever made. scheduledForMs is the real one (server-written — see

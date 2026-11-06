@@ -12,6 +12,13 @@
  *   bookings/{id}           the ARTISAN's phone copied by clients (proPhone,
  *                           artisanPhone, artisan.phone, professional.phone)
  *                           → bookings/{id}/private/artisanContact (CONTACT-001).
+ *   bookings/{id}           closed before location retention existed (Q6):
+ *                           stamped locationRetainUntilMs = closed + 14 days, so
+ *                           the hourly sweep moves the exact location to
+ *                           bookings/{id}/private/location; old appointment
+ *                           reminders lose the address they carried
+ *                           (functions/locationRetention.js backfillRetention).
+ *                           'copy' and 'strip' both write this step.
  *
  * New writes already go to the private records; this moves what is already
  * there. Same contract as functions/artisanPrivacy.js:
@@ -227,6 +234,7 @@ async function migrateContactPrivacy({ mode = 'dry-run', pageSize = 200 } = {}) 
     await migrateArtisanLocations(mode, size, report);
     await migrateBookingContacts(mode, size, report);
     await migrateBookingArtisanPhones(mode, size, report);
+    await require('./locationRetention').backfillRetention(mode, size, report);
     return report;
 }
 

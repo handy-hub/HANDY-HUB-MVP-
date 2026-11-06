@@ -796,6 +796,9 @@ service cloud.firestore {
         // The status a quote was sent from (submitJobQuote): approval and
         // rejection return an on-site emergency quote to in_progress.
         'quotedFrom',
+        // Location retention (decision Q6): when the exact location leaves the
+        // booking, and when it did. A client could otherwise stop the clock.
+        'locationRetainUntilMs', 'locationRemovedAt',
         'commissionRate', 'artisanEarns', 'platformFee',
         // Escrow / payment settlement
         'escrowId', 'disputeId',
@@ -1819,7 +1822,13 @@ service cloud.firestore {
                      isSignedIn() && docId == 'artisanContact' && (
                        request.auth.uid == contactBooking().get('artisanId', null) ||
                        (request.auth.uid == contactBooking().customerId &&
-                        contactDisclosed(contactBooking()))));
+                        contactDisclosed(contactBooking())))) || (
+                     // The customer's exact location once it has left the booking,
+                     // 14 days after it closed (decision Q6, functions/
+                     // locationRetention.js): the customer's own record; the
+                     // artisan's access ended with the move.
+                     isSignedIn() && docId == 'location' &&
+                       request.auth.uid == contactBooking().customerId);
       allow write: if false;
     }
 

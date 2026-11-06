@@ -613,6 +613,13 @@ const onBookingStatusChanged = onDocumentUpdated(
             await _settleCalloutOnCancellation(bookingId, before, after);
         }
 
+        // 4. LOCATION RETENTION — on close, start the 14 days the artisan keeps
+        //    the customer's exact location (decision Q6; functions/
+        //    locationRetention.js). The stamp is a metadata-only write, which the
+        //    "status unchanged" guard above stops. Non-fatal.
+        await require('./locationRetention').stampRetention(bookingId, before, after)
+            .catch((err) => console.error(`[bookings] Location retention stamp failed booking=${bookingId}:`, err.message));
+
         // ── Completion logging ─────────────────────────────────────────────────
         if (rule) {
             console.log(`[bookings] Dispatched: ${prevStatus}→${nextStatus} booking=${bookingId}`);

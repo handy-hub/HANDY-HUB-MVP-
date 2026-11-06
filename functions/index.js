@@ -1042,8 +1042,10 @@ exports.adminMigrateArtisanPrivateData = onCall(
 /**
  * adminMigrateContactPrivacy — super-admin only. Moves pre-2026-10-20 artisan
  * precise positions to private/location and booking phone numbers to
- * private/contact (functions/contactPrivacy.js). Defaults to a dry run; run
- * 'copy', check, then 'strip'. Never run automatically.
+ * private/contact (functions/contactPrivacy.js), and starts the 14-day location
+ * clock on bookings closed before it existed (decision Q6,
+ * functions/locationRetention.js). Defaults to a dry run; run 'copy', check,
+ * then 'strip'. Never run automatically.
  */
 exports.adminMigrateContactPrivacy = onCall(
     { region: FUNCTIONS_REGION, timeoutSeconds: 540, memory: '512MiB' },
