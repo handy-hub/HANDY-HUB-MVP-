@@ -161,17 +161,21 @@ const TERMINAL = ['completed', 'cancelled', 'rejected', 'unfulfilled'];
 const INSPECTION_ARTISAN_CANCELLABLE = ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'inspection_done', 'quoted'];
 
 /**
- * Will the server accept this artisan cancelling the booking right now?
+ * May this artisan cancel the booking themselves, right now?
  *
- * Two authorities, one per track:
- *   inspection  cancelInspectionBooking (functions/pricing.js) — any state up to
- *               the quote decision; refused once the quote is approved ("use the
- *               dispute/refund flow instead").
- *   any other   the artisan cancel clause of firestore.rules — accepted or quoted.
+ * Yes only where BOTH hold:
+ *   the server accepts it — one authority per track:
+ *     inspection  cancelInspectionBooking (functions/pricing.js) — any state up
+ *                 to the quote decision; refused once the quote is approved.
+ *     any other   the artisan cancel clause of firestore.rules — accepted or quoted.
+ *   and the decided policy allows it (2026-11-06):
+ *     Q4  a booking, future or not, can be cancelled until the quote is approved.
+ *     Q5  after approval, Support decides — the artisan asks for help instead.
  *
- * Screens offered "Cancel job" on approved inspection work, where the server
- * always refuses (Phase 0 WF-01). A screen offers Cancel only where this says
- * yes; it may offer it in fewer places, never in more.
+ * firestore.rules still accept a raw cancel of APPROVED work off the inspection
+ * track (accepted with quoteApproved). The screens follow Q5 and never offer
+ * it; closing that in the rules is a change awaiting approval (Phase 3 report).
+ * A screen offers Cancel only where this says yes; never in more places.
  *
  * @param {object} booking
  * @returns {boolean}
@@ -179,10 +183,61 @@ const INSPECTION_ARTISAN_CANCELLABLE = ['accepted', 'inspection_scheduled', 'en_
 export function artisanCanCancel(booking) {
     const b = booking || {};
     const st = norm(b.status);
-    if (norm(b.track) === 'inspection') {
-        return b.quoteApproved !== true && INSPECTION_ARTISAN_CANCELLABLE.includes(st);
-    }
+    if (b.quoteApproved === true) return false;                      // Q5
+    if (norm(b.track) === 'inspection') return INSPECTION_ARTISAN_CANCELLABLE.includes(st);
     return ['accepted', 'quoted'].includes(st);
+}
+
+/**
+ * What ending this booking means, before the artisan decides — the server's own
+ * behaviour, stated; nothing here is a policy of its own.
+ *
+ *   route 'cancel'   artisanCanCancel: the consequences are listed for the
+ *                    confirmation sheet.
+ *   route 'support'  approved work, travel the rules will not undo, or a
+ *                    dispute: the way out is Support (Q5), with the reason.
+ *   route 'none'     nothing to end: closed, or not yet this artisan's.
+ *
+ * Consequences, as the server enacts them:
+ *   - the customer is notified and the booking ends — a cancelled booking is
+ *     never re-offered (dispatch acts only on pending), so they book again;
+ *   - an inspection callout goes back to the customer when the artisan cancels,
+ *     even after the inspection (cancelInspectionBooking settles to the
+ *     customer for any artisan cancellation);
+ *   - off the inspection track: a held job payment is refunded on any
+ *     cancellation (onBookingStatusChanged), and an emergency fee is refunded
+ *     because the artisan cannot cancel after arriving (calloutDecision);
+ *   - it counts in the completion rate the Performance screen shows
+ *     (performanceMetrics: completed ÷ completed + cancelled by the artisan).
+ * No fee or penalty exists in the code, so none is mentioned.
+ *
+ * @param {object} booking
+ * @returns {{ route: 'cancel'|'support'|'none', why?: string, consequences?: string[] }}
+ */
+export function cancellationTerms(booking) {
+    const b = booking || {};
+    const st = norm(b.status);
+    if (TERMINAL.includes(st) || st === 'resolved' || st === 'pending' || st === '') return { route: 'none' };
+    if (st === 'disputed') {
+        return { route: 'support', why: 'This booking is in dispute. Support is reviewing it and decides what happens next.' };
+    }
+    if (!artisanCanCancel(b)) {
+        return { route: 'support', why: b.quoteApproved === true
+            ? 'The customer has approved your quote, so this job can no longer be cancelled here. Support can help you end it fairly.'
+            : 'This job cannot be cancelled at this stage. Support can help.' };
+    }
+    const inspection = norm(b.track) === 'inspection';
+    const consequences = ['The customer is told, and the booking ends. It is not passed to anyone else.'];
+    if (inspection && b.calloutPaid === true) {
+        consequences.push(['inspection_done', 'quoted'].includes(st)
+            ? 'The visit fee goes back to the customer, including for the inspection you have already done.'
+            : 'The visit fee goes back to the customer.');
+    } else if (!inspection && norm(b.track) === 'emergency' && b.calloutPaid === true) {
+        consequences.push('The emergency fee goes back to the customer.');
+    }
+    if (!inspection && b.escrowId) consequences.push('The payment held for this job goes back to the customer.');
+    consequences.push('It counts against the completion rate on your Performance screen.');
+    return { route: 'cancel', consequences };
 }
 
 /**

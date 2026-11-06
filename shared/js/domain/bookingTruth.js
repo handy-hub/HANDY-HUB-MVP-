@@ -827,6 +827,66 @@ export function resolveQuoteDecision(booking) {
     };
 }
 
+// ── How a booking ended, in words (artisan side) ─────────────────────────────
+
+// The reasons the SYSTEM writes are machine labels (functions/pricing.js
+// checkBookingTimeouts, quotes.js rejectJobQuote final, the escrow-failure
+// cancel in bookings.js). resolveJourney printed cancellationReason as it was,
+// so an artisan read "quote_expired" (Phase 3). Each becomes the sentence the
+// server's own notification says, from the artisan's side.
+const SYSTEM_CLOSURE = {
+    quote_expired:            'The customer did not answer your quote in time, so the booking closed.',
+    no_quote_submitted:       'No quote was sent within 24 hours of the inspection, so the booking closed.',
+    inspection_not_completed: 'The inspection was not carried out in time, so the booking closed.',
+    callout_unpaid:           'The customer did not pay the visit fee in time, so the request closed.',
+    inspection_started_stale: 'The inspection was started but not completed in time, so the booking closed.',
+};
+// Placeholders the client cancel paths write when nobody typed a reason.
+const DEFAULT_REASONS = ['cancelled', 'cancelled by artisan', 'cancelled by customer', 'booking cancelled'];
+
+/** A reason a PERSON gave, or null for a default, a machine label or an automatic note. */
+function givenReason(v) {
+    const r = text(v);
+    if (!r) return null;
+    if (DEFAULT_REASONS.includes(r.toLowerCase())) return null;
+    if (/^[a-z]+(_[a-z]+)+$/.test(r) || /^auto-cancelled/i.test(r)) return null;
+    return r;
+}
+
+/**
+ * Who ended this booking and why, for the artisan — from cancelledBy and
+ * cancellationReason as the server and the two cancel paths write them. An
+ * administrator is named as Fidus X support, never by their address.
+ *
+ * @returns {null | { kind: 'completed'|'resolved'|'cancelled'|'expired', by: 'you'|'customer'|'system'|'fidusx'|null,
+ *                    label: string, sentence: string|null }}
+ */
+export function resolveClosure(booking) {
+    const b = booking || {};
+    const st = norm(b.status);
+    const by = String(b.cancelledBy || '');
+    const reasonText = text(b.cancellationReason);
+    const reason = reasonText ? reasonText.toLowerCase() : '';
+    if (st === 'completed') return { kind: 'completed', by: null, label: 'Completed', sentence: 'The customer confirmed the job.' };
+    if (st === 'resolved')  return { kind: 'resolved', by: 'fidusx', label: 'Dispute resolved', sentence: 'Support reviewed the dispute and settled it.' };
+    if (st !== 'cancelled') return null;
+    const given = givenReason(b.cancellationReason);
+    if (by === 'artisan') return { kind: 'cancelled', by: 'you', label: 'Cancelled by you', sentence: given ? `Your reason: ${given}` : null };
+    if (by === 'customer') {
+        return reason === 'quote_rejected_final'
+            ? { kind: 'cancelled', by: 'customer', label: 'Cancelled by the customer', sentence: 'The customer declined your revised quote.' }
+            : { kind: 'cancelled', by: 'customer', label: 'Cancelled by the customer', sentence: given ? `Their reason: ${given}` : null };
+    }
+    if (by === 'system') {
+        return { kind: 'expired', by: 'system', label: 'Closed automatically', sentence: SYSTEM_CLOSURE[reason] || null };
+    }
+    if (by === 'system_escrow_failure') {
+        return { kind: 'cancelled', by: 'system', label: 'Cancelled automatically', sentence: 'The customer’s payment could not be processed.' };
+    }
+    if (by.startsWith('admin')) return { kind: 'cancelled', by: 'fidusx', label: 'Cancelled by Fidus X support', sentence: null };
+    return { kind: 'cancelled', by: null, label: 'Cancelled', sentence: given };
+}
+
 // ── The journey ──────────────────────────────────────────────────────────────
 
 /**
@@ -922,11 +982,14 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
 
     // ── Dead ends first: they are not points on the journey ──────────────────
     if (st === 'cancelled' || st === 'rejected') {
+        // The artisan reads who ended it and why (resolveClosure), never a raw
+        // reason label. The customer's wording is unchanged here.
+        const closure = isCustomer ? null : resolveClosure(b);
         return {
             stageIndex, terminal: true, tone: 'ended',
-            here:   'Request closed',
-            just:   [text(b.cancellationReason), closedMoneyLine(b, opts.escrow, isCustomer, who)]
-                        .filter(Boolean).join(' ') || 'This request was cancelled.',
+            here:   closure ? closure.label : 'Request closed',
+            just:   [closure ? closure.sentence : text(b.cancellationReason), closedMoneyLine(b, opts.escrow, isCustomer, who)]
+                        .filter(Boolean).join(' ') || (closure ? `${closure.label}.` : 'This request was cancelled.'),
             next:   null,
             action: isCustomer ? { label: 'Start a new request', href: 'book-request.html' } : null,
         };

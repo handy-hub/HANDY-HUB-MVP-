@@ -107,7 +107,13 @@ export function offerView(offer, nowMs = Date.now()) {
 }
 
 // Which job needs the artisan most: on site, then travelling, then the rest.
-const JOB_RANK = { in_progress: 0, en_route: 1, inspection_done: 2, accepted: 3, inspection_scheduled: 4 };
+// Exported so Jobs orders "Needs you" exactly as Today picks its one job.
+export const JOB_RANK = Object.freeze({ in_progress: 0, en_route: 1, inspection_done: 2, accepted: 3, inspection_scheduled: 4 });
+
+/** Order placed jobs the way Today ranks them. */
+export function byJobRank(a, b) {
+    return (JOB_RANK[norm(a.booking.status)] ?? 9) - (JOB_RANK[norm(b.booking.status)] ?? 9);
+}
 
 /**
  * One job, placed: does it need the artisan now ('yours'), is it a booked slot
@@ -131,8 +137,7 @@ export function placeJob(booking, nowMs = Date.now()) {
  */
 export function resolveToday({ artisan, offers = [], bookings = [], nowMs = Date.now() } = {}) {
     const placed = bookings.map((b) => ({ booking: b, ...placeJob(b, nowMs) }));
-    const yours = placed.filter((p) => p.place === 'yours')
-        .sort((a, b) => (JOB_RANK[norm(a.booking.status)] ?? 9) - (JOB_RANK[norm(b.booking.status)] ?? 9));
+    const yours = placed.filter((p) => p.place === 'yours').sort(byJobRank);
     const waiting = placed.filter((p) => p.place === 'waiting');
     const upcoming = placed.filter((p) => p.place === 'upcoming')
         .sort((a, b) => (a.schedule.startMs ?? Infinity) - (b.schedule.startMs ?? Infinity));
