@@ -43,6 +43,7 @@
     "test:messaging-e2e": "python tests/e2e/messaging_context.py",
     "test:authz": "node tests/e2e/booking-authorization.cjs",
     "test:quote-e2e": "python tests/e2e/quote_context.py",
+    "test:jobs-e2e": "python tests/e2e/jobs_lifecycle.py",
     "test:signup-e2e": "python tests/e2e/signup_autologin.py",
     "test:messaging-realtime": "python tests/e2e/messaging_realtime.py",
     "test:scroll-memory": "python tests/e2e/scroll_memory.py",

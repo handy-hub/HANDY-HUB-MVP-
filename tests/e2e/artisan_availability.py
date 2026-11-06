@@ -139,7 +139,7 @@ with sync_playwright() as p:
     check("Today's availability control says Online (pressed)", ok and avail_state(pg)[1] == "true", str(avail_state(pg)))
     go("jobs.html")
     check("no other screen has an availability control (FLOW-008: one control)",
-          pg.query_selector("#hh-online-toggle, #toggle-status-btn, #avail-btn") is None and pg.query_selector("#fx-tabbar") is not None)
+          pg.query_selector("#hh-online-toggle, #toggle-status-btn, #avail-btn") is None and pg.query_selector("nav.fx-tabbar") is not None)
     go("dashboard.html")
 
     # ── FLOW-002: an explicit offline choice persists ─────────────────────────
