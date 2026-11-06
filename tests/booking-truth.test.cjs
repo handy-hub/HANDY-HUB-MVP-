@@ -465,9 +465,23 @@ test('handoff: a missing description is explicit, not a blank', () => {
     assert.strictEqual(T.resolveJobBrief({ ...full, description: '' }).problem, null);
 });
 
-test('handoff: the customer is named, not labelled "Customer"', () => {
-    assert.strictEqual(T.resolveJobBrief(full).customer.name, 'Ama');
-    assert.strictEqual(T.resolveJobBrief({ ...full, customerFirstName: null }).customer.name, null);
+test('handoff: once accepted, the customer is named, not labelled "Customer"', () => {
+    const accepted = { ...full, status: 'accepted', calloutPaid: true };
+    assert.strictEqual(T.resolveJobBrief(accepted).customer.name, 'Ama');
+    assert.strictEqual(T.resolveJobBrief({ ...accepted, customerFirstName: null }).customer.name, null);
+});
+
+test('privacy: an unaccepted offer names nobody (Phase 2: no identifying information before acceptance)', () => {
+    assert.strictEqual(T.resolveJobBrief(full).customer.name, null, 'a pending request');
+    assert.strictEqual(T.resolveJobBrief({ ...full, status: 'dispatched' }).customer.name, null);
+    // The offer summary an artisan reads before accepting (functions/jobOffers.js buildOfferDoc).
+    const offerDoc = { bookingId: 'b1', status: 'pending', offerStatus: 'open', customerFirstName: 'Ama',
+                       serviceType: 'plumbing', locationApproximate: true, distanceKm: 2.1, lat: 5.61, lng: -0.18 };
+    const brief = T.resolveJobBrief(offerDoc);
+    assert.strictEqual(brief.customer.name, null);
+    assert.strictEqual(brief.location.address, null);
+    assert.strictEqual(brief.location.lat, null);
+    assert.strictEqual(brief.location.mapUrl, null);
 });
 
 test('handoff: photos reach the artisan — 0, 1 and many', () => {
@@ -613,7 +627,7 @@ test('privacy: the phone is withheld until the artisan has committed', () => {
 });
 
 test('privacy: only the first name is carried, never a full name', () => {
-    const j = T.resolveJobBrief({ ...full, customerFirstName: 'Ama', customerFullName: 'Ama Serwaa Boateng' });
+    const j = T.resolveJobBrief({ ...full, status: 'accepted', calloutPaid: true, customerFirstName: 'Ama', customerFullName: 'Ama Serwaa Boateng' });
     assert.strictEqual(j.customer.name, 'Ama');
 });
 

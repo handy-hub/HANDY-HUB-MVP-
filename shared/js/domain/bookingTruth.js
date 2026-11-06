@@ -686,7 +686,12 @@ export function resolveJobBrief(booking, { originLat = null, originLng = null, e
         notes:   text(b.notes),
 
         customer: {
-            name: customer.name,
+            // Not before the artisan accepts: an unaccepted offer carries no
+            // identifying information on any artisan screen (Phase 2). The offer
+            // document itself still carries customerFirstName server-side
+            // (functions/jobOffers.js OFFER_FIELDS) — hiding it here is the
+            // screen's half only; removing it is a backend decision.
+            name: phase === JOB_PHASE.REQUEST ? null : customer.name,
             // null when withheld — the UI shows no contact affordance at all
             // rather than a dead button.
             phone: contactUnlocked ? customer.phone : null,
