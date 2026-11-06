@@ -1,0 +1,15 @@
+/* artisan-app/css/fx/jobs.css — the Jobs screen (Phase 3). Tokens only (npm run lint:fx). */
+
+/* The views and the history filter, under the app bar. */
+.fx-jobs__views { padding: var(--fx-space-3) var(--fx-gutter) var(--fx-space-0); display: grid; gap: var(--fx-space-2); }
+.fx-jobs__notices { padding: var(--fx-space-3) var(--fx-gutter) var(--fx-space-0); }
+.fx-jobs__notices:empty { display: none; }
+
+/* A row's status and its next step, on one line that wraps. */
+.fx-jobs__line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--fx-space-1) var(--fx-space-2); margin-top: var(--fx-space-1); }
+.fx-jobs__next { font: var(--fx-t-label); color: var(--fx-accent-text); }
+.fx-jobs__left { font: var(--fx-t-meta); color: var(--fx-ink-2); white-space: nowrap; }
+
+.fx-jobs__sect { margin-top: var(--fx-space-5); }
+.fx-jobs__empty { padding: var(--fx-space-8) var(--fx-gutter) var(--fx-space-0); }
+.fx-jobs__more { padding-top: var(--fx-space-4); }

@@ -365,8 +365,9 @@ await t('a VALID expired quote still follows the agreed rule (callout to the art
     assert.strictEqual(esc().status, 'released');
 });
 
-await t('both quote composers use the shared validator, not parseFloat(...) || 0', () => {
-    for (const rel of ['shared/js/ui/quoteComposer.js', 'artisan-app/jobs.html']) {
+await t('the quote composer uses the shared validator, not parseFloat(...) || 0 (Phase 3: one composer)', () => {
+    assert.ok(!/validateQuoteInput|submitJobQuote/.test(read('artisan-app/jobs.html')), 'a second composer is back on Jobs');
+    for (const rel of ['shared/js/ui/quoteComposer.js']) {
         const src = read(rel);
         assert.match(src, /validateQuoteInput\(/, rel);
         assert.ok(!/parseFloat\([^)]*\)\s*\|\|\s*0/.test(src.slice(src.indexOf('validateQuoteInput'))), `${rel} still coerces`);

@@ -250,12 +250,11 @@ await t('the artisan journey copy names the arrival step', () => {
 
 console.log('\n── The artisan screens draw the domain rule ──\n');
 
-await t('jobs.html takes inspection steps from artisanInspectionStep', () => {
-    const src = fs.readFileSync(path.join(ROOT, 'artisan-app', 'jobs.html'), 'utf8');
-    assert.match(src, /import \{[^}]*artisanInspectionStep[^}]*\}\s*from '\.\.\/shared\/js\/domain\/bookingStatusMeta\.js'/);
-    assert.match(src, /artisanInspectionStep\(/);
-    assert.strictEqual((src.match(/onclick="completeInspectionJob\(/g) || []).length, 1,
-        'jobs.html must render Complete Inspection from exactly one (step-driven) branch');
+await t('Jobs (Phase 3) names the step resolveJourney names, and runs none itself', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'artisan-app', 'jobs.html'), 'utf8') +
+                fs.readFileSync(path.join(ROOT, 'artisan-app', 'js', 'jobsScreen.js'), 'utf8');
+    assert.ok(!/completeInspection|artisanInspectionStep/.test(src), 'Jobs completes inspections itself');
+    // The step a row names (and the job screen runs) agrees with artisanInspectionStep — the check below.
 });
 
 // Today (Phase 2) draws resolveJourney's step, Jobs draws artisanInspectionStep:

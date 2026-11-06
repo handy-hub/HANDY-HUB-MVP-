@@ -47,7 +47,7 @@
   <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
   <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-body" tabindex="-1">
     <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="confirm-title"></h2></header>
-    <div class="fx-sheet__body"><p class="fx-body" id="confirm-body"></p></div>
+    <div class="fx-sheet__body fx-stack"><p class="fx-body" id="confirm-body"></p><ul class="fx-job__terms" id="confirm-list" hidden></ul></div>
     <footer class="fx-sheet__actions">
       <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close data-autofocus>Go back</button>
       <button class="fx-btn fx-btn--l" type="button" data-confirm></button>
@@ -63,7 +63,7 @@ import { jobPlan, renderJob, renderMessage, paintCountdown } from './js/jobScree
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
 import { getAppContainer }  from '../shared/js/app/container.js';
 import { resolveJobBrief }  from '../shared/js/domain/bookingTruth.js';
-import { performBookingAction, ACTION }
+import { performBookingAction, ACTION, cancellationTerms }
                             from '../shared/js/domain/bookingActions.js';
 import { pricingService }   from '../shared/js/services/pricingService.js';
 import { mountQuoteComposer, quoteComposerStyles }
@@ -160,18 +160,25 @@ const RUN = {
   'complete-inspection': { inspection: true, ok: 'Inspection complete. Send your quote next.' },
   'job-done': { action: ACTION.JOB_DONE, ok: 'Marked done. Waiting for the customer to confirm.' },
   // Offered only where artisanCanCancel says the server accepts it.
+  // What it does is listed before the artisan confirms: the server's own
+  // consequences for THIS booking (bookingActions.cancellationTerms).
   'cancel':   { action: ACTION.CANCEL,   ok: 'Job cancelled. The customer has been told.',
-                confirm: { title: 'Cancel this job?', body: 'The customer is told and the job ends. This cannot be undone.', label: 'Cancel job', danger: true } },
+                confirm: (b) => ({ title: 'Cancel this job?', body: 'This cannot be undone.',
+                                   list: cancellationTerms(b).consequences || [], label: 'Cancel job', danger: true }) },
   // Approved work, travel or a dispute: Support, with this booking's reference.
   'help':     { href: () => `support.html?bookingId=${encodeURIComponent(BOOKING_ID)}` },
   'earnings': { href: () => 'wallet.html' },
 };
 
-function confirmIn({ title, body, label, danger }) {
+function confirmIn({ title, body, label, danger, list = [] }) {
   return new Promise((resolve) => {
     const overlay = $('confirm-sheet');
     $('confirm-title').textContent = title;
     $('confirm-body').textContent = body;
+    const ul = $('confirm-list');
+    ul.textContent = '';
+    for (const line of list) { const li = document.createElement('li'); li.textContent = line; ul.appendChild(li); }
+    ul.hidden = !list.length;
     const btn = overlay.querySelector('[data-confirm]');
     btn.textContent = label;
     btn.className = `fx-btn fx-btn--l ${danger ? 'fx-btn--danger' : 'fx-btn--primary'}`;
@@ -185,7 +192,8 @@ function confirmIn({ title, body, label, danger }) {
 async function run(spec) {
   if (_busy) return;                       // duplicate taps do nothing
   if (spec.href) { location.href = spec.href(); return; }
-  if (spec.confirm && !(await confirmIn(spec.confirm))) return;
+  const ask = typeof spec.confirm === 'function' ? spec.confirm(_booking) : spec.confirm;
+  if (ask && !(await confirmIn(ask))) return;
 
   _busy = spec.action === ACTION.ACCEPT ? 'accept' : spec.action === ACTION.DECLINE ? 'decline' : 'step';
   render(_booking);

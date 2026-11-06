@@ -101,13 +101,18 @@ await t('documents are stripped exactly as before', () => {
     view.destroy();
 });
 
-await t("Today's offer and booking caches strip identity, contact and location", () => {
-    const dash = fs.readFileSync(path.join(ROOT, 'artisan-app', 'dashboard.html'), 'utf8');
-    assert.match(dash, /key: 'artisan-dashboard-offers',[\s\S]*?stripFields: \['customerFirstName', 'lat', 'lng'\],/);
-    const active = dash.slice(dash.indexOf("key: 'artisan-dashboard-active'"));
-    const fields = active.match(/stripFields: \[([\s\S]*?)\]/)[1];
-    for (const f of ['customerPhone', 'customerName', 'customerFirstName', 'customerEmail', 'address', 'lat', 'lng', 'notes']) {
-        assert.ok(fields.includes(`'${f}'`), `${f} is cached`);
+await t("Today's and Jobs' caches strip identity, contact and location (one definition, js/artisanLists.js)", async () => {
+    const lists = await import(pathToFileURL(path.join(ROOT, 'artisan-app', 'js', 'artisanLists.js')).href);
+    assert.deepStrictEqual([...lists.OFFERS_LIST.stripFields], ['customerFirstName', 'lat', 'lng']);
+    for (const L of [lists.ACTIVE_LIST, lists.HISTORY_LIST]) {
+        for (const f of ['customerPhone', 'customerName', 'customerFirstName', 'customerEmail', 'address', 'lat', 'lng', 'notes']) {
+            assert.ok(L.stripFields.includes(f), `${L.key}: ${f} is cached`);
+        }
+    }
+    for (const f of ['artisan-app/dashboard.html', 'artisan-app/jobs.html']) {
+        const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+        assert.match(src, /stripFields: \[\.\.\.ACTIVE_LIST\.stripFields\]/, f);
+        assert.match(src, /stripFields: \[\.\.\.OFFERS_LIST\.stripFields\]/, f);
     }
 });
 

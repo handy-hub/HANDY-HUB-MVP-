@@ -13,7 +13,7 @@ from a server at the repo root (`python -m http.server 8791`, then
 | `artisan-app/js/fx/sheet.js` | Bottom-sheet behaviour: modal, focus trap, Escape, focus return. |
 | `artisan-app/js/fx/toast.js` | Toasts in a live region. |
 | `artisan-app/js/fx/controls.js` | Segmented control, countdown, the four-tab bar. |
-| `artisan-app/css/fx/today.css`, `job.css` | The Today and job screens (Phase 2). |
+| `artisan-app/css/fx/today.css`, `job.css`, `jobs.css` | The Today and job screens (Phase 2) and Jobs (Phase 3). Today and Jobs share their live lists through `artisan-app/js/artisanLists.js`. |
 | `artisan-app/css/fx/legacy-shell.css` | The tab bar on screens not yet migrated: fixed to the bottom, with room under the content. Injected only by `js/artisanFloatingNav.js`; holds the system's one documented exception (legacy `ui-polish.css` forces body padding with `!important`). Delete with the last legacy screen. |
 | `scripts/check-fx-design-system.cjs` | The gate (`npm run lint:fx`, part of `npm run lint`). |
 | `tests/fx-design-system.test.cjs` | Tokens, contrast, the gate itself, pure behaviour. |

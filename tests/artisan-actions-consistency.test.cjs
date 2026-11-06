@@ -239,8 +239,12 @@ await t('Today (dashboard.html): every step comes from resolveJourney; Submit Qu
     assert.match(view, /const op = a && JOB_OPS\[a\.op\];/, 'the dock draws only a known op, from journey.action');
     assert.deepStrictEqual([...view.matchAll(/^    (\w+):\s+\{ (?:act|href)/gm)].map((m) => m[1]),
         ['enRoute', 'arrived', 'completeInspection', 'markDone', 'submitQuote']);
-    assert.match(view, /submitQuote:\s+\{ href: \(id\) => `jobs\.html\?quote=\$\{encodeURIComponent\(id\)\}` \}/);
-    assert.match(page('jobs.html'), /if \(needsQuoteBeforeTravel\(b\) \|\| needsQuoteOnSite\(b\)\)/, 'jobs list: the same two answers');
+    // Phase 3: the quote composer is inline on the job screen; Today links there.
+    assert.match(view, /submitQuote:\s+\{ href: \(id\) => `job\.html\?id=\$\{encodeURIComponent\(id\)\}` \}/);
+    // Jobs lists the same step resolveJourney names (artisanJobs.jobRow → journey.action), and acts on none of them.
+    const jobs = page('jobs.html') + page('js/jobsScreen.js');
+    assert.match(fs.readFileSync(path.join(ROOT, 'shared', 'js', 'domain', 'artisanJobs.js'), 'utf8'), /next: p\.place === 'yours' && p\.journey\.action \? p\.journey\.action\.label : null,/);
+    assert.doesNotMatch(jobs, /performBookingAction|needsQuoteBeforeTravel|artisanInspectionStep|NEXT_ACTION/, 'Jobs runs no lifecycle of its own');
 });
 
 await t('support.html: a booking reference from the job screen is validated before it is pre-filled', () => {

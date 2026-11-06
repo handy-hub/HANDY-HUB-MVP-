@@ -348,11 +348,14 @@ await t('an inspection booking keeps the customer\'s phone OFF the booking', asy
 });
 
 await t('the artisan screens read offers from job_offers and the phone from private/contact', () => {
-    const dash = read('artisan-app/dashboard.html');
-    assert.match(dash, /'job_offers',\s*\[\{ field: 'artisanId', op: '==', value: uid \}, \{ field: 'offerStatus', op: '==', value: 'open' \}\]/);
-    const jobs = read('artisan-app/jobs.html');
-    assert.match(jobs, /'job_offers',/);
-    assert.match(jobs, /getDocument\(`bookings\/\$\{j\.id\}\/private`, 'contact'\)/);
+    // Today and Jobs share one definition of the offer list (Phase 3).
+    const lists = read('artisan-app/js/artisanLists.js');
+    assert.match(lists, /'job_offers',\s*\[\{ field: 'artisanId', op: '==', value: uid \}, \{ field: 'offerStatus', op: '==', value: 'open' \}\]/);
+    for (const f of ['artisan-app/dashboard.html', 'artisan-app/jobs.html']) {
+        assert.match(read(f), /databaseService\.subscribeToCollection\(\.\.\.offersQuery\(uid\), liveList\(onData\), onError\)/, f);
+    }
+    // Jobs rows show no phone, so Jobs reads no private/contact (the job screen does, below).
+    assert.doesNotMatch(read('artisan-app/jobs.html'), /private`, 'contact'|private\/contact'/);
     const job = read('artisan-app/job.html');
     assert.match(job, /subscribeToDocument\('job_offers', BOOKING_ID/);
     assert.match(job, /getDocument\(`bookings\/\$\{BOOKING_ID\}\/private`, 'contact'\)/);

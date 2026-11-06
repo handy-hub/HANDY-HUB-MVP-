@@ -46,3 +46,6 @@
 /* Inputs had no boundary until focused (WCAG 1.4.11). */
 .fx-job__quote .qc-input,
 .fx-job__quote .qc-note { border-color: var(--fx-edge); }
+
+/* The consequences listed before an artisan confirms a cancellation. */
+.fx-job__terms { margin: var(--fx-space-0); padding-left: var(--fx-space-5); display: grid; gap: var(--fx-space-2); font: var(--fx-t-body); color: var(--fx-ink-2); }

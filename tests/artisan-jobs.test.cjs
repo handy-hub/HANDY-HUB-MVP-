@@ -198,6 +198,13 @@ await t('needs you · waiting · on hold · upcoming · history, each where Toda
 await t('a booking in both the live list and a history page is listed once', () => {
     const g = groupJobs([bk('d', 'completed'), bk('d', 'completed'), bk('x', 'en_route')], NOW);
     assert.strictEqual(g.history.length + g.needsYou.length, 2);
+    // It just completed: the cached live copy says in progress, the history page says completed.
+    const stale = bk('j', 'in_progress', { quoteApproved: true, updatedAt: new Date(NOW - 3_600_000).toISOString() });
+    const fresh = bk('j', 'completed', { quoteApproved: true, updatedAt: new Date(NOW - 60_000).toISOString() });
+    for (const order of [[stale, fresh], [fresh, stale]]) {
+        const h = groupJobs(order, NOW);
+        assert.deepStrictEqual([h.needsYou.length, h.history.map((p) => p.booking.status)], [0, ['completed']], 'the newest version wins');
+    }
 });
 
 await t('history filters: completed, cancelled (anyone, or automatic), all', () => {

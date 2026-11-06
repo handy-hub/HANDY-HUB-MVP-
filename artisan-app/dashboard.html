@@ -107,6 +107,7 @@ import { getDevStateKey }            from '../shared/dev/artisanDevSession.js';
 import { pricingService }                              from '../shared/js/services/pricingService.js';
 import { performBookingAction, ACTION }                from '../shared/js/domain/bookingActions.js';
 import { resolveToday, TODAY_MODE }                    from '../shared/js/domain/artisanToday.js';
+import { ACTIVE_LIST, activeQuery, OFFERS_LIST, offersQuery } from './js/artisanLists.js';
 import { offerState, formatTimeLeft, createOfferWatcher } from '../shared/js/domain/jobOffers.js';
 import { getPushState, enablePushNotifications }       from '../shared/js/services/pushNotificationService.js';
 import { describePushState }                          from '../shared/js/services/pushState.js';
@@ -635,8 +636,9 @@ subscribeToArtisanAuthState(async user => {
   // An offered artisan reads the offer summary (job_offers/{bookingId}) — never
   // the booking, which opens to them only once they accept (functions/jobOffers.js).
   unsubs.push(mountInstantView({
-    key: 'artisan-dashboard-offers',
-    version: 1,
+    // The same list, key and cache as Jobs (js/artisanLists.js).
+    key: OFFERS_LIST.key,
+    version: OFFERS_LIST.version,
     render: (records, { fromCache }) => {
       // A cached offer whose deadline has passed is dropped; it cannot be answered.
       _offers = fromCache ? records.filter((r) => !offerState(r.data).expired) : records;
@@ -648,14 +650,10 @@ subscribeToArtisanAuthState(async user => {
       _offerWatcher.next(records.map(r => r.id))
         .forEach(fid => alertNewOffer(records.find(r => r.id === fid)));
     },
-    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(
-      'job_offers',
-      [{ field: 'artisanId', op: '==', value: uid }, { field: 'offerStatus', op: '==', value: 'open' }],
-      { limit: 5 },
-      liveList(onData), onError),
+    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(...offersQuery(uid), liveList(onData), onError),
     onError: () => { showConnectionNotice(); _offersReady = true; paint(); },
     // Today never shows who or where an offer is from: neither is cached.
-    stripFields: ['customerFirstName', 'lat', 'lng'],
+    stripFields: [...OFFERS_LIST.stripFields],
   }).destroy);
 
   // ── This artisan's bookings that are still going ─────────────────────────
@@ -663,21 +661,15 @@ subscribeToArtisanAuthState(async user => {
   // and the booked slots still to come (artisanToday.placeJob). A disputed
   // booking is included so it reads "In dispute", not missing.
   unsubs.push(mountInstantView({
-    key: 'artisan-dashboard-active',
-    version: 1,
+    // The same list, key and cache as Jobs (js/artisanLists.js).
+    key: ACTIVE_LIST.key,
+    version: ACTIVE_LIST.version,
     render: (records) => { _bookings = records; _bookingsReady = true; paint(); },
-    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(
-      'bookings',
-      [{ field: 'artisanId', op: '==', value: uid },
-       { field: 'status',    op: 'in', value: ['accepted', 'en_route', 'in_progress', 'awaiting',
-                                               'inspection_scheduled', 'inspection_done', 'quoted', 'disputed'] }],
-      { orderBy: { field: 'updatedAt', direction: 'desc' }, limit: 20 },
-      liveList(onData), onError),
+    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(...activeQuery(uid), liveList(onData), onError),
     onError: () => { showConnectionNotice(); _bookingsReady = true; paint(); },
     // Today draws a job's step, never the customer's contact details or
     // address (the job screen loads those live): they stay out of storage.
-    stripFields: ['customerPhone', 'customerName', 'customerFullName', 'customerFirstName', 'customerEmail',
-                  'customerId', 'address', 'lat', 'lng', 'notes'],
+    stripFields: [...ACTIVE_LIST.stripFields],
   }).destroy);
 });
 

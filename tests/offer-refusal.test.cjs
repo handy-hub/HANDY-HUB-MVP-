@@ -258,7 +258,8 @@ await t('Today never draws an offer that cannot be answered: expired and refused
 
 await t('every other screen draws a lapsed offer with the shared look on BOTH answers', () => {
     const d = code(SCREENS.dashboard), j = code(SCREENS.jobs), o = code(SCREENS.job);
-    assert.match(j, /<button class="job-btn job-btn-accept" \$\{LAPSED_OFFER_ATTRS\}>\$\{LAPSED_OFFER_LABEL\}<\/button>\s*<button class="job-btn job-btn-decline" \$\{LAPSED_OFFER_ATTRS\}>Decline<\/button>/);
+    // Jobs (Phase 3) answers no offer: it lists the open ones and opens the job screen.
+    assert.doesNotMatch(j + read('artisan-app/js/jobsScreen.js'), /data-act="(accept|decline)"|performBookingAction|LAPSED_OFFER/);
     // The job screen is on the design system: the shared lapsed state without
     // the inline style (LAPSED_OFFER_STATE_ATTRS; .fx-btn:disabled is the look).
     const jobView = read('artisan-app/js/jobScreen.js');
@@ -270,7 +271,8 @@ await t('every other screen draws a lapsed offer with the shared look on BOTH an
 
 await t('a lapsed render covers both the clock and a server refusal, on every screen', () => {
     // Today: the clock through offerState (answerable), a refusal through _goneOffers — above.
-    assert.match(code(SCREENS.jobs), /\(offer\.expired \|\| _goneOffers\.has\(b\.id\)\)/);
+    // Jobs: an expired offer is not listed (offerView.answerable).
+    assert.match(read('artisan-app/js/jobsScreen.js'), /\.filter\(\(v\) => v\.answerable\)/);
     assert.match(read('artisan-app/js/jobScreen.js'), /const lapsed = !offer\.answerable \|\| offerGone;/);
     assert.match(code(SCREENS.job), /const plan = jobPlan\(b, \{ offerGone: _offerGone \}\);/);
 });
@@ -288,15 +290,8 @@ await t('Today: offerGone takes the offer off the screen for good, before anythi
     assert.doesNotMatch(d, /Accept Job/, 'the restore label that did not match the card');
 });
 
-await t('jobs list: offerGone retires the card and returns BEFORE any button is restored; icon kept otherwise', () => {
-    const j = code(SCREENS.jobs);
-    const fn = j.slice(j.indexOf('async function runTransition'), j.indexOf('// The dashboard\'s rule') > 0 ? j.indexOf('const NEEDS_ONBOARDING') : undefined);
-    const gone = fn.indexOf('if (res.offerGone) { markOfferGone(bookingId); return; }');
-    const restore = fn.indexOf('btn.disabled = false');
-    assert.ok(gone > 0 && gone < restore, 'offerGone is handled first');
-    assert.match(fn, /const orig = btn \? btn\.innerHTML : '';/);
-    assert.doesNotMatch(fn, /btn\.textContent = orig/, 'textContent dropped the Accept icon');
-    assert.match(j, /lapseOfferButtons\(card\.querySelector\('\.job-btn-accept'\), card\.querySelector\('\.job-btn-decline'\)\)/);
+await t('Jobs (Phase 3): an offer row opens the job screen, which answers it (and handles offerGone, below)', () => {
+    assert.match(read('artisan-app/js/jobsScreen.js'), /<a class="fx-row fx-jobs__row" href="\$\{jobHref\(v\.id\)\}" data-offer="\$\{esc\(v\.id\)\}">/);
 });
 
 await t('job screen: offerGone redraws it lapsed and the finally never re-enables an answer', () => {
@@ -319,8 +314,8 @@ await t('one countdown source: every screen ticks from offerState / formatTimeLe
     assert.match(d, /function startOfferTicker\(\) \{\s*if \(_offerTicker\) return;/);
     assert.strictEqual((d.match(/setInterval\(tickOfferCards/g) || []).length, 1);
     assert.match(d, /addEventListener\('pagehide', \(\) => \{[\s\S]{0,120}clearInterval\(_offerTicker\)/);
-    assert.match(j, /const _offerTicker = setInterval\(/);
-    assert.match(j, /addEventListener\('pagehide', \(\) => \{[\s\S]{0,120}clearInterval\(_offerTicker\)/);
+    assert.strictEqual((j.match(/setInterval\(\(\) => \{\s*if \(tickOffers/g) || []).length, 1, 'Jobs: one ticker');
+    assert.match(j, /addEventListener\('pagehide', \(\) => \{[\s\S]{0,120}clearInterval\(_ticker\)/);
     assert.match(o, /clearInterval\(_offerTick\); _offerTick = null;/);
     assert.match(o, /addEventListener\('pagehide'[^\n]*clearInterval\(_offerTick\)/);
 });
@@ -331,14 +326,9 @@ await t('the countdown boundary is offerState\'s: open 1 ms before, lapsed AT ex
     assert.strictEqual(OFFERS.formatTimeLeft(OFFERS.offerState({ expiresAtMs: EXP }, EXP - 1).secondsLeft), '0s');
 });
 
-await t('jobs list: onboarding only on a LIVE profile that needs verification (the dashboard\'s rule)', () => {
-    const j = code(SCREENS.jobs);
-    assert.match(j, /function onboardingWarranted\(\) \{\s*return _profileLive && !!_currentArtisan &&/);
-    assert.match(j, /const NEEDS_ONBOARDING = \['', 'draft', 'rejected', 're_verification_required'\];/);
-    const accept = j.slice(j.indexOf('window.acceptJob'), j.indexOf('window.declineJob'));
-    assert.match(accept, /if \(onboardingWarranted\(\)\) \{[^}]*onboarding\.html/);
-    assert.doesNotMatch(accept, /if \(_currentArtisan && \[/, 'the old rule: a {} or cached profile went to onboarding');
-    assert.match(j, /_profileLive = true;/);
+await t('Jobs (Phase 3) accepts nothing, so it never routes to onboarding; Today keeps the live-profile rule', () => {
+    assert.doesNotMatch(code(SCREENS.jobs), /onboarding\.html|acceptJob|onboardingWarranted/);
+    assert.match(code(SCREENS.dashboard), /function onboardingWarranted\(\) \{\s*return _profileLive && !!_currentArtisan &&/);
 });
 
 console.log(`\noffer-refusal: ${passed} passed, ${failed} failed`);

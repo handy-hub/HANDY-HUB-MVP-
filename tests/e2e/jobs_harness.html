@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Jobs harness (tests only)</title>
+</head>
+<body class="fx-app">
+<!--
+  tests/e2e/artisan_jobs.py loads this. It takes the REAL artisan-app/jobs.html
+  markup and stylesheets (scripts removed) and draws resolveToday() states into it
+  through the real artisan-app/js/jobsScreen.js, with a fixed clock. No Firebase.
+-->
+<script type="module">
+  const res = await fetch('/artisan-app/jobs.html');
+  const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+  const base = new URL('/artisan-app/', location.origin);
+  await Promise.all([...doc.querySelectorAll('head link[rel="stylesheet"]')]
+    .filter((l) => !/^https?:/.test(l.getAttribute('href')))
+    .map((l) => new Promise((ok) => {
+      const n = document.createElement('link');
+      n.rel = 'stylesheet'; n.href = new URL(l.getAttribute('href'), base).href;
+      n.onload = n.onerror = ok; document.head.appendChild(n);
+    })));
+  for (const s of doc.body.querySelectorAll('script')) s.remove();
+  document.body.className = doc.body.className;
+  document.body.prepend(...[...doc.body.childNodes].map((n) => document.importNode(n, true)));
+
+  const { icon } = await import('/artisan-app/js/fx/icons.js');
+  const { renderTabbar } = await import('/artisan-app/js/fx/controls.js');
+  const screen = await import('/artisan-app/js/jobsScreen.js');
+  for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon);
+  renderTabbar(document.getElementById('tabbar'), { current: 'jobs' });
+  const dom = { views: document.getElementById('jobs-views'), filters: document.getElementById('jobs-filters'),
+                list: document.getElementById('jobs-list'), sub: document.getElementById('jobs-sub') };
+  window.__jobs = {
+    show(spec) {
+      const m = screen.jobsModel({ view: spec.view, filter: spec.filter || 'all', active: spec.active || [], history: spec.history || [],
+                                   offers: spec.offers || [], nowMs: spec.nowMs, origin: spec.origin || {} });
+      screen.renderJobs(dom, m, { nowMs: spec.nowMs, ready: spec.ready || { active: true, history: true }, more: spec.more || { can: false } });
+      return { counts: m.counts };
+    },
+    tick(nowMs) { return screen.tickOffers(dom.list, nowMs); },
+  };
+  document.documentElement.dataset.ready = 'true';
+</script>
+</body>
+</html>

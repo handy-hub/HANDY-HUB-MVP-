@@ -25,8 +25,8 @@ export const JOB_OPS = Object.freeze({
     arrived:            { act: 'job-arrived',   busy: 'Updating…' },
     completeInspection: { act: 'job-inspected', busy: 'Updating…' },
     markDone:           { act: 'job-done',      busy: 'Updating…' },
-    // The quote composer lives on Jobs (jobs.html reads ?quote=): a link, not a write.
-    submitQuote:        { href: (id) => `jobs.html?quote=${encodeURIComponent(id)}` },
+    // The quote composer is mounted inline on the job screen: a link, not a write.
+    submitQuote:        { href: (id) => `job.html?id=${encodeURIComponent(id)}` },
 });
 
 // The KYC copy the dashboard has always shown, one answer per state (COPY-KYC).

@@ -2,1149 +2,302 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
   <title>My Jobs | Fidus X Artisan</title>
-  <link rel="stylesheet" href="css/design-system.css" />
-  <link rel="stylesheet" href="css/dashboard.css" />
+  <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
-  <link rel="stylesheet" href="../shared/css/components/tabs.css" />
-  <!-- One colour per status tone, shared with the dashboard (UI-003). -->
-  <link rel="stylesheet" href="../shared/css/components/booking-pill.css" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <style>
-    /* jobs.html — unified to the design system (artisan-app/css/design-system.css).
-       Class names preserved so the card-building JS is untouched; only the visual
-       language changes: --ds-* tokens, 3-tier radii, hairline borders over shadows,
-       artisan orange accent, neutral avatar (was a hardcoded customer-red gradient). */
-    .jobs-shell { max-width: var(--ds-shell); margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; background: var(--ds-bg); }
-    .jobs-header { background: var(--ds-surface); padding: var(--ds-3) var(--ds-gutter) 0; border-bottom: 1px solid var(--ds-line); flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
-    .jobs-header-row { display: flex; align-items: center; gap: var(--ds-3); margin-bottom: var(--ds-3); }
-    /* The four tabs (with their counts) scrolled sideways with no visible
-       scrollbar, so on phones up to ~420px the last tab was cut off unseen
-       (audit RESP-001). They wrap onto a second row instead — only when they
-       do not fit, so wide screens are unchanged. */
-    .jobs-header .ui-tabs { flex-wrap: wrap; overflow-x: visible; row-gap: var(--ds-2); }
-    .jobs-back { width: 40px; height: 40px; border: 1px solid var(--ds-line); background: var(--ds-surface); border-radius: var(--ds-r-control); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-    .jobs-back svg { stroke: var(--ds-ink-2); }
-    .jobs-title { font: 800 18px/1.2 var(--ds-font); letter-spacing: -0.3px; color: var(--ds-ink); flex: 1; }
-    .jobs-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    .jobs-panel { display: none; padding: var(--ds-4) var(--ds-gutter); }
-    .jobs-panel.active { display: block; }
-
-    /* ── Job card ── */
-    .job-card { background: var(--ds-surface); border: 1px solid var(--ds-line); border-radius: var(--ds-r-card); margin-bottom: var(--ds-3); padding: var(--ds-4); }
-    .job-card-top { display: flex; align-items: flex-start; gap: var(--ds-3); margin-bottom: var(--ds-3); }
-    .job-av { width: 44px; height: 44px; border-radius: var(--ds-r-control); background: var(--ds-brand-50); display: flex; align-items: center; justify-content: center; color: var(--ds-brand-600); font: 800 16px/1 var(--ds-font); flex-shrink: 0; overflow: hidden; }
-    .job-av img { width: 100%; height: 100%; object-fit: cover; }
-    .job-info { flex: 1; min-width: 0; }
-    .job-service { font: 800 14px/1.3 var(--ds-font); color: var(--ds-ink); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .job-customer { font: 500 12px/1.3 var(--ds-font); color: var(--ds-ink-2); margin: 0 0 4px; }
-    .job-meta { display: flex; gap: var(--ds-2); flex-wrap: wrap; }
-    .job-meta-item { display: flex; align-items: center; gap: 4px; font: 500 11px/1.3 var(--ds-font); color: var(--ds-ink-3); }
-    .job-right { display: flex; flex-direction: column; align-items: flex-end; gap: var(--ds-2); flex-shrink: 0; }
-
-    /* ── Job brief: the customer's information, carried to the artisan ────── */
-    .job-muted { color: var(--ds-ink-3); font-style: italic; }
-    .job-phase { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;
-      font: 500 11.5px/1.4 var(--ds-font); color: var(--ds-ink-2);
-      margin: 0 0 var(--ds-3); padding-bottom: var(--ds-3); border-bottom: 1px solid var(--ds-line); }
-    .job-phase-cycle { font: 800 10px/1 var(--ds-font); letter-spacing: .08em; text-transform: uppercase;
-      color: var(--ds-brand-600); background: var(--ds-brand-50); border-radius: var(--ds-r-control); padding: 3px 6px; }
-    .job-brief-block { margin-bottom: var(--ds-3); }
-    .job-brief-label { font: 700 10.5px/1 var(--ds-font); letter-spacing: .07em; text-transform: uppercase;
-      color: var(--ds-ink-3); margin: 0 0 5px; }
-    .job-problem { font: 400 13px/1.5 var(--ds-font); color: var(--ds-ink); margin: 0;
-      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    .job-problem.is-open { -webkit-line-clamp: unset; overflow: visible; }
-    .job-address { font: 500 13px/1.45 var(--ds-font); color: var(--ds-ink); margin: 0; overflow-wrap: anywhere; }
-    .job-warn { font: 500 11px/1.4 var(--ds-font); color: #9a6b00; margin: 4px 0 0; }
-    .job-linkbtn { display: inline-block; background: none; border: 1px solid var(--ds-line);
-      border-radius: var(--ds-r-control); padding: 6px 12px; margin-top: 6px;
-      font: 700 12px/1 var(--ds-font); color: var(--ds-brand-600); cursor: pointer; text-decoration: none; }
-    .job-linkbtn--strong { background: var(--ds-brand-600); color: #fff; border-color: var(--ds-brand-600); }
-    .job-brief-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-    .job-photos { display: flex; gap: 8px; flex-wrap: wrap; }
-    .job-photo { width: 64px; height: 64px; border-radius: var(--ds-r-control); overflow: hidden;
-      border: 1px solid var(--ds-line); padding: 0; background: var(--ds-surface-2, #f4f4f4); cursor: pointer; }
-    .job-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    /* A broken image must not make the job unusable — the tile degrades to a label. */
-    .job-photo--broken { position: relative; }
-    .job-photo--broken img { display: none; }
-    .job-photo--broken::after { content: 'Photo unavailable'; position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center; text-align: center;
-      font: 500 9px/1.2 var(--ds-font); color: var(--ds-ink-3); padding: 4px; }
-    .job-brief-block--pay { background: var(--ds-brand-50); border-radius: var(--ds-r-control); padding: 10px 12px; }
-    .job-pay { font: 800 15px/1.2 var(--ds-font); color: var(--ds-ink); margin: 0;
-      font-variant-numeric: tabular-nums; }
-    .job-pay-cond { font: 700 9.5px/1 var(--ds-font); letter-spacing: .06em; text-transform: uppercase;
-      color: #9a6b00; background: #fff3d6; border-radius: var(--ds-r-control); padding: 3px 5px; vertical-align: middle; }
-    .job-paynote { font: 400 11px/1.45 var(--ds-font); color: var(--ds-ink-2); margin: 4px 0 0; }
-    /* Photo lightbox */
-    .job-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 950;
-      display: none; align-items: center; justify-content: center; padding: 16px; }
-    .job-lightbox.open { display: flex; }
-    .job-lightbox img { max-width: 100%; max-height: 88vh; border-radius: var(--ds-r-control); }
-    .job-lightbox-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px;
-      border-radius: 50%; border: none; background: rgba(255,255,255,.16); color: #fff;
-      font-size: 20px; cursor: pointer; }
-    .job-amount { font: 800 15px/1 var(--ds-font); color: var(--ds-ink); font-variant-numeric: tabular-nums; }
-    .job-status-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 var(--ds-2); border-radius: var(--ds-r-pill); font: 700 10px/1 var(--ds-font); text-transform: uppercase; letter-spacing: .4px; }
-    .job-actions { display: flex; gap: var(--ds-2); flex-wrap: wrap; }
-    .job-btn { height: 40px; padding: 0 var(--ds-4); border-radius: var(--ds-r-control); font: 700 13px/1 var(--ds-font); border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .15s, opacity .15s, transform .12s var(--ds-ease); }
-    .job-btn:active { transform: scale(0.97); }
-    .job-btn-accept  { background: var(--ds-success); color: #fff; }
-    .job-btn-decline { background: var(--ds-surface-2); color: var(--ds-ink-2); }
-    .job-btn-track   { background: var(--ds-brand-500); color: #fff; }
-    .job-btn-outline { background: none; border: 1px solid var(--ds-line-strong); color: var(--ds-ink-2); }
-
-    /* ── Skeleton ── */
-    .job-skel { position: relative; overflow: hidden; background: var(--ds-surface); border: 1px solid var(--ds-line); border-radius: var(--ds-r-card); margin-bottom: var(--ds-3); padding: var(--ds-4); }
-    .jsk { height: 12px; border-radius: var(--ds-r-control); background: var(--ds-surface-2); margin-bottom: var(--ds-2); position: relative; overflow: hidden; }
-    .jsk::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: ds-shimmer 1.4s infinite; }
-    [data-theme="dark"] .jsk::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent); }
-
-    /* ── Empty ── */
-    .jobs-empty { text-align: center; padding: var(--ds-10) var(--ds-6); }
-    .jobs-empty-icon { width:56px; height:56px; margin:0 auto var(--ds-4); border-radius:var(--ds-r-card); background:var(--ds-surface-2); color:var(--ds-ink-3); display:inline-flex; align-items:center; justify-content:center; }
-    .jobs-empty-icon svg { width:26px; height:26px; }
-    .jobs-empty-title { font: 700 16px/1.3 var(--ds-font); color: var(--ds-ink); margin: 0 0 var(--ds-1); }
-    .jobs-empty-sub { font: 500 13px/1.5 var(--ds-font); color: var(--ds-ink-3); margin: 0; max-width: 260px; margin-inline: auto; }
-
-    /* ── Error toast ── */
-    /* left:50% alone capped the toast at half the viewport, so a short message
-       wrapped to 2–3 lines in a narrow column (audit UI-006). It now sizes to its
-       text, up to the screen minus the 16px gutters, and stays a centred pill. */
-    .jobs-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); text-align: center; background: var(--ds-ink); color: var(--ds-bg); font: 600 13px/1.3 var(--ds-font); padding: var(--ds-3) var(--ds-5); border-radius: var(--ds-r-pill); display: none; z-index: var(--ui-z-toast); box-shadow: var(--ds-shadow-pop); }
-
-    /* ── Quote sheet (DS bottom-sheet language) ── */
-    .qs-overlay { position:fixed;inset:0;background:rgba(15,18,22,.5);z-index:900;opacity:0;pointer-events:none;transition:opacity var(--ds-t-base); }
-    .qs-overlay.open { opacity:1;pointer-events:all; }
-    .qs-sheet { position:fixed;left:0;right:0;bottom:0;max-width:var(--ds-shell);margin:0 auto;background:var(--ds-surface);border-radius:var(--ds-r-card) var(--ds-r-card) 0 0;padding:0 var(--ds-gutter) var(--ds-8);z-index:901;transform:translateY(100%);transition:transform var(--ds-t-slow) var(--ds-ease);max-height:92dvh;overflow-y:auto;box-shadow:var(--ds-shadow-sheet); }
-    .qs-sheet.open { transform:translateY(0); }
-    .qs-handle { width:38px;height:4px;border-radius:var(--ds-r-pill);background:var(--ds-line-strong);margin:var(--ds-3) auto var(--ds-4); }
-    .qs-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--ds-4); }
-    .qs-title { font:800 18px/1.25 var(--ds-font);color:var(--ds-ink);margin:0; }
-    .qs-close { width:36px;height:36px;border:none;background:var(--ds-surface-2);border-radius:var(--ds-r-pill);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ds-ink-2); }
-    .qs-field { margin-bottom:var(--ds-3); }
-    .qs-label { display:block;font:600 13px/1 var(--ds-font);color:var(--ds-ink-2);margin-bottom:var(--ds-2); }
-    .qs-input { width:100%;height:50px;border:1.5px solid transparent;border-radius:var(--ds-r-control);padding:0 var(--ds-4);font:500 15px/1 var(--ds-font);color:var(--ds-ink);background:var(--ds-surface-2);box-sizing:border-box;outline:none;transition:background var(--ds-t-base),border-color var(--ds-t-base),box-shadow var(--ds-t-base); }
-    .qs-input:focus { background:var(--ds-surface);border-color:var(--ds-brand-500);box-shadow:0 0 0 3.5px rgba(249,115,22,.12); }
-    .qs-toggle { display:flex;gap:var(--ds-2); }
-    .qs-tog-btn { flex:1;height:44px;border-radius:var(--ds-r-control);font:700 14px/1 var(--ds-font);border:1px solid var(--ds-line-strong);background:var(--ds-surface);color:var(--ds-ink-2);cursor:pointer;transition:all .15s; }
-    .qs-tog-btn.active { background:var(--ds-brand-500);color:#fff;border-color:var(--ds-brand-500); }
-    .qs-mat-header { display:grid;grid-template-columns:1fr 68px 80px 28px;gap:6px;margin-bottom:4px; }
-    .qs-mat-header span { font:700 10px/1 var(--ds-font);color:var(--ds-ink-3);text-transform:uppercase;letter-spacing:.4px; }
-    .qs-mat-row { display:grid;grid-template-columns:1fr 68px 80px 28px;gap:6px;margin-bottom:var(--ds-2);align-items:center; }
-    .qs-mat-row .qs-input { height:42px;font-size:13px; }
-    .qs-mat-del { width:28px;height:28px;border:none;background:var(--ds-danger-bg);border-radius:var(--ds-r-control);font-size:14px;cursor:pointer;color:var(--ds-danger);display:flex;align-items:center;justify-content:center;flex-shrink:0; }
-    .qs-add-item { width:100%;height:44px;border:1.5px dashed var(--ds-line-strong);border-radius:var(--ds-r-control);background:none;font:700 13px/1 var(--ds-font);color:var(--ds-brand-600);cursor:pointer;margin-bottom:var(--ds-3); }
-    .qs-summary { background:var(--ds-surface-2);border-radius:var(--ds-r-control);padding:var(--ds-3) var(--ds-4);margin-bottom:var(--ds-3); }
-    .qs-sum-row { display:flex;justify-content:space-between;align-items:center;font:500 13px/1 var(--ds-font);color:var(--ds-ink-2);margin-bottom:var(--ds-2); }
-    .qs-sum-row.total { margin-bottom:0;font:800 15px/1 var(--ds-font);color:var(--ds-ink);border-top:1px solid var(--ds-line);padding-top:var(--ds-2);margin-top:var(--ds-1); }
-    .qs-note { width:100%;min-height:64px;border:1.5px solid transparent;border-radius:var(--ds-r-control);padding:var(--ds-3) var(--ds-4);font:500 14px/1.5 var(--ds-font);color:var(--ds-ink);background:var(--ds-surface-2);box-sizing:border-box;outline:none;resize:none;margin-bottom:var(--ds-4); }
-    .qs-note:focus { background:var(--ds-surface);border-color:var(--ds-brand-500);box-shadow:0 0 0 3.5px rgba(249,115,22,.12); }
-    .qs-submit { width:100%;height:52px;border-radius:var(--ds-r-control);border:none;background:var(--ds-brand-500);color:#fff;font:800 15px/1 var(--ds-font);cursor:pointer;transition:opacity .15s,background .15s; }
-    .qs-submit:active:not(:disabled) { background:var(--ds-brand-600); }
-    .qs-submit:disabled { opacity:.55;cursor:default; }
-    .qs-msg { margin:0 0 10px; min-height:1.2em; font:500 13px/1.4 var(--ds-font); color:var(--ds-danger); }
-    .qs-msg:empty { display:none; }
-    .job-countdown { align-self:center;margin-left:auto;font:700 12px/1 var(--ds-font);color:var(--ds-danger,#C2362F);font-variant-numeric:tabular-nums;white-space:nowrap; }
-  </style>
+  <!-- The variable axes: fixed weights would snap 550 and 650 to the nearest file. -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/jobs.css" />
 </head>
-<body>
-<div class="jobs-shell">
+<body class="fx-app">
+<a class="fx-skip" href="#jobs-main">Skip to content</a>
+<div class="fx-shell">
 
-  <!-- Header -->
-  <div class="jobs-header">
-    <div class="jobs-header-row">
-      <button class="jobs-back" onclick="window.location.href='dashboard.html'" aria-label="Back">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <span class="jobs-title">My Jobs</span>
-      <span id="live-badge" style="display:none;background:var(--ds-success);color:#fff;font:700 10px/1 var(--ds-font);padding:5px 9px;border-radius:var(--ds-r-pill);"></span>
+  <!-- Every booking this artisan has taken, by what it needs: Current (needs
+       you, waiting on the customer, on hold), Upcoming (booked slots not yet
+       open), History (closed). Rows open the job screen, where its actions are. -->
+  <header class="fx-appbar fx-appbar--root">
+    <div class="fx-appbar__titles">
+      <h1 class="fx-appbar__title">Jobs</h1>
+      <p class="fx-appbar__sub" id="jobs-sub"></p>
     </div>
-    <div class="ui-tabs ui-tabs--artisan" role="tablist">
-      <button class="ui-tab active" role="tab" aria-selected="true"  onclick="switchJobTab('pending',  this)">Pending</button>
-      <button class="ui-tab" role="tab" aria-selected="false" onclick="switchJobTab('active',   this)">Active</button>
-      <button class="ui-tab" role="tab" aria-selected="false" onclick="switchJobTab('completed',this)">Completed</button>
-      <button class="ui-tab" role="tab" aria-selected="false" onclick="switchJobTab('cancelled',this)">Cancelled</button>
+  </header>
+
+  <div class="fx-jobs__views">
+    <div class="fx-seg" role="group" aria-label="Show" id="jobs-views">
+      <button class="fx-seg__btn" type="button" data-view="current" aria-pressed="true">Current</button>
+      <button class="fx-seg__btn" type="button" data-view="upcoming" aria-pressed="false">Upcoming</button>
+      <button class="fx-seg__btn" type="button" data-view="history" aria-pressed="false">History</button>
+    </div>
+    <div class="fx-seg" role="group" aria-label="History filter" id="jobs-filters" hidden>
+      <button class="fx-seg__btn" type="button" data-filter="all" aria-pressed="true">All</button>
+      <button class="fx-seg__btn" type="button" data-filter="completed" aria-pressed="false">Completed</button>
+      <button class="fx-seg__btn" type="button" data-filter="cancelled" aria-pressed="false">Cancelled</button>
     </div>
   </div>
 
-  <!-- Panels -->
-  <div class="jobs-body">
-    <div class="jobs-panel active" id="jp-pending">
-      <div id="list-pending"></div>
+  <main class="fx-main" id="jobs-main" tabindex="-1">
+    <div class="fx-jobs__notices fx-stack" id="jobs-notices"></div>
+    <div id="jobs-list">
+      <section class="fx-jobs__empty fx-stack" aria-busy="true" data-skeleton>
+        <span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span>
+      </section>
     </div>
-    <div class="jobs-panel" id="jp-active">
-      <div id="list-active"></div>
-    </div>
-    <div class="jobs-panel" id="jp-completed">
-      <div id="list-completed"></div>
-    </div>
-    <div class="jobs-panel" id="jp-cancelled">
-      <div id="list-cancelled"></div>
-    </div>
-  </div>
+  </main>
 
+  <div class="fx-bottom">
+    <nav class="fx-tabbar" aria-label="Main" id="tabbar"></nav>
+  </div>
 </div>
 
-<div id="jobs-toast" class="jobs-toast"></div>
+<script>
+/* Old links first, before anything loads: one booking has its own screen.
+   ?id= came from bookings.html and old notifications; ?quote= from the Today
+   dock and the job screen, when the quote composer lived here — it is mounted
+   inline on the job screen now (shared/js/ui/quoteComposer.js). */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var one = q.get('id') || q.get('quote');
+  if (one) { window.__jobsLeaving = true; location.replace('job.html?id=' + encodeURIComponent(one)); }
+})();
+</script>
 
-<!-- ── Quote Sheet ────────────────────────────────────────────────────────── -->
-<div id="qs-overlay" class="qs-overlay" onclick="closeQuoteSheet()"></div>
-<div id="job-lightbox" class="job-lightbox" role="dialog" aria-modal="true" aria-label="Customer photo" onclick="closePhoto()">
-  <button type="button" class="job-lightbox-close" aria-label="Close photo">&times;</button>
-  <img id="job-lightbox-img" src="" alt="Photo from the customer" />
-</div>
-
-<!-- inert while closed: the sheet only slides off-screen, so without it Tab
-     walked into its six hidden controls (Phase 0 accessibility). -->
-<div id="qs-sheet" class="qs-sheet" role="dialog" aria-modal="true" aria-label="Submit Job Quote" inert>
-  <div class="qs-handle"></div>
-  <div class="qs-header">
-    <h3 class="qs-title">Submit Job Quote</h3>
-    <button class="qs-close" onclick="closeQuoteSheet()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-  </div>
-
-  <!-- Labour cost -->
-  <div class="qs-field">
-    <label class="qs-label" for="qs-labour">Your Labour Cost (GHS)</label>
-    <input type="number" id="qs-labour" class="qs-input" placeholder="e.g. 150" min="1" step="0.01" oninput="recalcQuote()" />
-  </div>
-
-  <!-- Materials toggle -->
-  <div class="qs-field">
-    <span class="qs-label">Will you need to buy materials?</span>
-    <div class="qs-toggle">
-      <button id="qs-tog-no"  class="qs-tog-btn active" onclick="setMaterials(false)">No</button>
-      <button id="qs-tog-yes" class="qs-tog-btn"        onclick="setMaterials(true)">Yes</button>
-    </div>
-  </div>
-
-  <!-- Materials rows -->
-  <div id="qs-mat-section" style="display:none;">
-    <div class="qs-mat-header">
-      <span>Item</span><span>Qty</span><span>Unit Price</span><span></span>
-    </div>
-    <div id="qs-mat-rows"></div>
-    <button class="qs-add-item" onclick="addMatRow()">+ Add Item</button>
-  </div>
-
-  <!-- Summary -->
-  <div class="qs-summary">
-    <div class="qs-sum-row"><span>Labour</span><span>GHS <span id="qs-s-labour">0.00</span></span></div>
-    <div class="qs-sum-row" id="qs-s-mat-row" style="display:none;"><span>Materials</span><span>GHS <span id="qs-s-mats">0.00</span></span></div>
-    <div class="qs-sum-row total"><span>Total Quote</span><span>GHS <span id="qs-s-total">0.00</span></span></div>
-    <div class="qs-sum-row"><span id="qs-net-label">You receive after commission</span><span>GHS <span id="qs-s-net">—</span></span></div>
-  </div>
-
-  <!-- Optional note -->
-  <div class="qs-field">
-    <label class="qs-label" for="qs-note">Note to customer (optional)</label>
-    <textarea id="qs-note" class="qs-note" placeholder="e.g. Price may vary if additional parts are needed…" maxlength="300"></textarea>
-  </div>
-
-  <p id="qs-msg" class="qs-msg" role="status" aria-live="polite"></p>
-  <button id="qs-submit" class="qs-submit" onclick="submitQuote()">Send Quote to Customer</button>
-</div>
-
-<script src="../shared/js/utils/global-app.js"></script>
 <script type="module">
-import { getAppContainer }                   from '../shared/js/app/container.js';
-import { createBookingRepository }           from '../shared/js/data/repositories/bookingRepository.js';
-import { describe as describeStatus, artisanInspectionStep, needsQuoteBeforeTravel, needsQuoteOnSite }
-                                            from '../shared/js/domain/bookingStatusMeta.js';
-import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
-                                            from '../shared/js/domain/bookingTruth.js';
-import { resolveSchedule, canStartWork }
-                            from '../shared/js/domain/bookingSchedule.js';
-import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
-import { performBookingAction, ACTION, artisanCanCancel } from '../shared/js/domain/bookingActions.js';
-import { offerState, formatTimeLeft, LAPSED_OFFER_ATTRS, LAPSED_OFFER_LABEL, lapseOfferButtons }
-                                             from '../shared/js/domain/jobOffers.js';
-import { storedAvailability }                from '../shared/js/domain/availability.js';
-import { mountInstantView }                  from '../shared/js/services/instantView.js';
-import { confirmSheet } from '../shared/js/ui/confirmSheet.js';
-import { validateQuoteInput, artisanEarningsPreview } from '../shared/js/domain/quoteMoney.js';
-import { PLATFORM_CONFIG }                   from '../shared/js/config/appConfig.js';
-import { pricingService }                    from '../shared/js/services/pricingService.js';
-import { startPresence, stopPresence }       from '../shared/js/services/presenceService.js';
-import { getFunctions, httpsCallable }
-    from '../shared/vendor/firebase/firebase-functions.js';
-    import { callable }
-        from '../shared/js/services/callable.js';
-import { firebaseApp, firebaseFunctions }
-    from '../shared/js/backend/providers/firebase/firebaseConfig.js';
-import { FUNCTIONS_REGION }
-    from '../shared/js/config/appConfig.js';
+import '../shared/js/utils/global-app.js';
+import { icon }                                 from './js/fx/icons.js';
+import { renderTabbar }                         from './js/fx/controls.js';
+import { jobsModel, renderJobs, tickOffers }    from './js/jobsScreen.js';
+import { ACTIVE_LIST, activeQuery, OFFERS_LIST, offersQuery, HISTORY_LIST, HISTORY_PAGE, historyQuery }
+                                                from './js/artisanLists.js';
+import { JOB_VIEWS, HISTORY_FILTERS, HISTORY_STATUSES } from '../shared/js/domain/artisanJobs.js';
+import { offerState }                           from '../shared/js/domain/jobOffers.js';
+import { storedAvailability }                   from '../shared/js/domain/availability.js';
+import { getAppContainer }                      from '../shared/js/app/container.js';
+import { mountInstantView }                     from '../shared/js/services/instantView.js';
+import { startPresence, stopPresence }          from '../shared/js/services/presenceService.js';
+import { rememberScroll }                       from '../shared/js/utils/scrollMemory.js';
+import { requireArtisanAuth, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 
-// Blocking guard: auth + role + not suspended
-// Pending artisans can VIEW jobs (they just can't accept them)
-const { artisan: _guardArtisan } = await requireArtisanAuth({ allowPending: true });
-let _currentArtisan = _guardArtisan || {};
+// Forwarding to the job screen (the script above): load nothing here.
+if (window.__jobsLeaving) await new Promise(() => {});
 
-const LOGIN_URL = 'login.html';
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon);
+renderTabbar(document.getElementById('tabbar'), { current: 'jobs' });
 
-// ── STATUS MAPS ───────────────────────────────────────────────────────────────
-// PILL_META + TAB_MAP removed — status vocabulary and grouping now come from the
-// single source of truth (shared/js/domain/bookingStatusMeta.js, artisan
-// audience). NEXT_ACTION below is retained: it is page-specific INTERACTION
-// (which write each progression button performs), not status vocabulary.
-
-// Status → next action label for progression
-const NEXT_ACTION = {
-  accepted:    { label: 'Mark En Route',      next: 'en_route',    field: 'enRouteAt'    },
-  quoted:      { label: 'Awaiting Approval', next: null,          field: null           },
-  en_route:    { label: 'Mark Arrived',      next: 'in_progress', field: 'arrivedAt'    },
-  in_progress: { label: 'Mark Job Done',    next: 'awaiting',    field: 'jobDoneAt'    },
-  awaiting:    { label: 'Waiting…',         next: null,          field: null           },
-};
-
-// ── STATE ─────────────────────────────────────────────────────────────────────
-let _allJobs         = [];
-let _bookingJobs     = [];
-let _offerJobs       = [];
-let _offersUnsub     = null;
-// Offers the server refused as gone (performBookingAction offerGone): drawn lapsed from now on.
-const _goneOffers    = new Set();
-// The customer's phone, read from bookings/{id}/private/contact. firestore.rules
-// (contactDisclosed) open it only once the job is committed and funded and close
-// it when the job ends; the booking itself no longer carries it.
-const _contacts      = new Map();
-// Job escrow outcomes (escrow/{id}, which the rules let the artisan read), for
-// jobs that have closed or are disputed: their money note says what happened to
-// the money, never "secured in escrow" after a refund or payout (FIN-002).
-// Read only for the tab on screen, only once the LIVE list has arrived (never
-// from the cached paint), once per escrow, and at most ESCROW_READS_PER_TAB per
-// tab — the history is unbounded. A card whose escrow is unread, pending or
-// unreadable gets wording that claims nothing about the money.
-const _escrows       = new Map();
-const ESCROW_READS_PER_TAB = 20;
-const TAB_GROUP      = { pending: 'upcoming', active: 'ongoing', completed: 'completed', cancelled: 'cancelled' };
-let _tab             = 'pending';
-let _bookingsLive    = false;
-
-function _mergeAndRender() {
-  const offered = new Set(_offerJobs.map(o => o.id));
-  _allJobs = [..._offerJobs, ..._bookingJobs.filter(b => !offered.has(b.id))]
-    .map(j => (_contacts.get(j.id) ? { ...j, customerPhone: _contacts.get(j.id) } : j));
-  render(_allJobs);
-  _loadContacts();
-  _loadEscrows();
-}
-
-async function _loadEscrows() {
-  if (!_bookingsLive) return;
-  const shown = _bookingJobs
-    .filter(j => j.escrowId && bkGroup(j) === TAB_GROUP[_tab])
-    .filter(j => ['completed', 'cancelled'].includes(bkGroup(j)) || String(j.status || '').toLowerCase() === 'disputed')
-    .slice(0, ESCROW_READS_PER_TAB);   // newest first (createdAt desc)
-  for (const j of shown) {
-    if (_escrows.has(j.escrowId)) continue;
-    _escrows.set(j.escrowId, null);
-    try {
-      const snap = await _dbService.getDocument('escrow', j.escrowId);
-      if (snap?.exists) { _escrows.set(j.escrowId, snap.data); _mergeAndRender(); }
-    } catch (_) { /* unreadable — the note then claims nothing about the money */ }
-  }
-}
-
-async function _loadContacts() {
-  for (const j of _bookingJobs) {
-    if (_contacts.has(j.id)) continue;
-    if (!resolveJobBrief(j).customer.contactUnlocked) continue;
-    _contacts.set(j.id, null);
-    try {
-      const snap = await _dbService.getDocument(`bookings/${j.id}/private`, 'contact');
-      if (snap?.exists && snap.data?.customerPhone) {
-        _contacts.set(j.id, snap.data.customerPhone);
-        _mergeAndRender();
-      }
-    } catch (_) { /* not disclosed in this state — no phone shown */ }
-  }
-}
-let _unsub           = null;
-let _uid             = null;
-let _dbService       = null;
-let _pricingService  = null;
-// Artisan's own position, used ONLY to describe distance to the job. Null until
-// a real fix arrives — distance is then omitted rather than shown as 0.0 km.
-let _autoTabDone = false;
-// The tab is mirrored in ?tab= (switchJobTab), so a reload or a return to this
-// page lands where the artisan left it instead of being re-chosen (STATE-001).
-const JOB_TABS      = ['pending', 'active', 'completed', 'cancelled'];
-const REQUESTED_TAB = (() => {
-  const t = new URLSearchParams(location.search).get('tab');
-  return JOB_TABS.includes(t) ? t : null;
-})();   // the auto-focus below runs once, then the artisan is in control
-let _originLat = null;
-let _originLng = null;
-
-// Full problem text is always in the DOM; this only lifts the CSS line clamp.
-window.toggleProblem = function (id, btn) {
-  const el = document.getElementById('prob-' + id);
-  if (!el) return;
-  const open = el.classList.toggle('is-open');
-  btn.textContent = open ? 'Show less' : 'Show more';
-};
-
-window.openPhoto = function (url) {
-  const box = document.getElementById('job-lightbox');
-  const img = document.getElementById('job-lightbox-img');
-  if (!box || !img) return;
-  img.src = url;
-  box.classList.add('open');
-};
-window.closePhoto = function () {
-  const box = document.getElementById('job-lightbox');
-  if (box) { box.classList.remove('open'); document.getElementById('job-lightbox-img').src = ''; }
-};
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape') return;
-  window.closePhoto();
-  if (document.getElementById('qs-sheet').classList.contains('open')) window.closeQuoteSheet();
-});
-let _quoteBookingId  = null;
-let _needsMaterials  = false;
-let _quoteOpener     = null;   // the control that opened the quote sheet; focus returns to it
-
-let _fnInstance = null;
-function _fn() {
-  if (!_fnInstance) _fnInstance = firebaseFunctions;
-  return _fnInstance;
-}
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-function fmtDate(d) {
-  if (!d) return null;
-  try { const dt = d?.toDate ? d.toDate() : new Date(d); return isNaN(dt) ? String(d) : dt.toLocaleDateString('en-GH', { day: 'numeric', month: 'short' }); }
-  catch { return String(d); }
-}
-
-// Track-aware pill from the single source of truth (artisan audience).
-function getPill(booking) {
-  const d = describeStatus(booking, 'artisan');
-  return { label: d.label, cls: `pill-${d.tone}` };
-}
-// Group membership from the same source (replaces the local TAB_MAP).
-const bkGroup = (booking) => describeStatus(booking, 'artisan').group;
-
-function showToast(msg, dur = 2800) {
-  const el = document.getElementById('jobs-toast');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.display = 'block';
-  clearTimeout(el._t);
-  el._t = setTimeout(() => { el.style.display = 'none'; }, dur);
-}
-
-// ── SKELETON ──────────────────────────────────────────────────────────────────
-function skeleton() {
-  return `<div class="job-skel"><div class="jsk" style="width:50%;"></div><div class="jsk" style="width:35%;"></div><div class="jsk" style="width:70%;margin-bottom:0;"></div></div>`;
-}
-
-function showSkeletons(id) {
-  const el = document.getElementById(id);
-  if (el) el.innerHTML = skeleton() + skeleton() + skeleton();
-}
-
-// ── CARD BUILDER ─────────────────────────────────────────────────────────────
-function buildJobCard(b) {
-  const pill    = getPill(b);
-  const st      = (b.status || '').toLowerCase();
-  const action  = NEXT_ACTION[st];
-  const grp       = bkGroup(b);
-  const isPending = grp === 'upcoming';
-  const isActive  = grp === 'ongoing';
-
-  // ── The information contract ─────────────────────────────────────────────
-  // Everything below already existed on the booking document this page's own
-  // query returns. It was being received and discarded by the renderer.
-  const brief   = resolveJobBrief(b, { originLat: _originLat, originLng: _originLng,
-                                      escrow: (b.escrowId && _escrows.get(b.escrowId)) || null });
-  const name    = brief.customer.name;
-  const initials= name ? name.split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase() : '·';
-  // createdAt is when the request was RAISED, not when the visit is booked.
-  // Using it as a schedule fallback presented a creation timestamp as an
-  // appointment. If there is no real schedule, say so.
-  //
-  // scheduledFor/scheduledForMs is the real appointment (server-written, see
-  // bookingSchedule.js). scheduledAt is the legacy field that no code has ever
-  // written a value into — it is read second, and only so an old document that
-  // somehow carries one is not ignored.
-  const appt    = resolveSchedule(b);
-  const gate    = canStartWork(b);
-  const date    = appt.label || b.dateDisplay || fmtDate(b.scheduledAt) || 'Schedule not set';
-  const comp    = brief.compensation;
-  const distTxt = formatDistance(brief.distanceKm);
-
-  // Card actions (audit IA-002). "Dashboard" buttons sent the artisan away from
-  // the job; the secondary action now opens THIS job, whose screen holds its
-  // full set of actions. Cancel is offered exactly where the shared transition
-  // layer lets an artisan cancel (ACTION.CANCEL: accepted, quoted) — job.html
-  // already offered it there; the list did not.
-  const openBtn   = `<a class="job-btn job-btn-outline" href="job.html?id=${encodeURIComponent(b.id)}">Open job</a>`;
-  // Only where the server accepts it (artisanCanCancel): never on approved
-  // inspection work, which leaves through Support (Phase 0 WF-01).
-  const cancelBtn = isActive && artisanCanCancel(b)
-    ? `<button class="job-btn job-btn-outline" onclick="cancelJob('${esc(b.id)}', this)">Cancel job</button>` : '';
-  let actionsHtml = '';
-  if (isPending) {
-    // The offer's deadline (job_offers.expiresAtMs), counted down by the one
-    // ticker below. A lapsed offer — on the clock, or refused by the server as
-    // gone — cannot be answered, so it wears the shared lapsed look (both
-    // buttons disabled) instead of offering buttons that can only fail
-    // (audits FLOW-003, FLOW-005). No deadline (prematched): no countdown.
-    const offer = offerState(b);
-    actionsHtml = (offer.expired || _goneOffers.has(b.id))
-      ? `<button class="job-btn job-btn-accept" ${LAPSED_OFFER_ATTRS}>${LAPSED_OFFER_LABEL}</button>
-         <button class="job-btn job-btn-decline" ${LAPSED_OFFER_ATTRS}>Decline</button>`
-      : `
-      <button class="job-btn job-btn-accept"  onclick="acceptJob('${esc(b.id)}', this)">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>Accept
-      </button>
-      <button class="job-btn job-btn-decline" onclick="declineJob('${esc(b.id)}', this)">Decline</button>
-      ${offer.expiresAtMs ? `<span class="job-countdown" data-expires="${offer.expiresAtMs}" role="timer">Respond in ${formatTimeLeft(offer.secondsLeft)}</span>` : ''}`;
-  } else if (isActive && b.track === 'inspection' && !b.quoteApproved &&
-             ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'inspection_done'].includes(st)) {
-    // ── Inspection track (pre-quote-approval) ────────────────────────────────
-    // One step at a time, in the order completeInspection enforces: set out
-    // (only once the booked slot opens — firestore.rules refuse it earlier),
-    // mark arrived, THEN complete the inspection. artisanInspectionStep is the
-    // single rule; this only draws it.
-    const step = artisanInspectionStep(b, { schedule: appt });
-    const tickSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`;
-    if (!step || step.blocked) {
-      // Nothing the artisan can do yet (callout unpaid, or the slot has not
-      // come round): state it instead of offering a control that would fail.
-      actionsHtml = `
-        <button class="job-btn ${step && step.id === 'scheduled' ? 'job-btn-outline' : 'job-btn-decline'}" disabled style="opacity:.5;cursor:default;">${esc(step ? step.label : 'Inspection visit')}</button>
-        ${openBtn}`;
-    } else if (step.id === 'submit_quote') {
-      actionsHtml = `
-        <button class="job-btn job-btn-track" onclick="openQuoteSheet('${esc(b.id)}')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
-          Submit Quote
-        </button>
-        ${openBtn}`;
-    } else if (step.id === 'complete_inspection') {
-      actionsHtml = `
-        <button class="job-btn job-btn-track" onclick="completeInspectionJob('${esc(b.id)}', this)">${tickSvg}Complete Inspection</button>
-        ${openBtn}`;
-    } else if (step.id === 'arrived') {
-      actionsHtml = `
-        <button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','in_progress','arrivedAt',this)">${tickSvg}Mark Arrived</button>
-        ${openBtn}`;
-    } else {
-      actionsHtml = `
-        <button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','en_route','enRouteAt',this)">Mark En Route</button>
-        ${openBtn}`;
-    }
-  } else if (isActive && action) {
-    if (needsQuoteBeforeTravel(b) || needsQuoteOnSite(b)) {
-      // The quote comes first: before setting out on a standard job, or on site
-      // at a paid emergency, which sets out unpriced (decision Q1). Either way
-      // the rules refuse the next step until a quote is approved.
-      actionsHtml = `
-        <button class="job-btn job-btn-track" onclick="openQuoteSheet('${esc(b.id)}')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
-          Submit Quote
-        </button>
-        ${openBtn}`;
-    } else {
-      const disabled = action.next === null ? 'disabled style="opacity:.5;cursor:default;"' : '';
-      // Setting out is the one advance an appointment gates. Arriving and
-      // finishing are records of things that already happened and are never
-      // blocked by the clock.
-      const gatedByClock = action.next === 'en_route' && !gate.allowed;
-      actionsHtml = `
-        ${gatedByClock
-          ? `<button class="job-btn job-btn-outline" disabled style="opacity:.5;cursor:default;">Booked · ${esc(appt.label)}</button>`
-          : action.next ? `<button class="job-btn job-btn-track" onclick="advanceJob('${esc(b.id)}','${action.next}','${action.field}',this)" ${disabled}>${esc(action.label)}</button>` : `<button class="job-btn job-btn-decline" disabled style="opacity:.5;">Awaiting Customer…</button>`}
-        ${openBtn}`;
-    }
-  } else if (isActive) {
-    actionsHtml = openBtn;
-  } else if (st === 'completed') {
-    actionsHtml = `<button class="job-btn job-btn-outline" onclick="window.location.href='wallet.html'">View Earnings</button>`;
-  }
-  if (cancelBtn) actionsHtml += cancelBtn;
-
-  // ── Problem description — the single most valuable field in the product ──
-  // Rendered in full into the DOM and clamped to 3 lines by CSS, with a
-  // Show more toggle. Never truncated in the string, so its meaning survives.
-  const problemHtml = brief.problem ? `
-    <div class="job-brief-block">
-      <p class="job-brief-label">What the customer reported</p>
-      <p class="job-problem" id="prob-${esc(b.id)}">${esc(brief.problem)}</p>
-      ${brief.problem.length > 120
-        ? `<button type="button" class="job-linkbtn" onclick="toggleProblem('${esc(b.id)}', this)">Show more</button>` : ''}
-    </div>` : `
-    <div class="job-brief-block">
-      <p class="job-brief-label">What the customer reported</p>
-      <p class="job-problem job-muted">No description provided.</p>
-    </div>`;
-
-  // ── Photos — announced, thumbnailed, viewable BEFORE accepting ───────────
-  const photosHtml = brief.photoCount ? `
-    <div class="job-brief-block">
-      <p class="job-brief-label">${brief.photoCount} photo${brief.photoCount > 1 ? 's' : ''} from the customer</p>
-      <div class="job-photos">
-        ${brief.photos.map((u, i) => `
-          <button type="button" class="job-photo" onclick="openPhoto('${esc(u)}')" aria-label="View photo ${i + 1}">
-            <img src="${esc(u)}" alt="Reported problem, photo ${i + 1}" loading="lazy"
-                 onerror="this.closest('.job-photo').classList.add('job-photo--broken')" />
-          </button>`).join('')}
-      </div>
-    </div>` : '';
-
-  // ── Location + navigation to the CUSTOMER's coordinates ─────────────────
-  // An offer carries no address (functions/jobOffers.js): say where, roughly,
-  // and that the exact address comes with acceptance.
-  const locHtml = brief.location.precision === 'approximate' ? `
-    <div class="job-brief-block">
-      <p class="job-brief-label">Where</p>
-      <p class="job-address">${distTxt ? `About ${esc(distTxt)} from you` : 'Area shared on acceptance'}</p>
-      <p class="job-warn">${esc(brief.location.note)}</p>
-    </div>` : brief.location.address || brief.location.hasCoords ? `
-    <div class="job-brief-block">
-      <p class="job-brief-label">Where</p>
-      <p class="job-address">${esc(brief.location.address || 'Address not provided')}</p>
-      ${brief.location.precision === 'address-only'
-        ? `<p class="job-warn">No GPS fix on this booking — navigation searches the address text.</p>` : ''}
-      <div class="job-brief-actions">
-        ${brief.location.mapUrl && (isPending || isActive)
-          ? `<a class="job-linkbtn job-linkbtn--strong" href="${esc(brief.location.mapUrl)}" target="_blank" rel="noopener noreferrer">Navigate</a>` : ''}
-        ${brief.customer.phone
-          ? `<a class="job-linkbtn" href="tel:${esc(brief.customer.phone)}">Call ${esc(name || 'customer')}</a>` : ''}
-      </div>
-    </div>` : '';
-
-  // ── Compensation — never "GHS 0" for an unquoted job ────────────────────
-  const compHtml = `
-    <div class="job-brief-block job-brief-block--pay">
-      <p class="job-brief-label">${esc(comp.label)}</p>
-      <p class="job-pay">${comp.amount === null ? 'Not available yet' : esc(formatMoney(comp.amount))}${
-        comp.conditional && comp.amount !== null ? ' <span class="job-pay-cond">conditional</span>' : ''}</p>
-      <p class="job-paynote">${esc(comp.note)}</p>
-    </div>`;
-
-  return `
-  <div class="job-card" id="jcard-${esc(b.id)}" data-open="${esc(b.id)}" style="cursor:pointer">
-    <div class="job-card-top">
-      <div class="job-av">${initials}</div>
-      <div class="job-info">
-        <p class="job-service">${esc(brief.service || 'Service Request')}</p>
-        <p class="job-customer">${name ? esc(name) : '<span class="job-muted">Name unavailable</span>'}</p>
-        <div class="job-meta">
-          <div class="job-meta-item">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/></svg>
-            ${esc(date)}
-          </div>
-          ${distTxt ? `<div class="job-meta-item">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            ${esc(distTxt)}
-          </div>` : ''}
-        </div>
-      </div>
-      <div class="job-right">
-        <span class="job-status-pill ${pill.cls}">${pill.label}</span>
-      </div>
-    </div>
-
-    ${brief.cycle ? `<p class="job-phase"><span class="job-phase-cycle">${esc(brief.cycle)}</span>${esc(brief.phaseLabel)} &middot; ${esc(brief.phaseHint)}</p>` : ''}
-
-    ${problemHtml}
-    ${photosHtml}
-    ${locHtml}
-    ${compHtml}
-
-    ${actionsHtml ? `<div class="job-actions">${actionsHtml}</div>` : ''}
-  </div>`;
-}
-
-// ── RENDER ────────────────────────────────────────────────────────────────────
-function render(jobs) {
-  const pending   = jobs.filter(b => bkGroup(b) === 'upcoming');
-  const active    = jobs.filter(b => bkGroup(b) === 'ongoing');
-  const completed = jobs.filter(b => bkGroup(b) === 'completed');
-  const cancelled = jobs.filter(b => bkGroup(b) === 'cancelled');
-
-  function setPanel(id, items, emptyMsg) {
-    document.getElementById(id).innerHTML = items.length
-      ? items.map(buildJobCard).join('')
-      : `<div class="jobs-empty"><div class="jobs-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 3v4M8 3v4M4 10h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><p class="jobs-empty-title">${emptyMsg}</p><p class="jobs-empty-sub">Pull to refresh if you expect new jobs.</p></div>`;
-  }
-
-  setPanel('list-pending',   pending,   'No pending requests');
-  setPanel('list-active',    active,    'No active jobs');
-  setPanel('list-completed', completed, 'No completed jobs yet');
-  setPanel('list-cancelled', cancelled, 'No cancelled jobs');
-
-  // Tab counts
-  const tabLabels = ['Pending','Active','Completed','Cancelled'];
-  const tabCounts = [pending.length, active.length, completed.length, cancelled.length];
-  document.querySelectorAll('.jobs-header .ui-tab').forEach((tab, i) => {
-    tab.textContent = tabCounts[i] > 0 ? `${tabLabels[i]} (${tabCounts[i]})` : tabLabels[i];
-  });
-
-  // Live badge
-  const badge = document.getElementById('live-badge');
-  if (badge) {
-    if (active.length > 0) { badge.textContent = `${active.length} active`; badge.style.display = ''; }
-    else { badge.style.display = 'none'; }
-  }
-
-  // ── Land the artisan on the tab that actually needs them ────────────────
-  //
-  // The page opened on Pending unconditionally, so an artisan with a live job
-  // and no new requests saw "No pending requests" while a badge in the same
-  // header read "1 active". The work was one tab over and nothing said so.
-  //
-  // Runs once per page load only — after that the artisan's own tab choice
-  // stands, so a background snapshot never yanks the view out from under them.
-  if (!_autoTabDone) {
-    _autoTabDone = true;
-    // A new request is the most time-critical thing an artisan can see (it
-    // expires), so Pending still wins when one exists. Otherwise follow the work.
-    // A tab the URL already names (a reload, Back, a shared link) is the
-    // artisan's own choice and wins over all of that (audit STATE-001).
-    const target = REQUESTED_TAB ? REQUESTED_TAB
-                 : pending.length ? 'pending'
-                 : active.length  ? 'active'
-                 : completed.length ? 'completed'
-                 : 'pending';
-    const idx = { pending: 0, active: 1, completed: 2, cancelled: 3 }[target];
-    const btn = document.querySelectorAll('.jobs-header .ui-tab')[idx];
-    if (btn && !btn.classList.contains('active')) window.switchJobTab(target, btn);
-  }
-
-  // If job.html sent the artisan here to price a specific job, open the
-  // composer on it now that the card exists.
-  openQuoteFromDeepLink();
-}
-
-// ── ACTIONS ───────────────────────────────────────────────────────────────────
-window.switchJobTab = function(tab, btn) {
-  document.querySelectorAll('.jobs-header .ui-tab').forEach(t => {
-    t.classList.remove('active');
-    t.setAttribute('aria-selected', 'false');
-  });
-  btn.classList.add('active');
-  btn.setAttribute('aria-selected', 'true');
-  document.querySelectorAll('.jobs-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('jp-' + tab)?.classList.add('active');
-  // Keep the choice in the URL (other parameters, e.g. ?quote=, are kept).
+// ── Where the artisan was: the view and filter live in the URL ───────────────
+// A reload, Back from a job, or a shared link lands on the same view (STATE-001).
+// Old ?tab= values (pending / active / completed / cancelled) still land right.
+const LEGACY_TAB = { pending: ['current', 'all'], active: ['current', 'all'], completed: ['history', 'completed'], cancelled: ['history', 'cancelled'] };
+const params = new URLSearchParams(location.search);
+const legacy = LEGACY_TAB[params.get('tab')] || null;
+let _view   = JOB_VIEWS.includes(params.get('view')) ? params.get('view') : (legacy ? legacy[0] : 'current');
+let _filter = HISTORY_FILTERS.includes(params.get('filter')) ? params.get('filter') : (legacy ? legacy[1] : 'all');
+function keepInUrl() {
   try {
     const url = new URL(location.href);
-    url.searchParams.set('tab', tab);
+    url.searchParams.delete('tab');
+    url.searchParams.set('view', _view);
+    if (_view === 'history') url.searchParams.set('filter', _filter); else url.searchParams.delete('filter');
     history.replaceState(history.state, '', url);
-  } catch (_) { /* URL unavailable: the tab still switches */ }
-  _tab = tab;
-  _loadEscrows();
-};
+  } catch (_) { /* the view still switches */ }
+}
+keepInUrl();
 
-/* ── Transitions ───────────────────────────────────────────────────────────
-   Every status change on this page goes through performBookingAction(), which
-   re-reads the booking, checks the transition against the state it is ACTUALLY
-   in, routes server-owned transitions to their Cloud Function, and hands back
-   the authoritative result. A booking taken by another surface now produces
-   "This request is no longer available" instead of a silent failed write. */
-/** The server says this offer cannot be answered any more: retire its card, for good. */
-function markOfferGone(bookingId) {
-  _goneOffers.add(bookingId);
-  const card = document.getElementById(`jcard-${bookingId}`);
-  if (!card) return;
-  card.querySelector('.job-countdown')?.remove();
-  lapseOfferButtons(card.querySelector('.job-btn-accept'), card.querySelector('.job-btn-decline'));
+// Blocking guard: auth + role + not suspended. Pending artisans can view their jobs.
+await requireArtisanAuth({ allowPending: true });
+const { services: { databaseService } } = getAppContainer();
+
+const dom = {
+  views:   document.getElementById('jobs-views'),
+  filters: document.getElementById('jobs-filters'),
+  list:    document.getElementById('jobs-list'),
+  sub:     document.getElementById('jobs-sub'),
+};
+const notices = document.getElementById('jobs-notices');
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let uid = null;
+let _active = [];          // live: bookings still going (shared with Today)
+let _offers = [];          // live: open offers (shared with Today)
+let _activeReady = false;
+let _origin = {};          // the artisan's own position, for distance only
+// History, a page at a time per filter. 'all' page 1 is live (a listener, so a
+// job that closes appears at once); further pages and the filters are read on
+// demand, and only once.
+const _pages = Object.fromEntries(HISTORY_FILTERS.map((f) => [f, { first: [], more: [], cursor: null, done: false, loaded: false, busy: false, failed: false }]));
+const _unsubs = [];
+const rec = (r) => ({ id: r.id, ...(r.data || {}) });
+
+// ── Paint ─────────────────────────────────────────────────────────────────────
+let _lastSig = '';
+function paint(force = false) {
+  const nowMs = Date.now();
+  const history = HISTORY_FILTERS.flatMap((f) => [..._pages[f].first, ..._pages[f].more]);
+  const m = jobsModel({ view: _view, filter: _filter, active: _active, history, offers: _offers, nowMs, origin: _origin });
+  const p = _pages[_filter];
+  const ui = { nowMs, ready: { active: _activeReady, history: p.loaded },
+               more: { can: p.loaded && !p.done, busy: p.busy, failed: p.failed } };
+  // Draw only when what the screen says has changed: a redraw replaces the row
+  // under a finger that may be about to tap it.
+  const sig = JSON.stringify([m, ui.ready, ui.more]);
+  if (!force && sig === _lastSig) return;
+  _lastSig = sig;
+  renderJobs(dom, m, ui);
 }
 
-async function runTransition(action, bookingId, btn, { busyLabel, okLabel, confirmMsg, confirmLabel, removeCard } = {}) {
-  // The app's own sheet, not the browser's confirm() (audit UI-011).
-  if (confirmMsg && !(await confirmSheet({ title: confirmMsg, confirmLabel: confirmLabel || 'Confirm', danger: true }))) return;
-  // innerHTML, not textContent: the Accept button carries an icon.
-  const orig = btn ? btn.innerHTML : '';
-  if (btn) { btn.disabled = true; btn.textContent = busyLabel || 'Working…'; }
+// ── History pages ─────────────────────────────────────────────────────────────
+function cursorOf(list) {
+  const last = list[list.length - 1];
+  return last ? (last.updatedAt ?? null) : null;
+}
+async function loadMore(filter) {
+  const p = _pages[filter];
+  if (!uid || p.busy || p.done) return;          // one request at a time per filter
+  p.busy = true; p.failed = false; paint();
   try {
-    const res = await performBookingAction(action, {
-      bookingId, actor: 'artisan', uid: _currentArtisan?.uid || _currentArtisan?.id || null,
-      databaseService: _dbService, pricingService: _pricingService,
-      reason: 'Cancelled by artisan',
-    });
-    if (!res.ok) {
-      showToast(res.message);
-      // Gone (expired, closed, re-offered): retire the card, never re-arm it.
-      if (res.offerGone) { markOfferGone(bookingId); return; }
-      if (btn) { btn.disabled = false; btn.innerHTML = orig; }
-      return;
-    }
-    showToast(okLabel || 'Updated.');
-    if (removeCard) {
-      const card = document.getElementById(`jcard-${bookingId}`);
-      if (card) { card.style.opacity = '0'; card.style.transition = 'opacity .25s'; setTimeout(() => card.remove(), 260); }
-    }
+    const all = [...p.first, ...p.more];
+    const after = all.length ? cursorOf(all) : null;
+    const statuses = filter === 'all' ? [...HISTORY_STATUSES] : [filter];
+    const page = (await databaseService.queryWithOptions(...historyQuery(uid, { statuses, after }))).map(rec);
+    const have = new Set(all.map((b) => b.id));
+    p.more.push(...page.filter((b) => !have.has(b.id)));
+    p.done = page.length < HISTORY_PAGE;
+    p.loaded = true;
   } catch (e) {
-    showToast('That did not go through. Nothing was changed.');
-    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+    console.warn('[jobs] history page failed:', e?.message || e);
+    p.failed = true;
+    p.loaded = true;
+  } finally {
+    p.busy = false;
+    paint();
   }
 }
 
-// The dashboard's rule (audit FLOW-004): onboarding only when a LIVE profile —
-// this page's own server read, below — says verification is due. The guard's
-// object can be a cached verdict, and `{}` when none; neither is "needs KYC".
-const NEEDS_ONBOARDING = ['', 'draft', 'rejected', 're_verification_required'];
-let _profileLive = false;
-function onboardingWarranted() {
-  return _profileLive && !!_currentArtisan &&
-         NEEDS_ONBOARDING.includes(String(_currentArtisan.verificationStatus || '').toLowerCase());
-}
-
-window.acceptJob = async function(bookingId, btn) {
-  if (!canAcceptJobs(_currentArtisan)) {
-    // The server re-checks acceptance either way.
-    if (onboardingWarranted()) {
-      showToast('Complete your KYC verification before accepting jobs.');
-      window.location.href = 'onboarding.html';
-    } else {
-      showToast(_profileLive
-        ? 'Your account cannot accept jobs right now. Contact support if this is unexpected.'
-        : 'Your profile has not loaded yet. Check your connection and try again.');
-    }
-    return;
-  }
-  await runTransition(ACTION.ACCEPT, bookingId, btn, {
-    busyLabel: 'Accepting…', okLabel: 'Job accepted. Customer notified.', removeCard: true });
-};
-
-window.declineJob = async function(bookingId, btn) {
-  await runTransition(ACTION.DECLINE, bookingId, btn, {
-    busyLabel: 'Declining…', okLabel: 'Job declined.',
-    confirmMsg: 'Decline this job request?', confirmLabel: 'Decline', removeCard: true });
-};
-
-// One ticker for every visible offer countdown. The time left is recomputed
-// from each card's expiresAtMs, so a reload or a long-open screen stays true.
-// When one reaches zero the list re-renders and that card turns "Expired".
-const _offerTicker = setInterval(() => {
-  let lapsed = false;
-  document.querySelectorAll('.job-countdown[data-expires]').forEach((el) => {
-    const st = offerState({ expiresAtMs: Number(el.dataset.expires) });
-    el.textContent = `Respond in ${formatTimeLeft(st.secondsLeft)}`;
-    if (st.expired) lapsed = true;
-  });
-  if (lapsed && _allJobs.length) render(_allJobs);
-}, 1000);
-
-// The status/field arguments are now advisory only — kept so existing card
-// markup keeps working — and are mapped onto a named action the layer validates.
-const ADVANCE_ACTION = {
-  en_route:    ACTION.EN_ROUTE,
-  in_progress: ACTION.START,
-  awaiting:    ACTION.JOB_DONE,
-  cancelled:   ACTION.CANCEL,
-};
-const ADVANCE_OK = {
-  en_route:    'On your way! Customer notified.',
-  in_progress: 'Job started.',
-  awaiting:    'Marked done. Waiting for the customer to confirm.',
-  cancelled:   'Booking cancelled.',
-};
-
-// Through the same transition layer as every other action: it re-reads the
-// booking, refuses a state the artisan may not cancel from, and sends an
-// inspection booking to the server's cancelInspectionBooking (callout settled).
-window.cancelJob = async function(bookingId, btn) {
-  await runTransition(ACTION.CANCEL, bookingId, btn, {
-    busyLabel: 'Cancelling…', okLabel: 'Booking cancelled.',
-    confirmMsg: 'Cancel this job? The customer will be told.', confirmLabel: 'Cancel job' });
-};
-
-window.advanceJob = async function(bookingId, nextStatus, timestampField, btn) {
-  const action = ADVANCE_ACTION[String(nextStatus || '').toLowerCase()];
-  if (!action) { showToast('That action is not available.'); return; }
-  return runTransition(action, bookingId, btn, {
-    busyLabel: 'Updating…', okLabel: ADVANCE_OK[nextStatus] || 'Status updated.' });
-};
-
-
-// ── QUOTE SHEET ───────────────────────────────────────────────────────────────
-window.completeInspectionJob = async function(bookingId, btn) {
-  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
-  try {
-    await callable('completeInspection', _fn())({ bookingId });
-    showToast('Inspection complete. Now submit your quote.');
-  } catch (e) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Complete Inspection'; }
-    showToast(e?.message || 'Could not complete inspection. Try again.');
-  }
-};
-
-/* job.html owns the job lifecycle, but the quote composer (labour, materials
-   rows, commission preview) still lives here. It sends the artisan over with
-   ?quote=<id> so the sheet opens on the right job rather than making them find
-   it in the list again. REMAINING WORK: extract this sheet into a shared
-   component so job.html can mount it directly. */
-function openQuoteFromDeepLink() {
-  const id = new URLSearchParams(location.search).get('quote');
-  if (!id) return;
-  let tries = 0;
-  const tick = () => {
-    if (document.getElementById(`jcard-${id}`) || tries > 20) {
-      try { window.openQuoteSheet(id); } catch (_) {}
-      return;
-    }
-    tries++; setTimeout(tick, 150);
-  };
-  tick();
-}
-
-window.openQuoteSheet = function(bookingId) {
-  _quoteBookingId = bookingId;
-  _needsMaterials = false;
-
-  // Reset form
-  document.getElementById('qs-labour').value = '';
-  document.getElementById('qs-note').value   = '';
-  document.getElementById('qs-mat-rows').innerHTML = '';
-  document.getElementById('qs-tog-no').classList.add('active');
-  document.getElementById('qs-tog-yes').classList.remove('active');
-  document.getElementById('qs-mat-section').style.display = 'none';
-  document.getElementById('qs-s-mat-row').style.display   = 'none';
-  recalcQuote();
-
-  _quoteOpener = document.activeElement;
-  document.getElementById('qs-overlay').classList.add('open');
-  const sheet = document.getElementById('qs-sheet');
-  sheet.inert = false;
-  sheet.classList.add('open');
-  document.getElementById('qs-labour').focus();
-};
-
-window.closeQuoteSheet = function() {
-  document.getElementById('qs-overlay').classList.remove('open');
-  const sheet = document.getElementById('qs-sheet');
-  sheet.classList.remove('open');
-  sheet.inert = true;
-  // Back to where the artisan was, if that control is still on the page.
-  if (_quoteOpener && _quoteOpener.isConnected && typeof _quoteOpener.focus === 'function') _quoteOpener.focus();
-  _quoteOpener = null;
-};
-
-window.setMaterials = function(yes) {
-  _needsMaterials = yes;
-  document.getElementById('qs-tog-no').classList.toggle('active',  !yes);
-  document.getElementById('qs-tog-yes').classList.toggle('active',  yes);
-  document.getElementById('qs-mat-section').style.display = yes ? '' : 'none';
-  document.getElementById('qs-s-mat-row').style.display   = yes ? '' : 'none';
-  if (yes && document.getElementById('qs-mat-rows').children.length === 0) addMatRow();
-  recalcQuote();
-};
-
-window.addMatRow = function() {
-  const row = document.createElement('div');
-  row.className = 'qs-mat-row';
-  row.innerHTML = `
-    <input type="text"   class="qs-input" placeholder="Item name"  oninput="recalcQuote()" />
-    <input type="number" class="qs-input" placeholder="Qty"  min="0.01" step="0.01" oninput="recalcQuote()" />
-    <input type="number" class="qs-input" placeholder="Price" min="0" step="0.01" oninput="recalcQuote()" />
-    <button class="qs-mat-del" onclick="removeMatRow(this)" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button>`;
-  document.getElementById('qs-mat-rows').appendChild(row);
-  row.querySelector('input').focus();
-};
-
-window.removeMatRow = function(btn) {
-  btn.closest('.qs-mat-row').remove();
-  recalcQuote();
-};
-
-// The quote as typed, judged by the same validator submitJobQuote runs (AR-08).
-// parseFloat('12abc') is 12 and `|| 0` hid anything unreadable; raw strings
-// now go to shared/js/domain/quoteMoney.js, which refuses them.
-function readQuoteInput() {
-  const materials = _needsMaterials
-    ? [...document.querySelectorAll('#qs-mat-rows .qs-mat-row')].map(row => {
-        const inputs = row.querySelectorAll('input');
-        return { name: inputs[0].value, qty: inputs[1].value.trim(), unitPrice: inputs[2].value.trim() };
-      })
-    : [];
-  return { labourCost: document.getElementById('qs-labour').value.trim(), materials,
-           note: document.getElementById('qs-note').value };
-}
-
-function recalcQuote() {
-  const checked = validateQuoteInput(readQuoteInput());
-  const q = checked.ok ? checked.quote : null;
-  document.getElementById('qs-s-labour').textContent = q ? q.labourCost.toFixed(2)    : '—';
-  document.getElementById('qs-s-mats').textContent   = q ? q.materialsCost.toFixed(2) : '—';
-  document.getElementById('qs-s-total').textContent  = q ? q.jobQuote.toFixed(2)      : '—';
-  // What the artisan actually takes home (audit FORM-002): a preview with the
-  // server's own formula and the displayed commission rate. The server computes
-  // and stores the real figure when the quote is sent.
-  const net = q ? artisanEarningsPreview(q.jobQuote, PLATFORM_CONFIG.commissionRate) : null;
-  document.getElementById('qs-s-net').textContent    = net === null ? '—' : net.toFixed(2);
-  document.getElementById('qs-net-label').textContent =
-    `You receive after ${Math.round(PLATFORM_CONFIG.commissionRate * 100)}% commission`;
-  document.getElementById('qs-submit').disabled      = !q;
-  // Say WHY Send is off (audit FORM-001) — the reason used to surface only on
-  // a submit that the disabled button could never make. Nothing is said until
-  // the artisan has typed something: an empty form is not an error.
-  const input   = readQuoteInput();
-  const touched = input.labourCost !== '' ||
-                  input.materials.some(m => m.name || m.qty || m.unitPrice);
-  document.getElementById('qs-msg').textContent = (!checked.ok && touched) ? checked.message : '';
-}
-window.recalcQuote = recalcQuote;
-
-window.submitQuote = async function() {
-  if (!_quoteBookingId) return;
-
-  const checked = validateQuoteInput(readQuoteInput());
-  if (!checked.ok) { showToast(checked.message); return; }
-  const { labourCost, note } = checked.quote;
-  const materials = checked.quote.materials.map(({ name, qty, unitPrice }) => ({ name, qty, unitPrice }));
-
-  const btn  = document.getElementById('qs-submit');
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
-
-  try {
-    const submitJobQuote = callable('submitJobQuote', _fn());
-    await submitJobQuote({ bookingId: _quoteBookingId, labourCost, materials, note });
-    closeQuoteSheet();
-    showToast('Quote sent! Waiting for customer approval.');
-  } catch(err) {
-    showToast(err.message || 'Could not send quote. Try again.');
-    btn.disabled = false;
-    btn.textContent = 'Send Quote to Customer';
-  }
-};
-
-// ── INIT ──────────────────────────────────────────────────────────────────────
-/* ── Opening a single job ──────────────────────────────────────────────────
-   Tapping a card opens THAT job's own screen. Clicks landing on a control
-   inside the card are left alone, so Accept/Decline still work in place.
-
-   artisan-app/bookings.html linked to `jobs.html?id=...` and this page never
-   read the parameter — a tap on a specific booking silently opened an
-   unfiltered list. job.html is that missing screen; the id now travels. */
-document.addEventListener('click', (e) => {
-  if (e.target.closest('button, a, input, select, textarea')) return;
-  const card = e.target.closest('[data-open]');
-  if (!card) return;
-  const id = card.getAttribute('data-open');
-  if (id) window.location.href = `job.html?id=${encodeURIComponent(id)}`;
+// ── Controls ──────────────────────────────────────────────────────────────────
+dom.views.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-view]');
+  if (!b || b.dataset.view === _view) return;
+  _view = b.dataset.view;
+  keepInUrl();
+  window.scrollTo(0, 0);
+  if (_view === 'history' && !_pages[_filter].loaded) loadMore(_filter);
+  paint();
+});
+dom.filters.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-filter]');
+  if (!b || b.dataset.filter === _filter) return;
+  _filter = b.dataset.filter;
+  keepInUrl();
+  if (!_pages[_filter].loaded) loadMore(_filter);
+  paint();
+});
+dom.list.addEventListener('click', (e) => {
+  if (e.target.closest('[data-act="more"]')) loadMore(_filter);
 });
 
-/* Legacy deep link: bookings.html and older notifications pointed at
-   jobs.html?id=... Forward to the screen that can actually show one booking
-   instead of dropping the id on the floor. */
-(() => {
-  const legacyId = new URLSearchParams(location.search).get('id');
-  if (legacyId) window.location.replace(`job.html?id=${encodeURIComponent(legacyId)}`);
-})();
+// ── Notices ───────────────────────────────────────────────────────────────────
+// Shown when Firestore cannot be reached. What is on screen stays.
+function showConnectionNotice() {
+  let el = document.getElementById('jobs-offline');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'jobs-offline';
+    el.className = 'fx-notice fx-notice--warn';
+    el.setAttribute('role', 'status');
+    el.innerHTML = `${icon('alert', 'fx-notice__icon')}<div class="fx-notice__body"><p></p><div class="fx-notice__actions"></div></div>`;
+    el.querySelector('p').textContent = 'We can\'t reach Fidus X right now. Showing what we last had — it updates when you\'re back online.';
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'fx-btn fx-btn--tertiary fx-btn--s'; b.textContent = 'Retry';
+    b.addEventListener('click', () => window.location.reload());
+    el.querySelector('.fx-notice__actions').appendChild(b);
+    notices.appendChild(el);
+  }
+  el.hidden = false;
+}
+function hideConnectionNotice() {
+  const el = document.getElementById('jobs-offline');
+  if (el) el.hidden = true;
+}
 
-['list-pending','list-active','list-completed','list-cancelled'].forEach(showSkeletons);
+// One ticker for the offer countdowns on screen; a lapsed offer leaves the list.
+const _ticker = setInterval(() => {
+  if (tickOffers(dom.list, Date.now()).length) paint(true);
+}, 1000);
+// A booked slot opens with time, not with data: look again each minute.
+const _clock = setInterval(() => paint(), 60_000);
 
-const { services: { authService, databaseService } } = getAppContainer();
-_dbService      = databaseService;
-// Needed by the transition layer: an inspection-track cancel must settle the
-// callout escrow through its Cloud Function, never a raw status write.
-_pricingService = pricingService;
+// Back from a job lands where the artisan was in the list.
+rememberScroll({ name: 'jobs.html' });
 
-const bookingRepo = createBookingRepository({ databaseService });
+// ── Data ──────────────────────────────────────────────────────────────────────
+subscribeToArtisanAuthState(async (user) => {
+  if (!user) { window.location.replace('login.html'); return; }
+  if (uid === user.uid) return;
+  uid = user.uid;
 
-subscribeToArtisanAuthState(async user => {
-  if (!user) { window.location.replace(LOGIN_URL); return; }
-  _uid = user.uid;
+  // A list answered from the CACHE with nothing in it while Firestore is
+  // unreachable is "not known yet", not "none" (audit NET-001): keep what is on
+  // screen and say so. (The metadata reaches here since ff317b4.)
+  const liveList = (onData) => (records, meta) => {
+    if (meta && meta.fromCache && !records.length) { showConnectionNotice(); return; }
+    hideConnectionNotice();
+    onData(records);
+  };
 
-  if (_unsub) { _unsub(); _unsub = null; }
-  if (_offersUnsub) { _offersUnsub(); _offersUnsub = null; }
-
-  // Both lists paint from the last known state first (instantView, CLAUDE.md §1)
-  // and the live listeners reconcile them. An empty answer from the CACHE while
-  // Firestore is unreachable is "not known yet": the skeletons or the last list
-  // stay, and the artisan is told — never "No pending requests" (audit NET-001).
-  const offlineEmpty = (records, meta) => !!(meta && meta.fromCache && !records.length);
-  const sayOffline   = () => showToast('You\'re offline — showing what we last had.', 4000);
-
-  // Jobs this artisan has TAKEN (they are the booking's artisanId)…
-  _unsub = mountInstantView({
-    key: 'artisan-jobs-bookings',
-    version: 1,
+  // Bookings still going, and open offers: the SAME lists Today shows, from the
+  // same cache entries (js/artisanLists.js) — painted at once if Today loaded them.
+  _unsubs.push(mountInstantView({
+    key: ACTIVE_LIST.key, version: ACTIVE_LIST.version, stripFields: [...ACTIVE_LIST.stripFields],
+    render: (records) => { _active = records.map(rec); _activeReady = true; paint(); },
+    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(...activeQuery(uid), liveList(onData), onError),
+    onError: () => { showConnectionNotice(); _activeReady = true; paint(); },
+  }).destroy);
+  _unsubs.push(mountInstantView({
+    key: OFFERS_LIST.key, version: OFFERS_LIST.version, stripFields: [...OFFERS_LIST.stripFields],
     render: (records, { fromCache }) => {
-      _bookingJobs = records.map(r => ({ id: r.id, ...(r.data || {}) }));
-      if (!fromCache) _bookingsLive = true;
-      _mergeAndRender();
+      // A cached offer whose deadline has passed cannot be answered: dropped.
+      _offers = (fromCache ? records.filter((r) => !offerState(r.data).expired) : records).map(rec);
+      paint();
     },
-    subscribe: (_c, onData, onError) => bookingRepo.subscribeByArtisanId(
-      user.uid,
-      (records, meta) => { if (offlineEmpty(records, meta)) { sayOffline(); return; } onData(records); },
-      onError),
-    onError: (err) => {
-      console.error('[jobs] Subscription error:', err);
-      showToast('Could not load jobs. Check your connection.', 4000);
-    },
-  }).destroy;
-  // …and requests OFFERED to them: the offer summary only (job_offers), never
-  // the booking — that opens to them when they accept (functions/jobOffers.js).
-  _offersUnsub = mountInstantView({
-    key: 'artisan-jobs-offers',
-    version: 1,
+    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(...offersQuery(uid), liveList(onData), onError),
+    onError: () => paint(),
+  }).destroy);
+  // History, first page of All: live, and painted from the last visit at once.
+  _unsubs.push(mountInstantView({
+    key: HISTORY_LIST.key, version: HISTORY_LIST.version, stripFields: [...HISTORY_LIST.stripFields],
     render: (records, { fromCache }) => {
-      // A cached offer whose deadline has passed cannot be answered: drop it.
-      const live = fromCache ? records.filter(r => !offerState(r.data).expired) : records;
-      _offerJobs = live.map(r => ({ id: r.id, ...(r.data || {}) }));
-      _mergeAndRender();
+      const p = _pages.all;
+      p.first = records.map(rec);
+      p.loaded = true;
+      if (!fromCache && !p.more.length) { p.done = records.length < HISTORY_PAGE; }
+      paint();
     },
-    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(
-      'job_offers',
-      [{ field: 'artisanId', op: '==', value: user.uid }, { field: 'offerStatus', op: '==', value: 'open' }],
-      {},
-      (records, meta) => { if (offlineEmpty(records, meta)) return; onData(records); },
-      onError),
-    onError: (err) => console.error('[jobs] Offer subscription error:', err),
-  }).destroy;
+    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(...historyQuery(uid), liveList(onData), onError),
+    onError: () => { _pages.all.loaded = true; _pages.all.failed = true; paint(); },
+  }).destroy);
+  if (_view === 'history' && _filter !== 'all') loadMore(_filter);
 
-  // Re-establish GPS presence tracking so the customer's live-tracking map
-  // keeps updating while the artisan is on this page advancing job status.
+  // Presence: GPS + heartbeat while an active job may be tracked, started from
+  // the artisan's STORED choice — presence never writes availability
+  // (shared/js/domain/availability.js). The artisan's own position also gives
+  // each row its distance (their private record; the public one is ~1 km).
   try {
     const snap = await databaseService.getDocument('artisans', user.uid);
     if (snap?.exists) {
-      // A server answer (the Firestore cache is memory-only, so a fresh page
-      // cannot read this offline): from here the profile is live, and the
-      // object the handlers read is brought up to date.
-      _currentArtisan = Object.assign(_currentArtisan || {}, snap.data || {});
-      _profileLive = true;
-      // Distance origin. Only a REAL stored fix is used; when the artisan has no
-      // position the job card omits distance entirely rather than printing
-      // "0.0 km", which reads as a factual zero.
-      // The artisan's OWN precise fix lives in their private record (the public
-      // profile carries ~1 km only — shared/js/domain/locationPrivacy.js).
-      const a   = snap.data || {};
+      const a = snap.data || {};
       const loc = await databaseService.getDocument(`artisans/${user.uid}/private`, 'location').catch(() => null);
-      const p   = (loc && loc.exists && loc.data) || {};
-      const la = Number(p.lat ?? a.lat);
-      const ln = Number(p.lng ?? a.lng);
-      if (Number.isFinite(la) && Number.isFinite(ln) && !(la === 0 && ln === 0)) {
-        _originLat = la; _originLng = ln;
-        if (_allJobs.length) render(_allJobs);   // repaint with distances
-      }
-      // Started from the stored choice; presence never writes availability
-      // (shared/js/domain/availability.js). It still tracks GPS for an active
-      // job's live map even when the artisan is offline for new requests.
+      const p = (loc && loc.exists && loc.data) || {};
+      const la = Number(p.lat ?? a.lat), ln = Number(p.lng ?? a.lng);
+      if (Number.isFinite(la) && Number.isFinite(ln) && !(la === 0 && ln === 0)) { _origin = { originLat: la, originLng: ln }; paint(); }
       const approved = String(a.verificationStatus || '').toLowerCase() === 'approved';
       startPresence(user.uid, databaseService, approved && storedAvailability(a), {
-        onLocationError: err => console.warn('[jobs] GPS:', err.message),
+        onLocationError: (err) => console.warn('[jobs] GPS:', err.message),
       });
     }
   } catch (e) {
@@ -1153,9 +306,9 @@ subscribeToArtisanAuthState(async user => {
 });
 
 window.addEventListener('pagehide', () => {
-  if (_unsub) _unsub();
-  if (_offersUnsub) _offersUnsub();
-  clearInterval(_offerTicker);
+  _unsubs.forEach((u) => u && u());
+  clearInterval(_ticker);
+  clearInterval(_clock);
   stopPresence();
 });
 // Restored from the back/forward cache with its listeners torn down: reload
@@ -1166,4 +319,3 @@ window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.re
 <script src="js/pwa.js" defer></script>
 </body>
 </html>
-

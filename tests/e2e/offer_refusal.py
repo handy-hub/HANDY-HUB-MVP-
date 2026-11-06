@@ -55,7 +55,13 @@ INIT = r"""
   });
   fx.any = any;
   fx.db = {
-    subscribeToCollection(name, cond, opts, onChange, onErr) { (fx.colCbs[name] ||= []).push(onChange); return () => {}; },
+    subscribeToCollection(name, cond, opts, onChange, onErr) { (fx.colCbs[name] ||= []).push(onChange); (fx.colSubs ||= []).push({ name, cond, opts, onChange }); return () => {}; },
+    async queryWithOptions(name, cond, opts) {
+      (fx.queries ||= []).push([name, cond, opts]);
+      if (fx.qdelay) await new Promise((r) => setTimeout(r, fx.qdelay));
+      if (fx.qfail) throw new Error('unavailable');
+      return ((fx.qpages || []).shift() || []).map((d) => ({ id: d.id, data: d }));
+    },
     subscribeToDocument(name, id, onChange, onErr) {
       const k = `${name}/${id}`; (fx.docCbs[k] ||= []).push(onChange); (fx.docErrs[k] ||= []).push(onErr);
       return () => {};
@@ -315,56 +321,110 @@ with sync_playwright() as pw:
     check('Today: no page errors', not errs, errs[:3])
     pg.context.close()
 
-    # ═══ JOBS LIST ════════════════════════════════════════════════════════════
-    pg, errs = open_page(b, '/artisan-app/jobs.html')
-    pg.wait_for_function("(window.__fx.colCbs.job_offers || []).length > 0", timeout=15000)
+    # ═══ NAV on a legacy screen (wallet.html) ═════════════════════════════════
     # The four tabs on a screen not yet on the design system (artisanFloatingNav.js).
-    pg.wait_for_selector('#fx-tabbar .fx-tab', timeout=5000)
-    check('nav (jobs.html): the four tabs, Jobs current, fixed at the bottom with room left for it',
+    pg, errs = open_page(b, '/artisan-app/wallet.html')
+    pg.wait_for_selector('#fx-tabbar .fx-tab', timeout=8000)
+    check('nav (wallet.html): the four tabs, Earnings current, fixed at the bottom with room left for it',
           pg.eval_on_selector_all('#fx-tabbar .fx-tab', 'els => els.map(e => [e.textContent.trim(), e.getAttribute("href")])')
           == [['Today', 'dashboard.html'], ['Jobs', 'jobs.html'], ['Earnings', 'wallet.html'], ['Account', 'settings.html']]
-          and text_of(pg, '#fx-tabbar [aria-current="page"]') == 'Jobs'
+          and text_of(pg, '#fx-tabbar [aria-current="page"]') == 'Earnings'
           and pg.evaluate("getComputedStyle(document.querySelector('.fx-bottom--fixed')).position === 'fixed' && parseFloat(getComputedStyle(document.body).paddingBottom) >= 64"),
           pg.eval_on_selector_all('#fx-tabbar .fx-tab', 'els => els.map(e => e.textContent.trim())'))
     check('nav: no availability control outside Today (decision 02)', pg.query_selector('#hh-online-toggle, #hh-floating-nav, .hh-fnav') is None)
-    # The heartbeat: a live profile snapshot keeps presence alive on this page too.
     pg.wait_for_function("(window.__fx.docCbs['artisans/A1'] || []).length > 0", timeout=5000)
     pg.evaluate("(a) => window.__fx.docCbs['artisans/A1'].forEach(cb => cb({ id: 'A1', exists: true, data: a, fromCache: false }))", ARTISAN)
     pg.wait_for_timeout(300)
     check('nav: on a live profile it keeps the presence heartbeat (ensurePresence, available = approved && isAvailable)',
           ['A1', True] in (pg.evaluate('window.__fx.ensure || []') or []), pg.evaluate('window.__fx.ensure || []'))
+    pg.context.close()
+
+    # ═══ JOBS (Phase 3) ═══════════════════════════════════════════════════════
+    # The real jobs.html and its wiring: the lists shared with Today, the views in
+    # the URL, paged history, the outage notice. Only Firebase is a fake.
+    sub = lambda pg, js: pg.evaluate(f"() => (window.__fx.colSubs || []).filter({js}).length")
+    def emit_sub(pg, pred, records, from_cache=False):
+        pg.evaluate("([p, r, c]) => (window.__fx.colSubs || []).filter(new Function('s', 'return ' + p)).forEach(s => s.onChange(r.map(d => ({ id: d.id, data: d })), { fromCache: c }))",
+                    [pred, records, from_cache])
+    ACTIVE_P  = "s.name === 'bookings' && JSON.stringify(s.cond).includes('en_route')"
+    HISTORY_P = "s.name === 'bookings' && JSON.stringify(s.cond).includes('completed')"
+    OFFERS_P  = "s.name === 'job_offers'"
+    iso = lambda ms: pg.evaluate("(m) => new Date(m).toISOString()", ms)
+    hrefs = lambda pg: pg.eval_on_selector_all('#jobs-list a.fx-row', 'els => els.map(e => e.getAttribute("href"))')
+
+    pg, errs = open_page(b, '/artisan-app/jobs.html')
+    pg.wait_for_function("(window.__fx.colSubs || []).filter(s => s.name === 'bookings').length >= 2 && (window.__fx.colSubs || []).some(s => s.name === 'job_offers')", timeout=15000)
     t = now(pg)
-    emit_offers(pg, [offer('J1', t, 120), offer('J2', t, 2), offer('J3', t, prematched=True)])
-    pg.wait_for_selector('#jcard-J1 .job-btn-accept')
-    tickers0 = live_intervals(pg)
-    check('jobs: an open offer shows Accept (with icon) and a countdown',
-          '<svg' in btn_state(pg, '#jcard-J1 .job-btn-accept')['html'] and pg.query_selector('#jcard-J1 .job-countdown') is not None)
-    check('jobs: a prematched offer has no countdown and stays answerable',
-          pg.query_selector('#jcard-J3 .job-countdown') is None and btn_state(pg, '#jcard-J3 .job-btn-accept')['disabled'] is False)
-    wait_lapsed(pg, '#jcard-J2 .job-btn-accept')
-    a, d = btn_state(pg, '#jcard-J2 .job-btn-accept'), btn_state(pg, '#jcard-J2 .job-btn-decline')
-    check('jobs: at expiresAtMs the card wears the SAME lapsed look (accept-styled "Expired", both disabled, .5)',
-          a and a['text'] == 'Expired' and a['disabled'] and d['disabled'] and a['opacity'] == '0.5', (a, d))
-    check('jobs: one ticker, not one per render', live_intervals(pg) == tickers0, (tickers0, live_intervals(pg)))
+    JB = lambda id, status, **o: dict({'id': id, 'artisanId': 'A1', 'serviceType': 'electrical', 'track': 'inspection', 'calloutPaid': True,
+                                       'customerFirstName': 'Kofi', 'status': status, 'updatedAt': iso(t - 60_000)}, **o)
+    emit_sub(pg, ACTIVE_P, [JB('J1', 'en_route'), JB('Q1', 'quoted', jobQuote=300), JB('U1', 'inspection_scheduled', scheduledForMs=t + 3 * 86_400_000)])
+    emit_sub(pg, OFFERS_P, [dict(offer('O1', t, 120), id='O1'), dict(offer('O2', t, 2), id='O2')])
+    HIST = [JB(f'H{i:02d}', 'completed' if i % 2 else 'cancelled', cancelledBy='customer', updatedAt=iso(t - (i + 1) * 3_600_000)) for i in range(20)]
+    emit_sub(pg, HISTORY_P, HIST)
+    pg.wait_for_selector('#jobs-list a[data-row="J1"]')
+    check('jobs: the screen draws its own tab bar, Jobs current (the nav script then draws none)',
+          text_of(pg, '#tabbar [aria-current="page"]') == 'Jobs' and pg.query_selector('#fx-tabbar') is None)
+    check('jobs: Current lists the requests (soonest to expire first), then the job that needs you, then the one waiting — each opening its job screen',
+          hrefs(pg) == ['job.html?id=O2', 'job.html?id=O1', 'job.html?id=J1', 'job.html?id=Q1'], hrefs(pg))
+    check('jobs: no Accept, Decline or step buttons in the list', pg.query_selector('#jobs-list button') is None)
+    check('jobs: the offer rows name nobody (the offer carries "Ama")', 'Ama' not in text_of(pg, '#jobs-list'))
+    pg.wait_for_timeout(3200)
+    check('jobs: an offer leaves the list at expiresAtMs (one ticker)', pg.query_selector('#jobs-list a[data-offer="O2"]') is None
+          and pg.query_selector('#jobs-list a[data-offer="O1"]') is not None)
 
-    pg.evaluate("window.__fx.refuse = { code: 'permission-denied', reason: 'not_offered', message: 'This job request is not offered to you.' }")
-    pg.click('#jcard-J1 .job-btn-accept')
-    pg.wait_for_timeout(600)
-    a, d = btn_state(pg, '#jcard-J1 .job-btn-accept'), btn_state(pg, '#jcard-J1 .job-btn-decline')
-    check('jobs: refused as not_offered → lapsed, both disabled, NOT restored, countdown removed',
-          a['text'] == 'Expired' and a['disabled'] and d['disabled'] and pg.query_selector('#jcard-J1 .job-countdown') is None, (a, d))
+    pg.click('#jobs-views [data-view="upcoming"]')
+    check('jobs: Upcoming lists the booked slot; the view is in the URL',
+          hrefs(pg) == ['job.html?id=U1'] and 'view=upcoming' in pg.url, (hrefs(pg), pg.url))
+    pg.click('#jobs-views [data-view="history"]')
+    check('jobs: History, newest first, 20 to a page, with Show more', len(hrefs(pg)) == 20 and hrefs(pg)[0] == 'job.html?id=H00'
+          and text_of(pg, '#jobs-list [data-act="more"]') == 'Show more' and 'view=history' in pg.url and 'filter=all' in pg.url, (len(hrefs(pg)), pg.url))
 
-    emit_offers(pg, [offer('J5', t, 300)])
-    pg.wait_for_selector('#jcard-J5 .job-btn-accept')
-    pg.evaluate("window.__fx.refuse = { code: 'unavailable', reason: null, message: 'unavailable' }")
-    pg.click('#jcard-J5 .job-btn-accept')
-    pg.wait_for_timeout(600)
-    a = btn_state(pg, '#jcard-J5 .job-btn-accept')
-    check('jobs: a network failure restores Accept WITH its icon (textContent used to drop it)',
-          not a['disabled'] and '<svg' in a['html'] and 'Accept' in a['text'], a)
+    # Show more: one query, after the last row, even when tapped twice while it loads.
+    MORE = [JB(f'M{i}', 'completed', updatedAt=iso(t - (30 + i) * 3_600_000)) for i in range(5)]
+    pg.evaluate("(r) => { window.__fx.queries = []; window.__fx.qdelay = 500; window.__fx.qpages = [r]; }", MORE)
+    pg.click('#jobs-list [data-act="more"]')
+    pg.evaluate("() => document.querySelector('#jobs-list [data-act=\"more\"]')?.click()")
+    pg.wait_for_timeout(900)
+    qs = pg.evaluate('window.__fx.queries')
+    check('jobs: Show more asks once, for the page after the last row (startAfter), whatever the taps',
+          len(qs) == 1 and qs[0][2].get('startAfter') == HIST[-1]['updatedAt'] and qs[0][2].get('limit') == 20, qs)
+    check('jobs: the next page is appended; a short page means there is no more',
+          len(hrefs(pg)) == 25 and pg.query_selector('#jobs-list [data-act="more"]') is None, len(hrefs(pg)))
+
+    # A filter reads its own first page; a failed read keeps the list and offers Try again.
+    pg.evaluate("() => { window.__fx.queries = []; window.__fx.qdelay = 0; window.__fx.qfail = true; }")
+    pg.click('#jobs-filters [data-filter="cancelled"]')
+    pg.wait_for_timeout(400)
+    qs = pg.evaluate('window.__fx.queries')
+    check('jobs: the Cancelled filter asks for cancelled bookings only', len(qs) == 1 and qs[0][1][1]['value'] == ['cancelled'], qs)
+    check('jobs: a failed page keeps what is shown and says so, with Try again',
+          len(hrefs(pg)) == 10 and 'Could not load more' in text_of(pg, '#jobs-list') and text_of(pg, '#jobs-list [data-act="more"]') == 'Try again',
+          (len(hrefs(pg)), text_of(pg, '#jobs-list')[:120]))
+    pg.evaluate("() => { window.__fx.qfail = false; window.__fx.qpages = [[]]; }")
+    pg.click('#jobs-list [data-act="more"]'); pg.wait_for_timeout(300)
+    check('jobs: Try again recovers', 'Could not load more' not in text_of(pg, '#jobs-list'))
+
+    # An outage: an empty answer from the cache is "not known", never "no jobs".
+    pg.click('#jobs-views [data-view="current"]')
+    emit_sub(pg, ACTIVE_P, [], from_cache=True)
+    pg.wait_for_timeout(200)
+    check('jobs: offline, the jobs on screen stay and the screen says it cannot reach the server',
+          pg.query_selector('#jobs-list a[data-row="J1"]') is not None and "can't reach Fidus X" in text_of(pg, '#jobs-notices'))
     pg.evaluate("window.dispatchEvent(new Event('pagehide'))")
-    check('jobs: pagehide clears the ticker', live_intervals(pg) < tickers0, (tickers0, live_intervals(pg)))
+    check('jobs: pagehide clears its tickers', pg.evaluate("window.__fx.intervals.size") == 0, pg.evaluate('window.__fx.intervals.size'))
     check('jobs: no page errors', not errs, errs[:3])
+    pg.context.close()
+
+    # Old links land in the right place.
+    pg, errs = open_page(b, '/artisan-app/jobs.html?tab=completed')
+    pg.wait_for_selector('#jobs-filters [data-filter="completed"][aria-pressed="true"]', timeout=8000)
+    check('jobs: an old ?tab=completed link opens History, Completed, and the URL is rewritten',
+          'view=history' in pg.url and 'filter=completed' in pg.url and 'tab=' not in pg.url, pg.url)
+    pg.context.close()
+    pg, errs = open_page(b, '/artisan-app/jobs.html?quote=HHB-Q9')
+    try: pg.wait_for_url('**/job.html?id=HHB-Q9', timeout=8000)
+    except Exception: pass
+    check('jobs: ?quote= (the old composer link) opens that job\'s screen', pg.url.endswith('/artisan-app/job.html?id=HHB-Q9'), pg.url)
     pg.context.close()
 
     # ═══ JOB SCREEN ═══════════════════════════════════════════════════════════
@@ -438,6 +498,10 @@ with sync_playwright() as pw:
     pg.click('#jb-dock [data-act="cancel"]')
     pg.wait_for_selector('#confirm-sheet:not([hidden]) [data-confirm]')
     check('job: Cancel asks first, in the app\'s own sheet', text_of(pg, '#confirm-title') == 'Cancel this job?')
+    terms = pg.eval_on_selector_all('#confirm-list li', 'els => els.map(e => e.textContent.trim())')
+    check('job: the sheet lists what cancelling does for THIS booking (visit fee unpaid: nothing to refund)',
+          terms == ['The customer is told, and the booking ends. It is not passed to anyone else.',
+                    'It counts against the completion rate on your Performance screen.'], terms)
     pg.click('#confirm-sheet [data-sheet-close]'); pg.wait_for_timeout(450)
     check('job: "Go back" cancels nothing', pg.evaluate('window.__fx.calls.slice()') == [['K4', 'accept']] and pg.query_selector('#jb-dock [data-act="cancel"]') is not None)
     # On the way to the inspection (quote not yet approved): the server still lets the artisan cancel.

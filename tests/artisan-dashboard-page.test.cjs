@@ -52,18 +52,19 @@ await t('the dead "This Week" selector is gone; a row goes to Performance', () =
 
 console.log('\n── COPY-003 · every link into Jobs opens something that exists ──\n');
 
-await t('a job on Today opens that job; the only other ways into Jobs are the tab and ?quote=', () => {
+await t('a job on Today opens that job; Today reaches Jobs only through its tab', () => {
     assert.match(view, /const jobHref = \(id\) => `job\.html\?id=\$\{encodeURIComponent\(id\)\}`;/);
     assert.match(view, /<a class="fx-row" href="\$\{jobHref\(b\.id\)\}">/, 'waiting / upcoming rows open the job');
+    // Phase 3: Submit quote opens the job screen (the composer is inline there).
     const links = [...(page + view).matchAll(/jobs\.html(\?[^"`'\s]*)?/g)].map((m) => m[1] || '');
-    assert.ok(links.length >= 1);
-    for (const q of links) assert.ok(q === '' || /^\?quote=/.test(q), `unexpected Jobs link: jobs.html${q}`);
+    for (const q of links) assert.strictEqual(q, '', `unexpected Jobs link: jobs.html${q}`);
 });
-await t('every jobs.html?tab= link left on Today names a tab Jobs actually has', () => {
+await t('every jobs.html?view= link names a view Jobs actually has; old ?tab= links still land', () => {
     const jobs = read('artisan-app/jobs.html');
-    const tabs = JSON.parse(jobs.match(/const JOB_TABS\s*=\s*(\[[^\]]*\])/)[1].replace(/'/g, '"'));
-    const links = [...(page + view).matchAll(/jobs\.html\?tab=([a-z]+)/g)].map((m) => m[1]);
-    for (const tab of links) assert.ok(tabs.includes(tab), `jobs.html?tab=${tab} — Jobs has ${tabs.join(', ')}`);
+    const views = ['current', 'upcoming', 'history'];
+    assert.match(read('shared/js/domain/artisanJobs.js'), /export const JOB_VIEWS = Object\.freeze\(\['current', 'upcoming', 'history'\]\);/);
+    for (const v of [...(page + view).matchAll(/jobs\.html\?view=([a-z]+)/g)].map((m) => m[1])) assert.ok(views.includes(v), v);
+    assert.match(jobs, /const LEGACY_TAB = \{ pending: \['current', 'all'\], active: \['current', 'all'\], completed: \['history', 'completed'\], cancelled: \['history', 'cancelled'\] \};/);
 });
 
 console.log('\n── RESP-001 · nothing on Today scrolls sideways ──\n');
@@ -89,10 +90,11 @@ await t('booking-pill.css uses design tokens only — no raw colours', () => {
     assert.ok(!/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/.test(decls), 'a raw colour crept in');
     for (const m of decls.matchAll(/(?:background|color):\s*([^;]+);/g)) assert.match(m[1], /^var\(--ds-[a-z0-9-]+\)$/, m[1]);
 });
-await t('Jobs loads it and keeps no pill palette of its own', () => {
-    const jobs = read('artisan-app/jobs.html');
-    assert.match(jobs, /<link rel="stylesheet" href="\.\.\/shared\/css\/components\/booking-pill\.css" \/>/);
-    assert.ok(!/^\s*\.pill-[a-z_]+\s*\{/m.test(jobs), 'jobs.html still defines .pill-* rules');
+await t('Jobs (Phase 3) colours its status chips by resolveJourney\'s tone, no legacy pill palette', () => {
+    const jobs = read('artisan-app/jobs.html'), screen = read('artisan-app/js/jobsScreen.js');
+    assert.ok(!/booking-pill\.css|pill-|css\/design-system\.css/.test(jobs), 'Jobs mixes in the legacy palette');
+    assert.match(screen, /const TONE_CHIP = \{ action: 'fx-chip--accent', live: 'fx-chip--info', waiting: 'fx-chip--warn', bad: 'fx-chip--bad', ok: 'fx-chip--ok', ended: '' \};/);
+    assert.ok(!/status === '|\.status ===/.test(screen), 'jobsScreen.js branches on a status of its own');
 });
 await t('css/dashboard.css keeps no pill or status-chip palette of its own (UI-003 cleanup)', () => {
     const css = read('artisan-app/css/dashboard.css');

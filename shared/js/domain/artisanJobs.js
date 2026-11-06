@@ -52,13 +52,17 @@ export function closedOn(booking) {
  * @param {number} [nowMs]
  */
 export function groupJobs(bookings = [], nowMs = Date.now()) {
-    const seen = new Set();
-    const placed = [];
+    // A booking can arrive twice — from the live list and from a history page
+    // (it closed while both were loaded, or a cached copy is behind). It counts
+    // once, as its most recent version, so a stale "in progress" copy never
+    // hides that it completed.
+    const latest = new Map();
     for (const b of bookings) {
-        if (!b || !b.id || seen.has(b.id)) continue;   // a booking in both the live list and a history page counts once
-        seen.add(b.id);
-        placed.push({ booking: b, ...placeJob(b, nowMs) });
+        if (!b || !b.id) continue;
+        const prev = latest.get(b.id);
+        if (!prev || (ms(b.updatedAt) ?? 0) >= (ms(prev.updatedAt) ?? 0)) latest.set(b.id, b);
     }
+    const placed = [...latest.values()].map((b) => ({ booking: b, ...placeJob(b, nowMs) }));
     const disputed = (p) => norm(p.booking.status) === 'disputed';
     const needsYou = placed.filter((p) => p.place === 'yours').sort((a, b) => byJobRank(a, b) || recent(a, b));
     const waiting  = placed.filter((p) => p.place === 'waiting' && !disputed(p)).sort(recent);

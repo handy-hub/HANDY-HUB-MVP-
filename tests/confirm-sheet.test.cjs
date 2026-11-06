@@ -119,14 +119,16 @@ await t('Today, Jobs and the job screen call no native confirm() or alert()', ()
         const code = read(f).split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
         assert.ok(!/(^|[^.\w])(confirm|alert)\(/m.test(code), `${f} still calls a native dialog`);
     }
-    assert.match(read('artisan-app/jobs.html'), /import \{ confirmSheet \} from '\.\.\/shared\/js\/ui\/confirmSheet\.js';/, 'jobs.html');
+    // Jobs (Phase 3) takes no action, so it asks nothing: its rows open the job screen.
+    assert.ok(!/confirmSheet|confirmIn|performBookingAction/.test(read('artisan-app/jobs.html') + read('artisan-app/js/jobsScreen.js')), 'Jobs acts');
     // The job screen (Phase 2) is on the design system: its own modal sheet.
     const job = read('artisan-app/job.html');
     assert.match(job, /import \{ openSheet \}\s+from '\.\/js\/fx\/sheet\.js';/);
     assert.match(job, /<div class="fx-overlay" id="confirm-sheet" hidden>[\s\S]*?role="dialog" aria-modal="true"/);
-    assert.match(job, /if \(spec\.confirm && !\(await confirmIn\(spec\.confirm\)\)\) return;/);
+    assert.match(job, /const ask = typeof spec\.confirm === 'function' \? spec\.confirm\(_booking\) : spec\.confirm;\s*if \(ask && !\(await confirmIn\(ask\)\)\) return;/);
     assert.match(job, /'decline':\s+\{ action: ACTION\.DECLINE,\s+confirm: \{/, 'decline asks first');
-    assert.match(job, /'cancel':\s+\{ action: ACTION\.CANCEL,[\s\S]{0,120}confirm: \{/, 'cancel asks first');
+    assert.match(job, /'cancel':\s+\{ action: ACTION\.CANCEL,[\s\S]{0,120}confirm: \(b\) => \(\{ title: 'Cancel this job\?'/, 'cancel asks first');
+    assert.match(job, /list: cancellationTerms\(b\)\.consequences \|\| \[\]/, 'and says what it does first');
     // Today is on the artisan design system: its confirmations are its own
     // modal sheets (artisan-app/js/fx/sheet.js — focus trap, Escape, inert background).
     const today = read('artisan-app/dashboard.html');

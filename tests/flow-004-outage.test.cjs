@@ -81,8 +81,9 @@ t('a cached profile never steers presence or unlocks the availability switch', (
     assert.ok(/waiting: !!ui\.cached/.test(view) && /if \(view\.waiting\) btn\.disabled = true;/.test(view));
 });
 
-t('jobs.html Accept sends to onboarding only for a verification state that calls for it', () => {
-    assert.ok(/const NEEDS_ONBOARDING = \['', 'draft', 'rejected', 're_verification_required'\];/.test(jobs) && /window\.acceptJob = async function[\s\S]{0,400}if \(onboardingWarranted\(\)\) \{[^}]*onboarding\.html/.test(jobs));
+t('Jobs (Phase 3) accepts nothing, so it never sends an artisan to onboarding; it keeps the outage rule', () => {
+    assert.ok(!/onboarding\.html|acceptJob/.test(jobs), 'Jobs routes to onboarding or accepts an offer');
+    assert.ok(/if \(meta && meta\.fromCache && !records\.length\) \{ showConnectionNotice\(\); return; \}/.test(jobs), 'an empty cache answer is not "none"');
 });
 
 t('(6) the guard\'s unauthenticated path is unchanged: no user → login', () => {

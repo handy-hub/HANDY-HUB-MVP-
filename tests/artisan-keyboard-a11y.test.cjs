@@ -28,55 +28,36 @@ function t(name, fn) {
 
 const jobs = read('artisan-app/jobs.html');
 
-console.log('\n── 1 · the quote sheet leaves the Tab order when closed ──\n');
+console.log('\n── 1 · Jobs keeps no modal of its own; every control is a native one ──\n');
 
-t('the sheet starts inert', () => {
-    assert.match(jobs, /<div id="qs-sheet" class="qs-sheet" role="dialog" aria-modal="true" aria-label="Submit Job Quote" inert>/);
+// Phase 3: the quote sheet and the photo lightbox left Jobs. The quote composer
+// is inline on the job screen (shared/js/ui/quoteComposer.js — nothing to trap),
+// and the job screen's confirmations are the design system's modal sheet, whose
+// focus trap, Escape and focus return tests/fx-design-system.test.cjs and
+// tests/e2e/fx_design_system.py prove.
+t('Jobs has no quote sheet, lightbox or inert dialog left to trap focus', () => {
+    assert.ok(!/qs-sheet|job-lightbox|openQuoteSheet|openPhoto/.test(jobs));
+    assert.match(jobs, /if \(one\) \{ window\.__jobsLeaving = true; location\.replace\('job\.html\?id=' \+ encodeURIComponent\(one\)\); \}/,
+        '?quote= opens the job screen, where the composer is');
 });
 
-/** jobs.html's own open/close functions over a stub DOM. */
-function quoteSheet() {
-    const els = {};
-    const el = (id) => (els[id] = els[id] || {
-        id, value: '', innerHTML: '', inert: id === 'qs-sheet', style: {}, isConnected: true,
-        _cls: new Set(), focused: 0,
-        classList: { add(c) { els[id]._cls.add(c); }, remove(c) { els[id]._cls.delete(c); },
-                     contains(c) { return els[id]._cls.has(c); }, toggle(c, on) { on ? els[id]._cls.add(c) : els[id]._cls.delete(c); } },
-        focus() { els[id].focused++; doc.activeElement = els[id]; },
-    });
-    const doc = { activeElement: null, getElementById: el };
-    const src = jobs.slice(jobs.indexOf('window.openQuoteSheet = function'), jobs.indexOf('window.setMaterials = function'));
-    const win = {};
-    // eslint-disable-next-line no-new-func
-    new Function('window', 'document', 'recalcQuote', `let _quoteBookingId, _needsMaterials, _quoteOpener = null; ${src}`)(win, doc, () => {});
-    return { win, el, doc };
-}
-
-t('opening it makes it reachable and moves focus in; closing makes it inert and returns focus', () => {
-    const { win, el, doc } = quoteSheet();
-    const opener = el('card-btn'); opener.focus();
-    win.openQuoteSheet('HHB-1');
-    assert.strictEqual(el('qs-sheet').inert, false);
-    assert.strictEqual(doc.activeElement, el('qs-labour'));
-    win.closeQuoteSheet();
-    assert.strictEqual(el('qs-sheet').inert, true);
-    assert.strictEqual(el('qs-sheet').classList.contains('open'), false);
-    assert.strictEqual(doc.activeElement, opener, 'focus goes back to the control that opened it');
+t('every Jobs control is a native button or link (Tab reaches it, Enter / Space work)', () => {
+    const view = read('artisan-app/js/jobsScreen.js');
+    assert.ok(!/onclick=|tabindex="[0-9]/.test(jobs + view), 'an inline handler or a custom tab order');
+    assert.match(jobs, /<button class="fx-seg__btn" type="button" data-view="current" aria-pressed="true">Current<\/button>/);
+    assert.match(view, /<a class="fx-row fx-jobs__row" href="\$\{jobHref\(r\.id\)\}"/);
+    assert.match(view, /<button class="fx-btn fx-btn--secondary fx-btn--block" type="button" data-act="more"/);
 });
 
-t('closing never throws when the opener has left the page (a re-rendered card)', () => {
-    const { win, el, doc } = quoteSheet();
-    const opener = el('old-btn'); opener.focus();
-    win.openQuoteSheet('HHB-1');
-    opener.isConnected = false;
-    win.closeQuoteSheet();
-    assert.strictEqual(el('qs-sheet').inert, true);
-    assert.notStrictEqual(doc.activeElement, opener);
+t('the job screen confirms through the modal sheet', () => {
+    const job = read('artisan-app/job.html');
+    assert.match(job, /import \{ openSheet \}\s+from '\.\/js\/fx\/sheet\.js';/);
+    assert.match(read('artisan-app/js/fx/sheet.js'), /Escape/);
 });
 
-t('Escape closes an open quote sheet as well as the photo', () => {
-    const block = jobs.slice(jobs.indexOf("document.addEventListener('keydown', e => {"), jobs.indexOf('let _quoteBookingId'));
-    assert.match(block, /if \(e\.key !== 'Escape'\) return;\s*window\.closePhoto\(\);\s*if \(document\.getElementById\('qs-sheet'\)\.classList\.contains\('open'\)\) window\.closeQuoteSheet\(\);/);
+t('Back from a job returns to the same view and scroll position', () => {
+    assert.match(jobs, /rememberScroll\(\{ name: 'jobs\.html' \}\);/);
+    assert.match(jobs, /history\.replaceState\(history\.state, '', url\);/);
 });
 
 console.log('\n── 2 · a focused switch shows it ──\n');

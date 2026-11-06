@@ -180,7 +180,11 @@ await t('Today, jobs list and job screen all derive the countdown from offerStat
     assert.ok(/data-expires="\$\{c\.expiresAtMs\}"/.test(view) && /formatTimeLeft\(Math\.floor\(left \/ 1000\)\)/.test(view) &&
               /if \(left === 0\) \{/.test(view), 'Today: the countdown');
     assert.ok(/const lapsed = paintCountdowns\(dom\.main, Date\.now\(\)\);/.test(dash), 'Today: the ticker');
-    assert.ok(/const offer = offerState\(b\);/.test(jobs) && /data-expires=/.test(jobs) && /offerState\(\{ expiresAtMs: Number\(el\.dataset\.expires\) \}\)/.test(jobs), 'jobs');
+    // Jobs (Phase 3): the same offerView; its rows count down from data-expires on one ticker.
+    const jobsView = read('artisan-app/js/jobsScreen.js');
+    assert.ok(/const open = offers\.map\(\(o\) => offerView\(o, nowMs\)\)\.filter\(\(v\) => v\.answerable\)/.test(jobsView) &&
+              /data-expires="\$\{v\.countdown\.expiresAtMs\}"/.test(jobsView) && /formatTimeLeft\(Math\.floor\(left \/ 1000\)\)/.test(jobsView) &&
+              /if \(tickOffers\(dom\.list, Date\.now\(\)\)\.length\) paint\(true\);/.test(jobs), 'jobs');
     // The job screen (Phase 2): offerView's countdown (offerState) drawn by
     // jobScreen.js; job.html's one ticker repaints it and redraws at expiry.
     const jobView = read('artisan-app/js/jobScreen.js');

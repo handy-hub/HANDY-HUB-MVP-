@@ -246,7 +246,7 @@ with sync_playwright() as p:
 
     show(page, 'job-quote')
     check('job (accepted, no quote): Submit quote opens the composer on THIS job, never Mark en route',
-          page.get_attribute('#today-dock a.fx-btn--primary', 'href') == 'jobs.html?quote=bk_q' and 'en route' not in text(page, '#today-dock').lower())
+          page.get_attribute('#today-dock a.fx-btn--primary', 'href') == 'job.html?id=bk_q' and 'en route' not in text(page, '#today-dock').lower())
 
     show(page, 'job-busy')
     check('job step in flight: "Updating…", disabled', page.eval_on_selector('#today-dock button.fx-btn--primary', 'b => [b.textContent.trim(), b.disabled]') == ['Updating…', True])

@@ -642,7 +642,9 @@ test('handoff: the brief carries the same booking id as the record', () => {
 });
 
 test('handoff: the artisan job card no longer hardcodes a zero amount', () => {
-    const src = fs.readFileSync(path.join(__dirname, '..', 'artisan-app', 'jobs.html'), 'utf8');
+    // Phase 3: a Jobs row is built by shared/js/domain/artisanJobs.js (jobRow).
+    const src = ['artisan-app/jobs.html', 'artisan-app/js/jobsScreen.js', 'shared/js/domain/artisanJobs.js']
+        .map((f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8')).join('\n');
     assert.ok(src.indexOf('b.jobQuote || b.total || b.price || 0') === -1,
         'the compensation chain that produced "GHS 0" is back');
     assert.ok(src.indexOf('b.address.slice(0, 28)') === -1,
@@ -1287,19 +1289,15 @@ test('review: submission never invents a rating and never fakes success', () => 
         assert.match(jobHtml, /escrow: b\.escrowId && b\.escrowId === _escrowId \? _escrow : null/);
         assert.match(jobHtml, /_escrowUnsub\?\.\(\);/);
     });
-    test('FIN-002 jobs.html reads closed jobs\' escrows and gives them to each card', () => {
-        assert.match(jobsHtml, /getDocument\('escrow', j\.escrowId\)/);
-        assert.match(jobsHtml, /escrow: \(b\.escrowId && _escrows\.get\(b\.escrowId\)\) \|\| null/);
-    });
-    test('FIN-002 jobs.html bounds the reads: live list only, the tab on screen, a cap', () => {
-        const fn = jobsHtml.slice(jobsHtml.indexOf('async function _loadEscrows()'), jobsHtml.indexOf('async function _loadContacts()'));
-        assert.match(fn, /if \(!_bookingsLive\) return;/, 'never from the cached paint');
-        assert.match(fn, /bkGroup\(j\) === TAB_GROUP\[_tab\]/, 'only the tab on screen');
-        assert.match(fn, /\.slice\(0, ESCROW_READS_PER_TAB\)/);
-        assert.match(fn, /if \(_escrows\.has\(j\.escrowId\)\) continue;/, 'once per escrow');
-        assert.match(jobsHtml, /const ESCROW_READS_PER_TAB = 20;/);
-        assert.match(jobsHtml, /if \(!fromCache\) _bookingsLive = true;/);
-        assert.match(jobsHtml, /_tab = tab;\s*_loadEscrows\(\);/, 'switching tab reads that tab');
+    // Phase 3: a Jobs row names no amount at all (status, step, who, where,
+    // when), so it can claim nothing about money; the job's own screen shows the
+    // money with its escrow (above). The list reads no escrow documents.
+    test('FIN-002 Jobs rows claim nothing about money; the job screen does, from the escrow', () => {
+        const row = fs.readFileSync(path.join(__dirname, '..', 'shared', 'js', 'domain', 'artisanJobs.js'), 'utf8');
+        const view = fs.readFileSync(path.join(__dirname, '..', 'artisan-app', 'js', 'jobsScreen.js'), 'utf8');
+        assert.ok(!/compensation|formatMoney|escrow/i.test(row.slice(row.indexOf('export function jobRow'))), 'a row names money');
+        assert.ok(!/formatMoney|GHS|escrow/.test(view), 'the list draws money');
+        assert.ok(!/getDocument\('escrow'/.test(jobsHtml), 'Jobs reads escrow documents');
     });
 }
 
@@ -1412,10 +1410,9 @@ test('review: submission never invents a rating and never fakes success', () => 
             'Our team resolved the dispute on this job.');
     });
 
-    test('resolved: jobs.html reads its escrow (it is in the Completed group the reads cover)', () => {
-        const jobsHtml = fs.readFileSync(path.join(__dirname, '..', 'artisan-app', 'jobs.html'), 'utf8');
-        assert.match(jobsHtml, /const bkGroup = \(booking\) => describeStatus\(booking, 'artisan'\)\.group;/);
-        assert.match(jobsHtml, /\['completed', 'cancelled'\]\.includes\(bkGroup\(j\)\)/);
+    test('resolved: a settled dispute is in the artisan\'s history (Jobs asks for it), and still in the Completed group', () => {
+        const jobs = fs.readFileSync(path.join(__dirname, '..', 'shared', 'js', 'domain', 'artisanJobs.js'), 'utf8');
+        assert.match(jobs, /export const HISTORY_STATUSES = Object\.freeze\(\['completed', 'cancelled', 'resolved'\]\);/);
         assert.strictEqual(META.describe({ status: 'resolved' }, 'artisan').group, 'completed');
     });
 }
