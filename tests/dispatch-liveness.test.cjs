@@ -128,6 +128,26 @@ await t('the stale artisan is still offered the job when the fresh one is gone (
     assert.strictEqual(fake.db._get('job_offers/b1').artisanId, 'a_stale');
 });
 
+console.log('\n── An artisan already on a job still receives offers (decision Q3, 2026-11-06) ──\n');
+
+// Product decision: offers keep arriving while an artisan is en route or on site,
+// with the full response window. Phase 0 (WF-04) found this was the behaviour;
+// it is now the policy, and this holds it. Changing it is a product decision,
+// not a fix.
+for (const status of ['en_route', 'in_progress']) {
+    await t(`an artisan whose other booking is ${status} is offered the new job, full window`, async () => {
+        const now = Date.now();
+        seedTwo(now);
+        fake.db._set('artisan_index/a_stale', { ...fake.db._get('artisan_index/a_stale'), isAvailable: false });
+        fake.db._set('bookings/onsite', { customerId: 'c2', artisanId: 'b_fresh', serviceType: 'plumbing', status, track: 'inspection', createdAt: iso(now - 3600_000) });
+        await dispatch.dispatchRound('b1');
+        const offer = fake.db._get('job_offers/b1');
+        assert.ok(offer, 'no offer was made');
+        assert.strictEqual(offer.artisanId, 'b_fresh');
+        assert.ok(offer.expiresAtMs - now >= 170_000, `window ${Math.round((offer.expiresAtMs - now) / 1000)} s`);
+    });
+}
+
 console.log('\n── The app writes the heartbeat at most every 5 minutes, on every page ──\n');
 
 const presence = fs.readFileSync(path.join(ROOT, 'shared/js/services/presenceService.js'), 'utf8');
