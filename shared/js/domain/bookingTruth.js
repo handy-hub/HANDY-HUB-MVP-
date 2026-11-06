@@ -473,6 +473,22 @@ export function resolveJobPhase(booking) {
     return JOB_PHASE.WORK;
 }
 
+/**
+ * A paid emergency, not yet priced: the artisan sets out at once and quotes on
+ * site (decision Q1, 2026-11-06). The same rule as bookingStatusMeta.quotesOnSite
+ * — this module takes no imports — and tests/artisan-actions-consistency.test.cjs
+ * holds the two together.
+ */
+export function emergencyPricedOnSite(booking) {
+    const b = booking || {};
+    return norm(b.track) === 'emergency' && b.calloutPaid === true && b.quoteApproved !== true;
+}
+
+// The job card's phase line for that visit: PHASE_COPY's WORK line says the quote
+// is approved and paid, which is not yet true.
+const ON_SITE_QUOTE_COPY = { label: 'Emergency visit', cycle: 'Work',
+    hint: 'Emergency fee secured. Set out, mark your arrival, then price the work on site.' };
+
 
 /**
  * What the artisan is entitled to at this point, and what is still conditional.
@@ -631,7 +647,9 @@ export function formatDistance(km) {
 export function resolveJobBrief(booking, { originLat = null, originLng = null, escrow = null } = {}) {
     const b = booking || {};
     const phase = resolveJobPhase(b);
-    const copy  = PHASE_COPY[phase] || PHASE_COPY[JOB_PHASE.CLOSED];
+    const copy  = (phase === JOB_PHASE.WORK && emergencyPricedOnSite(b))
+        ? ON_SITE_QUOTE_COPY
+        : PHASE_COPY[phase] || PHASE_COPY[JOB_PHASE.CLOSED];
     const customer = resolveCustomer(b);
 
     const lat = Number(b.lat), lng = Number(b.lng);
@@ -860,7 +878,15 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
     const notYet   = booked && appt.isDue === false;
     const apptWhen = booked ? appt.label : null;
 
-    const stageIndex = PHASE_TO_STAGE[phase] ?? 0;
+    // A paid emergency is priced on site (decision Q1, 2026-11-06): the artisan
+    // sets out as soon as the fee is held and quotes after arriving
+    // (bookingStatusMeta.quotesOnSite states the same rule; this module takes no
+    // imports). Until a quote is approved the visit is the assessment, so the
+    // rail stands at the visit, not at the work.
+    const onSiteQuote = emergencyPricedOnSite(b);
+    const stageIndex = onSiteQuote && st === 'accepted'                       ? PHASE_TO_STAGE[JOB_PHASE.AWAITING_CALLOUT]
+                     : onSiteQuote && (st === 'en_route' || st === 'in_progress') ? PHASE_TO_STAGE[JOB_PHASE.INSPECTION]
+                     : (PHASE_TO_STAGE[phase] ?? 0);
     const terminal   = CLOSED_STATUSES.includes(st);
 
     // ── A dispute stops the journey for both sides ───────────────────────────
@@ -1022,9 +1048,32 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
     // without it (bookingStatusMeta.needsQuoteBeforeTravel states the same rule;
     // this module takes no imports). Offering "Mark en route" here was a button
     // the rules always refused (Phase 0 WF-02).
-    const quoteFirst = st === 'accepted' && norm(b.track) !== 'inspection' && !m.quoteApproved;
+    const quoteFirst = st === 'accepted' && norm(b.track) !== 'inspection' && !m.quoteApproved && !onSiteQuote;
 
-    S[JOB_PHASE.WORK] = isCustomer ? {
+    S[JOB_PHASE.WORK] = onSiteQuote ? (isCustomer ? {
+        here: st === 'en_route'    ? `${who} is on the way`
+            : st === 'in_progress' ? `${who} is with you`
+            :                        `${who} accepted`,
+        just: 'Your emergency fee is secured in escrow.',
+        next: `${who} will assess the problem, then send you a fixed price for the work.`,
+        action: { label: 'Track', kind: 'secondary', op: 'track' },
+        tone: 'live',
+    } : {
+        here: st === 'en_route'    ? 'On your way'
+            : st === 'in_progress' ? 'Quote needed'
+            :                        'Emergency',
+        just: st === 'in_progress'
+            ? 'You are on site.'
+            : 'The emergency fee is secured — you are paid for this trip.',
+        next: st === 'in_progress' ? 'Send the customer a fixed price for the work. You can mark it done once they approve it.'
+            : st === 'en_route'    ? 'Mark yourself arrived when you reach the customer, then price the work.'
+            :                        'Set out now. You price the work once you have seen it.',
+        action: st === 'accepted'    ? (notYet ? null : { label: 'Mark en route', kind: 'primary', op: 'enRoute' })
+              : st === 'en_route'    ? { label: 'Mark arrived', kind: 'primary', op: 'arrived' }
+              : st === 'in_progress' ? { label: 'Submit quote', kind: 'primary', op: 'submitQuote' }
+              :                        null,
+        tone: 'action',
+    }) : isCustomer ? {
         here: st === 'en_route' ? `${who} is on the way` : 'Work in progress',
         just: 'You approved the quote and the payment is held safely in escrow.',
         next: `${who} will carry out the work, then you confirm it is done.`,
@@ -1049,9 +1098,13 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
         // Each step names the one status the rules accept it from — no
         // fallthrough, so an unexpected status offers nothing rather than a
         // button the server refuses.
+        // An emergency is never "done" without an approved quote (Q1 rules):
+        // on site, its step is the quote.
         action: st === 'accepted'    ? (notYet ? null : { label: 'Mark en route',  kind: 'primary', op: 'enRoute' })
               : st === 'en_route'    ? { label: 'Mark arrived',   kind: 'primary', op: 'arrived' }
-              : st === 'in_progress' ? { label: 'Mark job done',  kind: 'primary', op: 'markDone' }
+              : st === 'in_progress' ? (norm(b.track) === 'emergency' && !m.quoteApproved
+                                          ? { label: 'Submit quote',  kind: 'primary', op: 'submitQuote' }
+                                          : { label: 'Mark job done', kind: 'primary', op: 'markDone' })
               :                        null,
         tone: (st === 'accepted' && notYet) ? 'waiting' : 'action',
     };

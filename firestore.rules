@@ -793,6 +793,9 @@ service cloud.firestore {
         'jobQuote', 'labourCost', 'materials', 'materialsCost', 'hasMaterials',
         'quoteNote', 'quoteSubmittedAt', 'quoteApproved', 'quoteApprovedAt',
         'quoteRejectedAt', 'quoteRejectionReason', 'quoteRevisionCount',
+        // The status a quote was sent from (submitJobQuote): approval and
+        // rejection return an on-site emergency quote to in_progress.
+        'quotedFrom',
         'commissionRate', 'artisanEarns', 'platformFee',
         // Escrow / payment settlement
         'escrowId', 'disputeId',
@@ -969,11 +972,18 @@ service cloud.firestore {
             // Firestore write. There is deliberately NO client transition here —
             // all of those fields are locked by bookingSystemFields().
             // En route: accepted → en_route (only after quote approved, and
-            // never before a booked appointment's window opens).
+            // never before a booked appointment's window opens). A PAID
+            // EMERGENCY sets out without a quote and is priced on site (decision
+            // Q1, 2026-11-06): its emergency fee is already escrowed
+            // (payEmergencyCallout is the only writer of calloutPaid), and the
+            // in_progress → awaiting clause below refuses "done" until a quote is
+            // approved, so the work is still paid for before it can finish.
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'enRouteAt', 'updatedAt']) &&
              prev == 'accepted' && next == 'en_route' &&
-             existing().quoteApproved == true &&
+             (existing().get('quoteApproved', false) == true ||
+              (existing().get('track', null) == 'emergency' &&
+               existing().get('calloutPaid', false) == true)) &&
              scheduleWindowOpen()) ||
             // En route to an INSPECTION: inspection_scheduled → en_route.
             // No quoteApproved requirement — on the inspection track the
@@ -989,10 +999,14 @@ service cloud.firestore {
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'arrivedAt', 'updatedAt']) &&
              prev == 'en_route' && next == 'in_progress') ||
-            // Job done — awaiting customer confirmation: in_progress → awaiting
+            // Job done — awaiting customer confirmation: in_progress → awaiting.
+            // An emergency reaches in_progress before any quote (above), so for
+            // it "done" also needs the approved quote that funds the work.
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'jobDoneAt', 'updatedAt']) &&
-             prev == 'in_progress' && next == 'awaiting') ||
+             prev == 'in_progress' && next == 'awaiting' &&
+             (existing().get('track', null) != 'emergency' ||
+              existing().get('quoteApproved', false) == true)) ||
             // Raise a dispute while booking is active
             (keys.hasAny(['status']) &&
              keys.hasOnly(['status', 'updatedAt']) &&

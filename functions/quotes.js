@@ -49,6 +49,27 @@ function db() {
 
 const fmt = (n) => parseFloat(Number(n).toFixed(2));
 
+// ── Where a quote is sent from, and where the customer's decision returns ────
+// inspection  inspection_done → quoted → accepted (approved) / inspection_done
+// standard    accepted        → quoted → accepted / accepted
+// emergency   accepted, or in_progress ON SITE (decision Q1, 2026-11-06: a paid
+//             emergency sets out unpriced and quotes after arriving). A quote
+//             sent on site returns the booking to in_progress, approved or not:
+//             the artisan is already there, and setting out again is not a step.
+function quotableStatuses(booking) {
+    if (booking.track === 'inspection') return ['inspection_done'];
+    if (booking.track === 'emergency')  return ['accepted', 'in_progress'];
+    return ['accepted'];
+}
+function statusAfterApproval(booking) {
+    return booking.quotedFrom === 'in_progress' ? 'in_progress' : 'accepted';
+}
+/** After a first rejection, or a voided quote: back to where the artisan quotes from. */
+function statusAfterRejection(booking) {
+    if (booking.track === 'inspection') return 'inspection_done';
+    return booking.quotedFrom === 'in_progress' ? 'in_progress' : 'accepted';
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // computeQuoteSettlement — THE settlement formula. One definition, two callers.
 //
@@ -117,8 +138,9 @@ async function submitJobQuote(auth, { bookingId, labourCost, materials = [], not
     if (preBooking.artisanId !== auth.uid) throw new Error('Not authorised for this booking.');
 
     // Legacy track quotes from 'accepted'; inspection track only after the
-    // inspection is actually done.
-    const quotableFrom = preBooking.track === 'inspection' ? ['inspection_done'] : ['accepted'];
+    // inspection is actually done. An emergency may also quote ON SITE: a paid
+    // emergency sets out unpriced and quotes after arriving (decision Q1).
+    const quotableFrom = quotableStatuses(preBooking);
     if (!quotableFrom.includes(preBooking.status)) {
         throw new Error(`Cannot submit quote — booking is ${preBooking.status}.`);
     }
@@ -153,6 +175,8 @@ async function submitJobQuote(auth, { bookingId, labourCost, materials = [], not
         guardMessage: 'Quote revision limit reached for this booking.',
         patch: {
             status:              'quoted',
+            // Where the decision returns the booking to (statusAfterApproval / statusAfterRejection).
+            quotedFrom:          preBooking.status,
             jobQuote,
             labourCost:          labourCostFmt,
             materials:           cleanMaterials,
@@ -238,7 +262,7 @@ function approvalError(reason, message, extra = {}) {
 // claimBookingTransition), so a void can never race an approval.
 function voidQuotePatch(booking, problems) {
     return {
-        status:               booking.track === 'inspection' ? 'inspection_done' : 'accepted',
+        status:               statusAfterRejection(booking),
         quoteApproved:        false,
         quoteVoidedAt:        new Date().toISOString(),
         quoteVoidReason:      'invalid_amounts',
@@ -377,7 +401,9 @@ async function approveJobQuote(auth, { bookingId } = {}) {
         }
 
         txn.update(bookingRef, {
-            status:           'accepted',   // the artisan may now set out
+            // 'accepted': the artisan may now set out. A quote sent on site
+            // (emergency, decision Q1) returns to in_progress: the work starts.
+            status:           statusAfterApproval(b),
             quoteApproved:    true,
             quoteApprovedAt:  new Date().toISOString(),
             calloutCredit,
@@ -426,9 +452,11 @@ async function approveJobQuote(auth, { bookingId } = {}) {
     await sendArtisanNotification(booking.artisanId, {
         type:      'Bookings',
         title:     'Quote Approved!',
-        message:   escrowAmount > 0
-            ? `Your quote of GHS ${jobQuote.toFixed(2)} was approved. Payment is secured in escrow. You can now head to the job.`
-            : `Your quote of GHS ${jobQuote.toFixed(2)} was approved and is covered by the visit fee already paid. You can now head to the job.`,
+        message:   (escrowAmount > 0
+            ? `Your quote of GHS ${jobQuote.toFixed(2)} was approved. Payment is secured in escrow.`
+            : `Your quote of GHS ${jobQuote.toFixed(2)} was approved and is covered by the visit fee already paid.`) +
+            // A quote sent on site (emergency, decision Q1): the artisan is there.
+            (statusAfterApproval(booking) === 'in_progress' ? ' You can start the work.' : ' You can now head to the job.'),
         actionUrl: `jobs.html`,
         bookingId,
     }).catch(() => {});
@@ -527,7 +555,7 @@ async function rejectJobQuote(auth, { bookingId, reason = '' }) {
     // ── 1st rejection — revert so artisan can submit ONE revision ────────────
     // Claim quoted → revertTo atomically (F4): no money moves on a first
     // rejection, but this still prevents a concurrent approve from firing.
-    const revertTo = preBooking.track === 'inspection' ? 'inspection_done' : 'accepted';
+    const revertTo = statusAfterRejection(preBooking);
     const booking = await claimBookingTransition(bookingRef, {
         authUid: auth.uid,
         party:   'customer',
@@ -573,4 +601,6 @@ async function rejectJobQuote(auth, { bookingId, reason = '' }) {
 module.exports = {
     submitJobQuote, approveJobQuote, rejectJobQuote, computeQuoteSettlement,
     voidQuotePatch, notifyQuoteVoided, storedQuoteCheck,
+    // Exported for tests and the timeout sweep: where quotes come from and go.
+    quotableStatuses, statusAfterApproval, statusAfterRejection,
 };

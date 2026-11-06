@@ -282,7 +282,12 @@ export function getAllowedActions(booking, audience = 'customer', opts = {}) {
                 else out.push({ id: 'scheduled', label: `Booked · ${schedule.label}`, kind: 'info', disabled: true });
             }
             if (status === 'en_route') out.push({ id: 'arrived', label: 'Mark Arrived', kind: 'primary' });
-            if (status === 'in_progress') out.push({ id: 'job_done', label: 'Mark Job Done', kind: 'primary' });
+            if (status === 'in_progress') {
+                // A paid emergency is priced on site: done waits for the quote (Q1).
+                out.push(needsQuoteOnSite(booking)
+                    ? { id: 'submit_quote', label: 'Submit Quote', kind: 'primary' }
+                    : { id: 'job_done', label: 'Mark Job Done', kind: 'primary' });
+            }
         }
     }
     return out;
@@ -333,22 +338,50 @@ export function artisanInspectionStep(booking, opts = {}) {
 }
 
 /**
+ * A paid emergency is priced on site (decision Q1, 2026-11-06): once the
+ * customer's emergency fee is held, the artisan sets out at once and quotes after
+ * arriving. firestore.rules accepts accepted → en_route for it without a quote,
+ * and refuses in_progress → awaiting until a quote is approved, so the work is
+ * always paid for before it can be marked done.
+ *
+ * @param {object} booking
+ * @returns {boolean}
+ */
+export function quotesOnSite(booking) {
+    const b = booking || {};
+    return norm(b.track) === 'emergency' && b.calloutPaid === true && b.quoteApproved !== true;
+}
+
+/**
  * Must the artisan send a quote before they may set out?
  *
  * firestore.rules lets an artisan move accepted → en_route only when the booking
  * carries an approved quote (the inspection track's pre-quote visit goes
- * inspection_scheduled → en_route instead). Off the inspection track — emergency
- * and standard bookings — nothing approves a quote until the artisan submits one,
- * so "Mark En Route" on an accepted, unquoted job was a button the rules always
- * refused (Phase 0 WF-02). This is the rule as written; whether emergencies
- * SHOULD travel before quoting is a business decision this function does not make.
+ * inspection_scheduled → en_route instead), or when it is a paid emergency,
+ * which is priced on site (quotesOnSite). A standard booking, and an emergency
+ * whose fee is not yet held, has no approved quote until the artisan sends one,
+ * so "Mark En Route" there was a button the rules always refused (Phase 0 WF-02).
  *
  * @param {object} booking
  * @returns {boolean}
  */
 export function needsQuoteBeforeTravel(booking) {
     const b = booking || {};
-    return norm(b.status) === 'accepted' && norm(b.track) !== 'inspection' && b.quoteApproved !== true;
+    return norm(b.status) === 'accepted' && norm(b.track) !== 'inspection' && b.quoteApproved !== true
+        && !quotesOnSite(b);
+}
+
+/**
+ * Is the artisan on site at an emergency with the work not yet priced? Then the
+ * step is the quote: firestore.rules refuse "Mark job done" on an emergency
+ * until a quote is approved, whatever brought the booking on site.
+ *
+ * @param {object} booking
+ * @returns {boolean}
+ */
+export function needsQuoteOnSite(booking) {
+    const b = booking || {};
+    return norm(b.status) === 'in_progress' && norm(b.track) === 'emergency' && b.quoteApproved !== true;
 }
 
 // ── Legacy-compatible wrappers (existing callers) ─────────────────────────────

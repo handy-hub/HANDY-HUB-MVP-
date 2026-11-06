@@ -260,7 +260,7 @@
 <script type="module">
 import { getAppContainer }                   from '../shared/js/app/container.js';
 import { createBookingRepository }           from '../shared/js/data/repositories/bookingRepository.js';
-import { describe as describeStatus, artisanInspectionStep }
+import { describe as describeStatus, artisanInspectionStep, needsQuoteBeforeTravel, needsQuoteOnSite }
                                             from '../shared/js/domain/bookingStatusMeta.js';
 import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
                                             from '../shared/js/domain/bookingTruth.js';
@@ -551,8 +551,10 @@ function buildJobCard(b) {
         ${openBtn}`;
     }
   } else if (isActive && action) {
-    if (st === 'accepted' && !b.quoteApproved) {
-      // Quote not yet submitted — artisan must send quote before going en_route
+    if (needsQuoteBeforeTravel(b) || needsQuoteOnSite(b)) {
+      // The quote comes first: before setting out on a standard job, or on site
+      // at a paid emergency, which sets out unpriced (decision Q1). Either way
+      // the rules refuse the next step until a quote is approved.
       actionsHtml = `
         <button class="job-btn job-btn-track" onclick="openQuoteSheet('${esc(b.id)}')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>

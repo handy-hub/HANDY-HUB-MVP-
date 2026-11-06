@@ -133,7 +133,7 @@ import { resolveJobBrief, formatDistance, formatMoney, JOB_PHASE }
 import { confirmSheet } from '../shared/js/ui/confirmSheet.js';
 import { performBookingAction, ACTION, artisanCanCancel }
                             from '../shared/js/domain/bookingActions.js';
-import { needsQuoteBeforeTravel }
+import { needsQuoteBeforeTravel, needsQuoteOnSite, quotesOnSite }
                             from '../shared/js/domain/bookingStatusMeta.js';
 import { resolveSchedule, canStartWork }
                             from '../shared/js/domain/bookingSchedule.js';
@@ -278,9 +278,17 @@ function actionsFor(brief, b) {
                  note:'You can set out once the customer approves your quote.',
                  mountQuote: true, secondary:[cancelOrHelp()] };
       }
+      // A paid emergency is priced on site (decision Q1): the artisan sets out
+      // now and quotes after arriving; "Mark job done" waits for the approval.
+      if (needsQuoteOnSite(b)) {
+        return { waiting:'you', waitLabel:'Send your price for the work',
+                 note:'You can mark the job done once the customer approves your quote.',
+                 mountQuote: true, secondary:[cancelOrHelp()] };
+      }
       if (st === 'accepted' || st === 'quoted') {
         if (!gate.allowed) return notYet(`Booked for ${appt.label}`);
-        return { waiting:'you', waitLabel:'Ready to start the work',
+        return { waiting:'you', waitLabel: quotesOnSite(b) ? 'Set out now' : 'Ready to start the work',
+                 ...(quotesOnSite(b) ? { note:'The emergency fee is secured. You price the work once you have seen it.' } : {}),
                  primary:{ label:"I'm on my way", action: ACTION.EN_ROUTE },
                  secondary:[cancelOrHelp()] };
       }

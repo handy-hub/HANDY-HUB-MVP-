@@ -6,10 +6,11 @@
  * transitions; this file proves what the rules engine itself does with them, so
  * the two cannot drift apart unnoticed.
  *
- *   WF-02  An accepted emergency or standard job with no approved quote cannot
- *          go en route: the rules require quoteApproved. (Whether emergencies
- *          should travel before a quote is business decision Q1; this records
- *          the policy as it stands.)
+ *   WF-02  An accepted standard job with no approved quote cannot go en route:
+ *          the rules require quoteApproved.
+ *   Q1     Decision (2026-11-06): a PAID emergency sets out without a quote and
+ *          is priced on site; an unpaid one still quotes first. An emergency is
+ *          never marked done without an approved quote, so the work is paid for.
  *   WF-01  An artisan never cancels inspection-track work by a direct write:
  *          cancelInspectionBooking is the only path, and it refuses approved work.
  *
@@ -46,6 +47,10 @@ await testEnv.clearFirestore();
 /** One booking per case, so no case depends on another's writes. */
 const BOOKINGS = {
     em_accepted:        { track: 'emergency',  status: 'accepted' },
+    em_paid:            { track: 'emergency',  status: 'accepted', calloutPaid: true },
+    em_onsite:          { track: 'emergency',  status: 'in_progress', calloutPaid: true },
+    em_onsite_approved: { track: 'emergency',  status: 'in_progress', calloutPaid: true, quoteApproved: true },
+    st_wip:             { track: 'standard',   status: 'in_progress', quoteApproved: true },
     em_accepted_quoted: { track: 'emergency',  status: 'accepted', quoteApproved: true },
     st_accepted:        { track: 'standard',   status: 'accepted' },
     st_accepted_quoted: { track: 'standard',   status: 'accepted', quoteApproved: true },
@@ -85,11 +90,21 @@ const cancel  = { status: 'cancelled', cancellationReason: 'Cancelled', cancelle
 
 console.log('\nWF-02 — travel waits for an approved quote off the inspection track\n');
 
-await it('an accepted emergency job with no approved quote cannot go en route', async () => {
+await it('an accepted standard job with no approved quote cannot go en route', async () => {
+    await assertFails(write(artisanDb, 'st_accepted', enRoute));
+});
+await it('nor can an emergency whose fee is not yet held', async () => {
     await assertFails(write(artisanDb, 'em_accepted', enRoute));
 });
-await it('nor can an accepted standard job', async () => {
-    await assertFails(write(artisanDb, 'st_accepted', enRoute));
+await it('Q1: a paid emergency sets out with no quote', async () => {
+    await assertSucceeds(write(artisanDb, 'em_paid', enRoute));
+});
+await it('Q1: on site, an emergency cannot be marked done until its quote is approved', async () => {
+    await assertFails(write(artisanDb, 'em_onsite', { status: 'awaiting', jobDoneAt: NOW }));
+    await assertSucceeds(write(artisanDb, 'em_onsite_approved', { status: 'awaiting', jobDoneAt: NOW }));
+});
+await it('a standard job on site is marked done as before', async () => {
+    await assertSucceeds(write(artisanDb, 'st_wip', { status: 'awaiting', jobDoneAt: NOW }));
 });
 await it('once the quote is approved, the artisan goes en route', async () => {
     await assertSucceeds(write(artisanDb, 'em_accepted_quoted', enRoute));

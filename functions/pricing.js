@@ -804,8 +804,10 @@ async function completeInspection(auth, { bookingId, findings = '' }) {
 //               inspection_done / quoted, a quote approved, or completed)
 //   emergency   delivered = the artisan ARRIVED (arrivedAt, or the booking
 //               reached in_progress / awaiting / completed). A quote alone is
-//               not a visit: an emergency quote is sent from 'accepted',
-//               before travel, so cancelling after one refunds the customer.
+//               not a visit: a paid emergency now sets out unpriced and quotes
+//               ON SITE (decision Q1), after arrivedAt is stamped; an unpaid one
+//               may still quote from 'accepted', before travel, and cancelling
+//               after that quote refunds the customer.
 //   disputed    held — resolveDispute decides, never a timer or a trigger.
 //   resolved    the administrator's resolution (calloutResolution, else
 //               full_refund → customer, release_artisan → artisan); a partial
@@ -1015,6 +1017,31 @@ async function cancelInspectionBooking(auth, { bookingId, reason = '' }) {
 // All timestamp fields compared are ISO-8601 strings (lexicographic-safe).
 // Composite indexes required — see firestore.indexes.json.
 // ─────────────────────────────────────────────────────────────────────────────
+// What an expired quote did with the money, said per track. The sweep's own
+// lines speak of the inspection track, where the callout pays for the completed
+// inspection; told to an emergency or standard customer they were false. The
+// emergency fee follows calloutDecision (the status trigger settles it): the
+// artisan's once they arrived, which a quote sent on site always follows
+// (decision Q1); returned to the customer otherwise.
+function quoteExpiredMessages(b) {
+    const lead = 'Your quote expired without a response, so the booking was closed.';
+    const artisanLead = 'The customer did not respond to your quote in time, so the booking was closed.';
+    if (b.track === 'inspection') {
+        return {
+            customerMsg: `${lead} The callout fee covers the completed inspection.`,
+            artisanMsg:  'The customer did not respond to your quote in time. The booking was closed and the callout fee released to you.',
+        };
+    }
+    if (b.track === 'emergency' && b.calloutPaid) {
+        return b.arrivedAt
+            ? { customerMsg: `${lead} The emergency fee covers the visit.`,
+                artisanMsg:  `${artisanLead} The emergency fee is being released to you.` }
+            : { customerMsg: `${lead} Your emergency fee is being returned to your wallet.`,
+                artisanMsg:  `${artisanLead} The emergency fee was returned to the customer.` };
+    }
+    return { customerMsg: `${lead} Nothing was charged for the work.`, artisanMsg: artisanLead };
+}
+
 async function checkBookingTimeouts() {
     const cutoffIso = (hours) => new Date(Date.now() - hours * 3_600_000).toISOString();
     const bookings  = db().collection('bookings');
@@ -1166,14 +1193,15 @@ async function checkBookingTimeouts() {
                     await settleCallout(claimed, doc.id, sweep.settleTo, sweep.label);
                 }
                 // The claimed (live) booking, so the parties match cancelNotified.
+                const msgs = sweep.label === 'quote_expired' ? quoteExpiredMessages(claimed) : sweep;
                 await sendNotification(claimed.customerId, {
                     type: 'Bookings', title: 'Booking Closed',
-                    message: sweep.customerMsg, actionUrl: 'booking.html', bookingId: doc.id,
+                    message: msgs.customerMsg, actionUrl: 'booking.html', bookingId: doc.id,
                 }).catch(() => {});
                 if (claimed.artisanId) {
                     await sendArtisanNotification(claimed.artisanId, {
                         type: 'Bookings', title: 'Booking Closed',
-                        message: sweep.artisanMsg, actionUrl: 'dashboard.html', bookingId: doc.id,
+                        message: msgs.artisanMsg, actionUrl: 'dashboard.html', bookingId: doc.id,
                     }).catch(() => {});
                 }
             } catch (err) {
@@ -1317,6 +1345,8 @@ async function seedPricingConfig() {
 module.exports = {
     computeEmergencyCallout,
     payEmergencyCallout,
+    // Exported for tests: what an expired quote tells each party, per track.
+    quoteExpiredMessages,
     // Exported for tests: the formula must be provable in isolation.
     applyCalloutFormula,
     getPricingQuote,

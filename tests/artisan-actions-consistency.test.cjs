@@ -9,9 +9,12 @@
  *   REAL function on the fake Firestore harness.
  * WF-02: "Mark en route" was offered on accepted emergency/standard jobs with no
  *   approved quote; firestore.rules (accepted → en_route needs quoteApproved)
- *   refuses it. The journey, the allowed-actions list and the screens now offer
+ *   refused it. The journey, the allowed-actions list and the screens now offer
  *   the quote first. The rules themselves are exercised by
  *   tests/artisan-workflow-rules.test.mjs.
+ * Q1 (decision, 2026-11-06): a PAID emergency sets out without a quote and is
+ *   priced on site; "done" waits for the approved quote. RULES_ALLOW below
+ *   states the rules as they now are, and the projections are held to them.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 const assert = require('assert');
@@ -33,9 +36,10 @@ const domain = (f) => stripEsm(fs.readFileSync(path.join(ROOT, 'shared', 'js', '
 // eslint-disable-next-line no-new-func
 const { artisanCanCancel } = new Function(`${domain('bookingSchedule.js')}\n${domain('bookingActions.js')}\nreturn { artisanCanCancel };`)();
 // eslint-disable-next-line no-new-func
-const { needsQuoteBeforeTravel, getAllowedActions } = new Function(`${domain('bookingStatusMeta.js')}\nreturn { needsQuoteBeforeTravel, getAllowedActions };`)();
+const { needsQuoteBeforeTravel, needsQuoteOnSite, quotesOnSite, getAllowedActions } = new Function(`${domain('bookingStatusMeta.js')}\nreturn { needsQuoteBeforeTravel, needsQuoteOnSite, quotesOnSite, getAllowedActions };`)();
 // eslint-disable-next-line no-new-func
-const { resolveJourney } = new Function(`${domain('bookingTruth.js')}\nreturn { resolveJourney };`)();
+const { resolveJourney, emergencyPricedOnSite } = new Function(`${domain('bookingTruth.js')}\nreturn { resolveJourney, emergencyPricedOnSite };`)();
+const quotes = require(path.join(ROOT, 'functions', 'quotes.js'));
 const page = (f) => fs.readFileSync(path.join(ROOT, 'artisan-app', f), 'utf8');
 
 let passed = 0, failed = 0;
@@ -53,13 +57,16 @@ const STATUSES = ['pending', 'accepted', 'inspection_scheduled', 'en_route', 'in
  * firestore.rules at the time of writing.
  */
 const RULES_ALLOW = {
-    enRoute:  (b) => (b.status === 'accepted' && b.quoteApproved === true) || b.status === 'inspection_scheduled',  // :975, :986
-    arrived:  (b) => b.status === 'en_route',                                                                      // :991
-    markDone: (b) => b.status === 'in_progress',                                                                   // :995
+    // accepted → en_route needs an approved quote, or a paid emergency (Q1);
+    // inspection_scheduled → en_route needs neither.
+    enRoute:  (b) => (b.status === 'accepted' && (b.quoteApproved === true || (b.track === 'emergency' && b.calloutPaid === true)))
+                     || b.status === 'inspection_scheduled',
+    arrived:  (b) => b.status === 'en_route',
+    // in_progress → awaiting; an emergency needs its approved quote first (Q1).
+    markDone: (b) => b.status === 'in_progress' && (b.track !== 'emergency' || b.quoteApproved === true),
     // Function-backed steps, as their callables gate them:
     completeInspection: (b) => b.track === 'inspection' && b.status === 'in_progress' && b.quoteApproved !== true,     // pricing.js completeInspection
-    submitQuote: (b) => b.track === 'inspection' ? b.status === 'inspection_done'                                      // quotes.js quotableFrom
-                                                  : b.status === 'accepted' && b.quoteApproved !== true,
+    submitQuote: (b) => quotes.quotableStatuses(b).includes(b.status) && b.quoteApproved !== true,                     // quotes.js, the real rule
 };
 
 (async () => {
@@ -105,7 +112,9 @@ for (const track of ['inspection', 'emergency', 'standard']) {
     for (const status of ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'inspection_done', 'disputed', 'something_new']) {
         for (const quoteApproved of [false, true]) {
             if (track !== 'inspection' && ['inspection_scheduled', 'inspection_done'].includes(status)) continue;
-            FIXTURES.push({ id: 'B', track, status, quoteApproved, calloutPaid: true });
+            for (const calloutPaid of [true, false]) {
+                FIXTURES.push({ id: 'B', track, status, quoteApproved, calloutPaid });
+            }
         }
     }
 }
@@ -141,18 +150,47 @@ await t('getAllowedActions(artisan) never offers a client transition the rules r
     assert.deepStrictEqual(bad, []);
 });
 
-await t('an accepted emergency or standard job with no approved quote asks for the quote, on every projection', () => {
-    for (const track of ['emergency', 'standard']) {
-        const b = { id: 'B', track, status: 'accepted', calloutPaid: true };
-        assert.strictEqual(needsQuoteBeforeTravel(b), true, track);
-        assert.strictEqual(resolveJourney(b, 'artisan').action.op, 'submitQuote', track);
-        assert.ok(getAllowedActions(b, 'artisan').some((a) => a.id === 'submit_quote'), track);
+await t('an accepted standard job, or an unpaid emergency, asks for the quote before travel, on every projection', () => {
+    for (const b of [{ id: 'B', track: 'standard', status: 'accepted', calloutPaid: true },
+                     { id: 'B', track: 'emergency', status: 'accepted', calloutPaid: false }]) {
+        const label = `${b.track}/paid=${b.calloutPaid}`;
+        assert.strictEqual(needsQuoteBeforeTravel(b), true, label);
+        assert.strictEqual(resolveJourney(b, 'artisan').action.op, 'submitQuote', label);
+        assert.ok(getAllowedActions(b, 'artisan').some((a) => a.id === 'submit_quote'), label);
         // Once approved, travel is the step again.
         const ok = { ...b, quoteApproved: true };
         assert.strictEqual(needsQuoteBeforeTravel(ok), false);
         assert.strictEqual(resolveJourney(ok, 'artisan').action.op, 'enRoute');
     }
     assert.strictEqual(needsQuoteBeforeTravel({ track: 'inspection', status: 'accepted' }), false, 'the inspection track quotes after its visit');
+});
+
+await t('Q1: a paid emergency sets out unpriced, quotes on site, and is done only once approved', () => {
+    const b = { id: 'B', track: 'emergency', calloutPaid: true };
+    const at = (status, extra = {}) => ({ ...b, status, ...extra });
+    // Accepted: set out now.
+    assert.strictEqual(needsQuoteBeforeTravel(at('accepted')), false);
+    assert.strictEqual(resolveJourney(at('accepted'), 'artisan').action.op, 'enRoute');
+    assert.ok(getAllowedActions(at('accepted'), 'artisan').some((a) => a.id === 'en_route'));
+    // On the way: arrive.
+    assert.strictEqual(resolveJourney(at('en_route'), 'artisan').action.op, 'arrived');
+    // On site: the quote, never "done".
+    assert.strictEqual(needsQuoteOnSite(at('in_progress')), true);
+    assert.strictEqual(resolveJourney(at('in_progress'), 'artisan').action.op, 'submitQuote');
+    const onsite = getAllowedActions(at('in_progress'), 'artisan').map((a) => a.id);
+    assert.ok(onsite.includes('submit_quote') && !onsite.includes('job_done'), onsite.join());
+    // Approved on site: now "done".
+    const approved = at('in_progress', { quoteApproved: true });
+    assert.strictEqual(needsQuoteOnSite(approved), false);
+    assert.strictEqual(resolveJourney(approved, 'artisan').action.op, 'markDone');
+    // The customer is never told a quote was approved before there is one.
+    assert.doesNotMatch(resolveJourney(at('en_route'), 'customer').just, /approved the quote/);
+});
+
+await t('Q1: the two copies of the on-site rule agree (bookingStatusMeta, bookingTruth)', () => {
+    for (const b of FIXTURES) {
+        assert.strictEqual(emergencyPricedOnSite(b), quotesOnSite(b), `${b.track}/${b.status}/approved=${b.quoteApproved}/paid=${b.calloutPaid}`);
+    }
 });
 
 console.log('\n── The screens use the shared answers ──\n');
@@ -163,12 +201,15 @@ await t('job.html: Cancel or "Get help" from artisanCanCancel; the quote first w
     assert.match(src, /const cancelOrHelp = \(\) => artisanCanCancel\(b\)/);
     assert.ok(!/secondary:\s*\[\{ label:'Cancel job'/.test(src), 'a bare Cancel offer remains');
     assert.match(src, /if \(needsQuoteBeforeTravel\(b\)\) \{[\s\S]{0,300}mountQuote: true/);
+    assert.match(src, /if \(needsQuoteOnSite\(b\)\) \{[\s\S]{0,300}mountQuote: true/, 'on site, the composer is the step (Q1)');
     assert.match(src, /spec\.action === 'support'\)\s*\{ location\.href = `support\.html\?bookingId=\$\{encodeURIComponent\(BOOKING_ID\)\}`/);
 });
 
 await t('dashboard.html: Submit Quote before travel; a booked slot is shown, not offered', () => {
     const src = page('dashboard.html');
     assert.match(src, /status === 'accepted' && needsQuoteBeforeTravel\(d\)/);
+    assert.match(src, /status === 'in_progress' && needsQuoteOnSite\(d\)/, 'on site, Submit Quote replaces Mark Job Done (Q1)');
+    assert.match(page('jobs.html'), /if \(needsQuoteBeforeTravel\(b\) \|\| needsQuoteOnSite\(b\)\)/, 'jobs list: the same two answers');
     assert.match(src, /status === 'accepted' && resolveSchedule\(d\)\.scheduled && !resolveSchedule\(d\)\.isDue/);
 });
 
