@@ -6,7 +6,9 @@ jobs.html, where the sheet read a module-scoped `_quoteBookingId` set by whichev
 card was tapped last. This test opens each job directly and proves the composer
 mounted inside it is bound to that booking.
 """
+import json
 import sys
+import urllib.request
 from playwright.sync_api import sync_playwright
 
 BASE = "http://localhost:8791/artisan-app"
@@ -14,6 +16,35 @@ A = ("HHB-QUOTE-A", "Plumbing")
 B = ("HHB-QUOTE-B", "Electrical")
 
 ARTISAN = ("artisan@e2e.test", "Passw0rd!23")
+
+# The two quoting-phase bookings this test needs. npm run seed:e2e never created
+# them, so the test opened two missing jobs; it now writes them itself, through
+# the Firestore EMULATOR's REST API with its admin bypass ("Bearer owner") —
+# 127.0.0.1 only, never production.
+PROJECT = "lamax-4fd82"
+DB_ID = "ai-studio-5589039d-72c4-40d8-ae39-f35c6c321eb6"
+DOCS = f"http://127.0.0.1:8080/v1/projects/{PROJECT}/databases/{DB_ID}/documents"
+
+
+def _value(v):
+    if isinstance(v, bool): return {"booleanValue": v}
+    if isinstance(v, (int, float)): return {"integerValue": str(v)} if isinstance(v, int) else {"doubleValue": v}
+    return {"stringValue": str(v)}
+
+
+def seed_quote_booking(bid, service):
+    fields = {"id": bid, "bookingId": bid, "artisanId": "e2e_artisan_1", "customerId": "e2e_customer_1",
+              "status": "inspection_done", "track": "inspection", "calloutPaid": True, "calloutFee": 60,
+              "serviceType": service.lower(), "description": f"{service} problem to price",
+              "createdAt": "2026-11-06T09:00:00.000Z", "updatedAt": "2026-11-06T09:30:00.000Z"}
+    body = json.dumps({"fields": {k: _value(v) for k, v in fields.items()}}).encode()
+    req = urllib.request.Request(f"{DOCS}/bookings/{bid}", data=body, method="PATCH",
+                                 headers={"Authorization": "Bearer owner", "Content-Type": "application/json"})
+    urllib.request.urlopen(req, timeout=10).read()
+
+
+for _bid, _svc in (("HHB-QUOTE-A", "Plumbing"), ("HHB-QUOTE-B", "Electrical")):
+    seed_quote_booking(_bid, _svc)
 
 results = []
 def check(name, ok, detail=""):
