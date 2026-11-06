@@ -1,0 +1,627 @@
+/* ============================================================================
+   Fidus X Artisan · component foundation  (Phase 1)
+   ----------------------------------------------------------------------------
+   Load after css/tokens.css. Every value here is a token: no raw colour,
+   radius, shadow, type value, z-index or duration (scripts/check-fx-design-
+   system.cjs enforces it, and caps selector specificity).
+
+   Conventions
+     • Block / element / modifier:  .fx-row  .fx-row__title  .fx-row--nav
+     • State lives in ARIA, not classes: [aria-pressed] [aria-current]
+       [aria-busy] [aria-invalid] [aria-disabled] [disabled] [data-urgency]
+     • Pages opt in with <body class="fx-app">; nothing here styles a page
+       that has not, so unmigrated screens are untouched.
+     • Hover styles only where a pointer can hover (@media (hover: hover)).
+   ========================================================================== */
+
+/* ── Base ──────────────────────────────────────────────────────────────── */
+.fx-app {
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: var(--fx-space-0);
+  background: var(--fx-paper);
+  color: var(--fx-ink);
+  font: var(--fx-t-body);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  color-scheme: light;
+  -webkit-tap-highlight-color: transparent;
+}
+.fx-app *, .fx-app *::before, .fx-app *::after { box-sizing: border-box; }
+.fx-app :where(button, input, select, textarea) { font: inherit; color: inherit; }
+.fx-app :where(img, svg) { display: block; max-width: 100%; }
+/* An icon nobody sized is 24px, not the 300×150 an SVG defaults to; every
+   component sets its own size and wins over this. */
+.fx-app :where(svg:not([width])) { width: var(--fx-icon-m); height: var(--fx-icon-m); }
+.fx-app :focus-visible {
+  outline: var(--fx-focus-width) solid var(--fx-focus-color);
+  outline-offset: var(--fx-focus-offset);
+}
+.fx-lock { overflow: hidden; }                 /* set on <html> while a sheet is open */
+.fx-app [hidden] { display: none !important; } /* a hidden thing stays hidden whatever its layout says */
+
+/* Screen-reader-only text. */
+.fx-sr {
+  position: absolute; width: var(--fx-hairline); height: var(--fx-hairline);
+  margin: calc(-1 * var(--fx-hairline)); padding: var(--fx-space-0); border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ── Type ──────────────────────────────────────────────────────────────── */
+.fx-display { margin: var(--fx-space-0); font: var(--fx-t-display); letter-spacing: var(--fx-track-display); text-wrap: balance; }
+.fx-title   { margin: var(--fx-space-0); font: var(--fx-t-title);   letter-spacing: var(--fx-track-title);   text-wrap: balance; }
+.fx-heading { margin: var(--fx-space-0); font: var(--fx-t-heading); letter-spacing: var(--fx-track-heading); }
+.fx-body    { margin: var(--fx-space-0); font: var(--fx-t-body); }
+.fx-label   { margin: var(--fx-space-0); font: var(--fx-t-label); }
+.fx-meta    { margin: var(--fx-space-0); font: var(--fx-t-meta); color: var(--fx-ink-3); }
+.fx-caption { margin: var(--fx-space-0); font: var(--fx-t-caption); }
+.fx-lead    { margin: var(--fx-space-0); color: var(--fx-ink-2); max-width: var(--fx-measure); }
+.fx-num     { font-variant-numeric: tabular-nums; }   /* money, times, counts */
+.fx-strong  { font-weight: var(--fx-w-strong); }
+.fx-ink-2   { color: var(--fx-ink-2); }
+.fx-ink-3   { color: var(--fx-ink-3); }
+
+.fx-link {
+  color: var(--fx-accent-text);
+  text-decoration: underline;
+  text-decoration-thickness: var(--fx-hairline);
+  text-underline-offset: 0.2em;
+  border-radius: var(--fx-r-chip);
+}
+
+/* ── Shell ─────────────────────────────────────────────────────────────────
+   <body class="fx-app">
+     <div class="fx-shell">
+       <header class="fx-appbar">…</header>
+       <main class="fx-main" id="main">…</main>
+       <div class="fx-bottom"> [.fx-dock] [nav.fx-tabbar] </div>
+     </div>
+   The document scrolls; the bars are sticky, so a multi-page app keeps native
+   scrolling, scroll restoration and pull-to-refresh.                         */
+.fx-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--fx-paper);
+}
+.fx-main { flex: 1 0 auto; padding-bottom: var(--fx-space-8); }
+.fx-bottom { position: sticky; bottom: 0; z-index: var(--fx-z-bar); background: var(--fx-paper); }
+
+.fx-skip {
+  position: absolute; left: var(--fx-space-2); top: var(--fx-space-2); z-index: var(--fx-z-toast);
+  padding: var(--fx-space-2) var(--fx-space-3); border-radius: var(--fx-r-control);
+  background: var(--fx-ink); color: var(--fx-on-ink); font: var(--fx-t-label);
+  transform: translateY(-200%);
+}
+.fx-skip:focus { transform: none; --fx-focus-color: var(--fx-on-ink); }
+
+/* ── App bar ───────────────────────────────────────────────────────────────
+   --root  a tab's home: large title, actions on the right
+   --push  a screen reached from another: back button, title, hairline        */
+.fx-appbar {
+  position: sticky; top: 0; z-index: var(--fx-z-bar);
+  display: flex; align-items: center; gap: var(--fx-space-2);
+  min-height: var(--fx-bar);
+  padding: var(--fx-space-1) var(--fx-space-1) var(--fx-space-1) var(--fx-gutter);
+  padding-top: max(var(--fx-space-1), env(safe-area-inset-top, 0px));
+  background: var(--fx-paper);
+}
+.fx-appbar__titles { flex: 1; min-width: 0; }
+.fx-appbar__title { margin: var(--fx-space-0); font: var(--fx-t-heading); letter-spacing: var(--fx-track-heading); overflow-wrap: anywhere; }
+.fx-appbar__sub   { margin: var(--fx-space-0); font: var(--fx-t-meta); color: var(--fx-ink-3); }
+.fx-appbar__actions { flex: none; display: flex; align-items: center; gap: var(--fx-space-1); }
+.fx-appbar--root { align-items: flex-start; padding-top: max(var(--fx-space-3), env(safe-area-inset-top, 0px)); }
+.fx-appbar--root .fx-appbar__title { font: var(--fx-t-title); letter-spacing: var(--fx-track-title); }
+.fx-appbar--push { padding-left: var(--fx-space-1); box-shadow: var(--fx-e-bar); }
+.fx-appbar--push .fx-appbar__titles { padding-left: var(--fx-space-1); }
+
+/* Icon-only button: the back arrow, notifications, overflow. */
+.fx-iconbtn {
+  position: relative; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--fx-hit); height: var(--fx-hit);
+  margin: var(--fx-space-0); padding: var(--fx-space-0); border: 0;
+  border-radius: var(--fx-r-control);
+  background: transparent; color: var(--fx-ink);
+  cursor: pointer; text-decoration: none;
+  transition: background-color var(--fx-d-press) var(--fx-ease-io);
+}
+.fx-iconbtn svg { width: var(--fx-icon-m); height: var(--fx-icon-m); }
+.fx-iconbtn:active { background: var(--fx-well-2); }
+.fx-iconbtn:disabled, .fx-iconbtn[aria-disabled="true"] { color: var(--fx-ink-4); cursor: not-allowed; }
+.fx-iconbtn__badge {
+  position: absolute; top: var(--fx-space-2); right: var(--fx-space-2);
+  width: var(--fx-badge); height: var(--fx-badge);
+  border-radius: var(--fx-r-round); background: var(--fx-indicator); box-shadow: var(--fx-ring-badge);
+}
+
+/* ── Availability control ──────────────────────────────────────────────────
+   A toggle button: aria-pressed="true" online, "false" offline; aria-busy
+   while the change is saving; aria-disabled when the account cannot go
+   online (verification). The label always states the state in words.       */
+.fx-avail {
+  display: inline-flex; align-items: center; gap: var(--fx-space-2);
+  min-height: var(--fx-hit); margin: var(--fx-space-0);
+  padding: var(--fx-space-2) var(--fx-space-3); border: 0;
+  border-radius: var(--fx-r-control);
+  background: var(--fx-well); color: var(--fx-ink);
+  font: var(--fx-t-label); cursor: pointer;
+  transition: background-color var(--fx-d-state) var(--fx-ease-io), color var(--fx-d-state) var(--fx-ease-io);
+}
+.fx-avail svg { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); }
+.fx-avail[aria-pressed="true"] { background: var(--fx-ok-wash); color: var(--fx-ok); }
+.fx-avail[aria-busy="true"] { cursor: progress; }
+.fx-avail[aria-disabled="true"] { color: var(--fx-ink-3); cursor: not-allowed; }
+.fx-avail:active:where(:not([aria-disabled="true"])) { background: var(--fx-well-2); }
+
+/* ── Buttons ───────────────────────────────────────────────────────────────
+   Hierarchy: primary (one per screen) › secondary › tertiary.
+   Sizes: --l the dock/sheet action, default 48px, --s inline (44px hit area).
+   States: :hover :active :focus-visible, :disabled / [aria-disabled],
+   [aria-busy="true"] while working (the label says what is happening).      */
+.fx-btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--fx-space-2);
+  min-width: var(--fx-hit); min-height: var(--fx-h-m);
+  margin: var(--fx-space-0); padding: var(--fx-space-2) var(--fx-space-5);
+  border: 0; border-radius: var(--fx-r-control);
+  font: var(--fx-t-button); letter-spacing: var(--fx-track-none);
+  text-align: center; text-decoration: none; overflow-wrap: anywhere;
+  cursor: pointer; user-select: none; appearance: none;
+  transition: background-color var(--fx-d-press) var(--fx-ease-io),
+              color var(--fx-d-state) var(--fx-ease-io),
+              transform var(--fx-d-press) var(--fx-ease-io);
+}
+.fx-btn svg { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); }
+.fx-btn:active:where(:not(:disabled, [aria-disabled="true"], [aria-busy="true"])) { transform: translateY(var(--fx-space-px)); }
+.fx-btn--l { min-height: var(--fx-h-l); }
+.fx-btn--s { min-height: var(--fx-h-s); padding: var(--fx-space-1) var(--fx-space-3); font: var(--fx-t-button-s); }
+.fx-btn--s::after { content: ''; position: absolute; inset: calc((var(--fx-h-s) - var(--fx-hit)) / 2) 0; }   /* 44px hit area */
+.fx-btn--block { display: flex; width: 100%; }
+
+.fx-btn--primary   { background: var(--fx-accent); color: var(--fx-on-accent); }
+.fx-btn--primary:active { background: var(--fx-accent-press); }
+.fx-btn--secondary { background: var(--fx-well); color: var(--fx-ink); }
+.fx-btn--secondary:active { background: var(--fx-well-2); }
+.fx-btn--tertiary {
+  min-height: var(--fx-hit); padding: var(--fx-space-1);
+  background: transparent; color: var(--fx-ink);
+  text-decoration: underline; text-decoration-thickness: var(--fx-hairline);
+  text-underline-offset: 0.25em; text-decoration-color: var(--fx-edge);
+}
+.fx-btn--tertiary:active { text-decoration-color: var(--fx-ink); }
+.fx-btn--danger       { background: var(--fx-bad-wash); color: var(--fx-bad); }
+.fx-btn--danger-solid { background: var(--fx-bad); color: var(--fx-on-bad); }
+
+.fx-btn:disabled, .fx-btn[aria-disabled="true"] { background: var(--fx-well); color: var(--fx-ink-4); cursor: not-allowed; }
+.fx-btn--tertiary:disabled, .fx-btn--tertiary[aria-disabled="true"] { background: transparent; text-decoration-color: var(--fx-line-2); }
+.fx-btn[aria-busy="true"] { cursor: progress; pointer-events: none; }
+
+/* A run of buttons that wraps rather than overflows. */
+.fx-btnrow { display: flex; flex-wrap: wrap; gap: var(--fx-space-3); }
+.fx-btnrow > .fx-btn { flex: 1 1 0; }
+
+.fx-spin {
+  flex: none; width: var(--fx-spin); height: var(--fx-spin);
+  border: var(--fx-stroke) solid currentColor; border-right-color: transparent;
+  border-radius: var(--fx-r-round);
+  animation: fx-spin var(--fx-d-spin) linear infinite;
+}
+
+/* ── Status chips ──────────────────────────────────────────────────────── */
+.fx-chip {
+  display: inline-flex; align-items: center; gap: var(--fx-space-1);
+  max-width: 100%; min-height: var(--fx-chip-h);
+  padding: var(--fx-space-h) var(--fx-space-2);
+  border-radius: var(--fx-r-chip);
+  background: var(--fx-well); color: var(--fx-ink-2);
+  font: var(--fx-t-caption);
+}
+.fx-chip__dot { flex: none; width: var(--fx-chip-dot); height: var(--fx-chip-dot); border-radius: var(--fx-r-round); background: currentColor; }
+.fx-chip--ok     { background: var(--fx-ok-wash);   color: var(--fx-ok); }
+.fx-chip--info   { background: var(--fx-info-wash); color: var(--fx-info); }
+.fx-chip--warn   { background: var(--fx-warn-wash); color: var(--fx-warn); }
+.fx-chip--bad    { background: var(--fx-bad-wash);  color: var(--fx-bad); }
+.fx-chip--accent { background: var(--fx-accent);    color: var(--fx-on-accent); }
+
+/* ── Dots: live, offline, attention ────────────────────────────────────── */
+.fx-dot { position: relative; flex: none; width: var(--fx-dot); height: var(--fx-dot); border-radius: var(--fx-r-round); background: currentColor; }
+.fx-dot--live { background: var(--fx-ok); }
+.fx-dot--live::after {
+  content: ''; position: absolute; inset: 0; border-radius: var(--fx-r-round);
+  background: var(--fx-ok); animation: fx-pulse var(--fx-d-pulse) var(--fx-ease) infinite;
+}
+.fx-dot--off  { background: transparent; box-shadow: var(--fx-ring-off); }
+.fx-dot--warn { background: var(--fx-warn); }
+.fx-dot--bad  { background: var(--fx-bad); }
+
+/* ── Sections ──────────────────────────────────────────────────────────── */
+.fx-sect { margin-top: var(--fx-space-8); }
+.fx-sect__head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--fx-space-4);
+  padding: 0 var(--fx-gutter); margin-bottom: var(--fx-space-1);
+}
+.fx-sect__title { margin: var(--fx-space-0); font: var(--fx-t-label); color: var(--fx-ink-3); }
+.fx-sect__body  { padding: 0 var(--fx-gutter); }
+
+/* ── Lists and rows ────────────────────────────────────────────────────────
+   A row is a <div>, or an <a>/<button> when the whole row is one action.   */
+.fx-list { margin: var(--fx-space-0); padding: var(--fx-space-0); list-style: none; }
+.fx-row {
+  position: relative;
+  display: flex; align-items: center; gap: var(--fx-space-3);
+  width: 100%; min-height: var(--fx-row);
+  margin: var(--fx-space-0); padding: var(--fx-space-3) var(--fx-gutter);
+  border: 0; background: transparent; color: inherit;
+  font: inherit; text-align: left; text-decoration: none;
+}
+.fx-list > li + li > .fx-row::before,
+.fx-list > .fx-row + .fx-row::before {
+  content: ''; position: absolute; top: 0; left: var(--fx-gutter); right: 0;
+  height: var(--fx-hairline); background: var(--fx-line);
+}
+a.fx-row, button.fx-row { cursor: pointer; transition: background-color var(--fx-d-press) var(--fx-ease-io); }
+a.fx-row:active, button.fx-row:active { background: var(--fx-well); }
+.fx-row:focus-visible { outline-offset: var(--fx-focus-offset-inset); }
+.fx-row[aria-disabled="true"], .fx-row:disabled { color: var(--fx-ink-3); cursor: not-allowed; }
+.fx-row__lead { flex: none; display: flex; align-items: center; color: var(--fx-ink-2); }
+.fx-row__lead svg { width: var(--fx-icon-m); height: var(--fx-icon-m); }
+.fx-row__main { flex: 1; min-width: 0; }
+/* Block-level even as <span>s, which is what a row inside an <a> or <button> must use. */
+.fx-row__title { display: block; margin: var(--fx-space-0); font: var(--fx-t-body-strong); overflow-wrap: anywhere; }
+.fx-row__meta  { display: block; margin: var(--fx-space-h) 0 0; font: var(--fx-t-meta); color: var(--fx-ink-3); overflow-wrap: anywhere; }
+.fx-row__trail { flex: none; display: flex; align-items: center; gap: var(--fx-space-2); color: var(--fx-ink-2); }
+.fx-row__trail > svg { width: var(--fx-icon-s); height: var(--fx-icon-s); color: var(--fx-ink-3); }
+.fx-row__value { font: var(--fx-t-label); color: var(--fx-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ── Ledger: money, line by line ───────────────────────────────────────────
+   <dl class="fx-ledger"><div class="fx-ledger__row"><dt>…</dt><dd>…</dd></div>
+   Figures are tabular and never wrap; a deduction carries its minus sign.  */
+.fx-ledger { margin: var(--fx-space-0); }
+.fx-ledger__row {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--fx-space-1) var(--fx-space-4);
+  padding: var(--fx-space-2) 0;
+}
+.fx-ledger__k { margin: var(--fx-space-0); color: var(--fx-ink-2); min-width: 0; }
+/* A figure never breaks; with large text it moves, whole, to its own line. */
+.fx-ledger__v {
+  margin: var(--fx-space-0) 0 0 auto; text-align: right; white-space: nowrap;
+  font: var(--fx-t-body-strong); font-variant-numeric: tabular-nums;
+}
+.fx-ledger__row--sub .fx-ledger__k,
+.fx-ledger__row--sub .fx-ledger__v { font: var(--fx-t-meta); color: var(--fx-ink-3); }
+.fx-ledger__row--pending .fx-ledger__v { color: var(--fx-ink-3); }
+.fx-ledger__row--total {
+  margin-top: var(--fx-space-1); padding-top: var(--fx-space-3);
+  border-top: var(--fx-hairline) solid var(--fx-line);
+}
+.fx-ledger__row--total .fx-ledger__k { color: var(--fx-ink); font-weight: var(--fx-w-label); }
+.fx-ledger__row--total .fx-ledger__v { font: var(--fx-t-heading); font-variant-numeric: tabular-nums; }
+.fx-ledger__note { margin: var(--fx-space-1) 0 0; font: var(--fx-t-meta); color: var(--fx-ink-3); }
+
+/* ── Journey rail ──────────────────────────────────────────────────────────
+   The segments are a picture of the caption, which says it in words
+   ("Step 3 of 6 · Inspection"); the track is aria-hidden.                  */
+.fx-rail__track {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--fx-space-h);
+  margin: var(--fx-space-0); padding: var(--fx-space-0); list-style: none;
+}
+.fx-rail__seg { height: var(--fx-rail-h); background: var(--fx-line); }
+.fx-rail__seg--done    { background: var(--fx-ink); }
+.fx-rail__seg--current { background: var(--fx-accent); }
+.fx-rail__cap {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--fx-space-1) var(--fx-space-3);
+  margin: var(--fx-space-2) 0 0; font: var(--fx-t-caption); color: var(--fx-ink-3);
+}
+.fx-rail__now { color: var(--fx-ink); font-weight: var(--fx-w-strong); }
+
+/* ── Countdown ─────────────────────────────────────────────────────────────
+   data-urgency: normal | soon | now | done. The bar is drawn from the custom
+   property --fx-countdown (0…1) a script sets; the text is the authority.  */
+.fx-countdown__bar { position: relative; height: var(--fx-rail-h); overflow: hidden; background: var(--fx-line); }
+.fx-countdown__fill {
+  position: absolute; inset: 0; background: var(--fx-accent);
+  transform: scaleX(var(--fx-countdown, 1)); transform-origin: left center;
+  transition: transform var(--fx-d-tick) linear, background-color var(--fx-d-state) var(--fx-ease-io);
+}
+.fx-countdown__text { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--fx-space-1) var(--fx-space-2); margin: var(--fx-space-2) 0 0; }
+.fx-countdown__value { font: var(--fx-t-heading); font-variant-numeric: tabular-nums; }
+.fx-countdown__label { font: var(--fx-t-meta); color: var(--fx-ink-3); }
+.fx-countdown[data-urgency="soon"] .fx-countdown__fill  { background: var(--fx-warn); }
+.fx-countdown[data-urgency="soon"] .fx-countdown__value { color: var(--fx-warn); }
+.fx-countdown[data-urgency="now"]  .fx-countdown__fill  { background: var(--fx-bad); }
+.fx-countdown[data-urgency="now"]  .fx-countdown__value { color: var(--fx-bad); }
+.fx-countdown[data-urgency="done"] .fx-countdown__fill  { background: var(--fx-ink-4); }
+.fx-countdown[data-urgency="done"] .fx-countdown__value { color: var(--fx-ink-3); }
+
+/* ── Inline notice ─────────────────────────────────────────────────────────
+   Text stays ink on every wash (≥ 15:1); the tone is the wash and the icon. */
+.fx-notice {
+  display: flex; align-items: flex-start; gap: var(--fx-space-3);
+  padding: var(--fx-space-3) var(--fx-space-4);
+  border-radius: var(--fx-r-control);
+  background: var(--fx-well); color: var(--fx-ink);
+  font: var(--fx-t-meta);
+}
+.fx-notice__icon { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); color: var(--fx-ink-2); }
+.fx-notice__body { flex: 1; min-width: 0; }
+.fx-notice__body > p { margin: var(--fx-space-0); }
+.fx-notice__body > p + p { margin-top: var(--fx-space-1); }
+.fx-notice__title { margin: var(--fx-space-0); font: var(--fx-t-label); color: var(--fx-ink); }
+.fx-notice__actions { display: flex; flex-wrap: wrap; gap: var(--fx-space-2); margin-top: var(--fx-space-2); }
+.fx-notice--ok   { background: var(--fx-ok-wash); }
+.fx-notice--info { background: var(--fx-info-wash); }
+.fx-notice--warn { background: var(--fx-warn-wash); }
+.fx-notice--bad  { background: var(--fx-bad-wash); }
+.fx-notice--ok   .fx-notice__icon { color: var(--fx-ok); }
+.fx-notice--info .fx-notice__icon { color: var(--fx-info); }
+.fx-notice--warn .fx-notice__icon { color: var(--fx-warn); }
+.fx-notice--bad  .fx-notice__icon { color: var(--fx-bad); }
+
+/* ── Form fields ───────────────────────────────────────────────────────────
+   The control's edge is --fx-edge (3.7:1), so a field is identifiable without
+   relying on its fill. Focus thickens the edge to 2px of ink.               */
+.fx-field { display: block; margin: var(--fx-space-0); min-width: 0; }
+.fx-field + .fx-field { margin-top: var(--fx-space-6); }
+.fx-field__label { display: block; margin: 0 0 var(--fx-space-2); font: var(--fx-t-label); color: var(--fx-ink-2); }
+.fx-field__hint  { margin: var(--fx-space-2) 0 0; font: var(--fx-t-meta); color: var(--fx-ink-3); }
+.fx-field__error { margin: var(--fx-space-2) 0 0; font: var(--fx-t-meta); color: var(--fx-bad); }
+.fx-input {
+  display: block; width: 100%; min-height: var(--fx-h-m);
+  margin: var(--fx-space-0); padding: var(--fx-space-2) var(--fx-space-4);
+  border: var(--fx-hairline) solid var(--fx-edge); border-radius: var(--fx-r-control);
+  background: var(--fx-paper); color: var(--fx-ink);
+  font: var(--fx-t-body); font-variant-numeric: tabular-nums;
+  appearance: none;
+  transition: border-color var(--fx-d-state) var(--fx-ease-io), box-shadow var(--fx-d-state) var(--fx-ease-io);
+}
+.fx-input::placeholder { color: var(--fx-ink-3); opacity: 1; }
+.fx-input[aria-invalid="true"] { border-color: var(--fx-bad); }
+.fx-input:disabled { border-color: var(--fx-line-2); background: var(--fx-well); color: var(--fx-ink-3); cursor: not-allowed; }
+.fx-input[readonly] { border-color: var(--fx-line-2); background: var(--fx-well); }
+/* Focus last, so it wins over every resting state: 2px of ink (or of the error colour). */
+.fx-input:focus { outline: none; border-color: var(--fx-ink); box-shadow: var(--fx-ring-input); }
+.fx-input[aria-invalid="true"]:focus { border-color: var(--fx-bad); box-shadow: var(--fx-ring-invalid); }
+textarea.fx-input { min-height: var(--fx-input-multi); padding-top: var(--fx-space-3); padding-bottom: var(--fx-space-3); resize: vertical; }
+
+/* A select draws its own chevron (an element, so its colour is a token). */
+.fx-select { position: relative; }
+.fx-select > .fx-input { padding-right: var(--fx-space-12); cursor: pointer; }
+.fx-select__chev {
+  position: absolute; right: var(--fx-space-4); top: 50%;
+  width: var(--fx-icon-s); height: var(--fx-icon-s);
+  color: var(--fx-ink-2); pointer-events: none; transform: translateY(-50%);
+}
+
+/* Money entry: the currency sits inside the field, the amount is large. */
+.fx-money { position: relative; }
+.fx-money__cur {
+  position: absolute; left: var(--fx-space-4); top: 50%;
+  font: var(--fx-t-heading); color: var(--fx-ink-3);
+  pointer-events: none; transform: translateY(-50%);
+}
+.fx-money > .fx-input {
+  min-height: var(--fx-h-l); padding-left: calc(var(--fx-space-12) + var(--fx-space-4));
+  font: var(--fx-t-title); letter-spacing: var(--fx-track-title); font-variant-numeric: tabular-nums;
+}
+
+/* ── Segmented control ─────────────────────────────────────────────────────
+   A labelled group of toggle buttons (aria-pressed): the one either-or /
+   filter control. Selected = paper fill, ink label, 3.3:1 edge. Focus is an
+   outline, so it shows on the selected segment as on the others.            */
+.fx-seg {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--fx-space-h);
+  padding: var(--fx-space-h); border-radius: var(--fx-r-control); background: var(--fx-well);
+}
+.fx-seg__btn {
+  min-width: 0; min-height: var(--fx-hit);
+  margin: var(--fx-space-0); padding: var(--fx-space-1) var(--fx-space-2);
+  border: 0; border-radius: var(--fx-r-chip);
+  background: transparent; color: var(--fx-ink-2);
+  font: var(--fx-t-label); overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: background-color var(--fx-d-state) var(--fx-ease-io), color var(--fx-d-state) var(--fx-ease-io);
+}
+.fx-seg__btn[aria-pressed="true"] { background: var(--fx-paper); color: var(--fx-ink); font-weight: var(--fx-w-strong); box-shadow: var(--fx-ring-selected); }
+.fx-seg__btn:disabled { color: var(--fx-ink-4); cursor: not-allowed; }
+
+/* ── Avatar ────────────────────────────────────────────────────────────── */
+.fx-avatar {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: var(--fx-avatar-m); height: var(--fx-avatar-m);
+  overflow: hidden; border-radius: var(--fx-r-round);
+  background: var(--fx-well); color: var(--fx-ink-2);
+  font: var(--fx-t-label); font-weight: var(--fx-w-strong);
+}
+.fx-avatar > img { width: 100%; height: 100%; object-fit: cover; }
+.fx-avatar > svg { width: 60%; height: 60%; }
+.fx-avatar--s { width: var(--fx-avatar-s); height: var(--fx-avatar-s); font: var(--fx-t-caption); font-weight: var(--fx-w-strong); }
+.fx-avatar--l { width: var(--fx-avatar-l); height: var(--fx-avatar-l); font: var(--fx-t-heading); }
+
+/* ── Overlay and bottom sheet ──────────────────────────────────────────────
+   js/fx/sheet.js opens it: focus moves in, Tab stays in, Escape and the
+   scrim close it, focus returns, the page behind is inert.                   */
+.fx-overlay {
+  position: fixed; inset: 0; z-index: var(--fx-z-overlay);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+}
+.fx-scrim {
+  position: absolute; inset: 0;
+  margin: var(--fx-space-0); padding: var(--fx-space-0); border: 0;
+  background: var(--fx-scrim);
+  animation: fx-fade var(--fx-d-sheet) var(--fx-ease) both;
+}
+.fx-sheet {
+  position: relative; display: flex; flex-direction: column;
+  width: 100%; max-width: var(--fx-shell-max); max-height: calc(100% - var(--fx-space-5));
+  overflow: hidden;
+  border-radius: var(--fx-r-sheet) var(--fx-r-sheet) 0 0;
+  background: var(--fx-paper); box-shadow: var(--fx-e-sheet);
+  animation: fx-rise var(--fx-d-sheet) var(--fx-ease) both;
+}
+.fx-sheet:focus { outline: none; }
+.fx-sheet--tall { height: calc(100% - var(--fx-space-5)); }
+.fx-overlay[data-state="closing"] .fx-sheet { animation: fx-sink var(--fx-d-state) var(--fx-ease-io) both; }
+.fx-overlay[data-state="closing"] .fx-scrim { animation: fx-fade-out var(--fx-d-state) var(--fx-ease-io) both; }
+.fx-sheet__head {
+  flex: none; display: flex; align-items: center; gap: var(--fx-space-2);
+  padding: var(--fx-space-4) var(--fx-space-1) var(--fx-space-2) var(--fx-gutter);
+}
+.fx-sheet__title { flex: 1; min-width: 0; margin: var(--fx-space-0); font: var(--fx-t-heading); letter-spacing: var(--fx-track-heading); }
+.fx-sheet__body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 var(--fx-gutter) var(--fx-space-6);
+}
+.fx-sheet__actions {
+  flex: none; display: flex; flex-wrap: wrap; gap: var(--fx-space-3);
+  padding: var(--fx-space-3) var(--fx-gutter);
+  padding-bottom: max(var(--fx-space-3), env(safe-area-inset-bottom, 0px));
+  border-top: var(--fx-hairline) solid var(--fx-line);
+  background: var(--fx-paper);
+}
+.fx-sheet__actions > .fx-btn { flex: 1 1 0; }
+
+/* ── Toast ─────────────────────────────────────────────────────────────────
+   Below the app bar, never over the action under the thumb. js/fx/toast.js
+   announces it through a polite live region.                                 */
+.fx-toasts {
+  position: fixed; left: 0; right: 0; z-index: var(--fx-z-toast);
+  top: calc(var(--fx-bar) + env(safe-area-inset-top, 0px) + var(--fx-space-2));
+  display: flex; flex-direction: column; align-items: center; gap: var(--fx-space-2);
+  padding: 0 var(--fx-gutter);
+  pointer-events: none;
+}
+.fx-toast {
+  --fx-focus-color: var(--fx-on-ink);
+  display: flex; align-items: flex-start; gap: var(--fx-space-3);
+  width: 100%; max-width: var(--fx-shell-max);
+  padding: var(--fx-space-3) var(--fx-space-4);
+  border-radius: var(--fx-r-control);
+  background: var(--fx-ink); color: var(--fx-on-ink); box-shadow: var(--fx-e-pop);
+  font: var(--fx-t-meta);
+  pointer-events: auto;
+  animation: fx-drop var(--fx-d-state) var(--fx-ease) both;
+}
+.fx-toast[data-state="closing"] { animation: fx-fade-out var(--fx-d-state) var(--fx-ease-io) both; }
+.fx-toast__icon { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); color: var(--fx-on-ink-2); }
+.fx-toast__text { flex: 1; min-width: 0; margin: var(--fx-space-0); }
+.fx-toast__action {
+  flex: none; min-height: var(--fx-hit); margin: calc(-1 * var(--fx-space-3)) calc(-1 * var(--fx-space-2)) calc(-1 * var(--fx-space-3)) 0;
+  padding: var(--fx-space-1) var(--fx-space-2); border: 0; border-radius: var(--fx-r-chip);
+  background: transparent; color: var(--fx-on-ink);
+  font: var(--fx-t-label); text-decoration: underline; text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+
+/* ── Bottom dock and tab bar ───────────────────────────────────────────── */
+.fx-dock {
+  padding: var(--fx-space-3) var(--fx-gutter);
+  border-top: var(--fx-hairline) solid var(--fx-line);
+  background: var(--fx-paper);
+}
+.fx-bottom > .fx-dock:last-child { padding-bottom: max(var(--fx-space-3), env(safe-area-inset-bottom, 0px)); }
+.fx-dock__note { margin: 0 0 var(--fx-space-3); font: var(--fx-t-meta); color: var(--fx-ink-2); }
+.fx-dock__actions { display: flex; flex-wrap: wrap; gap: var(--fx-space-3); }
+.fx-dock__actions > .fx-btn { flex: 1 1 0; }
+
+.fx-tabbar {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: var(--fx-tab);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  border-top: var(--fx-hairline) solid var(--fx-line);
+  background: var(--fx-paper);
+}
+.fx-tab {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--fx-space-1);
+  min-width: 0; min-height: var(--fx-tab);
+  padding: var(--fx-space-2) var(--fx-space-1);
+  color: var(--fx-ink-3); font: var(--fx-t-caption);
+  text-align: center; text-decoration: none; overflow-wrap: anywhere;
+}
+.fx-tab svg { flex: none; width: var(--fx-icon-m); height: var(--fx-icon-m); }
+.fx-tab:focus-visible { outline-offset: var(--fx-focus-offset-inset); }
+.fx-tab[aria-current="page"] { color: var(--fx-ink); font-weight: var(--fx-w-strong); }
+.fx-tab[aria-current="page"]::before {
+  content: ''; position: absolute; top: calc(-1 * var(--fx-hairline)); left: 50%;
+  width: var(--fx-marker-w); height: var(--fx-marker);
+  background: var(--fx-accent); transform: translateX(-50%);
+}
+.fx-tab__badge {
+  position: absolute; top: var(--fx-space-2); left: calc(50% + var(--fx-space-2));
+  width: var(--fx-badge); height: var(--fx-badge);
+  border-radius: var(--fx-r-round); background: var(--fx-indicator); box-shadow: var(--fx-ring-badge);
+}
+
+/* ── Loading placeholders ──────────────────────────────────────────────────
+   Shown only on a genuine cache miss (CLAUDE.md §1): the shape of the content
+   that is coming, never a spinner over the whole screen.                    */
+.fx-skel { display: block; height: var(--fx-lh-body); border-radius: var(--fx-r-chip); background: var(--fx-well); }
+.fx-skel--title { height: var(--fx-lh-title); }
+.fx-skel--row   { height: var(--fx-row); }
+
+/* ── Layout utilities ──────────────────────────────────────────────────────
+   After every component, so a utility wins over a component's own margin
+   reset at equal specificity: spacing between blocks is the layout's call.  */
+.fx-pad { padding-left: var(--fx-gutter); padding-right: var(--fx-gutter); }
+.fx-stack > * + * { margin-top: var(--fx-space-3); }
+.fx-stack--2 > * + * { margin-top: var(--fx-space-2); }
+.fx-stack--4 > * + * { margin-top: var(--fx-space-4); }
+.fx-stack--6 > * + * { margin-top: var(--fx-space-6); }
+
+/* ── Pointer hover (never sticks on touch) ─────────────────────────────── */
+@media (hover: hover) {
+  .fx-iconbtn:hover:where(:not(:disabled)) { background: var(--fx-well); }
+  .fx-avail:hover:where(:not([aria-disabled="true"], [aria-pressed="true"])) { background: var(--fx-well-2); }
+  .fx-btn--primary:hover:where(:not(:disabled, [aria-disabled="true"])) { background: var(--fx-accent-press); }
+  .fx-btn--secondary:hover:where(:not(:disabled, [aria-disabled="true"])) { background: var(--fx-well-2); }
+  .fx-btn--tertiary:hover:where(:not(:disabled, [aria-disabled="true"])) { text-decoration-color: var(--fx-ink); }
+  a.fx-row:hover, button.fx-row:hover:where(:not(:disabled)) { background: var(--fx-well); }
+  .fx-seg__btn:hover:where(:not([aria-pressed="true"], :disabled)) { background: var(--fx-well-2); }
+  .fx-tab:hover { color: var(--fx-ink-2); }
+  .fx-link:hover { text-decoration-thickness: var(--fx-stroke); }
+}
+
+/* ── Wide screens: one centred column ──────────────────────────────────── */
+@media (min-width: 600px) {
+  .fx-shell {
+    max-width: var(--fx-shell-max); margin: 0 auto;
+    border-left: var(--fx-hairline) solid var(--fx-line);
+    border-right: var(--fx-hairline) solid var(--fx-line);
+  }
+}
+
+/* ── Motion ────────────────────────────────────────────────────────────── */
+@keyframes fx-spin  { to { transform: rotate(360deg); } }
+@keyframes fx-pulse { 0% { transform: scale(1); opacity: 0.55; } 70%, 100% { transform: scale(2.8); opacity: 0; } }
+@keyframes fx-rise  { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes fx-sink  { from { transform: none; } to { transform: translateY(100%); } }
+@keyframes fx-fade  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fx-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes fx-drop  { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-app *, .fx-app *::before, .fx-app *::after {
+    animation-duration: var(--fx-d-none) !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: var(--fx-d-none) !important;
+    scroll-behavior: auto !important;
+  }
+  .fx-dot--live::after { display: none; }
+  .fx-spin { animation: none !important; border-right-color: currentColor; }
+}
+
+/* ── Windows high-contrast (forced colours) ─────────────────────────────
+   Fills disappear there, so controls get an edge and states use the
+   system's own colours.                                                      */
+@media (forced-colors: active) {
+  .fx-btn, .fx-avail, .fx-seg, .fx-chip, .fx-notice, .fx-toast { border: var(--fx-hairline) solid ButtonText; }
+  .fx-seg__btn[aria-pressed="true"] { outline: var(--fx-stroke) solid Highlight; }
+  .fx-tab[aria-current="page"]::before, .fx-rail__seg--current, .fx-countdown__fill { background: Highlight; }
+  .fx-rail__seg--done, .fx-dot, .fx-iconbtn__badge, .fx-tab__badge { background: CanvasText; }
+}
