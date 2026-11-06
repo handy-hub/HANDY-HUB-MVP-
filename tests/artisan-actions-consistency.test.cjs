@@ -224,12 +224,18 @@ await t('job.html: Cancel or "Get help" from artisanCanCancel; the quote first w
     assert.match(src, /spec\.action === 'support'\)\s*\{ location\.href = `support\.html\?bookingId=\$\{encodeURIComponent\(BOOKING_ID\)\}`/);
 });
 
-await t('dashboard.html: Submit Quote before travel; a booked slot is shown, not offered', () => {
-    const src = page('dashboard.html');
-    assert.match(src, /status === 'accepted' && needsQuoteBeforeTravel\(d\)/);
-    assert.match(src, /status === 'in_progress' && needsQuoteOnSite\(d\)/, 'on site, Submit Quote replaces Mark Job Done (Q1)');
+await t('Today (dashboard.html): every step comes from resolveJourney; Submit Quote opens the composer; a booked slot is listed, not offered', () => {
+    // Phase 2: Today draws the ONE action resolveJourney offers (the test above
+    // proves the rules accept each), through resolveToday, which also lists a
+    // slot that has not opened instead of offering it (tests/artisan-today.test.cjs).
+    const src = page('dashboard.html'), view = page('js/today.js');
+    assert.match(src, /import \{ resolveToday, TODAY_MODE \}\s+from '\.\.\/shared\/js\/domain\/artisanToday\.js';/);
+    assert.doesNotMatch(src, /status === '(accepted|en_route|in_progress|inspection_scheduled)'/, 'no status branch of its own');
+    assert.match(view, /const op = a && JOB_OPS\[a\.op\];/, 'the dock draws only a known op, from journey.action');
+    assert.deepStrictEqual([...view.matchAll(/^    (\w+):\s+\{ (?:act|href)/gm)].map((m) => m[1]),
+        ['enRoute', 'arrived', 'completeInspection', 'markDone', 'submitQuote']);
+    assert.match(view, /submitQuote:\s+\{ href: \(id\) => `jobs\.html\?quote=\$\{encodeURIComponent\(id\)\}` \}/);
     assert.match(page('jobs.html'), /if \(needsQuoteBeforeTravel\(b\) \|\| needsQuoteOnSite\(b\)\)/, 'jobs list: the same two answers');
-    assert.match(src, /status === 'accepted' && resolveSchedule\(d\)\.scheduled && !resolveSchedule\(d\)\.isDue/);
 });
 
 await t('support.html: a booking reference from the job screen is validated before it is pre-filled', () => {

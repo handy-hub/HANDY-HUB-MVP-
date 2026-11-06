@@ -92,6 +92,8 @@ export function offerView(offer, nowMs = Date.now()) {
         commitment: kind === OFFER_KIND.SCHEDULED ? `Accepting commits you to arriving ${appt.label}.` : null,
         distance: o.distanceKm !== null && o.distanceKm !== undefined && Number.isFinite(km) ? formatDistance(km) : null,
         visitFee: Number.isFinite(fee) && fee > 0 ? formatMoney(fee) : null,
+        // A price already on the request (the customer's amount on some tracks), as written.
+        jobPrice: Number(o.jobQuote) > 0 ? formatMoney(Number(o.jobQuote)) : null,
         travelIncluded: Number(o.travelFee) > 0,
         problem: text(o.description),
         photos,

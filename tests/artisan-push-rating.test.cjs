@@ -121,26 +121,17 @@ await t('profile: a reviewed artisan shows the average and the count', () => {
     assert.deepStrictEqual(profileRating({ rating: 5, reviewCount: 1 }), ['★ 5.0', '1 review']);
 });
 
-const dashboard = page('dashboard.html');
-function dashboardRating(data) {
-    const src = dashboard.slice(dashboard.indexOf('const rated    = resolveRating(data);'), dashboard.indexOf('const ratePct'));
-    // eslint-disable-next-line no-new-func
-    return new Function('data', 'resolveRating', `${src}; return rating;`)(data, resolveRating);
-}
-await t('dashboard: an artisan nobody has rated sees "—", not "0.0"', () => {
-    assert.strictEqual(dashboardRating({ rating: 0, reviewCount: 0 }), '—');
-    assert.strictEqual(dashboardRating({}), '—');
-    assert.strictEqual(dashboardRating({ rating: 4.2, reviewCount: 0 }), '—');
+// Phase 2: Today (dashboard.html) no longer shows a rating at all — its two
+// rating slots (stats row, performance card) went with the rebuild, so no
+// score, real or "0.0", can appear there. The profile above is the screen that
+// shows it, through resolveRating; Reviews and Performance stay one tap away.
+const dashboard = page('dashboard.html') + page('js/today.js');
+await t('Today: no rating slot and no rating figure, so no "0.0" for an artisan nobody has rated', () => {
+    assert.doesNotMatch(dashboard, /id="(stat|perf)-rating"|statRating|\.rating\b|reviewCount|toFixed\(1\)/);
 });
-await t('dashboard: a reviewed artisan sees the average', () => {
-    assert.strictEqual(dashboardRating({ rating: 4.56, reviewCount: 3 }), '4.6');
-});
-await t('dashboard: both rating slots use it, and neither starts at "0.0"', () => {
-    assert.match(dashboard, /statRating\.textContent\s+= rating;/);
-    assert.match(dashboard, /getElementById\('perf-rating'\)\.textContent\s+= rating;/);
-    assert.ok(!/Number\(rating\)\.toFixed\(1\)/.test(dashboard), 'a raw rating format remains');
-    assert.match(dashboard, /<span class="stat-value" id="stat-rating">—<\/span>/);
-    assert.match(dashboard, /<span class="perf-value" id="perf-rating">—<\/span>/);
+await t('Today: Reviews and Performance are one tap away', () => {
+    assert.match(page('dashboard.html'), /<a class="fx-row" href="reviews\.html">/);
+    assert.match(page('dashboard.html'), /<a class="fx-row" href="performance\.html">/);
 });
 
 console.log(`\nartisan-push-rating: ${passed} passed, ${failed} failed`);

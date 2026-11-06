@@ -114,12 +114,21 @@ await t('if the sheet cannot open, it still asks (native fallback) rather than b
 
 console.log('\n── UI-011 · no native dialogs left on the job screens ──\n');
 
-await t('dashboard, Jobs and the job screen call no native confirm() or alert()', () => {
+await t('Today, Jobs and the job screen call no native confirm() or alert()', () => {
     for (const f of ['artisan-app/dashboard.html', 'artisan-app/jobs.html', 'artisan-app/job.html']) {
         const code = read(f).split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
         assert.ok(!/(^|[^.\w])(confirm|alert)\(/m.test(code), `${f} still calls a native dialog`);
+    }
+    for (const f of ['artisan-app/jobs.html', 'artisan-app/job.html']) {
         assert.match(read(f), /import \{ confirmSheet \} from '\.\.\/shared\/js\/ui\/confirmSheet\.js';/, f);
     }
+    // Today is on the artisan design system: its confirmations are its own
+    // modal sheets (artisan-app/js/fx/sheet.js — focus trap, Escape, inert background).
+    const today = read('artisan-app/dashboard.html');
+    assert.match(today, /import \{ openSheet \}\s+from '\.\/js\/fx\/sheet\.js';/);
+    assert.match(today, /<div class="fx-overlay" id="decline-sheet" hidden>[\s\S]*?role="dialog" aria-modal="true"/);
+    assert.match(today, /if \(!\(await confirmIn\('decline-sheet'\)\)\) return;/, 'decline asks first');
+    assert.match(today, /case 'stop-offers': if \(await confirmIn\('offline-sheet'\)\) changeAvailability\(false\); return;/);
 });
 
 console.log(`\nconfirm-sheet: ${passed} passed, ${failed} failed`);

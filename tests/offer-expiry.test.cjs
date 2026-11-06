@@ -165,13 +165,21 @@ await t('accept then a delayed decline from a stale screen: the decline is refus
 
 console.log('\n── Every screen that shows an offer counts it down and retires it ──\n');
 
-await t('dashboard, jobs list and job screen all derive the countdown from offerState', () => {
+await t('Today, jobs list and job screen all derive the countdown from offerState', () => {
     const dash = read('artisan-app/dashboard.html');
+    const view = read('artisan-app/js/today.js');
+    const domain = read('shared/js/domain/artisanToday.js');
     const jobs = read('artisan-app/jobs.html');
     const job  = read('artisan-app/job.html');
-    // FLOW-005: one ticker reading each card's expiresAtMs through offerState (no per-card arithmetic).
-    assert.ok(/offerState\(d\)/.test(dash) && /card\.dataset\.expires = String\(deadlineMs\)/.test(dash) &&
-              /offerState\(\{ expiresAtMs: Number\(card\.dataset\.expires\) \}\)/.test(dash), 'dashboard');
+    // FLOW-005: one ticker reading the offer's expiresAtMs (no per-card arithmetic).
+    // Today (Phase 2): offerView takes expiresAtMs from offerState; the screen
+    // writes it to data-expires and the one ticker counts down from it with
+    // offerState's boundary (lapsed at now >= expiresAtMs, whole seconds floored).
+    assert.ok(/const st = offerState\(o, nowMs\);/.test(domain) && /expiresAtMs: st\.expiresAtMs,/.test(domain) &&
+              /answerable: !st\.expired,/.test(domain), 'Today: offerView');
+    assert.ok(/data-expires="\$\{c\.expiresAtMs\}"/.test(view) && /formatTimeLeft\(Math\.floor\(left \/ 1000\)\)/.test(view) &&
+              /if \(left === 0\) \{/.test(view), 'Today: the countdown');
+    assert.ok(/const lapsed = paintCountdowns\(dom\.main, Date\.now\(\)\);/.test(dash), 'Today: the ticker');
     assert.ok(/const offer = offerState\(b\);/.test(jobs) && /data-expires=/.test(jobs) && /offerState\(\{ expiresAtMs: Number\(el\.dataset\.expires\) \}\)/.test(jobs), 'jobs');
     assert.ok(/const offer = offerState\(b\);/.test(job) && /tickOffer\(/.test(job) && /This request has expired/.test(job), 'job');
 });

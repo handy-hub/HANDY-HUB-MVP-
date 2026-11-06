@@ -250,21 +250,15 @@ await t('the artisan journey copy names the arrival step', () => {
 
 console.log('\n── The artisan screens draw the domain rule ──\n');
 
-await t('jobs.html and dashboard.html take inspection steps from artisanInspectionStep', () => {
-    for (const page of ['jobs.html', 'dashboard.html']) {
-        const src = fs.readFileSync(path.join(ROOT, 'artisan-app', page), 'utf8');
-        assert.match(src, /import \{[^}]*artisanInspectionStep[^}]*\}\s*from '\.\.\/shared\/js\/domain\/bookingStatusMeta\.js'/, page);
-        assert.match(src, /artisanInspectionStep\(/, page);
-    }
-    const jobs = fs.readFileSync(path.join(ROOT, 'artisan-app', 'jobs.html'), 'utf8');
-    assert.strictEqual((jobs.match(/onclick="completeInspectionJob\(/g) || []).length, 1,
+await t('jobs.html takes inspection steps from artisanInspectionStep', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'artisan-app', 'jobs.html'), 'utf8');
+    assert.match(src, /import \{[^}]*artisanInspectionStep[^}]*\}\s*from '\.\.\/shared\/js\/domain\/bookingStatusMeta\.js'/);
+    assert.match(src, /artisanInspectionStep\(/);
+    assert.strictEqual((src.match(/onclick="completeInspectionJob\(/g) || []).length, 1,
         'jobs.html must render Complete Inspection from exactly one (step-driven) branch');
-    const dash = fs.readFileSync(path.join(ROOT, 'artisan-app', 'dashboard.html'), 'utf8');
-    assert.strictEqual((dash.match(/onclick="completeInspectionAction\(/g) || []).length, 1,
-        'dashboard.html must render Complete Inspection from exactly one (step-driven) branch');
 });
 
-// Screens that draw resolveJourney's step and Jobs (artisanInspectionStep):
+// Today (Phase 2) draws resolveJourney's step, Jobs draws artisanInspectionStep:
 // the two must name the same step for every inspection booking, or the two
 // screens would disagree about what the artisan does next.
 const STEP_TO_OP = { en_route: 'enRoute', arrived: 'arrived', complete_inspection: 'completeInspection', submit_quote: 'submitQuote' };
@@ -287,6 +281,15 @@ await t('resolveJourney (Today) and artisanInspectionStep (Jobs) name the same s
         const fromToday = TRUTH.resolveJourney(b, 'artisan', { schedule }).action;
         assert.strictEqual(fromToday ? fromToday.op : null, fromJobs ?? null, `${b.status}${b.scheduledForMs ? ' (booked)' : ''}: Jobs ${step && step.id}`);
     }
+});
+
+await t('Today renders Complete Inspection from exactly one op, through one handler', () => {
+    const view = fs.readFileSync(path.join(ROOT, 'artisan-app', 'js', 'today.js'), 'utf8');
+    const dash = fs.readFileSync(path.join(ROOT, 'artisan-app', 'dashboard.html'), 'utf8');
+    assert.strictEqual((view.match(/completeInspection: \{ act: 'job-inspected'/g) || []).length, 1);
+    assert.strictEqual((dash.match(/pricingService\.completeInspection\(bookingId\)/g) || []).length, 1);
+    assert.match(dash, /if \(act === 'job-inspected'\) \{\s*await pricingService\.completeInspection\(bookingId\);/);
+    assert.doesNotMatch(dash, /artisanInspectionStep|onclick="/, 'Today has no step logic or inline handlers of its own');
 });
 
 console.log(`\ninspection-completion: ${passed} passed, ${failed} failed`);

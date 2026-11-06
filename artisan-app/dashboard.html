@@ -5,619 +5,227 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>Fidus X – Artisan Dashboard</title>
+  <title>Fidus X – Today</title>
   <script src="../shared/js/utils/themeManager.js"></script>
-  <link rel="stylesheet" href="css/design-system.css" />
-  <link rel="stylesheet" href="css/dashboard.css" />
-  <!-- One colour per status tone, shared with Jobs (UI-003); after dashboard.css so it wins. -->
-  <link rel="stylesheet" href="../shared/css/components/booking-pill.css" />
-  <style>
-    /* Quick Access scrolled sideways with its scrollbar hidden, so on a
-       320–400px phone the last items were cut off with nothing to say there
-       was more (audit RESP-001). Narrow screens get a 3 + 2 grid instead. */
-    @media (max-width: 400px) {
-      .quick-access-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow-x: visible; }
-      .quick-item { min-width: 0; }
-    }
-  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <!-- The variable axes: fixed weights would snap 550 and 650 to the nearest file. -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/today.css" />
 </head>
-<body>
-<div class="phone-shell">
-  <div class="scroll-area">
+<body class="fx-app">
+<a class="fx-skip" href="#today-main">Skip to content</a>
+<div class="fx-shell">
 
-    <!-- ── Top Bar ──────────────────────────────────── -->
-    <header class="top-bar">
-      <span class="top-bar-logo">Fidus <span>X</span></span>
-      <div class="top-bar-actions">
-        <button class="icon-btn" aria-label="Settings" onclick="window.location.href='settings.html'">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.8"/>
-            <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <button class="icon-btn" aria-label="Notifications" onclick="window.location.href='notifications.html'">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-          <span class="icon-badge" id="notif-badge">0</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- ── KYC Banner (shown when not approved) ─────── -->
-    <div class="kyc-banner" id="kyc-banner" style="display:none">
-      <span class="kyc-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </span>
-      <div>
-        <p class="kyc-title">Verification Pending</p>
-        <p class="kyc-sub">Complete KYC to start receiving jobs</p>
-      </div>
-      <button class="kyc-btn" onclick="window.location.href='onboarding.html'">Complete</button>
+  <!-- Today shows ONE operational state (shared/js/domain/artisanToday.js):
+       an answerable offer, else the job that needs the artisan, else the
+       availability state. Availability is a control here, not a destination. -->
+  <header class="fx-appbar fx-appbar--root">
+    <div class="fx-appbar__titles">
+      <h1 class="fx-appbar__title">Today</h1>
+      <p class="fx-appbar__sub" id="today-date"></p>
     </div>
-
-    <!-- ── Profile Card ──────────────────────────────── -->
-    <div class="profile-card">
-      <div class="avatar-wrap">
-        <img src="https://ui-avatars.com/api/?background=F97316&color=fff&size=128&name=A"
-             alt="Profile" class="avatar-img" id="profile-avatar" />
-        <span class="avatar-online" id="online-dot"></span>
-      </div>
-      <div class="profile-info">
-        <div class="profile-name-row">
-          <span class="profile-name" id="profile-name">Loading…</span>
-          <span class="verified-badge" id="verified-badge" style="display:none">
-            <svg viewBox="0 0 24 24" fill="none" width="10" height="10">
-              <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Verified
-          </span>
-        </div>
-        <p class="profile-role" id="profile-role">—</p>
-        <p class="profile-location">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
-          <span id="profile-location">Accra, Ghana</span>
-        </p>
-      </div>
-      <button class="edit-area-btn" onclick="window.location.href='profile.html?edit=area'">Edit Area</button>
+    <div class="fx-appbar__actions">
+      <!-- Neutral until the artisan document is read: claiming either state
+           before then would be a guess about whether customers can see them. -->
+      <button class="fx-avail" type="button" id="avail-btn" aria-busy="true" disabled><span class="fx-spin" aria-hidden="true"></span>Checking…</button>
+      <a class="fx-iconbtn" href="notifications.html" id="notif-link" aria-label="Notifications"><span data-icon="bell"></span><span class="fx-iconbtn__badge" id="notif-badge" hidden></span></a>
     </div>
+  </header>
 
-    <!-- ── Wallet Card ────────────────────────────────── -->
-    <div class="wallet-card">
-      <div>
-        <p class="wallet-label">Wallet Balance <span id="wallet-fresh" class="wallet-fresh" hidden>· Updating…</span></p>
-        <p class="wallet-balance">
-          <span class="currency">GHS</span>
-          <!-- "—" until a figure is known: a placeholder of 0.00 read as a real
-               zero balance on every slow load (audit PERF-001). -->
-          <span id="wallet-amount">—</span>
-        </p>
-        <p class="wallet-pending">Pending release: <span id="pending-amount">GHS —</span></p>
-      </div>
-      <button class="withdraw-btn" onclick="window.location.href='wallet.html'">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
-        Withdraw
-      </button>
+  <main class="fx-main" id="today-main" tabindex="-1">
+    <div class="fx-today__notices fx-stack" id="today-notices"></div>
+    <div id="today-state">
+      <section class="fx-today__state fx-stack--4" data-mode="unknown" aria-busy="true">
+        <span class="fx-skel fx-skel--title"></span><span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span>
+      </section>
     </div>
+    <div id="today-lists"></div>
 
-    <!-- ── Online / Offline Toggle ───────────────────── -->
-    <div class="status-card" id="status-card">
-      <div class="status-icon-wrap">
-        <div class="status-icon" id="status-icon">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-            <path d="M22 4L12 14.01l-3-3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div>
-          <!-- Neutral until the artisan document is read. This markup asserted
-               "You are online" before anything had loaded. -->
-          <p class="status-title" id="status-title">Checking your status…</p>
-          <p class="status-sub" id="status-sub">Loading whether customers can see you.</p>
-        </div>
-      </div>
-      <button class="toggle-status-btn" id="toggle-status-btn" onclick="toggleOnlineStatus()">Go Offline</button>
-    </div>
+    <section class="fx-sect" aria-labelledby="more-h">
+      <div class="fx-sect__head"><h2 class="fx-sect__title" id="more-h">Your work</h2></div>
+      <ul class="fx-list">
+        <li><a class="fx-row" href="performance.html"><span class="fx-row__main"><span class="fx-row__title">Performance</span></span><span class="fx-row__trail"><span data-icon="next"></span></span></a></li>
+        <li><a class="fx-row" href="reviews.html"><span class="fx-row__main"><span class="fx-row__title">Reviews</span></span><span class="fx-row__trail"><span data-icon="next"></span></span></a></li>
+        <li><a class="fx-row" href="profile.html?edit=area"><span class="fx-row__main"><span class="fx-row__title">Service area</span></span><span class="fx-row__trail"><span data-icon="next"></span></span></a></li>
+        <li><a class="fx-row" href="support.html"><span class="fx-row__main"><span class="fx-row__title">Help and support</span></span><span class="fx-row__trail"><span data-icon="next"></span></span></a></li>
+      </ul>
+    </section>
+  </main>
 
-    <!-- ── Stats Row ──────────────────────────────────── -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </div>
-        <span class="stat-value" id="stat-jobs">0</span>
-        <span class="stat-label">Jobs Completed</span>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <span class="stat-value" id="stat-rating">—</span>
-        <span class="stat-label">Rating</span>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </div>
-        <span class="stat-value" id="stat-response">—</span>
-        <span class="stat-label">Response Rate</span>
-      </div>
-      <div class="stat-card stat-top-pro">
-        <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" stroke="currentColor" stroke-width="1.8"/></svg>
-        </div>
-        <span class="stat-value" id="stat-level">New</span>
-        <span class="stat-label">Level</span>
-      </div>
-    </div>
+  <div class="fx-bottom">
+    <div class="fx-dock" id="today-dock" hidden></div>
+    <nav class="fx-tabbar" aria-label="Main" id="tabbar"></nav>
+  </div>
+</div>
 
-    <!-- ── New Job Requests ───────────────────────────── -->
-    <div class="section-header">
-      <span class="section-title">New Job Requests</span>
-      <a href="jobs.html" class="view-all-link">
-        View all
-        <svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </a>
-    </div>
-    <div id="job-requests-list">
-      <!-- Populated by JS -->
-      <div class="empty-state" id="jobs-empty" style="display:none">
-        <p>No new job requests right now</p>
-      </div>
-      <!-- Skeleton -->
-      <div class="job-request-card" id="job-skeleton">
-        <div class="job-badge-row">
-          <span class="skel" style="width:120px;height:22px;border-radius:20px;"></span>
-          <span class="skel" style="width:60px;height:14px;"></span>
-        </div>
-        <div class="skel" style="width:60%;height:22px;margin-bottom:8px;"></div>
-        <div class="skel" style="width:45%;height:14px;margin-bottom:6px;"></div>
-        <div class="skel" style="width:38%;height:14px;margin-bottom:14px;"></div>
-        <div style="display:flex;gap:10px;">
-          <div class="skel" style="flex:1;height:42px;border-radius:14px;"></div>
-          <div class="skel" style="width:70px;height:42px;border-radius:14px;"></div>
-        </div>
-      </div>
-    </div>
+<!-- Declining: the app's own sheet, never the browser's native dialog (audit UI-011). -->
+<div class="fx-overlay" id="decline-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="decline-title" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="decline-title">Decline this job request?</h2></header>
+    <div class="fx-sheet__body"><p class="fx-body">It goes to another professional nearby.</p></div>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close data-autofocus>Keep it</button>
+      <button class="fx-btn fx-btn--danger fx-btn--l" type="button" data-confirm>Decline</button>
+    </footer>
+  </section>
+</div>
 
-    <!-- ── Active Jobs (accepted / in-progress — need action) ── -->
-    <div class="section-header mt-8">
-      <span class="section-title">Active Jobs</span>
-      <a href="jobs.html?tab=active" class="view-all-link">
-        View all
-        <svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </a>
-    </div>
-    <div id="active-jobs-list">
-      <div class="empty-state" id="active-jobs-empty" style="display:none">
-        <p>No active jobs right now</p>
-      </div>
-    </div>
-
-    <!-- ── Today's Schedule ───────────────────────────── -->
-    <div class="section-header mt-8">
-      <span class="section-title">Today's Schedule</span>
-      <!-- ?tab=upcoming named no tab (audit COPY-003). The schedule lists the
-           accepted → awaiting jobs, which is exactly Jobs' Active tab. -->
-      <a href="jobs.html?tab=active" class="view-all-link">
-        View all
-        <svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </a>
-    </div>
-    <div class="schedule-list" id="schedule-list">
-      <div class="empty-state" id="schedule-empty" style="display:none">
-        <p>No scheduled jobs for today</p>
-      </div>
-    </div>
-
-    <!-- ── Performance ────────────────────────────────── -->
-    <div class="section-header mt-10">
-      <span class="section-title">Your Performance</span>
-      <!-- The "This Week" selector here did nothing (audit FUNC-001). Performance
-           has working period tabs, so this links there instead. -->
-      <a href="performance.html" class="view-all-link">
-        See Performance
-        <svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </a>
-    </div>
-    <div class="performance-card">
-      <div class="perf-grid">
-        <div class="perf-item">
-          <div class="perf-icon-row">
-            <div class="perf-icon">
-              <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </div>
-            <span class="perf-label">Jobs Completed</span>
-          </div>
-          <span class="perf-value" id="perf-jobs">0</span>
-          <p class="perf-delta" id="perf-jobs-delta">+0%</p>
-        </div>
-        <div class="perf-item">
-          <div class="perf-icon-row">
-            <div class="perf-icon">
-              <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </div>
-            <span class="perf-label">Earnings</span>
-          </div>
-          <span class="perf-value" id="perf-earnings">GHS 0</span>
-          <p class="perf-delta" id="perf-earnings-delta">+0%</p>
-        </div>
-        <div class="perf-item">
-          <div class="perf-icon-row">
-            <div class="perf-icon">
-              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </div>
-            <span class="perf-label">Response Rate</span>
-          </div>
-          <span class="perf-value" id="perf-response">—</span>
-          <p class="perf-delta" id="perf-response-delta">+0%</p>
-        </div>
-        <div class="perf-item">
-          <div class="perf-icon-row">
-            <div class="perf-icon">
-              <svg viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" stroke-width="1.8"/></svg>
-            </div>
-            <span class="perf-label">Rating</span>
-          </div>
-          <span class="perf-value" id="perf-rating">—</span>
-          <p class="perf-delta" id="perf-rating-delta">+0.0</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Quick Access ───────────────────────────────── -->
-    <div class="section-header mt-10">
-      <span class="section-title">Quick Access</span>
-    </div>
-    <div class="quick-access-row">
-      <a class="quick-item" href="jobs.html">
-        <div class="quick-icon">
-          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </div>
-        <span class="quick-label">My Bookings</span>
-      </a>
-      <a class="quick-item" href="wallet.html">
-        <div class="quick-icon">
-          <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>
-        </div>
-        <span class="quick-label">Earnings</span>
-      </a>
-      <a class="quick-item" href="reviews.html">
-        <div class="quick-icon">
-          <svg viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" stroke-width="1.8"/></svg>
-        </div>
-        <span class="quick-label">Reviews</span>
-      </a>
-      <a class="quick-item" href="performance.html">
-        <div class="quick-icon">
-          <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </div>
-        <span class="quick-label">Performance</span>
-      </a>
-      <a class="quick-item" href="support.html">
-        <div class="quick-icon">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
-        </div>
-        <span class="quick-label">Support</span>
-      </a>
-    </div>
-
-    <div class="pb-16"></div>
-
-  </div><!-- /.scroll-area -->
-
-  <!-- Bottom navigation is injected by js/artisanFloatingNav.js -->
-
-</div><!-- /.phone-shell -->
-
-<div class="toast" id="toast"></div>
+<!-- Stopping offers: availability is the artisan's explicit choice. -->
+<div class="fx-overlay" id="offline-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="offline-title" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="offline-title">Stop receiving offers?</h2></header>
+    <div class="fx-sheet__body fx-stack"><p class="fx-body">You go offline. Customers cannot find you and no new jobs will reach you until you go online again.</p>
+      <p class="fx-body fx-ink-2">Jobs you have already accepted are not affected.</p></div>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close data-autofocus>Stay online</button>
+      <button class="fx-btn fx-btn--primary fx-btn--l" type="button" data-confirm>Go offline</button>
+    </footer>
+  </section>
+</div>
 
 <script type="module">
 import '../shared/js/utils/global-app.js';
+import { icon }                                        from './js/fx/icons.js';
+import { openSheet }                                   from './js/fx/sheet.js';
+import { showToast as fxToast }                        from './js/fx/toast.js';
+import { renderTabbar }                                from './js/fx/controls.js';
+import { renderToday, paintCountdowns }                from './js/today.js';
 import { getAppContainer }                             from '../shared/js/app/container.js';
-import { createWalletRepository }                      from '../shared/js/data/repositories/walletRepository.js';
 import { startPresence, stopPresence, syncAvailability, setAvailability, availabilityPending }
                                                        from '../shared/js/services/presenceService.js';
 import { availabilityBlocker, storedAvailability }     from '../shared/js/domain/availability.js';
 import { mountInstantView }                            from '../shared/js/services/instantView.js';
-import { responseRatePercent }                         from '../shared/js/domain/performanceMetrics.js';
 import { subscribeToUnreadCount }                      from '../shared/js/services/notificationRepository.js';
 import { requireArtisanAuth, canAcceptJobs, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 import { isArtisanDevAccessEnabled } from '../shared/js/config/devAccess.js';
 import { getDevStateKey }            from '../shared/dev/artisanDevSession.js';
-import { resolveAvatar, TRANSFORMS }                   from '../shared/js/services/cloudinaryService.js';
 import { pricingService }                              from '../shared/js/services/pricingService.js';
-import { describe as describeStatus, artisanInspectionStep, needsQuoteBeforeTravel, needsQuoteOnSite }
-                                                       from '../shared/js/domain/bookingStatusMeta.js';
-import { confirmSheet } from '../shared/js/ui/confirmSheet.js';
 import { performBookingAction, ACTION }                from '../shared/js/domain/bookingActions.js';
-import { serviceLabel, resolveRating }                 from '../shared/js/domain/bookingTruth.js';
-import { formatGHS }                                   from '../shared/js/utils/currency.js';
-import { resolveSchedule }                             from '../shared/js/domain/bookingSchedule.js';
-import { offerState, formatTimeLeft, createOfferWatcher,
-         LAPSED_OFFER_ATTRS, LAPSED_OFFER_LABEL, lapseOfferButtons }
-                                                       from '../shared/js/domain/jobOffers.js';
+import { resolveToday, TODAY_MODE }                    from '../shared/js/domain/artisanToday.js';
+import { offerState, formatTimeLeft, createOfferWatcher } from '../shared/js/domain/jobOffers.js';
 import { getPushState, enablePushNotifications }       from '../shared/js/services/pushNotificationService.js';
 import { describePushState }                          from '../shared/js/services/pushState.js';
 
+// Static icons and the tab bar first: they need nothing from the network.
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon);
+renderTabbar(document.getElementById('tabbar'), { current: 'today' });
+document.getElementById('today-date').textContent =
+  new Date().toLocaleDateString('en-GH', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Africa/Accra' });
+
 // ── BLOCKING AUTH GUARD ───────────────────────────────────────────────────────
 // Verifies: authenticated + role=artisan + not suspended.
-// Pending/rejected artisans are allowed on the dashboard (they see the KYC banner).
-// Suspended artisans see a full-screen error and cannot proceed.
+// Pending/rejected artisans are allowed here (Today says why they cannot work).
 const { artisan: _guardArtisan } = await requireArtisanAuth({ allowPending: true });
 
-const { services: { authService, databaseService } } = getAppContainer();
-
-// Expose artisan session data for KYC-gated functions below
-let _currentArtisan = _guardArtisan || {};
+const { services: { databaseService } } = getAppContainer();
 
 // ── State ──────────────────────────────────────────────
-let uid           = null;
-// Availability is UNKNOWN until the artisan document says otherwise.
-//
-// This defaulted to `true`, so the dashboard painted "You are online — You're
-// visible to customers" before it had read anything. A live probe of the
-// production database found the only artisan stored as isAvailable:false while
-// their own dashboard claimed they were online — and the customer app was
-// correctly showing "No professionals available". The artisan app was the one
-// telling the untruth, and an artisan who believes they are visible has no
-// reason to go online.
-let isOnline      = null;
-let unsubs        = [];
+// Nothing is assumed: the profile is unknown until the artisan document (or
+// its cached copy) says otherwise. A dashboard that painted "You are online"
+// before reading anything once told an offline artisan they were visible.
+let _currentArtisan = null;
+let uid             = null;
+let unsubs          = [];
+let _offers         = [];     // job_offers records ({ id, data }) — open, this artisan's
+let _bookings       = [];     // bookings records ({ id, data }) — active, this artisan's
+let _offersReady    = false;  // answered at least once (cache or server)
+let _bookingsReady  = false;
 // Whether _currentArtisan came from a live server answer. Anything that sends
 // the artisan to onboarding requires one (audit FLOW-004): a cached or missing
 // profile is "not known", never "needs verification".
 let _profileLive      = false;
-let _cardSaving       = false;   // the status card's own availability save is in flight
 let _profileFromCache = false;
+let _saving           = null;      // availability save in flight: 'on' | 'off'
+const _inFlight       = new Map(); // bookingId → the action being sent (one at a time per booking)
 const NEEDS_ONBOARDING = ['', 'draft', 'rejected', 're_verification_required'];
 function onboardingWarranted() {
   return _profileLive && !!_currentArtisan &&
          NEEDS_ONBOARDING.includes(String(_currentArtisan.verificationStatus || '').toLowerCase());
 }
 
-// ── DOM ────────────────────────────────────────────────
-const profileName     = document.getElementById('profile-name');
-const profileRole     = document.getElementById('profile-role');
-const profileLocation = document.getElementById('profile-location');
-const profileAvatar   = document.getElementById('profile-avatar');
-const verifiedBadge   = document.getElementById('verified-badge');
-const onlineDot       = document.getElementById('online-dot');
-const walletAmount    = document.getElementById('wallet-amount');
-const pendingAmount   = document.getElementById('pending-amount');
-const statusCard      = document.getElementById('status-card');
-const statusIcon      = document.getElementById('status-icon');
-const statusTitle     = document.getElementById('status-title');
-const statusSub       = document.getElementById('status-sub');
-const toggleBtn       = document.getElementById('toggle-status-btn');
-const kycBanner       = document.getElementById('kyc-banner');
-const jobSkeleton     = document.getElementById('job-skeleton');
-const jobsEmpty       = document.getElementById('jobs-empty');
-const jobsList        = document.getElementById('job-requests-list');
-const scheduleList    = document.getElementById('schedule-list');
-const scheduleEmpty   = document.getElementById('schedule-empty');
-const notifBadge      = document.getElementById('notif-badge');
-
-// Stats
-const statJobs     = document.getElementById('stat-jobs');
-const statRating   = document.getElementById('stat-rating');
-const statResponse = document.getElementById('stat-response');
-const statLevel    = document.getElementById('stat-level');
-
-// ── Toast ──────────────────────────────────────────────
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
-}
-
-// ── Level from jobs completed ──────────────────────────
-function getLevel(jobs) {
-  if (jobs >= 100) return 'Top Pro';
-  if (jobs >= 50)  return 'Pro';
-  if (jobs >= 20)  return 'Rising';
-  return 'New';
-}
-
-// ── Apply artisan profile ──────────────────────────────
-/** The KYC banner for a non-approved verification status: one answer per state. */
-function kycBannerCopy(status) {
-  switch (status) {
-    case 'pending_review':
-    case 'submitted':
-      return { title: 'Under Review', sub: 'We\'re reviewing your documents. This takes 1–2 business days.', button: null };
-    case 'rejected':
-    case 're_verification_required':
-      return { title: 'Verification Rejected', sub: 'Review the feedback and resubmit your documents.', button: 'Resubmit' };
-    default:   // draft / no KYC yet
-      return { title: 'Verification Pending', sub: 'Complete KYC to start receiving jobs', button: 'Complete' };
-  }
-}
-
-function applyProfile(data) {
-  const name     = data.name     || 'Artisan';
-  const role     = data.specialty || data.category || 'Service Provider';
-  const location = data.location || 'Accra, Ghana';
-  const photo    = resolveAvatar(data, TRANSFORMS.avatarLg);
-  const jobs     = data.jobsCompleted  || 0;
-  // A score only when there are reviews behind it (resolveRating, Phase 0 IX-02):
-  // an artisan nobody has rated yet saw "0.0", the lowest score there is.
-  const rated    = resolveRating(data);
-  const rating   = rated.hasReviews ? rated.short : '—';
-  const ratePct  = responseRatePercent(data);
-  const response = ratePct === null ? '—' : ratePct + '%';
-  const level    = getLevel(jobs);
-
-  profileName.textContent     = name;
-  profileRole.textContent     = role;
-  profileLocation.textContent = location;
-  if (profileAvatar.src !== photo) profileAvatar.src = photo;
-
-  // Verified badge and KYC banner follow EVERY render, both ways: a cached
-  // pre-approval snapshot must not leave "Verification Pending" on screen after
-  // the live profile says approved, nor a badge after a revocation.
-  const kycStatus  = (data.verificationStatus || '').toLowerCase();
-  const isApproved = kycStatus === 'approved';
-  verifiedBadge.style.display = isApproved ? 'inline-flex' : 'none';
-  if (isApproved) kycBanner.style.display = 'none';
-
-  // KYC banner — show for every non-approved state, its title, text and button
-  // derived from the CURRENT status on every render. Only some states used to
-  // set them, so a change between non-approved states (rejected → draft, or
-  // under review → rejected) kept the previous state's copy, or its hidden
-  // button (COPY-KYC).
-  if (!isApproved) {
-    const copy = kycBannerCopy(kycStatus);
-    kycBanner.style.display = 'flex';
-    kycBanner.querySelector('.kyc-title').textContent = copy.title;
-    kycBanner.querySelector('.kyc-sub').textContent   = copy.sub;
-    const kycBtn = kycBanner.querySelector('.kyc-btn');
-    kycBtn.style.display = copy.button ? '' : 'none';
-    kycBtn.textContent   = copy.button || '';
-  }
-
-  // Online status — the artisan's stored choice. Non-approved artisans are always
-  // shown as offline and locked. While a change is being saved the card keeps
-  // showing "Saving…" rather than flickering between the two states.
-  isOnline = isApproved ? storedAvailability(data) : false;
-  // Only THIS card's own save holds the paint; a change made from the nav (or
-  // another tab) must show here as soon as its snapshot arrives.
-  if (!_cardSaving) updateStatusUI(isOnline);
-  if (!isApproved) {
-    toggleBtn.textContent        = 'KYC Required';
-    toggleBtn.style.background   = '#E5E7EB';
-    toggleBtn.style.color        = '#9CA3AF';
-    statusSub.textContent        = 'Complete verification to receive jobs';
-  }
-
-  // Stats
-  statJobs.textContent     = jobs;
-  statRating.textContent   = rating;
-  statResponse.textContent = response;
-  statLevel.textContent    = level;
-
-  // Wallet
-  // Pending release comes from the held escrow (walletLedger.js, AR-13) via the
-  // wallet subscription below — pendingBalance was never maintained.
-  const available = Number(data.availableBalance || 0);
-  walletAmount.textContent = formatGHS(available, { code: false });
-
-  // Performance
-  document.getElementById('perf-jobs').textContent     = jobs;
-  document.getElementById('perf-earnings').textContent = formatGHS(data.totalEarned, { decimals: 0 });
-  document.getElementById('perf-response').textContent = response;
-  document.getElementById('perf-rating').textContent   = rating;
-}
-
-function updateStatusUI(online) {
-  isOnline = online;
-
-  // `null` = not yet loaded. Claiming either state here would be a guess about
-  // whether customers can see this artisan at all.
-  if (online === null) {
-    onlineDot.classList.add('offline');
-    statusCard.classList.add('offline');
-    statusIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><path d="M12 7v5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
-    statusTitle.textContent = 'Checking your status…';
-    statusSub.textContent   = 'Loading whether customers can see you.';
-    toggleBtn.textContent   = '…';
-    toggleBtn.disabled      = true;
-    return;
-  }
-
-  toggleBtn.disabled = false;
-  onlineDot.classList.toggle('offline', !online);
-  statusCard.classList.toggle('offline', !online);
-  statusIcon.innerHTML = online
-    ? `<svg viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`
-    : `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><path d="M4.93 4.93l14.14 14.14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
-  statusTitle.textContent = online ? 'You are online' : 'You are offline';
-  // Says what being offline actually costs, so it reads as a consequence
-  // rather than a setting.
-  statusSub.textContent   = online
-    ? 'Customers can find you and send you jobs'
-    : 'Customers cannot find you — no new jobs will reach you';
-  toggleBtn.textContent   = online ? 'Go Offline' : 'Go Online';
-}
-
-/* The artisan's explicit Go Online / Go Offline. The ONLY place this page
-   changes availability — page load, navigation, a hidden tab or a dropped
-   connection never do (shared/js/domain/availability.js, audit FLOW-001/002).
-   The live profile snapshot paints the confirmed state; this shows the saving
-   state and, on failure, puts the card back to what is actually stored. */
-window.toggleOnlineStatus = async function() {
-  if (!uid || availabilityPending()) return;
-  const next = !isOnline;
-
-  if (next) {
-    const blocker = availabilityBlocker(_currentArtisan);
-    if (blocker) {
-      showToast(blocker.message);
-      if (blocker.reason === 'unverified' && onboardingWarranted()) {
-        setTimeout(() => { window.location.href = 'onboarding.html'; }, 1800);
-      }
-      return;
-    }
-  }
-
-  toggleBtn.disabled = true;
-  toggleBtn.textContent = next ? 'Getting GPS…' : 'Saving…';
-  statusSub.textContent = 'Saving your availability…';
-  _cardSaving = true;
-
-  try {
-    const res = await setAvailability(uid, next, { artisan: _currentArtisan });
-    if (res.ok) {
-      showToast(res.queued
-        ? 'Saved on this phone — it reaches Fidus X when you\'re back online.'
-        : (next ? 'You\'re online. New jobs can reach you.' : 'You\'re offline. No new jobs will reach you.'));
-    }
-  } catch (e) {
-    console.warn('[dashboard] availability change failed:', e?.message || e);
-    showToast(e?.message || 'Could not change your availability. Try again.');
-  } finally {
-    _cardSaving = false;
-    // Whatever happened, show what is stored — the live snapshot keeps
-    // _currentArtisan current (including the local echo of our own write).
-    applyProfile(_currentArtisan || {});
-  }
+const dom = {
+  avail: document.getElementById('avail-btn'),
+  main:  document.getElementById('today-state'),
+  lists: document.getElementById('today-lists'),
+  dock:  document.getElementById('today-dock'),
 };
+const notices    = document.getElementById('today-notices');
+const notifBadge = document.getElementById('notif-badge');
+const notifLink  = document.getElementById('notif-link');
+
+function showToast(msg, opts) { fxToast(msg, opts); }
+
+// ── Paint ─────────────────────────────────────────────
+/** Offers the server refused as gone (performBookingAction offerGone): never drawn again. */
+const _goneOffers = new Set();
+let _lastSig = '';
+let _shownOffer = null;   // the offer id on screen, to notice one that leaves unanswered
+
+function currentState(nowMs = Date.now()) {
+  return resolveToday({
+    artisan:  _currentArtisan,
+    offers:   _offers.filter((r) => !_goneOffers.has(r.id)).map((r) => ({ id: r.id, ...r.data })),
+    bookings: _bookings.map((r) => ({ id: r.id, ...r.data })),
+    nowMs,
+  });
+}
+
+function paint() {
+  const nowMs = Date.now();
+  const state = currentState(nowMs);
+  const ui = {
+    nowMs, saving: _saving, cached: !_profileLive, busy: _inFlight,
+    onboarding: onboardingWarranted(), listsReady: _offersReady && _bookingsReady,
+  };
+  // Draw only when what the screen says has changed: a re-render replaces the
+  // buttons under a finger that may be about to tap one.
+  const sig = JSON.stringify([state.mode, state.offer && [state.offer.id, state.offer.countdown && state.offer.countdown.expiresAtMs],
+    state.moreOffers, state.alsoOnJob && state.alsoOnJob.booking.id,
+    state.jobs.map((p) => [p.booking.id, p.booking.status, p.journey.here, p.journey.action && p.journey.action.op]),
+    state.waiting.map((p) => [p.booking.id, p.journey.here]), state.upcoming.map((p) => [p.booking.id, p.schedule.label]),
+    state.available, state.blocker && state.blocker.reason, ui.saving, ui.cached, [..._inFlight], ui.onboarding, ui.listsReady]);
+  if (sig === _lastSig) return;
+  _lastSig = sig;
+
+  const hadFocus = dom.main.contains(document.activeElement) || dom.dock.contains(document.activeElement);
+  // An offer that left the screen without an answer from here: withdrawn,
+  // taken by the dispatch sweep, or closed. The reason is not known, so none is given.
+  const offerNow = state.mode === TODAY_MODE.OFFER ? state.offer.id : null;
+  if (_shownOffer && _shownOffer !== offerNow && !_answered.has(_shownOffer) && !_inFlight.has(_shownOffer) &&
+      !_offers.some((r) => r.id === _shownOffer && offerState(r.data, nowMs).expired) && !_goneOffers.has(_shownOffer)) {
+    showToast('That job request is no longer available.');
+  }
+  _shownOffer = offerNow;
+
+  renderToday(dom, state, ui);
+  if (offerNow) startOfferTicker();
+  if (hadFocus && (document.activeElement === document.body || !document.activeElement)) {
+    document.getElementById('today-h')?.focus({ preventScroll: true });
+  }
+}
 
 // ── Response deadline countdown ────────────────────────
-// ONE ticker for every offer card on screen (FLOW-005). Each card carries its
-// offer's expiresAtMs; the time left and the moment it lapses come from
-// offerState(), the same function the jobs list and the job screen use, so all
-// three agree to the second (lapsed at now >= expiresAtMs). Each card used to
-// start its own interval with its own arithmetic, never cleared when the list
-// re-rendered or on pagehide.
+// ONE ticker for the page (FLOW-005). The offer on screen carries its
+// expiresAtMs; the time left and the moment it lapses come from the same
+// arithmetic as offerState() (lapsed at now >= expiresAtMs), so Today, Jobs and
+// the job screen agree to the second. A lapsed offer leaves the screen with a
+// plain sentence; the server refuses it anyway.
 let _offerTicker = null;
-
-/** Offers the server refused as gone (performBookingAction offerGone): drawn lapsed from now on. */
-const _goneOffers = new Set();
-
-function retireOfferCard(card) {
-  delete card.dataset.expires;
-  const cd = card.querySelector('[data-countdown]');
-  if (cd) { cd.textContent = LAPSED_OFFER_LABEL; cd.style.color = '#ef4444'; }
-  lapseOfferButtons(card.querySelector('.btn-accept'), card.querySelector('.btn-decline'));
-}
+const _answered = new Set();   // offers this page accepted or declined
 
 function tickOfferCards() {
-  document.querySelectorAll('.job-request-card[data-expires]').forEach((card) => {
-    const st = offerState({ expiresAtMs: Number(card.dataset.expires) });
-    if (st.expired) { retireOfferCard(card); return; }
-    const cd = card.querySelector('[data-countdown]');
-    if (cd) {
-      cd.textContent = formatTimeLeft(st.secondsLeft);
-      if (st.secondsLeft < 60) cd.style.color = '#ef4444';
-    }
-  });
+  const lapsed = paintCountdowns(dom.main, Date.now());
+  for (const id of lapsed) {
+    if (_inFlight.has(id)) continue;           // the server's answer decides this one
+    showToast('That request expired and has been offered to another professional.');
+    _shownOffer = null;
+    paint();
+  }
 }
 
 function startOfferTicker() {
@@ -625,11 +233,11 @@ function startOfferTicker() {
   _offerTicker = setInterval(tickOfferCards, 1000);
 }
 
-/** The server says this offer cannot be answered any more: retire its card, for good. */
+/** The server says this offer cannot be answered any more: it leaves the screen for good. */
 function markOfferGone(bookingId) {
   _goneOffers.add(bookingId);
-  const card = document.getElementById(`job-${bookingId}`);
-  if (card) retireOfferCard(card);
+  _shownOffer = null;
+  paint();
 }
 
 // ── New-offer alerts, independent of push ─────────────
@@ -657,7 +265,7 @@ function alertNewOffer(rec) {
   if (document.hidden) {
     _flashTitle('New job request');
     // A local notification needs only permission, not a push token, so it still
-    // reaches an artisan whose dashboard is open in a background tab. It uses
+    // reaches an artisan whose Today screen is open in a background tab. It uses
     // the push's tag, so the two never stack.
     if ('Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker) {
       navigator.serviceWorker.getRegistration('/').then((reg) => reg && reg.showNotification('New job request', {
@@ -696,176 +304,144 @@ window.addEventListener('fx:push', (e) => {
   else _announcedOffers.add(id);
 });
 
-// ── Job-alert status ───────────────────────────────────
+// ── Notices: job alerts, connection ───────────────────
+function notice(id, tone, role, text, action) {
+  let el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = id;
+    notices.appendChild(el);
+  }
+  el.className = `fx-notice fx-notice--${tone}`;
+  el.setAttribute('role', role);
+  el.hidden = false;
+  el.innerHTML = `${icon(tone === 'warn' ? 'alert' : 'info', 'fx-notice__icon')}<div class="fx-notice__body"><p></p></div>`;
+  el.querySelector('p').textContent = text;
+  if (action) {
+    const wrap = document.createElement('div');
+    wrap.className = 'fx-notice__actions';
+    wrap.appendChild(action);
+    el.querySelector('.fx-notice__body').appendChild(wrap);
+  }
+  return el;
+}
+
 // Push that is not working is said out loud. A registered worker is not
 // enough: only a saved token counts (see shared/js/services/pushState.js).
 function renderPushBanner(state) {
   const info = describePushState(state);
-  let el = document.getElementById('push-alert-banner');
+  const el = document.getElementById('push-alert-banner');
   if (!info.alert) { if (el) el.remove(); return; }
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'push-alert-banner';
-    el.setAttribute('role', 'status');
-    el.style.cssText = 'margin:0 0 12px;padding:12px 14px;border-radius:var(--ds-r-card);' +
-      'background:var(--ds-warning-bg);color:var(--ds-ink);font:500 13px/1.45 var(--ds-font);';
-    jobsList.parentNode.insertBefore(el, jobsList);
-  }
-  el.textContent = '';
-  const p = document.createElement('p');
-  p.style.margin = '0';
-  p.textContent = info.message;
-  el.appendChild(p);
+  let btn = null;
   if (info.canEnable && _pushUid) {
-    const btn = document.createElement('button');
+    btn = document.createElement('button');
     btn.type = 'button';
+    btn.className = 'fx-btn fx-btn--secondary fx-btn--s';
     btn.textContent = 'Turn on job alerts';
-    btn.style.cssText = 'margin-top:8px;min-height:44px;padding:0 16px;border:0;cursor:pointer;' +
-      'border-radius:var(--ds-r-control);background:var(--ds-brand-500);color:var(--ds-surface);' +
-      'font:700 13px/1 var(--ds-font);';
     btn.addEventListener('click', async () => {
       btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
       btn.textContent = 'Turning on…';
       renderPushBanner(await enablePushNotifications(_pushUid, 'artisan'));
     });
-    el.appendChild(btn);
   }
+  notice('push-alert-banner', 'warn', 'status', info.message, btn);
 }
 window.addEventListener('fx:push-state', (e) => renderPushBanner(e.detail && e.detail.state));
 
-// ── Render job request card ────────────────────────────
-function renderJobCard(booking) {
-  const d    = booking.data;
-  const id   = booking.id;
-  const isEmergency = d.bookingType === 'emergency' || d.type === 'emergency';
-
-  // The response deadline, whatever shape it arrived in (a live Timestamp, or a
-  // plain {seconds} copy from the cache) — never NaN.
-  // An offer with no deadline (prematched) has no countdown and stays answerable;
-  // the server decides, and a refusal marks it gone (_goneOffers).
-  const offer       = offerState(d);
-  const deadlineMs  = offer.expiresAtMs;
-  const lapsed      = offer.expired || _goneOffers.has(id);
-  const hasDeadline = deadlineMs !== null && !lapsed;
-
-  const card = document.createElement('div');
-  card.className = 'job-request-card';
-  card.id = `job-${id}`;
-  if (hasDeadline) card.dataset.expires = String(deadlineMs);
-  // The whole card is a way into this one job's screen.
-  card.dataset.open = id;
-  card.style.cursor = 'pointer';
-
-  card.innerHTML = `
-    <div class="job-badge-row">
-      <span class="job-badge" style="${isEmergency ? 'background:#ef4444' : ''}">
-        ${isEmergency
-          ? '<svg viewBox="0 0 24 24" fill="none" width="11" height="11"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Emergency'
-          : '<svg viewBox="0 0 24 24" fill="none" width="11" height="11"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" stroke="#fff" stroke-width="1.8"/><polyline points="14 2 14 8 20 8" stroke="#fff" stroke-width="1.8"/></svg> New Request'
-        }
-      </span>
-      ${hasDeadline
-        ? `<span style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--ds-danger,#C2362F)">
-            <svg viewBox="0 0 24 24" fill="none" width="11" height="11"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            Respond in <span data-countdown${offer.secondsLeft < 60 ? ' style="color:#ef4444"' : ''}>${formatTimeLeft(offer.secondsLeft)}</span>
-           </span>`
-        : `<span class="job-time">${_timeAgo(d.createdAt)}</span>`
-      }
-    </div>
-
-    <p class="job-title">${serviceLabel(d.serviceType) || serviceLabel(d.service) || 'Service Request'}</p>
-
-    <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px">
-      <p class="job-location" style="margin:0">
-        <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
-        ${d.locationApproximate
-          ? (Number.isFinite(Number(d.distanceKm)) && d.distanceKm !== null
-              ? `About ${Number(d.distanceKm).toFixed(1)} km away · exact address once you accept`
-              : 'Exact address shared once you accept')
-          : (d.address || d.location || 'Location not set')}
-      </p>
-      ${(function(){
-        // The booked arrival window, when one was agreed. resolveSchedule owns
-        // the formatting so this card, the job list, the job screen and the
-        // customer app all name the same appointment the same way.
-        var ap = resolveSchedule(d);
-        var line = ap.scheduled ? ap.label : (d.dateDisplay || null);
-        if (!line) return '';
-        return '<p style="margin:0;font-size:11.5px;color:#777;display:flex;align-items:center;gap:4px">' +
-          '<svg viewBox="0 0 24 24" fill="none" width="12" height="12"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
-          line + '</p>';
-      })()}
-    </div>
-
-    <p class="job-budget">${(function(){
-      // "GHS 0" told the artisan the job paid nothing when it only meant "no
-      // quote yet". Name the callout fee they actually earn for the visit, and
-      // say plainly when the amount is not yet known.
-      var q = Number(d.jobQuote), c = Number(d.calloutFee);
-      if (Number.isFinite(q) && q > 0)  return 'Quote: <strong>' + formatGHS(q) + '</strong>';
-      if (Number.isFinite(c) && c > 0)  return 'Callout fee: <strong>' + formatGHS(c) + '</strong>';
-      return 'Fee confirmed on acceptance';
-    })()}</p>
-
-    <div class="job-actions">
-      ${lapsed
-        // The offer has lapsed, or the server refused it as gone; the dispatch
-        // sweep (every minute) is moving it on. Neither answer can succeed, so
-        // neither is offered (the shared lapsed look, jobOffers.js).
-        ? `<button class="btn-accept" ${LAPSED_OFFER_ATTRS}>${LAPSED_OFFER_LABEL}</button>
-           <button class="btn-decline" ${LAPSED_OFFER_ATTRS}>Decline</button>`
-        : `<button class="btn-accept" onclick="acceptJob('${id}')">
-        <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Accept
-      </button>
-      <button class="btn-decline" onclick="declineJob('${id}')">Decline</button>`}
-    </div>`;
-
-  if (hasDeadline) startOfferTicker();
-  return card;
+// Shown when Firestore cannot be reached. Content already on screen stays.
+function showConnectionNotice() {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'fx-btn fx-btn--tertiary fx-btn--s';
+  b.textContent = 'Retry';
+  b.addEventListener('click', () => window.location.reload());
+  notice('dash-offline', 'warn', 'status',
+    'We can\'t reach Fidus X right now. Showing what we last had — it updates when you\'re back online.', b);
+}
+function hideConnectionNotice() {
+  const el = document.getElementById('dash-offline');
+  if (el) el.hidden = true;
 }
 
-/* ── Transitions ──────────────────────────────────────────────────────────
-   This dashboard used to carry its own copy of the lifecycle — five separate
-   status writes, subtly different from the two copies in jobs.html and
-   bookings.html. They all now call the one layer, which re-reads the booking,
-   validates the transition against the state it is ACTUALLY in, and explains a
-   lost race instead of failing silently. */
-async function dashTransition(action, bookingId, btn, { busyLabel, okLabel, removeSel } = {}) {
-  const orig = btn ? btn.innerHTML : '';
-  if (btn) { btn.disabled = true; btn.textContent = busyLabel || 'Working…'; }
+// ── Availability ──────────────────────────────────────
+/* The artisan's explicit Go online / Stop receiving offers. The ONLY place this
+   page changes availability — page load, navigation, a hidden tab or a dropped
+   connection never do (shared/js/domain/availability.js, audit FLOW-001/002).
+   The live profile snapshot paints the confirmed state; this shows the saving
+   state and, on failure, puts the control back to what is actually stored. */
+async function changeAvailability(next) {
+  if (!uid || availabilityPending() || _saving) return;
+  // A cached profile is shown, never acted on: the switch waits for the server.
+  if (!_profileLive) { showToast('Checking your account. Try again in a moment.'); return; }
+  if (next) {
+    const blocker = availabilityBlocker(_currentArtisan);
+    if (blocker) {
+      showToast(blocker.message);
+      if (blocker.reason === 'unverified' && onboardingWarranted()) {
+        setTimeout(() => { window.location.href = 'onboarding.html'; }, 1800);
+      }
+      return;
+    }
+  }
+  _saving = next ? 'on' : 'off';
+  paint();
   try {
-    const res = await performBookingAction(action, {
-      bookingId, actor: 'artisan',
-      uid: _currentArtisan?.uid || _currentArtisan?.id || null,
-      databaseService, pricingService,
-      reason: 'Cancelled by artisan',
-    });
-    if (!res.ok) {
-      showToast(res.message);
-      // The server says the offer is gone (expired, closed, re-offered): the
-      // card is retired, never handed a live button again (FLOW-005).
-      if (res.offerGone) { markOfferGone(bookingId); return false; }
-      if (btn) { btn.disabled = false; btn.innerHTML = orig; }
-      return false;
+    const res = await setAvailability(uid, next, { artisan: _currentArtisan });
+    if (res.ok) {
+      showToast(res.queued
+        ? 'Saved on this phone — it reaches Fidus X when you\'re back online.'
+        : (next ? 'You\'re online. New jobs can reach you.' : 'You\'re offline. No new jobs will reach you.'));
     }
-    showToast(okLabel || 'Updated.');
-    if (removeSel) {
-      const el = document.getElementById(removeSel);
-      if (el) { el.style.transition = 'opacity .25s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 260); }
-    }
-    return true;
   } catch (e) {
-    showToast('That did not go through. Nothing was changed.');
-    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
-    return false;
+    console.warn('[today] availability change failed:', e?.message || e);
+    showToast(e?.message || 'Could not change your availability. Try again.', { tone: 'bad' });
+  } finally {
+    _saving = null;
+    // Whatever happened, show what is stored — the live snapshot keeps
+    // _currentArtisan current (including the local echo of our own write).
+    paint();
   }
 }
 
-window.acceptJob = async function(bookingId) {
-  // KYC enforcement — only approved artisans may accept jobs (the server
-  // re-checks). Onboarding only when a LIVE profile says verification is due:
-  // an unloaded profile (outage) or a suspension is not that (audit FLOW-004).
+// ── Offers: accept and decline ────────────────────────
+/* Every answer goes through the one layer (performBookingAction → the server's
+   respondToJobOffer), which checks the offer is still open, still theirs and
+   not expired, by the server's clock. One answer per offer at a time: a second
+   tap while the first is in flight does nothing. */
+async function answerOffer(action, bookingId, { okLabel }) {
+  if (_inFlight.has(bookingId)) return false;
+  _inFlight.set(bookingId, action === ACTION.ACCEPT ? 'accept' : 'decline');
+  paint();
+  try {
+    const res = await performBookingAction(action, {
+      bookingId, actor: 'artisan',
+      uid,
+      databaseService, pricingService,
+    });
+    if (!res.ok) {
+      showToast(res.message, { tone: 'bad' });
+      // The server says the offer is gone (expired, closed, re-offered): it
+      // leaves the screen, never handed a live button again (FLOW-005).
+      if (res.offerGone) { _inFlight.delete(bookingId); markOfferGone(bookingId); return false; }
+      return false;
+    }
+    _answered.add(bookingId);
+    showToast(okLabel, { tone: 'ok' });
+    return true;
+  } catch (e) {
+    showToast('That did not go through. Nothing was changed.', { tone: 'bad' });
+    return false;
+  } finally {
+    _inFlight.delete(bookingId);
+    paint();
+  }
+}
+
+async function acceptJob(bookingId) {
+  // Only approved artisans may accept jobs (the server re-checks). Onboarding
+  // only when a LIVE profile says verification is due: an unloaded profile
+  // (outage) or a suspension is not that (audit FLOW-004).
   if (!canAcceptJobs(_currentArtisan)) {
     if (onboardingWarranted()) {
       showToast('Complete your verification before accepting jobs.');
@@ -877,303 +453,101 @@ window.acceptJob = async function(bookingId) {
     }
     return;
   }
-  await dashTransition(ACTION.ACCEPT, bookingId,
-    document.querySelector(`#job-${bookingId} .btn-accept`), {
-      busyLabel: 'Accepting…',
-      okLabel:   'Job accepted. The customer will be notified.',
-      removeSel: `job-${bookingId}`,
-    });
-};
-
-window.declineJob = async function(bookingId) {
-  // The app's own sheet, not the browser's confirm() (audit UI-011).
-  if (!(await confirmSheet({ title: 'Decline this job request?', message: 'It goes to another professional nearby.',
-                             confirmLabel: 'Decline', danger: true }))) return;
-  await dashTransition(ACTION.DECLINE, bookingId,
-    document.querySelector(`#job-${bookingId} .btn-decline`), {
-      busyLabel: 'Declining…', okLabel: 'Request declined.',
-      removeSel: `job-${bookingId}`,
-    });
-};
-
-// ── Status label / pill helpers ────────────────────────
-// Vocabulary comes from the single source of truth (shared/js/domain/
-// bookingStatusMeta.js, artisan audience). This adapter preserves the
-// { label, pillCls, hint } shape the rest of this page renders against, but
-// the values are now track-aware and never drift from the other surfaces.
-function statusMeta(booking) {
-  // Pass the appointment so `accepted` reads "Booked · Sat 20 Sep" rather than
-  // "Customer is waiting — head to their location" on a job that is days away.
-  // Unscheduled bookings resolve to scheduled:false and the copy is unchanged.
-  const d = describeStatus(booking, 'artisan', { schedule: resolveSchedule(booking) });
-  return { label: d.label, pillCls: `pill-${d.tone}`, hint: d.description, awaitingSlot: d.awaitingSlot };
+  await answerOffer(ACTION.ACCEPT, bookingId, { okLabel: 'Job accepted. The customer will be notified.' });
 }
 
-// Steps for the in-card mini stepper (index = how many are 'done')
-const ACTIVE_STEPS = ['Accepted', 'En Route', 'In Progress', 'Awaiting', 'Complete'];
-const STEP_IDX = { accepted: 0, en_route: 1, in_progress: 2, awaiting: 3, completed: 4 };
-
-// Inspection-track steps (pre-quote-approval — after approval the card
-// switches to the normal execution stepper above)
-const INSPECTION_STEPS   = ['Booked', 'En Route', 'Inspected', 'Quoted', 'Approved'];
-const INSPECTION_STEP_IDX = { inspection_scheduled: 0, en_route: 1, in_progress: 1, inspection_done: 2, quoted: 3 };
-
-// ── Render active job card (with progression button) ───
-function renderActiveJobCard(booking) {
-  const d      = booking.data;
-  const id     = booking.id;
-  const status = (d.status || '').toLowerCase();
-  // Inspection track BEFORE quote approval gets its own stepper + actions.
-  // After approval the booking re-enters the normal execution pipeline.
-  const isInspection = d.track === 'inspection' && !d.quoteApproved;
-  const meta   = statusMeta(d);
-  const stepList = isInspection ? INSPECTION_STEPS : ACTIVE_STEPS;
-  const stepIdx  = isInspection ? INSPECTION_STEP_IDX : STEP_IDX;
-  const doneIdx  = stepIdx[status] ?? 0;
-
-  // Build mini stepper HTML
-  const steps = stepList.map((lbl, i) => {
-    const isDone   = i < doneIdx;
-    const isActive = i === doneIdx;
-    const cls      = isDone ? 'done' : isActive ? 'active' : '';
-    const dotContent = isDone
-      ? `<svg viewBox="0 0 24 24" fill="none" width="10" height="10"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`
-      : String(i + 1);
-    const lineHtml = i < stepList.length - 1
-      ? `<div class="aj-line ${isDone ? 'done' : ''}"></div>`
-      : '';
-    return `<div class="aj-step ${cls}"><div class="aj-step-dot">${dotContent}</div><div class="aj-step-lbl">${lbl}</div></div>${lineHtml}`;
-  }).join('');
-
-  // Progression button HTML
-  let btnHtml = '';
-  if (isInspection) {
-    // One step at a time, in the order completeInspection enforces: set out
-    // (only once the booked slot opens), mark arrived, THEN complete the
-    // inspection. artisanInspectionStep is the single rule; this only draws it.
-    const step = artisanInspectionStep(d, { schedule: resolveSchedule(d) });
-    if (step && step.id === 'en_route') {
-      btnHtml = `<button class="btn-progress btn-progress-orange" onclick="markEnRoute('${id}')">
-        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Mark En Route
-      </button>`;
-    } else if (step && step.id === 'arrived') {
-      btnHtml = `<button class="btn-progress btn-progress-orange" onclick="markArrived('${id}')">
-        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.5" fill="rgba(249,115,22,0.8)"/></svg>
-        Mark Arrived
-      </button>`;
-    } else if (step && step.id === 'complete_inspection') {
-      btnHtml = `<button class="btn-progress btn-progress-green" onclick="completeInspectionAction('${id}')">
-        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
-        Complete Inspection
-      </button>`;
-    } else if (step && step.id === 'submit_quote') {
-      // Opens the quote form ON THIS JOB (jobs.html reads ?quote=). The bare
-      // jobs.html link made the artisan find the job again (audit FLOW-007).
-      btnHtml = `<button class="btn-progress btn-progress-orange" onclick="window.location.href='jobs.html?quote=${encodeURIComponent(id)}'">
-        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Submit Quote
-      </button>`;
-    } else if (step && step.blocked) {
-      // Callout unpaid, slot not yet open, or the quote is with the customer.
-      btnHtml = `<button class="btn-progress btn-progress-grey" disabled>
-        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        ${step.label}
-      </button>`;
-    }
-  } else if (status === 'accepted' && needsQuoteBeforeTravel(d)) {
-    // No approved quote yet off the inspection track: the rules refuse travel
-    // until there is one (Phase 0 WF-02), so the step is the quote, as jobs.html has it.
-    btnHtml = `<button class="btn-progress btn-progress-orange" onclick="window.location.href='jobs.html?quote=${encodeURIComponent(id)}'">
-      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Submit Quote
-    </button>`;
-  } else if (status === 'accepted' && resolveSchedule(d).scheduled && !resolveSchedule(d).isDue) {
-    // A booked slot that has not opened: firestore.rules (scheduleWindowOpen)
-    // refuses setting out, so the button states the booking instead.
-    btnHtml = `<button class="btn-progress btn-progress-grey" disabled>
-      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      Booked · ${resolveSchedule(d).label}
-    </button>`;
-  } else if (status === 'accepted') {
-    btnHtml = `<button class="btn-progress btn-progress-orange" onclick="markEnRoute('${id}')">
-      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-5 9h10l-3-6H12v6zm0 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Mark En Route
-    </button>`;
-  } else if (status === 'en_route') {
-    btnHtml = `<button class="btn-progress btn-progress-orange" onclick="markArrived('${id}')">
-      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.5" fill="rgba(249,115,22,0.8)"/></svg>
-      Mark Arrived & Started
-    </button>`;
-  } else if (status === 'in_progress' && needsQuoteOnSite(d)) {
-    // A paid emergency is priced on site (decision Q1): done waits for an
-    // approved quote, which firestore.rules require before in_progress → awaiting.
-    btnHtml = `<button class="btn-progress btn-progress-orange" onclick="window.location.href='jobs.html?quote=${encodeURIComponent(id)}'">
-      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Submit Quote
-    </button>`;
-  } else if (status === 'in_progress') {
-    btnHtml = `<button class="btn-progress btn-progress-green" onclick="markJobDone('${id}')">
-      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
-      Mark Job Done
-    </button>`;
-  } else if (status === 'awaiting') {
-    btnHtml = `<button class="btn-progress btn-progress-grey" disabled>
-      <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      Waiting for customer…
-    </button>`;
-  }
-
-  const card = document.createElement('div');
-  card.className = 'active-job-card';
-  card.id = `active-job-${id}`;
-  // A tap anywhere but a control opens this job (the handler at the end of the
-  // page). Offer cards had this; active cards did not (audit FLOW-006).
-  card.dataset.open = id;
-  card.style.cursor = 'pointer';
-  card.innerHTML = `
-    <div class="active-job-status-row">
-      <span class="active-job-status-pill ${meta.pillCls}">${meta.label}</span>
-      <span style="font-size:11px;color:#9CA3AF">${_timeAgo(d.acceptedAt || d.createdAt)}</span>
-    </div>
-    <p class="active-job-title">${serviceLabel(d.serviceType) || serviceLabel(d.service) || 'Service Request'}</p>
-    <div class="active-job-meta">
-      <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
-      ${d.address || d.location || 'Location not set'}
-    </div>
-    <div class="active-job-stepper">${steps}</div>
-    <p class="active-job-hint">${meta.hint}</p>
-    ${btnHtml}`;
-  return card;
+function confirmIn(sheetId) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById(sheetId);
+    let confirmed = false;
+    const btn = overlay.querySelector('[data-confirm]');
+    const onConfirm = () => { confirmed = true; sheet.close('confirm'); };
+    const sheet = openSheet(overlay, { onClose: () => { btn.removeEventListener('click', onConfirm); resolve(confirmed); } });
+    btn.addEventListener('click', onConfirm);
+  });
 }
 
-// ── Job progression actions ────────────────────────────
-window.markEnRoute = async function(bookingId) {
-  await dashTransition(ACTION.EN_ROUTE, bookingId,
-    document.querySelector(`#active-job-${bookingId} .btn-progress`),
-    { busyLabel: 'Updating…', okLabel: 'Marked as en route. Customer notified.' });
+async function declineJob(bookingId) {
+  if (_inFlight.has(bookingId)) return;
+  if (!(await confirmIn('decline-sheet'))) return;
+  await answerOffer(ACTION.DECLINE, bookingId, { okLabel: 'Request declined.' });
+}
+
+// ── Job steps ─────────────────────────────────────────
+/* The step on screen is resolveJourney's (via resolveToday): only one the rules
+   accept is ever drawn. Each runs through the same layer as Jobs and the job
+   screen, which re-reads the booking and explains a lost race. */
+const JOB_ACTIONS = {
+  'job-en-route':  { action: ACTION.EN_ROUTE, ok: 'Marked as en route. Customer notified.' },
+  'job-arrived':   { action: ACTION.START,    ok: 'Job started. Customer notified.' },
+  'job-done':      { action: ACTION.JOB_DONE, ok: 'Marked done. Waiting for customer to confirm.' },
 };
 
-window.markArrived = async function(bookingId) {
-  await dashTransition(ACTION.START, bookingId,
-    document.querySelector(`#active-job-${bookingId} .btn-progress`),
-    { busyLabel: 'Updating…', okLabel: 'Job started. Customer notified.' });
-};
-
-window.completeInspectionAction = async function(bookingId) {
-  const btn = document.querySelector(`#active-job-${bookingId} .btn-progress-green`);
-  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+async function runJobStep(act, bookingId) {
+  if (_inFlight.has(bookingId)) return;
+  _inFlight.set(bookingId, act);
+  paint();
   try {
-    await pricingService.completeInspection(bookingId);
-    showToast('Inspection complete. Now submit your quote from Jobs.');
+    if (act === 'job-inspected') {
+      await pricingService.completeInspection(bookingId);
+      showToast('Inspection complete. Now send your quote.', { tone: 'ok' });
+      return;
+    }
+    const spec = JOB_ACTIONS[act];
+    if (!spec) return;
+    const res = await performBookingAction(spec.action, { bookingId, actor: 'artisan', uid, databaseService, pricingService });
+    showToast(res.ok ? spec.ok : res.message, { tone: res.ok ? 'ok' : 'bad' });
   } catch (e) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Complete Inspection'; }
-    showToast(e?.message || 'Could not complete inspection. Try again.');
+    showToast(e?.message || 'That did not go through. Nothing was changed.', { tone: 'bad' });
+  } finally {
+    _inFlight.delete(bookingId);
+    paint();
   }
-};
-
-window.markJobDone = async function(bookingId) {
-  await dashTransition(ACTION.JOB_DONE, bookingId,
-    document.querySelector(`#active-job-${bookingId} .btn-progress`),
-    { busyLabel: 'Updating…', okLabel: 'Marked done. Waiting for customer to confirm.' });
-};
-
-
-// ── Render schedule item ───────────────────────────────
-function renderScheduleItem(booking) {
-  const d = booking.data;
-  // ── An appointment, or an honest blank ──────────────────────────────────
-  // This fell back to createdAt and then to new Date(), so a booking with no
-  // agreed time was rendered with a precise clock face — the artisan's own
-  // schedule told them to be somewhere at 4:07 PM because that happened to be
-  // when the customer tapped Book. A job with no appointment now says so.
-  const ap = resolveSchedule(d);
-  const date = ap.scheduled ? new Date(ap.startMs) : null;
-  const hours = date ? date.getHours() : null;
-  const mins  = date ? String(date.getMinutes()).padStart(2, '0') : null;
-  const ampm  = date ? (hours >= 12 ? 'PM' : 'AM') : '';
-  const h12   = date ? ((hours % 12) || 12) : null;
-  const today = new Date();
-  const isToday = date ? date.toDateString() === today.toDateString() : false;
-  const sm = statusMeta(d);
-  // The colour is the status's own tone from describe(), the same pill the Jobs
-  // screen paints (UI-003) — not a hand-written accepted/in_progress/else check.
-  const statusClass = sm.pillCls;
-  const statusLabel = sm.label || d.status || 'Pending';
-
-  const el = document.createElement('div');
-  el.className = 'schedule-item';
-  el.dataset.open = booking.id;
-  el.style.cursor = 'pointer';
-  el.innerHTML = `
-    <div class="schedule-time">
-      <div class="time">${date ? `${h12}:${mins} ${ampm}` : 'Anytime'}</div>
-      <div class="day">${date ? (isToday ? 'Today' : date.toLocaleDateString('en-GH',{month:'short',day:'numeric'})) : 'No slot'}</div>
-    </div>
-    <div class="schedule-divider"></div>
-    <div class="schedule-info">
-      <p class="schedule-service">${serviceLabel(d.serviceType) || serviceLabel(d.service) || 'Service'}</p>
-      <p class="schedule-loc">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
-        ${d.address || d.location || 'Location TBD'}
-      </p>
-    </div>
-    <span class="schedule-status ${statusClass}">${statusLabel}</span>`;
-  return el;
 }
 
-// ── Time ago ───────────────────────────────────────────
-function _timeAgo(iso) {
-  if (!iso) return 'Just now';
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'Just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h/24)}d ago`;
-}
+// One handler for every control Today draws (data-act).
+document.addEventListener('click', async (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true' && el.dataset.act !== 'locked') return;
+  const id = el.dataset.id;
+  switch (el.dataset.act) {
+    case 'accept':      return acceptJob(id);
+    case 'decline':     return declineJob(id);
+    case 'go-online':   return changeAvailability(true);
+    case 'stop-offers': if (await confirmIn('offline-sheet')) changeAvailability(false); return;
+    case 'locked': {
+      const b = availabilityBlocker(_currentArtisan);
+      if (b) showToast(b.message);
+      return;
+    }
+    default:
+      if (el.dataset.act.startsWith('job-')) return runJobStep(el.dataset.act, id);
+  }
+});
 
-// ── Development Access Mode dashboard renderer ─────────
-// Paints the mock artisan + work lists through the SAME render functions the
+// ── Development Access Mode ───────────────────────────
+// Paints the mock artisan + work lists through the SAME state and renderer the
 // real path uses, so dev mode looks like production with data.
 function renderDevDashboard(data) {
-  applyProfile(_currentArtisan || {});
+  _currentArtisan = _guardArtisan || {};
+  _profileLive = true;
+  _offers = data.jobRequests;
+  const seen = new Set();
+  _bookings = [...data.activeJobs, ...data.schedule].filter((r) => !seen.has(r.id) && seen.add(r.id));
+  _offersReady = _bookingsReady = true;
+  setUnread(data.unreadCount);
+  paint();
+}
 
-  if (data.unreadCount > 0) {
-    notifBadge.textContent   = data.unreadCount > 99 ? '99+' : String(data.unreadCount);
-    notifBadge.style.display = 'flex';
-  } else {
-    notifBadge.style.display = 'none';
-  }
-
-  jobSkeleton?.remove();
-  jobsList.querySelectorAll('.job-request-card').forEach(c => c.remove());
-  if (data.jobRequests.length) {
-    jobsEmpty.style.display = 'none';
-    data.jobRequests.forEach(b => jobsList.appendChild(renderJobCard(b)));
-  } else { jobsEmpty.style.display = 'block'; }
-
-  const activeJobsList  = document.getElementById('active-jobs-list');
-  const activeJobsEmpty = document.getElementById('active-jobs-empty');
-  activeJobsList.querySelectorAll('.active-job-card').forEach(c => c.remove());
-  if (data.activeJobs.length) {
-    activeJobsEmpty.style.display = 'none';
-    data.activeJobs.forEach(b => activeJobsList.appendChild(renderActiveJobCard(b)));
-  } else { activeJobsEmpty.style.display = 'block'; }
-
-  scheduleList.querySelectorAll('.schedule-item').forEach(c => c.remove());
-  if (data.schedule.length) {
-    scheduleEmpty.style.display = 'none';
-    data.schedule.forEach(b => scheduleList.appendChild(renderScheduleItem(b)));
-  } else { scheduleEmpty.style.display = 'block'; }
+function setUnread(count) {
+  notifBadge.hidden = !(count > 0);
+  notifLink.setAttribute('aria-label', count > 0 ? `Notifications, ${count > 99 ? '99+' : count} unread` : 'Notifications');
 }
 
 // ── Auth bootstrap ────────────────────────────────────
-// Guard above already verified auth. This watches for session expiry after page
-// load. Routed through the shared dev-aware accessor so it delegates to real
-// Firebase in production but serves the mock session (and never bounces to
-// login) under Development Access Mode.
+// The guard above verified auth. This watches for session expiry after page
+// load, through the shared dev-aware accessor (real Firebase in production,
+// the mock session under Development Access Mode).
 subscribeToArtisanAuthState(async user => {
   if (!user) { window.location.replace('login.html'); return; }
   // Wired once per page. A later callback for the same artisan (token refresh)
@@ -1181,11 +555,9 @@ subscribeToArtisanAuthState(async user => {
   if (uid === user.uid) return;
   uid = user.uid;
 
-  // ── Development Access Mode ──────────────────────────────────────────────
-  // Render the mock profile + structured mock work lists, and SKIP every real
-  // Firestore subscription + presence. Without this the live artisan-doc
-  // subscription would resolve not-exists (dev uid) and bounce to onboarding,
-  // and presence would write to real Firestore under the mock uid.
+  // Under Development Access Mode: the mock profile and work lists, and NO
+  // real Firestore subscription or presence (a dev uid would read as missing
+  // and presence would write under it).
   if (isArtisanDevAccessEnabled()) {
     const { getDevDashboardData } = await import('../shared/dev/artisanDevData.js');
     renderDevDashboard(getDevDashboardData(getDevStateKey()));
@@ -1198,10 +570,8 @@ subscribeToArtisanAuthState(async user => {
   renderPushBanner(getPushState());
 
   // ── Presence: GPS + heartbeat, never availability ───────────────────────
-  // Started from the artisan's STORED choice. It used to start with `true`,
-  // which put an artisan who had chosen "Go Offline" back online on every visit
-  // (audit FLOW-002); location problems now only say so — they no longer flip
-  // the artisan offline either.
+  // Started from the artisan's STORED choice (audit FLOW-002); location
+  // problems only say so — they never flip the artisan offline.
   const presenceOptions = {
     onLocationError: (err) => showToast(err.message || 'Could not read your location.'),
   };
@@ -1217,15 +587,7 @@ subscribeToArtisanAuthState(async user => {
   };
 
   // ── Realtime notification badge ──────────────────────
-  const u0 = subscribeToUnreadCount(uid, (count) => {
-    if (count > 0) {
-      notifBadge.textContent    = count > 99 ? '99+' : String(count);
-      notifBadge.style.display  = 'flex';
-    } else {
-      notifBadge.style.display  = 'none';
-    }
-  });
-  unsubs.push(u0);
+  unsubs.push(subscribeToUnreadCount(uid, setUnread));
 
   // A list answered from the CACHE with nothing in it while Firestore is
   // unreachable is "not known yet", not "none" (audit NET-001): keep what is on
@@ -1236,10 +598,10 @@ subscribeToArtisanAuthState(async user => {
     onData(records);
   };
 
-  // Every section below paints from the last known state first (instantView,
+  // Every section paints from the last known state first (instantView,
   // CLAUDE.md §1), and the live listener reconciles it moments later.
 
-  // ── Profile header, wallet card, status card, stats ──────────────────────
+  // ── The artisan profile: availability, verification ──────────────────────
   unsubs.push(mountInstantView({
     key: 'artisan-dashboard-profile',
     version: 1,
@@ -1249,33 +611,27 @@ subscribeToArtisanAuthState(async user => {
       const cached = fromCache || _profileFromCache;
       _currentArtisan = data;
       _profileLive = !cached;
-      applyProfile(data);
-      setFreshness(cached);
+      paint();
       syncPresence(data, !cached);
     },
-    onEmpty: () => updateStatusUI(null),
     subscribe: (_cachedUid, onData, onError) => databaseService.subscribeToDocument('artisans', uid, (snap) => {
       _profileFromCache = !!snap.fromCache;
       if (snap.exists) { if (!snap.fromCache) hideConnectionNotice(); onData(snap.data); return; }
       // An empty answer from the CACHE (Firestore unreachable) says nothing
       // about the account (audit FLOW-004): say we are offline. A SERVER
       // answer that the profile is gone is the guard's to handle — its
-      // background check shows the "set up your profile" step. This page no
-      // longer navigates to onboarding on its own authority.
+      // background check shows the "set up your profile" step. This page
+      // never navigates to onboarding on its own authority.
       if (snap.fromCache) showConnectionNotice();
     }, onError),
     onError: () => showConnectionNotice(),
-    // Push tokens are not needed to paint and stay out of storage.
-    stripFields: ['fcmToken', 'fcmTokens', 'fcmPlatform', 'fcmTokenUpdatedAt'],
+    // Push tokens are not needed to paint and stay out of storage. Money is
+    // not on this screen and stays out of its cache (CLAUDE.md §1).
+    stripFields: ['fcmToken', 'fcmTokens', 'fcmPlatform', 'fcmTokenUpdatedAt',
+                  'availableBalance', 'walletBalance', 'escrowBalance', 'pendingBalance', 'totalEarned'],
   }).destroy);
 
-  // Wallet figures derived from their authoritative records (AR-13). Not
-  // cached: pending release shows "GHS —" until the server answers.
-  unsubs.push(createWalletRepository({ databaseService }).subscribeToArtisanWallet(uid, (res) => {
-    if (res) pendingAmount.textContent = formatGHS(res.view.pendingRelease);
-  }, () => { pendingAmount.textContent = 'GHS —'; }));
-
-  // ── Live job requests: this artisan's OPEN offers ────────────────────────
+  // ── This artisan's OPEN offers ───────────────────────────────────────────
   // An offered artisan reads the offer summary (job_offers/{bookingId}) — never
   // the booking, which opens to them only once they accept (functions/jobOffers.js).
   unsubs.push(mountInstantView({
@@ -1283,8 +639,9 @@ subscribeToArtisanAuthState(async user => {
     version: 1,
     render: (records, { fromCache }) => {
       // A cached offer whose deadline has passed is dropped; it cannot be answered.
-      const list = fromCache ? records.filter((r) => !offerState(r.data).expired) : records;
-      renderOffers(list);
+      _offers = fromCache ? records.filter((r) => !offerState(r.data).expired) : records;
+      _offersReady = true;
+      paint();
       if (fromCache) return;
       // An offer that arrived while this screen is open is announced here too:
       // push may be off, blocked or broken, and the offer expires in minutes.
@@ -1296,132 +653,35 @@ subscribeToArtisanAuthState(async user => {
       [{ field: 'artisanId', op: '==', value: uid }, { field: 'offerStatus', op: '==', value: 'open' }],
       { limit: 5 },
       liveList(onData), onError),
-    onError: (_err, { hasContent }) => { showConnectionNotice(); if (!hasContent) jobSkeleton?.remove(); },
+    onError: () => { showConnectionNotice(); _offersReady = true; paint(); },
   }).destroy);
 
-  // ── Active jobs (accepted / en_route / in_progress / awaiting → need action) ──
+  // ── This artisan's bookings that are still going ─────────────────────────
+  // One list feeds the job that needs them, the jobs waiting on the customer,
+  // and the booked slots still to come (artisanToday.placeJob). A disputed
+  // booking is included so it reads "In dispute", not missing.
   unsubs.push(mountInstantView({
     key: 'artisan-dashboard-active',
     version: 1,
-    render: (records) => renderActiveJobs(records),
+    render: (records) => { _bookings = records; _bookingsReady = true; paint(); },
     subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(
       'bookings',
       [{ field: 'artisanId', op: '==', value: uid },
        { field: 'status',    op: 'in', value: ['accepted', 'en_route', 'in_progress', 'awaiting',
-                                               'inspection_scheduled', 'inspection_done', 'quoted'] }],
-      { orderBy: { field: 'updatedAt', direction: 'desc' }, limit: 10 },
+                                               'inspection_scheduled', 'inspection_done', 'quoted', 'disputed'] }],
+      { orderBy: { field: 'updatedAt', direction: 'desc' }, limit: 20 },
       liveList(onData), onError),
-    onError: () => showConnectionNotice(),
-  }).destroy);
-
-  // ── Schedule — what this artisan has committed to ──────────────────────────
-  //
-  // The comment here used to read "future scheduledAt" and the query did no such
-  // thing: it fetched active jobs ordered by createdAt, because no booking in
-  // HandyHub had ever carried an appointment. Now that some do, the section can
-  // finally mean what it says.
-  //
-  // The QUERY is deliberately unchanged. Ordering by scheduledForMs in Firestore
-  // would silently drop every document that lacks the field — which is every
-  // immediate booking — and an artisan's schedule that hides the job they are
-  // doing right now is worse than one that is loosely ordered. So the ordering
-  // is done here, over the same result set: real appointments first, in
-  // chronological order, then the come-when-you-can jobs behind them.
-  unsubs.push(mountInstantView({
-    key: 'artisan-dashboard-schedule',
-    version: 1,
-    render: (records) => renderSchedule(records),
-    subscribe: (_c, onData, onError) => databaseService.subscribeToCollection(
-      'bookings',
-      [{ field: 'artisanId', op: '==', value: uid },
-       { field: 'status',    op: 'in', value: ['accepted', 'inspection_scheduled', 'en_route', 'in_progress', 'awaiting'] }],
-      { orderBy: { field: 'createdAt', direction: 'asc' }, limit: 20 },
-      liveList(onData), onError),
-    onError: () => showConnectionNotice(),
+    onError: () => { showConnectionNotice(); _bookingsReady = true; paint(); },
   }).destroy);
 });
 
-// ── Section renderers (cache paint and live data use the same code) ─────────
-function renderOffers(records) {
-  jobSkeleton?.remove();
-  jobsList.querySelectorAll('.job-request-card').forEach(c => c.remove());
-  if (!records.length) {
-    jobsEmpty.style.display = 'block';
-  } else {
-    jobsEmpty.style.display = 'none';
-    records.forEach(b => jobsList.appendChild(renderJobCard(b)));
-  }
-}
-
-function renderActiveJobs(records) {
-  const activeJobsList  = document.getElementById('active-jobs-list');
-  const activeJobsEmpty = document.getElementById('active-jobs-empty');
-  activeJobsList.querySelectorAll('.active-job-card').forEach(c => c.remove());
-  if (!records.length) {
-    activeJobsEmpty.style.display = 'block';
-  } else {
-    activeJobsEmpty.style.display = 'none';
-    records.forEach(b => activeJobsList.appendChild(renderActiveJobCard(b)));
-  }
-}
-
-function renderSchedule(records) {
-  scheduleList.querySelectorAll('.schedule-item').forEach(c => c.remove());
-  if (!records.length) {
-    scheduleEmpty.style.display = 'block';
-    return;
-  }
-  scheduleEmpty.style.display = 'none';
-  const ordered = records.slice().sort((a, b) => {
-    const sa = resolveSchedule(a.data), sb = resolveSchedule(b.data);
-    if (sa.scheduled && sb.scheduled) return sa.startMs - sb.startMs;
-    if (sa.scheduled) return -1;
-    if (sb.scheduled) return 1;
-    return 0;
-  }).slice(0, 5);
-  ordered.forEach(b => scheduleList.appendChild(renderScheduleItem(b)));
-}
-
-// Figures painted from the cache are marked until the server confirms them:
-// a cached balance is shown for continuity, never as the current figure.
-function setFreshness(fromCache) {
-  const tag = document.getElementById('wallet-fresh');
-  if (tag) tag.hidden = !fromCache;
-  // The availability switch acts on the confirmed state only.
-  if (fromCache) toggleBtn.disabled = true;
-}
-
-// ── Connection notice ─────────────────────────────────────────────────────────
-// Shown when Firestore cannot be reached. Content already on screen stays.
-function showConnectionNotice() {
-  let el = document.getElementById('dash-offline');
-  if (el) { el.hidden = false; return; }
-  el = document.createElement('div');
-  el.id = 'dash-offline';
-  el.setAttribute('role', 'status');
-  el.style.cssText = 'margin:12px 16px 0;padding:12px 14px;border-radius:var(--ds-r-card,14px);display:flex;gap:12px;align-items:center;' +
-    'background:var(--ds-warning-bg,#FFF7E6);color:var(--ds-ink,#111827);font:500 13px/1.45 var(--ds-font,inherit);';
-  const p = document.createElement('p');
-  p.style.cssText = 'margin:0;flex:1;';
-  p.textContent = 'We can\'t reach Fidus X right now. Showing what we last had — it updates when you\'re back online.';
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.textContent = 'Retry';
-  b.style.cssText = 'min-height:44px;padding:0 16px;border:1px solid var(--ds-line-strong,#D1D5DB);border-radius:var(--ds-r-control,10px);' +
-    'background:var(--ds-surface,#fff);color:var(--ds-ink,#111827);font:700 13px/1 var(--ds-font,inherit);cursor:pointer;';
-  b.addEventListener('click', () => window.location.reload());
-  el.append(p, b);
-  const host = document.querySelector('.wallet-card');
-  host?.parentNode?.insertBefore(el, host);
-}
-function hideConnectionNotice() {
-  const el = document.getElementById('dash-offline');
-  if (el) el.hidden = true;
-}
+// A booked slot opens with time, not with data: look again each minute.
+const _clock = setInterval(() => { if (_bookingsReady) paint(); }, 60_000);
 
 window.addEventListener('pagehide', () => {
   unsubs.forEach(u => u && u());
   clearInterval(_offerTicker); _offerTicker = null;
+  clearInterval(_clock);
   stopPresence();
 });
 // Restored from the back/forward cache: the listeners above were torn down on
@@ -1430,19 +690,6 @@ window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.re
 </script>
 
 <script src="../shared/js/components/fastLoader.js"></script>
-<script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>
 </body>
 </html>
-
-<script type="module">
-  /* Tapping an offer or active-job card opens THAT booking. Controls inside the
-     card keep their own handlers. */
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('button, a, input, select, textarea')) return;
-    const card = e.target.closest('[data-open]');
-    if (!card) return;
-    const id = card.dataset.open;
-    if (id) window.location.href = `job.html?id=${encodeURIComponent(id)}`;
-  });
-</script>

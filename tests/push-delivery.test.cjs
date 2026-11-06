@@ -390,15 +390,19 @@ await t('new offers are told apart from the ones already on screen', () => {
     assert.deepStrictEqual(w.next(['a', 'c']), ['c'], 're-offered later: announced again');
 });
 
-await t('the dashboard announces new offers, states push status, and withdraws Accept on expiry', () => {
+await t('Today announces new offers, states push status, and withdraws Accept on expiry', () => {
     const dash = fs.readFileSync(path.join(ROOT, 'artisan-app', 'dashboard.html'), 'utf8');
+    const domain = fs.readFileSync(path.join(ROOT, 'shared', 'js', 'domain', 'artisanToday.js'), 'utf8');
     assert.match(dash, /_offerWatcher\.next\(records\.map\(r => r\.id\)\)/);
     assert.match(dash, /\.forEach\(fid => alertNewOffer\(/);
     assert.match(dash, /renderPushBanner\(getPushState\(\)\)/);
     assert.match(dash, /window\.addEventListener\('fx:push-state'/);
-    assert.match(dash, /\? `<button class="btn-accept" \$\{LAPSED_OFFER_ATTRS\}>\$\{LAPSED_OFFER_LABEL\}<\/button>\s*<button class="btn-decline" \$\{LAPSED_OFFER_ATTRS\}>Decline<\/button>`/);
-    assert.match(dash, /lapseOfferButtons\(card\.querySelector\('\.btn-accept'\), card\.querySelector\('\.btn-decline'\)\);/);
-    assert.match(dash, /const offer\s+= offerState\(d\);/);
+    // Phase 2: at expiry Accept goes with the whole offer — resolveToday keeps
+    // only answerable offers, and the ticker redraws the moment one lapses.
+    assert.match(domain, /answerable: !st\.expired,/);
+    assert.match(domain, /\.filter\(\(v\) => v\.answerable\)/);
+    assert.match(dash, /showToast\('That request expired and has been offered to another professional\.'\);\s*_shownOffer = null;\s*paint\(\);/);
+    assert.match(dash, /_offers = fromCache \? records\.filter\(\(r\) => !offerState\(r\.data\)\.expired\) : records;/);
 });
 
 await t('push failures are reported, not swallowed', () => {

@@ -73,7 +73,12 @@ t('every remaining dashboard route to onboarding is gated on that rule', () => {
 t('a cached profile never steers presence or unlocks the availability switch', () => {
     assert.ok(/const cached = fromCache \|\| _profileFromCache;/.test(dash));
     assert.ok(/syncPresence\(data, !cached\);/.test(dash) && /if \(!live\) return;/.test(dash));
-    assert.ok(/if \(fromCache\) toggleBtn\.disabled = true;/.test(dash));
+    // Today (Phase 2): the availability control is drawn disabled while the
+    // profile is not live, and the change itself refuses to act on a cached one.
+    assert.ok(/_profileLive = !cached;/.test(dash) && /cached: !_profileLive/.test(dash));
+    assert.ok(/if \(!_profileLive\) \{ showToast\('Checking your account\. Try again in a moment\.'\); return; \}/.test(dash));
+    const view = read('artisan-app/js/today.js');
+    assert.ok(/waiting: !!ui\.cached/.test(view) && /if \(view\.waiting\) btn\.disabled = true;/.test(view));
 });
 
 t('jobs.html Accept sends to onboarding only for a verification state that calls for it', () => {

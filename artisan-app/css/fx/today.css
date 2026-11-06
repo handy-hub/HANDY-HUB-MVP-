@@ -1,0 +1,25 @@
+/* artisan-app/css/fx/today.css — the Today screen (Phase 2). Tokens only (npm run lint:fx). */
+
+/* The one operational state: the first thing under the app bar. */
+.fx-today__state { padding: var(--fx-space-5) var(--fx-gutter) var(--fx-space-0); }
+
+/* The customer's own words, set apart from what Fidus X says about the job. */
+.fx-today__problem {
+  padding-left: var(--fx-space-3);
+  border-left: var(--fx-stroke) solid var(--fx-line-2);
+  color: var(--fx-ink-2);
+  overflow-wrap: break-word;
+}
+
+/* An icon and its words on one line: "No countdown", "Booked for …". */
+.fx-today__nolimit,
+.fx-today__when { display: flex; align-items: center; gap: var(--fx-space-2); }
+.fx-today__nolimit > svg,
+.fx-today__when > svg { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); }
+
+/* A ledger note under its label, not beside it. */
+.fx-today__note { display: block; }
+
+/* Notices sit in the gutter above the state. */
+.fx-today__notices { padding: var(--fx-space-3) var(--fx-gutter) var(--fx-space-0); }
+.fx-today__notices:empty { display: none; }

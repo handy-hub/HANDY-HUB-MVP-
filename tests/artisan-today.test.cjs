@@ -128,6 +128,8 @@ await t('the visit fee is the server\'s calloutFee, formatted, and nothing is de
     for (const k of Object.keys(v)) assert.ok(!/net|earn|receive|commission|payout|cut/i.test(k), `no entitlement field: ${k}`);
     assert.strictEqual(offerView(offer({ calloutFee: 0 }), NOW).visitFee, null, 'no fee is not "GHS 0.00"');
     assert.strictEqual(offerView(offer({ calloutFee: undefined }), NOW).visitFee, null);
+    assert.strictEqual(offerView(offer({ jobQuote: 300 }), NOW).jobPrice, truth.formatMoney(300), 'a price on the request, as written');
+    assert.strictEqual(offerView(offer({ jobQuote: 0 }), NOW).jobPrice, null);
 });
 
 await t('distance comes from the server\'s distanceKm; missing is omitted, never 0', () => {

@@ -1,7 +1,7 @@
 """FLOW-005 browser check: a job offer the server refuses as gone is retired on
 every screen, and never handed a live button again.
 
-Runs the REAL artisan dashboard.html, jobs.html and job.html in Chromium. The
+Runs the REAL artisan Today (dashboard.html), jobs.html and job.html in Chromium. The
 domain modules (bookingActions, jobOffers, bookingTruth, bookingSchedule,
 instantView...) are the real ones; Firebase, auth, the database container,
 pricing and side services are in-page fakes.
@@ -39,7 +39,11 @@ atexit.register(_report)
 # ── In-page fakes ────────────────────────────────────────────────────────────
 INIT = r"""
 (() => {
-  const fx = window.__fx = { colCbs: {}, docCbs: {}, docErrs: {}, docs: {}, calls: [], refuse: null, intervals: new Set() };
+  const fx = window.__fx = { colCbs: {}, docCbs: {}, docErrs: {}, docs: {}, calls: [], refuse: null, delay: 0, avail: [], toasts: [], intervals: new Set() };
+  // Every toast the page shows, as it appears (they dismiss themselves).
+  document.addEventListener('DOMContentLoaded', () => new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) {
+    if (n.nodeType === 1 && n.classList.contains('fx-toast')) fx.toasts.push(n.querySelector('.fx-toast__text').textContent.trim()); } })
+    .observe(document.body, { childList: true, subtree: true }));
   // Count live intervals so duplicate tickers and pagehide teardown are visible.
   const si = window.setInterval.bind(window), ci = window.clearInterval.bind(window);
   window.setInterval = (fn, ms, ...a) => { const id = si(fn, ms, ...a); fx.intervals.add(id); return id; };
@@ -63,6 +67,7 @@ INIT = r"""
   fx.pricing = new Proxy({
     async respondToJobOffer(bookingId, decision) {
       fx.calls.push([bookingId, decision]);
+      if (fx.delay) await new Promise((r) => setTimeout(r, fx.delay));
       const r = fx.refuse;
       if (r) throw Object.assign(new Error(r.message), { code: `functions/${r.code}`, details: r.reason ? { reason: r.reason } : undefined });
       return { status: decision === 'accept' ? 'accepted' : 'rejected' };
@@ -78,6 +83,11 @@ SPECIFIC = {
     '/shared/js/app/container.js':
         "export function getAppContainer(){ const fx = window.__fx; return { services: new Proxy({ databaseService: fx.db, pricingService: fx.pricing }, { get:(t,k)=> k in t ? t[k] : fx.any() }) }; }",
     '/shared/js/services/pricingService.js': "export const pricingService = window.__fx.pricing; export default window.__fx.pricing;",
+    # Availability is the artisan's explicit choice: record what the page asks for.
+    '/shared/js/services/presenceService.js':
+        "export function startPresence(){} export function stopPresence(){} export function syncAvailability(){} export function ensurePresence(){}"
+        " export function availabilityPending(){ return false; }"
+        " export async function setAvailability(uid, next){ window.__fx.avail.push(next); return { ok: true }; } export default {};",
     '/artisan-app/js/utils/artisanAuthGuard.js': f"""
 const A = {json.dumps(ARTISAN)};
 const U = {{ uid: 'A1', email: 'a@x.test', emailVerified: true }};
@@ -88,7 +98,7 @@ export function signOutArtisan(){{}}
 """,
 }
 # Modules faked with catch-alls (their export names are read from the importing page).
-CATCH_ALL = re.compile(r'^/shared/(vendor/firebase/|js/backend/|dev/)|^/shared/js/services/(callable|presenceService|pushNotificationService|cloudinaryService|notificationRepository)\.js$'
+CATCH_ALL = re.compile(r'^/shared/(vendor/firebase/|js/backend/|dev/)|^/shared/js/services/(callable|pushNotificationService|cloudinaryService|notificationRepository)\.js$'
                        r'|^/shared/js/data/repositories/|^/shared/js/ui/quoteComposer\.js$')
 EMPTY = {'/shared/js/utils/global-app.js', '/shared/js/utils/themeManager.js', '/shared/js/components/fastLoader.js',
          '/artisan-app/js/artisanFloatingNav.js', '/artisan-app/js/pwa.js'}
@@ -166,60 +176,141 @@ def text_of(pg, sel):
 with sync_playwright() as pw:
     b = pw.chromium.launch()
 
-    # ═══ DASHBOARD ════════════════════════════════════════════════════════════
+    # ═══ TODAY (dashboard.html, Phase 2) ═════════════════════════════════════
+    # The real page, its real data wiring (instantView, the offers / bookings /
+    # profile listeners, performBookingAction, the countdown ticker), drawn by
+    # the real artisan-app/js/today.js. Only Firebase and the server are fakes.
     pg, errs = open_page(b, '/artisan-app/dashboard.html')
-    pg.wait_for_function("(window.__fx.colCbs.job_offers || []).length > 0", timeout=15000)
-    # The live profile (so acceptJob's KYC gate sees an approved, active artisan).
+    pg.wait_for_function("(window.__fx.colCbs.job_offers || []).length > 0 && (window.__fx.colCbs.bookings || []).length > 0", timeout=15000)
     pg.wait_for_function("(window.__fx.docCbs['artisans/A1'] || []).length > 0", timeout=5000)
-    pg.evaluate("(a) => window.__fx.docCbs['artisans/A1'].forEach(cb => cb({ id: 'A1', exists: true, data: a, fromCache: false, hasPendingWrites: false }))", ARTISAN)
+    emit_profile = lambda a: pg.evaluate("(a) => window.__fx.docCbs['artisans/A1'].forEach(cb => cb({ id: 'A1', exists: true, data: a, fromCache: false, hasPendingWrites: false }))", a)
+    emit_bookings = lambda recs: pg.evaluate("(r) => (window.__fx.colCbs.bookings || []).forEach(cb => cb(r.map(d => ({ id: d.id, data: d })), { fromCache: false }))", recs)
+    toasts = lambda: pg.evaluate('window.__fx.toasts.slice()')
+    clear_toasts = lambda: pg.evaluate('window.__fx.toasts.length = 0')
+    mode = lambda: pg.evaluate("(document.querySelector('#today-state > section') || {}).dataset?.mode || null")
+    shown_offer = lambda: pg.evaluate("(document.querySelector('#today-state [data-offer]') || {}).dataset?.offer || null")
+    calls = lambda: pg.evaluate('window.__fx.calls.slice()')
+    ACC, DEC = '#today-dock [data-act="accept"]', '#today-dock [data-act="decline"]'
+
+    emit_profile(ARTISAN)
+    emit_bookings([])
     t = now(pg)
-    emit_offers(pg, [offer('B1', t, 120), offer('B2', t, 2), offer('B3', t, prematched=True)])
-    pg.wait_for_selector('#job-B1 .btn-accept')
-    check('dashboard: an open offer shows Accept and a countdown from formatTimeLeft',
-          btn_state(pg, '#job-B1 .btn-accept')['disabled'] is False and re.match(r'^\d:\d\d$|^\d+s$', text_of(pg, '#job-B1 [data-countdown], #job-countdown-B1')),
-          text_of(pg, '#job-B1 [data-countdown], #job-countdown-B1'))
-    check('dashboard: a prematched offer (no deadline) has no countdown and stays answerable',
-          pg.query_selector('#job-B3 [data-countdown]') is None and btn_state(pg, '#job-B3 .btn-accept')['disabled'] is False)
-    wait_lapsed(pg, '#job-B2 .btn-accept')
-    a, d = btn_state(pg, '#job-B2 .btn-accept'), btn_state(pg, '#job-B2 .btn-decline')
-    check('dashboard: at expiresAtMs the ticker retires the card: Accept "Expired", BOTH disabled, opacity .5',
-          a['text'] == 'Expired' and a['disabled'] and d['disabled'] and a['opacity'] == '0.5', (a, d))
-    for _ in range(3): emit_offers(pg, [offer('B1', t, 120), offer('B3', t, prematched=True)])
-    check('dashboard: re-rendering the list never adds a second ticker', live_intervals(pg) <= 2, live_intervals(pg))
+    emit_offers(pg, [offer('B1', t, 120)])
+    pg.wait_for_selector(ACC)
+    check('Today: an open offer takes the screen, with the server countdown and a live Accept',
+          shown_offer() == 'B1' and btn_state(pg, ACC)['disabled'] is False and re.match(r'^\d:\d\d$', text_of(pg, '[data-countdown]')),
+          (shown_offer(), text_of(pg, '[data-countdown]')))
+    check('Today: no customer name on the offer (the document carries "Ama")', 'Ama' not in text_of(pg, 'body'))
 
+    # Accept, tapped twice while the server is slow: one call, one answer.
+    pg.evaluate("window.__fx.delay = 700; window.__fx.refuse = null; window.__fx.calls.length = 0")
+    clear_toasts()
+    pg.click(ACC)
+    pg.wait_for_timeout(100)
+    a = btn_state(pg, ACC)
+    check('Today: while accepting, Accept reads "Accepting…" and both answers are disabled',
+          a['text'] == 'Accepting…' and a['disabled'] and btn_state(pg, DEC)['disabled'], a)
+    pg.click(ACC, force=True)
+    pg.evaluate("(s) => document.querySelector(s)?.click()", ACC)
+    pg.wait_for_timeout(900)
+    check('Today: a second tap during the first sends nothing (one respondToJobOffer call)', calls() == [['B1', 'accept']], calls())
+    check("Today: accepted → the confirmation is said", 'Job accepted. The customer will be notified.' in toasts(), toasts())
+    # The server closes the offer and opens the booking to the artisan (visit fee pending).
+    emit_offers(pg, [])
+    emit_bookings([{'id': 'B1', 'artisanId': 'A1', 'status': 'accepted', 'track': 'inspection', 'calloutPaid': False, 'serviceType': 'plumbing', 'calloutFee': 60}])
+    pg.wait_for_timeout(200)
+    check('Today: after accepting, the job is listed as waiting on the customer (visit fee), not lost',
+          mode() == 'online' and 'Waiting for the customer' in text_of(pg, '#today-lists'), (mode(), text_of(pg, '#today-lists')))
+    check('Today: an offer this screen answered is not reported as withdrawn', 'That job request is no longer available.' not in toasts(), toasts())
+    pg.evaluate("window.__fx.delay = 0")
+
+    # Expiry on the clock: the offer leaves the screen with a sentence; the server is never asked.
+    clear_toasts(); pg.evaluate("window.__fx.calls.length = 0")
+    emit_offers(pg, [offer('B2', now(pg), 2)])
+    pg.wait_for_selector('#today-state [data-offer="B2"]')
+    pg.wait_for_timeout(3200)
+    check('Today: at expiresAtMs the offer leaves the screen and says why', shown_offer() is None
+          and 'That request expired and has been offered to another professional.' in toasts(), (shown_offer(), toasts()))
+    check('Today: an expired offer is never sent to the server', calls() == [], calls())
+
+    # Refused by the server as expired: gone, and a later "still open" snapshot does not bring it back.
+    clear_toasts()
+    emit_offers(pg, [offer('B3', now(pg), 120)])
+    pg.wait_for_selector('#today-state [data-offer="B3"]')
     pg.evaluate("window.__fx.refuse = { code: 'failed-precondition', reason: 'expired', message: 'This request has expired and has been offered to another professional.' }")
-    pg.click('#job-B1 .btn-accept')
-    pg.wait_for_timeout(600)
-    a, d = btn_state(pg, '#job-B1 .btn-accept'), btn_state(pg, '#job-B1 .btn-decline')
-    check('dashboard: refused as expired → Accept "Expired", both disabled, NOT restored',
-          a['text'] == 'Expired' and a['disabled'] and d['disabled'], (a, d))
-    emit_offers(pg, [offer('B1', t, 120), offer('B3', t, prematched=True)])   # server still says "open"
-    a = btn_state(pg, '#job-B1 .btn-accept')
-    check('dashboard: the next snapshot (offer still "open" on the server) keeps it lapsed', a['text'] == 'Expired' and a['disabled'], a)
+    pg.click(ACC); pg.wait_for_timeout(500)
+    check("Today: refused as expired → the server's words, and the offer leaves the screen",
+          shown_offer() is None and 'This request has expired and has been offered to another professional.' in toasts(), (shown_offer(), toasts()))
+    emit_offers(pg, [offer('B3', now(pg), 120)])   # the server's offer document still says "open"
+    pg.wait_for_timeout(200)
+    check('Today: the next snapshot (offer still "open") does not bring it back', shown_offer() is None, shown_offer())
 
-    pg.evaluate("window.__fx.refuse = { code: 'failed-precondition', reason: 'closed', message: 'This request is no longer open.' }")
-    pg.click('#job-B3 .btn-decline')
-    # Decline asks first in the app's own sheet since UI-011 (fc9c188, after this
-    # test was written); the window.confirm stub above no longer answers it.
-    pg.click('.ui-sheet-overlay.open .ui-sheet .ds-btn--danger, .ui-sheet-overlay.open .ui-sheet .ds-btn--primary')
-    pg.wait_for_timeout(600)
-    a, d = btn_state(pg, '#job-B3 .btn-accept'), btn_state(pg, '#job-B3 .btn-decline')
-    check('dashboard: a prematched offer refused on DECLINE ("closed") → lapsed; Decline label not left "Declining…"',
-          a['disabled'] and d['disabled'] and d['text'] == 'Decline' and a['text'] == 'Expired', (a, d))
-
-    emit_offers(pg, [offer('B4', t, 300)])
-    pg.wait_for_selector('#job-B4 .btn-accept')
+    # A network failure gives the answer back, unchanged.
     pg.evaluate("window.__fx.refuse = { code: 'unavailable', reason: null, message: 'unavailable' }")
-    pg.click('#job-B4 .btn-accept')
-    pg.wait_for_timeout(600)
-    a = btn_state(pg, '#job-B4 .btn-accept')
-    check('dashboard: a network failure gives Accept back exactly as drawn ("Accept", with its icon)',
-          a['text'] == 'Accept' and not a['disabled'] and '<svg' in a['html'], a)
+    emit_offers(pg, [offer('B4', now(pg), 300)])
+    pg.wait_for_selector('#today-state [data-offer="B4"]')
+    pg.click(ACC); pg.wait_for_timeout(500)
+    a = btn_state(pg, ACC)
+    check('Today: a network failure leaves the offer answerable ("Accept", enabled)', shown_offer() == 'B4' and a['text'] == 'Accept' and not a['disabled'], a)
+
+    # Decline asks first, in the app's own sheet; "Keep it" sends nothing.
+    pg.evaluate("window.__fx.refuse = null; window.__fx.calls.length = 0")
+    clear_toasts()
+    pg.click(DEC)
+    pg.wait_for_selector('#decline-sheet:not([hidden]) [role="dialog"]')
+    pg.click('#decline-sheet [data-sheet-close]')
+    pg.wait_for_timeout(450)
+    check('Today: Decline opens a confirmation; "Keep it" sends nothing', calls() == [] and shown_offer() == 'B4', calls())
+    pg.click(DEC)
+    pg.wait_for_selector('#decline-sheet:not([hidden]) [data-confirm]')
+    pg.click('#decline-sheet [data-confirm]'); pg.wait_for_timeout(600)
+    check('Today: confirming declines it, once', calls() == [['B4', 'decline']] and 'Request declined.' in toasts(), (calls(), toasts()))
+    emit_offers(pg, [])
+
+    # Withdrawn while on screen (customer cancelled, or re-offered): said, without inventing a reason.
+    clear_toasts()
+    emit_offers(pg, [offer('B5', now(pg), 300)])
+    pg.wait_for_selector('#today-state [data-offer="B5"]')
+    emit_offers(pg, [])
+    pg.wait_for_timeout(200)
+    check('Today: an offer withdrawn while on screen → "no longer available", and Today moves on',
+          shown_offer() is None and 'That job request is no longer available.' in toasts(), (shown_offer(), toasts()))
+
+    # Mid-job (decision Q3): the offer leads and names the job under way; then the job's step.
+    J1 = {'id': 'J1', 'artisanId': 'A1', 'status': 'en_route', 'track': 'inspection', 'calloutPaid': True, 'serviceType': 'electrical', 'calloutFee': 60}
+    pg.evaluate("(d) => { window.__fx.docs['bookings/J1'] = d; }", J1)
+    emit_bookings([J1])
+    emit_offers(pg, [offer('B6', now(pg), 300)])
+    pg.wait_for_selector('#today-state [data-offer="B6"]')
+    check('Today (Q3): an offer during a job leads, and says a job is under way', 'You have a job under way' in text_of(pg, '#today-state'))
+    check('Today: the availability control stays in the app bar while the offer owns the screen', text_of(pg, '#avail-btn') == 'Online')
+    emit_offers(pg, [])
+    pg.wait_for_selector('#today-dock [data-act="job-arrived"]')
+    check('Today: with no offer, the job owns the screen with its one step (Mark arrived)',
+          mode() == 'job' and text_of(pg, '#today-dock [data-act="job-arrived"]') == 'Mark arrived')
+    clear_toasts()
+    pg.click('#today-dock [data-act="job-arrived"]'); pg.wait_for_timeout(600)
+    check('Today: Mark arrived goes through performBookingAction and says so', 'Job started. Customer notified.' in toasts(), toasts())
+
+    # Availability: stop receiving offers asks first, then saves through setAvailability.
+    pg.evaluate("window.__fx.avail.length = 0")
+    pg.click('#avail-btn')
+    pg.wait_for_selector('#offline-sheet:not([hidden]) [data-confirm]')
+    pg.click('#offline-sheet [data-sheet-close]'); pg.wait_for_timeout(450)
+    check('Today: "Stay online" keeps availability untouched', pg.evaluate('window.__fx.avail.slice()') == [])
+    pg.click('#avail-btn')
+    pg.wait_for_selector('#offline-sheet:not([hidden]) [data-confirm]')
+    pg.click('#offline-sheet [data-confirm]'); pg.wait_for_timeout(400)
+    check('Today: "Go offline" saves false through setAvailability', pg.evaluate('window.__fx.avail.slice()') == [False], pg.evaluate('window.__fx.avail.slice()'))
+    emit_profile(dict(ARTISAN, isAvailable=False))
+    emit_bookings([])
+    pg.wait_for_selector('#today-dock [data-act="go-online"]')
+    pg.click('#today-dock [data-act="go-online"]'); pg.wait_for_timeout(400)
+    check("Today: offline, the dock's Go online saves true", pg.evaluate('window.__fx.avail.slice()') == [False, True], pg.evaluate('window.__fx.avail.slice()'))
 
     pg.evaluate("window.dispatchEvent(new Event('pagehide'))")
-    check('dashboard: pagehide clears the offer ticker', pg.evaluate("window.__fx.intervals.size") <= 1 and not pg.evaluate('typeof _offerTicker') == 'number',
-          pg.evaluate('window.__fx.intervals.size'))
-    check('dashboard: no page errors', not errs, errs[:3])
+    check('Today: pagehide clears the offer ticker and the clock', pg.evaluate("window.__fx.intervals.size") == 0, pg.evaluate('window.__fx.intervals.size'))
+    check('Today: no page errors', not errs, errs[:3])
     pg.context.close()
 
     # ═══ JOBS LIST ════════════════════════════════════════════════════════════
