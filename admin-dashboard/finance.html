@@ -442,7 +442,7 @@
       return `<tr>
         <td>${fmtRef(d.bookingId)}</td>
         <td class="amount-col">${fmtGHC(d.amount)}</td>
-        <td><span class="badge ${d.status}">${d.status}</span></td>
+        <td><span class="badge ${d.status}">${d.status}</span>${d.status === 'held' && d.needsAttention ? '<span class="badge attention" title="Work still under way 7 days after the payment was held. The payment stays held and is checked daily; please check on the job.">attention</span>' : ''}</td>
         <td style="font-size:12px;color:#888">${autoDate}</td>
       </tr>`;
     }).join('');

@@ -41,6 +41,11 @@
 //   Booking status = disputed
 //     → left held        — resolveDispute (admin) decides, never the timer
 //
+//   Booking status ∈ { en_route, in_progress } AND artisan assigned (job escrow)
+//     → left held, support alerted once, re-checked a day later — the work is
+//       under way (decision Q2, 2026-11-06). It used to be refunded here, so a
+//       job that ran past 7 days lost its payment while the artisan worked.
+//
 //   Any other booking state, no artisan, or booking not found
 //     → refundEscrow()   — full amount returned to customer
 //     Reason: if the job was truly done, the artisan had 7 days to confirm or
@@ -63,6 +68,12 @@ const { releaseEscrow, refundEscrow } = require('./escrow');
 //   when many escrows share the same artisan (transaction contention → retries).
 const BATCH_SIZE          = 100;
 const CONCURRENT_PER_BATCH = 10;
+
+// Work still under way when the 7 days end (decision Q2): the payment stays held
+// and the escrow is looked at again this much later. Moving its autoReleaseAt
+// keeps it out of every run in between, so held escrows can never fill a batch.
+const WORK_UNDER_WAY        = ['en_route', 'in_progress'];
+const WORK_HOLD_RECHECK_MS  = 24 * 60 * 60 * 1000;
 
 // ── Internal collections (Cloud Functions / Admin SDK access only) ─────────────
 const COL_RUNS     = '_auto_release_runs';      // one doc per scheduler execution
@@ -125,6 +136,10 @@ async function determineOutcome(escrowData) {
     // reconsiders it, and resolveDispute settles it.
     if (status === 'disputed') return 'hold';
 
+    // The artisan is on the way or working (decision Q2). Never refund work in
+    // progress on a timer: hold, tell support, look again tomorrow.
+    if (WORK_UNDER_WAY.includes(status) && artisanId) return 'hold_work';
+
     // The job was marked done (completed) or is awaiting customer confirmation
     // (awaiting), AND an artisan is assigned. Release funds to the artisan.
     //
@@ -134,10 +149,52 @@ async function determineOutcome(escrowData) {
         return 'release';
     }
 
-    // All other states — pending, in_progress, cancelled, unfulfilled, rejected,
-    // or anything unexpected — refund the customer. The artisan had
+    // All other states — pending, accepted, quoted, cancelled, unfulfilled,
+    // rejected, or anything unexpected — refund the customer. The artisan had
     // 7 days to get the booking to a payable state.
     return 'refund';
+}
+
+/**
+ * Keep a job payment held while the work is under way (decision Q2): move its
+ * autoReleaseAt a day on, count the hold, and alert support the first time.
+ * No money moves. The status re-check inside the transaction means an escrow
+ * settled in the meantime is left alone.
+ */
+async function holdForWorkUnderWay(escrowId, escrowData, baseResult) {
+    const firestore = db();
+    const ref = firestore.collection('escrow').doc(escrowId);
+    const at  = now();
+    const firstHold = await firestore.runTransaction(async (txn) => {
+        const snap = await txn.get(ref);
+        if (!snap.exists || snap.data().status !== 'held') return null;
+        const e = snap.data();
+        txn.update(ref, {
+            autoReleaseAt:   new Date(Date.now() + WORK_HOLD_RECHECK_MS).toISOString(),
+            workHoldCount:   (Number(e.workHoldCount) || 0) + 1,
+            workHoldLastAt:  at,
+            // The admin Finance page badges it, as it does a payout (transfers.js alertOps).
+            needsAttention:  true,
+            attentionReason: 'work_under_way',
+            ...(e.workHoldAlertedAt ? {} : { workHoldAlertedAt: at }),
+        });
+        return !e.workHoldAlertedAt;
+    });
+    if (firstHold === null) return { ...baseResult, outcome: 'already_processed' };
+
+    if (firstHold) {
+        const bookingId = escrowData.bookingId || null;
+        const message = `Booking ${bookingId || '(unknown)'} is still en route or in progress 7 days after its payment ` +
+                        `(GHS ${Number(escrowData.amount || 0).toFixed(2)}) was held. The payment stays held and is ` +
+                        'checked again daily; it releases once the job is marked done. Please check on the job.';
+        await firestore.collection('admin_notifications').add({
+            type: 'escrow_work_hold', escrowId, bookingId, message, isRead: false, createdAt: at,
+        }).catch((err) => console.error(`[auto-release] Work-hold alert failed for escrow ${escrowId}:`, err.message));
+        await firestore.collection('financialAudit').add({
+            action: 'escrow_work_hold', escrowId, bookingId, amount: escrowData.amount ?? null, createdAt: at,
+        }).catch((err) => console.error(`[auto-release] Work-hold audit failed for escrow ${escrowId}:`, err.message));
+    }
+    return { ...baseResult, outcome: 'held_work_under_way' };
 }
 
 // ── Error classification ───────────────────────────────────────────────────────
@@ -194,6 +251,9 @@ async function processOneEscrow(escrowId, escrowData) {
 
     if (routedTo === 'hold') {
         return { ...baseResult, outcome: 'held_for_dispute' };
+    }
+    if (routedTo === 'hold_work') {
+        return await holdForWorkUnderWay(escrowId, escrowData, baseResult);
     }
 
     // ── Attempt 1: release to artisan ──────────────────────────────────────────
@@ -444,6 +504,7 @@ async function runAutoRelease() {
         refundedNoArtisan: 0,
         alreadyProcessed: 0,
         heldForDispute:   0,
+        heldWorkUnderWay: 0,
         failed:           0,
     };
 
@@ -534,6 +595,13 @@ async function runAutoRelease() {
                             stats.alreadyProcessed++;
                             console.log(
                                 `[auto-release] ↩ Already    processed escrow ${escrowId} — skipped.`
+                            );
+                            break;
+                        case 'held_work_under_way':
+                            stats.heldWorkUnderWay++;
+                            console.log(
+                                `[auto-release] ⏸ Held       escrow ${escrowId} — booking ` +
+                                `${bookingId} is still en route or in progress; checked again in a day.`
                             );
                             break;
                         case 'held_for_dispute':
