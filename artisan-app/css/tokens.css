@@ -1,0 +1,170 @@
+/* ============================================================================
+   Fidus X Artisan · design tokens  (Phase 1 — the approved Workbench system)
+   ----------------------------------------------------------------------------
+   The ONLY file in the artisan system allowed to hold raw values. Components
+   (css/app.css) and every screen stylesheet built on it reference these names;
+   scripts/check-fx-design-system.cjs fails the build on a raw colour, radius,
+   shadow, type value, z-index or duration anywhere else.
+
+   Contrast figures are WCAG 2.x ratios, computed — tests/fx-design-system.test.cjs
+   recomputes every one and fails if a token change breaks it.
+
+   Scope: light theme. The artisan app's existing dark mode keeps working on the
+   screens that have not migrated (css/design-system.css); a dark mapping for
+   these tokens is design decision 04, not yet taken.
+
+   The customer app is maroon; the artisan app is orange. Nothing here is shared
+   with customer-app styles, and nothing in customer-app may reference --fx-*.
+   ========================================================================== */
+
+:root {
+  /* ── Neutrals ──────────────────────────────────────────────────────────── */
+  --fx-ink:        #111316;   /* primary text, icons            18.6:1 on paper, 16.8:1 on well */
+  --fx-ink-2:      #3B4048;   /* secondary text                 10.4:1 on paper,  9.4:1 on well */
+  --fx-ink-3:      #62676F;   /* muted text: metadata, captions  5.7:1 on paper,  5.1:1 on well */
+  --fx-ink-4:      #9EA3AA;   /* disabled labels only (WCAG-exempt); never meaningful text */
+  --fx-paper:      #FFFFFF;   /* the page */
+  --fx-well:       #F3F3F2;   /* inputs' resting fill, secondary buttons, inactive segments */
+  --fx-well-2:     #E8E8E6;   /* pressed / hovered well */
+  --fx-line:       #E6E7E9;   /* hairline rule between rows and sections (decorative) */
+  --fx-line-2:     #CFD2D6;   /* a stronger rule where a hairline disappears (decorative) */
+  --fx-edge:       #80858D;   /* the boundary that identifies a control: 3.7:1 on paper, 3.3:1 on well (WCAG 1.4.11) */
+
+  /* ── Accent: Fidus X artisan orange ───────────────────────────────────────
+     Orange is a fill for the one primary action and live state, never text on
+     white (2.8:1). Labels on it are near-black: 6.6:1, pressed 5.5:1.        */
+  --fx-accent:       #F97316;
+  --fx-accent-press: #E8620A;
+  --fx-on-accent:    #111316;
+  --fx-accent-text:  #C2410C;   /* deep orange for text and links: 5.2:1 on paper, 4.7:1 on well */
+  /* Small non-text indicators (unread dots, badges) need 3:1 against the page;
+     #F97316 has 2.8:1, so they use the deep orange. */
+  --fx-indicator:    #C2410C;
+  --fx-accent-glow:  rgba(249, 115, 22, 0.55);   /* the one-time pulse when an offer arrives */
+
+  /* ── Status: one meaning each, never decoration. Text on its wash ≥ 4.5:1 ── */
+  --fx-ok:    #0F7343;  --fx-ok-wash:   #E7F3EC;   /* online, paid, done          5.2:1 on wash, 5.9:1 on paper */
+  --fx-info:  #1D5FD1;  --fx-info-wash: #E8EFFB;   /* in escrow, on the way       5.0:1 / 5.8:1 */
+  --fx-warn:  #A65A00;  --fx-warn-wash: #FBF0DF;   /* needs attention, soon       4.6:1 / 5.1:1 */
+  --fx-bad:   #C2302B;  --fx-bad-wash:  #FBEAE9;   /* failed, cancel, expiry      4.8:1 / 5.6:1 */
+  --fx-on-bad: #FFFFFF;                            /* label on a solid bad fill:  5.6:1 */
+  --fx-scrim: rgba(17, 19, 22, 0.44);
+  --fx-on-ink: #FFFFFF;                            /* text on an ink surface (toast): 18.6:1 */
+  --fx-on-ink-2: #9EA3AA;                          /* secondary text on ink:        7.3:1 */
+
+  /* ── Type ─────────────────────────────────────────────────────────────────
+     DM Sans, variable (load with the axis range: opsz,wght@9..40,400..800).
+     Six sizes, three weights, sentence case. Sizes are rem so the reader's
+     text-size preference is honoured; controls grow with their text.        */
+  --fx-font: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --fx-w-read:   400;   /* everything read */
+  --fx-w-label:  550;   /* labels, metadata, row titles */
+  --fx-w-strong: 650;   /* state, structure, buttons */
+
+  --fx-size-display: 2.125rem;  --fx-lh-display: 2.5rem;     /* 34 / 40 */
+  --fx-size-title:   1.5rem;    --fx-lh-title:   1.875rem;   /* 24 / 30 */
+  --fx-size-heading: 1.125rem;  --fx-lh-heading: 1.5rem;     /* 18 / 24 */
+  --fx-size-body:    1rem;      --fx-lh-body:    1.5rem;     /* 16 / 24 */
+  --fx-size-label:   0.875rem;  --fx-lh-label:   1.25rem;    /* 14 / 20 */
+  --fx-size-caption: 0.75rem;   --fx-lh-caption: 1rem;       /* 12 / 16 — the floor */
+
+  --fx-t-display: var(--fx-w-strong) var(--fx-size-display)/var(--fx-lh-display) var(--fx-font);
+  --fx-t-title:   var(--fx-w-strong) var(--fx-size-title)/var(--fx-lh-title)     var(--fx-font);
+  --fx-t-heading: var(--fx-w-strong) var(--fx-size-heading)/var(--fx-lh-heading) var(--fx-font);
+  --fx-t-body:    var(--fx-w-read)   var(--fx-size-body)/var(--fx-lh-body)       var(--fx-font);
+  --fx-t-body-strong: var(--fx-w-label) var(--fx-size-body)/var(--fx-lh-body)    var(--fx-font);
+  --fx-t-label:   var(--fx-w-label)  var(--fx-size-label)/var(--fx-lh-label)     var(--fx-font);
+  --fx-t-meta:    var(--fx-w-read)   var(--fx-size-label)/var(--fx-lh-label)     var(--fx-font);
+  --fx-t-caption: var(--fx-w-label)  var(--fx-size-caption)/var(--fx-lh-caption) var(--fx-font);
+  --fx-t-button:  var(--fx-w-strong) var(--fx-size-body)/var(--fx-lh-body)       var(--fx-font);
+  --fx-t-button-s: var(--fx-w-strong) var(--fx-size-label)/var(--fx-lh-label)    var(--fx-font);
+
+  --fx-track-display: -0.02em;
+  --fx-track-title:   -0.015em;
+  --fx-track-heading: -0.01em;
+  --fx-track-none:    0;
+  --fx-track-code:    0.02em;   /* booking references */
+
+  /* ── Space: 4-point grid ──────────────────────────────────────────────── */
+  --fx-space-0:  0;
+  --fx-space-px: 1px;   /* hairline offsets only */
+  --fx-space-h:  2px;   /* half step: chip insets, rail gaps */
+  --fx-space-1:  4px;   --fx-space-2:  8px;   --fx-space-3: 12px;  --fx-space-4: 16px;
+  --fx-space-5:  20px;  --fx-space-6: 24px;   --fx-space-8: 32px;  --fx-space-10: 40px;
+  --fx-space-12: 48px;
+  --fx-gutter:   20px;  /* page side gutter; 16px under 375px wide (below) */
+
+  /* ── Geometry: radius by role — four values ───────────────────────────── */
+  --fx-r-chip:    6px;    /* status chips, tags, segments inside a control */
+  --fx-r-control: 8px;    /* buttons, inputs, segmented controls, notices, toasts */
+  --fx-r-sheet:   16px;   /* top corners of bottom sheets */
+  --fx-r-round:   999px;  /* avatars, dots, the switch — nothing else */
+
+  /* ── Dimensions ───────────────────────────────────────────────────────── */
+  --fx-h-l:    56px;   /* the one primary action on a screen (dock, sheet actions) */
+  --fx-h-m:    48px;   /* every other button and every input */
+  --fx-h-s:    36px;   /* inline buttons; hit area padded to --fx-hit */
+  --fx-hit:    44px;   /* minimum touch target, no exceptions */
+  --fx-bar:    56px;   /* app bar */
+  --fx-tab:    64px;   /* tab bar (plus the device's safe-area inset) */
+  --fx-row:    56px;   /* list row minimum */
+  --fx-chip-h: 24px;   /* chip minimum height */
+  --fx-icon-s: 20px;   --fx-icon-m: 24px;
+  --fx-avatar-s: 32px; --fx-avatar-m: 40px; --fx-avatar-l: 56px;
+  --fx-dot:    10px;   /* live / status dot */
+  --fx-badge:  8px;    /* unread badge */
+  --fx-chip-dot: 6px;  /* the dot inside a status chip */
+  --fx-hairline: 1px;  /* rules, input borders */
+  --fx-stroke:   2px;  /* spinner ring, hollow dot */
+  --fx-rail-h: 4px;    /* journey rail and countdown bar */
+  --fx-marker: 3px;    /* the selected-tab marker */
+  --fx-marker-w: 32px;
+  --fx-spin:   16px;   /* button spinner */
+  --fx-input-multi: 88px;   /* textarea minimum */
+  --fx-shell-max: 560px;    /* content column on tablets and desktops */
+  --fx-measure: 36ch;       /* lead paragraphs */
+
+  /* ── Elevation: only for things that sit above the page ───────────────── */
+  --fx-e-none:  none;
+  --fx-e-sheet: 0 -1px 0 rgba(17, 19, 22, 0.05), 0 -14px 36px -10px rgba(17, 19, 22, 0.22);
+  --fx-e-pop:   0 0 0 1px rgba(17, 19, 22, 0.06), 0 12px 28px -8px rgba(17, 19, 22, 0.24);
+  --fx-e-bar:   0 1px 0 var(--fx-line);          /* a sticky bar once content scrolls under it */
+  --fx-ring-selected: 0 0 0 1px var(--fx-edge);  /* the selected segment's edge */
+  --fx-ring-badge: 0 0 0 2px var(--fx-paper);    /* separates a badge from what it sits on */
+  --fx-ring-input: inset 0 0 0 1px var(--fx-ink); /* a focused input: border + ring = 2px of ink */
+  --fx-ring-invalid: inset 0 0 0 1px var(--fx-bad);
+  --fx-ring-off:   inset 0 0 0 2px var(--fx-ink-3); /* the hollow "offline" dot: 5.7:1 */
+
+  /* ── Focus: ink, never orange (orange on white is under 3:1) ──────────────
+     An outline, not a shadow, so a component's own shadow can never hide it. */
+  --fx-focus-color:  var(--fx-ink);
+  --fx-focus-width:  2px;
+  --fx-focus-offset: 2px;
+  --fx-focus-offset-inset: -3px;   /* inside full-bleed rows and tabs */
+
+  /* ── Motion: one curve, three durations ───────────────────────────────── */
+  --fx-ease:     cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fx-ease-io:  cubic-bezier(0.4, 0, 0.2, 1);
+  --fx-d-press:  90ms;    /* touch feedback */
+  --fx-d-state:  180ms;   /* a control changing state */
+  --fx-d-sheet:  320ms;   /* a layer arriving */
+  --fx-d-spin:   700ms;   /* one turn of a spinner */
+  --fx-d-pulse:  2200ms;  /* the live dot */
+  --fx-d-tick:   1000ms;  /* a countdown bar between two seconds */
+  --fx-d-none:   0.01ms;  /* reduced motion */
+
+  /* ── Layers ───────────────────────────────────────────────────────────── */
+  --fx-z-base:    0;
+  --fx-z-bar:     10;   /* app bar, dock, tab bar */
+  --fx-z-overlay: 30;   /* scrim + sheet */
+  --fx-z-toast:   40;
+}
+
+/* ── Responsive tokens ────────────────────────────────────────────────────
+   compact  < 375px   phones such as the 360px Android baseline: tighter gutter
+   regular  375–599px
+   wide     ≥ 600px   tablets and desktops: one centred column (--fx-shell-max) */
+@media (max-width: 374.98px) {
+  :root { --fx-gutter: 16px; }
+}
