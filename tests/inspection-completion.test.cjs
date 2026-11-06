@@ -264,6 +264,31 @@ await t('jobs.html and dashboard.html take inspection steps from artisanInspecti
         'dashboard.html must render Complete Inspection from exactly one (step-driven) branch');
 });
 
+// Screens that draw resolveJourney's step and Jobs (artisanInspectionStep):
+// the two must name the same step for every inspection booking, or the two
+// screens would disagree about what the artisan does next.
+const STEP_TO_OP = { en_route: 'enRoute', arrived: 'arrived', complete_inspection: 'completeInspection', submit_quote: 'submitQuote' };
+await t('resolveJourney (Today) and artisanInspectionStep (Jobs) name the same step at every inspection state', () => {
+    const cases = [
+        insp({ status: 'accepted', calloutPaid: false }),
+        insp({ status: 'inspection_scheduled', ...future() }),
+        insp({ status: 'inspection_scheduled', ...openNow() }),
+        insp({ status: 'inspection_scheduled' }),
+        insp({ status: 'en_route', ...future() }),
+        insp({ status: 'en_route' }),
+        insp({ status: 'in_progress' }),
+        insp({ status: 'inspection_done' }),
+        insp({ status: 'quoted' }),
+    ];
+    for (const b of cases) {
+        const schedule = SCHED.resolveSchedule(b);
+        const step = META.artisanInspectionStep(b, { schedule });
+        const fromJobs = step && !step.blocked ? STEP_TO_OP[step.id] : null;
+        const fromToday = TRUTH.resolveJourney(b, 'artisan', { schedule }).action;
+        assert.strictEqual(fromToday ? fromToday.op : null, fromJobs ?? null, `${b.status}${b.scheduledForMs ? ' (booked)' : ''}: Jobs ${step && step.id}`);
+    }
+});
+
 console.log(`\ninspection-completion: ${passed} passed, ${failed} failed`);
 if (failed) { for (const [name, e] of failures) console.log(`\n✗ ${name}\n${e.stack}`); process.exit(1); }
 })();

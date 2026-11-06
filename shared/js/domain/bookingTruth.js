@@ -983,6 +983,13 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
         tone: 'waiting',
     };
 
+    // Only SETTING OUT waits for a booked slot: firestore.rules (scheduleWindowOpen)
+    // gates accepted / inspection_scheduled -> en_route, never arrival or the
+    // inspection itself, which record things that already happened. Withholding
+    // "Mark arrived" from an artisan already on the way contradicted the rules and
+    // artisanInspectionStep (Phase 2, tests/inspection-completion.test.cjs).
+    const slotWait = notYet && (st === 'inspection_scheduled' || st === 'accepted');
+
     S[JOB_PHASE.INSPECTION] = isCustomer ? {
         here: st === 'en_route' ? `${who} is on the way` : 'Inspection booked',
         just: 'Your visit fee is secured in escrow.',
@@ -996,10 +1003,10 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
         tone: notYet ? 'waiting' : 'live',
     } : {
         here: st === 'en_route' ? 'On your way'
-            : notYet            ? 'Booked'
+            : slotWait          ? 'Booked'
             :                     'Inspection visit',
         just: 'The visit fee is secured — you are paid for this trip.',
-        next: notYet
+        next: slotWait
             ? `You committed to arriving ${apptWhen}. Nothing to do until then.`
             : st === 'en_route'
                 ? 'Mark yourself arrived when you reach the customer, then assess the problem.'
@@ -1012,7 +1019,7 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
         // goes for completing before arrival: completeInspection refuses it, so
         // it is offered on in_progress only — never as a fallthrough for any
         // other status.
-        action: notYet
+        action: slotWait
             ? null
             : st === 'inspection_scheduled'
                 ? { label: 'Mark en route', kind: 'primary', op: 'enRoute' }
@@ -1021,7 +1028,7 @@ export function resolveJourney(booking, audience = 'customer', opts = {}) {
                     : st === 'in_progress'
                         ? { label: 'Complete inspection', kind: 'primary', op: 'completeInspection' }
                         : null,
-        tone: notYet ? 'waiting' : 'action',
+        tone: slotWait ? 'waiting' : 'action',
     };
 
     S[JOB_PHASE.QUOTING] = isCustomer ? {
