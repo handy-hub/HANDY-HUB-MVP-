@@ -45,24 +45,30 @@ export function createWalletRepository({ databaseService: db }) {
      * Subscribe to an artisan's wallet, derived from its authoritative records
      * (shared/js/domain/walletLedger.js — AR-13): the profile's balances, the
      * escrow held for their jobs, and their payouts. onChange receives
-     * { view, artisan, payouts } once all three have answered, and again on
-     * every change. `pendingBalance` is not read: nothing ever maintained it.
+     * { view, artisan, escrows, payouts, fromCache } once all three have
+     * answered, and again on every change; fromCache is true while the profile
+     * came from Firestore's cache rather than the server (offline). `pendingBalance`
+     * is not read: nothing ever maintained it.
      */
     function subscribeToArtisanWallet(uid, onChange, onError) {
-        const state = { artisan: undefined, escrows: undefined, payouts: undefined };
+        const state = { artisan: undefined, escrows: undefined, payouts: undefined, fromCache: false };
         const emit = () => {
             if (state.artisan === undefined || state.escrows === undefined || state.payouts === undefined) return;
             if (state.artisan === null) { onChange(null); return; }
             onChange({
                 view: deriveArtisanWallet({ artisan: state.artisan, escrows: state.escrows, payouts: state.payouts }),
                 artisan: state.artisan,
+                escrows: state.escrows,
                 payouts: state.payouts,
+                fromCache: state.fromCache,
             });
         };
         const rows = (records) => (records || []).map((r) => ({ id: r.id, ...(r.data || {}) }));
         const unsubs = [
             db.subscribeToDocument(ARTISANS, uid, (snap) => {
-                state.artisan = snap && snap.exists ? snap.data : null; emit();
+                state.artisan = snap && snap.exists ? snap.data : null;
+                state.fromCache = !!(snap && snap.fromCache);
+                emit();
             }, onError),
             // Only this artisan's held/disputed escrow — the rules allow exactly
             // this query (artisanId == me).
@@ -84,6 +90,30 @@ export function createWalletRepository({ databaseService: db }) {
             onChange,
             onError,
         );
+    }
+
+    /**
+     * The artisan's whole ledger in one read, newest first, for checking the
+     * stored totals against it. Bounded: a result of `limit` rows may not be all
+     * of it, and the caller must say so rather than check a part.
+     */
+    async function getArtisanLedger(uid, { limit: lim = 1000 } = {}) {
+        const records = await db.querySubCollection(
+            ARTISANS, uid, TRANSACTIONS, [],
+            { orderBy: { field: 'createdAt', direction: 'desc' }, limit: lim },
+        );
+        return (records || []).map((r) => ({ id: r.id, ...(r.data || {}) }));
+    }
+
+    /**
+     * The artisan's most recent job payments in any state — held, released,
+     * returned to the customer, in dispute (index: escrow artisanId + createdAt).
+     */
+    async function getRecentArtisanEscrow(uid, { limit: lim = 20 } = {}) {
+        const records = await db.queryWithOptions(ESCROW,
+            [{ field: 'artisanId', op: '==', value: uid }],
+            { orderBy: { field: 'createdAt', direction: 'desc' }, limit: lim });
+        return (records || []).map((r) => ({ id: r.id, ...(r.data || {}) }));
     }
 
     // ── Escrow ────────────────────────────────────────────────────────────────
@@ -163,6 +193,8 @@ export function createWalletRepository({ databaseService: db }) {
         // Artisan
         subscribeToArtisanWallet,
         subscribeToArtisanTransactions,
+        getArtisanLedger,
+        getRecentArtisanEscrow,
         // Escrow
         getEscrow,
         getEscrowByBooking,

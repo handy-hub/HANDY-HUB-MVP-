@@ -162,5 +162,154 @@ export function earningsModel({ artisan, escrows = [], payouts = [], transaction
     };
 }
 
+// ── Job payments (escrow) ─────────────────────────────────────────────────────
+
+const ESCROW_LABEL = {
+    held:     ['Held until the customer confirms', 'warn'],
+    disputed: ['In dispute · Fidus X support is reviewing', 'bad'],
+    released: ['Paid to your balance', 'ok'],
+};
+
+/**
+ * A customer's payment for a job, as its escrow record says (escrow.js and
+ * disputes.js are the only writers). Who wrote a refund, and why, are not shown:
+ * those are support's notes.
+ */
+export function escrowView(e) {
+    const s = String(e && e.status || '').toLowerCase();
+    const partial = s === 'refunded' && e.resolutionType === 'partial';
+    const [label, tone] = ESCROW_LABEL[s]
+        || (partial ? ['Dispute settled by Fidus X support', 'info']
+        : s === 'refunded' ? ['Returned to the customer', '']
+        : ['Status not recorded', 'warn']);
+    const gross = has(e && e.amount) ? fromP(toP(e.amount)) : null;
+    const share = has(e && e.artisanShare) ? fromP(toP(e.artisanShare)) : null;
+    return {
+        escrowId: (e && e.id) || null, bookingId: (e && e.bookingId) || null,
+        kind: e && e.kind === 'callout' ? 'callout' : 'job',
+        status: s || null, label, tone,
+        gross, fee: has(e && e.commission) ? fromP(toP(e.commission)) : null, share,
+        // What actually reached each side once it closed.
+        toYou: s === 'released' ? share : partial && has(e.artisanAmount) ? fromP(toP(e.artisanAmount)) : s === 'refunded' ? 0 : null,
+        toCustomer: partial && has(e.customerAmount) ? fromP(toP(e.customerAmount)) : s === 'refunded' ? gross : null,
+        at: (e && (e.releasedAt || e.refundedAt || e.disputedAt || e.createdAt)) || null,
+        open: s === 'held' || s === 'disputed',
+    };
+}
+
+// ── The full ledger ───────────────────────────────────────────────────────────
+
+/** The live list's size (walletRepository.subscribeToArtisanTransactions). */
+export const LIVE_LEDGER_ROWS = 60;
+/** The most rows one read of the whole ledger takes; past this it is not checked here. */
+export const LEDGER_CHECK_LIMIT = 1000;
+
+/**
+ * The ledger as far as it has been read: the full read (if any) under the live
+ * newest rows, by id — so a row that changed since the full read shows as it is
+ * now, and a row written since is included.
+ * @returns {{ rows: object[], complete: boolean, tooMany: boolean }}
+ */
+export function mergeLedger({ live = [], liveFromServer = false, full = null } = {}) {
+    const byId = new Map();
+    for (const r of full || []) if (r && r.id) byId.set(r.id, r);
+    for (const r of live) if (r && r.id) byId.set(r.id, r);
+    const rows = [...byId.values()].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    // Complete only on the SERVER's word: the live page came back short of its
+    // limit, or a full read came back short of its own.
+    const liveShort = liveFromServer && live.length < LIVE_LEDGER_ROWS;
+    const fullShort = Array.isArray(full) && full.length < LEDGER_CHECK_LIMIT;
+    return { rows, complete: liveShort || fullShort, tooMany: Array.isArray(full) && full.length >= LEDGER_CHECK_LIMIT };
+}
+
+// ── Withdrawing ───────────────────────────────────────────────────────────────
+
+/**
+ * Whether Withdraw can be opened, and if not, why — in words.
+ *   live      the figures came from the server on this visit (never from a
+ *             cached paint: money is backend-authoritative, CLAUDE.md §1)
+ *   account   the payout account on file (private/kyc), null when none,
+ *             undefined while it is still being read
+ */
+export function withdrawGate({ live, account, available, min }) {
+    if (!live) return { can: false, reason: 'Checking your balance with Fidus X…' };
+    if (account === undefined) return { can: false, reason: 'Loading your payout account…' };
+    if (!account) return { can: false, reason: 'You have no payout account on file. Contact support to add one.', support: true };
+    if (toP(available) < toP(min)) return { can: false, reason: `You can withdraw once you have ${formatGHS(min)} available.` };
+    return { can: true, reason: '' };
+}
+
+/**
+ * Why an amount cannot be withdrawn, or '' when it can be asked for. Mirrors
+ * the server's own checks (functions/financial/transfers.js) so the artisan is
+ * told in words, never faced with a greyed-out button; the server still
+ * decides, and also refuses money its verified ledger cannot account for.
+ */
+export function withdrawProblem(raw, { available, min }) {
+    const text = String(raw ?? '').trim();
+    if (!text) return '';
+    const amount = Number(text);
+    if (!Number.isFinite(amount) || amount <= 0) return 'Enter an amount in cedis, for example 50.';
+    if (!/^\d+(\.\d{1,2})?$/.test(text)) return 'Use at most 2 decimal places (pesewas).';
+    if (amount < min) return `The minimum withdrawal is ${formatGHS(min)}.`;
+    if (toP(amount) > toP(available)) return `That is more than you can withdraw (${formatGHS(available)}).`;
+    return '';
+}
+
+const DEFINITE = ['failed-precondition', 'invalid-argument', 'not-found', 'already-exists', 'out-of-range'];
+
+/**
+ * Where a withdrawal error is shown and whether the attempt is over.
+ *
+ *   attemptSpent  the server answered and this attempt is finished (a refusal, or
+ *                 Paystack rejected it and the balance was restored): the next
+ *                 try is a new request
+ *   uncertain     nobody knows whether it started: the SAME request is retried,
+ *                 which the server answers with the existing payout — it cannot
+ *                 pay twice (payouts/{uid}_{requestId})
+ */
+export function withdrawalError(err) {
+    const code = String(err && err.code || '').replace(/^functions\//, '');
+    const msg  = String(err && err.message || '').trim();
+    if (code === 'rate-limited') {
+        const s = Math.max(1, Math.ceil(Number(err.waitMs || 0) / 1000));
+        return { where: 'sheet', message: `Please wait ${s} second${s === 1 ? '' : 's'} before trying again.`, attemptSpent: false, uncertain: false };
+    }
+    if (code === 'permission-denied') return { where: 'pin', message: 'Incorrect PIN. Try again.', attemptSpent: false, uncertain: false };
+    if (code === 'resource-exhausted') return { where: 'pin', message: msg || 'Too many attempts. Try again later.', attemptSpent: false, uncertain: false };
+    if (code === 'failed-precondition' && /security pin/i.test(msg)) return { where: 'pin', message: msg, attemptSpent: false, uncertain: false };
+    if (code === 'unauthenticated') return { where: 'sheet', message: 'Your session has expired. Sign in again to withdraw.', attemptSpent: false, uncertain: false };
+    if (DEFINITE.includes(code)) return { where: 'sheet', message: msg || 'Your withdrawal could not be made.', attemptSpent: true, uncertain: false };
+    return { where: 'sheet', uncertain: true, attemptSpent: false,
+             message: 'We could not confirm whether your withdrawal started. Check Withdrawals on this screen before trying again — trying again with the same amount cannot pay you twice.' };
+}
+
+/**
+ * What the server's answer means, in words. Only Paystack's confirmation
+ * (status 'success') is "paid"; anything open is said to be open. A repeated
+ * request returns the EXISTING payout, which may already have failed.
+ * @param {{ status: string, ref?: string, duplicate?: boolean }} res  processArtisanWithdrawal's answer
+ * @param {{ amount: number, to?: string }} ctx
+ */
+export function withdrawalOutcome(res, { amount, to } = {}) {
+    const s = String(res && res.status || '').toLowerCase();
+    const dup = !!(res && res.duplicate);
+    const what = dup ? 'Your withdrawal' : formatGHS(amount);
+    const dest = to || 'your Mobile Money';
+    const ref = res && res.ref ? ` Ref ${res.ref}.` : '';
+    if (s === 'success') return { done: true, tone: 'ok', message: `${what} was paid to ${dest}.${ref}` };
+    if (s === 'failed' || s === 'reversed') {
+        return { done: false, tone: 'bad', attemptSpent: true,
+                 message: `${what} did not go through. Its status is under Withdrawals on this screen.${ref}` };
+    }
+    if (s === 'unknown') {
+        return { done: true, tone: 'warn', message: `${what} is being confirmed with the provider. The amount stays held until it settles; we'll notify you.${ref}` };
+    }
+    if (s === 'processing' || s === 'reserved' || s === 'pending') {
+        return { done: true, tone: 'info', message: `${what} to ${dest} has been requested. It shows under Withdrawals until the provider confirms it; we'll notify you.${ref}` };
+    }
+    return { done: true, tone: 'warn', message: `${what} was sent to Fidus X, but its status was not returned. Check Withdrawals on this screen.${ref}` };
+}
+
 /** The app's one money format (shared/js/utils/currency.js). */
 export const fmtGHS = (v) => formatGHS(v);

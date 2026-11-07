@@ -24,15 +24,14 @@ function t(name, fn) {
     catch (e) { failed++; failures.push([name, e]); console.log(`  ✗ ${name}`); }
 }
 
-// ── FIN-003: run the page's own withdrawProblem() ────────────────────────────
+// ── FIN-003: run the withdraw sheet's own withdrawProblem() ─────────────────
+// Since Phase 4 it lives in shared/js/domain/artisanEarnings.js (the page
+// imports it); this runs that module, with the app's real money format.
 const wallet = read('artisan-app/wallet.html');
-const fnSrc  = wallet.slice(wallet.indexOf('function withdrawProblem(raw) {'),
-                            wallet.indexOf('function updateConfirm()'));
-assert.ok(fnSrc.length > 50, 'withdrawProblem not found in wallet.html');
-// eslint-disable-next-line no-new-func
-const makeProblem = new Function('formatGHS', 'MIN_WITHDRAWAL', 'currentWallet', `${fnSrc}; return withdrawProblem;`);
-const formatGHS = (n) => `GHS ${Number(n).toFixed(2)}`;
-const problem = makeProblem(formatGHS, 5, { available: 527 });
+(async () => {
+const { pathToFileURL } = require('url');
+const { withdrawProblem } = await import(pathToFileURL(path.join(ROOT, 'shared', 'js', 'domain', 'artisanEarnings.js')).href);
+const problem = (raw) => withdrawProblem(raw, { available: 527, min: 5 });
 
 console.log('\n── FIN-003 · the withdraw sheet says why ──\n');
 
@@ -56,9 +55,10 @@ t('zero or negative asks for a real amount', () => {
     assert.match(problem('-5'), /Enter an amount/);
 });
 t('the sheet shows the reason and Confirm re-checks it', () => {
-    assert.match(wallet, /id="wd-amount-msg" role="status" aria-live="polite"/);
-    assert.match(wallet, /if \(msgEl\) msgEl\.textContent = problem;/);
-    assert.match(wallet, /if \(!payoutAccount \|\| !amount \|\| withdrawProblem\(wdAmountInput\.value\)\) return;/);
+    assert.match(wallet, /import \{[^}]*\bwithdrawProblem\b[^}]*\} from '\.\.\/shared\/js\/domain\/artisanEarnings\.js'/);
+    assert.match(wallet, /id="wd-amount-msg" aria-live="polite"/);
+    assert.match(wallet, /const problem = _m \? withdrawProblem\(raw, \{ available: _m\.wallet\.available, min: MIN_WITHDRAWAL \}\) : '';\s+wd\.msg\.textContent = problem;/);
+    assert.match(wallet, /if \(!_gate\.can \|\| !String\(raw\)\.trim\(\) \|\| withdrawProblem\(raw, \{ available: _m\.wallet\.available, min: MIN_WITHDRAWAL \}\)\) return;/);
     assert.match(wallet, /const MIN_WITHDRAWAL = PLATFORM_CONFIG\.minWithdrawalGHS;/);
 });
 
@@ -90,3 +90,4 @@ t('every mapped page lights a tab that exists', () => {
 console.log(`\nartisan-wallet-nav: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.message}`);
 process.exit(failed ? 1 : 0);
+})();

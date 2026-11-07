@@ -195,12 +195,17 @@ await t('one definition of an open payout, shared with transfers.js', () => {
 });
 
 await t('the wallet, dashboard and profile no longer read pendingBalance; no payout-time promise', () => {
-    for (const rel of ['artisan-app/wallet.html', 'artisan-app/dashboard.html', 'artisan-app/profile.html', 'shared/js/data/repositories/walletRepository.js']) {
+    for (const rel of ['artisan-app/wallet.html', 'artisan-app/js/earningsScreen.js', 'shared/js/domain/artisanEarnings.js',
+                       'artisan-app/dashboard.html', 'artisan-app/profile.html', 'shared/js/data/repositories/walletRepository.js']) {
         const code = read(rel).replace(/\/\/.*$/gm, '').replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
         assert.ok(!/\.pendingBalance/.test(code), `${rel} still reads pendingBalance`);
     }
     assert.ok(!read('artisan-app/wallet.html').includes('~1 min'));
-    assert.match(read('artisan-app/wallet.html'), /withdrawalStatus\(/);
+    // A withdrawal row's status comes from its payout record (Phase 4: the page
+    // hands its payouts to the screen, which describes rows with ledgerRow).
+    assert.match(read('artisan-app/wallet.html'), /_rows = activityRows\(ledger\.rows, payouts, names\);/);
+    assert.match(read('artisan-app/js/earningsScreen.js'), /const payoutsById = new Map\(\(payouts \|\| \[\]\)\.map\(\(p\) => \[p\.id, p\]\)\);[\s\S]*?ledgerRow\(t, \{ payoutsById, bookings \}\)/);
+    assert.match(read('shared/js/domain/artisanEarnings.js'), /const st = withdrawalStatus\(t, payout\);/);
     assert.ok(!/pendingBalance:/.test(read('functions/financial/escrow.js')), 'release no longer writes the dead field');
 });
 

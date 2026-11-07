@@ -1,0 +1,45 @@
+/* artisan-app/css/fx/earnings.css — the Earnings screen (Phase 4). Tokens only (npm run lint:fx). */
+
+.fx-earn__notices { padding: var(--fx-space-3) var(--fx-gutter) var(--fx-space-0); }
+.fx-earn__notices:empty { display: none; }
+
+/* The figure the artisan came for, and the one action on it. */
+.fx-earn__hero { padding: var(--fx-space-5) var(--fx-gutter) var(--fx-space-0); }
+.fx-earn__avail { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fx-earn__hero .fx-btn { margin-top: var(--fx-space-3); }
+.fx-earn__hero .fx-field__hint:empty { display: none; }
+
+/* A figure's explanation sits on its own line under the figure. */
+.fx-earn__ledger .fx-ledger__note { flex-basis: 100%; margin-top: var(--fx-space-0); }
+
+/* The result of checking the stored totals against the records. */
+.fx-earn__check {
+  display: flex; align-items: flex-start; gap: var(--fx-space-2);
+  margin: var(--fx-space-4) var(--fx-gutter) var(--fx-space-0);
+  font: var(--fx-t-meta); color: var(--fx-ok);
+}
+.fx-earn__check > svg { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); }
+.fx-earn__check > span { color: var(--fx-ink-2); }
+.fx-earn__checknote { margin: var(--fx-space-4) var(--fx-gutter) var(--fx-space-0); }
+.fx-earn__hero + .fx-notice { margin: var(--fx-space-4) var(--fx-gutter) var(--fx-space-0); }
+.fx-earn__issues { margin: var(--fx-space-1) 0 var(--fx-space-2); padding-left: var(--fx-space-5); display: grid; gap: var(--fx-space-1); }
+
+/* Rows: a status chip under the title; money in and out read differently in words AND sign. */
+.fx-earn__line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--fx-space-1) var(--fx-space-2); margin-top: var(--fx-space-1); }
+.fx-earn__row .fx-row__trail { align-self: flex-start; margin-left: auto; }
+/* With large text the amount moves under the title instead of squeezing it
+   into broken words: the title keeps a measure that grows with the text size. */
+.fx-earn__row { flex-wrap: wrap; }
+.fx-earn__row > .fx-row__main { flex: 1 1 calc(var(--fx-size-label) * 13); }
+.fx-earn__amt--in { color: var(--fx-ok); }
+.fx-earn__amt--out { color: var(--fx-ink); }
+
+.fx-earn__empty { padding: var(--fx-space-1) var(--fx-gutter) var(--fx-space-0); }
+.fx-earn__more { padding: var(--fx-space-4) var(--fx-gutter) var(--fx-space-0); }
+.fx-earn__about { padding-bottom: var(--fx-space-8); }
+
+/* The withdrawal sheet. */
+.fx-earn__quick { display: flex; flex-wrap: wrap; gap: var(--fx-space-2); margin-top: var(--fx-space-3); }
+.fx-earn__quick .fx-btn[aria-pressed="true"] { border-color: var(--fx-ink); }
+.fx-earn__dest { margin-top: var(--fx-space-6); }
+.fx-earn__err:empty { display: none; }

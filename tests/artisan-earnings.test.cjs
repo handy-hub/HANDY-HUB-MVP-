@@ -201,6 +201,83 @@ await t('a new artisan: every figure is zero from the records, and nothing is in
     assert.strictEqual(z.reconciliation.ok, true);
 });
 
+console.log('\n── Job payments, as their escrow records say ──\n');
+
+await t('held, released, returned to the customer, in dispute: each label and figure from its escrow', async () => {
+    seed();
+    const r1 = await book('bk_rel', 100);
+    const r2 = await book('bk_ref', 60);
+    const r3 = await book('bk_dis', 40);
+    const r4 = await book('bk_hold', 20);
+    const restoreQ = quiet();
+    await escrow.releaseEscrow(r1, { releasedBy: 'test', callerAuth: null });
+    await escrow.refundEscrow(r2, { reason: 'Booking cancelled', refundedBy: 'support@example.test', callerAuth: null });
+    await escrow.freezeEscrowForDispute(r3, { disputeId: 'd1', raisedBy: CUST, callerAuth: null });
+    restoreQ();
+    const v = Object.fromEntries([r1, r2, r3, r4].map((id) => [id, E.escrowView({ id, ...fake.db._get(`escrow/${id}`) })]));
+    assert.deepStrictEqual([v[r1].label, v[r1].toYou, v[r1].open], ['Paid to your balance', 85, false]);
+    assert.deepStrictEqual([v[r2].label, v[r2].toYou, v[r2].toCustomer, v[r2].open], ['Returned to the customer', 0, 60, false]);
+    assert.deepStrictEqual([v[r3].label, v[r3].open], ['In dispute · Fidus X support is reviewing', true]);
+    assert.deepStrictEqual([v[r4].label, v[r4].share, v[r4].gross, v[r4].fee, v[r4].open], ['Held until the customer confirms', 17, 20, 3, true]);
+    // Support's notes on a refund (who, why) are not part of what the artisan is shown.
+    assert.ok(!JSON.stringify(v[r2]).includes('support@example.test'));
+    assert.ok(!JSON.stringify(v[r2]).includes('Booking cancelled'));
+    // Held and disputed are exactly what the wallet counts as pending and in dispute.
+    const w = E.earningsModel({ artisan: art(), escrows: rows('escrow/').filter((e) => ['held', 'disputed'].includes(e.status)) }).wallet;
+    assert.deepStrictEqual([p(w.pendingRelease), p(w.inDispute)], [p(v[r4].share), p(v[r3].share)]);
+});
+
+await t('a dispute settled in part says what reached each side (disputes.js partial)', () => {
+    const v = E.escrowView({ id: 'e', status: 'refunded', resolutionType: 'partial', amount: 100, artisanShare: 85,
+                             artisanAmount: 42.5, customerAmount: 50, commission: 7.5, refundedBy: 'admin@x', refundReason: 'notes' });
+    assert.deepStrictEqual([v.label, v.toYou, v.toCustomer], ['Dispute settled by Fidus X support', 42.5, 50]);
+    assert.ok(!JSON.stringify(v).includes('admin@x') && !JSON.stringify(v).includes('notes'));
+});
+
+console.log('\n── When the ledger is the whole ledger ──\n');
+
+const page = (n, from = 0) => Array.from({ length: n }, (_, i) => ({ id: `r${from + i}`, type: 'earning', amount: 1,
+    createdAt: new Date(Date.UTC(2026, 10, 1) - (from + i) * 60000).toISOString() }));
+
+await t('the live page is the whole ledger only when the SERVER returned fewer rows than it asks for', () => {
+    assert.strictEqual(E.mergeLedger({ live: page(59), liveFromServer: true }).complete, true);
+    assert.strictEqual(E.mergeLedger({ live: page(E.LIVE_LEDGER_ROWS), liveFromServer: true }).complete, false, 'exactly the limit: there may be more');
+    assert.strictEqual(E.mergeLedger({ live: page(3), liveFromServer: false }).complete, false, 'a cached answer proves nothing');
+});
+await t('a full read under its limit completes it; at the limit it is said to be too many to check', () => {
+    const live = page(60);
+    assert.deepStrictEqual(E.mergeLedger({ live, liveFromServer: true, full: page(150) }).complete, true);
+    const many = E.mergeLedger({ live, liveFromServer: true, full: page(E.LEDGER_CHECK_LIMIT) });
+    assert.deepStrictEqual([many.complete, many.tooMany], [false, true]);
+});
+await t('the live rows win over the full read by id, and a row written since is included', () => {
+    const full = [{ id: 'w1', type: 'withdrawal', status: 'processing', createdAt: '2026-11-01T10:00:00.000Z' }];
+    const live = [{ id: 'w1', type: 'withdrawal', status: 'failed', createdAt: '2026-11-01T10:00:00.000Z' },
+                  { id: 'n1', type: 'earning', createdAt: '2026-11-02T10:00:00.000Z' }];
+    const m = E.mergeLedger({ live, liveFromServer: true, full });
+    assert.deepStrictEqual(m.rows.map((r) => [r.id, r.status || null]), [['n1', null], ['w1', 'failed']]);
+});
+await t('the merged ledger reconciles exactly when the server\'s figures do (the record set from the top)', () => {
+    const merged = E.mergeLedger({ live: R.transactions.slice(0, 2), liveFromServer: true, full: R.transactions });
+    assert.strictEqual(E.earningsModel({ ...R, transactions: merged.rows, ledgerComplete: merged.complete }).reconciliation.ok, true);
+});
+
+console.log('\n── Withdraw opens only on live figures and an account on file ──\n');
+
+await t('withdrawGate: cached figures, no account, below the minimum — each said in words', () => {
+    const acct = { provider: 'mtn', phone: '0241234567' };
+    assert.deepStrictEqual(E.withdrawGate({ live: false, account: acct, available: 100, min: 5 }), { can: false, reason: 'Checking your balance with Fidus X…' });
+    assert.strictEqual(E.withdrawGate({ live: true, account: undefined, available: 100, min: 5 }).reason, 'Loading your payout account…');
+    const none = E.withdrawGate({ live: true, account: null, available: 100, min: 5 });
+    assert.deepStrictEqual([none.can, none.support], [false, true]);
+    assert.strictEqual(E.withdrawGate({ live: true, account: acct, available: 4.99, min: 5 }).reason, 'You can withdraw once you have GHS 5.00 available.');
+    assert.deepStrictEqual(E.withdrawGate({ live: true, account: acct, available: 5, min: 5 }), { can: true, reason: '' });
+});
+await t('withdrawProblem compares in pesewas (0.1 + 0.2 style sums do not slip through)', () => {
+    assert.strictEqual(E.withdrawProblem('0.30', { available: 0.1 + 0.2, min: 0.3 }), '');
+    assert.strictEqual(E.withdrawProblem('46.75', { available: 46.74, min: 5 }), 'That is more than you can withdraw (GHS 46.74).');
+});
+
 console.log(`\nartisan-earnings: ${passed} passed, ${failed} failed`);
 if (failed) { for (const [n, e] of failures) console.log(`\n✗ ${n}\n${e.stack}`); process.exit(1); }
 process.exit(0);

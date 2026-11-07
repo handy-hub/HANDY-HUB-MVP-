@@ -321,14 +321,16 @@ with sync_playwright() as pw:
     check('Today: no page errors', not errs, errs[:3])
     pg.context.close()
 
-    # ═══ NAV on a legacy screen (wallet.html) ═════════════════════════════════
+    # ═══ NAV on a legacy screen (settings.html) ═══════════════════════════════
     # The four tabs on a screen not yet on the design system (artisanFloatingNav.js).
-    pg, errs = open_page(b, '/artisan-app/wallet.html')
+    # (wallet.html was this screen until Phase 4 moved Earnings onto the system;
+    # tests/e2e/artisan_earnings.py checks its own tab bar and the heartbeat.)
+    pg, errs = open_page(b, '/artisan-app/settings.html')
     pg.wait_for_selector('#fx-tabbar .fx-tab', timeout=8000)
-    check('nav (wallet.html): the four tabs, Earnings current, fixed at the bottom with room left for it',
+    check('nav (settings.html): the four tabs, Account current, fixed at the bottom with room left for it',
           pg.eval_on_selector_all('#fx-tabbar .fx-tab', 'els => els.map(e => [e.textContent.trim(), e.getAttribute("href")])')
           == [['Today', 'dashboard.html'], ['Jobs', 'jobs.html'], ['Earnings', 'wallet.html'], ['Account', 'settings.html']]
-          and text_of(pg, '#fx-tabbar [aria-current="page"]') == 'Earnings'
+          and text_of(pg, '#fx-tabbar [aria-current="page"]') == 'Account'
           and pg.evaluate("getComputedStyle(document.querySelector('.fx-bottom--fixed')).position === 'fixed' && parseFloat(getComputedStyle(document.body).paddingBottom) >= 64"),
           pg.eval_on_selector_all('#fx-tabbar .fx-tab', 'els => els.map(e => e.textContent.trim())'))
     check('nav: no availability control outside Today (decision 02)', pg.query_selector('#hh-online-toggle, #hh-floating-nav, .hh-fnav') is None)

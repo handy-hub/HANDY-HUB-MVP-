@@ -2,605 +2,537 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="../shared/js/utils/themeManager.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>Fidus X – My Earnings</title>
-  <link rel="stylesheet" href="css/design-system.css" />
-  <link rel="stylesheet" href="css/wallet.css" />
+  <title>Earnings | Fidus X Artisan</title>
+  <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
+  <!-- The variable axes: fixed weights would snap 550 and 650 to the nearest file. -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/earnings.css" />
 </head>
-<body>
+<body class="fx-app">
+<a class="fx-skip" href="#earn-main">Skip to content</a>
+<div class="fx-shell">
 
-<div class="phone-shell">
-  <div class="scroll-area">
+  <!-- The artisan's money, each figure from the record that is authoritative
+       for it (shared/js/domain/artisanEarnings.js): what they can withdraw, what
+       is held for their jobs, what is on its way, what has been paid out, the
+       fee taken from each job, and every ledger row. -->
+  <header class="fx-appbar fx-appbar--root">
+    <div class="fx-appbar__titles">
+      <h1 class="fx-appbar__title">Earnings</h1>
+      <p class="fx-appbar__sub" id="earn-sub"></p>
+    </div>
+  </header>
 
-    <!-- Header -->
-    <div class="page-header">
-      <button class="back-btn" aria-label="Go back" onclick="history.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="page-title">My Earnings</h1>
-      <div style="width:36px"></div>
+  <div class="fx-earn__notices fx-stack" id="earn-notices"></div>
+
+  <main class="fx-main" id="earn-main" tabindex="-1">
+    <div id="earn-body">
+      <section class="fx-earn__hero fx-stack" aria-busy="true" data-skeleton>
+        <span class="fx-skel fx-skel--title"></span><span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span>
+      </section>
     </div>
 
-    <!-- Hero Balance Card -->
-    <div class="hero-card">
-      <p class="hero-label">Available to Withdraw</p>
-      <p class="hero-amount" id="available-balance">GHS —</p>
-      <p class="hero-sub">Completed job earnings</p>
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <p class="hero-stat-label">Pending release</p>
-          <p class="hero-stat-value pending" id="pending-balance">GHS —</p>
-        </div>
-        <div class="hero-stat">
-          <p class="hero-stat-label">Total Earned</p>
-          <p class="hero-stat-value" id="total-earned">GHS —</p>
-        </div>
-        <div class="hero-stat">
-          <p class="hero-stat-label">Paid out</p>
-          <p class="hero-stat-value" id="total-withdrawn">GHS —</p>
-        </div>
+    <!-- What the platform applies. The figures are the ones the server enforces
+         (functions/config.js, pinned to PLATFORM_CONFIG). -->
+    <section class="fx-sect fx-earn__about" aria-labelledby="earn-about">
+      <div class="fx-sect__head"><h2 class="fx-sect__title" id="earn-about">How your earnings work</h2></div>
+      <div class="fx-sect__body">
+        <dl class="fx-ledger">
+          <div class="fx-ledger__row"><dt class="fx-ledger__k">Platform fee, per job</dt><dd class="fx-ledger__v" id="commission-rate">15%</dd></div>
+          <div class="fx-ledger__row"><dt class="fx-ledger__k">Smallest withdrawal</dt><dd class="fx-ledger__v" id="min-withdrawal">GHS 5</dd></div>
+          <div class="fx-ledger__row"><dt class="fx-ledger__k">Paid to</dt><dd class="fx-ledger__v">Mobile Money</dd></div>
+        </dl>
+        <p class="fx-ledger__note">The platform fee is taken from each job's price. A customer's payment is held by Fidus X until they confirm the job is done; then your share is paid to your balance. Tips have no fee. Withdrawals go only to the Mobile Money account on file.</p>
       </div>
-      <!-- What the figures mean, and anything on its way (AR-13). -->
-      <p class="hero-sub" id="wallet-explain" style="margin:var(--ds-3) 0 0;"></p>
-    </div>
+    </section>
+  </main>
 
-    <!-- Withdraw Button -->
-    <button class="withdraw-cta-btn" id="withdraw-btn" disabled>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M12 5v14M5 12l7 7 7-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      Withdraw Earnings
-    </button>
-
-    <!-- Info pills -->
-    <div class="info-pills">
-      <div class="info-pill">
-        <p class="pill-label">Commission</p>
-        <p class="pill-value" id="commission-rate">15%</p>
-      </div>
-      <div class="info-pill">
-        <p class="pill-label">Min. Withdrawal</p>
-        <p class="pill-value" id="min-withdrawal">GHS 5</p>
-      </div>
-      <div class="info-pill">
-        <p class="pill-label">Paid to</p>
-        <p class="pill-value green">Mobile Money</p>
-      </div>
-    </div>
-
-    <!-- Transaction History -->
-    <div class="section-wrap">
-      <div class="section-header">
-        <span class="section-title">Transaction History</span>
-      </div>
-
-      <!-- Loading shimmer -->
-      <div id="txn-loading" class="shimmer-list">
-        <div class="shimmer-row"></div>
-        <div class="shimmer-row"></div>
-        <div class="shimmer-row"></div>
-      </div>
-
-      <!-- Live list -->
-      <div class="txns-card" id="txn-list" style="display:none"></div>
-
-      <!-- Empty state -->
-      <div id="txn-empty" class="empty-state" style="display:none">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-          <rect x="2" y="5" width="20" height="14" rx="2" stroke="#ddd" stroke-width="1.5"/>
-          <path d="M2 10h20" stroke="#ddd" stroke-width="1.5"/>
-        </svg>
-        <p>No transactions yet</p>
-        <span>Complete your first booking to start earning.</span>
-      </div>
-    </div>
-
-  </div><!-- /scroll-area -->
-
-  <!-- ── Withdrawal Modal ──────────────────────────────────────────────────── -->
-  <div id="wd-overlay" class="wd-overlay" aria-hidden="true">
-    <div id="wd-sheet" class="wd-sheet" role="dialog" aria-label="Withdraw Earnings">
-      <div class="wd-handle"></div>
-
-      <div class="wd-header">
-        <p class="wd-header-title">Withdraw Earnings</p>
-        <p class="wd-header-balance" id="wd-avail">GHS 0.00</p>
-        <p class="wd-header-sub">Available balance</p>
-      </div>
-
-      <div class="wd-body">
-
-        <!-- Amount -->
-        <label class="wd-label" for="wd-amount">Amount (GHS)</label>
-        <div class="wd-amount-wrap">
-          <span class="wd-ghc">GHS</span>
-          <input type="number" id="wd-amount" class="wd-amount-input"
-                 placeholder="0.00" min="5" step="0.01" inputmode="decimal"
-                 aria-describedby="wd-amount-msg" />
-        </div>
-        <!-- Why Confirm is off, in words (audit FIN-003: it used to grey out
-             silently). The server re-checks every one of these. -->
-        <p class="wd-amount-msg" id="wd-amount-msg" role="status" aria-live="polite"
-           style="margin:6px 0 0;min-height:18px;font-size:13px;color:var(--ds-danger,#C2362F);"></p>
-        <div class="wd-quick-row">
-          <button class="wd-quick" data-amount="20">GHS 20</button>
-          <button class="wd-quick" data-amount="50">GHS 50</button>
-          <button class="wd-quick" data-amount="100">GHS 100</button>
-          <button class="wd-quick" data-amount="200">GHS 200</button>
-        </div>
-
-        <!-- Payout account on file. Not editable here: withdrawals go only to
-             the verified account (server-enforced), and changing it is a
-             re-verification through support. -->
-        <p class="wd-label">Paid to</p>
-        <div class="wd-phone-wrap" id="wd-account">
-          <span class="wd-phone-prefix" id="wd-account-network">—</span>
-          <span class="wd-phone-input" id="wd-account-number" aria-live="polite">Loading your payout account…</span>
-        </div>
-        <p class="wd-label" id="wd-account-note" style="text-transform:none;letter-spacing:0;font-weight:400;">
-          Need a different account? Contact support to change it.
-        </p>
-
-        <button id="wd-confirm-btn" class="wd-confirm-btn" disabled>Confirm Withdrawal</button>
-        <button id="wd-cancel-btn" class="wd-cancel-btn">Cancel</button>
-
-      </div>
-    </div>
+  <div class="fx-bottom">
+    <nav class="fx-tabbar" aria-label="Main" id="tabbar"></nav>
   </div>
+</div>
 
-</div><!-- /phone-shell -->
+<!-- Withdraw. The server decides everything here again: the amount, the
+     balance, the account (only the one on file), the PIN. -->
+<div class="fx-overlay" id="wd-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="wd-title" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="wd-title">Withdraw</h2></header>
+    <div class="fx-sheet__body">
+      <div class="fx-field">
+        <label class="fx-field__label" for="wd-amount">Amount <span class="fx-ink-3">· <span id="wd-avail">—</span> available</span></label>
+        <div class="fx-money"><span class="fx-money__cur" aria-hidden="true">GHS</span><input class="fx-input" id="wd-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-describedby="wd-amount-msg" data-autofocus></div>
+        <!-- Why Confirm is off, in words (audit FIN-003). -->
+        <p class="fx-field__error" id="wd-amount-msg" aria-live="polite"></p>
+        <div class="fx-earn__quick" id="wd-quick" role="group" aria-label="Quick amounts"></div>
+      </div>
+      <div class="fx-field fx-earn__dest">
+        <p class="fx-field__label">Paid to</p>
+        <p class="fx-body" id="wd-account">Loading your payout account…</p>
+        <p class="fx-field__hint">Withdrawals go only to the account on file. To change it, <a class="fx-link" href="support.html">contact support</a>.</p>
+      </div>
+      <p class="fx-notice fx-notice--bad fx-earn__err" id="wd-error" role="alert" hidden></p>
+    </div>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close>Cancel</button>
+      <button class="fx-btn fx-btn--primary fx-btn--l" type="button" id="wd-confirm-btn" disabled>Withdraw</button>
+    </footer>
+  </section>
+</div>
+
+<!-- One ledger row, in full. -->
+<div class="fx-overlay" id="txn-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="txn-title" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="txn-title"></h2></header>
+    <div class="fx-sheet__body fx-stack" id="txn-body"></div>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l fx-btn--block" type="button" data-sheet-close data-autofocus>Close</button>
+    </footer>
+  </section>
+</div>
 
 <script type="module">
-  import '../shared/js/utils/global-app.js';
-  import { getAppContainer }           from '../shared/js/app/container.js';
-  import { showToast }                 from '../shared/js/components/toast.js';
-  import { createWalletRepository }    from '../shared/js/data/repositories/walletRepository.js';
-  import { withdrawalStatus }          from '../shared/js/domain/walletLedger.js';
-  import { formatGHS }                 from '../shared/js/utils/currency.js';
-  import { PLATFORM_CONFIG }           from '../shared/js/config/appConfig.js';
+import '../shared/js/utils/global-app.js';
+import { icon }                                   from './js/fx/icons.js';
+import { renderTabbar }                           from './js/fx/controls.js';
+import { openSheet }                              from './js/fx/sheet.js';
+import { showToast }                              from './js/fx/toast.js';
+import { renderEarnings, activityRows, createBookingNames, detailHtml } from './js/earningsScreen.js';
+import { earningsModel, escrowView, mergeLedger, withdrawGate, withdrawProblem, withdrawalError, withdrawalOutcome,
+         PROVIDER_NAMES, maskPhone, LEDGER_CHECK_LIMIT, fmtGHS } from '../shared/js/domain/artisanEarnings.js';
+import { createWalletRepository }                 from '../shared/js/data/repositories/walletRepository.js';
+import { withdrawArtisan, newWithdrawalRequestId } from '../shared/js/services/walletService.js';
+import { openSecurityPinSheet }                   from '../shared/js/components/securityPinSheet.js';
+import { setSecurityPin, pinErrorMessage }        from '../shared/js/services/securityPinService.js';
+import { PLATFORM_CONFIG }                        from '../shared/js/config/appConfig.js';
+import { serviceLabel }                           from '../shared/js/domain/bookingTruth.js';
+import { getAppContainer }                        from '../shared/js/app/container.js';
+import { mountInstantView }                       from '../shared/js/services/instantView.js';
+import { requireArtisanAuth, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
 
-  // The figures the server enforces (functions/config.js; pinned to
-  // PLATFORM_CONFIG by tests/config-consistency.test.cjs).
-  document.getElementById('commission-rate').textContent = `${Math.round(PLATFORM_CONFIG.commissionRate * 100)}%`;
-  document.getElementById('min-withdrawal').textContent  = `GHS ${PLATFORM_CONFIG.minWithdrawalGHS}`;
-  import { withdrawArtisan, newWithdrawalRequestId } from '../shared/js/services/walletService.js';
-  import { openSecurityPinSheet }      from '../shared/js/components/securityPinSheet.js';
-  import { setSecurityPin, pinErrorMessage } from '../shared/js/services/securityPinService.js';
-  import { requireArtisanAuth, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
-  import { mountInstantView }          from '../shared/js/services/instantView.js';
-  import { serviceLabel }              from '../shared/js/domain/bookingTruth.js';
-  import { esc }                       from '../shared/js/utils/escapeHtml.js';
+renderTabbar(document.getElementById('tabbar'), { current: 'earnings' });
 
-  // Wallet requires full auth + role + not suspended.
-  // All artisans (including pending) can view their earnings.
-  await requireArtisanAuth({ allowPending: true });
+// The figures the server enforces (functions/config.js; pinned to
+// PLATFORM_CONFIG by tests/config-consistency.test.cjs).
+document.getElementById('commission-rate').textContent = `${Math.round(PLATFORM_CONFIG.commissionRate * 100)}%`;
+document.getElementById('min-withdrawal').textContent  = `GHS ${PLATFORM_CONFIG.minWithdrawalGHS}`;
+const MIN_WITHDRAWAL = PLATFORM_CONFIG.minWithdrawalGHS;
+const toP = (v) => Math.round(Number(v) * 100);
 
-  const LOGIN_URL = 'login.html';
+// Blocking guard: auth + role + not suspended. Every artisan, pending included,
+// can see their earnings.
+await requireArtisanAuth({ allowPending: true });
+const { services: { databaseService } } = getAppContainer();
+const walletRepo = createWalletRepository({ databaseService });
 
-  // ── DOM refs ────────────────────────────────────────────────────────────────
-  const availEl     = document.getElementById('available-balance');
-  const pendingEl   = document.getElementById('pending-balance');
-  const totalEl     = document.getElementById('total-earned');
-  const withdrawnEl = document.getElementById('total-withdrawn');
-  const withdrawBtn = document.getElementById('withdraw-btn');
-  const loadingEl   = document.getElementById('txn-loading');
-  const listEl      = document.getElementById('txn-list');
-  const emptyEl     = document.getElementById('txn-empty');
+const dom = { main: document.getElementById('earn-body'), sub: document.getElementById('earn-sub') };
+const notices = document.getElementById('earn-notices');
 
-  const wdOverlay     = document.getElementById('wd-overlay');
-  const wdAvail       = document.getElementById('wd-avail');
-  const wdAmountInput = document.getElementById('wd-amount');
-  const wdConfirmBtn  = document.getElementById('wd-confirm-btn');
-  const wdCancelBtn   = document.getElementById('wd-cancel-btn');
-  const wdAcctNetwork = document.getElementById('wd-account-network');
-  const wdAcctNumber  = document.getElementById('wd-account-number');
+// ── State ─────────────────────────────────────────────────────────────────────
+const S = {
+  uid: null,
+  wallet: null,          // { artisan, escrows, payouts } — balance fields only; painted from cache or live
+  walletLive: false,     // the figures came from the server on this visit
+  livePayouts: null,     // the live payout records (their masked number is shown); never cached
+  live: [],              // the newest ledger rows (cache or live)
+  liveFromServer: false,
+  txnsReady: false, txnsFailed: false,
+  full: null,            // the whole ledger, once read (Check / Show older)
+  ledgerLoading: false, ledgerFailed: false,
+  recent: [],            // the most recent job payments in any state (one read a visit)
+  account: undefined,    // payout account on file: undefined while read, null when none
+  pinConfigured: false,
+};
+let _m = null, _gate = { can: false, reason: '' }, _rows = [];
 
-  // ── State ───────────────────────────────────────────────────────────────────
-  let currentWallet    = { available: 0, pending: 0, totalEarned: 0, withdrawn: 0 };
-  let currentUid       = null;
-  let artisanData      = {};
-  // Display only. The server decides the destination from its own records;
-  // nothing here is sent with the withdrawal.
-  let payoutAccount    = null;
-  let pinConfigured    = false;
-  let requestId        = null;   // one per withdrawal attempt (idempotency key)
+const names = createBookingNames({
+  getDocument: (c, id) => databaseService.getDocument(c, id),
+  serviceLabel, max: 20, onChange: () => paint(true),
+});
 
-  const NETWORK_LABEL = { mtn: 'MTN', telecel: 'Telecel', airteltigo: 'AirtelTigo' };
-  const maskPhone = (p) => {
-    const d = String(p || '').replace(/\D/g, '');
-    return d.length >= 7 ? `${d.slice(0, 3)} ••• ${d.slice(-4)}` : '—';
+// Only the money fields the screen reads are kept for the next visit's first
+// paint — no phone number, no account name, no provider reference.
+const balancesOf = (a) => ({ availableBalance: a.availableBalance ?? 0, totalEarned: a.totalEarned ?? 0, withdrawnTotal: a.withdrawnTotal ?? 0 });
+const escrowOf = (e) => ({ id: e.id, bookingId: e.bookingId ?? null, kind: e.kind ?? 'job', status: e.status ?? null,
+                           amount: e.amount ?? null, commission: e.commission ?? null, artisanShare: e.artisanShare ?? null,
+                           createdAt: e.createdAt ?? null, disputedAt: e.disputedAt ?? null });
+const payoutOf = (p) => ({ id: p.id, ref: p.ref ?? null, amount: p.amount ?? 0, provider: p.provider ?? null, status: p.status ?? null,
+                           refundedAt: p.refundedAt ?? null, createdAt: p.createdAt ?? null, completedAt: p.completedAt ?? null, failedAt: p.failedAt ?? null });
+const rec = (r) => ({ id: r.id, ...(r.data || {}) });
+
+// ── A mismatch is shown once it holds, not while two listeners catch up ──────
+// The profile and the ledger arrive on separate listeners; one money move
+// updates both in one transaction, but they can land a moment apart.
+const SETTLE_MS = 2000;
+let _issueSig = '', _issueSince = 0, _issueTimer = null;
+function issuesStable(issues) {
+  const sig = issues.join('|');
+  if (!sig) { _issueSig = ''; return false; }
+  if (sig !== _issueSig) {
+    _issueSig = sig; _issueSince = Date.now();
+    clearTimeout(_issueTimer);
+    _issueTimer = setTimeout(() => paint(true), SETTLE_MS + 50);
+    return false;
+  }
+  return Date.now() - _issueSince >= SETTLE_MS;
+}
+
+// ── Paint ─────────────────────────────────────────────────────────────────────
+let _lastSig = '';
+function paint(force = false) {
+  if (!S.wallet) return;
+  const payouts = S.walletLive && S.livePayouts ? S.livePayouts : S.wallet.payouts;
+  const ledger = mergeLedger({ live: S.live, liveFromServer: S.liveFromServer, full: S.full });
+  const m = earningsModel({ artisan: S.wallet.artisan, escrows: S.wallet.escrows, payouts, transactions: ledger.rows,
+                            ledgerComplete: ledger.complete && S.walletLive });
+  const open = S.wallet.escrows.map(escrowView);
+  const account = S.account ? { providerName: PROVIDER_NAMES[String(S.account.provider || '').toLowerCase()] || S.account.provider || null,
+                                phone: maskPhone(S.account.phone), accountName: S.account.accountName || null } : S.account;
+  _gate = withdrawGate({ live: S.walletLive, account: S.account, available: m.wallet.available, min: MIN_WITHDRAWAL });
+  const ui = {
+    live: S.walletLive, account, gate: _gate,
+    ledger: { ...ledger, count: ledger.rows.length, loading: S.ledgerLoading, failed: S.ledgerFailed },
+    held: open.filter((v) => v.status === 'held'), disputed: open.filter((v) => v.status === 'disputed'),
+    returned: S.recent.map(escrowView).filter((v) => v.status === 'refunded'),
+    names, txnsReady: S.txnsReady, txnsFailed: S.txnsFailed,
+    issuesStable: S.walletLive && issuesStable(m.issues),
   };
+  _m = m;
+  _rows = activityRows(ledger.rows, payouts, names);
+  dom.sub.textContent = S.walletLive ? '' : 'Showing your last figures · checking for updates';
+  if (_sheet) updateConfirm();
+  const sig = JSON.stringify([m, ui.gate, ui.ledger.complete, ui.ledger.loading, ui.ledger.failed, ui.ledger.tooMany, ui.issuesStable,
+                              ui.returned, ui.account, ui.held, ui.disputed, ui.txnsReady, ui.txnsFailed, _rows]);
+  if (!force && sig === _lastSig) return;
+  _lastSig = sig;
+  // Keep focus on the control the artisan was using across a redraw.
+  const f = document.activeElement && document.activeElement.closest ? document.activeElement.closest('#earn-body [data-act], #earn-body [data-txn], #withdraw-btn') : null;
+  const refocus = !f ? null : f.id ? `#${f.id}` : f.dataset.act ? `[data-act="${f.dataset.act}"]` : `[data-txn="${CSS.escape(f.dataset.txn)}"]`;
+  renderEarnings(dom, m, ui, _rows);
+  if (refocus) { const el = dom.main.querySelector(refocus); if (el && !el.disabled) el.focus({ preventScroll: true }); }
+}
 
-  async function loadPayoutSetup(uid) {
-    try {
-      const [kyc, sec] = await Promise.all([
-        databaseService.getDocument(`artisans/${uid}/private`, 'kyc'),
-        databaseService.getDocument(`artisans/${uid}/private`, 'security'),
-      ]);
-      const priv = kyc.exists ? (kyc.data || {}) : {};
-      const acct = priv.payoutAccount || artisanData.payoutAccount || null;
-      payoutAccount = acct && acct.phone ? acct : null;
-      pinConfigured = !!(sec.exists && sec.data && sec.data.securityPinConfigured);
-    } catch (err) {
-      console.warn('[wallet] Could not load payout setup:', err.code || err.message);
-      payoutAccount = null;
-    }
-    wdAcctNetwork.textContent = payoutAccount ? (NETWORK_LABEL[payoutAccount.provider] || payoutAccount.provider || '—') : '—';
-    wdAcctNumber.textContent  = payoutAccount
-      ? `${maskPhone(payoutAccount.phone)}${payoutAccount.accountName ? ` · ${payoutAccount.accountName}` : ''}`
-      : 'No payout account on file — contact support.';
-    updateConfirm();
+function bookingIdsToName() {
+  return [...S.wallet.escrows.map((e) => e.bookingId), ...S.recent.map((e) => e.bookingId),
+          ...mergeLedger({ live: S.live, full: S.full }).rows.map((t) => t.bookingId)];
+}
+
+// ── The whole ledger, when asked for (Check / Show older) ────────────────────
+async function loadFullLedger() {
+  if (!S.uid || S.ledgerLoading) return;
+  S.ledgerLoading = true; S.ledgerFailed = false; paint(true);
+  try {
+    S.full = await walletRepo.getArtisanLedger(S.uid, { limit: LEDGER_CHECK_LIMIT });
+  } catch (e) {
+    console.warn('[earnings] ledger read failed:', e?.code || e?.message || e);
+    S.ledgerFailed = true;
+  } finally {
+    S.ledgerLoading = false;
+    paint(true);
+    if (S.wallet) names.load(bookingIdsToName());
   }
+}
 
-  // ── Formatting ──────────────────────────────────────────────────────────────
-  // Grouped thousands ("GHS 18,765.40") — shared/js/utils/currency.js.
-  const fmtGHS  = (n) => formatGHS(n);
-  const statHTML = (n) => `<span class="hero-cur">GHS</span>${formatGHS(n, { code: false })}`;
-  const fmtDate = (iso) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-         + ' · '
-         + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+// ── Controls ──────────────────────────────────────────────────────────────────
+const txnSheet = document.getElementById('txn-sheet');
+dom.main.addEventListener('click', (e) => {
+  const act = e.target.closest('[data-act]');
+  if (act && (act.dataset.act === 'check' || act.dataset.act === 'older')) { loadFullLedger(); return; }
+  if (e.target.closest('#withdraw-btn')) { openWithdraw(); return; }
+  const t = e.target.closest('[data-txn]');
+  if (t) {
+    const r = _rows.find((x) => x.id === t.dataset.txn);
+    if (!r) return;
+    document.getElementById('txn-title').textContent = r.title;
+    document.getElementById('txn-body').innerHTML = detailHtml(r);
+    openSheet(txnSheet);
+  }
+});
+
+// ── Notices ───────────────────────────────────────────────────────────────────
+// Shown when Firestore cannot be reached. What is on screen stays.
+function showConnectionNotice() {
+  let el = document.getElementById('earn-offline');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'earn-offline';
+    el.className = 'fx-notice fx-notice--warn';
+    el.setAttribute('role', 'status');
+    el.innerHTML = `${icon('alert', 'fx-notice__icon')}<div class="fx-notice__body"><p></p><div class="fx-notice__actions"></div></div>`;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'fx-btn fx-btn--tertiary fx-btn--s'; b.textContent = 'Retry';
+    b.addEventListener('click', () => window.location.reload());
+    el.querySelector('.fx-notice__actions').appendChild(b);
+    notices.appendChild(el);
+  }
+  el.querySelector('p').textContent = S.wallet
+    ? 'We can\'t reach Fidus X right now. Showing what we last had — it updates when you\'re back online. Withdrawals wait until then.'
+    : 'We can\'t reach Fidus X right now, so your earnings can\'t be shown yet. Check your connection.';
+  el.hidden = false;
+}
+function hideConnectionNotice() {
+  const el = document.getElementById('earn-offline');
+  if (el) el.hidden = true;
+}
+
+// ── Withdraw ──────────────────────────────────────────────────────────────────
+const wd = {
+  overlay: document.getElementById('wd-sheet'),
+  amount:  document.getElementById('wd-amount'),
+  msg:     document.getElementById('wd-amount-msg'),
+  quick:   document.getElementById('wd-quick'),
+  account: document.getElementById('wd-account'),
+  avail:   document.getElementById('wd-avail'),
+  error:   document.getElementById('wd-error'),
+  confirm: document.getElementById('wd-confirm-btn'),
+};
+let _sheet = null;
+let _busy = false;
+let _gateShown = false;   // the error line is showing the gate's reason (offline, …)
+// One request id per attempt: the server makes at most one payout for it
+// (payouts/{uid}_{requestId}). The same amount retried after an answer nobody
+// could read reuses it, so a payout that did start is returned, not repeated.
+let _requestId = null, _requestAmountP = null;
+function requestIdFor(amount) {
+  if (!_requestId || _requestAmountP !== toP(amount)) { _requestId = newWithdrawalRequestId(); _requestAmountP = toP(amount); }
+  return _requestId;
+}
+function spendRequest() { _requestId = null; _requestAmountP = null; }
+
+const accountTo = () => {
+  if (!S.account) return '';
+  return [PROVIDER_NAMES[String(S.account.provider || '').toLowerCase()] || S.account.provider, maskPhone(S.account.phone)].filter(Boolean).join(' ');
+};
+
+function showError(message) { wd.error.textContent = message || ''; wd.error.hidden = !message; _gateShown = false; }
+
+function renderQuick() {
+  const avail = _m ? _m.wallet.available : 0;
+  wd.quick.innerHTML = '';
+  const add = (value, label) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'fx-btn fx-btn--secondary fx-btn--s'; b.dataset.amount = value;
+    b.setAttribute('aria-pressed', 'false'); b.textContent = label;
+    wd.quick.appendChild(b);
   };
+  for (const a of [20, 50, 100, 200]) if (toP(a) <= toP(avail)) add(String(a), `GHS ${a}`);
+  if (toP(avail) >= toP(MIN_WITHDRAWAL)) add((toP(avail) / 100).toFixed(2), `All · ${fmtGHS(avail)}`);
+}
 
-  // ── Wallet display ──────────────────────────────────────────────────────────
-  // `w` is deriveArtisanWallet's view (shared/js/domain/walletLedger.js): every
-  // figure comes from the record that is authoritative for it. Pending release
-  // is the customer's money held for your jobs — yours once they confirm, not
-  // spendable before; it is never added to Available.
-  const explainEl = document.getElementById('wallet-explain');
-  function updateWalletDisplay(w) {
-    if (!w) return;
-    currentWallet = w;
-    availEl.textContent     = fmtGHS(w.available);
-    pendingEl.innerHTML     = statHTML(w.pendingRelease);
-    totalEl.innerHTML       = statHTML(w.totalEarned);
-    withdrawnEl.innerHTML   = w.paidOut === null ? '<span class="hero-cur">GHS</span>—' : statHTML(w.paidOut);
-    withdrawBtn.disabled    = w.available < 5;
-    const notes = [];
-    notes.push(w.heldJobs
-      ? `Pending release: your share (after commission) of ${w.heldJobs} job${w.heldJobs === 1 ? '' : 's'} in progress, paid when the customer confirms the job is done.`
-      : 'Pending release: nothing held for you right now.');
-    if (w.inDispute > 0) notes.push(`${fmtGHS(w.inDispute)} is in a dispute an administrator is reviewing.`);
-    if (w.inTransit > 0) notes.push(`${fmtGHS(w.inTransit)} is on its way to your Mobile Money.`);
-    if (w.paidOut === null) notes.push('Your payout total could not be confirmed — contact support.');
-    explainEl.textContent = notes.join(' ');
-  }
+function updateConfirm() {
+  const raw = wd.amount.value;
+  const problem = _m ? withdrawProblem(raw, { available: _m.wallet.available, min: MIN_WITHDRAWAL }) : '';
+  wd.msg.textContent = problem;
+  wd.amount.setAttribute('aria-invalid', problem ? 'true' : 'false');
+  const ready = _gate.can && !_busy && String(raw).trim() !== '' && !problem;
+  wd.confirm.disabled = !ready;
+  wd.confirm.textContent = ready ? `Withdraw ${fmtGHS(Number(raw))}` : 'Withdraw';
+  if (_m) wd.avail.textContent = fmtGHS(_m.wallet.available);
+  // Gone offline (or the account vanished) while the sheet is open: say so.
+  if (!_gate.can && !_busy) { showError(_gate.reason); _gateShown = true; }
+  else if (_gateShown) showError('');
+}
 
-  // A withdrawal row's status comes from its payout record (the authority),
-  // not the copy written when it was requested.
-  let payoutsById = new Map();
-  let lastTxns    = null;
+function openWithdraw() {
+  if (!_gate.can || _sheet) return;
+  wd.amount.value = '';
+  showError('');
+  spendRequest();
+  renderQuick();
+  wd.account.textContent = [accountTo(), S.account && S.account.accountName].filter(Boolean).join(' · ') || 'No payout account on file';
+  _sheet = openSheet(wd.overlay, { onClose: () => { _sheet = null; } });
+  updateConfirm();
+}
 
-  // ── Transaction list ────────────────────────────────────────────────────────
-  // Money IN to the artisan: job earnings and tips (functions/tips.js writes
-  // type 'tip'). A tip used to show as "− GHS x" with the debit arrow.
-  // Display only: the balance itself is computed elsewhere.
-  const CREDIT_TYPES = ['earning', 'tip'];
+wd.quick.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-amount]');
+  if (!b) return;
+  for (const x of wd.quick.querySelectorAll('[data-amount]')) x.setAttribute('aria-pressed', String(x === b));
+  wd.amount.value = b.dataset.amount;
+  showError('');
+  updateConfirm();
+});
+wd.amount.addEventListener('input', () => {
+  for (const x of wd.quick.querySelectorAll('[data-amount]')) x.setAttribute('aria-pressed', 'false');
+  showError('');
+  updateConfirm();
+});
 
-  function txnIcon(type) {
-    if (CREDIT_TYPES.includes(type)) {
-      return `<div class="txn-icon earning">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M12 19V5M5 12l7-7 7 7" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg></div>`;
-    }
-    return `<div class="txn-icon debit">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-        <path d="M12 5v14M5 12l7 7 7-7" stroke="#e53e3e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg></div>`;
-  }
-
-  function statusClass(s) {
-    const map = { completed: 'completed', successful: 'completed', processing: 'processing', failed: 'failed', pending: 'pending' };
-    return map[s] || 'pending';
-  }
-
-  // ── Which job paid (audit UI-009) ─────────────────────────────────────────
-  // An earning row said only "Booking payment received". The service and the
-  // customer's first name come from bookings/{bookingId} (the artisan's own
-  // jobs; rules allow the read): read once per booking, only after the LIVE
-  // list has arrived (never from the cached paint), at most TXN_BOOKING_READS,
-  // newest first. Display only — no figure here comes from the booking.
-  const _txnBookings      = new Map();   // bookingId → { service, name } | null
-  const TXN_BOOKING_READS = 20;
-  let   _txnLive          = false;
-
-  async function loadTxnBookings(records) {
-    if (!_txnLive) return;
-    const ids = [...new Set(records.map(r => r.data && r.data.bookingId).filter(Boolean))].slice(0, TXN_BOOKING_READS);
-    let changed = false;
-    for (const id of ids) {
-      if (_txnBookings.has(id)) continue;
-      _txnBookings.set(id, null);
-      try {
-        const snap = await databaseService.getDocument('bookings', id);
-        if (snap?.exists) {
-          const b = snap.data || {};
-          _txnBookings.set(id, { service: serviceLabel(b.serviceType) || serviceLabel(b.service) || null,
-                                 name: typeof b.customerFirstName === 'string' ? b.customerFirstName : null });
-          changed = true;
-        }
-      } catch (_) { /* unreadable: the row keeps its own description */ }
-    }
-    if (changed && lastTxns) renderTxns(lastTxns);
-  }
-
-  /** "Plumbing · Ama" when the booking is known, else the record's own description. */
-  function txnTitle(d) {
-    const info = d.bookingId ? _txnBookings.get(d.bookingId) : null;
-    if (info && info.service) return info.name ? `${info.service} · ${info.name}` : info.service;
-    return d.description || 'Transaction';
-  }
-
-  function buildTxnHTML(t, isLast) {
-    const d        = t.data.type === 'withdrawal'
-      ? { ...t.data, status: withdrawalStatus(t.data, payoutsById.get(t.data.payoutId)) }
-      : t.data;
-    const isCredit = CREDIT_TYPES.includes(d.type);
-    const sign     = isCredit ? '+' : '−';
-    const amtClass = isCredit ? 'credit' : 'debit';
-
-    const commissionNote = (d.type === 'earning' && d.commission)
-      ? `<p class="txn-ref">After ${(d.commissionRate * 100).toFixed(0)}% commission · Gross ${formatGHS(d.totalAmount)}</p>`
-      : (d.ref ? `<p class="txn-ref">Ref: ${d.ref}</p>` : '');
-
-    return `
-      <div class="txn-item">
-        ${txnIcon(d.type)}
-        <div class="txn-details">
-          <p class="txn-title">${esc(txnTitle(d))}</p>
-          <p class="txn-meta">${fmtDate(d.createdAt)}</p>
-          ${commissionNote}
-          ${d.bookingId ? `<a class="txn-ref" href="job.html?id=${encodeURIComponent(d.bookingId)}">View job</a>` : ''}
-        </div>
-        <div class="txn-amount-col">
-          <p class="txn-amount ${amtClass}">${sign} ${formatGHS(d.amount)}</p>
-          <span class="txn-status ${statusClass(d.status)}">${d.status || '—'}</span>
-        </div>
-      </div>
-      ${isLast ? '' : '<div class="txn-divider"></div>'}`;
-  }
-
-  function renderTxns(records) {
-    lastTxns = records;
-    loadingEl.style.display = 'none';
-    if (!records.length) {
-      listEl.style.display  = 'none';
-      emptyEl.style.display = '';
-      return;
-    }
-    emptyEl.style.display = 'none';
-    listEl.style.display  = '';
-    listEl.innerHTML = records.map((t, i) => buildTxnHTML(t, i === records.length - 1)).join('');
-  }
-
-  // ── Withdrawal modal ─────────────────────────────────────────────────────────
-
-  function openWithdrawModal() {
-    wdAmountInput.value = '';
-    requestId = newWithdrawalRequestId();   // fresh attempt, fresh key
-    document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
-    wdAvail.textContent = fmtGHS(currentWallet.available);
-    wdOverlay.classList.add('open');
-    wdOverlay.setAttribute('aria-hidden', 'false');
+// The PIN authorises the withdrawal server-side, inside processArtisanWithdrawal
+// (there is no standalone verify endpoint). It is never stored on this page.
+async function submitWithdrawal(amount, pin, controls) {
+  _busy = true;
+  wd.confirm.disabled = true;
+  wd.confirm.setAttribute('aria-busy', 'true');
+  const requestId = requestIdFor(amount);
+  try {
+    const res = await withdrawArtisan({ amount, pin, requestId });
+    controls.close('done');
+    const out = withdrawalOutcome(res, { amount, to: accountTo() });
+    spendRequest();
+    if (!out.done) { showError(out.message); return; }
+    // Only Paystack's confirmation reads "paid"; anything still open says so.
+    if (_sheet) await _sheet.close('done');
+    showToast(out.message, { tone: out.tone, timeoutMs: 9000 });
+  } catch (err) {
+    const e = withdrawalError(err);
+    if (e.where === 'pin') { controls.setBusy(false); controls.showError(e.message); return; }
+    console.warn('[earnings] withdrawal:', err?.code || '', err?.message || err);
+    controls.close('error');
+    if (e.attemptSpent) spendRequest();
+    showError(e.message);
+  } finally {
+    _busy = false;
+    wd.confirm.removeAttribute('aria-busy');
     updateConfirm();
   }
+}
 
-  function closeWithdrawModal() {
-    wdOverlay.classList.remove('open');
-    wdOverlay.setAttribute('aria-hidden', 'true');
-  }
+wd.confirm.addEventListener('click', () => {
+  if (_busy) return;
+  const raw = wd.amount.value;
+  const amount = Number(raw);
+  if (!_gate.can || !String(raw).trim() || withdrawProblem(raw, { available: _m.wallet.available, min: MIN_WITHDRAWAL })) return;
+  showError('');
+  const context = `Withdrawal · ${fmtGHS(amount)}`;
 
-  // Why an amount cannot be withdrawn, or '' when it can. Mirrors the server's
-  // checks (minimum, available balance, whole pesewas) so the artisan is told
-  // instead of facing a greyed-out button; the server still decides.
-  const MIN_WITHDRAWAL = PLATFORM_CONFIG.minWithdrawalGHS;
-  function withdrawProblem(raw) {
-    const text = String(raw || '').trim();
-    if (!text) return '';
-    const amount = Number(text);
-    if (!Number.isFinite(amount) || amount <= 0) return 'Enter an amount in cedis, for example 50.';
-    if (!/^\d+(\.\d{1,2})?$/.test(text)) return 'Use at most 2 decimal places (pesewas).';
-    if (amount < MIN_WITHDRAWAL) return `The minimum withdrawal is ${formatGHS(MIN_WITHDRAWAL)}.`;
-    if (amount > currentWallet.available) return `That is more than you can withdraw (${formatGHS(currentWallet.available)}).`;
-    return '';
-  }
-
-  function updateConfirm() {
-    const raw     = wdAmountInput.value;
-    const problem = withdrawProblem(raw);
-    const amount  = Number(raw);
-    const ready   = !!payoutAccount && String(raw).trim() !== '' && !problem;
-    const msgEl   = document.getElementById('wd-amount-msg');
-    if (msgEl) msgEl.textContent = problem;
-    wdConfirmBtn.disabled    = !ready;
-    wdConfirmBtn.textContent = ready
-      ? `Withdraw ${formatGHS(amount)}`
-      : 'Confirm Withdrawal';
-  }
-
-  // Quick amounts
-  document.querySelectorAll('.wd-quick').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      wdAmountInput.value = btn.dataset.amount;
-      updateConfirm();
-    });
-  });
-
-  wdAmountInput.addEventListener('input', () => {
-    document.querySelectorAll('.wd-quick').forEach(b => b.classList.remove('active'));
-    updateConfirm();
-  });
-  withdrawBtn.addEventListener('click',  openWithdrawModal);
-  wdCancelBtn.addEventListener('click',  closeWithdrawModal);
-  wdOverlay.addEventListener('click', e => { if (e.target === wdOverlay) closeWithdrawModal(); });
-
-  // Confirm withdrawal
-  // The PIN authorises the withdrawal server-side, inside processArtisanWithdrawal
-  // (there is no standalone verify endpoint). It is never stored on this page.
-  async function runWithdrawal(amount, pin, controls) {
-    try {
-      const res = await withdrawArtisan({ amount, pin, requestId });
-      controls.close('done');
-      closeWithdrawModal();
-      // Only Paystack's confirmation means "sent". Anything else is honest
-      // pending: the balance is held, and we notify when it settles.
-      if (res.status === 'success') {
-        showToast(`${formatGHS(amount)} sent to your Mobile Money account.`, 'success');
-      } else {
-        showToast(`Withdrawal of ${formatGHS(amount)} requested. We'll notify you when it arrives. Ref: ${res.ref}`, 'info');
-      }
-    } catch (err) {
-      const code = String(err?.code || '');
-      if (code.includes('permission-denied') || code.includes('resource-exhausted') || /PIN/i.test(err?.message || '')) {
-        controls.setBusy(false);
-        controls.showError(code.includes('permission-denied') ? 'Incorrect PIN. Try again.' : pinErrorMessage(err));
-        return;
-      }
-      console.error('Artisan withdrawal error:', err);
-      controls.close('error');
-      showToast(err.message || 'Withdrawal failed. Please try again.', 'error');
-      wdConfirmBtn.disabled = false;
-      updateConfirm();
-    }
-  }
-
-  wdConfirmBtn.addEventListener('click', () => {
-    const amount = parseFloat(wdAmountInput.value);
-    if (!payoutAccount || !amount || withdrawProblem(wdAmountInput.value)) return;
-    const context = `Withdrawal · ${fmtGHS(amount)}`;
-
-    if (!pinConfigured) {
-      openSecurityPinSheet({
-        mode: 'create',
-        context,
-        onCreate: async (pin, controls) => {
-          controls.setBusy(true);
-          try {
-            await setSecurityPin(pin);
-            pinConfigured = true;
-            runWithdrawal(amount, pin, controls);   // re-verified server-side regardless
-          } catch (err) {
-            if (String(err?.code || '').includes('already-exists')) {
-              pinConfigured = true;
-              controls.close('created');
-              showToast(pinErrorMessage(err), 'info');
-              return;
-            }
-            controls.setBusy(false);
-            controls.showError(pinErrorMessage(err));
-          }
-        },
-      });
-      return;
-    }
-
+  if (!S.pinConfigured) {
     openSecurityPinSheet({
-      mode: 'enter',
-      title: 'Enter your PIN',
-      message: 'Enter your 4-digit Security PIN to confirm this withdrawal. This is not your Mobile Money PIN.',
+      mode: 'create',
       context,
-      confirmLabel: 'Confirm Withdrawal',
-      onConfirm: (pin, controls) => {
+      onCreate: async (pin, controls) => {
         controls.setBusy(true);
-        runWithdrawal(amount, pin, controls);
+        try {
+          await setSecurityPin(pin);
+          S.pinConfigured = true;
+          submitWithdrawal(amount, pin, controls);   // re-verified server-side regardless
+        } catch (err) {
+          if (String(err?.code || '').includes('already-exists')) {
+            S.pinConfigured = true;
+            controls.close('created');
+            showError(pinErrorMessage(err));
+            return;
+          }
+          controls.setBusy(false);
+          controls.showError(pinErrorMessage(err));
+        }
       },
     });
-  });
-
-  // ── Auth + Firebase subscriptions ──────────────────────────────────────────
-  const { services: { authService, databaseService } } = getAppContainer();
-  const walletRepo = createWalletRepository({ databaseService });
-
-  // Figures painted from the cache are shown for continuity and marked as such;
-  // Withdraw stays off until the server has answered (CLAUDE.md §1, money tier).
-  const heroLabel = document.querySelector('.hero-label');
-  function setWalletFreshness(fromCache) {
-    let tag = document.getElementById('wallet-fresh');
-    if (!tag && heroLabel) {
-      tag = document.createElement('span');
-      tag.id = 'wallet-fresh';
-      tag.style.cssText = 'margin-left:6px;font-weight:600;opacity:.8;text-transform:none;letter-spacing:0;';
-      tag.textContent = '· Updating…';
-      heroLabel.appendChild(tag);
-    }
-    if (tag) tag.hidden = !fromCache;
-    if (fromCache) withdrawBtn.disabled = true;
+    return;
   }
 
-  function showTxnsUnavailable() {
-    loadingEl.style.display = 'none';
-    if (lastTxns) return;   // keep what is on screen
-    emptyEl.style.display = 'none';
-    listEl.style.display  = '';
-    listEl.innerHTML = '<p class="txn-meta" role="status" style="padding:var(--ds-4);margin:0;text-align:center;">' +
-      'We couldn\'t load your transactions. Check your connection — they appear here once you\'re back online.</p>';
-  }
-
-  let _wired = false;
-  subscribeToArtisanAuthState(user => {
-    if (!user) { window.location.replace(LOGIN_URL); return; }
-    if (_wired) return;   // a token refresh is not a new session
-    _wired = true;
-    currentUid = user.uid;
-
-    // Live artisan doc (for name + wallet)
-    loadPayoutSetup(user.uid);
-
-    // Wallet figures: last known first, then the authoritative records.
-    // Only the derived figures and each payout's status are kept — nothing
-    // else from the payout records (account numbers) is cached.
-    const walletView = mountInstantView({
-      key: 'artisan-wallet-view',
-      version: 1,
-      render: (data, { fromCache }) => {
-        payoutsById = new Map((data.payouts || []).map(p => [p.id, p]));
-        updateWalletDisplay(data.view);
-        setWalletFreshness(fromCache);
-        if (lastTxns) renderTxns(lastTxns);   // re-label withdrawals with payout status
-      },
-      subscribe: (_c, onData, onError) => walletRepo.subscribeToArtisanWallet(user.uid, (res) => {
-        if (!res) return;
-        artisanData = res.artisan || {};
-        onData({ view: res.view, payouts: (res.payouts || []).map(p => ({ id: p.id, status: p.status })) });
-      }, onError),
-      onError: (err) => console.error('[wallet] Wallet error:', err?.code || err?.message),
-    });
-
-    // Transactions: last known first, then live. A failure never reads as
-    // "no transactions" (audit NET-001).
-    const txnView = mountInstantView({
-      key: 'artisan-wallet-txns',
-      version: 1,
-      render: (records, { fromCache }) => {
-        if (!fromCache) _txnLive = true;
-        renderTxns(records);
-        loadTxnBookings(records);
-      },
-      subscribe: (_c, onData, onError) => walletRepo.subscribeToArtisanTransactions(user.uid, onData, onError),
-      onError: (err) => { console.error('Transactions error:', err); showTxnsUnavailable(); },
-    });
-
-    window.addEventListener('pagehide', () => { walletView.destroy(); txnView.destroy(); });
-    // Restored from the back/forward cache with its listeners torn down: reload.
-    window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
+  openSecurityPinSheet({
+    mode: 'enter',
+    title: 'Enter your PIN',
+    message: 'Enter your 4-digit Security PIN to confirm this withdrawal. This is not your Mobile Money PIN.',
+    context,
+    confirmLabel: 'Confirm withdrawal',
+    onConfirm: (pin, controls) => {
+      controls.setBusy(true);
+      submitWithdrawal(amount, pin, controls);
+    },
   });
+});
+
+// ── Payout account and PIN on file (display only) ────────────────────────────
+// The server decides the destination from its own records; nothing here is sent
+// with the withdrawal.
+async function loadPayoutSetup(uid, artisan) {
+  try {
+    const [kyc, sec] = await Promise.all([
+      databaseService.getDocument(`artisans/${uid}/private`, 'kyc'),
+      databaseService.getDocument(`artisans/${uid}/private`, 'security'),
+    ]);
+    const priv = kyc.exists ? (kyc.data || {}) : {};
+    const acct = priv.payoutAccount || (artisan && artisan.payoutAccount) || null;
+    S.account = acct && acct.phone ? acct : null;
+    S.pinConfigured = !!(sec.exists && sec.data && sec.data.securityPinConfigured);
+  } catch (err) {
+    console.warn('[earnings] payout setup:', err?.code || err?.message);
+    S.account = null;
+  }
+  paint();
+}
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+subscribeToArtisanAuthState((user) => {
+  if (!user) { window.location.replace('login.html'); return; }
+  if (S.uid === user.uid) return;   // a token refresh is not a new session
+  S.uid = user.uid;
+  let setupRead = false, recentRead = false;
+
+  // The figures: last known first (shown, never acted on), then the records.
+  const walletView = mountInstantView({
+    key: 'artisan-wallet-view',
+    version: 2,
+    render: (data, { fromCache }) => {
+      S.wallet = data;
+      S.walletLive = !fromCache && !data.fromCache;
+      if (S.walletLive) hideConnectionNotice();
+      paint();
+    },
+    subscribe: (_c, onData, onError) => walletRepo.subscribeToArtisanWallet(user.uid, (res) => {
+      if (!res) { onError(Object.assign(new Error('No artisan profile'), { code: 'not-found' })); return; }
+      S.livePayouts = res.payouts || [];
+      if (!setupRead) { setupRead = true; loadPayoutSetup(user.uid, res.artisan); }
+      if (!recentRead && !res.fromCache) {
+        recentRead = true;
+        walletRepo.getRecentArtisanEscrow(user.uid, { limit: 20 })
+          .then((list) => { S.recent = list; paint(); names.load(bookingIdsToName()); })
+          .catch((e) => console.warn('[earnings] recent job payments:', e?.code || e?.message));
+      }
+      onData({ artisan: balancesOf(res.artisan || {}), escrows: (res.escrows || []).map(escrowOf),
+               payouts: (res.payouts || []).map(payoutOf), fromCache: !!res.fromCache });
+      if (!res.fromCache) { names.setLive(true); names.load(bookingIdsToName()); }
+    }, onError),
+    onError: (err) => {
+      console.warn('[earnings] wallet:', err?.code || err?.message);
+      showConnectionNotice();
+      if (!S.wallet) {
+        dom.main.innerHTML = '<p class="fx-meta fx-earn__empty" role="status">Your earnings appear here once Fidus X can be reached.</p>';
+      }
+      paint();
+    },
+  });
+
+  // The ledger, newest first: last known first, then live. A failure never
+  // reads as "no activity" (audit NET-001). Phone numbers are not cached.
+  let fromServer = false;
+  const txnView = mountInstantView({
+    key: 'artisan-wallet-txns',
+    version: 2,
+    stripFields: ['phone'],
+    render: (records, { fromCache }) => {
+      S.live = records.map(rec);
+      S.txnsReady = true;
+      if (!fromCache) { S.liveFromServer = fromServer; S.txnsFailed = false; names.setLive(true); }
+      paint();
+      if (!fromCache && S.wallet) names.load(bookingIdsToName());
+    },
+    subscribe: (_c, onData, onError) => walletRepo.subscribeToArtisanTransactions(user.uid, (records, meta) => {
+      // Empty from Firestore's cache while unreachable is "not known yet", not "none".
+      if (meta && meta.fromCache && !records.length) { showConnectionNotice(); return; }
+      fromServer = !(meta && meta.fromCache);
+      onData(records);
+    }, onError),
+    onError: () => { S.txnsReady = true; S.txnsFailed = true; showConnectionNotice(); paint(true); },
+  });
+
+  window.addEventListener('pagehide', () => { walletView.destroy(); txnView.destroy(); clearTimeout(_issueTimer); });
+});
+
+// Restored from the back/forward cache with its listeners torn down: reload
+// (the cache paints the figures at once).
+window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
 </script>
-
-<script src="../shared/js/components/fastLoader.js"></script>
 <script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>
 </body>

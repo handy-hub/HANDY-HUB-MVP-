@@ -764,6 +764,110 @@ await t('the artisan withdrawal wrapper and wallet page send no provider or phon
     assert.ok(!/withdrawArtisan\(\{[^}]*phone/.test(page), 'wallet.html must not send a phone');
 });
 
+say('\n── The Earnings screen says what the server answered (Phase 4) ──\n');
+// shared/js/domain/artisanEarnings.js decides what the artisan is told after a
+// withdrawal; here it is given the REAL answers of processArtisanWithdrawal.
+const { pathToFileURL } = require('url');
+const E = await import(pathToFileURL(path.join(__dirname, '..', 'shared', 'js', 'domain', 'artisanEarnings.js')).href);
+const asClient = (e) => ({ code: `functions/${e.code}`, message: e.message });   // as httpsCallable rejects
+const TO = 'MTN MoMo 024 ••• 1111';
+
+await t('accepted but not settled: "requested", never "paid"', async () => {
+    reset(); await seedArtisan({ available: 100 });
+    const res = await artWithdraw(40);                       // Paystack: pending
+    assert.strictEqual(res.status, 'processing');
+    const out = E.withdrawalOutcome(res, { amount: 40, to: TO });
+    assert.deepStrictEqual([out.done, out.tone], [true, 'info']);
+    assert.match(out.message, /^GHS 40\.00 to MTN MoMo 024 ••• 1111 has been requested\./);
+    assert.ok(!/\bpaid\b/i.test(out.message), out.message);
+    assert.strictEqual(E.payoutView(payout()).label, 'Processing with the provider');
+});
+await t('only Paystack\'s success reads "paid"', async () => {
+    reset(); await seedArtisan({ available: 100 });
+    PS.transfer = async ({ reference }) => ({ status: 'success', transfer_code: 'TRF_S', reference });
+    const res = await artWithdraw(40);
+    assert.strictEqual(res.status, 'success');
+    assert.match(E.withdrawalOutcome(res, { amount: 40, to: TO }).message, /^GHS 40\.00 was paid to MTN MoMo 024 ••• 1111\./);
+    assert.strictEqual(E.payoutView(payout()).label, 'Paid out');
+});
+await t('Paystack refuses it (the starter-tier case): the server\'s words, balance restored, the attempt is over', async () => {
+    reset(); await seedArtisan({ available: 100 });
+    PS.transfer = async () => { throw psErr('rejected', 'You cannot initiate third party payouts as a starter business', 400); };
+    const rid = newRid();
+    const err = await rejects(() => artCall({ amount: 40, pin: PIN, requestId: rid }), { code: 'failed-precondition' });
+    const e = E.withdrawalError(asClient(err));
+    assert.deepStrictEqual([e.where, e.attemptSpent, e.uncertain], ['sheet', true, false]);
+    assert.strictEqual(e.message, 'Your withdrawal could not be started. Your balance has been restored.');
+    assert.strictEqual(balance(), 100);
+    assert.strictEqual(E.payoutView(payout()).label, 'Failed · balance restored');
+    // The same request again returns that FAILED payout. The old wallet page read
+    // every non-success answer as "requested"; the screen must not.
+    const again = await artCall({ amount: 40, pin: PIN, requestId: rid });
+    assert.deepStrictEqual([again.status, again.duplicate], ['failed', true]);
+    const out = E.withdrawalOutcome(again, { amount: 40, to: TO });
+    assert.deepStrictEqual([out.done, out.tone], [false, 'bad']);
+    assert.match(out.message, /^Your withdrawal did not go through\./);
+    assert.strictEqual(payouts().length, 1);
+    assert.strictEqual(PS.calls.transfer.length, 1, 'no second attempt at Paystack');
+});
+await t('Paystack\'s answer is lost: "being confirmed", and the money stays held', async () => {
+    reset(); await seedArtisan({ available: 100 });
+    PS.transfer = async () => { throw psErr('unknown', 'Paystack POST /transfer timed out after 20000 ms'); };
+    const res = await artWithdraw(40);
+    assert.strictEqual(res.status, 'unknown');
+    const out = E.withdrawalOutcome(res, { amount: 40, to: TO });
+    assert.deepStrictEqual([out.done, out.tone], [true, 'warn']);
+    assert.match(out.message, /being confirmed with the provider\. The amount stays held/);
+    assert.strictEqual(balance(), 60, 'held, not restored');
+    assert.strictEqual(E.payoutView(payout()).label, 'Being confirmed with the provider');
+});
+await t('a repeated tap with the same request makes one payout, and reads as that payout', async () => {
+    reset(); await seedArtisan({ available: 100 });
+    const rid = newRid();
+    const [a, b] = await Promise.all([artCall({ amount: 40, pin: PIN, requestId: rid }), artCall({ amount: 40, pin: PIN, requestId: rid })]);
+    assert.strictEqual(payouts().length, 1);
+    assert.strictEqual(PS.calls.transfer.length, 1);
+    const dup = [a, b].find((r) => r.duplicate);
+    assert.ok(dup, 'one answer is the existing payout');
+    assert.match(E.withdrawalOutcome(dup, { amount: 40, to: TO }).message, /^Your withdrawal to MTN MoMo 024 ••• 1111 has been requested\./);
+    assert.strictEqual(balance(), 60, 'taken once');
+});
+await t('a refusal is shown in the server\'s words, and the next try is a new request', async () => {
+    reset(); await seedArtisan({ available: 30 });
+    let e = E.withdrawalError(asClient(await rejects(() => artWithdraw(50), { code: 'failed-precondition' })));
+    assert.deepStrictEqual([e.message, e.attemptSpent], ['Insufficient balance. Available: GHS 30.00.', true]);
+    FAKE_DB._set(`artisans/${ART}`, { ...FAKE_DB._get(`artisans/${ART}`), availableBalance: 1000 });   // raised outside the money paths
+    e = E.withdrawalError(asClient(await rejects(() => artWithdraw(500))));
+    assert.match(e.message, /^Part of your balance could not be matched to your payment history/);
+    assert.deepStrictEqual([e.where, e.attemptSpent], ['sheet', true]);
+});
+await t('a wrong PIN stays on the PIN sheet, and nothing was sent', async () => {
+    reset(); await seedArtisan({ available: 100 });
+    const e = E.withdrawalError(asClient(await rejects(() => artCall({ amount: 40, pin: '1357', requestId: newRid() }))));
+    assert.deepStrictEqual([e.where, e.message, e.attemptSpent], ['pin', 'Incorrect PIN. Try again.', false]);
+    assert.strictEqual(payouts().length, 0);
+});
+await t('no payout account, or below the minimum: refused in the server\'s words, not called uncertain', async () => {
+    reset(); await seedArtisan({ available: 100, account: null });
+    let err = await rejects(() => artWithdraw(40));
+    let e = E.withdrawalError(asClient(err));
+    assert.deepStrictEqual([e.where, e.uncertain, e.message], ['sheet', false, err.message]);
+    reset(); await seedArtisan({ available: 100 });
+    err = await rejects(() => artWithdraw(2));
+    e = E.withdrawalError(asClient(err));
+    assert.deepStrictEqual([e.where, e.uncertain, e.message], ['sheet', false, err.message]);
+});
+await t('an answer that never arrived is uncertain: the same request is retried, and cannot pay twice', async () => {
+    const e = E.withdrawalError({ code: 'functions/deadline-exceeded', message: 'deadline-exceeded' });
+    assert.deepStrictEqual([e.uncertain, e.attemptSpent], [true, false]);
+    reset(); await seedArtisan({ available: 100 });
+    const rid = newRid();
+    await artCall({ amount: 40, pin: PIN, requestId: rid });   // it did go through; the answer was lost
+    const retry = await artCall({ amount: 40, pin: PIN, requestId: rid });
+    assert.strictEqual(retry.duplicate, true);
+    assert.deepStrictEqual([payouts().length, balance()], [1, 60]);
+});
+
 say(`\npayout-integrity: ${passed} passed, ${failed} failed`);
 if (failed) { for (const [n, e] of failures) say(`\n✗ ${n}\n${e.stack}`); process.exit(1); }
 process.exit(0);
