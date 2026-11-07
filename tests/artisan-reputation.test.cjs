@@ -175,6 +175,55 @@ await t('the module invents nothing: no default rating, no fabricated figures', 
     assert.ok(!/document\.|window\.|firebase|Math\.random/.test(src));
 });
 
+console.log('\n── What the screen reads, and recent activity ──\n');
+
+await t('reviews come from the finished bookings read; "all of them" only when the read was not cut short', () => {
+    const ended = [{ id: 'b1', status: 'completed', rating: 5, reviewedAt: '2026-11-02T10:00:00.000Z', customerFirstName: 'Ama', serviceType: 'plumbing' },
+                   { id: 'b2', status: 'completed', rating: null }, { id: 'b3', status: 'cancelled', cancelledBy: 'artisan' }];
+    const m = rep.reputationModel({ artisan: { rating: 5, reviewCount: 1 }, endedBookings: ended, reviewsComplete: true, nowMs: NOW });
+    assert.deepStrictEqual(m.reviews.map((r) => [r.bookingId, r.rating, r.customer]), [['b1', 5, 'Ama']]);
+    assert.deepStrictEqual([m.consistency.checked, m.consistency.ok], [true, true]);
+    assert.deepStrictEqual(m.scope, { complete: true, read: 3 });
+    const cut = rep.reputationModel({ artisan: { rating: 5, reviewCount: 9 }, endedBookings: ended, reviewsComplete: false, nowMs: NOW });
+    assert.strictEqual(cut.consistency.checked, false);
+    // The read is the same query the Jobs history uses (one composite index).
+    assert.deepStrictEqual([...rep.REPUTATION_STATUSES], ['completed', 'cancelled', 'resolved']);
+    assert.strictEqual(rep.REPUTATION_READ_LIMIT, 200);
+});
+
+await t('recent activity: jobs completed in the last 30 days (boundary inclusive), the last job, the last review, last seen', () => {
+    const day = 86_400_000;
+    const at = (d) => new Date(NOW - d * day).toISOString();
+    const ended = [{ status: 'completed', completedAt: at(0.5) }, { status: 'completed', completedAt: at(30) },
+                   { status: 'completed', completedAt: at(30.01) }, { status: 'cancelled', updatedAt: at(1) },
+                   { status: 'completed', updatedAt: at(2) }];
+    const r = rep.recentActivity({ endedBookings: ended, reviews: [{ at: NOW - day }], online: { lastSeenMs: NOW - 60000 }, nowMs: NOW });
+    assert.deepStrictEqual([r.days, r.completedRecent, r.lastCompletedAt, r.lastReviewAt, r.lastSeenMs],
+        [30, 3, NOW - 0.5 * day, NOW - day, NOW - 60000]);
+    assert.deepStrictEqual(rep.recentActivity({ nowMs: NOW }), { days: 30, completedRecent: 0, lastCompletedAt: null, lastReviewAt: null, lastSeenMs: null });
+});
+
+await t('stars are filled to the rating\'s fraction (UI-010), clamped, never rounded to a whole star', () => {
+    assert.deepStrictEqual(rep.starFills(4.4), [1, 1, 1, 1, 0.4]);
+    assert.deepStrictEqual(rep.starFills(4.5), [1, 1, 1, 1, 0.5]);
+    assert.deepStrictEqual(rep.starFills(5), [1, 1, 1, 1, 1]);
+    assert.deepStrictEqual(rep.starFills(0), [0, 0, 0, 0, 0]);
+    assert.deepStrictEqual(rep.starFills(7), [1, 1, 1, 1, 1]);
+    assert.deepStrictEqual(rep.starFills('x'), [0, 0, 0, 0, 0]);
+});
+
+console.log('\n── Where Reputation lives: under Account ──\n');
+
+await t('Account links to Reputation; the nav lights Account on it and on the two pages that forward to it', () => {
+    const settings = read('artisan-app/settings.html');
+    assert.match(settings, /<a href="reputation\.html" class="st-row" id="reputation-row">[\s\S]*?<span class="st-title">Reputation<\/span>/);
+    const nav = read('artisan-app/js/artisanFloatingNav.js');
+    for (const pg of ['reputation.html', 'performance.html', 'reviews.html']) {
+        assert.match(nav, new RegExp(`'${pg.replace('.', '\\.')}'\\s*: 'account'`), pg);
+    }
+    assert.match(read('artisan-app/reputation.html'), /renderTabbar\(document\.getElementById\('tabbar'\), \{ current: 'account' \}\);/);
+});
+
 console.log(`\nartisan-reputation: ${passed} passed, ${failed} failed`);
 if (failed) { for (const [n, e] of failures) console.log(`\n✗ ${n}\n${e.stack}`); process.exit(1); }
 process.exit(0);

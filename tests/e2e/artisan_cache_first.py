@@ -172,8 +172,8 @@ def dataset(v):
 PAGES = [
     # name, path, content selector, text seen after the refresh (version 2), skeleton selector
     ('notifications', '/artisan-app/notifications.html', '#notif-list .notif-item', '(updated)', '#notif-loading'),
-    ('performance',   '/artisan-app/performance.html',   '#pf-score-grid .pf-score-card', None, '#pf-loading'),
-    ('reviews',       '/artisan-app/reviews.html',       '#rv-list .rv-card', 'Second review', '#rv-loading'),
+    # Phase 4: performance and reviews are one screen (performance.html / reviews.html forward).
+    ('reputation',    '/artisan-app/reputation.html',    '#rep-body [data-figure="rating"]', 'Second review', '#rep-body [data-skeleton]'),
     ('support',       '/artisan-app/support.html',       '#sp-tickets [id^="tk-"]', 'Support replied', None),
     ('messages',      '/artisan-app/messages.html',      '#ms-list .ms-row', None, '#ms-list .ms-skel'),
 ]

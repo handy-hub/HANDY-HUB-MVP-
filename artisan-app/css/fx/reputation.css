@@ -1,0 +1,42 @@
+/* artisan-app/css/fx/reputation.css — the Reputation screen (Phase 4). Tokens only (npm run lint:fx). */
+
+.fx-rep__notices { padding: var(--fx-space-3) var(--fx-gutter) var(--fx-space-0); }
+.fx-rep__notices:empty { display: none; }
+.fx-rep__sect:first-child { margin-top: var(--fx-space-5); }
+
+/* A figure's explanation sits on its own line under the figure. */
+.fx-rep__ledger .fx-ledger__note { flex-basis: 100%; margin-top: var(--fx-space-0); }
+.fx-rep__ledger .fx-ledger__v { display: inline-flex; align-items: center; gap: var(--fx-space-2); }
+
+/* Stars: an empty outline, and the filled star clipped to the exact fraction
+   over it. The number is always written beside them. */
+.fx-rep__stars { display: inline-flex; gap: var(--fx-space-h); vertical-align: middle; }
+.fx-rep__star { position: relative; display: inline-block; width: var(--fx-icon-s); height: var(--fx-icon-s); color: var(--fx-line-2); }
+.fx-rep__star svg { display: block; width: var(--fx-icon-s); height: var(--fx-icon-s); fill: currentColor; }
+.fx-rep__star-fill { position: absolute; inset: 0 auto 0 0; overflow: hidden; color: var(--fx-warn); }
+
+.fx-rep__avg { display: flex; flex-wrap: wrap; align-items: center; gap: var(--fx-space-2); margin: var(--fx-space-0); font: var(--fx-t-heading); }
+
+/* Who can be offered a job: a met condition is ticked, an unmet one says how to meet it. */
+.fx-rep__reqs, .fx-rep__factors, .fx-rep__reviews { margin: var(--fx-space-0); padding: var(--fx-space-0); list-style: none; }
+.fx-rep__reqs { display: grid; gap: var(--fx-space-2); }
+.fx-rep__req { display: flex; align-items: flex-start; gap: var(--fx-space-2); font: var(--fx-t-body); }
+.fx-rep__req > svg { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); color: var(--fx-ok); }
+.fx-rep__req[data-ok="false"] > svg { color: var(--fx-bad); }
+
+.fx-rep__factors { display: grid; gap: var(--fx-space-3); }
+.fx-rep__factor { padding-left: var(--fx-space-3); border-left: var(--fx-stroke) solid var(--fx-line-2); }
+.fx-rep__factor[data-unused] { border-left-style: dashed; }
+.fx-rep__factor-k { margin: var(--fx-space-0); font: var(--fx-t-body-strong); }
+.fx-rep__factor-effect { margin: var(--fx-space-h) 0 0; font: var(--fx-t-label); color: var(--fx-ink-2); }
+.fx-rep__factor .fx-meta { display: block; margin-top: var(--fx-space-h); }
+
+/* Reviews. */
+.fx-rep__review { padding: var(--fx-space-4) var(--fx-gutter); }
+.fx-rep__review + .fx-rep__review { border-top: var(--fx-hairline) solid var(--fx-line); }
+.fx-rep__review-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--fx-space-2); margin-bottom: var(--fx-space-1); }
+.fx-rep__words { margin-top: var(--fx-space-1); white-space: pre-wrap; overflow-wrap: break-word; }
+.fx-rep__review .fx-link { display: inline-block; margin-top: var(--fx-space-2); }
+.fx-rep__more { padding: var(--fx-space-2) var(--fx-gutter) var(--fx-space-0); }
+.fx-rep__empty { padding: var(--fx-space-1) var(--fx-gutter) var(--fx-space-0); }
+.fx-rep__end { padding-bottom: var(--fx-space-8); }

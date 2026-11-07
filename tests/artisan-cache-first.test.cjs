@@ -55,8 +55,8 @@ function viewOf(code, key) {
 const SCREENS = [
     // notifications is v2: a v1 payload could hold chat text, so it is never painted.
     { file: 'artisan-app/notifications.html', key: 'artisan-notifications',    mode: 'subscribe', version: 2 },
-    { file: 'artisan-app/performance.html',   key: 'artisan-performance',      mode: 'fetch',     version: 1 },
-    { file: 'artisan-app/reviews.html',       key: 'artisan-reviews',          mode: 'fetch',     version: 1 },
+    // Phase 4: performance and reviews are one screen, Reputation (the old pages forward).
+    { file: 'artisan-app/reputation.html',    key: 'artisan-reputation',       mode: 'fetch',     version: 1 },
     { file: 'artisan-app/support.html',       key: 'artisan-support-requests', mode: 'subscribe', version: 1 },
     { file: 'artisan-app/messages.html',      key: 'artisan-messages-inbox',   mode: 'subscribe', version: 1 },
 ];
@@ -82,7 +82,7 @@ for (const s of SCREENS) {
     });
 }
 
-t('the five keys are unique across the artisan app', () => {
+t('the screens\' keys are unique across the artisan app', () => {
     const keys = fs.readdirSync(path.join(ROOT, 'artisan-app')).filter((f) => f.endsWith('.html'))
         .flatMap((f) => [...read(`artisan-app/${f}`).matchAll(/mountInstantView\(\{\s*key:\s*'([^']+)'/g)].map((m) => m[1]));
     for (const s of SCREENS) assert.ok(keys.includes(s.key), s.key);
@@ -136,28 +136,33 @@ t('notifications: no chat text in the cache — a Messages row keeps its title; 
     assert.match(code, /\$\{n\.message \? `<p class="notif-item-msg">\$\{escHtml\(n\.message\)\}<\/p>` : ''\}/);
 });
 
-t('performance: money stripped (totalEarned), always revalidated, bookings reduced to what the figures need', () => {
-    const code = moduleOf('artisan-app/performance.html');
-    const v = viewOf(code, 'artisan-performance');
-    assert.match(v, /stripFields: \['totalEarned'\]/);
+t('reputation: always revalidated; the profile and bookings reduced to what the figures need — no money, prices, address, contact or full name', () => {
+    const code = moduleOf('artisan-app/reputation.html');
+    const v = viewOf(code, 'artisan-reputation');
     assert.match(v, /staleMs: 0,/);
-    const load = code.slice(code.indexOf('async function loadPerformance'), code.indexOf('const perfView'));
-    const row = /bookings: \(bookings \|\| \[\]\)\.map\(b => \(\{([\s\S]*?)\}\)\),/.exec(load);
-    assert.ok(row, 'the booking projection');
-    for (const f of ['price', 'jobQuote', 'calloutFee', 'address', 'customerPhone', 'customerName', 'lat', 'lng']) {
-        assert.doesNotMatch(row[1], new RegExp(`\\b${f}\\b`), `${f} would be cached`);
+    assert.match(v, /fetch: \(\) => loadReputation\(user\.uid\),/);
+    const shape = code.slice(code.indexOf('const artisanOf'), code.indexOf('async function loadReputation'));
+    const artisan = /const artisanOf = \(a\) => \(\{([\s\S]*?)\}\);/.exec(shape);
+    const booking = /const bookingOf = \(b\) => \(\{([\s\S]*?)\}\);/.exec(shape);
+    assert.ok(artisan && booking, 'the two projections');
+    // Money never enters this cache (the old Performance page had to strip totalEarned).
+    for (const f of ['totalEarned', 'availableBalance', 'withdrawnTotal', 'phone', 'email', 'payoutAccount', 'name', 'lat', 'lng']) {
+        assert.doesNotMatch(artisan[1], new RegExp(`\\b${f}\\b`), `artisan.${f} would be cached`);
     }
-    // A cached paint (no totalEarned) shows "—", never "GHS 0".
-    assert.match(code, /_artisan\.totalEarned == null \? '—'/);
+    for (const f of ['price', 'jobQuote', 'calloutFee', 'address', 'customerPhone', 'customerName', 'customerId', 'phone', 'email', 'lat', 'lng']) {
+        assert.doesNotMatch(booking[1], new RegExp(`\\b${f}\\b`), `booking.${f} would be cached`);
+    }
+    // The load returns exactly the projections, and "complete" only on a short read.
+    const load = code.slice(code.indexOf('async function loadReputation'), code.indexOf('// ── Paint'));
+    assert.match(load, /return \{ artisan: artisanOf\(\(snap && snap\.data\) \|\| \{\}\), bookings: list, complete: list\.length < REPUTATION_READ_LIMIT \};/);
 });
 
-t('reviews: the review shape only — never the booking\'s prices, address or contact fields', () => {
-    const code = moduleOf('artisan-app/reviews.html');
-    const load = code.slice(code.indexOf('async function loadReviews'), code.indexOf('const reviewsView'));
-    for (const f of ['price', 'jobQuote', 'calloutFee', 'address', 'customerPhone', 'phone', 'email', 'lat', 'lng']) {
-        assert.doesNotMatch(load, new RegExp(`\\b${f}\\b`), `${f} would be cached`);
+t('performance.html and reviews.html forward to Reputation; they read and cache nothing any more', () => {
+    for (const [f, to] of [['artisan-app/performance.html', 'reputation.html'], ['artisan-app/reviews.html', 'reputation.html#reviews']]) {
+        const src = read(f);
+        assert.ok(src.includes(`location.replace('${to}')`), `${f} forwards to ${to}`);
+        assert.ok(!/mountInstantView|databaseService|queryWithOptions/.test(src), `${f} still loads data`);
     }
-    assert.match(viewOf(code, 'artisan-reviews'), /staleMs: 0,/);
 });
 
 t('support: topic, own message, status and dates — never userEmail, userName or userId', () => {

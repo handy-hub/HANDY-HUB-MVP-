@@ -590,13 +590,23 @@ await t('completion rate counts only the artisan\'s own cancellations', () => {
     assert.strictEqual(metrics.computeCompletionStats([b('completed')]).rate, null);
 });
 
-await t('the performance page shows unavailable states and no false promises', () => {
-    const src = read('artisan-app/performance.html');
-    assert.match(src, /responseStats/);
-    assert.ok(!/_artisan\.responseRate/.test(src), 'no longer reads a field nothing writes');
-    assert.ok(!/unlock priority job dispatch/i.test(src), 'level does not change dispatch');
-    assert.ok(!/higher ratings unlock/i.test(src));
-    assert.match(src, /m\.value === null \? '—'/);
+// Phase 4: Performance became Reputation (performance.html forwards to it).
+await t('the reputation screen shows unavailable states and no false promises', () => {
+    const page = read('artisan-app/reputation.html');
+    const screen = read('artisan-app/js/reputationScreen.js');
+    const dom = read('shared/js/domain/artisanReputation.js');
+    const src = page + screen + dom;
+    assert.match(page, /responseStats: a\.responseStats \|\| null/);
+    assert.match(dom, /const rs = \(artisan && artisan\.responseStats\) \|\| null;/);
+    assert.ok(!/responseRate/.test(src), 'no field nothing writes');
+    assert.ok(!/unlock priority job dispatch|higher ratings unlock|priority|boost|top of the list/i.test(src), 'no dispatch advantage the algorithm does not give');
+    assert.match(screen, /'Milestones recognise the jobs you complete\. They do not change how jobs are matched\.'|Milestones recognise the jobs you complete\. They do not change how jobs are matched\./);
+    // Below a threshold: words, never a number (and never 0).
+    for (const k of ['r.measured', 's.measured', 'c.measured']) {
+        assert.ok(screen.includes(`${k} ? `) && screen.includes(": 'Not enough yet'"), k);
+    }
+    // performance.html no longer computes anything.
+    assert.ok(!/responseStats|getLevel|computeCompletionStats/.test(read('artisan-app/performance.html')));
 });
 
 console.log(`\nmarketplace-integrity: ${passed} passed, ${failed} failed`);

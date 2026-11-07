@@ -75,9 +75,10 @@ t('notifications: the loading skeleton is four real rows', () => {
     assert.doesNotMatch(block, /\.map\(|\.join\(/);
 });
 
-t('performance: the loading skeleton is four real stat tiles (plus the two blocks below them)', () => {
-    const block = blockOf(read('artisan-app/performance.html'), 'pf-loading');
-    assert.strictEqual((block.match(/class="pf-skel"/g) || []).length, 6);
+// Phase 4: performance.html forwards to reputation.html, which holds its figures now.
+t('reputation (was performance): the loading skeleton is real rows written out', () => {
+    const block = blockOf(read('artisan-app/reputation.html'), 'rep-body');
+    assert.strictEqual((block.match(/class="fx-skel fx-skel--(?:title|row)"/g) || []).length, 5);
     assert.doesNotMatch(block, /\.map\(|\.join\(/);
 });
 

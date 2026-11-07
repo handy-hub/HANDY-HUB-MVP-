@@ -46,8 +46,9 @@
     'wallet.html'       : 'earnings',
     'settings.html'     : 'account',
     'profile.html'      : 'account',
-    'performance.html'  : 'account',
-    'reviews.html'      : 'account',
+    'reputation.html'   : 'account',   // performance and reviews, in one place
+    'performance.html'  : 'account',   // forwards to reputation.html
+    'reviews.html'      : 'account',   // forwards to reputation.html#reviews
     'support.html'      : 'account',
   };
   var activeTab = ROUTE_MAP[PAGE] || null;

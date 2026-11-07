@@ -165,13 +165,49 @@ export function ratingConsistency(artisan, reviews, allLoaded) {
              mean: mean === null ? null : Math.round(mean * 100) / 100 };
 }
 
-/** Everything the Reputation screen draws. */
-export function reputationModel({ artisan, endedBookings = [], ratedBookings = [], reviewsComplete = false, nowMs = Date.now() } = {}) {
+// ── What the screen reads ─────────────────────────────────────────────────────
+
+/** The artisan's finished bookings (a review is only ever left on a completed
+ *  one; a dispute can then resolve it). Index: bookings artisanId + status + updatedAt. */
+export const REPUTATION_STATUSES = Object.freeze(['completed', 'cancelled', 'resolved']);
+/** One read, newest first. A full page may not be all of them: then nothing is claimed about "all". */
+export const REPUTATION_READ_LIMIT = 200;
+export const RECENT_DAYS = 30;
+const DAY_MS = 86_400_000;
+
+/** Recent activity, from the bookings read and the profile's heartbeat. */
+export function recentActivity({ endedBookings = [], reviews = [], online = null, nowMs = Date.now() } = {}) {
+    const since = nowMs - RECENT_DAYS * DAY_MS;
+    const doneAt = (b) => ms(b.completedAt) ?? ms(b.updatedAt);
+    const done = endedBookings.filter((b) => b && String(b.status || '').toLowerCase() === 'completed').map(doneAt).filter((t) => t !== null);
+    return {
+        days: RECENT_DAYS,
+        completedRecent: done.filter((t) => t >= since && t <= nowMs).length,
+        lastCompletedAt: done.length ? Math.max(...done) : null,
+        lastReviewAt: reviews.length ? reviews[0].at : null,
+        lastSeenMs: online ? online.lastSeenMs : null,
+    };
+}
+
+/** Each star's fill, 0–1, for a rating (4.4 → four full and two-fifths). */
+export function starFills(rating) {
+    const n = Number(rating);
+    const r = Number.isFinite(n) ? Math.max(0, Math.min(5, n)) : 0;
+    return [1, 2, 3, 4, 5].map((i) => Math.round(Math.max(0, Math.min(1, r - (i - 1))) * 100) / 100);
+}
+
+/**
+ * Everything the Reputation screen draws.
+ * @param {{ artisan: object, endedBookings?: object[], ratedBookings?: object[], reviewsComplete?: boolean, nowMs?: number }} input
+ *        endedBookings: the finished bookings read (REPUTATION_STATUSES); ratedBookings
+ *        defaults to those carrying a rating. reviewsComplete: every finished booking was read.
+ */
+export function reputationModel({ artisan, endedBookings = [], ratedBookings = null, reviewsComplete = false, nowMs = Date.now() } = {}) {
     const rating = ratingFigure(artisan);
     const response = responseFigure(artisan);
     const completion = completionFigure(endedBookings);
     const online = onlineFigure(artisan, nowMs);
-    const reviews = reviewList(ratedBookings);
+    const reviews = reviewList(ratedBookings || endedBookings.filter((b) => b && b.rating !== null && b.rating !== undefined));
     return {
         rating, response, completion, online,
         level: levelFigure(artisan),
@@ -179,5 +215,7 @@ export function reputationModel({ artisan, endedBookings = [], ratedBookings = [
         factors: matchingFactors({ rating, response, completion, online }),
         reviews,
         consistency: ratingConsistency(artisan, reviews, reviewsComplete),
+        recent: recentActivity({ endedBookings, reviews, online, nowMs }),
+        scope: { complete: !!reviewsComplete, read: endedBookings.length },
     };
 }

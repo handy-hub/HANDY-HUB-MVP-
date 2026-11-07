@@ -132,9 +132,9 @@ with sync_playwright() as p:
     check('shell: four tabs, Today current', page.eval_on_selector_all('#tabbar .fx-tab', 'els => els.map(e => e.textContent.trim())') == ['Today', 'Jobs', 'Earnings', 'Account']
           and text(page, '#tabbar [aria-current="page"]') == 'Today')
     check('shell: no wallet, rating or stats on Today', not page.query_selector('#wallet-amount, #stat-rating, #perf-rating, .wallet-card'))
-    check('shell: Performance, Reviews, Service area and Support stay one tap away',
+    check('shell: Reputation (performance and reviews), Service area and Support stay one tap away',
           page.eval_on_selector_all('#more-h ~ * a, section[aria-labelledby="more-h"] a', 'els => els.map(e => e.getAttribute("href"))')
-          == ['performance.html', 'reviews.html', 'profile.html?edit=area', 'support.html'])
+          == ['reputation.html', 'profile.html?edit=area', 'support.html'])
 
     # ── Availability and idle states ─────────────────────────────────────
     show(page, 'unknown')

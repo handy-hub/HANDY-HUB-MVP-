@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#F97316" />
+  <title>Reputation | Fidus X Artisan</title>
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- The variable axes: fixed weights would snap 550 and 650 to the nearest file. -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/reputation.css" />
+</head>
+<body class="fx-app">
+<a class="fx-skip" href="#rep-main">Skip to content</a>
+<div class="fx-shell">
+
+  <!-- Performance and reviews, in one place (Phase 4): the figures dispatch
+       reads, each with the threshold it really applies, how matching works,
+       the customers' reviews, recent activity and milestones
+       (shared/js/domain/artisanReputation.js). -->
+  <header class="fx-appbar fx-appbar--push">
+    <a class="fx-iconbtn" href="settings.html" aria-label="Back to Account"><span data-icon="back"></span></a>
+    <div class="fx-appbar__titles">
+      <h1 class="fx-appbar__title">Reputation</h1>
+      <p class="fx-appbar__sub" id="rep-sub"></p>
+    </div>
+  </header>
+
+  <div class="fx-rep__notices fx-stack" id="rep-notices"></div>
+
+  <main class="fx-main fx-rep__end" id="rep-main" tabindex="-1">
+    <div id="rep-body">
+      <section class="fx-sect fx-rep__sect fx-stack" aria-busy="true" data-skeleton>
+        <span class="fx-skel fx-skel--title"></span>
+        <span class="fx-skel fx-skel--row"></span>
+        <span class="fx-skel fx-skel--row"></span>
+        <span class="fx-skel fx-skel--row"></span>
+        <span class="fx-skel fx-skel--row"></span>
+      </section>
+    </div>
+  </main>
+
+  <div class="fx-bottom">
+    <nav class="fx-tabbar" aria-label="Main" id="tabbar"></nav>
+  </div>
+</div>
+
+<script type="module">
+import '../shared/js/utils/global-app.js';
+import { icon }                              from './js/fx/icons.js';
+import { renderTabbar }                      from './js/fx/controls.js';
+import { renderReputation, reputationQuery } from './js/reputationScreen.js';
+import { reputationModel, REPUTATION_READ_LIMIT } from '../shared/js/domain/artisanReputation.js';
+import { getAppContainer }                   from '../shared/js/app/container.js';
+import { mountInstantView }                  from '../shared/js/services/instantView.js';
+import { requireArtisanAuth }                from './js/utils/artisanAuthGuard.js';
+
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon);
+renderTabbar(document.getElementById('tabbar'), { current: 'account' });
+
+// Blocking guard: auth + role + not suspended. Pending artisans can see it too.
+const { user } = await requireArtisanAuth({ allowPending: true });
+const { services: { databaseService } } = getAppContainer();
+
+const dom = { main: document.getElementById('rep-body'), sub: document.getElementById('rep-sub') };
+const notices = document.getElementById('rep-notices');
+
+// ── What is read, and what is kept for the next visit ────────────────────────
+// Only the fields the figures are computed from: the profile's reputation and
+// presence fields, and each finished booking's status, who cancelled it, its
+// review and dates, the customer's FIRST name and the trade. Never prices,
+// addresses, contact details or full names (CLAUDE.md §1, PERF-002).
+const iso = (v) => (v && typeof v.toDate === 'function') ? v.toDate().toISOString() : (v ?? null);
+const artisanOf = (a) => ({
+  rating: a.rating ?? null, reviewCount: a.reviewCount ?? null, responseStats: a.responseStats || null,
+  isOnline: a.isOnline === true, isAvailable: a.isAvailable === true, lastHeartbeat: iso(a.lastHeartbeat),
+  workRadius: a.workRadius ?? null, verificationStatus: a.verificationStatus ?? null, status: a.status ?? null,
+  jobsCompleted: a.jobsCompleted ?? null,
+});
+const bookingOf = (b) => ({
+  id: b.id, status: b.data.status ?? null, cancelledBy: b.data.cancelledBy ?? null,
+  rating: typeof b.data.rating === 'number' ? b.data.rating : null,
+  review: typeof b.data.review === 'string' ? b.data.review : null,
+  reviewedAt: iso(b.data.reviewedAt), completedAt: iso(b.data.completedAt), updatedAt: iso(b.data.updatedAt),
+  customerFirstName: typeof b.data.customerFirstName === 'string' ? b.data.customerFirstName : null,
+  serviceType: b.data.serviceType || b.data.service || null,
+});
+
+async function loadReputation(uid) {
+  const [snap, bookings] = await Promise.all([
+    databaseService.getDocument('artisans', uid),
+    databaseService.queryWithOptions(...reputationQuery(uid)),
+  ]);
+  const list = (bookings || []).map(bookingOf);
+  // All of them only if the read came back short of its limit.
+  return { artisan: artisanOf((snap && snap.data) || {}), bookings: list, complete: list.length < REPUTATION_READ_LIMIT };
+}
+
+// ── Paint ─────────────────────────────────────────────────────────────────────
+let _data = null, _fromCache = false, _reviewsShown = 10, _scrolled = false;
+function paint() {
+  if (!_data) return;
+  const nowMs = Date.now();
+  const m = reputationModel({ artisan: _data.artisan, endedBookings: _data.bookings, reviewsComplete: _data.complete, nowMs });
+  renderReputation(dom, m, { nowMs, reviewsShown: _reviewsShown, artisanRating: _data.artisan.rating });
+  dom.sub.textContent = _fromCache ? 'Showing your last figures · checking for updates' : '';
+  // reviews.html forwards here as reputation.html#reviews.
+  if (!_scrolled && location.hash === '#reviews') {
+    _scrolled = true;
+    const r = document.getElementById('reviews');
+    if (r) r.scrollIntoView();
+  }
+}
+
+dom.main.addEventListener('click', (e) => {
+  if (e.target.closest('[data-act="more-reviews"]')) { _reviewsShown += 10; paint(); }
+});
+
+function showConnectionNotice() {
+  let el = document.getElementById('rep-offline');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'rep-offline';
+    el.className = 'fx-notice fx-notice--warn';
+    el.setAttribute('role', 'status');
+    el.innerHTML = `${icon('alert', 'fx-notice__icon')}<div class="fx-notice__body"><p></p><div class="fx-notice__actions"></div></div>`;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'fx-btn fx-btn--tertiary fx-btn--s'; b.textContent = 'Retry';
+    b.addEventListener('click', () => window.location.reload());
+    el.querySelector('.fx-notice__actions').appendChild(b);
+    notices.appendChild(el);
+  }
+  el.querySelector('p').textContent = _data
+    ? 'We can\'t reach Fidus X right now. Showing what we last had.'
+    : 'We can\'t reach Fidus X right now, so your reputation can\'t be shown yet. Check your connection.';
+}
+
+const repView = mountInstantView({
+  key: 'artisan-reputation',
+  version: 1,
+  staleMs: 0,   // a new review or figure should appear on the next visit
+  render: (data, { fromCache }) => { _data = data; _fromCache = !!fromCache; paint(); },
+  fetch: () => loadReputation(user.uid),
+  // A failed refresh keeps the figures already on screen.
+  onError: (_err, { hasContent }) => {
+    showConnectionNotice();
+    if (hasContent) return;
+    dom.main.innerHTML = '<p class="fx-meta fx-rep__empty" role="status">Your reputation appears here once Fidus X can be reached.</p>';
+  },
+});
+
+// "Last seen" and "online now" move with time, not with data.
+const _clock = setInterval(paint, 60_000);
+window.addEventListener('pagehide', () => { repView.destroy(); clearInterval(_clock); });
+// Restored from the back/forward cache: reload (the cache paints at once).
+window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
+</script>
+<script src="js/artisanFloatingNav.js"></script>
+<script src="js/pwa.js" defer></script>
+</body>
+</html>

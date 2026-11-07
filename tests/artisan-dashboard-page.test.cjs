@@ -41,13 +41,16 @@ function workRows() {
 }
 
 (async () => {
-console.log('\n── FUNC-001 · no dead controls; Performance is one tap away ──\n');
+console.log('\n── FUNC-001 · no dead controls; performance and reviews are one tap away ──\n');
 
-await t('the dead "This Week" selector is gone; a row goes to Performance', () => {
+await t('the dead "This Week" selector is gone; a row goes to Reputation (performance and reviews, Phase 4)', () => {
     assert.ok(!/id="perf-period-btn"/.test(page));
     assert.ok(!/>\s*This Week\s*</.test(page));
-    assert.deepStrictEqual(workRows()[0], ['performance.html', 'Performance']);
-    assert.ok(fs.existsSync(path.join(ROOT, 'artisan-app', 'performance.html')));
+    assert.deepStrictEqual(workRows()[0], ['reputation.html', 'Reputation']);
+    assert.ok(fs.existsSync(path.join(ROOT, 'artisan-app', 'reputation.html')));
+    // The old addresses still land: performance.html and reviews.html forward.
+    assert.match(read('artisan-app/performance.html'), /location\.replace\('reputation\.html'\)/);
+    assert.match(read('artisan-app/reviews.html'), /location\.replace\('reputation\.html#reviews'\)/);
 });
 
 console.log('\n── COPY-003 · every link into Jobs opens something that exists ──\n');
@@ -71,7 +74,7 @@ console.log('\n── RESP-001 · nothing on Today scrolls sideways ──\n');
 
 await t('Quick Access is a full-width list ("Your work"), not a sideways strip', () => {
     assert.ok(!/quick-access-row|quick-item/.test(page), 'the sideways strip is back');
-    assert.deepStrictEqual(workRows().map((r) => r[0]), ['performance.html', 'reviews.html', 'profile.html?edit=area', 'support.html']);
+    assert.deepStrictEqual(workRows().map((r) => r[0]), ['reputation.html', 'profile.html?edit=area', 'support.html']);
     // 360 / 390 / 768 px and 200% text, rendered: tests/e2e/artisan_today.py.
 });
 
