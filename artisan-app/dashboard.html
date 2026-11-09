@@ -272,7 +272,7 @@ function alertNewOffer(rec) {
         body: msg,
         tag: `booking-${rec.id}`,
         requireInteraction: true,
-        icon: '/shared/assets/images/handyhub-logo.png',
+        // No icon until a Fidus X one is supplied (the HandyHub logo is retired).
         data: { url: location.pathname, bookingId: rec.id, type: 'Bookings' },
       })).catch(() => {});
     }

@@ -14,16 +14,20 @@
  * Role isolation is untouched: the server's 'customer_account' answer still
  * ends the session and sends the customer to the Customer app.
  *
- * Here: the client's refusal list is exactly the server's ensure-path
- * reasons; signOut sits only behind those; the real callable (index.js
- * wrapper, fake Firestore) refuses a customer uid with the reason the client
- * acts on. tests/e2e/login_outage.py replays the outage in Chromium.
+ * Since Phase 5 the decision is artisan-app/js/entry.js routeEnsured (with the
+ * refusal list in js/utils/artisanRoutes.js); the page only carries it out.
+ * Here: the client's refusal list is exactly the server's ensure-path reasons;
+ * the decision ends a session only on those; the page signs out in that branch
+ * alone; the real callable (index.js wrapper, fake Firestore) refuses a customer
+ * uid with the reason the client acts on. tests/e2e/login_outage.py replays the
+ * outage in Chromium.
  */
 require('./support/no-production.cjs');   // must stay the first statement (npm run lint:tests)
 
 const assert = require('assert');
 const fs     = require('fs');
 const path   = require('path');
+const { pathToFileURL } = require('url');
 
 const ROOT = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n');
@@ -41,9 +45,7 @@ async function t(name, fn) {
 
 const page = read('artisan-app/login.html');
 const code = /<script type="module">([\s\S]*?)<\/script>/.exec(page)[1].replace(/^\s*\/\/.*$/gm, '');
-const handler = code.slice(code.indexOf('onAuthStateChanged(auth, async user => {'), code.indexOf('window.handleLogin'));
-const refusalsDecl = /const ACCOUNT_REFUSALS = (\[[^\]]*\]);/.exec(code);
-const refusals = refusalsDecl ? JSON.parse(refusalsDecl[1].replace(/'/g, '"')) : [];
+const handler = code.slice(code.indexOf('authService.subscribeToAuthState(async (user) => {'));
 
 /** The reasons ensureArtisanProfile can throw (the 'ensure' action). */
 function serverEnsureReasons() {
@@ -58,6 +60,9 @@ async function callEnsure(auth) {
 }
 
 (async () => {
+const routes = await import(pathToFileURL(path.join(ROOT, 'artisan-app', 'js', 'utils', 'artisanRoutes.js')).href);
+const entry  = await import(pathToFileURL(path.join(ROOT, 'artisan-app', 'js', 'entry.js')).href);
+const refusals = [...routes.ACCOUNT_REFUSALS];
 
 console.log('\n── Only the server\'s answer about the account ends the session ──\n');
 
@@ -67,28 +72,30 @@ await t('the client\'s refusal list is exactly what the server\'s ensure path ca
     assert.deepStrictEqual([...refusals].sort(), server);
 });
 
-await t('signOut is reached only behind customer_account or a listed refusal — never on a failure with no reason', () => {
-    const calls = [...handler.matchAll(/await signOut\(auth\)/g)].map((m) => m.index);
-    assert.strictEqual(calls.length, 2, 'two sign-out sites');
-    const customer = handler.indexOf("if (acct.reason === 'customer_account') {");
-    const listed   = handler.indexOf('if (ACCOUNT_REFUSALS.includes(acct.reason)) {');
-    const offline  = handler.indexOf('showOffline();');
-    assert.ok(customer > 0 && customer < calls[0] && calls[0] < listed, 'first sign-out is the customer branch');
-    assert.ok(listed < calls[1] && calls[1] < offline, 'second sign-out is the listed-refusal branch');
-    // What remains after both branches: the offline state, and no sign-out.
-    const tail = handler.slice(offline, handler.indexOf('location.replace(nextArtisanPage(acct.verificationStatus));'));
-    assert.doesNotMatch(tail, /signOut/);
-    assert.match(tail, /^showOffline\(\);\s*return;/);
+await t('the decision ends a session only on a listed reason — never on a failure with no reason', () => {
+    for (const reason of refusals) {
+        const step = entry.routeEnsured({ ok: false, reason, message: `refused: ${reason}` });
+        assert.strictEqual(step.signOut, true, reason);
+    }
+    for (const acct of [{ ok: false }, { ok: false, reason: null, message: 'timeout' }, { ok: false, reason: 'something_new' }, null, undefined]) {
+        const step = entry.routeEnsured(acct);
+        assert.deepStrictEqual(step, { offline: true }, JSON.stringify(acct));
+    }
+    assert.deepStrictEqual(entry.routeEnsured({ ok: true, verificationStatus: 'approved' }), { go: 'dashboard.html' });
+    assert.deepStrictEqual(entry.routeEnsured({ ok: true, verificationStatus: 'draft' }), { go: 'onboarding.html' });
 });
 
-await t('nothing else on the page signs the user out', () => {
-    assert.strictEqual((code.match(/signOut\(/g) || []).length, 2);
+await t('the page signs out in exactly one place: the decision\'s signOut branch', () => {
+    assert.strictEqual((code.match(/signOut\(/g) || []).length, 1, 'one sign-out site on the page');
+    const branch = handler.slice(handler.indexOf('if (step.signOut) {'), handler.indexOf('if (step.offline) {'));
+    assert.match(branch, /await authService\.signOut\(\)/);
+    const offline = handler.slice(handler.indexOf('if (step.offline) {'), handler.indexOf('location.replace(step.go);', handler.indexOf('if (step.offline) {')));
+    assert.doesNotMatch(offline, /signOut/);
+    assert.match(handler, /const step = routeEnsured\(await ensureArtisanAccount\(\)\);/);
 });
 
 await t('the offline state keeps the session and offers a retry, like the guard\'s', () => {
-    assert.match(page, /<div class="error-banner" id="offline-banner" role="alert">[\s\S]*?You're still signed in[\s\S]*?<button type="button" class="offline-retry" onclick="location\.reload\(\)">Try again<\/button>/);
-    assert.match(code, /function showOffline\(\) \{\s*clearBanners\(\);\s*document\.getElementById\('offline-banner'\)\.classList\.add\('show'\);/);
-    assert.match(code, /\['error-banner','offline-banner','success-banner'\]/, 'clearBanners hides it again');
+    assert.match(handler, /if \(step\.offline\) \{[\s\S]*?setNotice\('signin', 'warn', 'Can\\'t reach the server\. You\\'re still signed in — check your connection and try again\.',\s*\{ label: 'Try again', onClick: \(\) => location\.reload\(\) \}\);\s*return;/);
     // The guard's established wording for the same state.
     assert.match(read('artisan-app/js/utils/artisanAuthGuard.js'), /Can't reach the server[\s\S]{0,120}You're still signed in/);
 });
@@ -101,7 +108,9 @@ await t('the real callable refuses a customer uid with details.reason "customer_
     const r = await callEnsure({ uid: 'c1', token: { email: 'ama@example.com', email_verified: true } });
     assert.deepStrictEqual([r.ok, r.code, r.details], [false, 'permission-denied', { reason: 'customer_account' }]);
     assert.ok(!fake.db._get('artisans/c1'), 'no artisan profile was created for a customer');
-    assert.match(handler, /if \(acct\.reason === 'customer_account'\) \{[\s\S]{0,300}await signOut\(auth\)[\s\S]{0,200}customer-app\/login\.html/);
+    const step = entry.routeEnsured({ ok: false, reason: r.details.reason, message: r.message });
+    assert.deepStrictEqual([step.signOut, step.go], [true, '../customer-app/login.html']);
+    assert.match(handler, /if \(step\.go\) setTimeout\(\(\) => location\.replace\(step\.go\), 1600\);/);
 });
 
 await t('an administrator is refused too (admin_account, a listed refusal)', async () => {
@@ -110,6 +119,7 @@ await t('an administrator is refused too (admin_account, a listed refusal)', asy
     const r = await callEnsure({ uid: 'ad1', token: { email: 'ops@example.com' } });
     assert.deepStrictEqual(r.details, { reason: 'admin_account' });
     assert.ok(refusals.includes('admin_account'));
+    assert.strictEqual(entry.routeEnsured({ ok: false, reason: 'admin_account', message: r.message }).signOut, true);
 });
 
 await t('a real artisan is answered "existing" (the route that works with Firestore down)', async () => {
@@ -123,6 +133,7 @@ await t('a request that never reached the handler carries no reason — the clie
     const r = await (async () => { try { await fns.artisanAccount({ auth: null, data: { action: 'ensure' } }); } catch (e) { return e; } })();
     assert.strictEqual(r.code, 'unauthenticated');
     assert.ok(r.details == null || r.details.reason == null, 'no account reason');
+    assert.deepStrictEqual(entry.routeEnsured({ ok: false, reason: null }), { offline: true });
 });
 
 console.log(`\nlogin-outage: ${passed} passed, ${failed} failed`);

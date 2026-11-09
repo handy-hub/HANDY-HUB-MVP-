@@ -75,7 +75,7 @@ with sync_playwright() as p:
     text = lambda sel: (pg.locator(sel).first.inner_text(timeout=3000).strip() if pg.locator(sel).count() else '')
 
     pg.goto(f'{BASE}/login.html?emulator=1', wait_until='domcontentloaded'); pg.wait_for_timeout(1500)
-    pg.fill('#login-email', ART[0]); pg.fill('#login-password', ART[1]); pg.click('#login-btn')
+    pg.fill('#si-email', ART[0]); pg.fill('#si-password', ART[1]); pg.click('#si-submit')
     pg.wait_for_url('**/dashboard.html*', timeout=25000); pg.wait_for_timeout(2500)
     check('real artisan sign-in (Auth emulator)', 'dashboard.html' in pg.url)
 

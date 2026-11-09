@@ -1,1006 +1,306 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <link rel="manifest" href="manifest.webmanifest" />
-    <meta name="theme-color" content="#F97316" />
-    <title>Join as Artisan · Fidus X</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../shared/css/ui-polish.css">
-
-<link rel="stylesheet" href="css/design-system.css">
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { min-height: 100%; }
-body {
-    display: block !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    min-height: 100dvh;
-    background: var(--ds-bg);
-    font-family: var(--ds-font);
-    color: var(--ds-ink);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
-}
-
-/* ── Page shell ─────────────────────────────────────────── */
-.as-page {
-    max-width: 430px;
-    margin: 0 auto;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-}
-
-/* ── Hero ───────────────────────────────────────────────── */
-.as-hero {
-    position: relative;
-    overflow: hidden;
-    background: var(--ds-bg);
-    padding: 0 0 52px;
-    flex-shrink: 0;
-}
-
-.as-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(249,115,22,0.07) 1px, transparent 1px);
-    background-size: 20px 20px;
-    pointer-events: none;
-}
-
-.as-hero::after {
-    content: '';
-    position: absolute;
-    bottom: 20px;
-    right: -40px;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 70%);
-    pointer-events: none;
-}
-
-/* ── Nav ────────────────────────────────────────────────── */
-.as-nav {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: max(env(safe-area-inset-top, 0px), 18px) 20px 0;
-}
-
-.as-back-btn {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0,0,0,0.06);
-    border: 1px solid rgba(0,0,0,0.09);
-    border-radius: var(--ds-r-pill);
-    cursor: pointer;
-    color: var(--ds-ink);
-    transition: background var(--ds-t-fast);
-    -webkit-tap-highlight-color: transparent;
-}
-.as-back-btn:active { background: rgba(0,0,0,0.12); }
-
-.as-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 13px;
-    background: var(--ds-brand-50);
-    border: 1px solid rgba(249,115,22,0.20);
-    border-radius: var(--ds-r-pill);
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--ds-brand-600);
-    letter-spacing: 0.02em;
-}
-
-/* ── Brand ──────────────────────────────────────────────── */
-.as-brand {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    justify-content: center;
-    padding: 18px 24px 0;
-}
-
-.as-logo {
-    width: 200px;
-    max-width: 75%;
-    height: auto;
-    object-fit: contain;
-    mix-blend-mode: multiply;
-}
-
-/* ── Form card ──────────────────────────────────────────── */
-.as-card {
-    flex: 1;
-    background: var(--ds-surface);
-    border-radius: var(--ds-r-card) var(--ds-r-card) 0 0;
-    margin-top: -50px;
-    box-shadow: 0 -3px 40px rgba(0,0,0,0.09);
-    padding: 10px 24px 0;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.as-handle {
-    width: 38px;
-    height: 4px;
-    background: var(--ds-line-strong);
-    border-radius: var(--ds-r-pill);
-    margin: 0 auto 22px;
-    flex-shrink: 0;
-}
-
-.as-heading {
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--ds-ink);
-    letter-spacing: -0.5px;
-    line-height: 1.15;
-    margin-bottom: 4px;
-    margin-top: 8px;
-    flex-shrink: 0;
-}
-
-.as-subheading {
-    font-size: 13px;
-    color: var(--ds-ink-2);
-    font-weight: 400;
-    margin-bottom: 24px;
-    flex-shrink: 0;
-}
-
-/* ── Fields ─────────────────────────────────────────────── */
-.as-field { margin-bottom: 14px; }
-
-.as-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--ds-ink-2);
-    margin-bottom: 6px;
-    letter-spacing: 0.1px;
-}
-
-.as-input-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.as-input-icon {
-    position: absolute;
-    left: 14px;
-    width: 17px;
-    height: 17px;
-    color: var(--ds-brand-500);
-    pointer-events: none;
-    flex-shrink: 0;
-    transition: color var(--ds-t-base) var(--ds-ease-io);
-}
-
-.as-input {
-    width: 100%;
-    height: 50px;
-    padding: 0 44px 0 42px;
-    border: 1.5px solid transparent;
-    border-radius: var(--ds-r-control);
-    background: var(--ds-surface-2);
-    font-family: inherit;
-    font-size: 15px;
-    font-weight: 400;
-    color: var(--ds-ink);
-    outline: none;
-    -webkit-appearance: none;
-    appearance: none;
-    transition:
-        background   var(--ds-t-base) var(--ds-ease-io),
-        border-color var(--ds-t-base) var(--ds-ease-io),
-        box-shadow   var(--ds-t-base) var(--ds-ease-io);
-}
-
-.as-input::placeholder {
-    color: var(--ds-ink-4);
-    font-weight: 400;
-    font-size: 14px;
-}
-
-.as-input-wrap:focus-within .as-input {
-    background: var(--ds-surface);
-    border-color: var(--ds-brand-500);
-    box-shadow: 0 0 0 3.5px rgba(249,115,22,0.12);
-}
-
-.as-input-wrap:focus-within .as-input-icon { color: var(--ds-brand-500); }
-
-.as-trail-btn {
-    position: absolute;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--ds-ink-3);
-    border-radius: var(--ds-r-control);
-    transition: color var(--ds-t-fast), background var(--ds-t-fast);
-    -webkit-tap-highlight-color: transparent;
-    flex-shrink: 0;
-}
-.as-trail-btn:hover, .as-trail-btn:focus-visible {
-    color: var(--ds-ink-2);
-    background: var(--ds-surface-2);
-}
-
-/* Password strength */
-.as-pw-strength { display: flex; gap: 4px; margin-top: 7px; }
-.as-pw-bar {
-    flex: 1; height: 3px; border-radius: 2px;
-    background: var(--ds-line-strong); transition: background 0.3s;
-}
-.as-pw-bar.weak   { background: var(--ds-warning); }
-.as-pw-bar.fair   { background: var(--ds-warning); }
-.as-pw-bar.good   { background: var(--ds-success); }
-.as-pw-bar.strong { background: var(--ds-success); }
-
-.as-pw-hint {
-    display: flex; align-items: center; gap: 5px;
-    margin-top: 6px; font-size: 11.5px; color: var(--ds-ink-3);
-    font-weight: 500; padding-left: 2px;
-}
-.as-pw-hint svg { flex-shrink: 0; }
-
-/* Service category select */
-.as-select {
-    width: 100%;
-    height: 50px;
-    padding: 0 16px 0 42px;
-    border: 1.5px solid transparent;
-    border-radius: var(--ds-r-control);
-    background: var(--ds-surface-2);
-    font-family: inherit;
-    font-size: 14px;
-    color: var(--ds-ink);
-    outline: none;
-    -webkit-appearance: none;
-    appearance: none;
-    cursor: pointer;
-    transition:
-        background   var(--ds-t-base) var(--ds-ease-io),
-        border-color var(--ds-t-base) var(--ds-ease-io),
-        box-shadow   var(--ds-t-base) var(--ds-ease-io);
-}
-.as-select:focus {
-    background: var(--ds-surface);
-    border-color: var(--ds-brand-500);
-    box-shadow: 0 0 0 3.5px rgba(249,115,22,0.12);
-}
-.as-select-chevron {
-    position: absolute;
-    right: 14px;
-    pointer-events: none;
-    color: var(--ds-ink-3);
-}
-
-/* Terms */
-.as-terms {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin: 6px 0 22px;
-}
-.as-checkbox {
-    width: 18px; height: 18px;
-    border: 1.5px solid var(--ds-line-strong);
-    border-radius: 5px;
-    cursor: pointer;
-    flex-shrink: 0;
-    margin-top: 1px;
-    accent-color: var(--ds-brand-500);
-}
-.as-terms-label {
-    font-size: 13px; color: var(--ds-ink-2);
-    line-height: 1.5; font-weight: 400;
-}
-.as-terms-label a {
-    color: var(--ds-brand-500); font-weight: 600; text-decoration: none;
-}
-.as-terms-label a:hover { text-decoration: underline; }
-
-/* Submit button */
-.as-btn {
-    width: 100%;
-    height: 48px;
-    background: var(--ds-brand-500);
-    color: #fff;
-    border: none;
-    border-radius: var(--ds-r-card);
-    font-family: inherit;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 0.15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 9px;
-    cursor: pointer;
-    box-shadow: var(--ds-shadow-fab);
-    transition:
-        background  var(--ds-t-base) var(--ds-ease-io),
-        box-shadow  var(--ds-t-base) var(--ds-ease-io),
-        transform   120ms var(--ds-ease),
-        opacity     var(--ds-t-base);
-    -webkit-tap-highlight-color: transparent;
-    position: relative;
-    overflow: hidden;
-}
-.as-btn::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.09) 50%, transparent 60%);
-    background-size: 200% 100%;
-    background-position: -100% 0;
-    transition: background-position 0.5s var(--ds-ease-io);
-}
-.as-btn:hover:not(:disabled)::before { background-position: 200% 0; }
-.as-btn:hover:not(:disabled) {
-    background: var(--ds-brand-600);
-    box-shadow: 0 10px 28px rgba(249,115,22,0.40);
-}
-.as-btn:active:not(:disabled) { transform: scale(0.975); box-shadow: 0 2px 8px rgba(249,115,22,0.24); }
-.as-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
-
-.as-btn-arrow {
-    font-size: 18px; line-height: 1; display: inline-block;
-    transition: transform 0.22s var(--ds-ease);
-}
-.as-btn:hover:not(:disabled) .as-btn-arrow { transform: translateX(4px); }
-
-.as-spin {
-    display: inline-block; width: 18px; height: 18px;
-    border: 2.5px solid rgba(255,255,255,0.28); border-top-color: #fff;
-    border-radius: 50%;
-    animation: as-spin 0.65s linear infinite; flex-shrink: 0;
-}
-@keyframes as-spin { to { transform: rotate(360deg); } }
-
-/* Divider + social */
-.as-divider {
-    display: flex; align-items: center; gap: 12px; margin: 24px 0 18px;
-}
-.as-divider::before, .as-divider::after {
-    content: ''; flex: 1; height: 1px; background: var(--ds-line);
-}
-.as-divider span {
-    font-size: 12.5px; color: var(--ds-ink-3); font-weight: 500; white-space: nowrap;
-}
-
-.as-social-row { display: flex; gap: 10px; }
-
-.as-social-btn {
-    flex: 1; height: 48px;
-    border: 1.5px solid var(--ds-line-strong);
-    border-radius: var(--ds-r-control);
-    background: var(--ds-surface);
-    display: flex; align-items: center; justify-content: center; gap: 7px;
-    font-family: inherit; font-size: 13px; font-weight: 600;
-    color: var(--ds-ink);
-    cursor: pointer;
-    transition: border-color var(--ds-t-fast), background var(--ds-t-fast), box-shadow var(--ds-t-fast), transform 100ms var(--ds-ease);
-    -webkit-tap-highlight-color: transparent;
-}
-.as-social-btn:hover:not(:disabled) {
-    border-color: var(--ds-ink-4); background: var(--ds-surface-2);
-    box-shadow: var(--ds-shadow-sm);
-}
-.as-social-btn:active:not(:disabled) { transform: scale(0.96); background: var(--ds-surface-2); }
-.as-social-btn:disabled { opacity: 0.52; cursor: not-allowed; }
-.as-social-btn img { width: 19px; height: 19px; object-fit: contain; flex-shrink: 0; }
-
-/* Footer */
-.as-footer { margin-top: auto; padding-top: 24px; }
-.as-footer-inner {
-    border-radius: var(--ds-r-card) var(--ds-r-card) 0 0;
-    padding: 18px 0;
-    padding-bottom: max(18px, env(safe-area-inset-bottom));
-    text-align: center;
-    margin: 0 -24px;
-}
-.as-footer-text { font-size: 14px; color: var(--ds-ink-2); }
-.as-footer-link {
-    font-size: 14px; font-weight: 700; color: var(--ds-brand-500); text-decoration: none;
-    -webkit-tap-highlight-color: transparent;
-}
-.as-footer-link:active { opacity: 0.65; }
-
-/* Animations */
-@keyframes as-hero-in { from { opacity:0 } to { opacity:1 } }
-@keyframes as-card-in {
-    from { opacity:0; transform:translateY(44px) }
-    to   { opacity:1; transform:translateY(0) }
-}
-@keyframes as-fade-up {
-    from { opacity:0; transform:translateY(12px) }
-    to   { opacity:1; transform:translateY(0) }
-}
-
-.as-hero { animation: as-hero-in 0.4s var(--ds-ease-io) both; }
-.as-card { animation: as-card-in 0.52s var(--ds-ease) 0.08s both; }
-
-.as-a1 { animation: as-fade-up 0.42s var(--ds-ease) 0.20s both; }
-.as-a2 { animation: as-fade-up 0.42s var(--ds-ease) 0.26s both; }
-.as-a3 { animation: as-fade-up 0.42s var(--ds-ease) 0.31s both; }
-.as-a4 { animation: as-fade-up 0.42s var(--ds-ease) 0.36s both; }
-.as-a5 { animation: as-fade-up 0.42s var(--ds-ease) 0.41s both; }
-.as-a6 { animation: as-fade-up 0.42s var(--ds-ease) 0.46s both; }
-.as-a7 { animation: as-fade-up 0.42s var(--ds-ease) 0.51s both; }
-.as-a8 { animation: as-fade-up 0.42s var(--ds-ease) 0.56s both; }
-
-@media (prefers-reduced-motion: reduce) {
-    .as-hero, .as-card,
-    .as-a1,.as-a2,.as-a3,.as-a4,
-    .as-a5,.as-a6,.as-a7,.as-a8 {
-        animation: none !important; opacity: 1 !important; transform: none !important;
-    }
-}
-
-@media (min-width: 431px) {
-    body { background: #d8d0c8 !important; }
-    .as-page {
-        margin-top: 32px; margin-bottom: 32px;
-        min-height: auto; border-radius: var(--ds-r-card);
-        overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.36);
-    }
-    .as-card { border-radius: var(--ds-r-card); margin-top: -28px; }
-}
-/* Inline validation and errors (FORM-003): what is missing, and what went wrong. */
-.as-form-msg, .as-form-err { margin: 0 0 10px; font: 500 13px/1.4 var(--ds-font); color: var(--ds-danger); }
-.as-form-msg:empty, .as-form-err:empty { display: none; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#F97316" />
+  <title>Create your account | Fidus X for professionals</title>
+  <script src="../shared/js/utils/themeManager.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/entry.css" />
 </head>
-<body>
+<body class="fx-app">
+<a class="fx-skip" href="#entry-main">Skip to content</a>
+<main class="fx-entry" id="entry-main" tabindex="-1">
+  <div class="fx-entry__col">
 
-<div class="as-page">
+    <div class="fx-entry__top">
+      <p class="fx-wordmark"><span class="fx-wordmark__name">Fidus X</span> <span class="fx-wordmark__for">for professionals</span></p>
+      <button class="fx-iconbtn" type="button" id="entry-back" aria-label="Back" hidden><span data-icon="back"></span></button>
+    </div>
 
-    <!-- ══ HERO ═══════════════════════════════════════════════ -->
-    <div class="as-hero">
+    <div class="fx-entry__head">
+      <h1 class="fx-title" id="signup-h">Create your professional account</h1>
+      <p class="fx-lead">Next you add the details Fidus X verifies — your Ghana Card, trade and payout account. You can take jobs once your application is approved.</p>
+    </div>
 
-        <nav class="as-nav">
-            <button class="as-back-btn" aria-label="Back to home"
-                    onclick="window.location.href='../customer-app/index.html'">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.3"
-                          stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-          
-        </nav>
+    <div class="fx-entry__notices fx-stack" id="signup-notices"></div>
 
-        <div class="as-brand">
-            <img class="as-logo"
-                 src="../shared/assets/images/handyhub-logo-text.png"
-                 alt="HandyHub — Trusted Professionals, Right Around You."
-                 onerror="this.onerror=null;this.style.display='none';var fb=document.getElementById('as-logo-fb');if(fb)fb.removeAttribute('hidden');">
-            <span id="as-logo-fb" class="as-logo" hidden style="font-weight:800;font-size:22px;color:var(--ui-primary,#730201);letter-spacing:-0.5px;">Fidus X</span>
+    <form class="fx-entry__form" id="signup-form" novalidate>
+      <div class="fx-field">
+        <label class="fx-field__label" for="su-name">Full name</label>
+        <input class="fx-input" id="su-name" type="text" autocomplete="name" aria-describedby="su-name-hint su-name-err" />
+        <p class="fx-field__hint" id="su-name-hint">As on your Ghana Card — it is checked during verification.</p>
+        <p class="fx-field__error" id="su-name-err" hidden></p>
+      </div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="su-email">Email</label>
+        <input class="fx-input" id="su-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" aria-describedby="su-email-err" />
+        <p class="fx-field__error" id="su-email-err" hidden></p>
+      </div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="su-phone">Phone <span class="fx-ink-3">(optional now)</span></label>
+        <input class="fx-input" id="su-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="024 123 4567" aria-describedby="su-phone-hint su-phone-err" />
+        <p class="fx-field__hint" id="su-phone-hint">A Ghana mobile number. Customers only see it during a booking.</p>
+        <p class="fx-field__error" id="su-phone-err" hidden></p>
+      </div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="su-trade">Your trade</label>
+        <div class="fx-select">
+          <select class="fx-input" id="su-trade" aria-describedby="su-trade-hint su-trade-err">
+            <option value="" selected disabled>Choose your trade</option>
+          </select>
+          <span data-icon="down" data-icon-class="fx-select__chev"></span>
         </div>
-
-    </div><!-- /.as-hero -->
-
-
-    <!-- ══ FORM CARD ══════════════════════════════════════════ -->
-    <div class="as-card">
-
-        <div class="as-handle"></div>
-
-        <h2 class="as-heading as-a1">Create Artisan Account</h2>
-        <p class="as-subheading as-a1">Join Fidus X and grow your business.</p>
-
-        <form id="artisan-signup-form" action="#" method="POST" novalidate autocomplete="on">
-
-            <!-- Full Name -->
-            <div class="as-field as-a2">
-                <label class="as-label" for="as-name">Full Name</label>
-                <div class="as-input-wrap">
-                    <svg class="as-input-icon" viewBox="0 0 24 24" fill="none">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
-                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                        <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/>
-                    </svg>
-                    <input class="as-input" type="text" id="as-name"
-                           placeholder="Enter your full name"
-                           autocomplete="name" required>
-                </div>
-            </div>
-
-            <!-- Email -->
-            <div class="as-field as-a2">
-                <label class="as-label" for="as-email">Email Address</label>
-                <div class="as-input-wrap">
-                    <svg class="as-input-icon" viewBox="0 0 24 24" fill="none">
-                        <rect x="2" y="4" width="20" height="16" rx="2"
-                              stroke="currentColor" stroke-width="1.8"/>
-                        <path d="M2 7l10 7 10-7"
-                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
-                    <input class="as-input" type="email" id="as-email"
-                           placeholder="Enter your email"
-                           autocomplete="email" inputmode="email" required>
-                </div>
-            </div>
-
-            <!-- Phone -->
-            <div class="as-field as-a3">
-                <label class="as-label" for="as-phone">Phone Number</label>
-                <div class="as-input-wrap">
-                    <svg class="as-input-icon" viewBox="0 0 24 24" fill="none">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
-                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
-                    <input class="as-input" type="tel" id="as-phone"
-                           placeholder="e.g. 0244 000 000"
-                           autocomplete="tel" inputmode="tel">
-                </div>
-            </div>
-
-            <!-- Service Category -->
-            <div class="as-field as-a3">
-                <label class="as-label" for="as-category">Primary Service</label>
-                <div class="as-input-wrap">
-                    <svg class="as-input-icon" viewBox="0 0 24 24" fill="none">
-                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
-                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
-                    <select class="as-select" id="as-category" required>
-                        <option value="" disabled selected>Select your trade</option>
-                        <option value="electrical">Electrical</option>
-                        <option value="plumbing">Plumbing</option>
-                        <option value="carpentry">Carpentry</option>
-                        <option value="painting">Painting</option>
-                        <option value="welding">Welding</option>
-                        <option value="ac_cooling">A/C & Cooling</option>
-                        <option value="tiling">Tiling</option>
-                        <option value="cleaning">Cleaning</option>
-                        <option value="other">Other</option>
-                    </select>
-                    <svg class="as-select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2"
-                              stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-            </div>
-
-            <!-- "Other" expand panel — visible only when Other is selected -->
-            <div id="as-other-panel" style="display:none;background:var(--surface-2,#F9FAFB);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:14px 16px;margin-top:-4px;">
-                <p style="font-size:12px;font-weight:600;color:var(--text-mid,#6B7280);margin:0 0 12px;">
-                    Tell us more — we'll review it within 48 hrs
-                </p>
-
-                <!-- What they actually do -->
-                <div style="margin-bottom:12px;">
-                    <label class="as-label" for="as-other-desc" style="margin-bottom:6px;display:block;">
-                        Describe your specialty <span style="color:#EF4444;">*</span>
-                    </label>
-                    <div class="as-input-wrap">
-                        <input class="as-input" type="text" id="as-other-desc"
-                               placeholder="e.g. Solar Inverter Installation"
-                               maxlength="120" autocomplete="off">
-                    </div>
-                </div>
-
-                <!-- Best-fit bucket so they can still be dispatched now -->
-                <div>
-                    <label class="as-label" for="as-other-bucket" style="margin-bottom:6px;display:block;">
-                        Closest existing category <span style="color:#EF4444;">*</span>
-                    </label>
-                    <p style="font-size:11px;color:var(--text-dim,#9CA3AF);margin:0 0 6px;">
-                        You'll receive jobs in this category while your trade is being reviewed.
-                    </p>
-                    <div class="as-input-wrap">
-                        <select class="as-select" id="as-other-bucket">
-                            <option value="" disabled selected>Select closest trade</option>
-                            <option value="electrical">Electrical</option>
-                            <option value="plumbing">Plumbing</option>
-                            <option value="carpentry">Carpentry</option>
-                            <option value="painting">Painting</option>
-                            <option value="welding">Welding</option>
-                            <option value="ac_cooling">A/C &amp; Cooling</option>
-                            <option value="tiling">Tiling</option>
-                            <option value="cleaning">Cleaning</option>
-                        </select>
-                        <svg class="as-select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2"
-                                  stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Password -->
-            <div class="as-field as-a4">
-                <label class="as-label" for="as-pass">Password</label>
-                <div class="as-input-wrap">
-                    <svg class="as-input-icon" viewBox="0 0 24 24" fill="none">
-                        <rect x="3" y="11" width="18" height="11" rx="2"
-                              stroke="currentColor" stroke-width="1.8"/>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"
-                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
-                    <input class="as-input" type="password" id="as-pass"
-                           placeholder="Create a password"
-                           autocomplete="new-password" required>
-                    <button type="button" class="as-trail-btn" id="as-toggle-pw"
-                            aria-label="Show password">
-                        <svg id="as-pw-eye" width="17" height="17" viewBox="0 0 24 24" fill="none">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
-                                  stroke="currentColor" stroke-width="1.8"/>
-                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="as-pw-strength" id="as-pw-strength" aria-hidden="true">
-                    <div class="as-pw-bar" id="as-bar-1"></div>
-                    <div class="as-pw-bar" id="as-bar-2"></div>
-                    <div class="as-pw-bar" id="as-bar-3"></div>
-                    <div class="as-pw-bar" id="as-bar-4"></div>
-                </div>
-                <div class="as-pw-hint">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                              stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
-                    At least 8 characters
-                </div>
-            </div>
-
-            <!-- Terms -->
-            <div class="as-terms as-a5">
-                <input class="as-checkbox terms-row" type="checkbox" id="as-terms"
-                       aria-label="Agree to terms">
-                <label class="as-terms-label" for="as-terms">
-                    I agree to the
-                    <!-- The shared documents both sites serve (shared/legal/). These
-                         were href="#", so the agreement could not be read before it
-                         was given (audit AUTH-001). New tab: the form keeps its input. -->
-                    <a href="../shared/legal/terms.html" target="_blank" rel="noopener">Terms of Service</a>
-                    and
-                    <a href="../shared/legal/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
-                </label>
-            </div>
-
-            <!-- Submit -->
-            <div class="as-a5">
-                <p id="as-form-msg" class="as-form-msg" role="status" aria-live="polite"></p>
-                <p id="as-form-err" class="as-form-err" role="alert"></p>
-                <button type="submit" id="as-submit-btn" class="as-btn" disabled>
-                    Create Account
-                    <span class="as-btn-arrow" aria-hidden="true">→</span>
-                </button>
-            </div>
-
-        </form>
-
-        <!-- Divider -->
-        <div class="as-divider as-a6"><span>or continue with</span></div>
-
-        <!-- Social -->
-        <div class="as-social-row as-a6">
-            <button type="button" id="as-google-btn" class="as-social-btn"
-                    aria-label="Sign up with Google">
-                <img src="https://img.icons8.com/color/48/google-logo.png" alt="Google">
-                Google
-            </button>
+        <p class="fx-field__hint" id="su-trade-hint">The trades customers can book on Fidus X. If yours is not listed, choose Other.</p>
+        <p class="fx-field__error" id="su-trade-err" hidden></p>
+      </div>
+      <!-- "Other": described for Fidus X to review; the artisan works under the closest bookable trade meanwhile. -->
+      <div class="fx-entry__panel" id="su-other" hidden>
+        <div class="fx-field">
+          <label class="fx-field__label" for="su-other-desc">Describe your trade</label>
+          <input class="fx-input" id="su-other-desc" type="text" maxlength="120" placeholder="e.g. Solar inverter installation" aria-describedby="su-other-desc-err" />
+          <p class="fx-field__error" id="su-other-desc-err" hidden></p>
         </div>
+        <div class="fx-field">
+          <label class="fx-field__label" for="su-other-bucket">Closest listed trade</label>
+          <div class="fx-select">
+            <select class="fx-input" id="su-other-bucket" aria-describedby="su-other-bucket-hint su-other-bucket-err">
+              <option value="" selected disabled>Choose the closest trade</option>
+            </select>
+            <span data-icon="down" data-icon-class="fx-select__chev"></span>
+          </div>
+          <p class="fx-field__hint" id="su-other-bucket-hint">While Fidus X reviews your trade, you can be offered this trade's jobs.</p>
+          <p class="fx-field__error" id="su-other-bucket-err" hidden></p>
+        </div>
+      </div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="su-password">Password</label>
+        <div class="fx-entry__pw">
+          <input class="fx-input" id="su-password" type="password" autocomplete="new-password" aria-describedby="su-password-hint su-password-err" />
+          <button class="fx-btn fx-btn--tertiary fx-btn--s" type="button" data-reveal="su-password" aria-pressed="false">Show</button>
+        </div>
+        <p class="fx-field__hint" id="su-password-hint">At least 8 characters.</p>
+        <p class="fx-field__error" id="su-password-err" hidden></p>
+      </div>
+      <div class="fx-field">
+        <!-- The documents both sites serve (shared/legal/). They open in a new tab, so the form keeps its input (audit AUTH-001). The box is never pre-ticked. -->
+        <label class="fx-entry__check" for="su-terms">
+          <input type="checkbox" id="su-terms" aria-describedby="su-terms-err" />
+          <span>I agree to the <a class="fx-link" href="../shared/legal/terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a class="fx-link" href="../shared/legal/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+        </label>
+        <p class="fx-field__error" id="su-terms-err" hidden></p>
+      </div>
+      <button class="fx-btn fx-btn--primary fx-btn--l fx-btn--block" type="submit" id="su-submit">Create account</button>
+    </form>
 
-        <!-- Footer -->
-        <footer class="as-footer as-a7">
-            <div class="as-footer-inner">
-                <p class="as-footer-text">
-                    Already have an account?&nbsp;
-                    <a class="as-footer-link" href="login.html">Login &rsaquo;</a>
-                </p>
-            </div>
-        </footer>
-
-    </div><!-- /.as-card -->
-
-</div><!-- /.as-page -->
-
-
-<!-- ══ SCRIPTS ════════════════════════════════════════════════ -->
-<script src="../shared/js/utils/global-app.js"></script>
-<script src="../shared/js/components/fastLoader.js"></script>
+    <p class="fx-entry__or">or</p>
+    <!-- Google is the one other way to register (it creates the same server profile). -->
+    <button class="fx-btn fx-btn--secondary fx-btn--l fx-btn--block fx-entry__google" type="button" id="su-google">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      <span id="su-google-label">Continue with Google</span>
+    </button>
+    <p class="fx-entry__alt">Already have an account? <a class="fx-link" href="login.html">Sign in</a></p>
+    <p class="fx-entry__foot">Booking a professional? <a class="fx-link" href="../customer-app/index.html">Open the Fidus X customer app</a></p>
+  </div>
+</main>
 
 <script type="module">
-import { getAppContainer } from '../shared/js/app/container.js';
-import { httpsCallable }
-    from '../shared/vendor/firebase/firebase-functions.js';
-import { firebaseFunctions }
-    from '../shared/js/backend/providers/firebase/firebaseConfig.js';
-import { getApp } from '../shared/vendor/firebase/firebase-app.js';
-import { ensureArtisanAccount, nextArtisanPage } from './js/utils/artisanAccount.js';
+import '../shared/js/utils/global-app.js';
+import { icon }                 from './js/fx/icons.js';
+import { getAppContainer }      from '../shared/js/app/container.js';
+import { httpsCallable }        from '../shared/vendor/firebase/firebase-functions.js';
+import { firebaseFunctions }    from '../shared/js/backend/providers/firebase/firebaseConfig.js';
+import { ensureArtisanAccount } from './js/utils/artisanAccount.js';
+import { ARTISAN_TRADES, OTHER_TRADE } from '../shared/js/domain/artisanTrades.js';
+import { signupProblems, signupPayload, signUpError, googleError, routeEnsured, backAllowed } from './js/entry.js';
 
-const FUNCTIONS_REGION = 'europe-west1';
-const SESSION_KEY      = 'hh_otp_session';
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon, el.dataset.iconClass || '');
 
-// ── Email OTP verification switch (mirrors the customer app) ────────────────
-// FALSE = register directly, no verification code.
-//
-// Off because Resend rejects every send: EMAIL_FROM points at an unverified
-// domain, so the code never arrives and artisan signup dead-ends entirely. The
-// backend OTP system is sound and stays deployed — this only stops the client
-// entering that flow, and signUpArtisanDirect reuses the very same server-side
-// profile activation.
-//
-// TO RE-ENABLE: verify a sending domain at https://resend.com/domains, point
-// EMAIL_FROM at it, then flip this to true. verify-email.html is untouched.
+const { services: { authService } } = getAppContainer();
+const $ = (id) => document.getElementById(id);
+const SESSION_KEY = 'hh_otp_session';
+
+// ── Email code verification switch ───────────────────────────────────────────
+// FALSE = register directly (signUpArtisanDirect) and confirm the email with
+// Firebase's verification link. Off because the code email cannot be sent: its
+// sending domain is not verified. The server's code path stays as it is
+// (requestSignupOtp → verify-email.html); turn this on once a sending domain
+// is verified and EMAIL_FROM points at it.
 const REQUIRE_EMAIL_OTP = false;
 
-const ICON_OPEN   = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>';
-const ICON_CLOSED = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
-
-/* ── Eye toggle ───────────────────────────────────────────── */
-const togglePwBtn = document.getElementById('as-toggle-pw');
-const pwInput     = document.getElementById('as-pass');
-const pwEye       = document.getElementById('as-pw-eye');
-if (togglePwBtn && pwInput && pwEye) {
-    togglePwBtn.addEventListener('click', () => {
-        const hidden = pwInput.type === 'password';
-        pwInput.type    = hidden ? 'text' : 'password';
-        pwEye.innerHTML = hidden ? ICON_CLOSED : ICON_OPEN;
-        togglePwBtn.setAttribute('aria-label', hidden ? 'Hide password' : 'Show password');
-    });
+if (backAllowed({ referrer: document.referrer, origin: location.origin, historyLength: history.length })) {
+  $('entry-back').hidden = false;
+  $('entry-back').addEventListener('click', () => history.back());
 }
 
-/* ── Password strength ────────────────────────────────────── */
-const bars = ['as-bar-1','as-bar-2','as-bar-3','as-bar-4'].map(id => document.getElementById(id));
-const LEVELS = ['', 'weak', 'fair', 'good', 'strong'];
-function getStrength(pw) {
-    if (!pw || pw.length < 4) return 0;
-    let s = 0;
-    if (pw.length >= 8)  s++;
-    if (pw.length >= 12) s++;
-    if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
-    if (/[0-9]/.test(pw) || /[^A-Za-z0-9]/.test(pw)) s++;
-    return Math.min(s, 4);
+// ── The trades customers can book (shared/js/domain/artisanTrades.js) ────────
+for (const sel of [$('su-trade'), $('su-other-bucket')]) {
+  for (const t of ARTISAN_TRADES) sel.add(new Option(t, t));
 }
-if (pwInput && bars[0]) {
-    pwInput.addEventListener('input', () => {
-        const s = getStrength(pwInput.value);
-        bars.forEach((bar, i) => {
-            bar.className = 'as-pw-bar';
-            if (i < s) bar.classList.add(LEVELS[s]);
-        });
-    });
+$('su-trade').add(new Option('Other', OTHER_TRADE));
+$('su-trade').addEventListener('change', () => { $('su-other').hidden = $('su-trade').value !== OTHER_TRADE; });
+
+// Show / Hide the password.
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-reveal]');
+  if (!b) return;
+  const input = $(b.dataset.reveal);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  b.textContent = show ? 'Hide' : 'Show';
+  b.setAttribute('aria-pressed', String(show));
+});
+
+// ── Messages ─────────────────────────────────────────────────────────────────
+function setNotice(tone, text) {
+  const host = $('signup-notices');
+  host.innerHTML = '';
+  if (!text) return;
+  const el = document.createElement('div');
+  el.className = `fx-notice fx-notice--${tone}`;
+  el.setAttribute('role', tone === 'bad' ? 'alert' : 'status');
+  el.innerHTML = `${icon(tone === 'bad' ? 'alert' : 'info', 'fx-notice__icon')}<div class="fx-notice__body"><p></p></div>`;
+  el.querySelector('p').textContent = text;
+  host.appendChild(el);
 }
 
-/* ── Submit enable/disable ────────────────────────────────── */
-const form      = document.getElementById('artisan-signup-form');
-const submitBtn = document.getElementById('as-submit-btn');
-const termsChk  = document.getElementById('as-terms');
-const nameInp   = document.getElementById('as-name');
-const emailInp  = document.getElementById('as-email');
-const catInp    = document.getElementById('as-category');
-
-/* ── What is still missing (audit FORM-003) ─────────────────── *
- * Create Account used to grey out with no reason, and errors arrived as
- * browser alert() boxes. The SAME rules as before now also say, inline, what
- * is still missing — but only for a field the artisan has already touched, so
- * a fresh form is not a wall of red. The field at fault is marked aria-invalid. */
-const formMsg = document.getElementById('as-form-msg');
-const formErr = document.getElementById('as-form-err');
+// ── Checking the form: a field says what is wrong once it has been left or
+//    the form was sent — an untouched form says nothing (audit FORM-003).
+const FIELDS = { name: 'su-name', email: 'su-email', phone: 'su-phone', trade: 'su-trade',
+                 otherDesc: 'su-other-desc', otherBucket: 'su-other-bucket', password: 'su-password', terms: 'su-terms' };
 const touched = new Set();
-
-function signupProblems() {
-    const isOther     = catInp.value === 'other';
-    const otherDesc   = document.getElementById('as-other-desc');
-    const otherBucket = document.getElementById('as-other-bucket');
-    const out = [];
-    if (nameInp.value.trim().length === 0) out.push({ key: 'name',  el: nameInp,  message: 'Enter your full name.' });
-    if (!emailInp.value.includes('@'))     out.push({ key: 'email', el: emailInp, message: 'Enter a valid email address.' });
-    if (catInp.value === '')               out.push({ key: 'category', el: catInp, message: 'Choose your trade.' });
-    if (isOther && !(otherDesc && otherDesc.value.trim().length > 0 && otherBucket && otherBucket.value !== '')) {
-        out.push({ key: 'other', el: otherDesc, message: 'Describe your trade and choose the closest category.' });
-    }
-    if (pwInput.value.length < 8)          out.push({ key: 'password', el: pwInput, message: 'Use a password of at least 8 characters.' });
-    if (!termsChk.checked)                 out.push({ key: 'terms', el: termsChk, message: 'Agree to the Terms and Privacy Policy to continue.' });
-    return out;
-}
-
-function checkReady() {
-    const problems = signupProblems();
-    submitBtn.disabled = problems.length > 0;
-    const shown = problems.find(p => touched.has(p.key)) || null;
-    if (formMsg) formMsg.textContent = shown ? shown.message : '';
-    for (const el of [nameInp, emailInp, catInp, pwInput, termsChk, document.getElementById('as-other-desc')]) {
-        if (el) el.removeAttribute('aria-invalid');
-    }
-    if (shown && shown.el) shown.el.setAttribute('aria-invalid', 'true');
-}
-
-/** A sign-up or Google error, shown in the page rather than a browser dialog. */
-function showFormError(message) {
-    if (formErr) formErr.textContent = message || '';
-}
-
-const touch = (key) => () => { touched.add(key); checkReady(); };
-nameInp.addEventListener('blur',  touch('name'));
-emailInp.addEventListener('blur', touch('email'));
-pwInput.addEventListener('blur',  touch('password'));
-catInp.addEventListener('change', touch('category'));
-termsChk.addEventListener('change', touch('terms'));
-
-[nameInp, emailInp, pwInput, termsChk].forEach(el => {
-    el.addEventListener('input',  checkReady);
-    el.addEventListener('change', checkReady);
+let _sent = false;
+const values = () => ({
+  name: $('su-name').value, email: $('su-email').value, phone: $('su-phone').value, trade: $('su-trade').value,
+  otherDesc: $('su-other-desc').value, otherBucket: $('su-other-bucket').value, password: $('su-password').value,
+  terms: $('su-terms').checked,
 });
+function showProblems() {
+  const problems = signupProblems(values());
+  for (const [key, id] of Object.entries(FIELDS)) {
+    const msg = (_sent || touched.has(key)) ? (problems[key] || '') : '';
+    $(id).setAttribute('aria-invalid', msg ? 'true' : 'false');
+    $(`${id}-err`).textContent = msg;
+    $(`${id}-err`).hidden = !msg;
+  }
+  return problems;
+}
+for (const [key, id] of Object.entries(FIELDS)) {
+  const el = $(id);
+  el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'blur', () => { touched.add(key); showProblems(); });
+  el.addEventListener('input', () => { if (touched.has(key) || _sent) showProblems(); });
+}
 
-catInp.addEventListener('change', () => {
-    const panel = document.getElementById('as-other-panel');
-    panel.style.display = catInp.value === 'other' ? 'block' : 'none';
-    checkReady();
-});
+// ── Create the account ───────────────────────────────────────────────────────
+// The server creates it (functions/emailOtp.js) — never the browser.
+let _submitting = false;
+$('signup-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (_submitting) return;   // one request: Enter and a tap, or two taps
+  setNotice(null, '');
+  _sent = true;
+  const problems = showProblems();
+  const first = Object.keys(FIELDS).find((k) => problems[k]);
+  if (first) { $(FIELDS[first]).focus(); return; }
 
-document.getElementById('as-other-desc').addEventListener('input', checkReady);
-document.getElementById('as-other-bucket').addEventListener('change', checkReady);
-
-/* ── Form submit ──────────────────────────────────────────── */
-let submitting = false;   // guard against double-submit (Enter + click, etc.)
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (submitting) return;
-    submitting = true;
-    showFormError('');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="as-spin"></span>';
-
+  const payload = signupPayload(values());
+  const { email, password } = payload;
+  _submitting = true;
+  busy(true);
+  try {
+    if (REQUIRE_EMAIL_OTP) {
+      const result = await httpsCallable(firebaseFunctions, 'requestSignupOtp')({ appType: 'artisan', payload });
+      // The session is kept for this tab only (never localStorage).
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId: result.data.sessionId, email: result.data.email }));
+      window.location.replace('verify-email.html');
+      return;
+    }
+    // The server builds the profile (status pending, verification draft); the
+    // email starts unverified. Then sign in here, and send Firebase's
+    // verification link — onboarding cannot be submitted until it is opened (AR-09).
+    await httpsCallable(firebaseFunctions, 'signUpArtisanDirect')({ payload });
+    sessionStorage.removeItem(SESSION_KEY);
+    await authService.signInWithEmail(email, password);
     try {
-        const email    = emailInp.value.trim();
-        const password = pwInput.value;
-        const name     = nameInp.value.trim();
-        const phone    = document.getElementById('as-phone').value.trim();
-        const selected = catInp.value;
-
-        const isOther          = selected === 'other';
-        const otherBucket      = isOther ? document.getElementById('as-other-bucket').value : null;
-        const otherDesc        = isOther ? document.getElementById('as-other-desc').value.trim() : null;
-
-        const payload = {
-            name,
-            email,
-            password,
-            phone,
-            category:  selected,
-            otherBucket,
-            otherDesc,
-        };
-
-        if (REQUIRE_EMAIL_OTP) {
-            const fn = httpsCallable(firebaseFunctions, 'requestSignupOtp');
-            const result = await fn({ appType: 'artisan', payload });
-
-            // Store session in sessionStorage only — never localStorage
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-                sessionId: result.data.sessionId,
-                email:     result.data.email,
-            }));
-
-            // Navigate to OTP verification page (reset flag first — if navigation is
-            // blocked by a browser extension the form must remain usable)
-            submitting = false;
-            window.location.replace('verify-email.html');
-            return;
-        }
-
-        // Direct signup — no verification CODE. The server builds the artisan
-        // profile with the same routine the OTP path uses; the email starts
-        // unverified. Then: sign in (the server-created account is not signed in
-        // in this browser) and send Firebase Auth's verification LINK, which needs
-        // no sending domain of ours. Onboarding cannot be submitted, and an admin
-        // cannot approve, until that link is opened (AR-09).
-        const fn = httpsCallable(firebaseFunctions, 'signUpArtisanDirect');
-        await fn({ payload });
-
-        sessionStorage.removeItem(SESSION_KEY);
-        const { services: { authService } } = getAppContainer();
-        await authService.signInWithEmail(email, password);
-        try {
-            await authService.sendEmailVerification?.(new URL('onboarding.html', location.href).href);
-        } catch (vErr) {
-            // Not fatal: onboarding offers to resend the link.
-            console.warn('[signup] verification email not sent:', vErr?.message || vErr);
-        }
-        submitting = false;
-        window.location.replace('onboarding.html');
-    } catch (err) {
-        submitting = false;
-        submitBtn.disabled   = false;
-        submitBtn.innerHTML  = 'Create Account <span class="as-btn-arrow">→</span>';
-        const msg =
-            (err.message || '').includes('already exists') ? 'That email is already registered. Try signing in instead.' :
-            (err.message || '').includes('Invalid email')  ? 'Please enter a valid email address.' :
-            (err.message || '').includes('8 characters')   ? 'Password must be at least 8 characters.' :
-            (err.message || '').includes('network')        ? 'Network error. Check your connection and try again.' :
-            (err.message || 'Sign-up failed. Please try again.');
-        showFormError(msg);
+      await authService.sendEmailVerification?.(new URL('onboarding.html', location.href).href);
+    } catch (vErr) {
+      // Not fatal: onboarding offers to send the link again.
+      console.warn('[signup] verification email not sent:', vErr?.code || vErr);
     }
+    window.location.replace('onboarding.html');
+  } catch (err) {
+    _submitting = false;
+    busy(false);
+    setNotice('bad', signUpError(err));
+  }
 });
-
-/* ── Google sign-up ───────────────────────────────────────── */
-const googleBtn = document.getElementById('as-google-btn');
-if (googleBtn) {
-    googleBtn.addEventListener('click', async () => {
-        googleBtn.disabled = true;
-        try {
-            const { services: { authService, databaseService } } = getAppContainer();
-
-            // signInWithGoogle() does not exist on the shared service — the
-            // contract is signInWithSocial(providerName). Popup is the default.
-            const result = await authService.signInWithSocial('Google');
-            const user   = result?.user;
-            if (!user) throw new Error('Google sign-in returned no user.');
-
-            // A first-time Google artisan has no artisans/{uid} doc yet. The server
-            // creates it — once, whatever provider or how many attempts, and never
-            // for a customer or admin account (functions/artisanAccount.js).
-            const acct = await ensureArtisanAccount();
-            if (!acct.ok) {
-                await authService.signOut().catch(() => {});
-                googleBtn.disabled = false;
-                showFormError(acct.message);
-                return;
-            }
-            window.location.replace(nextArtisanPage(acct.verificationStatus));
-            return;
-
-        } catch (err) {
-            googleBtn.disabled = false;
-            if (err.code !== 'auth/popup-closed-by-user' &&
-                err.code !== 'auth/cancelled-popup-request') {
-                showFormError('Google sign-up did not complete. Please try again.');
-            }
-        }
-    });
+function busy(on) {
+  const b = $('su-submit');
+  b.disabled = on;
+  if (on) b.setAttribute('aria-busy', 'true'); else b.removeAttribute('aria-busy');
+  b.textContent = on ? 'Creating your account…' : 'Create account';
 }
 
-/* ── Already signed in (audit IA-005) ─────────────────────── *
- * A signed-in visitor has nothing to do on sign-up. login.html is the router
- * that knows where each account belongs (an artisan → their next page, a
- * customer → the customer app, an outage → a retry), so send them there.
- * Only the FIRST auth answer counts, and never while this page is signing
- * someone up: that signs them in mid-flow, and the flow routes itself. */
+// ── Google ───────────────────────────────────────────────────────────────────
+// A first Google sign-in has no profile: the server creates it — once, and
+// never for a customer or admin account (functions/artisanAccount.js).
+let _google = false;
+$('su-google').addEventListener('click', async () => {
+  if (_google || _submitting) return;
+  setNotice(null, '');
+  _google = true;
+  googleBusy(true);
+  try {
+    const result = await authService.signInWithSocial('Google');
+    if (!result?.user) throw Object.assign(new Error('No user'), { code: 'auth/internal-error' });
+    const step = routeEnsured(await ensureArtisanAccount());
+    if (step.signOut) {
+      await authService.signOut().catch(() => {});
+      _google = false; googleBusy(false);
+      setNotice('bad', step.message);
+      if (step.go) setTimeout(() => window.location.replace(step.go), 1600);
+      return;
+    }
+    if (step.offline) {
+      _google = false; googleBusy(false);
+      setNotice('bad', 'Can\'t reach the server. You\'re signed in with Google — check your connection and try again.');
+      return;
+    }
+    window.location.replace(step.go);
+  } catch (err) {
+    _google = false;
+    googleBusy(false);
+    const msg = googleError(err);
+    if (msg) setNotice('bad', msg);
+  }
+});
+function googleBusy(on) {
+  const b = $('su-google');
+  b.disabled = on;
+  if (on) b.setAttribute('aria-busy', 'true'); else b.removeAttribute('aria-busy');
+  $('su-google-label').textContent = on ? 'Opening Google…' : 'Continue with Google';
+}
+
+/* ── Already signed in (audit IA-005) ─────────────────────────────────────────
+ * A signed-in visitor has nothing to do here. login.html routes every account
+ * (an artisan to their next page, a customer to the customer app, an outage to
+ * a retry). Only the FIRST auth answer counts, and never during this page's own
+ * sign-up or Google flow, which signs them in and routes itself. */
 {
-    const { services: { authService } } = getAppContainer();
-    let firstAnswer = true;
-    authService.subscribeToAuthState((user) => {
-        if (!firstAnswer) return;
-        firstAnswer = false;
-        const signingUp = submitting || (googleBtn && googleBtn.disabled);
-        if (user && !signingUp) window.location.replace('login.html');
-    });
+  let firstAnswer = true;
+  authService.subscribeToAuthState((user) => {
+    if (!firstAnswer) return;
+    firstAnswer = false;
+    if (user && !_submitting && !_google) window.location.replace('login.html');
+  });
 }
 </script>
-
 <script src="js/pwa.js" defer></script>
 </body>
 </html>

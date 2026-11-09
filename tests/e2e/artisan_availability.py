@@ -116,9 +116,9 @@ with sync_playwright() as p:
     write_available(True)
     pg.goto(f"{BASE}/artisan-app/login.html?emulator=1", wait_until="domcontentloaded")
     pg.wait_for_timeout(1500)
-    pg.fill("#login-email", ART[0])
-    pg.fill("#login-password", ART[1])
-    pg.click("#login-btn")
+    pg.fill("#si-email", ART[0])
+    pg.fill("#si-password", ART[1])
+    pg.click("#si-submit")
     try:
         pg.wait_for_url("**/dashboard.html*", timeout=25000)
         check("real artisan sign-in against the Auth emulator", True)

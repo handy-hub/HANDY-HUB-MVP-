@@ -69,15 +69,17 @@ await t('artisan onboarding opens the documents in a new tab (the half-filled fo
 
 await t('artisan sign-up links the documents it asks the artisan to accept (audit AUTH-001)', () => {
     const su = read('artisan-app/signup.html');
-    assert.match(su, /<a href="\.\.\/shared\/legal\/terms\.html" target="_blank" rel="noopener">Terms of Service<\/a>/);
-    assert.match(su, /<a href="\.\.\/shared\/legal\/privacy\.html" target="_blank" rel="noopener">Privacy Policy<\/a>/);
-    // The agreement is still required: the box is unticked and gates the submit.
-    assert.match(su, /<input class="as-checkbox terms-row" type="checkbox" id="as-terms"\s/);
-    assert.ok(!/id="as-terms"[^>]*\bchecked\b/.test(su), 'the agreement must not be pre-ticked');
-    // Since FORM-003 the readiness rules are one list; an unticked box is a
-    // problem, and any problem keeps Create Account disabled.
-    assert.match(su, /if \(!termsChk\.checked\)\s+out\.push\(\{ key: 'terms'/);
-    assert.match(su, /submitBtn\.disabled = problems\.length > 0;/);
+    assert.match(su, /<a (?:class="fx-link" )?href="\.\.\/shared\/legal\/terms\.html" target="_blank" rel="noopener">Terms of Service<\/a>/);
+    assert.match(su, /<a (?:class="fx-link" )?href="\.\.\/shared\/legal\/privacy\.html" target="_blank" rel="noopener">Privacy Policy<\/a>/);
+    // The agreement is still required: the box is unticked and gates the submit
+    // (artisan-app/js/entry.js signupProblems refuses the form without it).
+    assert.match(su, /<input type="checkbox" id="su-terms"\s/);
+    assert.ok(!/id="su-terms"[^>]*\bchecked\b/.test(su), 'the agreement must not be pre-ticked');
+    assert.match(read('artisan-app/js/entry.js'), /if \(!v\.terms\) out\.terms = 'Agree to the Terms of Service and Privacy Policy to continue\.';/);
+    // An unticked box is a problem, and any problem stops the submission
+    // before anything is sent (Phase 5: the button stays focusable and says why).
+    assert.match(su, /terms: \$\('su-terms'\)\.checked,/);
+    assert.match(su, /const first = Object\.keys\(FIELDS\)\.find\(\(k\) => problems\[k\]\);\s*if \(first\) \{ \$\(FIELDS\[first\]\)\.focus\(\); return; \}/);
 });
 
 await t('no Terms or Privacy link anywhere is a placeholder "#"', () => {

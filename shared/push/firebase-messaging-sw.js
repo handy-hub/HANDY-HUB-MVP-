@@ -28,7 +28,10 @@ const PARAMS   = new URL(self.location.href).searchParams;
 const APP      = PARAMS.get('app') === 'artisan' ? 'artisan' : 'customer';
 const APP_BASE = APP === 'artisan' ? '/artisan-app/' : '/customer-app/';
 const HOME     = 'dashboard.html';
-const ICON     = '/shared/assets/images/handyhub-logo.png';
+// The customer app's icon is its own launcher image. The professional app has
+// no Fidus X icon yet (an asset still to be supplied), and the retired HandyHub
+// logo is not shown in its place: the browser's default is used until it exists.
+const ICON     = APP === 'artisan' ? null : '/shared/assets/images/handyhub-logo.png';
 
 /**
  * The page a notification opens, always inside this app on this origin.
@@ -70,8 +73,7 @@ function buildNotification(data, nowMs) {
         title,
         options: {
             body,
-            icon:  ICON,
-            badge: ICON,
+            ...(ICON ? { icon: ICON, badge: ICON } : {}),
             // One notification per booking: a re-offer replaces the old one.
             tag:   d.bookingId ? `booking-${d.bookingId}` : 'fx-notification',
             renotify: !!d.bookingId && !expired,

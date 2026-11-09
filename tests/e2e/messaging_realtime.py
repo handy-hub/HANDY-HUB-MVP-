@@ -69,7 +69,7 @@ with sync_playwright() as p:
 
     art.goto(f"{BASE}/artisan-app/login.html?emulator=1", wait_until="domcontentloaded")
     art.wait_for_timeout(2200)
-    art.fill("#login-email", ARTISAN[0]); art.fill("#login-password", ARTISAN[1]); art.click("#login-btn")
+    art.fill("#si-email", ARTISAN[0]); art.fill("#si-password", ARTISAN[1]); art.click("#si-submit")
     try:
         art.wait_for_url("**/dashboard.html*", timeout=25000)
         check("artisan signs in", True)

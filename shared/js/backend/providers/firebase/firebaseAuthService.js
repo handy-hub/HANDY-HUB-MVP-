@@ -12,6 +12,7 @@ import {
   reauthenticateWithPopup,
   reload,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -242,6 +243,15 @@ export function createFirebaseAuthService(authInstance = firebaseAuth) {
     // so it works while the Resend OTP path is switched off (artisan signup.html,
     // REQUIRE_EMAIL_OTP). Verified status reaches firestore.rules as
     // request.auth.token.email_verified once the ID token is refreshed.
+
+    /**
+     * Email a password-reset link. Firebase answers the same way whether or not
+     * the address has an account (email-enumeration protection), and callers
+     * must say the same thing in both cases (artisan login, AUTH-002).
+     */
+    async sendPasswordResetEmail(email) {
+      await sendPasswordResetEmail(authInstance, email);
+    },
 
     /** Email the signed-in user a verification link. */
     async sendEmailVerification(continueUrl = null) {

@@ -2,415 +2,284 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>Fidus X – Artisan Login</title>
+  <title>Sign in | Fidus X for professionals</title>
+  <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/design-system.css">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <style>
-    :root {
-      /* Local aliases that map old names to canonical ds-* tokens.
-         --primary / --radius-md are replaced below so no page-local token
-         shadows a ds- value. New code should use --ds-* directly. */
-      --primary:       var(--ds-brand-500);
-      --primary-dark:  var(--ds-brand-600);
-      --primary-light: var(--ds-brand-50);
-      --text-dark:     var(--ds-ink);
-      --text-mid:      var(--ds-ink-2);
-      --text-light:    var(--ds-ink-4);
-      --surface:       var(--ds-surface);
-      --surface-2:     var(--ds-surface-2);
-      --border:        var(--ds-line-strong);
-      --danger:        var(--ds-danger);
-      --success:       var(--ds-success);
-      --radius-md:     var(--ds-r-control);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
-    body {
-      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #F5F6FA;
-      color: var(--text-dark);
-      min-height: 100dvh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .phone-shell {
-      width: 100%;
-      max-width: 430px;
-      min-height: 100dvh;
-      background: var(--surface);
-      display: flex;
-      flex-direction: column;
-    }
-    .login-hero {
-      position: relative;
-      background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
-      padding: 48px 24px 40px;
-      display: flex; flex-direction: column;
-      align-items: center; text-align: center;
-    }
-    .hero-logo {
-      width: 72px; height: 72px;
-      background: rgba(255,255,255,.2);
-      border-radius: 22px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 16px;
-    }
-    .hero-logo svg { width: 40px; height: 40px; }
-    .hero-title { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 6px; }
-    .hero-sub   { font-size: 15px; color: rgba(255,255,255,.8); font-weight: 500; }
-    .hero-badge {
-      margin-top: 16px;
-      background: rgba(255,255,255,.15);
-      border: 1px solid rgba(255,255,255,.3);
-      border-radius: 20px;
-      padding: 6px 16px;
-      font-size: 12px; font-weight: 700; color: #fff;
-      letter-spacing: .04em;
-    }
-    .login-body { flex: 1; padding: 28px 20px; display: flex; flex-direction: column; }
-    .tab-row {
-      display: grid; grid-template-columns: 1fr 1fr;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 12px; padding: 4px; margin-bottom: 24px;
-    }
-    .tab-btn {
-      padding: 10px; border: none; background: none; border-radius: 9px;
-      font-size: 14px; font-weight: 700; color: var(--text-light);
-      cursor: pointer; transition: all .2s;
-    }
-    .tab-btn.active {
-      background: var(--surface); color: var(--primary);
-      box-shadow: 0 1px 4px rgba(0,0,0,.1);
-    }
-    .form-panel { display: none; }
-    .form-panel.active { display: block; }
-    .field-group { margin-bottom: 14px; }
-    .field-label { font-size: 13px; font-weight: 600; color: var(--text-dark); margin-bottom: 6px; display: block; }
-    .field-label .req { color: var(--danger); margin-left: 2px; }
-    .field-input {
-      width: 100%; padding: 13px 14px;
-      border: 1.5px solid var(--border); border-radius: var(--radius-md);
-      font-size: 15px; font-family: inherit; color: var(--text-dark);
-      background: var(--surface); outline: none; transition: border-color .2s;
-    }
-    .field-input:focus { border-color: var(--primary); }
-    .field-input::placeholder { color: var(--text-light); }
-    .field-input.error { border-color: var(--danger); }
-    .field-error { font-size: 11px; color: var(--danger); margin-top: 4px; display: none; }
-    .field-error.show { display: block; }
-    .password-wrap { position: relative; }
-    .password-wrap .field-input { padding-right: 44px; }
-    .pw-toggle {
-      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-      background: none; border: none; cursor: pointer; color: var(--text-light);
-    }
-    .pw-toggle svg { width: 18px; height: 18px; }
-    .forgot-link {
-      display: block; text-align: right;
-      font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none;
-      margin-top: -8px; margin-bottom: 14px;
-    }
-    .btn-submit {
-      width: 100%; padding: 15px;
-      background: var(--primary); color: #fff; border: none;
-      border-radius: var(--radius-md); font-size: 16px; font-weight: 700;
-      cursor: pointer; transition: all .15s; position: relative; margin-top: 4px;
-      font-family: inherit;
-    }
-    .btn-submit:active { background: var(--primary-dark); transform: scale(.98); }
-    .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-    .btn-submit.loading::after {
-      content: '';
-      position: absolute; width: 18px; height: 18px;
-      border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff;
-      border-radius: 50%; right: 18px; top: 50%; transform: translateY(-50%);
-      animation: spin .7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .divider { display: flex; align-items: center; gap: 10px; margin: 18px 0; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-    .divider span { font-size: 12px; color: var(--text-light); font-weight: 600; white-space: nowrap; }
-    .social-btn {
-      width: 100%; padding: 13px;
-      border: 1.5px solid var(--border); border-radius: var(--radius-md);
-      background: var(--surface); font-size: 14px; font-weight: 600;
-      color: var(--text-dark); cursor: pointer; transition: all .15s;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      font-family: inherit;
-    }
-    .social-btn:hover { background: var(--surface-2); border-color: var(--primary); }
-    .social-btn svg { width: 20px; height: 20px; }
-    .error-banner {
-      background: #FEF2F2; border: 1px solid #FECACA;
-      border-radius: 10px; padding: 10px 14px;
-      font-size: 13px; color: #991B1B; font-weight: 500;
-      margin-bottom: 16px; display: none;
-    }
-    .error-banner.show { display: block; }
-    .offline-retry {
-      display: inline-block; margin-top: 8px; padding: 8px 14px; border: none; border-radius: 8px;
-      background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer;
-    }
-    .success-banner {
-      background: #F0FDF4; border: 1px solid #86EFAC;
-      border-radius: 10px; padding: 10px 14px;
-      font-size: 13px; color: #166534; font-weight: 500;
-      margin-bottom: 16px; display: none;
-    }
-    .success-banner.show { display: block; }
-    .terms-text {
-      font-size: 11px; color: var(--text-light);
-      text-align: center; line-height: 1.6; margin-top: 16px;
-    }
-    .terms-text a { color: var(--primary); text-decoration: none; font-weight: 600; }
-    .bottom-nav-hint {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 14px 20px 28px;
-      font-size: 12px; color: var(--text-light); font-weight: 500;
-    }
-    .bottom-nav-hint a { color: var(--primary); font-weight: 600; text-decoration: none; }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/entry.css" />
 </head>
-<body>
-<div class="phone-shell">
+<body class="fx-app">
+<a class="fx-skip" href="#entry-main">Skip to content</a>
+<main class="fx-entry" id="entry-main" tabindex="-1">
+  <div class="fx-entry__col">
 
-  <div class="login-hero">
-
-    <!-- A real Back (audit NAV-003): it used to open sign-up whatever page the
-         artisan came from. Shown only when there is a page of this site to go
-         back to; login is otherwise the app's front door, with nothing behind it. -->
-    <button id="login-back" onclick="history.back()"
-            style="position:absolute;top:max(env(safe-area-inset-top,0px),14px);left:16px;
-                   width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
-                   background:rgba(255,255,255,0.18);display:none;align-items:center;
-                   justify-content:center;color:#fff;-webkit-tap-highlight-color:transparent;"
-            aria-label="Back">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.3"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-    </button>
-    <script>
-      try {
-        var ref = document.referrer ? new URL(document.referrer) : null;
-        if (ref && ref.origin === location.origin && history.length > 1) {
-          document.getElementById('login-back').style.display = 'flex';
-        }
-      } catch (_) { /* no usable referrer: no Back */ }
-    </script>
-
-    <div class="hero-logo">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="fx-entry__top">
+      <!-- The Fidus X wordmark (design decision 05) until the final logo is supplied. -->
+      <p class="fx-wordmark"><span class="fx-wordmark__name">Fidus X</span> <span class="fx-wordmark__for">for professionals</span></p>
+      <!-- Back only after a page of this site, never to sign-up (entry.js backAllowed). -->
+      <button class="fx-iconbtn" type="button" id="entry-back" aria-label="Back" hidden><span data-icon="back"></span></button>
     </div>
-    <p class="hero-title">Fidus X Artisan</p>
-    <p class="hero-sub">Your professional platform for skilled work</p>
-    <span class="hero-badge"><i class="fa-solid fa-screwdriver-wrench"></i> Artisan Portal</span>
-  </div>
 
-  <div class="login-body">
-
-    <!-- One sign-up path (signup.html). The "Create Account" tab that used to be
-         here built accounts in the browser, outside the server signup (AR-09). -->
-    <p class="terms-text" style="margin:0 0 12px;">New to Fidus X? <a href="signup.html">Create an artisan account</a></p>
-
-    <div class="error-banner" id="error-banner"></div>
-    <!-- Signed in, but the server could not be reached: the session is kept
-         (LOGIN-001), as the auth guard's offline state does. -->
-    <div class="error-banner" id="offline-banner" role="alert">
-      <strong>Can't reach the server.</strong> You're still signed in — check your connection and try again.<br>
-      <button type="button" class="offline-retry" onclick="location.reload()">Try again</button>
-    </div>
-    <div class="success-banner" id="success-banner"></div>
-
-    <!-- LOGIN -->
-    <div class="form-panel active" id="panel-login">
-      <div class="field-group">
-        <label class="field-label">Email Address<span class="req">*</span></label>
-        <input class="field-input" type="email" id="login-email" placeholder="you@email.com" autocomplete="email" />
-        <p class="field-error" id="login-email-err">Please enter a valid email.</p>
+    <!-- Sign in -->
+    <section class="fx-entry__view" id="view-signin" aria-labelledby="signin-h">
+      <div class="fx-entry__head">
+        <h1 class="fx-title" id="signin-h">Sign in</h1>
+        <p class="fx-lead">Use the email and password you registered with.</p>
       </div>
-      <div class="field-group">
-        <label class="field-label">Password<span class="req">*</span></label>
-        <div class="password-wrap">
-          <input class="field-input" type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" />
-          <button type="button" class="pw-toggle" onclick="togglePw('login-password',this)">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
-          </button>
+      <div class="fx-entry__notices fx-stack" id="signin-notices"></div>
+      <form class="fx-entry__form" id="signin-form" novalidate>
+        <div class="fx-field">
+          <label class="fx-field__label" for="si-email">Email</label>
+          <input class="fx-input" id="si-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" aria-describedby="si-email-err" />
+          <p class="fx-field__error" id="si-email-err" hidden>Enter a valid email address.</p>
         </div>
-        <p class="field-error" id="login-pw-err">Enter your password.</p>
-      </div>
-      <a href="#" class="forgot-link" onclick="sendPasswordReset();return false;">Forgot password?</a>
-      <button class="btn-submit" id="login-btn" onclick="handleLogin()">Sign In</button>
-      <div class="divider"><span>or continue with</span></div>
-      <button class="social-btn" onclick="handleGoogleLogin()">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        Continue with Google
+        <div class="fx-field">
+          <label class="fx-field__label" for="si-password">Password</label>
+          <div class="fx-entry__pw">
+            <input class="fx-input" id="si-password" type="password" autocomplete="current-password" aria-describedby="si-pw-err" />
+            <button class="fx-btn fx-btn--tertiary fx-btn--s" type="button" data-reveal="si-password" aria-pressed="false">Show</button>
+          </div>
+          <p class="fx-field__error" id="si-pw-err" hidden>Enter your password.</p>
+        </div>
+        <div class="fx-entry__row">
+          <button class="fx-entry__textbtn fx-link" type="button" id="si-forgot">Forgot your password?</button>
+        </div>
+        <button class="fx-btn fx-btn--primary fx-btn--l fx-btn--block" type="submit" id="si-submit">Sign in</button>
+      </form>
+      <p class="fx-entry__or">or</p>
+      <button class="fx-btn fx-btn--secondary fx-btn--l fx-btn--block fx-entry__google" type="button" id="si-google">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        <span id="si-google-label">Continue with Google</span>
       </button>
-    </div>
+      <p class="fx-entry__alt">New to Fidus X? <a class="fx-link" href="signup.html">Create a professional account</a></p>
+    </section>
 
+    <!-- Reset a password (AUTH-002: the same answer whether or not the email has an account) -->
+    <section class="fx-entry__view" id="view-reset" aria-labelledby="reset-h" hidden>
+      <div class="fx-entry__head">
+        <h1 class="fx-title" id="reset-h">Reset your password</h1>
+        <p class="fx-lead">Enter the email you registered with. If it has a Fidus X professional account, we'll send it a link to choose a new password.</p>
+      </div>
+      <div class="fx-entry__notices fx-stack" id="reset-notices"></div>
+      <form class="fx-entry__form" id="reset-form" novalidate>
+        <div class="fx-field">
+          <label class="fx-field__label" for="rs-email">Email</label>
+          <input class="fx-input" id="rs-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" aria-describedby="rs-email-err" />
+          <p class="fx-field__error" id="rs-email-err" hidden>Enter a valid email address.</p>
+        </div>
+        <button class="fx-btn fx-btn--primary fx-btn--l fx-btn--block" type="submit" id="rs-submit">Send reset link</button>
+      </form>
+      <button class="fx-btn fx-btn--tertiary fx-btn--block" type="button" id="rs-back">Back to sign in</button>
+    </section>
+
+    <p class="fx-entry__foot">Booking a professional? <a class="fx-link" href="../customer-app/index.html">Open the Fidus X customer app</a></p>
   </div>
-
-  <div class="bottom-nav-hint">
-    Are you a customer? <a href="../customer-app/index.html">Switch to Customer App →</a>
-  </div>
-
-</div>
+</main>
 
 <script type="module">
-import { auth, db }     from './js/firebase-artisan.js';
-import {
-  signInWithEmailAndPassword, sendPasswordResetEmail, signOut,
-  GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
-} from '../shared/vendor/firebase/firebase-auth.js';
-import { doc, getDoc }
-  from '../shared/vendor/firebase/firebase-firestore.js';
-import { ensureArtisanAccount, nextArtisanPage } from './js/utils/artisanAccount.js';
+import '../shared/js/utils/global-app.js';
+import { icon }                  from './js/fx/icons.js';
+import { getAppContainer }       from '../shared/js/app/container.js';
+import { ensureArtisanAccount }  from './js/utils/artisanAccount.js';
+import { isEmail, signInError, googleError, resetOutcome, routeExisting, routeEnsured, arrivalNotice, backAllowed }
+                                 from './js/entry.js';
 
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon);
+
+const { services: { authService, databaseService } } = getAppContainer();
+const $ = (id) => document.getElementById(id);
+
+// ── Where they came from ──────────────────────────────────────────────────────
+// The auth guard keeps the page someone was on when their session ended.
 const RETURN_KEY = 'hh_artisan_return_url';
-
+function peekReturnUrl() { try { return sessionStorage.getItem(RETURN_KEY); } catch (_) { return null; } }
 function consumeReturnUrl() {
   try {
     const url = sessionStorage.getItem(RETURN_KEY);
     if (url) sessionStorage.removeItem(RETURN_KEY);
-    // Only honour same-origin URLs — prevent open-redirect
-    if (url && new URL(url).origin === window.location.origin) return url;
+    // Same origin only: never an open redirect.
+    if (url && new URL(url).origin === location.origin) return url;
   } catch (_) {}
   return null;
 }
 
-// Refusals that ARE answers about this account: the server's own reasons
-// (functions/artisanAccount.js accountError → HttpsError details.reason).
-// Only these end the session.
-const ACCOUNT_REFUSALS = ['customer_account', 'admin_account', 'not_artisan', 'no_email', 'unauthenticated'];
-
-function showOffline() {
-  clearBanners();
-  document.getElementById('offline-banner').classList.add('show');
+if (backAllowed({ referrer: document.referrer, origin: location.origin, historyLength: history.length })) {
+  $('entry-back').hidden = false;
+  $('entry-back').addEventListener('click', () => history.back());
 }
 
-onAuthStateChanged(auth, async user => {
-  if (!user) return;
-
-  // A failed read (Firestore unreachable) is not "no profile" — but asking the
-  // server below is right either way: it answers 'existing' for a real artisan.
-  const snap = await getDoc(doc(db, 'artisans', user.uid)).catch(() => null);
-
-  if (!snap?.exists()) {
-    // No artisan profile yet (typically a first Google sign-in). Sending them
-    // to onboarding without one dead-ended at "Access Denied", so the server
-    // creates it first — once, and never for a customer or admin account.
-    const acct = await ensureArtisanAccount();
-    if (!acct.ok) {
-      if (acct.reason === 'customer_account') {
-        // Role isolation (docs/SECURITY_ROLE_ISOLATION.md): the server says this
-        // uid is a customer. That is authoritative — end the session here.
-        await signOut(auth).catch(() => {});
-        showError('This is a customer account. Redirecting you to the Customer app…');
-        setTimeout(() => { location.replace('../customer-app/login.html'); }, 1600);
-        return;
-      }
-      if (ACCOUNT_REFUSALS.includes(acct.reason)) {
-        await signOut(auth).catch(() => {});
-        showError(acct.message);
-        return;
-      }
-      // No reason: the server was not reached (an outage, offline, a timeout)
-      // or said nothing about the account. A network failure is never evidence
-      // about the account (LOGIN-001, the FLOW-004 rule): the signed-in artisan
-      // keeps their session and gets a retry, instead of being signed out.
-      showOffline();
-      return;
-    }
-    location.replace(nextArtisanPage(acct.verificationStatus));
-    return;
+// ── Messages: one at a time per view (AUTH-004) ──────────────────────────────
+function setNotice(view, tone, text, action = null) {
+  const host = $(`${view}-notices`);
+  host.innerHTML = '';
+  if (!text) return;
+  const el = document.createElement('div');
+  el.className = `fx-notice fx-notice--${tone}`;
+  el.setAttribute('role', tone === 'bad' ? 'alert' : 'status');
+  el.innerHTML = `${icon(tone === 'ok' ? 'check' : tone === 'info' ? 'info' : 'alert', 'fx-notice__icon')}<div class="fx-notice__body"><p></p></div>`;
+  el.querySelector('p').textContent = text;
+  if (action) {
+    const row = document.createElement('div'); row.className = 'fx-notice__actions';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'fx-btn fx-btn--tertiary fx-btn--s';
+    b.textContent = action.label; b.addEventListener('click', action.onClick);
+    row.appendChild(b); el.querySelector('.fx-notice__body').appendChild(row);
   }
+  host.appendChild(el);
+}
+function fieldError(input, errId, show) {
+  input.setAttribute('aria-invalid', show ? 'true' : 'false');
+  $(errId).hidden = !show;
+}
+function clearFields(form) {
+  for (const i of form.querySelectorAll('.fx-input')) i.setAttribute('aria-invalid', 'false');
+  for (const e of form.querySelectorAll('.fx-field__error')) e.hidden = true;
+}
+function setBusy(btn, busy, label) {
+  btn.disabled = busy;
+  if (busy) btn.setAttribute('aria-busy', 'true'); else btn.removeAttribute('aria-busy');
+  btn.textContent = label;
+}
 
-  const data   = snap.data();
-  const status = (data.status || '').toLowerCase();
-
-  // Suspended/banned artisans redirected to dashboard where guard shows the error screen
-  if (status === 'suspended' || status === 'banned') {
-    location.replace('dashboard.html');
-    return;
-  }
-
-  // Check for return URL saved by artisanAuthGuard (e.g. user bookmarked jobs.html)
-  const returnUrl = consumeReturnUrl();
-  if (returnUrl) {
-    location.replace(returnUrl);
-    return;
-  }
-
-  // Default routing: unfinished or returned applications → onboarding; else dashboard
-  location.replace(nextArtisanPage(data.verificationStatus));
+// Show / Hide a password.
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-reveal]');
+  if (!b) return;
+  const input = $(b.dataset.reveal);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  b.textContent = show ? 'Hide' : 'Show';
+  b.setAttribute('aria-pressed', String(show));
 });
 
-window.handleLogin = async function() {
-  const email = document.getElementById('login-email').value.trim();
-  const pw    = document.getElementById('login-password').value;
-  clearBanners();
-  let v=true;
-  if (!email||!email.includes('@')) { showFE('login-email-err','login-email'); v=false; }
-  if (!pw)                          { showFE('login-pw-err','login-password'); v=false; }
-  if (!v) return;
-  setBtn('login-btn',true,'Signing in…');
+// ── Views (the reset view is linkable: login.html?view=reset) ───────────────
+function showView(name, { focus = true } = {}) {
+  $('view-signin').hidden = name !== 'signin';
+  $('view-reset').hidden = name !== 'reset';
   try {
-    await signInWithEmailAndPassword(auth, email, pw);
-  } catch(e) {
-    setBtn('login-btn',false,'Sign In');
-    const m=e.code==='auth/wrong-password'||e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'
-      ?'Incorrect email or password.'
-      :e.code==='auth/too-many-requests'?'Too many attempts. Please wait.':e.message;
-    showError(m);
+    const url = new URL(location.href);
+    if (name === 'reset') url.searchParams.set('view', 'reset'); else url.searchParams.delete('view');
+    history.replaceState(history.state, '', url);
+  } catch (_) {}
+  if (focus) $(name === 'reset' ? 'reset-h' : 'signin-h').focus?.();
+}
+$('reset-h').tabIndex = -1; $('signin-h').tabIndex = -1;
+$('si-forgot').addEventListener('click', () => {
+  $('rs-email').value = $('si-email').value.trim();
+  setNotice('reset', null, '');
+  showView('reset');
+});
+$('rs-back').addEventListener('click', () => { setNotice('signin', null, ''); showView('signin'); });
+
+const params = new URLSearchParams(location.search);
+if (params.get('view') === 'reset') showView('reset', { focus: false });
+const arrival = arrivalNotice({ closed: params.get('closed') === '1', returnPending: !!peekReturnUrl() });
+if (arrival) setNotice('signin', arrival.tone, arrival.text);
+
+// ── Sign in ──────────────────────────────────────────────────────────────────
+let _signingIn = false;
+$('signin-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (_signingIn) return;
+  const form = e.currentTarget, email = $('si-email').value.trim(), pw = $('si-password').value;
+  clearFields(form);
+  setNotice('signin', null, '');
+  let ok = true;
+  if (!isEmail(email)) { fieldError($('si-email'), 'si-email-err', true); ok = false; }
+  if (!pw)             { fieldError($('si-password'), 'si-pw-err', true); ok = false; }
+  if (!ok) { form.querySelector('[aria-invalid="true"]').focus(); return; }
+  _signingIn = true;
+  setBusy($('si-submit'), true, 'Signing in…');
+  try {
+    await authService.signInWithEmail(email, pw);
+    // The auth listener below routes the account; the button stays busy until it does.
+  } catch (err) {
+    _signingIn = false;
+    setBusy($('si-submit'), false, 'Sign in');
+    setNotice('signin', 'bad', signInError(err));
   }
-};
+});
 
-window.handleGoogleLogin = async function() {
-  clearBanners();
-  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch(e) { if(e.code!=='auth/popup-closed-by-user') showError('Google sign-in did not complete. Please try again.'); }
-};
-
-// The answer is the same whether or not the email has an account (audit
-// AUTH-002): saying an address had no account told anyone which addresses
-// are registered artisans. Only a fault the user can act on is reported.
-const RESET_SENT = (email) =>
-  `If an artisan account uses ${email}, a reset link is on its way. Check your inbox and spam folder.`;
-window.sendPasswordReset = async function() {
-  clearBanners();
-  const email=document.getElementById('login-email').value.trim();
-  if (!email||!email.includes('@')) { showError('Enter your email above, then tap "Forgot password?"'); return; }
-  try { await sendPasswordResetEmail(auth,email); showSuccess(RESET_SENT(email)); }
-  catch(e) {
-    if (e.code==='auth/user-not-found') showSuccess(RESET_SENT(email));
-    else if (e.code==='auth/invalid-email') showError('Enter a valid email address.');
-    else if (e.code==='auth/too-many-requests') showError('Too many attempts. Please wait a few minutes and try again.');
-    else showError('We could not send the reset email. Check your connection and try again.');
+// ── Google ───────────────────────────────────────────────────────────────────
+// A popup: a redirect cannot finish here, because the sign-in domain
+// (lamax-4fd82.firebaseapp.com) is not this site's, and browsers that
+// partition storage drop the result. A blocked popup is said, never retried
+// as a redirect that would silently fail.
+$('si-google').addEventListener('click', async () => {
+  if (_signingIn) return;
+  setNotice('signin', null, '');
+  _signingIn = true;
+  googleBusy(true);
+  try {
+    await authService.signInWithSocial('Google');
+  } catch (err) {
+    _signingIn = false;
+    googleBusy(false);
+    const msg = googleError(err);
+    if (msg) setNotice('signin', 'bad', msg);
   }
-};
+});
+function googleBusy(busy) {
+  const b = $('si-google');
+  b.disabled = busy;
+  if (busy) b.setAttribute('aria-busy', 'true'); else b.removeAttribute('aria-busy');
+  $('si-google-label').textContent = busy ? 'Opening Google…' : 'Continue with Google';
+}
 
-window.togglePw = function(id, btn) {
-  const inp=document.getElementById(id);
-  if (inp.type==='password') { inp.type='text'; btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`; }
-  else { inp.type='password'; btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>`; }
-};
+// ── Reset a password ─────────────────────────────────────────────────────────
+let _resetting = false;
+$('reset-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (_resetting) return;
+  const form = e.currentTarget, email = $('rs-email').value.trim();
+  clearFields(form);
+  setNotice('reset', null, '');
+  if (!isEmail(email)) { fieldError($('rs-email'), 'rs-email-err', true); $('rs-email').focus(); return; }
+  _resetting = true;
+  setBusy($('rs-submit'), true, 'Sending…');
+  let outcome;
+  try { await authService.sendPasswordResetEmail(email); outcome = resetOutcome(null, email); }
+  catch (err) { outcome = resetOutcome(err, email); }
+  _resetting = false;
+  setBusy($('rs-submit'), false, 'Send reset link');
+  if (outcome.success) setNotice('reset', 'ok', outcome.success);
+  else setNotice('reset', 'bad', outcome.error);
+});
 
-function setBtn(id, loading, txt) { const b=document.getElementById(id); b.disabled=loading; b.classList.toggle('loading',loading); b.textContent=txt; }
-function showFE(eid,iid) { document.getElementById(eid).classList.add('show'); document.getElementById(iid).classList.add('error'); }
-function clearBanners() { ['error-banner','offline-banner','success-banner'].forEach(id=>document.getElementById(id).classList.remove('show')); document.querySelectorAll('.field-error').forEach(e=>e.classList.remove('show')); document.querySelectorAll('.field-input.error').forEach(e=>e.classList.remove('error')); }
-// One message at a time (audit AUTH-004): an error and a success used to sit
-// on screen together, saying opposite things.
-function showError(m) { document.getElementById('success-banner').classList.remove('show'); const b=document.getElementById('error-banner'); b.textContent=m; b.classList.add('show'); }
-function showSuccess(m) { document.getElementById('error-banner').classList.remove('show'); const b=document.getElementById('success-banner'); b.textContent=m; b.classList.add('show'); }
+// ── Signed in: the server's records say where to go ──────────────────────────
+// The profile if it can be read; else the artisanAccount 'ensure' answer. Only
+// the server's own answer about the account ends the session (entry.js
+// routeEnsured); an outage keeps it and offers a retry (LOGIN-001).
+let _routing = false;
+authService.subscribeToAuthState(async (user) => {
+  if (!user || _routing) return;
+  _routing = true;
+  const snap = await databaseService.getDocument('artisans', user.uid).catch(() => null);
+  if (snap && snap.exists) { location.replace(routeExisting(snap.data, consumeReturnUrl()).go); return; }
+
+  const step = routeEnsured(await ensureArtisanAccount());
+  if (step.signOut) {
+    await authService.signOut().catch(() => {});
+    _routing = false; _signingIn = false;
+    setBusy($('si-submit'), false, 'Sign in');
+    googleBusy(false);
+    setNotice('signin', 'bad', step.message);
+    if (step.go) setTimeout(() => location.replace(step.go), 1600);
+    return;
+  }
+  if (step.offline) {
+    _routing = false;
+    setNotice('signin', 'warn', 'Can\'t reach the server. You\'re still signed in — check your connection and try again.',
+      { label: 'Try again', onClick: () => location.reload() });
+    return;
+  }
+  location.replace(step.go);
+});
 </script>
 
 <!-- ── Development Access Mode entry point ──────────────────────────────────
@@ -423,9 +292,16 @@ function showSuccess(m) { document.getElementById('error-banner').classList.remo
     if (isArtisanDevAccessEnabled()) {
       const bar = document.createElement('div');
       bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:100000;background:#1f2937;border-top:2px dashed #f59e0b;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));text-align:center;font-family:DM Sans,sans-serif;';
-      bar.innerHTML =
-        '<p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.4px;color:#fbbf24;">DEVELOPMENT MODE — bypasses login &amp; onboarding (local only)</p>' +
-        '<button type="button" id="hh-dev-enter" style="width:100%;max-width:430px;height:46px;border:none;border-radius:12px;background:#f59e0b;color:#111827;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;">Enter Artisan Development Mode</button>';
+      // A developer tool, deliberately not styled like the product (and set
+      // through .style, so the page itself carries no inline style attribute).
+      const label = document.createElement('p');
+      label.style.cssText = 'margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.4px;color:#fbbf24;';
+      label.textContent = 'DEVELOPMENT MODE — bypasses login & onboarding (local only)';
+      const enter = document.createElement('button');
+      enter.type = 'button'; enter.id = 'hh-dev-enter';
+      enter.style.cssText = 'width:100%;max-width:430px;height:46px;border:none;border-radius:12px;background:#f59e0b;color:#111827;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;';
+      enter.textContent = 'Enter Artisan Development Mode';
+      bar.append(label, enter);
       document.body.appendChild(bar);
       document.getElementById('hh-dev-enter').addEventListener('click', () => {
         window.location.href = 'dashboard.html';

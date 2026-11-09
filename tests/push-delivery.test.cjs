@@ -177,7 +177,13 @@ await t('a data-only job offer is drawn: title, body, one-per-booking tag, stays
     assert.strictEqual(options.tag, 'booking-b1');
     assert.strictEqual(options.requireInteraction, true);
     assert.strictEqual(options.data.url, '/artisan-app/dashboard.html');
-    assert.strictEqual(options.icon, '/shared/assets/images/handyhub-logo.png');
+    // Phase 5: the professional app shows no retired HandyHub logo (its Fidus X
+    // icon is still to be supplied); the customer app keeps its own icon.
+    assert.strictEqual(options.icon, undefined);
+    assert.strictEqual(options.badge, undefined);
+    const c = loadWorker({ app: 'customer', origin: 'https://lamax-4fd82.web.app' });
+    await c.push({ data: { type: 'Bookings', title: 'Booking update', body: 'Your professional is on the way.', bookingId: 'b9' } });
+    assert.strictEqual(c.shown[0].options.icon, '/shared/assets/images/handyhub-logo.png');
 });
 
 await t('an offer that expired in transit is still shown (a push must show something) — as expired', async () => {

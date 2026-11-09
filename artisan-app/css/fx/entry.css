@@ -1,0 +1,47 @@
+/* artisan-app/css/fx/entry.css — sign in, create an account, reset a password,
+   verify an email (Phase 5). Tokens only (npm run lint:fx).
+   One column, the wordmark, a heading that says what the screen is for, the
+   form. No hero image, gradient or icon in place of the logo (decision 05). */
+
+.fx-entry {
+  min-height: 100dvh;
+  display: flex; flex-direction: column;
+  padding: var(--fx-space-8) var(--fx-gutter) var(--fx-space-8);
+}
+.fx-entry__col { width: 100%; max-width: var(--fx-form-max); margin: 0 auto; display: grid; gap: var(--fx-space-6); }
+.fx-entry__top { display: flex; align-items: center; justify-content: space-between; gap: var(--fx-space-3); min-height: var(--fx-hit); }
+.fx-entry__head { display: grid; gap: var(--fx-space-2); }
+.fx-entry__form { display: grid; gap: var(--fx-space-4); }
+.fx-entry__form .fx-field + .fx-field { margin-top: var(--fx-space-0); }
+
+/* A password with a Show/Hide button inside the field's edge. */
+.fx-entry__pw { position: relative; }
+.fx-entry__pw > .fx-input { padding-right: calc(var(--fx-space-12) + var(--fx-space-6)); }
+.fx-entry__pw > .fx-btn { position: absolute; right: var(--fx-space-1); top: 50%; transform: translateY(-50%); }
+
+.fx-entry__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--fx-space-2); }
+.fx-entry__or { display: flex; align-items: center; gap: var(--fx-space-3); margin: var(--fx-space-0); font: var(--fx-t-meta); color: var(--fx-ink-3); }
+.fx-entry__or::before, .fx-entry__or::after { content: ''; flex: 1; height: var(--fx-hairline); background: var(--fx-line); }
+.fx-entry__google svg { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); }
+.fx-entry__alt { margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink-2); }
+.fx-entry__foot { margin: var(--fx-space-0); font: var(--fx-t-meta); color: var(--fx-ink-3); }
+.fx-entry__notices:empty { display: none; }
+
+/* A checkbox with its label (terms). */
+.fx-entry__check { display: flex; align-items: flex-start; gap: var(--fx-space-3); font: var(--fx-t-body); color: var(--fx-ink-2); cursor: pointer; }
+.fx-entry__check > input { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); margin: var(--fx-space-h) 0 0; accent-color: var(--fx-ink); }
+
+/* A sub-panel that opens under a choice ("Other" trade). */
+.fx-entry__panel { display: grid; gap: var(--fx-space-4); padding: var(--fx-space-4); border: var(--fx-hairline) solid var(--fx-line); border-radius: var(--fx-r-control); background: var(--fx-well); }
+.fx-entry__panel[hidden] { display: none; }
+
+/* A six-digit code, one box per digit (verify-email.html). */
+.fx-entry__code { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--fx-space-2); }
+.fx-entry__code > .fx-input { min-height: var(--fx-h-l); padding: var(--fx-space-0); text-align: center; font: var(--fx-t-title); font-variant-numeric: tabular-nums; }
+
+/* A text action that is a button (Forgot your password?), at a full touch height. */
+.fx-entry__textbtn { display: inline-flex; align-items: center; min-height: var(--fx-hit); padding: var(--fx-space-0); border: 0; background: transparent; cursor: pointer; font: var(--fx-t-label); }
+
+/* One view of a screen that has two (sign in · reset a password). */
+.fx-entry__view { display: grid; gap: var(--fx-space-6); }
+.fx-entry__view[hidden] { display: none; }

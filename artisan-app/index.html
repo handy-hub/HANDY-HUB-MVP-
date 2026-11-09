@@ -2,76 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>Fidus X Artisan</title>
-  <style>
-    body { margin: 0; font-family: 'DM Sans', sans-serif; background: #F5F6FA;
-           display: flex; align-items: center; justify-content: center; min-height: 100dvh; }
-    .spin { width: 36px; height: 36px; border: 3px solid #f0f0f0; border-top-color: #F97316;
-            border-radius: 50%; animation: s .7s linear infinite; }
-    @keyframes s { to { transform: rotate(360deg); } }
-  </style>
+  <title>Fidus X for professionals</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/entry.css" />
 </head>
-<body>
-  <div class="spin"></div>
-
-  <script src="../shared/js/utils/global-app.js"></script>
-  <script type="module">
-    import { getAppContainer } from '../shared/js/app/container.js';
-
-    // The routing logic lives inside an async IIFE rather than at module top
-    // level. Top-level `return` is valid ES-module syntax, but wrapping it in a
-    // function makes the entry point robust if this file is ever loaded/served
-    // as a classic script (some static dev servers strip type="module"), where a
-    // top-level `return` is a fatal "Illegal return statement" that hangs the
-    // spinner forever. A function body's `return` is always legal.
-    (async () => {
-      // Development Access Mode: skip the real auth route entirely and land in
-      // the app shell. Never active on production hosts (fail-closed).
-      try {
-        const dev = await import('../shared/js/config/devAccess.js');
-        if (dev.isArtisanDevAccessEnabled()) { window.location.replace('dashboard.html'); return; }
-      } catch (_) { /* dev module missing → real routing below */ }
-
-      const { services: { authService, databaseService } } = getAppContainer();
-
-      // Smart entry-point: check auth state and route appropriately.
-      //   logged-in valid artisan   → dashboard
-      //   logged-in non-artisan     → login
-      //   not logged in / any error → login
-      try {
-        const user = await Promise.race([
-          authService.waitForUser(),
-          new Promise(r => setTimeout(() => r(null), 4000)),
-        ]);
-
-        if (!user) {
-          window.location.replace('login.html');
-          return;
-        }
-
-        const snap = await databaseService.getDocument('artisans', user.uid).catch(() => null);
-
-        if (!snap || !snap.exists || snap.data?.userType !== 'artisan') {
-          window.location.replace('login.html');
-          return;
-        }
-
-        const status = (snap.data.status || '').toLowerCase();
-        if (status === 'suspended' || status === 'banned') {
-          // The destination page's guard shows the suspended screen.
-          window.location.replace('dashboard.html');
-          return;
-        }
-
-        window.location.replace('dashboard.html');
-      } catch (_) {
-        window.location.replace('login.html');
-      }
-    })();
-  </script>
+<body class="fx-app">
+<!-- The app's front door: sends a visitor to the screen their account needs.
+     Where a signed-in artisan goes is the server's record (js/entry.js
+     routeExisting); a profile that cannot be read is an outage, not a missing
+     account — Today's guard shows the retry (FLOW-004). -->
+<main class="fx-entry" aria-busy="true">
+  <div class="fx-entry__col">
+    <p class="fx-wordmark"><span class="fx-wordmark__name">Fidus X</span> <span class="fx-wordmark__for">for professionals</span></p>
+    <p class="fx-meta" role="status">Opening Fidus X…</p>
+  </div>
+</main>
+<script src="../shared/js/utils/global-app.js"></script>
+<script type="module">
+  import { getAppContainer } from '../shared/js/app/container.js';
+  import { routeExisting }   from './js/entry.js';
+  (async () => {
+    try {
+      const dev = await import('../shared/js/config/devAccess.js');
+      if (dev.isArtisanDevAccessEnabled()) { window.location.replace('dashboard.html'); return; }
+    } catch (_) { /* dev module missing → real routing below */ }
+    const { services: { authService, databaseService } } = getAppContainer();
+    const user = await Promise.race([
+      authService.waitForUser().catch(() => null),
+      new Promise((r) => setTimeout(() => r(null), 4000)),
+    ]);
+    if (!user) { window.location.replace('login.html'); return; }
+    const snap = await databaseService.getDocument('artisans', user.uid).catch(() => undefined);
+    if (snap === undefined) { window.location.replace('dashboard.html'); return; }       // unreachable: Today's guard retries
+    if (!snap || !snap.exists || snap.data?.userType !== 'artisan') { window.location.replace('login.html'); return; }   // login routes every account type
+    window.location.replace(routeExisting(snap.data).go);
+  })();
+</script>
 <script src="js/pwa.js" defer></script>
 </body>
 </html>

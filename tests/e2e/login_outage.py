@@ -1,7 +1,9 @@
 """LOGIN-001 browser check: an outage does not sign a signed-in artisan out.
 
-Runs the REAL artisan-app/login.html and the real js/utils/artisanAccount.js
-in Chromium. Only the Firebase SDK modules (auth, Firestore, Functions) and the
+Runs the REAL artisan-app/login.html, js/entry.js and js/utils/artisanAccount.js
+in Chromium (Phase 5: the page reads auth and the profile through the shared
+container, and decides with entry.js routeEnsured). Only the container's
+auth and database services, the Cloud Functions SDK module and the
 Firebase config are in-page fakes, each set to answer as the case requires:
 
   outage        Firestore read rejects 'unavailable'; the artisanAccount
@@ -47,30 +49,29 @@ INIT = """
 })();
 """
 STUBS = {
-    '/artisan-app/js/firebase-artisan.js': "export const auth = { currentUser: { uid: 'U1' } }; export const db = {};",
     '/shared/js/backend/providers/firebase/firebaseConfig.js': "export const firebaseFunctions = {}; export const firebaseAuth = {}; export const firebaseDb = {};",
-    '/shared/vendor/firebase/firebase-auth.js': """
+    '/shared/js/utils/global-app.js': '', '/shared/js/utils/themeManager.js': '', '/artisan-app/js/pwa.js': '',
+    '/shared/js/app/container.js': """
 const fx = window.__fx;
-export function onAuthStateChanged(auth, cb) {
-  // No case yet (the throwaway load that stores it): report nobody, route nowhere.
-  if (!fx.case.firestore) return () => {};
-  setTimeout(() => cb({ uid: 'U1', email: 'u1@example.com' }), 0); return () => {};
-}
-export async function signOut() { fx.signedOut++; }
-export async function signInWithEmailAndPassword() { throw Object.assign(new Error('x'), { code: 'auth/network-request-failed' }); }
-export async function sendPasswordResetEmail() {}
-export async function signInWithPopup() {}
-export class GoogleAuthProvider {}
-""",
-    '/shared/vendor/firebase/firebase-firestore.js': """
-const fx = window.__fx;
-export function doc(db, c, id) { return { path: c + '/' + id }; }
-export async function getDoc(ref) {
-  const f = fx.case.firestore;
-  if (f === 'down') throw Object.assign(new Error('Failed to get document because the client is offline.'), { code: 'unavailable' });
-  if (f === 'missing') return { exists: () => false, data: () => null };
-  return { exists: () => true, data: () => (fx.case.profile || {}) };
-}
+const authService = {
+  subscribeToAuthState(cb) {
+    // No case yet (the throwaway load that stores it): report nobody, route nowhere.
+    if (!fx.case.firestore) return () => {};
+    setTimeout(() => cb({ uid: 'U1', email: 'u1@example.com' }), 0); return () => {};
+  },
+  async signOut() { fx.signedOut++; },
+  async signInWithEmail() { throw Object.assign(new Error('x'), { code: 'auth/network-request-failed' }); },
+  async signInWithSocial() {}, async sendPasswordResetEmail() {},
+};
+const databaseService = {
+  async getDocument(c, id) {
+    const f = fx.case.firestore;
+    if (f === 'down') throw Object.assign(new Error('Failed to get document because the client is offline.'), { code: 'unavailable' });
+    if (f === 'missing') return { exists: false, id, data: null };
+    return { exists: true, id, data: fx.case.profile || {} };
+  },
+};
+export function getAppContainer() { return { services: { authService, databaseService } }; }
 """,
     '/shared/vendor/firebase/firebase-functions.js': """
 const fx = window.__fx;
@@ -128,14 +129,14 @@ with sync_playwright() as pw:
         on_login = landed.endswith('/artisan-app/login.html')
         state = pg.evaluate("""() => window.__fx ? {
             signedOut: window.__fx.signedOut, calls: window.__fx.calls,
-            offline: !!document.getElementById('offline-banner')?.classList.contains('show'),
-            retry: !!document.querySelector('#offline-banner button'),
-            error: document.getElementById('error-banner')?.classList.contains('show') ? document.getElementById('error-banner').textContent : '' } : null""")
+            offline: /Can't reach the server\\. You're still signed in/.test((document.querySelector('#signin-notices .fx-notice--warn') || {}).textContent || ''),
+            retry: !!document.querySelector('#signin-notices .fx-notice--warn button'),
+            error: (document.querySelector('#signin-notices .fx-notice--bad') || {}).textContent || '' } : null""")
         if expect == 'stay':
             check(f'{name}: NOT signed out', on_login and state and state['signedOut'] == 0, (landed, state))
             check(f'{name}: "can\'t reach the server" with Try again is shown', state and state['offline'] and state['retry'], state)
             if state and state['retry']:
-                pg.click('#offline-banner button'); pg.wait_for_load_state('domcontentloaded')
+                pg.click('#signin-notices .fx-notice--warn button'); pg.wait_for_load_state('domcontentloaded')
                 check(f'{name}: Try again reloads the login page (session still kept)', pg.url.split('?')[0].endswith('/login.html'))
         elif expect == 'customer':
             check(f'{name}: signed out and sent to the Customer app (role isolation)',

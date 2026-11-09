@@ -77,9 +77,9 @@ with sync_playwright() as p:
     # thing that authorises reads; the signed-in user is.
     pg.goto(f"{BASE}/login.html?emulator=1", wait_until="domcontentloaded")
     pg.wait_for_timeout(2500)
-    pg.fill("#login-email", ARTISAN[0])
-    pg.fill("#login-password", ARTISAN[1])
-    pg.click("#login-btn")
+    pg.fill("#si-email", ARTISAN[0])
+    pg.fill("#si-password", ARTISAN[1])
+    pg.click("#si-submit")
     try:
         pg.wait_for_url("**/dashboard.html*", timeout=25000)
         check("real artisan sign-in", True, pg.url.split("/")[-1][:36])

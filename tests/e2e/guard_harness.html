@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guard harness</title>
+  <!-- tests/e2e/artisan_entry.py: the REAL artisan auth guard
+       (artisan-app/js/utils/artisanAuthGuard.js) over an in-page fake
+       container, to show each of its account screens. ?tokens=1 loads the
+       design tokens as an fx page does; without, the screens must look the
+       same from their own fallbacks (a page not yet on the system). -->
+  <script>
+    if (new URLSearchParams(location.search).get('tokens') === '1') {
+      document.write('<link rel="stylesheet" href="/artisan-app/css/tokens.css">');
+    }
+  </script>
+</head>
+<body>
+  <p id="page-content">The page behind the guard.</p>
+  <script type="module">
+    import { requireArtisanAuth } from '/artisan-app/js/utils/artisanAuthGuard.js';
+    const q = new URLSearchParams(location.search);
+    window.__guard = 'waiting';
+    requireArtisanAuth({ requireApproved: q.get('approved') === '1', allowPending: q.get('allowPending') === '1' })
+      .then(() => { window.__guard = 'entered'; });
+  </script>
+</body>
+</html>

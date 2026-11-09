@@ -60,154 +60,104 @@ const GUARD_NOTICE_MS = 6000;
 const OVERLAY_ID       = 'artisan-auth-overlay';
 
 // ── Overlay CSS (injected once) ───────────────────────────────────────────────
+// The design system's own values (artisan-app/css/tokens.css), each with that
+// value as its fallback, so these screens look the same on a page that does
+// not load the tokens. Orange carries an ink label (design decision 01: white
+// on it is 2.8:1). Phase 5.
 const OVERLAY_CSS = `
 #artisan-auth-overlay {
   position: fixed; inset: 0; z-index: 99999;
-  font-family: 'DM Sans', -apple-system, sans-serif;
+  font-family: var(--fx-font, 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
   -webkit-font-smoothing: antialiased;
   display: flex; align-items: center; justify-content: center;
-  background: #fff; transition: opacity .25s ease;
+  background: var(--fx-paper, #FFFFFF); color: var(--fx-ink, #111316);
+  transition: opacity .25s ease; overflow-y: auto;
 }
 #artisan-auth-overlay.ag-fade { opacity: 0; pointer-events: none; }
-
-.ag-center { text-align: center; padding: 32px 24px; max-width: 360px; width: 100%; }
-
-/* Spinner */
+.ag-center { padding: 32px 20px; max-width: 28rem; width: 100%; box-sizing: border-box; }
+.ag-word { margin: 0 0 32px; display: flex; flex-direction: column; gap: 2px; }
+.ag-word b { font-weight: 650; font-size: 1.5rem; line-height: 1.875rem; letter-spacing: -0.01em; }
+.ag-word span { font-weight: 550; font-size: .875rem; line-height: 1.25rem; color: var(--fx-ink-2, #3B4048); }
 .ag-spinner {
-  width: 44px; height: 44px; margin: 0 auto 20px;
-  border: 3.5px solid #f3f4f6;
-  border-top-color: #F97316;
-  border-radius: 50%;
-  animation: ag-spin .7s linear infinite;
+  width: 32px; height: 32px; margin: 0 0 16px;
+  border: 3px solid var(--fx-line, #E6E7E9); border-top-color: var(--fx-ink, #111316);
+  border-radius: 50%; animation: ag-spin .7s linear infinite;
 }
 @keyframes ag-spin { to { transform: rotate(360deg); } }
-.ag-loading-text { font-size: 14px; color: #9CA3AF; font-weight: 500; }
-
-/* Icon states */
-.ag-icon {
-  width: 72px; height: 72px; border-radius: 22px;
-  margin: 0 auto 20px;
-  display: flex; align-items: center; justify-content: center;
-}
-.ag-icon.suspended  { background: #FEF2F2; }
-.ag-icon.pending    { background: #FFF7ED; }
-.ag-icon.rejected   { background: #FEF2F2; }
-.ag-icon.unauth     { background: #F3F4F6; }
-
-.ag-title {
-  font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 8px;
-}
-.ag-sub {
-  font-size: 14px; color: #6B7280; line-height: 1.55; margin-bottom: 24px;
-}
+@media (prefers-reduced-motion: reduce) { .ag-spinner { animation: none; } }
+.ag-loading-text { margin: 0; font-size: .875rem; line-height: 1.25rem; color: var(--fx-ink-3, #62676F); }
+.ag-title { margin: 0 0 8px; font-weight: 650; font-size: 1.5rem; line-height: 1.875rem; letter-spacing: -0.01em; }
+.ag-sub { margin: 0 0 24px; font-size: 1rem; line-height: 1.5rem; color: var(--fx-ink-2, #3B4048); }
+.ag-actions { display: grid; gap: 8px; }
 .ag-btn {
-  width: 100%; height: 50px; border: none; border-radius: 14px;
-  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
-  margin-bottom: 10px; display: flex; align-items: center; justify-content: center;
-  transition: opacity .15s; text-decoration: none; box-sizing: border-box;
+  width: 100%; min-height: 48px; padding: 0 16px; border: 0; border-radius: var(--fx-r-control, 8px);
+  font: inherit; font-weight: 650; font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; text-decoration: none; box-sizing: border-box;
 }
-.ag-btn:active { opacity: .8; }
-.ag-btn-primary   { background: #F97316; color: #fff; }
-.ag-btn-secondary { background: #F3F4F6; color: #374151; }
-.ag-btn-danger    { background: #EF4444; color: #fff; }
+.ag-btn:focus-visible { outline: 2px solid var(--fx-ink, #111316); outline-offset: 2px; }
+.ag-btn-primary   { background: var(--fx-accent, #F97316); color: var(--fx-on-accent, #111316); }
+.ag-btn-secondary { background: var(--fx-well, #F3F3F2); color: var(--fx-ink, #111316); }
+.ag-btn[disabled] { opacity: .6; cursor: default; }
 `;
 
 // ── Overlay state screens ─────────────────────────────────────────────────────
+// Each says what the state is and the one thing to do about it. None promises
+// a review time (decision of 2026-11-09), and none claims a status the server
+// has not given.
+const WORDMARK = '<p class="ag-word"><b>Fidus X</b><span>for professionals</span></p>';
+const screen = (title, body, actions) => `
+    <div class="ag-center" role="dialog" aria-modal="true" aria-labelledby="ag-title">
+      ${WORDMARK}
+      <h2 class="ag-title" id="ag-title">${title}</h2>
+      <p class="ag-sub" id="ag-sub">${body}</p>
+      <div class="ag-actions">${actions}</div>
+    </div>`;
+const SIGN_OUT = '<button class="ag-btn ag-btn-secondary" type="button" onclick="_agSignOut()">Sign out</button>';
+
 const SCREENS = {
   loading: () => `
-    <div class="ag-center">
-      <div class="ag-spinner"></div>
-      <p class="ag-loading-text">Verifying your account…</p>
+    <div class="ag-center" role="status">
+      ${WORDMARK}
+      <div class="ag-spinner" aria-hidden="true"></div>
+      <p class="ag-loading-text">Checking your account…</p>
     </div>`,
 
-  suspended: () => `
-    <div class="ag-center">
-      <div class="ag-icon suspended">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="#EF4444" stroke-width="2"/>
-          <path d="M4.93 4.93l14.14 14.14" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <p class="ag-title">Account Suspended</p>
-      <p class="ag-sub">Your account has been suspended. Please contact Fidus X support to resolve this.</p>
-      ${SUPPORT_CONTACTS.email ? `<a class="ag-btn ag-btn-secondary" href="mailto:${SUPPORT_CONTACTS.email}">Contact Support</a>` : ''}
-      <button class="ag-btn ag-btn-secondary" onclick="_agSignOut()">Sign Out</button>
-    </div>`,
+  suspended: () => screen('Your account is suspended',
+    `You can't take jobs or use your account until Fidus X support resolves this.${SUPPORT_CONTACTS.email ? ` Email ${SUPPORT_CONTACTS.email}.` : ''}`,
+    `${SUPPORT_CONTACTS.email ? `<a class="ag-btn ag-btn-primary" href="mailto:${SUPPORT_CONTACTS.email}">Email support</a>` : ''}${SIGN_OUT}`),
 
-  pending: () => `
-    <div class="ag-center">
-      <div class="ag-icon pending">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="#F97316" stroke-width="2"/>
-          <path d="M12 6v6l4 2" stroke="#F97316" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <p class="ag-title">Verification Pending</p>
-      <p class="ag-sub">Your account is under review. We'll notify you within 1–2 business days once approved.</p>
-      <button class="ag-btn ag-btn-primary" onclick="_agGoToDashboard()">Go to Dashboard</button>
-      <button class="ag-btn ag-btn-secondary" onclick="_agSignOut()">Sign Out</button>
-    </div>`,
+  pending: () => screen('Your application is being reviewed',
+    "Fidus X is checking your details. We'll let you know when there is a decision.",
+    `<button class="ag-btn ag-btn-primary" type="button" onclick="_agGoToDashboard()">Go to Today</button>${SIGN_OUT}`),
 
-  rejected: () => `
-    <div class="ag-center">
-      <div class="ag-icon rejected">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#EF4444" stroke-width="2"/>
-          <line x1="12" y1="9" x2="12" y2="13" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/>
-          <line x1="12" y1="17" x2="12.01" y2="17" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <p class="ag-title">Verification Rejected</p>
-      <p class="ag-sub">Your verification was not approved. Please review the feedback and resubmit your documents.</p>
-      <button class="ag-btn ag-btn-primary" onclick="window.location.href='onboarding.html'">Resubmit Documents</button>
-      <button class="ag-btn ag-btn-secondary" onclick="_agSignOut()">Sign Out</button>
-    </div>`,
+  rejected: () => screen('Your application needs changes',
+    'Fidus X could not approve it as it was sent. Open it to see what to change, then send it again.',
+    `<a class="ag-btn ag-btn-primary" href="onboarding.html">Review and resubmit</a>${SIGN_OUT}`),
 
   // A NETWORK failure, kept strictly separate from `unauthorized`. It offers a
   // retry and NEVER a sign-out: the session is valid, and destroying it is the
   // opposite of what this artisan needs.
-  offline: () => `
-    <div class="ag-center">
-      <div class="ag-icon">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M1 1l22 22M8.5 16.5a5 5 0 0 1 7 0M5 12.5a10 10 0 0 1 4-2.4M2 8.8a15 15 0 0 1 5-3M22 8.8a15 15 0 0 0-9-3.6" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="12" cy="20" r="1" fill="#9CA3AF"/>
-        </svg>
-      </div>
-      <p class="ag-title">Can't reach the server</p>
-      <p class="ag-sub">You're still signed in. We couldn't load your profile because the connection dropped.</p>
-      <button class="ag-btn" onclick="_agRetry()">Try again</button>
-    </div>`,
+  offline: () => screen("Can't reach the server",
+    "You're still signed in. We couldn't load your profile because the connection dropped.",
+    '<button class="ag-btn ag-btn-primary" type="button" onclick="_agRetry()">Try again</button>'),
 
   // Signed in, but no artisan profile yet (a first Google sign-in that did not
   // come through signup). Authentication worked; the account just needs
   // creating — so say that and do it, instead of "Access Denied" (AR-09).
   setup: () => `
-    <div class="ag-center">
-      <div class="ag-icon pending">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="8" r="4" stroke="#F97316" stroke-width="2"/>
-          <path d="M4 21c0-4 4-6 8-6s8 2 8 6" stroke="#F97316" stroke-width="2" stroke-linecap="round"/>
-        </svg>
+    <div class="ag-center" role="dialog" aria-modal="true" aria-labelledby="ag-title">
+      ${WORDMARK}
+      <h2 class="ag-title" id="ag-title">Finish setting up your account</h2>
+      <p class="ag-sub" id="ag-setup-msg">You're signed in. Create your professional profile to continue to your application.</p>
+      <div class="ag-actions">
+        <button class="ag-btn ag-btn-primary" type="button" id="ag-setup-btn" onclick="_agFinishSetup()">Create my profile</button>
+        ${SIGN_OUT}
       </div>
-      <p class="ag-title">Finish setting up your account</p>
-      <p class="ag-sub" id="ag-setup-msg">You're signed in. Create your artisan profile to continue to onboarding.</p>
-      <button class="ag-btn" id="ag-setup-btn" onclick="_agFinishSetup()">Create my artisan profile</button>
-      <button class="ag-btn ag-btn-secondary" onclick="_agSignOut()">Sign Out</button>
     </div>`,
 
-  unauthorized: () => `
-    <div class="ag-center">
-      <div class="ag-icon unauth">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="11" width="18" height="11" rx="2" stroke="#9CA3AF" stroke-width="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <p class="ag-title">Access Denied</p>
-      <p class="ag-sub">This area is restricted to verified artisans. If you're an artisan, please sign in with the correct account.</p>
-      <button class="ag-btn ag-btn-secondary" onclick="_agSignOut()">Sign Out</button>
-    </div>`,
+  unauthorized: () => screen("This account can't use the professional app",
+    'Sign in with your Fidus X professional account. Customers use the Fidus X customer app.',
+    SIGN_OUT),
 };
 
 // ── DOM helpers ───────────────────────────────────────────────────────────────

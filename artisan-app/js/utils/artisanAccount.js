@@ -26,11 +26,8 @@ export function claimsLocked(verificationStatus) {
         .includes(String(verificationStatus || '').toLowerCase());
 }
 
-/** The page an artisan with this verification status should land on. */
-export function nextArtisanPage(verificationStatus) {
-    const v = String(verificationStatus || '').toLowerCase();
-    return ['', 'draft', 'rejected', 're_verification_required'].includes(v) ? 'onboarding.html' : 'dashboard.html';
-}
+/** The page an artisan with this verification status should land on (pure, in artisanRoutes.js). */
+export { nextArtisanPage } from './artisanRoutes.js';
 
 /**
  * Make sure the signed-in user has an artisan profile.
