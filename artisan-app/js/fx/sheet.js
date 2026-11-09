@@ -57,26 +57,32 @@ export function openSheet(overlay, opts = {}) {
     first.focus({ preventScroll: true });
 
     let closed = false;
+    // Keys are heard on the document while the sheet is open: a control inside
+    // it that disables itself (a Save that is saving) or is redrawn drops the
+    // focus to <body>, and a listener on the overlay alone would then miss
+    // Escape and let Tab leave the dialog (Phase 5, Account).
     function onKey(e) {
+        if (overlay.inert) return;   // another sheet is open over this one: its keys are its own
         if (e.key === 'Escape' && dismissible) { e.preventDefault(); close('escape'); return; }
         if (e.key !== 'Tab') return;
         const items = focusables(sheet);
         if (!items.length) { e.preventDefault(); sheet.focus(); return; }
         const firstItem = items[0], last = items[items.length - 1];
         const active = doc.activeElement;
+        if (!sheet.contains(active)) { e.preventDefault(); (e.shiftKey ? last : firstItem).focus(); return; }
         if (e.shiftKey && (active === firstItem || active === sheet)) { e.preventDefault(); last.focus(); }
         else if (!e.shiftKey && active === last) { e.preventDefault(); firstItem.focus(); }
     }
     function onClick(e) {
         if (e.target.closest('[data-sheet-close]') || (dismissible && e.target.classList.contains('fx-scrim'))) close('dismiss');
     }
-    overlay.addEventListener('keydown', onKey);
+    doc.addEventListener('keydown', onKey);
     overlay.addEventListener('click', onClick);
 
     function close(reason = 'close') {
         if (closed) return Promise.resolve();
         closed = true;
-        overlay.removeEventListener('keydown', onKey);
+        doc.removeEventListener('keydown', onKey);
         overlay.removeEventListener('click', onClick);
         const finish = () => {
             overlay.hidden = true;

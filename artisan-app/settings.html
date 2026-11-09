@@ -5,543 +5,350 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>Settings | Fidus X Artisan</title>
+  <title>Account | Fidus X for professionals</title>
   <script src="../shared/js/utils/themeManager.js"></script>
-  <link rel="stylesheet" href="css/design-system.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
-  <style>
-    body { margin: 0; background: var(--ds-bg); font-family: var(--ds-font);
-           -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-
-    .st-header { display:flex; align-items:center; gap:var(--ds-2);
-      padding:var(--ds-2) var(--ds-gutter); min-height:56px; background:var(--ds-surface);
-      border-bottom:1px solid var(--ds-line); position:sticky; top:0; z-index:10; }
-    .st-header h1 { margin:0; font:800 18px/1 var(--ds-font); letter-spacing:-0.3px; color:var(--ds-ink); flex:1; }
-    .st-header .ds-iconbtn { width:44px; height:44px; margin-left:calc(-1 * var(--ds-2)); }
-
-    /* Who is signed in — the one place identity is shown; tapping opens the profile. */
-    .st-me { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-4);
-      text-decoration:none; color:inherit; }
-    .st-me:active { background:var(--ds-surface-2); }
-    .st-me .ds-avatar { width:48px; height:48px; background:var(--ds-brand-50); color:var(--ds-brand-text);
-      font:800 16px/1 var(--ds-font); flex-shrink:0; }
-    .st-me-name { display:block; font:700 16px/1.3 var(--ds-font); color:var(--ds-ink);
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .st-me-email { display:block; font:500 13px/1.35 var(--ds-font); color:var(--ds-ink-3);
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px; }
-
-    .st-group-label { margin:0 0 var(--ds-2); padding:0 var(--ds-1);
-      font:700 11px/1 var(--ds-font); letter-spacing:0.6px; text-transform:uppercase; color:var(--ds-ink-3); }
-
-    /* One row shape for links, toggles and choices. */
-    .st-row { display:flex; align-items:center; gap:var(--ds-3); min-height:60px; padding:var(--ds-3) var(--ds-4);
-      width:100%; box-sizing:border-box; background:none; border:none; margin:0; cursor:pointer;
-      text-decoration:none; text-align:left; font-family:inherit; color:inherit; }
-    .st-row + .st-row { border-top:1px solid var(--ds-line); }
-    .st-row:active:not(.st-row--static) { background:var(--ds-surface-2); }
-    .st-row:focus-visible, .st-me:focus-visible { outline:2px solid var(--ds-brand-text); outline-offset:-2px; }
-    .st-row--static { cursor:default; }
-    .st-row[hidden], .st-chev[hidden], .st-field[hidden] { display:none; }
-    .st-ic { width:36px; height:36px; border-radius:var(--ds-r-control); background:var(--ds-brand-50);
-      color:var(--ds-brand-text); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .st-ic svg { width:18px; height:18px; }
-    .st-ic.neutral { background:var(--ds-surface-2); color:var(--ds-ink-2); }
-    .st-body { flex:1; min-width:0; }
-    .st-title { display:block; font:600 14px/1.3 var(--ds-font); color:var(--ds-ink); }
-    .st-sub { display:block; font:500 12px/1.4 var(--ds-font); color:var(--ds-ink-3); margin-top:2px; }
-    .st-value { font:600 13px/1.2 var(--ds-font); color:var(--ds-ink-3); flex-shrink:0; max-width:45%;
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; }
-    .st-value.ok   { color:var(--ds-success); }
-    .st-value.warn { color:var(--ds-warning); }
-    .st-value.bad  { color:var(--ds-danger); }
-    .st-chev { color:var(--ds-ink-4); flex-shrink:0; display:flex; }
-    .st-chev svg { width:16px; height:16px; }
-
-    .st-foot { display:flex; flex-direction:column; align-items:center; gap:var(--ds-2);
-      padding:var(--ds-6) var(--ds-gutter) calc(var(--ds-nav-h) + var(--ds-6)); }
-    .st-close-btn { min-height:44px; padding:0 var(--ds-4); background:none; border:none; cursor:pointer;
-      font:600 14px/1 var(--ds-font); color:var(--ds-danger); border-radius:var(--ds-r-control); }
-    .st-close-btn:active { background:var(--ds-danger-bg); }
-    .st-close-btn:focus-visible { outline:2px solid var(--ds-danger); outline-offset:2px; }
-    .st-version { margin:0; font:500 12px/1.4 var(--ds-font); color:var(--ds-ink-4); }
-
-    /* ── Bottom sheets ─────────────────────────────────────────────────── */
-    .st-sheet-ov { position:fixed; inset:0; background:var(--ui-overlay, rgba(15,18,22,0.5)); z-index:1900;
-      display:flex; align-items:flex-end; justify-content:center;
-      visibility:hidden; opacity:0; transition:opacity var(--ds-t-base), visibility 0s linear var(--ds-t-base); }
-    .st-sheet-ov.open { visibility:visible; opacity:1; transition:opacity var(--ds-t-base); }
-    .st-sheet { width:100%; max-width:var(--ds-shell); max-height:88dvh; overflow-y:auto; box-sizing:border-box;
-      background:var(--ds-surface); border-radius:var(--ds-r-card) var(--ds-r-card) 0 0;
-      padding:var(--ds-3) var(--ds-5) max(var(--ds-5), env(safe-area-inset-bottom));
-      box-shadow:var(--ds-shadow-sheet); transform:translateY(100%); transition:transform var(--ds-t-slow) var(--ds-ease); }
-    .st-sheet-ov.open .st-sheet { transform:translateY(0); }
-    .st-sheet:focus { outline:none; }
-    .st-sheet-handle { width:38px; height:4px; background:var(--ds-line-strong); border-radius:var(--ds-r-pill); margin:0 auto var(--ds-4); }
-    .st-sheet-title { margin:0 0 var(--ds-2); font:800 18px/1.25 var(--ds-font); color:var(--ds-ink); }
-    .st-sheet-sub { margin:0 0 var(--ds-4); font:500 14px/1.5 var(--ds-font); color:var(--ds-ink-2); }
-    .st-sheet-actions { display:flex; flex-direction:column; gap:var(--ds-2); margin-top:var(--ds-4); }
-    .st-field { display:block; margin-bottom:var(--ds-3); }
-    .st-field > span { display:block; margin-bottom:var(--ds-1); font:600 13px/1.3 var(--ds-font); color:var(--ds-ink-2); }
-    .st-msg { margin:var(--ds-1) 0 0; font:500 13px/1.45 var(--ds-font); }
-    .st-msg.err { color:var(--ds-danger); }
-    .st-msg.ok  { color:var(--ds-success); }
-    .st-msg:empty { display:none; }
-    .st-linkbtn { align-self:flex-start; min-height:44px; padding:0; background:none; border:none; cursor:pointer;
-      font:600 13px/1 var(--ds-font); color:var(--ds-brand-text); }
-
-    /* Choice list (job radius) — native radios, so the keyboard works for free. */
-    .st-opt { display:flex; align-items:center; justify-content:space-between; gap:var(--ds-3);
-      min-height:52px; padding:0 var(--ds-1); border-top:1px solid var(--ds-line); cursor:pointer;
-      font:600 15px/1.3 var(--ds-font); color:var(--ds-ink); }
-    .st-opt:first-of-type { border-top:none; }
-    .st-opt input { position:absolute; opacity:0; width:1px; height:1px; }
-    .st-opt-check { width:22px; height:22px; border-radius:var(--ds-r-pill); border:2px solid var(--ds-line-strong);
-      display:flex; align-items:center; justify-content:center; flex-shrink:0; box-sizing:border-box; }
-    .st-opt input:checked ~ .st-opt-check { border-color:var(--ds-brand-600); background:var(--ds-brand-600); }   /* 3.6:1 — orange-500 is 2.8:1 */
-    .st-opt input:checked ~ .st-opt-check::after { content:''; width:8px; height:8px; border-radius:50%; background:#fff; }
-    .st-opt input:focus-visible ~ .st-opt-check { outline:2px solid var(--ds-brand-text); outline-offset:2px; }
-    .st-opts[aria-busy="true"] { opacity:.6; pointer-events:none; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .st-sheet-ov, .st-sheet-ov.open, .st-sheet { transition:none; }
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/account.css" />
 </head>
-<body>
-<div class="ds-shell">
-  <div class="ds-scroll">
-
-    <div class="st-header">
-      <button class="ds-iconbtn" id="back-btn" type="button" aria-label="Back">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <h1>Settings</h1>
+<body class="fx-app">
+<a class="fx-skip" href="#acct-main">Skip to content</a>
+<div class="fx-shell">
+  <!-- The Account tab: the profile and reputation one tap away, how jobs reach
+       the artisan, the account's sign-in and money details, help, and leaving.
+       Each control writes only what the backend lets the artisan change
+       (artisan-app/js/account.js); the rest is shown and explained. -->
+  <header class="fx-appbar fx-appbar--root">
+    <div class="fx-appbar__titles">
+      <h1 class="fx-appbar__title">Account</h1>
+      <p class="fx-appbar__sub" id="me-email"></p>
     </div>
+  </header>
 
-    <!-- Who is signed in. Opens the profile (name, photo, bio, rates). -->
-    <div class="ds-section">
-      <div class="ds-card ds-card--flush">
-        <a href="profile.html" class="st-me" aria-label="Your profile">
-          <span class="ds-avatar" id="me-initials" aria-hidden="true"></span>
-          <span class="st-body">
-            <span class="st-me-name" id="me-name"></span>
-            <span class="st-me-email" id="me-email"></span>
-          </span>
-          <span class="st-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </a>
-      </div>
-    </div>
+  <main class="fx-main" id="acct-main" tabindex="-1">
+    <a class="fx-row fx-acct__me" href="profile.html" id="me-row">
+      <span class="fx-avatar fx-acct__avatar" aria-hidden="true"><img id="me-photo" alt="" hidden /><span id="me-initials"></span></span>
+      <span class="fx-row__main">
+        <span class="fx-row__title" id="me-name"></span>
+        <span class="fx-row__meta">Your profile: what customers see</span>
+      </span>
+      <span class="fx-row__trail"><span data-icon="next"></span></span>
+    </a>
 
-    <!-- Work: how jobs reach you -->
-    <div class="ds-section ds-section--tight">
-      <p class="st-group-label" id="grp-work">Work</p>
-      <div class="ds-card ds-card--flush" role="group" aria-labelledby="grp-work">
+    <section class="fx-sect" aria-labelledby="grp-work">
+      <div class="fx-sect__head"><h2 class="fx-sect__title" id="grp-work">Your work</h2></div>
+      <ul class="fx-list">
+        <li><a class="fx-row" href="reputation.html" id="reputation-row">
+          <span class="fx-row__main"><span class="fx-row__title">Reputation</span><span class="fx-row__meta">Rating, reviews and how jobs are matched</span></span>
+          <span class="fx-row__trail"><span data-icon="next"></span></span>
+        </a></li>
+        <li><button class="fx-row" type="button" id="radius-row" aria-haspopup="dialog">
+          <span class="fx-row__main"><span class="fx-row__title">Job radius</span><span class="fx-row__meta">How far you'll travel for jobs</span></span>
+          <span class="fx-row__trail"><span class="fx-row__value" id="radius-value"></span><span data-icon="next"></span></span>
+        </button></li>
+        <li><label class="fx-row" for="toggle-notif">
+          <span class="fx-row__main"><span class="fx-row__title">Push notifications</span><span class="fx-row__meta" id="notif-sub" aria-live="polite">New job requests and booking updates</span></span>
+          <span class="fx-row__trail"><input class="fx-acct__switch" type="checkbox" role="switch" id="toggle-notif" aria-describedby="notif-sub" /></span>
+        </label></li>
+        <li><a class="fx-row" href="notifications.html">
+          <span class="fx-row__main"><span class="fx-row__title">Notifications</span><span class="fx-row__meta">Everything Fidus X has sent you</span></span>
+          <span class="fx-row__trail"><span data-icon="next"></span></span>
+        </a></li>
+      </ul>
+    </section>
 
-        <button class="st-row" id="radius-row" type="button" aria-haspopup="dialog">
-          <span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg></span>
-          <span class="st-body"><span class="st-title">Job radius</span><span class="st-sub">How far you'll travel for jobs</span></span>
-          <span class="st-value" id="radius-value"></span>
-          <span class="st-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </button>
+    <section class="fx-sect" aria-labelledby="grp-account">
+      <div class="fx-sect__head"><h2 class="fx-sect__title" id="grp-account">Account and security</h2></div>
+      <ul class="fx-list">
+        <li><a class="fx-row" href="onboarding.html" id="kyc-row">
+          <span class="fx-row__main"><span class="fx-row__title">Verification</span><span class="fx-row__meta" id="kyc-sub"></span></span>
+          <span class="fx-row__trail"><span class="fx-chip" id="kyc-value"></span><span id="kyc-chev"><span data-icon="next"></span></span></span>
+        </a></li>
+        <li><button class="fx-row" type="button" id="phone-row" aria-haspopup="dialog">
+          <span class="fx-row__main"><span class="fx-row__title">Phone number</span><span class="fx-row__meta">Private. Customers only see it during a booking.</span></span>
+          <span class="fx-row__trail"><span class="fx-row__value" id="phone-value"></span><span data-icon="next"></span></span>
+        </button></li>
+        <li><a class="fx-row" href="wallet.html" id="payout-row">
+          <span class="fx-row__main"><span class="fx-row__title">Payout account</span><span class="fx-row__meta">Where withdrawals are paid. Changing it needs a review.</span></span>
+          <span class="fx-row__trail"><span class="fx-row__value" id="payout-value">…</span><span data-icon="next"></span></span>
+        </a></li>
+        <li><button class="fx-row" type="button" id="password-row" aria-haspopup="dialog" hidden>
+          <span class="fx-row__main"><span class="fx-row__title">Password</span><span class="fx-row__meta">Change the password you sign in with</span></span>
+          <span class="fx-row__trail"><span data-icon="next"></span></span>
+        </button></li>
+        <li><div class="fx-row fx-acct__static" id="google-row" hidden>
+          <span class="fx-row__main"><span class="fx-row__title">Sign-in</span><span class="fx-row__meta">You sign in with Google — your password is managed there</span></span>
+        </div></li>
+      </ul>
+    </section>
 
-        <a href="reputation.html" class="st-row" id="reputation-row">
-          <span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 16.78l-5.2 2.74.99-5.8-4.21-4.1 5.82-.85L12 3.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Reputation</span><span class="st-sub">Rating, reviews and how jobs are matched</span></span>
-          <span class="st-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </a>
+    <section class="fx-sect" aria-labelledby="grp-help">
+      <div class="fx-sect__head"><h2 class="fx-sect__title" id="grp-help">Help and legal</h2></div>
+      <ul class="fx-list">
+        <li><a class="fx-row" href="support.html">
+          <span class="fx-row__main"><span class="fx-row__title">Help and support</span><span class="fx-row__meta">Answers, and requests to our team</span></span>
+          <span class="fx-row__trail"><span data-icon="next"></span></span>
+        </a></li>
+        <li><a class="fx-row" href="../shared/legal/terms.html">
+          <span class="fx-row__main"><span class="fx-row__title">Terms of Service</span></span>
+          <span class="fx-row__trail"><span data-icon="next"></span></span>
+        </a></li>
+        <li><a class="fx-row" href="../shared/legal/privacy.html">
+          <span class="fx-row__main"><span class="fx-row__title">Privacy Policy</span></span>
+          <span class="fx-row__trail"><span data-icon="next"></span></span>
+        </a></li>
+      </ul>
+    </section>
 
-        <label class="st-row" for="toggle-notif">
-          <span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Push notifications</span><span class="st-sub" id="notif-sub" aria-live="polite">New job requests and booking updates</span></span>
-          <span class="ds-switch">
-            <input type="checkbox" id="toggle-notif" aria-describedby="notif-sub" />
-            <span class="ds-switch-track"></span><span class="ds-switch-thumb"></span>
-          </span>
-        </label>
-
-      </div>
-    </div>
-
-    <!-- Account: verification, payouts, sign-in -->
-    <div class="ds-section ds-section--tight">
-      <p class="st-group-label" id="grp-account">Account</p>
-      <div class="ds-card ds-card--flush" role="group" aria-labelledby="grp-account">
-
-        <a href="onboarding.html" class="st-row" id="kyc-row">
-          <span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Verification</span><span class="st-sub" id="kyc-sub"></span></span>
-          <span class="st-value" id="kyc-value"></span>
-          <span class="st-chev" id="kyc-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </a>
-
-        <button class="st-row" id="phone-row" type="button" aria-haspopup="dialog">
-          <span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Phone number</span><span class="st-sub">How Fidus X and your customers reach you</span></span>
-          <span class="st-value" id="phone-value"></span>
-          <span class="st-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </button>
-
-        <a href="wallet.html" class="st-row">
-          <span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M16 12h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Payout account</span><span class="st-sub">Where withdrawals are paid</span></span>
-          <span class="st-value" id="payout-value">…</span>
-          <span class="st-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </a>
-
-        <button class="st-row" id="password-row" type="button" aria-haspopup="dialog" hidden>
-          <span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="11" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Password</span><span class="st-sub">Change the password you sign in with</span></span>
-          <span class="st-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </button>
-
-        <div class="st-row st-row--static" id="google-row" hidden>
-          <span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="11" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Sign-in</span><span class="st-sub">You sign in with Google — your password is managed there</span></span>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- App -->
-    <div class="ds-section ds-section--tight">
-      <p class="st-group-label" id="grp-app">App</p>
-      <div class="ds-card ds-card--flush" role="group" aria-labelledby="grp-app">
-        <label class="st-row" for="toggle-theme">
-          <span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Dark mode</span><span class="st-sub">On this device</span></span>
-          <span class="ds-switch">
-            <input type="checkbox" id="toggle-theme" />
-            <span class="ds-switch-track"></span><span class="ds-switch-thumb"></span>
-          </span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Help & legal -->
-    <div class="ds-section ds-section--tight">
-      <p class="st-group-label" id="grp-help">Help &amp; legal</p>
-      <div class="ds-card ds-card--flush" role="group" aria-labelledby="grp-help">
-
-        <a href="support.html" class="st-row">
-          <span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .8-1 1.7M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Help &amp; support</span><span class="st-sub">Answers, and requests to our team</span></span>
-          <span class="st-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </a>
-
-        <a href="../shared/legal/terms.html" class="st-row">
-          <span class="st-ic neutral" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v6h6M9 13h6M9 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Terms of service</span></span>
-          <span class="st-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </a>
-
-        <a href="../shared/legal/privacy.html" class="st-row">
-          <span class="st-ic neutral" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Privacy policy</span></span>
-          <span class="st-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </a>
-
-      </div>
-    </div>
-
-    <!-- Sign out -->
-    <div class="ds-section ds-section--tight">
-      <div class="ds-card ds-card--flush">
-        <button class="st-row" id="signout-row" type="button" aria-haspopup="dialog">
-          <span class="st-ic neutral" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M16 17l5-5-5-5M21 12H9M12 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="st-body"><span class="st-title">Sign out</span></span>
-        </button>
-      </div>
-    </div>
+    <section class="fx-sect" aria-label="Sign out">
+      <ul class="fx-list">
+        <li><button class="fx-row" type="button" id="signout-row" aria-haspopup="dialog">
+          <span class="fx-row__main"><span class="fx-row__title">Sign out</span></span>
+        </button></li>
+      </ul>
+    </section>
 
     <!-- Closing the account is rare and irreversible: present, not prominent (AR-15). -->
-    <div class="st-foot">
-      <button class="st-close-btn" id="close-row" type="button" aria-haspopup="dialog">Close account</button>
-      <p class="st-version">Fidus X Artisan · v1.0</p>
+    <div class="fx-acct__foot">
+      <button class="fx-btn fx-btn--tertiary" type="button" id="close-row" aria-haspopup="dialog">Close account</button>
+      <p class="fx-acct__version">Fidus X for professionals</p>
     </div>
+  </main>
 
+  <div class="fx-bottom">
+    <nav class="fx-tabbar" aria-label="Main" id="tabbar"></nav>
   </div>
 </div>
 
 <!-- Job radius -->
-<div class="st-sheet-ov" id="radius-sheet">
-  <div class="st-sheet" role="dialog" aria-modal="true" aria-labelledby="radius-title" tabindex="-1">
-    <div class="st-sheet-handle" aria-hidden="true"></div>
-    <p class="st-sheet-title" id="radius-title">Job radius</p>
-    <p class="st-sheet-sub">You're offered jobs within this distance of your work location.</p>
-    <div class="st-opts" id="radius-opts" role="radiogroup" aria-labelledby="radius-title"></div>
-    <p class="st-msg err" id="radius-msg" role="alert"></p>
-  </div>
+<div class="fx-overlay" id="radius-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="radius-title" aria-describedby="radius-lead" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="radius-title">Job radius</h2>
+      <button class="fx-iconbtn" type="button" data-sheet-close aria-label="Close"><span data-icon="close"></span></button></header>
+    <div class="fx-sheet__body fx-acct__form">
+      <p class="fx-acct__msg" id="radius-lead">You're offered jobs within this distance of your work location.</p>
+      <fieldset class="fx-acct__choices" id="radius-opts" aria-labelledby="radius-title"></fieldset>
+      <p class="fx-acct__msg" id="radius-msg" data-tone="bad" role="alert"></p>
+    </div>
+  </section>
 </div>
 
 <!-- Phone number -->
-<div class="st-sheet-ov" id="phone-sheet">
-  <form class="st-sheet" role="dialog" aria-modal="true" aria-labelledby="phone-title" tabindex="-1" id="phone-form" novalidate>
-    <div class="st-sheet-handle" aria-hidden="true"></div>
-    <p class="st-sheet-title" id="phone-title">Phone number</p>
-    <label class="st-field"><span>Mobile number</span>
-      <input class="ds-input" type="tel" id="phone-input" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="e.g. 024 123 4567" /></label>
-    <p class="st-msg" id="phone-msg" role="alert"></p>
-    <div class="st-sheet-actions">
-      <button class="ds-btn ds-btn--primary ds-btn--block" type="submit" id="phone-save">Save</button>
-      <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" data-close>Cancel</button>
-    </div>
-  </form>
+<div class="fx-overlay" id="phone-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="phone-title" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="phone-title">Phone number</h2></header>
+    <form class="fx-sheet__body fx-acct__form" id="phone-form" novalidate>
+      <div class="fx-field">
+        <label class="fx-field__label" for="phone-input">Mobile number</label>
+        <input class="fx-input" type="tel" id="phone-input" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="024 123 4567" aria-describedby="phone-hint phone-msg" data-autofocus />
+        <p class="fx-field__hint" id="phone-hint">A Ghana mobile number. Private: customers only see it during a booking.</p>
+      </div>
+      <p class="fx-acct__msg" id="phone-msg" role="alert"></p>
+    </form>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close>Cancel</button>
+      <button class="fx-btn fx-btn--primary fx-btn--l" type="submit" form="phone-form" id="phone-save">Save</button>
+    </footer>
+  </section>
 </div>
 
 <!-- Change password -->
-<div class="st-sheet-ov" id="password-sheet">
-  <form class="st-sheet" role="dialog" aria-modal="true" aria-labelledby="password-title" tabindex="-1" id="password-form" novalidate>
-    <div class="st-sheet-handle" aria-hidden="true"></div>
-    <p class="st-sheet-title" id="password-title">Change password</p>
-    <input type="email" autocomplete="username" id="pw-username" hidden />
-    <label class="st-field"><span>Current password</span>
-      <input class="ds-input" type="password" id="pw-current" autocomplete="current-password" required /></label>
-    <label class="st-field"><span>New password</span>
-      <input class="ds-input" type="password" id="pw-new" autocomplete="new-password" minlength="8" required aria-describedby="pw-hint" /></label>
-    <label class="st-field"><span>Confirm new password</span>
-      <input class="ds-input" type="password" id="pw-confirm" autocomplete="new-password" minlength="8" required /></label>
-    <p class="st-sub" id="pw-hint">At least 8 characters.</p>
-    <p class="st-msg" id="pw-msg" role="alert"></p>
-    <div class="st-sheet-actions">
-      <button class="ds-btn ds-btn--primary ds-btn--block" type="submit" id="pw-save">Update password</button>
-      <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" data-close>Cancel</button>
-      <button class="st-linkbtn" type="button" id="pw-forgot">Forgot your current password?</button>
-    </div>
-  </form>
+<div class="fx-overlay" id="password-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="password-title" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="password-title">Change password</h2></header>
+    <form class="fx-sheet__body fx-acct__form" id="password-form" novalidate>
+      <input type="email" autocomplete="username" id="pw-username" hidden />
+      <div class="fx-field">
+        <label class="fx-field__label" for="pw-current">Current password</label>
+        <input class="fx-input" type="password" id="pw-current" autocomplete="current-password" data-autofocus />
+      </div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="pw-new">New password</label>
+        <input class="fx-input" type="password" id="pw-new" autocomplete="new-password" aria-describedby="pw-hint" />
+        <p class="fx-field__hint" id="pw-hint">At least 8 characters.</p>
+      </div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="pw-confirm">Confirm new password</label>
+        <input class="fx-input" type="password" id="pw-confirm" autocomplete="new-password" />
+      </div>
+      <p class="fx-acct__msg" id="pw-msg" role="alert"></p>
+      <button class="fx-btn fx-btn--tertiary" type="button" id="pw-forgot">Forgot your current password?</button>
+    </form>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close>Cancel</button>
+      <button class="fx-btn fx-btn--primary fx-btn--l" type="submit" form="password-form" id="pw-save">Update password</button>
+    </footer>
+  </section>
 </div>
 
 <!-- Sign out -->
-<div class="st-sheet-ov" id="signout-sheet">
-  <div class="st-sheet" role="dialog" aria-modal="true" aria-labelledby="signout-title" tabindex="-1">
-    <div class="st-sheet-handle" aria-hidden="true"></div>
-    <p class="st-sheet-title" id="signout-title">Sign out?</p>
-    <p class="st-sheet-sub">You won't receive job requests on this device until you sign in again.</p>
-    <div class="st-sheet-actions">
-      <button class="ds-btn ds-btn--danger ds-btn--block" type="button" id="signout-confirm">Sign out</button>
-      <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" data-close>Cancel</button>
-    </div>
-  </div>
+<div class="fx-overlay" id="signout-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="signout-title" aria-describedby="signout-body" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="signout-title">Sign out?</h2></header>
+    <div class="fx-sheet__body fx-acct__body"><p id="signout-body">You won't receive job requests on this device until you sign in again.</p></div>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close data-autofocus>Cancel</button>
+      <button class="fx-btn fx-btn--danger-solid fx-btn--l" type="button" id="signout-confirm">Sign out</button>
+    </footer>
+  </section>
 </div>
 
 <!-- Close account: asks the server first, explains, then confirms (AR-15) -->
-<div class="st-sheet-ov" id="close-sheet">
-  <div class="st-sheet" role="dialog" aria-modal="true" aria-labelledby="close-title" tabindex="-1">
-    <div class="st-sheet-handle" aria-hidden="true"></div>
-    <p class="st-sheet-title" id="close-title">Close your account?</p>
-    <div id="close-body" aria-live="polite"><p class="st-sheet-sub">Checking your account…</p></div>
-    <div id="close-actions" hidden>
-      <label class="st-field"><span>Type CLOSE to confirm</span>
-        <input id="close-confirm-text" class="ds-input" autocomplete="off" autocapitalize="characters" /></label>
-      <label class="st-field" id="close-password-field" hidden><span>Your password</span>
-        <input id="close-password" class="ds-input" type="password" autocomplete="current-password" /></label>
-      <p class="st-msg err" id="close-error" role="alert"></p>
-      <div class="st-sheet-actions">
-        <button class="ds-btn ds-btn--danger ds-btn--block" type="button" id="close-confirm" disabled>Close my account</button>
+<div class="fx-overlay" id="close-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="close-title" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="close-title">Close your account?</h2></header>
+    <div class="fx-sheet__body fx-acct__form">
+      <div class="fx-acct__body" id="close-body" aria-live="polite"><p>Checking your account…</p></div>
+      <div class="fx-acct__form" id="close-actions" hidden>
+        <div class="fx-field">
+          <label class="fx-field__label" for="close-confirm-text">Type CLOSE to confirm</label>
+          <input id="close-confirm-text" class="fx-input" autocomplete="off" autocapitalize="characters" />
+        </div>
+        <div class="fx-field" id="close-password-field" hidden>
+          <label class="fx-field__label" for="close-password">Your password</label>
+          <input id="close-password" class="fx-input" type="password" autocomplete="current-password" />
+        </div>
+        <p class="fx-acct__msg" id="close-error" data-tone="bad" role="alert"></p>
       </div>
     </div>
-    <div class="st-sheet-actions">
-      <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" data-close>Cancel</button>
-    </div>
-  </div>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close data-autofocus>Cancel</button>
+      <button class="fx-btn fx-btn--danger-solid fx-btn--l" type="button" id="close-confirm" disabled hidden>Close my account</button>
+    </footer>
+  </section>
 </div>
 
 <script type="module">
 import '../shared/js/utils/global-app.js';
+import { icon }               from './js/fx/icons.js';
+import { openSheet }          from './js/fx/sheet.js';
+import { showToast }          from './js/fx/toast.js';
+import { renderTabbar }       from './js/fx/controls.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth, patchArtisanSession } from './js/utils/artisanAuthGuard.js';
-import { showToast }          from '../shared/js/components/toast.js';
+import { avatarUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.js';
+import {
+  RADIUS_CHOICES, DISPATCH_MAX_KM, verificationView, effectiveRadius, radiusPatch,
+  savedPush, pushView, pushPatch, phoneProblem, contactPatch, payoutLine,
+  passwordProblem, passwordError, resetError, closeBlockers, closeError, readyToClose, initials,
+} from './js/account.js';
+
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon, el.dataset.iconClass || '');
+renderTabbar(document.getElementById('tabbar'), { current: 'account' });
 
 const { user, artisan } = await requireArtisanAuth({ allowPending: true });
 const { services: { authService, databaseService } } = getAppContainer();
 const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
-  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const msg = (id, text, tone = 'bad') => { $(id).textContent = text || ''; $(id).dataset.tone = tone; };
 
 // The profile as the server last said it: painted from the guard's verdict at
 // once, then kept live by the subscription below (another device, a reviewer).
 const state = { ...artisan };
 
-/* ── Back: wherever the artisan came from (dashboard gear, profile) ──────── */
-$('back-btn').addEventListener('click', () => {
-  if (history.length > 1 && document.referrer.indexOf(location.origin + '/') === 0) history.back();
-  else window.location.href = 'dashboard.html';
-});
-
-/* ── Sheets: one controller — focus, Escape, backdrop, scroll lock ───────── */
-let openSheetEl = null, sheetTrigger = null, sheetBusy = false;
-function openSheet(id) {
-  closeSheet();
-  sheetTrigger = document.activeElement;
-  openSheetEl = $(id);
-  openSheetEl.classList.add('open');
-  document.body.style.overflow = 'hidden';
-  const panel = openSheetEl.querySelector('.st-sheet');
-  requestAnimationFrame(() => (panel.querySelector('input:not([hidden]):not([type=hidden]), button:not([disabled])') || panel).focus({ preventScroll: true }));
+/* ── Sheets: the system's modal (focus, Escape, scrim, inert background) ──── */
+let sheet = null, sheetBusy = false;
+function open(id, onClose) {
+  sheet = openSheet($(id), { dismissible: true, onClose: () => { sheet = null; if (onClose) onClose(); } });
 }
-function closeSheet() {
-  if (!openSheetEl || sheetBusy) return;
-  openSheetEl.classList.remove('open');
-  openSheetEl = null;
-  document.body.style.overflow = '';
-  if (sheetTrigger && document.contains(sheetTrigger)) { try { sheetTrigger.focus({ preventScroll: true }); } catch (_) {} }
-  sheetTrigger = null;
-}
-document.querySelectorAll('.st-sheet-ov').forEach((ov) => {
-  ov.addEventListener('click', (e) => { if (e.target === ov) closeSheet(); });
-  ov.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeSheet));
-});
-document.addEventListener('keydown', (e) => {
-  if (!openSheetEl) return;
-  if (e.key === 'Escape') { e.preventDefault(); closeSheet(); return; }
-  if (e.key !== 'Tab') return;
-  const f = [...openSheetEl.querySelectorAll('button:not([disabled]), input:not([disabled]):not([hidden]), a[href]')]
-    .filter((el) => el.offsetParent !== null);
-  if (!f.length) return;
-  const first = f[0], last = f[f.length - 1];
-  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-});
+async function close() { if (sheet && !sheetBusy) await sheet.close('done'); }
 
 /* ── Who is signed in ─────────────────────────────────────────────────────── */
 function renderIdentity() {
   const name = String(state.name || '').trim();
   $('me-name').textContent = name || 'Your profile';
-  $('me-email').textContent = user.email || state.email || '';
-  $('me-initials').textContent = (name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('') || '?').toUpperCase();
+  $('me-email').textContent = user.email || '';
+  $('me-initials').textContent = initials(name);
+  if (state.profileImageId) {
+    $('me-photo').src = avatarUrl(state.profileImageId, TRANSFORMS.avatarLg, state.profileImageVersion ?? null);
+    $('me-photo').hidden = false; $('me-initials').hidden = true;
+  }
 }
 
 /* ── Verification: a status, and a way forward only when there is one ─────
- * An approved artisan used to be sent to onboarding, which bounces approved
- * accounts straight to the dashboard. The status is shown where it is; the
- * row only links when there is something to do or check. */
-const KYC = {
-  approved:                 { value: 'Verified',          tone: 'ok',   sub: 'Your documents are approved',            link: false },
-  pending_review:           { value: 'Under review',      tone: 'warn', sub: 'We review applications within 1–2 business days', link: true },
-  submitted:                { value: 'Under review',      tone: 'warn', sub: 'We review applications within 1–2 business days', link: true },
-  rejected:                 { value: 'Action needed',     tone: 'bad',  sub: 'Review the feedback and resubmit',       link: true },
-  re_verification_required: { value: 'Action needed',     tone: 'bad',  sub: 'We need you to verify your details again', link: true },
-  draft:                    { value: 'Not submitted',     tone: 'warn', sub: 'Finish verification to receive paid jobs', link: true },
-};
+ * Approved accounts are not sent to onboarding (it bounces them to Today). */
 function renderKyc() {
-  const k = KYC[String(state.verificationStatus || 'draft').toLowerCase()] || KYC.draft;
+  const k = verificationView(state.verificationStatus);
   const row = $('kyc-row');
   $('kyc-value').textContent = k.value;
-  $('kyc-value').className = 'st-value ' + k.tone;
+  $('kyc-value').className = `fx-chip fx-chip--${k.tone}`;
   $('kyc-sub').textContent = k.sub;
   $('kyc-chev').hidden = !k.link;
-  if (k.link) { row.setAttribute('href', 'onboarding.html'); row.classList.remove('st-row--static'); row.removeAttribute('aria-disabled'); }
-  else { row.removeAttribute('href'); row.classList.add('st-row--static'); }
+  if (k.link) row.setAttribute('href', 'onboarding.html');
+  else row.removeAttribute('href');
 }
 
-/* ── Job radius ───────────────────────────────────────────────────────────
- * Dispatch offers a job when it is within workRadius of the artisan
- * (functions/dispatch.js), searching at most 25 km around the job, and treats
- * a missing radius as 20 km (functions/artisanIndex.js). So what is shown is
- * the distance that actually applies — onboarding's wider choices (50 km,
- * "anywhere in region") have always behaved as 25 km. The value is checked by
- * firestore.rules (isValidArtisanWorkRadius). */
-const RADIUS_CHOICES = [5, 10, 15, 20, 25];
-const DISPATCH_MAX_KM = 25, DISPATCH_DEFAULT_KM = 20;
-const effectiveRadius = () => {
-  const r = Number(state.workRadius);
-  return Math.min(Number.isFinite(r) && r > 0 ? r : DISPATCH_DEFAULT_KM, DISPATCH_MAX_KM);
-};
+/* ── Job radius (the field dispatch reads; firestore.rules checks it) ─────── */
 let radiusSaving = false;
+$('radius-opts').innerHTML = RADIUS_CHOICES.map((v) =>
+  `<label class="fx-acct__choice"><span>Within ${v} km${v === DISPATCH_MAX_KM ? ' · the furthest we offer' : ''}</span>` +
+  `<input type="radio" name="radius" value="${v}" /></label>`).join('');
+// Marks what is SAVED, in place: rebuilding the list would drop the focus out
+// of the sheet (and with it Escape and the focus trap).
 function renderRadius() {
-  const km = effectiveRadius();
+  const km = effectiveRadius(state);
   $('radius-value').textContent = `${km} km`;
-  const opts = $('radius-opts');
-  opts.innerHTML = RADIUS_CHOICES.map((v) => `
-    <label class="st-opt">
-      <span>Within ${v} km${v === DISPATCH_MAX_KM ? ' · the furthest we offer' : ''}</span>
-      <input type="radio" name="radius" value="${v}" ${v === km ? 'checked' : ''} />
-      <span class="st-opt-check" aria-hidden="true"></span>
-    </label>`).join('');
+  for (const i of $('radius-opts').querySelectorAll('input')) i.checked = Number(i.value) === km;
 }
-$('radius-row').addEventListener('click', () => { $('radius-msg').textContent = ''; renderRadius(); openSheet('radius-sheet'); });
+$('radius-row').addEventListener('click', () => { msg('radius-msg', ''); renderRadius(); open('radius-sheet'); });
 $('radius-opts').addEventListener('change', async (e) => {
   const v = Number(e.target.value);
   if (!RADIUS_CHOICES.includes(v) || radiusSaving) return;
   radiusSaving = true; sheetBusy = true;
-  const opts = $('radius-opts');
-  opts.setAttribute('aria-busy', 'true');
+  $('radius-opts').setAttribute('aria-busy', 'true');
   try {
     const n = new Date().toISOString();
-    const patch = { workRadius: v, updatedAt: n };
+    const patch = radiusPatch(v, n);
     await databaseService.updateDocument('artisans', user.uid, patch);
     patchArtisanSession(patch);
     Object.assign(state, patch);
     renderRadius();
-    sheetBusy = false; closeSheet();
-    showToast(`You'll be offered jobs within ${v} km.`, 'success');
+    sheetBusy = false; await close();
+    showToast(`You'll be offered jobs within ${v} km.`, { tone: 'ok' });
   } catch (err) {
     renderRadius();   // back to what is SAVED
-    $('radius-msg').textContent = 'Could not save. Check your connection and try again.';
+    msg('radius-msg', 'Could not save. Check your connection and try again.');
   } finally {
     radiusSaving = false; sheetBusy = false;
-    opts.removeAttribute('aria-busy');
+    $('radius-opts').removeAttribute('aria-busy');
   }
 });
 
-/* ── Push notifications (AR-15) ─────────────────────────────────────────
- * Two different things, shown separately:
- *   • your PREFERENCE — saved on your profile (notificationPreferences.push),
- *     so it follows you to every device and survives signing out; the server
- *     reads it before every push (functions/notifications.js);
- *   • this DEVICE's permission — the browser or phone decides. If it is
- *     blocked, only the browser's site settings can unblock it.
- * Turning push off hides nothing: every notification still lands in the
- * inbox, and payment notifications are always pushed. (The old toggle saved
- * to this browser only, and nothing ever read it.) */
+/* ── Push notifications (AR-15, IX-01): the saved preference, and whether
+ * this device receives pushes. Turning push off hides nothing: everything
+ * still lands in Notifications, and payment notifications are always pushed. */
 const notifToggle = $('toggle-notif');
 const notifSub    = $('notif-sub');
 try { localStorage.removeItem('artisan_pref_notifications'); } catch (_) { /* storage blocked */ }
 let pushPref = true, pushSaving = false;
-const savedPush = () => !(state.notificationPreferences && state.notificationPreferences.push === false);
-
-const DEVICE_LINE = {
-  on:          'On for this device.',
-  off:         'Not yet allowed on this device. Turn it off and on again to be asked.',
-  blocked:     'Blocked by this browser. Allow notifications for this site in your browser settings.',
-  unsupported: "This browser can't receive push notifications. Everything still arrives in your inbox.",
-  failed:      "This device couldn't be registered for push. Try again later.",
-  pending:     'Checking this device…',
-};
-// States in which THIS device will not receive a push whatever the preference
-// says. The switch used to read "on" beside "Blocked by this browser" (Phase 0
-// IX-01); it now shows whether pushes reach this device. The saved preference
-// is unchanged by this, and still governs the artisan's other devices.
-const DEVICE_CANNOT_RECEIVE = ['blocked', 'unsupported'];
 async function describeDevice() {
   const { getPushState } = await import('../shared/js/services/pushNotificationService.js');
-  const device = getPushState();
-  notifToggle.checked = pushPref && !DEVICE_CANNOT_RECEIVE.includes(device);
-  if (!pushPref) {
-    notifSub.textContent = 'Off. New job requests show only while the app is open. Payment notifications are still pushed.';
-    return;
-  }
-  notifSub.textContent = DEVICE_LINE[device] || DEVICE_LINE.pending;
+  const view = pushView({ pref: pushPref, device: getPushState() });
+  notifToggle.checked = view.checked;
+  notifSub.textContent = view.text;
 }
 function renderPush() {
   if (pushSaving) return;   // never fight a save in flight
-  pushPref = savedPush();
+  pushPref = savedPush(state);
   notifToggle.checked = pushPref;
   describeDevice();
 }
-
 notifToggle.addEventListener('change', async () => {
   const want = notifToggle.checked;
   notifToggle.disabled = true; pushSaving = true;
   try {
     const n = new Date().toISOString();
-    const pushPatch = { notificationPreferences: { push: want, updatedAt: n }, updatedAt: n };
-    await databaseService.updateDocument('artisans', user.uid, pushPatch);
-    patchArtisanSession(pushPatch);   // next page paints the saved choice
-    Object.assign(state, pushPatch);
+    const patch = pushPatch(want, n);
+    await databaseService.updateDocument('artisans', user.uid, patch);
+    patchArtisanSession(patch);   // the next page paints the saved choice
+    Object.assign(state, patch);
     pushPref = want;
     if (want) {
       // Asking for permission needs this tap; the result is reported as it is.
@@ -558,13 +365,8 @@ notifToggle.addEventListener('change', async () => {
 });
 window.addEventListener('fx:push-state', () => describeDevice());
 
-/* ── Phone number (moved here from Profile: an account detail, not part of
- * the professional profile). Owner-writable on the profile document
- * (firestore.rules isSafeArtisanProfileUpdate). ─────────────────────────── */
-const phoneDigits = (v) => String(v || '').replace(/[^\d+]/g, '');
-// The phone lives in artisans/{uid}/private/contact (CONTACT-001), readable by
-// the artisan and admins only — never on the public profile. A legacy profile
-// not yet migrated still shows its old public value until the migration copies it.
+/* ── Phone number: artisans/{uid}/private/contact only (CONTACT-001), never
+ * the public profile. A legacy profile not yet migrated shows its old value. */
 let contact = null;
 const currentPhone = () => String((contact && contact.phone) || state.phone || '').trim();
 databaseService.getDocument(`artisans/${user.uid}/private`, 'contact')
@@ -573,128 +375,102 @@ databaseService.getDocument(`artisans/${user.uid}/private`, 'contact')
 function renderPhone() { $('phone-value').textContent = currentPhone() || 'Not added'; }
 $('phone-row').addEventListener('click', () => {
   $('phone-input').value = currentPhone();
-  $('phone-msg').textContent = ''; $('phone-msg').className = 'st-msg';
-  openSheet('phone-sheet');
+  $('phone-input').removeAttribute('aria-invalid');
+  msg('phone-msg', '');
+  open('phone-sheet');
 });
 $('phone-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const raw = $('phone-input').value.trim();
-  const digits = phoneDigits(raw).replace(/^\+/, '');
-  const msg = (t, tone = 'err') => { $('phone-msg').textContent = t; $('phone-msg').className = 'st-msg ' + tone; };
-  if (!/^\+?[\d\s()-]{9,20}$/.test(raw) || digits.length < 9 || digits.length > 15) { msg('Enter a valid phone number, e.g. 024 123 4567.'); return; }
+  if (sheetBusy) return;
+  const raw = $('phone-input').value;
+  const problem = phoneProblem(raw);
+  $('phone-input').setAttribute('aria-invalid', problem ? 'true' : 'false');
+  if (problem) { msg('phone-msg', problem); $('phone-input').focus(); return; }
   const btn = $('phone-save');
-  btn.disabled = true; btn.textContent = 'Saving…'; sheetBusy = true; msg('');
+  btn.disabled = true; btn.textContent = 'Saving…'; sheetBusy = true; msg('phone-msg', '');
   try {
-    const patch = { artisanId: user.uid, phone: raw, updatedAt: new Date().toISOString() };
+    const patch = contactPatch(user.uid, raw, new Date().toISOString());
     await databaseService.setDocument(`artisans/${user.uid}/private`, 'contact', patch, { merge: true });
     contact = { ...(contact || {}), ...patch };
     renderPhone();
-    sheetBusy = false; closeSheet();
-    showToast('Phone number saved.', 'success');
+    sheetBusy = false; await close();
+    showToast('Phone number saved.', { tone: 'ok' });
   } catch (err) {
-    msg('Not saved. Check your connection and try again.');
+    msg('phone-msg', 'Not saved. Check your connection and try again.');
   } finally {
     btn.disabled = false; btn.textContent = 'Save'; sheetBusy = false;
   }
 });
 
-/* ── Payout account: read-only here, masked; changed through verification ──
- * Withdrawals pay only the account on file, and firestore.rules freezes it
- * once an artisan is approved, so it is shown — never edited — from Settings. */
-const NETWORK = { mtn: 'MTN', telecel: 'Telecel', vodafone: 'Telecel', airteltigo: 'AirtelTigo' };
+/* ── Payout account: shown masked; withdrawals pay only the account on file,
+ * and firestore.rules freeze it once approved — it is never edited here. ── */
 async function renderPayout() {
-  const el = $('payout-value');
   try {
     const kyc = await databaseService.getDocument(`artisans/${user.uid}/private`, 'kyc');
-    const acct = kyc && kyc.exists ? (kyc.data || {}).payoutAccount : null;
-    const digits = String(acct && acct.phone || '').replace(/\D/g, '');
-    el.textContent = digits.length >= 4
-      ? `${NETWORK[String(acct.provider || '').toLowerCase()] || 'MoMo'} •••${digits.slice(-4)}`
-      : 'Not added';
+    $('payout-value').textContent = payoutLine(kyc && kyc.exists ? kyc.data : null);
   } catch (_) {
-    el.textContent = '';   // the wallet shows it; no guesswork here
+    $('payout-value').textContent = '';   // Earnings shows it; no guesswork here
   }
 }
 
-/* ── Sign-in & password ──────────────────────────────────────────────────
- * Proportionate: the current password is required (re-authentication), the
- * new one is checked here for feedback and by Firebase for real, and success
- * is shown only once Firebase has accepted it. Google accounts have no
- * password here, so the row is not offered. */
+/* ── Sign-in and password: the current password first (re-authentication);
+ * success only once Firebase has accepted the new one. Google accounts have
+ * no password here, so the row is not offered. */
 const providers    = typeof authService.signInProviders === 'function' ? authService.signInProviders() : [];
 const usesPassword = providers.includes('password');
 $('password-row').hidden = !usesPassword;
 $('google-row').hidden   = usesPassword || !providers.includes('google.com');
 $('pw-username').value   = user.email || '';
 
-const pwMsg = (text, tone = 'err') => { $('pw-msg').textContent = text; $('pw-msg').className = 'st-msg ' + tone; };
 $('password-row').addEventListener('click', () => {
-  $('password-form').reset(); $('pw-username').value = user.email || ''; pwMsg('');
-  openSheet('password-sheet');
+  $('password-form').reset(); $('pw-username').value = user.email || ''; msg('pw-msg', '');
+  open('password-sheet');
 });
 $('password-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (sheetBusy) return;
   const cur = $('pw-current').value, next = $('pw-new').value, conf = $('pw-confirm').value;
-  if (!cur)               { pwMsg('Enter your current password.'); $('pw-current').focus(); return; }
-  if (next.length < 8)    { pwMsg('Your new password needs at least 8 characters.'); $('pw-new').focus(); return; }
-  if (next !== conf)      { pwMsg("The new passwords don't match."); $('pw-confirm').focus(); return; }
-  if (next === cur)       { pwMsg('Choose a password different from your current one.'); $('pw-new').focus(); return; }
+  const problem = passwordProblem({ current: cur, next, confirm: conf });
+  if (problem) { msg('pw-msg', problem.message); $({ current: 'pw-current', next: 'pw-new', confirm: 'pw-confirm' }[problem.field]).focus(); return; }
   const btn = $('pw-save');
-  btn.disabled = true; btn.textContent = 'Updating…'; sheetBusy = true; pwMsg('');
+  btn.disabled = true; btn.textContent = 'Updating…'; sheetBusy = true; msg('pw-msg', '');
   try {
     await authService.reauthenticate(cur);
     await authService.changePassword(next);
-    sheetBusy = false; closeSheet();
-    showToast('Password updated.', 'success');
+    sheetBusy = false; await close();
+    showToast('Password updated.', { tone: 'ok' });
   } catch (err) {
-    const code = String(err?.code || '');
-    pwMsg(/wrong-password|invalid-credential/.test(code) ? 'Your current password is not right.'
-      : /weak-password/.test(code) ? 'That password is too easy to guess. Try a longer one.'
-      : /too-many-requests/.test(code) ? 'Too many attempts. Wait a few minutes and try again.'
-      : /network/.test(code) ? 'No connection. Your password was not changed.'
-      : 'Your password was not changed. Try again.');
+    msg('pw-msg', passwordError(err));
   } finally {
     btn.disabled = false; btn.textContent = 'Update password'; sheetBusy = false;
   }
 });
+let resetSending = false;
 $('pw-forgot').addEventListener('click', async () => {
   const btn = $('pw-forgot');
-  if (!user.email) { pwMsg('This account has no email address to send a reset link to.'); return; }
-  btn.disabled = true;
+  if (!user.email) { msg('pw-msg', 'This account has no email address to send a reset link to.'); return; }
+  if (resetSending) return;
+  // Busy, not disabled: a disabled button would drop the focus out of the sheet.
+  resetSending = true; btn.setAttribute('aria-busy', 'true');
   try {
-    const [{ sendPasswordResetEmail }, { firebaseAuth }] = await Promise.all([
-      import('../shared/vendor/firebase/firebase-auth.js'),
-      import('../shared/js/backend/providers/firebase/firebaseConfig.js'),
-    ]);
-    await sendPasswordResetEmail(firebaseAuth, user.email);
-    pwMsg(`We've sent a reset link to ${user.email}.`, 'ok');
+    await authService.sendPasswordResetEmail(user.email);
+    msg('pw-msg', `We've sent a reset link to ${user.email}.`, 'ok');
   } catch (err) {
-    pwMsg(/too-many-requests/.test(String(err?.code || ''))
-      ? 'Too many requests. Wait a few minutes and try again.'
-      : 'Could not send the reset link. Try again.');
+    msg('pw-msg', resetError(err));
   } finally {
-    btn.disabled = false;
+    resetSending = false; btn.removeAttribute('aria-busy');
   }
 });
 
-/* ── Dark mode (this device; themeManager owns pref_theme) ─────────────── */
-const themeToggle = $('toggle-theme');
-themeToggle.checked = (localStorage.getItem('pref_theme') || 'Light').toLowerCase() === 'dark';
-themeToggle.addEventListener('change', () => {
-  const value = themeToggle.checked ? 'Dark' : 'Light';
-  if (typeof window.applyTheme === 'function') window.applyTheme(value);
-  else { try { localStorage.setItem('pref_theme', value); } catch (_) {} }
-});
-
 /* ── Sign out ──────────────────────────────────────────────────────────── */
-$('signout-row').addEventListener('click', () => openSheet('signout-sheet'));
+$('signout-row').addEventListener('click', () => open('signout-sheet'));
 $('signout-confirm').addEventListener('click', async () => {
   const btn = $('signout-confirm');
   btn.disabled = true; btn.textContent = 'Signing out…'; sheetBusy = true;
   try {
     const { services: { sessionService } } = getAppContainer();
     await sessionService.logout();
-  } catch (_) {}
+  } catch (_) { /* the session is cleared below either way */ }
   window.location.replace('login.html');
 });
 
@@ -703,13 +479,8 @@ $('signout-confirm').addEventListener('click', async () => {
  * or work is outstanding, needs a sign-in from the last few minutes, erases the
  * profile's personal data, keeps financial and identity records, and deletes
  * the login last. This sheet asks it first, explains, then re-authenticates. */
-const closeBody  = $('close-body');
-const closeActs  = $('close-actions');
-const closeText  = $('close-confirm-text');
-const closePass  = $('close-password');
-const closeBtn   = $('close-confirm');
-const closeErr   = $('close-error');
-
+const closeBody = $('close-body'), closeActs = $('close-actions');
+const closeText = $('close-confirm-text'), closePass = $('close-password'), closeBtn = $('close-confirm');
 async function callable(name) {
   const [{ httpsCallable }, { firebaseFunctions }] = await Promise.all([
     import('../shared/vendor/firebase/firebase-functions.js'),
@@ -717,52 +488,58 @@ async function callable(name) {
   ]);
   return httpsCallable(firebaseFunctions, name);
 }
-
+function closeParagraphs(lines) {
+  closeBody.textContent = '';
+  for (const l of lines) {
+    if (Array.isArray(l)) {
+      const ul = document.createElement('ul'); ul.className = 'fx-acct__list';
+      for (const item of l) { const li = document.createElement('li'); li.textContent = item; ul.appendChild(li); }
+      closeBody.appendChild(ul);
+    } else { const p = document.createElement('p'); p.textContent = l; closeBody.appendChild(p); }
+  }
+}
 $('close-row').addEventListener('click', async () => {
-  closeActs.hidden = true; closeText.value = ''; closePass.value = ''; closeErr.textContent = '';
+  closeActs.hidden = true; closeBtn.hidden = true; closeText.value = ''; closePass.value = ''; msg('close-error', '');
   closeBtn.disabled = true; closeBtn.textContent = 'Close my account';
-  closeBody.innerHTML = '<p class="st-sheet-sub">Checking your account…</p>';
-  openSheet('close-sheet');
+  closeParagraphs(['Checking your account…']);
+  open('close-sheet');
   try {
     const { data } = await (await callable('checkAccountDeletable'))({});
     if (!data.deletable) {
-      closeBody.innerHTML = '<p class="st-sheet-sub">Your account can\'t be closed yet:</p>' +
-        (data.blockers || []).map(b => `<p class="st-sheet-sub">• ${esc(b.message)}</p>`).join('');
+      closeParagraphs(["Your account can't be closed yet:", closeBlockers(data.blockers)]);
       return;
     }
-    closeBody.innerHTML =
-      '<p class="st-sheet-sub">Your name, contact details, photo and location are removed from your profile, you stop receiving jobs, and you can no longer sign in.</p>' +
-      '<p class="st-sheet-sub">Kept: your payment and payout history, the jobs and reviews in your customers\' records, and the identity documents you submitted for verification (visible only to Fidus X administrators).</p>';
+    closeParagraphs([
+      'Your name, contact details, photo and location are removed from your profile, you stop receiving jobs, and you can no longer sign in.',
+      "Kept: your payment and payout history, the jobs and reviews in your customers' records, and the identity documents you submitted for verification (visible only to Fidus X administrators).",
+    ]);
     $('close-password-field').hidden = !usesPassword;
-    closeActs.hidden = false;
+    closeActs.hidden = false; closeBtn.hidden = false;
   } catch (err) {
-    closeBody.innerHTML = '<p class="st-sheet-sub">Could not check your account. Check your connection and try again.</p>';
+    closeParagraphs(['Could not check your account. Check your connection and try again.']);
   }
 });
-const readyToClose = () => closeText.value.trim().toUpperCase() === 'CLOSE' && (!usesPassword || closePass.value.length > 0);
-closeText.addEventListener('input', () => { closeBtn.disabled = !readyToClose(); });
-closePass.addEventListener('input', () => { closeBtn.disabled = !readyToClose(); });
-
+const canClose = () => readyToClose({ typed: closeText.value, password: closePass.value, usesPassword });
+closeText.addEventListener('input', () => { closeBtn.disabled = !canClose(); });
+closePass.addEventListener('input', () => { closeBtn.disabled = !canClose(); });
 closeBtn.addEventListener('click', async () => {
-  if (!readyToClose()) return;
-  closeBtn.disabled = true; closeBtn.textContent = 'Closing…'; closeErr.textContent = ''; sheetBusy = true;
+  if (!canClose() || sheetBusy) return;
+  closeBtn.disabled = true; closeBtn.textContent = 'Closing…'; msg('close-error', ''); sheetBusy = true;
   try {
-    if (typeof authService.reauthenticate !== 'function') throw new Error('Sign-in check is not available here.');
+    if (typeof authService.reauthenticate !== 'function') throw Object.assign(new Error('no reauth'), { code: 'unavailable' });
     await authService.reauthenticate(usesPassword ? closePass.value : undefined);
     await (await callable('requestAccountDeletion'))({});
     try { await authService.signOut(); } catch (_) { /* the login no longer exists */ }
     window.location.replace('login.html?closed=1');
   } catch (err) {
-    const code = String(err?.code || '');
-    closeErr.textContent = /wrong-password|invalid-credential/.test(code) ? 'That password is not right.'
-      : /popup-closed|cancelled-popup/.test(code) ? 'Sign-in was cancelled. Your account is unchanged.'
-      : (err?.message || 'Your account was not closed. Try again.');
+    const reasons = closeBlockers(err);
+    msg('close-error', reasons.length ? `Your account was not closed: ${reasons.join(' ')}` : closeError(err));
     closeBtn.disabled = false; closeBtn.textContent = 'Close my account'; sheetBusy = false;
   }
 });
 
 /* ── First paint, then live ───────────────────────────────────────────── */
-function renderAll() { renderIdentity(); renderKyc(); renderPush(); renderPhone(); if (!radiusSaving) $('radius-value').textContent = `${effectiveRadius()} km`; }
+function renderAll() { renderIdentity(); renderKyc(); renderPush(); renderPhone(); if (!radiusSaving) $('radius-value').textContent = `${effectiveRadius(state)} km`; }
 renderAll();
 renderPayout();
 const unsub = databaseService.subscribeToDocument('artisans', user.uid, (snap) => {
@@ -772,6 +549,7 @@ const unsub = databaseService.subscribeToDocument('artisans', user.uid, (snap) =
 }, () => { /* offline: the painted values stay */ });
 window.addEventListener('pagehide', () => { try { unsub && unsub(); } catch (_) {} }, { once: true });
 </script>
+<!-- The liveness heartbeat on every artisan page (it draws no bar here: the page has its own). -->
 <script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>
 </body>

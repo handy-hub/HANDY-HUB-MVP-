@@ -216,7 +216,8 @@ console.log('\n── Where Reputation lives: under Account ──\n');
 
 await t('Account links to Reputation; the nav lights Account on it and on the two pages that forward to it', () => {
     const settings = read('artisan-app/settings.html');
-    assert.match(settings, /<a href="reputation\.html" class="st-row" id="reputation-row">[\s\S]*?<span class="st-title">Reputation<\/span>/);
+    // Phase 5: Account is on the design system (an fx row in "Your work").
+    assert.match(settings, /<a class="fx-row" href="reputation\.html" id="reputation-row">[\s\S]*?<span class="fx-row__title">Reputation<\/span>/);
     const nav = read('artisan-app/js/artisanFloatingNav.js');
     for (const pg of ['reputation.html', 'performance.html', 'reviews.html']) {
         assert.match(nav, new RegExp(`'${pg.replace('.', '\\.')}'\\s*: 'account'`), pg);

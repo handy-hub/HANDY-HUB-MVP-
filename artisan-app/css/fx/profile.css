@@ -1,0 +1,39 @@
+/* artisan-app/css/fx/profile.css — the professional profile (Phase 5).
+   Tokens only (npm run lint:fx). What customers see, the facts they judge by,
+   what the artisan can change here and what is verified. */
+
+.fx-prof__hero { display: grid; justify-items: center; gap: var(--fx-space-2); padding: var(--fx-space-6) var(--fx-gutter) var(--fx-space-2); text-align: center; }
+.fx-prof__avatar { width: calc(var(--fx-avatar-l) * 1.5); height: calc(var(--fx-avatar-l) * 1.5); background: var(--fx-ink); color: var(--fx-on-ink); font: var(--fx-t-title); }
+.fx-prof__avatar > img { width: 100%; height: 100%; object-fit: cover; }
+.fx-prof__avatar > img[hidden], .fx-prof__avatar > span[hidden] { display: none; }
+.fx-prof__name { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--fx-space-2); margin: var(--fx-space-2) 0 0; font: var(--fx-t-title); letter-spacing: var(--fx-track-title); color: var(--fx-ink); }
+.fx-prof__trade, .fx-prof__area { margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink-2); }
+.fx-prof__area[hidden], .fx-prof__note[hidden] { display: none; }
+.fx-prof__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--fx-space-2); margin-top: var(--fx-space-2); }
+
+/* The three facts customers judge by. */
+.fx-prof__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: var(--fx-space-6) var(--fx-gutter) 0; border: var(--fx-hairline) solid var(--fx-line); border-radius: var(--fx-r-control); }
+.fx-prof__fact { display: grid; align-content: center; justify-items: center; gap: var(--fx-space-h); min-height: var(--fx-row); padding: var(--fx-space-3) var(--fx-space-2); color: inherit; text-align: center; text-decoration: none; }
+.fx-prof__fact + .fx-prof__fact { border-left: var(--fx-hairline) solid var(--fx-line); }
+a.fx-prof__fact:active { background: var(--fx-well); }
+.fx-prof__fact-v { font: var(--fx-t-heading); color: var(--fx-ink); font-variant-numeric: tabular-nums; }
+.fx-prof__fact-k { font: var(--fx-t-meta); color: var(--fx-ink-3); overflow-wrap: anywhere; }
+
+.fx-prof__notices { display: grid; gap: var(--fx-space-3); margin: var(--fx-space-6) var(--fx-gutter) 0; }
+.fx-prof__notices:empty { display: none; }
+.fx-prof__rail { margin-top: var(--fx-space-2); }
+.fx-prof__about { margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink); white-space: pre-line; overflow-wrap: break-word; }
+.fx-prof__about[hidden], .fx-prof__empty[hidden] { display: none; }
+.fx-prof__empty { margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink-2); }
+.fx-prof__chips { display: flex; flex-wrap: wrap; gap: var(--fx-space-2); }
+
+/* In the sheets: fields, the verified claims, messages. */
+.fx-prof__form { display: grid; gap: var(--fx-space-4); }
+.fx-prof__form .fx-field + .fx-field { margin-top: var(--fx-space-0); }
+.fx-prof__form [hidden] { display: none; }
+.fx-prof__verified { display: grid; gap: var(--fx-space-2); padding: var(--fx-space-3) var(--fx-space-4); border-radius: var(--fx-r-control); background: var(--fx-well); font: var(--fx-t-body); color: var(--fx-ink-2); }
+.fx-prof__verified > p { margin: var(--fx-space-0); }
+.fx-prof__verified strong { color: var(--fx-ink); }
+.fx-prof__msg { margin: var(--fx-space-0); font: var(--fx-t-meta); color: var(--fx-bad); }
+.fx-prof__msg:empty { display: none; }
+.fx-prof__count { font: var(--fx-t-meta); color: var(--fx-ink-3); }

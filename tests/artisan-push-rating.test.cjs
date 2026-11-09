@@ -38,9 +38,14 @@ async function t(name, fn) {
 console.log('\n── IX-01 · the push switch says what this device will receive ──\n');
 
 const settings = page('settings.html');
-/** settings.html's own push block, from DEVICE_LINE to renderPush, over stubs. */
+// Phase 5: the words and the rule live in artisan-app/js/account.js (pushView,
+// savedPush); the page's block applies them. Both run here: the page's own
+// renderPush / describeDevice, over stubs, calling the real module.
+const { pathToFileURL } = require('url');
+let account = null;
+/** settings.html's own push block, from its state to renderPush, over stubs. */
 function pushBlock({ saved, device }) {
-    const start = settings.indexOf('const DEVICE_LINE = {');
+    const start = settings.indexOf('let pushPref = true, pushSaving = false;');
     const end   = settings.indexOf("notifToggle.addEventListener('change'", start);
     assert.ok(start > 0 && end > start, 'push block not found');
     const src = settings.slice(start, end)
@@ -50,13 +55,12 @@ function pushBlock({ saved, device }) {
     const state = { notificationPreferences: saved === undefined ? undefined : { push: saved } };
     const before = JSON.stringify(state);
     // eslint-disable-next-line no-new-func
-    const run = new Function('notifToggle', 'notifSub', 'state', 'pushSvc', `
-        let pushPref = true, pushSaving = false;
-        const savedPush = () => !(state.notificationPreferences && state.notificationPreferences.push === false);
+    const run = new Function('notifToggle', 'notifSub', 'state', 'pushSvc', 'pushView', 'savedPush', `
         ${src}
-        return { renderPush, describeDevice };`)(notifToggle, notifSub, state, { getPushState: () => device });
+        return { renderPush, describeDevice };`)(notifToggle, notifSub, state, { getPushState: () => device }, account.pushView, account.savedPush);
     return { run, notifToggle, notifSub, unchanged: () => JSON.stringify(state) === before };
 }
+account = await import(pathToFileURL(path.join(ROOT, 'artisan-app', 'js', 'account.js')).href);
 const settle = () => new Promise((r) => setImmediate(r));
 
 await t('preference on, browser blocked: the switch is off and says why', async () => {

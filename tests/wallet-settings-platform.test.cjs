@@ -267,12 +267,18 @@ await t('push on (or never set): pushes as before', async () => {
     assert.strictEqual(fake.messaging.sent.length, 1);
 });
 
-await t('Settings saves the preference to the profile, and separates it from device permission', () => {
+// Phase 5: Account (settings.html) decides through artisan-app/js/account.js;
+// these run that module and check the page's wiring.
+const accountJs = () => import(require('url').pathToFileURL(path.join(ROOT, 'artisan-app/js/account.js')).href);
+
+await t('Settings saves the preference to the profile, and separates it from device permission', async () => {
     const s = read('artisan-app/settings.html');
-    assert.match(s, /notificationPreferences: \{ push: want, updatedAt: n \}/);
+    const a = await accountJs();
+    assert.deepStrictEqual(a.pushPatch(true, 'n'), { notificationPreferences: { push: true, updatedAt: 'n' }, updatedAt: 'n' });
+    assert.match(s, /const patch = pushPatch\(want, n\);\s*await databaseService\.updateDocument\('artisans', user\.uid, patch\);/);
     assert.ok(!/localStorage\.setItem\('artisan_pref_notifications'/.test(s), 'the old browser-only save is gone');
     assert.match(s, /enablePushNotifications\(user\.uid, 'artisan'\)/);
-    assert.match(s, /blocked:\s+'Blocked by this browser/);
+    assert.match(a.DEVICE_LINE.blocked, /^Blocked by this browser/);
 });
 
 console.log('\n── AR-15 · closing an artisan account ──\n');
@@ -382,12 +388,14 @@ await t('Settings asks the server first and re-authenticates before closing', ()
 
 console.log('\n── Settings · what an artisan sees, and what each control really does ──\n');
 
-await t('job radius reads and writes the field dispatch uses, within what dispatch honours', () => {
+await t('job radius reads and writes the field dispatch uses, within what dispatch honours', async () => {
     const s = read('artisan-app/settings.html');
-    assert.ok(!/jobRadius/.test(s), 'jobRadius was never written by anything; the row always showed 10 km');
-    assert.match(s, /updateDocument\('artisans', user\.uid, patch\)/);
-    assert.match(s, /const patch = \{ workRadius: v, updatedAt: n \}/);
-    assert.match(s, /RADIUS_CHOICES = \[5, 10, 15, 20, 25\]/);
+    const a = await accountJs();
+    assert.ok(!/jobRadius/.test(s + read('artisan-app/js/account.js')), 'jobRadius was never written by anything; the row always showed 10 km');
+    assert.match(s, /const patch = radiusPatch\(v, n\);\s*await databaseService\.updateDocument\('artisans', user\.uid, patch\);/);
+    assert.deepStrictEqual(a.radiusPatch(15, 'n'), { workRadius: 15, updatedAt: 'n' });
+    assert.deepStrictEqual([...a.RADIUS_CHOICES], [5, 10, 15, 20, 25]);
+    assert.strictEqual(a.effectiveRadius({ workRadius: 100 }), 25, 'what is shown is what dispatch applies');
     assert.match(read('functions/dispatch.js'), /25_000/, 'Settings caps at the dispatch search radius');
     assert.match(read('functions/dispatch.js'), /a\.workRadius \|\| 20/);
     // The radius check is a clause of the artisans owner-update rule (not
@@ -398,16 +406,20 @@ await t('job radius reads and writes the field dispatch uses, within what dispat
     assert.match(rules, /function isValidArtisanWorkRadius\(\) \{[\s\S]*?incoming\(\)\.workRadius >= 1 && incoming\(\)\.workRadius <= 100\);/);
 });
 
-await t('verification is a status for an approved artisan, not a link into onboarding', () => {
+await t('verification is a status for an approved artisan, not a link into onboarding', async () => {
     const s = read('artisan-app/settings.html');
-    assert.match(s, /approved:\s+\{ value: 'Verified',\s+tone: 'ok',.*link: false \}/);
+    const a = await accountJs();
+    assert.deepStrictEqual({ ...a.verificationView('approved') }, { value: 'Verified', tone: 'ok', sub: 'Your documents are approved', link: false });
+    assert.match(s, /if \(k\.link\) row\.setAttribute\('href', 'onboarding\.html'\);\s*else row\.removeAttribute\('href'\);/);
     assert.match(read('artisan-app/onboarding.html'), /verificationStatus === 'approved'\) \{\s*window\.location\.href = 'dashboard\.html'/,
         'onboarding bounces approved accounts, which is why the row must not link there');
 });
 
-await t('the payout account is shown masked and never edited from Settings', () => {
+await t('the payout account is shown masked and never edited from Settings', async () => {
     const s = read('artisan-app/settings.html');
-    assert.match(s, /digits\.slice\(-4\)/);
+    const a = await accountJs();
+    assert.strictEqual(a.payoutLine({ payoutAccount: { provider: 'mtn', phone: '0241234567' } }), 'MTN •••4567');
+    assert.match(s, /payoutLine\(kyc && kyc\.exists \? kyc\.data : null\)/);
     // The payout record (private/kyc) is never written from Settings; the only
     // private write is the phone, to private/contact (CONTACT-001).
     assert.ok(!/(update|set)Document\(`artisans\/\$\{user\.uid\}\/private`,\s*'kyc'/.test(s), 'Settings writes private/kyc');
@@ -451,11 +463,15 @@ await t('Profile is the professional profile; account controls have one home, in
         ['email or phone editing', /type="email"|type="tel"|field-email|field-phone|phone:\s/],
         ['settings menu rows', /pf2-row|menuRow\(/],
     ]) assert.ok(!re.test(code), `Profile still has ${what}`);
-    assert.match(pf, /href="settings\.html" aria-label="Settings"/, 'one way to Settings');
+    // Phase 5: Profile is a screen under Account; its back button is the way there.
+    assert.match(pf, /<a class="fx-iconbtn" href="settings\.html" aria-label="Back to Account">/, 'one way to Account (Settings)');
+    assert.strictEqual((pf.match(/href="settings\.html"/g) || []).length, 1, 'and only one');
     assert.match(pf, /if \(!locked\) \{\s*updates\.name/, 'verified claims written only while editable');
     const st = read('artisan-app/settings.html');
     assert.match(st, /id="phone-row"/);
-    assert.match(st, /const patch = \{ artisanId: user\.uid, phone: raw, updatedAt: new Date\(\)\.toISOString\(\) \}/);
+    // Phase 5: the patch is account.js contactPatch — the owner's id and the
+    // number normalised as the server stores it (tests/artisan-account.test.cjs).
+    assert.match(st, /const patch = contactPatch\(user\.uid, raw, new Date\(\)\.toISOString\(\)\);/);
     assert.match(st, /databaseService\.setDocument\(`artisans\/\$\{user\.uid\}\/private`, 'contact', patch, \{ merge: true \}\)/);
     assert.match(read('artisan-app/dashboard.html'), /profile\.html\?edit=area/, 'Edit Area opens the service area');
 });

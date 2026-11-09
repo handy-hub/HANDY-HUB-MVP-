@@ -122,8 +122,9 @@ const UID = 'art_1';
     });
 
     await t('the radius choices are Settings\' choices, and none is beyond dispatch\'s 25 km net', () => {
-        const settings = read('artisan-app/settings.html');
-        assert.match(settings, /const RADIUS_CHOICES = \[5, 10, 15, 20, 25\];/);
+        // Account (settings.html) imports this very list through js/account.js.
+        assert.match(read('artisan-app/js/account.js'), /import \{ RADIUS_CHOICES \} from '\.\/onboarding\.js';/);
+        assert.match(read('artisan-app/settings.html'), /RADIUS_CHOICES, DISPATCH_MAX_KM,[\s\S]*?from '\.\/js\/account\.js';/);
         assert.deepStrictEqual([...ob.RADIUS_CHOICES], [5, 10, 15, 20, 25]);
         assert.match(read('functions/dispatch.js'), /25 km cast net/);
         assert.strictEqual(ob.radiusChoice(100), 25, 'a stored 100 km becomes the widest real choice');

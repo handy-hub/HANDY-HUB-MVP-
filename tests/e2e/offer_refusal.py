@@ -321,13 +321,14 @@ with sync_playwright() as pw:
     check('Today: no page errors', not errs, errs[:3])
     pg.context.close()
 
-    # ═══ NAV on a legacy screen (settings.html) ═══════════════════════════════
+    # ═══ NAV on a legacy screen (support.html) ═══════════════════════════════
     # The four tabs on a screen not yet on the design system (artisanFloatingNav.js).
-    # (wallet.html was this screen until Phase 4 moved Earnings onto the system;
-    # tests/e2e/artisan_earnings.py checks its own tab bar and the heartbeat.)
-    pg, errs = open_page(b, '/artisan-app/settings.html')
+    # (wallet.html was this screen until Phase 4 moved Earnings onto the system,
+    # and settings.html until Phase 5 moved Account; tests/e2e/artisan_earnings.py
+    # and tests/e2e/artisan_account.py check their own tab bars and the heartbeat.)
+    pg, errs = open_page(b, '/artisan-app/support.html')
     pg.wait_for_selector('#fx-tabbar .fx-tab', timeout=8000)
-    check('nav (settings.html): the four tabs, Account current, fixed at the bottom with room left for it',
+    check('nav (support.html): the four tabs, Account current, fixed at the bottom with room left for it',
           pg.eval_on_selector_all('#fx-tabbar .fx-tab', 'els => els.map(e => [e.textContent.trim(), e.getAttribute("href")])')
           == [['Today', 'dashboard.html'], ['Jobs', 'jobs.html'], ['Earnings', 'wallet.html'], ['Account', 'settings.html']]
           and text_of(pg, '#fx-tabbar [aria-current="page"]') == 'Account'

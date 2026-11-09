@@ -2,257 +2,174 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="../shared/js/utils/themeManager.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>My Profile | Fidus X Artisan</title>
-  <link rel="stylesheet" href="css/design-system.css" />
+  <title>Profile | Fidus X for professionals</title>
+  <script src="../shared/js/utils/themeManager.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../shared/css/ui-polish.css" />
-  <style>
-    /* A professional profile: who the artisan is, what they do, where they
-       work and what customers read about them. Account controls live in
-       Settings (one gear, top right) — nothing here is a settings row. */
-    body { margin: 0; background: var(--ds-bg); font-family: var(--ds-font);
-           -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-
-    .pf-header { display:flex; align-items:center; gap:var(--ds-2); min-height:56px;
-      padding:var(--ds-2) var(--ds-gutter); background:var(--ds-bg); position:sticky; top:0; z-index:10; }
-    .pf-header h1 { margin:0; flex:1; font:800 18px/1 var(--ds-font); letter-spacing:-0.3px; color:var(--ds-ink); }
-    .pf-header .ds-iconbtn { width:44px; height:44px; margin-right:calc(-1 * var(--ds-2)); color:var(--ds-ink-2); }   /* a link: not UA blue */
-
-    /* ── Identity ─────────────────────────────────────────────────────── */
-    .pf-hero { display:flex; flex-direction:column; align-items:center; text-align:center;
-      padding:var(--ds-4) var(--ds-gutter) var(--ds-2); }
-    .pf-av-wrap { position:relative; width:96px; height:96px; }
-    .pf-av { width:96px; height:96px; border-radius:var(--ds-r-pill); object-fit:cover; display:block;
-      background:var(--ds-surface-2); box-shadow:0 0 0 4px var(--ds-surface); }
-    /* No photo yet: initials in the artisan palette (the shared fallback
-       reads the customer --ui-primary, maroon). */
-    .pf-initials { position:absolute; inset:0; border-radius:var(--ds-r-pill); display:flex; align-items:center; justify-content:center;
-      background:var(--ds-brand-50); color:var(--ds-brand-text); font:800 32px/1 var(--ds-font); letter-spacing:-0.5px;
-      box-shadow:0 0 0 4px var(--ds-surface); }
-    .pf-initials[hidden], .pf-av[hidden] { display:none; }
-    .pf-cam { position:absolute; right:-2px; bottom:-2px; width:34px; height:34px; padding:0; cursor:pointer;
-      border-radius:var(--ds-r-pill); border:3px solid var(--ds-bg); background:var(--ds-ink); color:var(--ds-bg);
-      display:flex; align-items:center; justify-content:center; }
-    .pf-cam svg { width:15px; height:15px; }
-    .pf-cam:disabled { opacity:.5; cursor:default; }
-    .pf-cam:focus-visible { outline:2px solid var(--ds-brand-text); outline-offset:2px; }
-    .pf-name { margin:var(--ds-4) 0 0; display:flex; align-items:center; justify-content:center; gap:6px; max-width:100%;
-      font:800 22px/1.2 var(--ds-font); letter-spacing:-0.4px; color:var(--ds-ink); }
-    /* The full name matters most here: wrap to two lines rather than cut it. */
-    .pf-name-text { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
-    .pf-tick { width:20px; height:20px; flex-shrink:0; color:var(--ds-success); }
-    .pf-trade { margin:4px 0 0; font:600 15px/1.35 var(--ds-font); color:var(--ds-ink-2); }
-    .pf-area { margin:6px 0 0; display:flex; align-items:center; justify-content:center; gap:5px;
-      font:500 13px/1.4 var(--ds-font); color:var(--ds-ink-3); }
-    .pf-area svg { width:14px; height:14px; flex-shrink:0; }
-    .pf-edit-btn { margin-top:var(--ds-4); min-width:160px; }
-
-    /* ── Reputation: three facts, not a dashboard ─────────────────────── */
-    .pf-facts { display:grid; grid-template-columns:repeat(3, 1fr); margin:var(--ds-5) var(--ds-gutter) 0;
-      background:var(--ds-surface); border:1px solid var(--ds-line); border-radius:var(--ds-r-card); }
-    .pf-fact { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-      min-height:76px; padding:var(--ds-3) var(--ds-2); text-decoration:none; color:inherit; text-align:center; }
-    .pf-fact + .pf-fact { border-left:1px solid var(--ds-line); }
-    a.pf-fact:active { background:var(--ds-surface-2); }
-    a.pf-fact:focus-visible { outline:2px solid var(--ds-brand-text); outline-offset:-2px; border-radius:var(--ds-r-card); }
-    .pf-fact-val { font:800 19px/1 var(--ds-font); color:var(--ds-ink); font-variant-numeric:tabular-nums; }
-    .pf-fact-lbl { font:500 12px/1.3 var(--ds-font); color:var(--ds-ink-3); }
-
-    /* ── Notices (verification, completeness): one quiet line each ───── */
-    .pf-note { display:flex; align-items:center; gap:var(--ds-3); margin:var(--ds-3) var(--ds-gutter) 0;
-      padding:var(--ds-3) var(--ds-4); border-radius:var(--ds-r-card); background:var(--ds-surface); border:1px solid var(--ds-line); }
-    .pf-note.warn { background:var(--ds-warning-bg); border-color:transparent; }
-    .pf-note-body { flex:1; min-width:0; }
-    .pf-note-title { margin:0; font:700 14px/1.35 var(--ds-font); color:var(--ds-ink); }
-    .pf-note-sub { margin:2px 0 0; font:500 13px/1.45 var(--ds-font); color:var(--ds-ink-2); }
-    .pf-meter { height:6px; margin-top:var(--ds-2); border-radius:var(--ds-r-pill); background:var(--ds-surface-2); overflow:hidden; }
-    .pf-meter > span { display:block; height:100%; border-radius:inherit; background:var(--ds-brand-600); }
-
-    /* ── Sections ─────────────────────────────────────────────────────── */
-    .pf-sec { margin:var(--ds-6) var(--ds-gutter) 0; }
-    .pf-sec-title { margin:0 0 var(--ds-2); font:800 16px/1.3 var(--ds-font); letter-spacing:-0.2px; color:var(--ds-ink); }
-    .pf-about { margin:0; font:500 15px/1.6 var(--ds-font); color:var(--ds-ink-2); white-space:pre-line; overflow-wrap:anywhere; }
-    .pf-empty { margin:0; font:500 14px/1.5 var(--ds-font); color:var(--ds-ink-3); }
-    .pf-inline-link { padding:0; border:none; background:none; cursor:pointer; font:inherit; font-weight:700; color:var(--ds-brand-text);
-      min-height:44px; }
-    .pf-chips { display:flex; flex-wrap:wrap; gap:var(--ds-2); }
-    .pf-chip { display:inline-flex; align-items:center; min-height:32px; padding:0 var(--ds-3);
-      border-radius:var(--ds-r-pill); background:var(--ds-surface); border:1px solid var(--ds-line);
-      font:600 13px/1 var(--ds-font); color:var(--ds-ink-2); }
-    .pf-foot { height:calc(var(--ds-nav-h) + var(--ds-8, 40px)); }
-
-    /* ── Edit sheet ───────────────────────────────────────────────────── */
-    .pf-sheet-ov { position:fixed; inset:0; z-index:1900; display:flex; align-items:flex-end; justify-content:center;
-      background:var(--ui-overlay, rgba(15,18,22,0.5)); visibility:hidden; opacity:0;
-      transition:opacity var(--ds-t-base), visibility 0s linear var(--ds-t-base); }
-    .pf-sheet-ov.open { visibility:visible; opacity:1; transition:opacity var(--ds-t-base); }
-    .pf-sheet { width:100%; max-width:var(--ds-shell); max-height:90dvh; overflow-y:auto; box-sizing:border-box;
-      background:var(--ds-surface); border-radius:var(--ds-r-card) var(--ds-r-card) 0 0;
-      padding:var(--ds-3) var(--ds-5) max(var(--ds-5), env(safe-area-inset-bottom));
-      box-shadow:var(--ds-shadow-sheet); transform:translateY(100%); transition:transform var(--ds-t-slow) var(--ds-ease); }
-    .pf-sheet-ov.open .pf-sheet { transform:translateY(0); }
-    .pf-sheet:focus { outline:none; }
-    .pf-sheet-handle { width:38px; height:4px; margin:0 auto var(--ds-4); border-radius:var(--ds-r-pill); background:var(--ds-line-strong); }
-    .pf-sheet-title { margin:0 0 var(--ds-4); font:800 18px/1.25 var(--ds-font); color:var(--ds-ink); }
-    .pf-field { display:block; margin-bottom:var(--ds-4); }
-    .pf-field > span { display:flex; justify-content:space-between; gap:var(--ds-2); margin-bottom:var(--ds-1);
-      font:600 13px/1.3 var(--ds-font); color:var(--ds-ink-2); }
-    .pf-field small { font:500 12px/1.3 var(--ds-font); color:var(--ds-ink-3); }
-    .pf-field textarea.ds-input { height:auto; min-height:120px; padding:12px 14px; line-height:1.5; resize:vertical; font-family:inherit; }
-    .pf-verified { margin:0 0 var(--ds-4); padding:var(--ds-3) var(--ds-4); border-radius:var(--ds-r-control);
-      background:var(--ds-surface-2); font:500 13px/1.5 var(--ds-font); color:var(--ds-ink-2); }
-    .pf-verified strong { color:var(--ds-ink); font-weight:700; }
-    .pf-msg { margin:0 0 var(--ds-3); font:500 13px/1.45 var(--ds-font); }
-    .pf-msg.err { color:var(--ds-danger); }
-    .pf-msg.ok  { color:var(--ds-success); }
-    .pf-msg:empty { display:none; }
-    .pf-actions { display:flex; flex-direction:column; gap:var(--ds-2); }
-    .pf-field[hidden], .pf-verified[hidden], .pf-inline-link[hidden], .pf-tick[hidden] { display:none; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .pf-sheet-ov, .pf-sheet-ov.open, .pf-sheet { transition:none; }
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/profile.css" />
 </head>
-<body>
-<div class="ds-shell">
-  <div class="ds-scroll">
+<body class="fx-app">
+<a class="fx-skip" href="#pf-main">Skip to content</a>
+<div class="fx-shell">
+  <!-- The professional profile: what customers see. The artisan changes their
+       photo, introduction, service area and experience here at any time; their
+       name and trade are verified claims, changed only by request once an
+       application is sent (firestore.rules isSafeArtisanClaimUpdate). Account
+       details (phone, email, password, payout) live in Account. -->
+  <header class="fx-appbar fx-appbar--push">
+    <a class="fx-iconbtn" href="settings.html" aria-label="Back to Account"><span data-icon="back"></span></a>
+    <div class="fx-appbar__titles"><p class="fx-appbar__title">Profile</p></div>
+  </header>
 
-    <div class="pf-header">
-      <h1>Profile</h1>
-      <a class="ds-iconbtn" href="settings.html" aria-label="Settings">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </a>
-    </div>
-
-    <!-- Who they are -->
-    <section class="pf-hero" aria-labelledby="pf-name">
-      <div class="pf-av-wrap">
-        <img id="pf-avatar" class="pf-av" alt="" hidden />
-        <span class="pf-initials" id="pf-initials" aria-hidden="true"></span>
-        <button id="pf-cam" class="pf-cam" type="button" aria-label="Change profile photo">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/></svg>
-        </button>
-        <input type="file" id="pf-file" accept="image/*" hidden />
+  <main class="fx-main" id="pf-main" tabindex="-1">
+    <section class="fx-prof__hero" aria-labelledby="pf-name">
+      <span class="fx-avatar fx-prof__avatar"><img id="pf-avatar" alt="" hidden /><span id="pf-initials" aria-hidden="true"></span></span>
+      <input type="file" id="pf-file" accept="image/*" hidden />
+      <h1 class="fx-prof__name" id="pf-name"><span id="pf-name-text"></span> <span class="fx-chip fx-chip--ok" id="pf-tick" hidden>Verified</span></h1>
+      <p class="fx-prof__trade" id="pf-trade"></p>
+      <p class="fx-prof__area" id="pf-area" hidden><span id="pf-area-text"></span></p>
+      <div class="fx-prof__actions">
+        <button class="fx-btn fx-btn--secondary" id="pf-edit" type="button" aria-haspopup="dialog">Edit profile</button>
+        <button class="fx-btn fx-btn--secondary" id="pf-cam" type="button">Change photo</button>
       </div>
-      <h2 class="pf-name" id="pf-name"><span class="pf-name-text" id="pf-name-text"></span><svg class="pf-tick" id="pf-tick" viewBox="0 0 24 24" fill="none" role="img" aria-label="Verified" hidden><path d="M12 2l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 22l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2Z" fill="currentColor"/><path d="M8.5 12.2l2.3 2.3 4.7-4.8" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></h2>
-      <p class="pf-trade" id="pf-trade"></p>
-      <p class="pf-area" id="pf-area" hidden>
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>
-        <span id="pf-area-text"></span>
-      </p>
-      <button class="ds-btn ds-btn--secondary ds-btn--sm pf-edit-btn" id="pf-edit" type="button" aria-haspopup="dialog">Edit profile</button>
     </section>
 
     <!-- What customers judge them by -->
-    <div class="pf-facts" role="list">
-      <a class="pf-fact" href="reviews.html" role="listitem" aria-describedby="pf-rating-lbl">
-        <span class="pf-fact-val" id="pf-rating"></span><span class="pf-fact-lbl" id="pf-rating-lbl"></span>
+    <div class="fx-prof__facts" role="list">
+      <a class="fx-prof__fact" href="reputation.html#reviews" role="listitem" aria-describedby="pf-rating-lbl">
+        <span class="fx-prof__fact-v" id="pf-rating"></span><span class="fx-prof__fact-k" id="pf-rating-lbl"></span>
       </a>
-      <div class="pf-fact" role="listitem">
-        <span class="pf-fact-val" id="pf-jobs"></span><span class="pf-fact-lbl">Jobs completed</span>
+      <div class="fx-prof__fact" role="listitem">
+        <span class="fx-prof__fact-v" id="pf-jobs"></span><span class="fx-prof__fact-k">Jobs completed</span>
       </div>
-      <div class="pf-fact" role="listitem">
-        <span class="pf-fact-val" id="pf-years"></span><span class="pf-fact-lbl">Experience</span>
+      <div class="fx-prof__fact" role="listitem">
+        <span class="fx-prof__fact-v" id="pf-years"></span><span class="fx-prof__fact-k">Experience</span>
       </div>
     </div>
 
     <!-- Only when there is something to do -->
-    <div id="pf-notices"></div>
+    <div class="fx-prof__notices" id="pf-notices"></div>
 
-    <section class="pf-sec" aria-labelledby="pf-about-title">
-      <h3 class="pf-sec-title" id="pf-about-title">About</h3>
-      <p class="pf-about" id="pf-about"></p>
-      <p class="pf-empty" id="pf-about-empty" hidden>Customers read this before they book.
-        <button class="pf-inline-link" type="button" data-edit="bio">Add an introduction</button></p>
+    <section class="fx-sect" aria-labelledby="pf-about-title">
+      <div class="fx-sect__head"><h2 class="fx-sect__title" id="pf-about-title">About</h2></div>
+      <div class="fx-sect__body">
+        <p class="fx-prof__about" id="pf-about"></p>
+        <p class="fx-prof__empty" id="pf-about-empty" hidden>Customers read this before they book.
+          <button class="fx-btn fx-btn--tertiary" type="button" data-edit="bio">Add an introduction</button></p>
+      </div>
     </section>
 
-    <section class="pf-sec" aria-labelledby="pf-svc-title" id="pf-svc" hidden>
-      <h3 class="pf-sec-title" id="pf-svc-title">Services</h3>
-      <div class="pf-chips" id="pf-chips"></div>
+    <section class="fx-sect" aria-labelledby="pf-svc-title" id="pf-svc" hidden>
+      <div class="fx-sect__head"><h2 class="fx-sect__title" id="pf-svc-title">Services</h2></div>
+      <div class="fx-sect__body"><div class="fx-prof__chips" id="pf-chips"></div></div>
     </section>
+  </main>
 
-    <div class="pf-foot"></div>
+  <div class="fx-bottom">
+    <nav class="fx-tabbar" aria-label="Main" id="tabbar"></nav>
   </div>
 </div>
 
-<!-- Edit professional profile -->
-<div class="pf-sheet-ov" id="edit-sheet">
-  <form class="pf-sheet" id="edit-form" role="dialog" aria-modal="true" aria-labelledby="edit-title" tabindex="-1" novalidate>
-    <div class="pf-sheet-handle" aria-hidden="true"></div>
-    <p class="pf-sheet-title" id="edit-title">Edit profile</p>
-
-    <!-- Verified claims: editable only before an application is submitted
-         (firestore.rules isSafeArtisanClaimUpdate); afterwards, by request. -->
-    <label class="pf-field" id="ed-name-field"><span>Full name</span>
-      <input class="ds-input" id="ed-name" type="text" autocomplete="name" maxlength="80" /></label>
-    <label class="pf-field" id="ed-specialty-field"><span>Specialty</span>
-      <input class="ds-input" id="ed-specialty" type="text" maxlength="60" placeholder="e.g. Plumber" /></label>
-    <p class="pf-verified" id="ed-verified" hidden></p>
-
-    <label class="pf-field"><span>About you <small id="ed-bio-count"></small></span>
-      <textarea class="ds-input" id="ed-bio" maxlength="600" placeholder="Your experience, the work you take on, and what customers can expect."></textarea></label>
-    <label class="pf-field"><span>Service area</span>
-      <input class="ds-input" id="ed-location" type="text" maxlength="80" autocomplete="address-level2" placeholder="e.g. Madina, Accra" /></label>
-    <label class="pf-field"><span>Years of experience</span>
-      <input class="ds-input" id="ed-years" type="number" inputmode="numeric" min="0" max="60" step="1" /></label>
-
-    <p class="pf-msg" id="ed-msg" role="alert"></p>
-    <div class="pf-actions">
-      <button class="ds-btn ds-btn--primary ds-btn--block" type="submit" id="ed-save">Save</button>
-      <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" data-close>Cancel</button>
-    </div>
-  </form>
+<!-- Edit the professional profile -->
+<div class="fx-overlay" id="edit-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet fx-sheet--tall" role="dialog" aria-modal="true" aria-labelledby="edit-title" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="edit-title">Edit profile</h2></header>
+    <form class="fx-sheet__body fx-prof__form" id="edit-form" novalidate>
+      <!-- Verified claims: editable only before an application is sent
+           (firestore.rules isSafeArtisanClaimUpdate); afterwards, by request. -->
+      <div class="fx-field" id="ed-name-field">
+        <label class="fx-field__label" for="ed-name">Full name</label>
+        <input class="fx-input" id="ed-name" type="text" autocomplete="name" maxlength="80" aria-describedby="ed-name-hint" />
+        <p class="fx-field__hint" id="ed-name-hint">As on your Ghana Card. Fixed once you send your application.</p>
+      </div>
+      <div class="fx-field" id="ed-specialty-field">
+        <label class="fx-field__label" for="ed-specialty">Specialty</label>
+        <input class="fx-input" id="ed-specialty" type="text" maxlength="60" placeholder="e.g. Plumber" />
+      </div>
+      <div class="fx-prof__verified" id="ed-verified" hidden></div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="ed-bio">About you <span class="fx-prof__count" id="ed-bio-count"></span></label>
+        <textarea class="fx-input" id="ed-bio" maxlength="600" aria-describedby="ed-bio-hint" placeholder="Your experience, the work you take on, and what customers can expect."></textarea>
+        <p class="fx-field__hint" id="ed-bio-hint">Customers read this before they book.</p>
+      </div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="ed-location">Service area</label>
+        <input class="fx-input" id="ed-location" type="text" maxlength="80" autocomplete="address-level2" placeholder="e.g. Madina, Accra" aria-describedby="ed-location-hint" />
+        <p class="fx-field__hint" id="ed-location-hint">A place name customers recognise. Job requests are matched by your work location, set in your application.</p>
+      </div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="ed-years">Years of experience</label>
+        <input class="fx-input" id="ed-years" type="number" inputmode="numeric" min="0" max="60" step="1" />
+      </div>
+      <p class="fx-prof__msg" id="ed-msg" role="alert"></p>
+    </form>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close>Cancel</button>
+      <button class="fx-btn fx-btn--primary fx-btn--l" type="submit" form="edit-form" id="ed-save">Save</button>
+    </footer>
+  </section>
 </div>
 
 <!-- Request a change to verified details (AR-10) -->
-<div class="pf-sheet-ov" id="change-sheet">
-  <form class="pf-sheet" id="change-form" role="dialog" aria-modal="true" aria-labelledby="chg-title" tabindex="-1" novalidate>
-    <div class="pf-sheet-handle" aria-hidden="true"></div>
-    <p class="pf-sheet-title" id="chg-title">Change verified details</p>
-    <div id="chg-pending" hidden>
-      <p class="pf-verified" id="chg-pending-text"></p>
-      <p class="pf-msg" id="chg-pending-msg" role="alert"></p>
-      <div class="pf-actions">
-        <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" id="chg-withdraw">Withdraw request</button>
-        <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" data-close>Close</button>
-      </div>
+<div class="fx-overlay" id="change-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet fx-sheet--tall" role="dialog" aria-modal="true" aria-labelledby="chg-title" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="chg-title">Change verified details</h2></header>
+    <div class="fx-sheet__body fx-prof__form" id="chg-pending" hidden>
+      <div class="fx-prof__verified"><p id="chg-pending-text"></p></div>
+      <p class="fx-prof__msg" id="chg-pending-msg" role="alert"></p>
+      <button class="fx-btn fx-btn--secondary fx-btn--block" type="button" id="chg-withdraw">Withdraw request</button>
     </div>
-    <div id="chg-new">
-      <p class="pf-verified" id="chg-intro">An administrator checks the change before it appears on your profile. Until then you keep working under your verified details.</p>
-      <label class="pf-field"><span>Full name (as on your Ghana Card)</span>
-        <input class="ds-input" id="chg-name" type="text" maxlength="80" /></label>
-      <label class="pf-field"><span>Trade</span>
-        <select class="ds-input" id="chg-category"></select></label>
-      <label class="pf-field"><span>Specialty</span>
-        <input class="ds-input" id="chg-specialty" type="text" maxlength="60" /></label>
-      <label class="pf-field"><span>Why is this changing?</span>
-        <textarea class="ds-input" id="chg-reason" maxlength="500" placeholder="e.g. My name was misspelled during signup"></textarea></label>
-      <p class="pf-msg err" id="chg-error" role="alert"></p>
-      <div class="pf-actions">
-        <button class="ds-btn ds-btn--primary ds-btn--block" type="submit" id="chg-send">Send for review</button>
-        <button class="ds-btn ds-btn--secondary ds-btn--block" type="button" data-close>Cancel</button>
+    <form class="fx-sheet__body fx-prof__form" id="change-form" novalidate>
+      <div class="fx-prof__verified"><p id="chg-intro">An administrator checks the change before it appears on your profile. Until then you keep working under your verified details.</p></div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="chg-name">Full name (as on your Ghana Card)</label>
+        <input class="fx-input" id="chg-name" type="text" maxlength="80" />
       </div>
-    </div>
-  </form>
+      <div class="fx-field">
+        <label class="fx-field__label" for="chg-category">Trade</label>
+        <div class="fx-select"><select class="fx-input" id="chg-category"></select><span data-icon="down" data-icon-class="fx-select__chev"></span></div>
+      </div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="chg-specialty">Specialty</label>
+        <input class="fx-input" id="chg-specialty" type="text" maxlength="60" />
+      </div>
+      <div class="fx-field">
+        <label class="fx-field__label" for="chg-reason">Why is this changing?</label>
+        <textarea class="fx-input" id="chg-reason" maxlength="500" placeholder="e.g. My name was misspelled during signup"></textarea>
+      </div>
+      <p class="fx-prof__msg" id="chg-error" role="alert"></p>
+    </form>
+    <footer class="fx-sheet__actions">
+      <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-sheet-close id="chg-cancel">Cancel</button>
+      <button class="fx-btn fx-btn--primary fx-btn--l" type="submit" form="change-form" id="chg-send">Send for review</button>
+    </footer>
+  </section>
 </div>
 
 <script type="module">
 import '../shared/js/utils/global-app.js';
+import { icon }               from './js/fx/icons.js';
+import { openSheet as openFxSheet } from './js/fx/sheet.js';
+import { showToast as toast } from './js/fx/toast.js';
+import { renderTabbar }       from './js/fx/controls.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { requireArtisanAuth, patchArtisanSession } from './js/utils/artisanAuthGuard.js';
 import { avatarUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.js';
 import { replaceProfilePhoto } from '../shared/js/services/profilePhotoService.js';
 import { ARTISAN_TRADES, claimsLocked, requestProfileChange, cancelProfileChange } from './js/utils/artisanAccount.js';
-import { showToast }          from '../shared/js/components/toast.js';
 import { serviceLabel, resolveRating } from '../shared/js/domain/bookingTruth.js';
+import { initials }           from './js/account.js';
+
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon, el.dataset.iconClass || '');
+renderTabbar(document.getElementById('tabbar'), { current: 'account' });
 
 const { user, artisan } = await requireArtisanAuth({ allowPending: true });
 const { services: { databaseService } } = getAppContainer();
@@ -260,48 +177,24 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
   c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const str = (v) => String(v == null ? '' : v).trim();
+const showToast = (text, tone = 'ok') => toast(text, { tone: tone === 'error' ? 'bad' : 'ok' });
 
 // The profile as the server last said it: painted from the guard's verdict at
 // once, then kept live by the subscription at the bottom.
 const state = { ...artisan };
 
-/* ── Sheets: focus, Escape, backdrop, scroll lock ─────────────────────── */
-let openEl = null, trigger = null, busy = false;
+/* ── Sheets: the system's modal (focus, Escape, scrim, inert background) ──── */
+let sheet = null, busy = false;
 function openSheet(id, focusId) {
-  closeSheet();
-  trigger = document.activeElement;
-  openEl = $(id);
-  openEl.classList.add('open');
-  document.body.style.overflow = 'hidden';
-  const panel = openEl.querySelector('.pf-sheet');
-  requestAnimationFrame(() => {
-    const target = (focusId && $(focusId)) || panel.querySelector('input:not([readonly]), textarea, select') || panel;
-    target.focus({ preventScroll: false });
-  });
+  const ov = $(id);
+  for (const el of ov.querySelectorAll('[data-autofocus]')) el.removeAttribute('data-autofocus');
+  // The first control the artisan can use; the overlay itself is still hidden here.
+  const usable = (el) => { const h = el.closest('[hidden]'); return !h || h === ov; };
+  const target = [focusId && $(focusId), ...ov.querySelectorAll('input:not([type=hidden]), textarea, select')].find((el) => el && usable(el));
+  if (target) target.setAttribute('data-autofocus', '');
+  sheet = openFxSheet(ov, { onClose: () => { sheet = null; } });
 }
-function closeSheet() {
-  if (!openEl || busy) return;
-  openEl.classList.remove('open');
-  openEl = null;
-  document.body.style.overflow = '';
-  if (trigger && document.contains(trigger)) { try { trigger.focus({ preventScroll: true }); } catch (_) {} }
-  trigger = null;
-}
-document.querySelectorAll('.pf-sheet-ov').forEach((ov) => {
-  ov.addEventListener('click', (e) => { if (e.target === ov) closeSheet(); });
-  ov.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeSheet));
-});
-document.addEventListener('keydown', (e) => {
-  if (!openEl) return;
-  if (e.key === 'Escape') { e.preventDefault(); closeSheet(); return; }
-  if (e.key !== 'Tab') return;
-  const f = [...openEl.querySelectorAll('button:not([disabled]), input:not([disabled]), textarea, select')]
-    .filter((el) => el.offsetParent !== null);
-  if (!f.length) return;
-  const first = f[0], last = f[f.length - 1];
-  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-});
+async function closeSheet() { if (sheet && !busy) await sheet.close('done'); }
 
 /* ── The profile ──────────────────────────────────────────────────────── */
 const KYC_NOTE = {
@@ -323,13 +216,17 @@ function missingItems(d) {
 }
 
 const TOTAL_ITEMS = 4;
+function notice(tone, title, sub, actionHtml = '') {
+  return `<div class="fx-notice fx-notice--${tone}" role="status">${icon(tone === 'warn' ? 'alert' : 'info', 'fx-notice__icon')}
+    <div class="fx-notice__body"><p class="fx-notice__title">${esc(title)}</p><p>${esc(sub)}</p>${actionHtml}</div></div>`;
+}
 function render() {
   const d = state;
   const name = str(d.name) || 'Your name';
   const status = String(d.verificationStatus || 'draft').toLowerCase();
 
   const img = $('pf-avatar'), ini = $('pf-initials');
-  ini.textContent = (str(d.name).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('') || '?').toUpperCase();
+  ini.textContent = initials(d.name);
   const showInitials = () => { img.hidden = true; ini.hidden = false; };
   if (!photoBusy) {
     if (d.profileImageId) {
@@ -341,8 +238,8 @@ function render() {
   }
 
   $('pf-name-text').textContent = name;
-  // An <svg> has no .hidden property; the attribute is what hides it.
-  $('pf-tick').toggleAttribute('hidden', status !== 'approved');
+  // Verified only when the server says so (approveArtisan); never from this screen.
+  $('pf-tick').hidden = status !== 'approved';
   // Named the way every other screen names a trade (serviceLabel): a stored id
   // such as "plumbing" or "ac" reads "Plumbing" / "AC Repair"; what the artisan
   // typed with its own capitals is shown as typed (UI-010).
@@ -351,7 +248,7 @@ function render() {
 
   const area = str(d.location);
   const r = Number(d.workRadius);
-  const km = Math.min(Number.isFinite(r) && r > 0 ? r : 20, 25);   // what dispatch applies — see settings.html
+  const km = Math.min(Number.isFinite(r) && r > 0 ? r : 20, 25);   // what dispatch applies — see js/account.js
   $('pf-area').hidden = !area;
   $('pf-area-text').textContent = area ? `${area} · within ${km} km` : '';
 
@@ -373,29 +270,22 @@ function render() {
   const chips = [...new Set([trade, ...(Array.isArray(d.skills) ? d.skills : [])].map(str).filter(Boolean)
     .map((s) => s[0].toUpperCase() + s.slice(1)))];
   $('pf-svc').hidden = chips.length < 2;   // one chip only repeats the trade line
-  $('pf-chips').innerHTML = chips.map((c) => `<span class="pf-chip">${esc(c)}</span>`).join('');
+  $('pf-chips').innerHTML = chips.map((c) => `<span class="fx-chip">${esc(c)}</span>`).join('');
 
   // Notices: verification first (it decides whether customers can book),
   // then completeness — each only when there is something to do.
   const notes = [];
   const k = KYC_NOTE[status];
-  if (k) notes.push(`
-    <div class="pf-note warn">
-      <div class="pf-note-body"><p class="pf-note-title">${k.title}</p><p class="pf-note-sub">${k.sub}</p></div>
-      ${k.cta ? `<a class="ds-btn ds-btn--sm ds-btn--primary" href="onboarding.html">${k.cta}</a>` : ''}
-    </div>`);
+  if (k) notes.push(notice('warn', k.title, k.sub,
+    k.cta ? `<div class="fx-notice__actions"><a class="fx-btn fx-btn--s fx-btn--primary" href="onboarding.html">${esc(k.cta)}</a></div>` : ''));
   const miss = missingItems(d);
   if (miss.length) {
-    const pct = Math.round(((TOTAL_ITEMS - miss.length) / TOTAL_ITEMS) * 100);
-    notes.push(`
-    <div class="pf-note">
-      <div class="pf-note-body">
-        <p class="pf-note-title">Profile ${pct}% complete</p>
-        <p class="pf-note-sub">Add ${miss[0].label}${miss.length > 1 ? ` and ${miss.length - 1} more` : ''} so customers know who's coming.</p>
-        <div class="pf-meter" role="progressbar" aria-label="Profile completeness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></div>
-      </div>
-      <button class="ds-btn ds-btn--sm ds-btn--secondary" type="button" data-edit="${miss[0].key}">Add</button>
-    </div>`);
+    const done = TOTAL_ITEMS - miss.length;
+    const rail = `<div class="fx-rail fx-prof__rail"><ol class="fx-rail__track" aria-hidden="true">${
+      Array.from({ length: TOTAL_ITEMS }, (_, i) => `<li class="fx-rail__seg${i < done ? ' fx-rail__seg--done' : ''}"></li>`).join('')}</ol></div>`;
+    notes.push(notice('info', `Profile ${done} of ${TOTAL_ITEMS} complete`,
+      `Add ${miss[0].label}${miss.length > 1 ? ` and ${miss.length - 1} more` : ''} so customers know who's coming.`,
+      `${rail}<div class="fx-notice__actions"><button class="fx-btn fx-btn--s fx-btn--secondary" type="button" data-edit="${miss[0].key}">Add</button></div>`));
   }
   $('pf-notices').innerHTML = notes.join('');
 }
@@ -411,7 +301,7 @@ $('pf-file').addEventListener('change', async (e) => {
   if (!file.type.startsWith('image/')) { showToast('Choose an image file.', 'error'); return; }
   if (file.size > MAX_PHOTO_BYTES)     { showToast('The photo must be under 5 MB.', 'error'); return; }
   const img = $('pf-avatar'), prev = img.src, cam = $('pf-cam');
-  photoBusy = true; cam.disabled = true;
+  photoBusy = true; cam.setAttribute('aria-busy', 'true');
   const preview = URL.createObjectURL(file);
   img.src = preview; img.hidden = false; $('pf-initials').hidden = true;
   try {
@@ -419,12 +309,12 @@ $('pf-file').addEventListener('change', async (e) => {
     const patch = { profileImageId: publicId, profileImageVersion: version };
     Object.assign(state, patch); patchArtisanSession(patch);
     img.dataset.src = avatarUrl(publicId, TRANSFORMS.avatarLg, version); img.src = img.dataset.src;
-    showToast('Photo updated.', 'success');
+    showToast('Photo updated.');
   } catch (err) {
     img.src = prev;
     showToast('The photo was not uploaded. Try again.', 'error');
   } finally {
-    photoBusy = false; cam.disabled = false; URL.revokeObjectURL(preview);
+    photoBusy = false; cam.removeAttribute('aria-busy'); URL.revokeObjectURL(preview);
     render();
   }
 });
@@ -434,7 +324,7 @@ $('pf-file').addEventListener('change', async (e) => {
  * Name and specialty are verified claims: editable here only before an
  * application is submitted; afterwards an approved artisan requests a change
  * (functions/artisanAccount.js) and the rules refuse a direct write. Phone,
- * email, password and every other account detail live in Settings. */
+ * email, password and every other account detail live in Account. */
 const FOCUS = { bio: 'ed-bio', area: 'ed-location', years: 'ed-years', name: 'ed-name' };
 function openEditor(focusKey) {
   if (focusKey === 'photo') { $('pf-file').click(); return; }
@@ -451,14 +341,14 @@ function openEditor(focusKey) {
   const v = $('ed-verified');
   v.hidden = !locked;
   if (locked) {
-    v.innerHTML = `<strong>${esc(str(d.name))}</strong> · ${esc(str(d.category) || str(d.specialty))}<br>` +
+    v.innerHTML = `<p><strong>${esc(str(d.name))}</strong> · ${esc(serviceLabel(d.category) || str(d.specialty))}</p>` +
       (status === 'approved'
-        ? 'Your name and trade are verified. <button class="pf-inline-link" type="button" id="ed-request">Request a change</button>'
-        : 'Your name and trade are fixed while your application is reviewed.');
+        ? '<p>Your name and trade are verified.</p><button class="fx-btn fx-btn--tertiary" type="button" id="ed-request">Request a change</button>'
+        : '<p>Your name and trade are fixed while your application is reviewed.</p>');
     const rq = $('ed-request');
-    if (rq) rq.addEventListener('click', () => { closeSheet(); openChange(); });
+    if (rq) rq.addEventListener('click', async () => { await closeSheet(); openChange(); });
   }
-  $('ed-msg').textContent = ''; $('ed-msg').className = 'pf-msg';
+  $('ed-msg').textContent = '';
   countBio();
   openSheet('edit-sheet', FOCUS[focusKey]);
 }
@@ -472,7 +362,8 @@ document.addEventListener('click', (e) => {
 
 $('edit-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const msg = (t, tone = 'err') => { $('ed-msg').textContent = t; $('ed-msg').className = 'pf-msg ' + tone; };
+  if (busy) return;
+  const msg = (t) => { $('ed-msg').textContent = t; };
   const get = (id) => ($(id).value || '').trim();
   const years = get('ed-years') === '' ? 0 : Number(get('ed-years'));
   if (!Number.isInteger(years) || years < 0 || years > 60) { msg('Years of experience must be a whole number from 0 to 60.'); $('ed-years').focus(); return; }
@@ -493,20 +384,20 @@ $('edit-form').addEventListener('submit', async (e) => {
   }
 
   const btn = $('ed-save');
-  btn.disabled = true; btn.textContent = 'Saving…'; busy = true; msg('');
+  btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Saving…'; busy = true; msg('');
   try {
     await databaseService.updateDocument('artisans', user.uid, updates);
     patchArtisanSession(updates);   // next page paints the saved details
     Object.assign(state, updates);
     render();
-    busy = false; closeSheet();
-    showToast('Profile saved.', 'success');
+    busy = false; await closeSheet();
+    showToast('Profile saved.');
   } catch (err) {
-    msg(/permission/i.test(String(err && (err.code || err.message)))
+    msg(/permission/i.test(String(err && err.code))
       ? 'Some of these details can\'t be changed right now. Nothing was saved.'
       : 'Nothing was saved. Check your connection and try again.');
   } finally {
-    btn.disabled = false; btn.textContent = 'Save'; busy = false;
+    btn.removeAttribute('aria-busy'); btn.textContent = 'Save'; busy = false;
   }
 });
 
@@ -516,7 +407,9 @@ const listFields = (fields) => (fields || []).map((f) => FIELD_NAMES[f] || f).jo
 function openChange() {
   const d = state, pending = d.pendingProfileChange || null, last = d.lastProfileChange || null;
   $('chg-pending').hidden = !pending;
-  $('chg-new').hidden = !!pending;
+  $('change-form').hidden = !!pending;
+  $('chg-send').hidden = !!pending;
+  $('chg-cancel').textContent = pending ? 'Close' : 'Cancel';
   if (pending) {
     $('chg-pending-text').textContent = `You asked to change your ${listFields(pending.fields)}. Your profile keeps your verified details until an administrator approves it.`;
     $('chg-pending-msg').textContent = '';
@@ -530,11 +423,12 @@ function openChange() {
     $('chg-reason').value = '';
     $('chg-error').textContent = '';
   }
-  openSheet('change-sheet');
+  openSheet('change-sheet', pending ? 'chg-withdraw' : 'chg-name');
 }
 
 $('change-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (busy) return;
   const val = (id) => ($(id).value || '').trim();
   const current = state || {};
   // Only the fields that differ are sent; the server re-checks every one.
@@ -544,22 +438,23 @@ $('change-form').addEventListener('submit', async (e) => {
   if (val('chg-specialty') !== str(current.specialty)) change.specialty = val('chg-specialty');
   if (Object.keys(change).length === 1) { $('chg-error').textContent = 'Nothing has changed yet.'; return; }
   const btn = $('chg-send');
-  btn.disabled = true; btn.textContent = 'Sending…'; busy = true; $('chg-error').textContent = '';
+  btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Sending…'; busy = true; $('chg-error').textContent = '';
   const r = await requestProfileChange(change);
-  btn.disabled = false; btn.textContent = 'Send for review'; busy = false;
+  btn.removeAttribute('aria-busy'); btn.textContent = 'Send for review'; busy = false;
   if (!r.ok) { $('chg-error').textContent = r.message; return; }
-  closeSheet();
-  showToast('Change sent for review.', 'success');
+  await closeSheet();
+  showToast('Change sent for review.');
 });
 
 $('chg-withdraw').addEventListener('click', async () => {
+  if (busy) return;
   const btn = $('chg-withdraw');
-  btn.disabled = true; busy = true;
+  btn.setAttribute('aria-busy', 'true'); busy = true;
   const r = await cancelProfileChange();
-  btn.disabled = false; busy = false;
-  if (!r.ok) { $('chg-pending-msg').className = 'pf-msg err'; $('chg-pending-msg').textContent = r.message; return; }
-  closeSheet();
-  showToast('Request withdrawn.', 'success');
+  btn.removeAttribute('aria-busy'); busy = false;
+  if (!r.ok) { $('chg-pending-msg').textContent = r.message; return; }
+  await closeSheet();
+  showToast('Request withdrawn.');
 });
 
 /* ── First paint, then live ───────────────────────────────────────────── */
@@ -575,6 +470,7 @@ const unsub = databaseService.subscribeToDocument('artisans', user.uid, (snap) =
 }, () => { /* offline: the painted profile stays */ });
 window.addEventListener('pagehide', () => { try { unsub && unsub(); } catch (_) {} }, { once: true });
 </script>
+<!-- The liveness heartbeat on every artisan page (it draws no bar here: the page has its own). -->
 <script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>
 </body>
