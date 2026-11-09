@@ -129,9 +129,11 @@ const dashboard = page('dashboard.html') + page('js/today.js');
 await t('Today: no rating slot and no rating figure, so no "0.0" for an artisan nobody has rated', () => {
     assert.doesNotMatch(dashboard, /id="(stat|perf)-rating"|statRating|\.rating\b|reviewCount|toFixed\(1\)/);
 });
-await t('Today: Reviews and Performance are one tap away', () => {
-    assert.match(page('dashboard.html'), /<a class="fx-row" href="reviews\.html">/);
-    assert.match(page('dashboard.html'), /<a class="fx-row" href="performance\.html">/);
+// Phase 4: Reviews and Performance are one screen, Reputation; the old pages forward to it.
+await t('Today: Reviews and Performance (now Reputation) are one tap away', () => {
+    assert.match(page('dashboard.html'), /<a class="fx-row" href="reputation\.html">/);
+    assert.match(page('reviews.html'), /location\.replace\('reputation\.html#reviews'\)/);
+    assert.match(page('performance.html'), /location\.replace\('reputation\.html'\)/);
 });
 
 console.log(`\nartisan-push-rating: ${passed} passed, ${failed} failed`);

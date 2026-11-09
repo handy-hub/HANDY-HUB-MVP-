@@ -109,6 +109,7 @@
     "test:notification-safety": "node tests/notification-safety.test.cjs",
     "test:notification-rules": "firebase emulators:exec --only firestore --project lamax-rules-test \"node tests/notification-rules.test.mjs\"",
     "test:workflow-rules": "firebase emulators:exec --only firestore --project lamax-rules-test \"node tests/artisan-workflow-rules.test.mjs\"",
+    "test:earnings-rules": "firebase emulators:exec --only firestore --project lamax-rules-test \"node tests/earnings-reputation-rules.test.mjs\"",
     "test:support-thread": "node tests/support-thread.test.cjs",
     "test:artisan-medium-ui": "node tests/artisan-medium-ui.test.cjs",
     "test:artisan-cache-first": "node tests/artisan-cache-first.test.cjs",
