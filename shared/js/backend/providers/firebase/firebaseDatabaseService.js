@@ -12,7 +12,8 @@ import {
     orderBy,
     limit,
     startAfter,
-    onSnapshot
+    onSnapshot,
+    writeBatch
 } from "../../../../vendor/firebase/firebase-firestore.js";
 import { firebaseDb, firestoreDatabaseId } from "./firebaseConfig.js";
 
@@ -105,6 +106,20 @@ export function createFirebaseDatabaseService(dbInstance = firebaseDb) {
 
         async deleteDocument(collectionName, documentId) {
             await deleteDoc(doc(dbInstance, collectionName, documentId));
+        },
+
+        /**
+         * Several writes that land together or not at all (a Firestore batch).
+         * writes: [{ path, id, data, merge }] — `path` is the collection path
+         * ('artisans' or 'artisans/{uid}/private'). Security rules judge each
+         * write against the state before the batch; one refusal refuses all.
+         */
+        async commitBatch(writes) {
+            const batch = writeBatch(dbInstance);
+            for (const w of writes) {
+                batch.set(doc(dbInstance, w.path, w.id), w.data, w.merge ? { merge: true } : {});
+            }
+            await batch.commit();
         },
 
         // ── Flexible queries ─────────────────────────────────────────────────

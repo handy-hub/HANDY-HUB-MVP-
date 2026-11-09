@@ -5,529 +5,386 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
-  <title>Fidus X – Artisan Verification</title>
+  <title>Your application | Fidus X for professionals</title>
   <script src="../shared/js/utils/themeManager.js"></script>
-  <link rel="stylesheet" href="css/design-system.css" />
-  <link rel="stylesheet" href="css/onboarding.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/onboarding.css" />
 </head>
-<body>
-<div class="phone-shell">
-
-  <!-- ── Header ─────────────────────────────────────── -->
-  <header class="ob-header">
-    <button class="back-btn" id="back-btn" aria-label="Go back">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-    <span class="ob-title" id="ob-title">Identity Verification</span>
-    <span class="ob-step-label" id="ob-step-label">Step 1 of 5</span>
+<body class="fx-app">
+<a class="fx-skip" href="#ob-main">Skip to content</a>
+<div class="fx-shell">
+  <!-- The application a professional sends for review: five steps, each saved
+       to the account when it is complete, so the artisan can stop and come back.
+       What it decides is artisan-app/js/onboarding.js; what it may write is
+       firestore.rules. Sending it makes the account pending_review and offline;
+       only a reviewer (functions/artisanVerification.js) can approve it. -->
+  <header class="fx-appbar fx-appbar--push">
+    <button class="fx-iconbtn" type="button" id="ob-back" aria-label="Back to Today"><span data-icon="back"></span></button>
+    <div class="fx-appbar__titles">
+      <p class="fx-appbar__title">Your application</p>
+      <p class="fx-appbar__sub" id="ob-sub"></p>
+    </div>
   </header>
 
-  <!-- ── Progress ───────────────────────────────────── -->
-  <div class="progress-bar-wrap">
-    <div class="progress-steps">
-      <div class="progress-step active" id="ps-1"></div>
-      <div class="progress-step" id="ps-2"></div>
-      <div class="progress-step" id="ps-3"></div>
-      <div class="progress-step" id="ps-4"></div>
-      <div class="progress-step" id="ps-5"></div>
+  <main class="fx-main fx-onb" id="ob-main" tabindex="-1">
+    <div class="fx-onb__col">
+      <div class="fx-rail" id="ob-rail" hidden></div>
+      <div class="fx-onb__notices" id="ob-fix"></div>
+      <div class="fx-onb__notices" id="ob-gate"></div>
+      <div class="fx-onb__notices" id="ob-alert"></div>
+
+      <div class="fx-stack--4" id="ob-loading" aria-busy="true" aria-label="Loading your application">
+        <span class="fx-skel fx-skel--title"></span><span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span><span class="fx-skel fx-skel--row"></span>
+      </div>
+
+      <form id="ob-form" novalidate hidden>
+        <!-- ── 1 · About you ─────────────────────────────────────────────── -->
+        <section class="fx-onb__step" id="ob-step-you" data-step="you" aria-labelledby="ob-h-you" hidden>
+          <div class="fx-onb__head">
+            <h1 id="ob-h-you" tabindex="-1">About you</h1>
+            <p class="fx-onb__lead">Who you are and where you work. Fidus X checks your name against your Ghana Card.</p>
+          </div>
+          <div class="fx-onb__fields">
+            <div>
+              <div class="fx-onb__pair">
+                <div class="fx-field">
+                  <label class="fx-field__label" for="ob-first">First name</label>
+                  <input class="fx-input" id="ob-first" type="text" autocomplete="given-name" maxlength="60" aria-describedby="ob-name-hint ob-first-err" />
+                  <p class="fx-field__error" id="ob-first-err" hidden></p>
+                </div>
+                <div class="fx-field">
+                  <label class="fx-field__label" for="ob-last">Last name</label>
+                  <input class="fx-input" id="ob-last" type="text" autocomplete="family-name" maxlength="60" aria-describedby="ob-name-hint ob-last-err" />
+                  <p class="fx-field__error" id="ob-last-err" hidden></p>
+                </div>
+              </div>
+              <p class="fx-field__hint" id="ob-name-hint">As on your Ghana Card. Customers see this name on your profile.</p>
+            </div>
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-phone">Mobile number</label>
+              <input class="fx-input" id="ob-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="024 123 4567" aria-describedby="ob-phone-hint ob-phone-err" />
+              <p class="fx-field__hint" id="ob-phone-hint">A Ghana mobile number. Customers only see it during a booking.</p>
+              <p class="fx-field__error" id="ob-phone-err" hidden></p>
+            </div>
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-email">Email</label>
+              <input class="fx-input" id="ob-email" type="email" readonly aria-describedby="ob-email-hint" />
+              <p class="fx-field__hint" id="ob-email-hint">The email you sign in with.</p>
+            </div>
+            <div class="fx-onb__pair">
+              <div class="fx-field">
+                <label class="fx-field__label" for="ob-dob">Date of birth</label>
+                <input class="fx-input" id="ob-dob" type="date" autocomplete="bday" aria-describedby="ob-dob-hint ob-dob-err" />
+                <p class="fx-field__hint" id="ob-dob-hint">Private. You must be 18 or older.</p>
+                <p class="fx-field__error" id="ob-dob-err" hidden></p>
+              </div>
+              <div class="fx-field">
+                <label class="fx-field__label" for="ob-gender">Gender <span class="fx-onb__opt-label">(optional)</span></label>
+                <div class="fx-select">
+                  <select class="fx-input" id="ob-gender" aria-describedby="ob-gender-err">
+                    <option value="">Not stated</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <span data-icon="down" data-icon-class="fx-select__chev"></span>
+                </div>
+                <p class="fx-field__error" id="ob-gender-err" hidden></p>
+              </div>
+            </div>
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-address">Home address</label>
+              <input class="fx-input" id="ob-address" type="text" autocomplete="street-address" maxlength="300" placeholder="e.g. East Legon, Accra" aria-describedby="ob-address-hint ob-address-err" />
+              <p class="fx-field__hint" id="ob-address-hint">Private: only Fidus X reviewers see it.</p>
+              <p class="fx-field__error" id="ob-address-err" hidden></p>
+            </div>
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-gps">Ghana Post GPS address <span class="fx-onb__opt-label">(optional)</span></label>
+              <input class="fx-input" id="ob-gps" type="text" maxlength="32" autocapitalize="characters" placeholder="e.g. GA-123-4567" aria-describedby="ob-gps-hint ob-gps-err" />
+              <p class="fx-field__hint" id="ob-gps-hint">Private, like your address.</p>
+              <p class="fx-field__error" id="ob-gps-err" hidden></p>
+            </div>
+            <div class="fx-field" id="ob-pin">
+              <p class="fx-field__label" id="ob-pin-label">Work location</p>
+              <div class="fx-onb__pin">
+                <p class="fx-onb__pin-state" id="ob-pin-state" aria-live="polite">Not set</p>
+                <button class="fx-btn fx-btn--secondary" type="button" id="ob-pin-btn" aria-describedby="ob-pin-label ob-pin-hint ob-pin-err">Use my current location</button>
+              </div>
+              <p class="fx-field__hint" id="ob-pin-hint">Job requests are offered by distance from this point, so set it at or near your base. Customers only see the area, to about 1 km.</p>
+              <p class="fx-field__error" id="ob-pin-err" hidden></p>
+            </div>
+            <div class="fx-field">
+              <p class="fx-field__label" id="ob-selfie-label">Profile photo</p>
+              <div class="fx-onb__file" id="ob-selfie">
+                <img class="fx-onb__thumb fx-onb__thumb--round" id="ob-selfie-thumb" alt="" hidden />
+                <div class="fx-onb__file-main">
+                  <p class="fx-onb__file-state" id="ob-selfie-state" data-state="none" aria-live="polite">Not added</p>
+                </div>
+                <button class="fx-btn fx-btn--secondary fx-btn--s" type="button" id="ob-selfie-btn" aria-describedby="ob-selfie-label ob-selfie-state ob-selfie-err">Add photo</button>
+                <input type="file" id="ob-selfie-input" accept="image/*" hidden />
+              </div>
+              <p class="fx-field__hint">A clear, recent photo of your face. Customers see it on your profile.</p>
+              <p class="fx-field__error" id="ob-selfie-err" hidden></p>
+            </div>
+            <div class="fx-onb__sub">
+              <p class="fx-onb__subtitle">Emergency contact <span class="fx-onb__opt-label">(optional)</span></p>
+              <div class="fx-field">
+                <label class="fx-field__label" for="ob-em-name">Name</label>
+                <input class="fx-input" id="ob-em-name" type="text" maxlength="120" aria-describedby="ob-em-hint" />
+              </div>
+              <div class="fx-field">
+                <label class="fx-field__label" for="ob-em-phone">Mobile number</label>
+                <input class="fx-input" id="ob-em-phone" type="tel" inputmode="tel" placeholder="024 123 4567" aria-describedby="ob-em-hint ob-em-phone-err" />
+                <p class="fx-field__error" id="ob-em-phone-err" hidden></p>
+              </div>
+              <p class="fx-field__hint" id="ob-em-hint">Private: only Fidus X sees it, for emergencies.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── 2 · Your identity ─────────────────────────────────────────── -->
+        <section class="fx-onb__step" id="ob-step-identity" data-step="identity" aria-labelledby="ob-h-identity" hidden>
+          <div class="fx-onb__head">
+            <h1 id="ob-h-identity" tabindex="-1">Your identity</h1>
+            <p class="fx-onb__lead">Fidus X checks every professional's identity before they can take jobs. Only you and Fidus X reviewers can see these documents.</p>
+          </div>
+          <div class="fx-onb__fields">
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-card">Ghana Card number</label>
+              <input class="fx-input" id="ob-card" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="20" placeholder="GHA-123456789-0" aria-describedby="ob-card-hint ob-card-err" />
+              <p class="fx-field__hint" id="ob-card-hint">As printed on the card.</p>
+              <p class="fx-field__error" id="ob-card-err" hidden></p>
+            </div>
+            <div class="fx-field">
+              <div class="fx-onb__file" id="ob-idFront">
+                <img class="fx-onb__thumb" id="ob-idFront-thumb" alt="" hidden />
+                <div class="fx-onb__file-main">
+                  <p class="fx-onb__file-name" id="ob-idFront-name">Ghana Card, front</p>
+                  <p class="fx-onb__file-state" id="ob-idFront-state" data-state="none" aria-live="polite">Not added</p>
+                </div>
+                <button class="fx-btn fx-btn--secondary fx-btn--s" type="button" id="ob-idFront-btn" aria-describedby="ob-idFront-name ob-idFront-state ob-idFront-err">Add</button>
+                <input type="file" id="ob-idFront-input" accept="image/*,application/pdf" hidden />
+              </div>
+              <p class="fx-field__error" id="ob-idFront-err" hidden></p>
+            </div>
+            <div class="fx-field">
+              <div class="fx-onb__file" id="ob-idBack">
+                <img class="fx-onb__thumb" id="ob-idBack-thumb" alt="" hidden />
+                <div class="fx-onb__file-main">
+                  <p class="fx-onb__file-name" id="ob-idBack-name">Ghana Card, back</p>
+                  <p class="fx-onb__file-state" id="ob-idBack-state" data-state="none" aria-live="polite">Not added</p>
+                </div>
+                <button class="fx-btn fx-btn--secondary fx-btn--s" type="button" id="ob-idBack-btn" aria-describedby="ob-idBack-name ob-idBack-state ob-idBack-err">Add</button>
+                <input type="file" id="ob-idBack-input" accept="image/*,application/pdf" hidden />
+              </div>
+              <p class="fx-field__error" id="ob-idBack-err" hidden></p>
+              <p class="fx-field__hint">Clear photos or PDFs, up to 5 MB each, with every corner of the card in view.</p>
+            </div>
+            <div class="fx-onb__sub">
+              <p class="fx-onb__subtitle">Other documents <span class="fx-onb__opt-label">(optional)</span></p>
+              <div class="fx-onb__file" id="ob-bizReg">
+                <img class="fx-onb__thumb" id="ob-bizReg-thumb" alt="" hidden />
+                <div class="fx-onb__file-main">
+                  <p class="fx-onb__file-name" id="ob-bizReg-name">Business registration</p>
+                  <p class="fx-onb__file-state" id="ob-bizReg-state" data-state="none" aria-live="polite">Not added</p>
+                </div>
+                <button class="fx-btn fx-btn--secondary fx-btn--s" type="button" id="ob-bizReg-btn" aria-describedby="ob-bizReg-name ob-bizReg-state">Add</button>
+                <input type="file" id="ob-bizReg-input" accept="image/*,application/pdf" hidden />
+              </div>
+              <div class="fx-onb__file" id="ob-cert">
+                <img class="fx-onb__thumb" id="ob-cert-thumb" alt="" hidden />
+                <div class="fx-onb__file-main">
+                  <p class="fx-onb__file-name" id="ob-cert-name">Trade certificate or licence</p>
+                  <p class="fx-onb__file-state" id="ob-cert-state" data-state="none" aria-live="polite">Not added</p>
+                </div>
+                <button class="fx-btn fx-btn--secondary fx-btn--s" type="button" id="ob-cert-btn" aria-describedby="ob-cert-name ob-cert-state">Add</button>
+                <input type="file" id="ob-cert-input" accept="image/*,application/pdf" hidden />
+              </div>
+              <div class="fx-field">
+                <label class="fx-field__label" for="ob-tin">Tax Identification Number (TIN)</label>
+                <input class="fx-input" id="ob-tin" type="text" autocapitalize="characters" autocomplete="off" maxlength="32" aria-describedby="ob-tin-err" />
+                <p class="fx-field__error" id="ob-tin-err" hidden></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── 3 · Your work ─────────────────────────────────────────────── -->
+        <section class="fx-onb__step" id="ob-step-work" data-step="work" aria-labelledby="ob-h-work" hidden>
+          <div class="fx-onb__head">
+            <h1 id="ob-h-work" tabindex="-1">Your work</h1>
+            <p class="fx-onb__lead">Your trade decides which job requests reach you. Customers read your description and experience on your profile.</p>
+          </div>
+          <div class="fx-onb__fields">
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-trade">Your trade</label>
+              <div class="fx-select">
+                <select class="fx-input" id="ob-trade" aria-describedby="ob-trade-hint ob-trade-err">
+                  <option value="" disabled>Choose your trade</option>
+                </select>
+                <span data-icon="down" data-icon-class="fx-select__chev"></span>
+              </div>
+              <p class="fx-field__hint" id="ob-trade-hint">The trades customers can book on Fidus X. Once you are approved, changing it needs a review.</p>
+              <p class="fx-field__error" id="ob-trade-err" hidden></p>
+            </div>
+            <div class="fx-onb__panel" id="ob-other" hidden>
+              <div class="fx-field">
+                <label class="fx-field__label" for="ob-other-desc">Describe your trade</label>
+                <input class="fx-input" id="ob-other-desc" type="text" maxlength="120" placeholder="e.g. Solar inverter installation" aria-describedby="ob-other-desc-err" />
+                <p class="fx-field__error" id="ob-other-desc-err" hidden></p>
+              </div>
+              <div class="fx-field">
+                <label class="fx-field__label" for="ob-other-bucket">Closest listed trade</label>
+                <div class="fx-select">
+                  <select class="fx-input" id="ob-other-bucket" aria-describedby="ob-other-bucket-hint ob-other-bucket-err">
+                    <option value="" disabled>Choose the closest trade</option>
+                  </select>
+                  <span data-icon="down" data-icon-class="fx-select__chev"></span>
+                </div>
+                <p class="fx-field__hint" id="ob-other-bucket-hint">You receive job requests for this trade while Fidus X considers yours.</p>
+                <p class="fx-field__error" id="ob-other-bucket-err" hidden></p>
+              </div>
+            </div>
+            <fieldset class="fx-onb__group" id="ob-skills" aria-describedby="ob-skills-hint" hidden>
+              <legend class="fx-field__label">Jobs you do <span class="fx-onb__opt-label">(optional)</span></legend>
+              <div class="fx-onb__opts" id="ob-skills-opts"></div>
+              <p class="fx-field__hint" id="ob-skills-hint">Listed on your profile.</p>
+            </fieldset>
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-bio">Professional bio</label>
+              <textarea class="fx-input" id="ob-bio" rows="5" maxlength="1000" aria-describedby="ob-bio-hint ob-bio-err"></textarea>
+              <p class="fx-field__hint" id="ob-bio-hint">At least 50 characters. Customers read this on your profile: say what you do and what you are good at.</p>
+              <p class="fx-field__error" id="ob-bio-err" hidden></p>
+            </div>
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-years">Years of experience</label>
+              <input class="fx-input" id="ob-years" type="number" inputmode="numeric" min="0" max="60" step="1" aria-describedby="ob-years-hint ob-years-err" />
+              <p class="fx-field__hint" id="ob-years-hint">Customers see this on your profile.</p>
+              <p class="fx-field__error" id="ob-years-err" hidden></p>
+            </div>
+            <div class="fx-field">
+              <p class="fx-field__label" id="ob-radius-label">How far you will travel</p>
+              <div class="fx-seg" role="group" id="ob-radius" aria-labelledby="ob-radius-label" aria-describedby="ob-radius-hint ob-radius-err"></div>
+              <p class="fx-field__hint" id="ob-radius-hint">Job requests farther than this are not offered to you. You can change it later in Account.</p>
+              <p class="fx-field__error" id="ob-radius-err" hidden></p>
+            </div>
+            <fieldset class="fx-onb__group" aria-describedby="ob-days-hint">
+              <legend class="fx-field__label">Days you usually work <span class="fx-onb__opt-label">(optional)</span></legend>
+              <div class="fx-onb__opts" id="ob-days"></div>
+              <p class="fx-field__hint" id="ob-days-hint">For Fidus X reviewers. Job requests reach you only while you are available on Today.</p>
+            </fieldset>
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-rate">Starting rate, GHS per hour <span class="fx-onb__opt-label">(optional)</span></label>
+              <input class="fx-input" id="ob-rate" type="text" inputmode="decimal" autocomplete="off" aria-describedby="ob-rate-hint ob-rate-err" />
+              <p class="fx-field__hint" id="ob-rate-hint">Only Fidus X sees this, not customers. It does not set the price of a job.</p>
+              <p class="fx-field__error" id="ob-rate-err" hidden></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── 4 · Getting paid ──────────────────────────────────────────── -->
+        <section class="fx-onb__step" id="ob-step-payout" data-step="payout" aria-labelledby="ob-h-payout" hidden>
+          <div class="fx-onb__head">
+            <h1 id="ob-h-payout" tabindex="-1">Getting paid</h1>
+            <p class="fx-onb__lead">What you earn goes to your Fidus X wallet. You withdraw from the wallet to this Mobile Money account.</p>
+          </div>
+          <div class="fx-onb__fields">
+            <fieldset class="fx-onb__group" id="ob-pay" aria-describedby="ob-pay-err">
+              <legend class="fx-field__label">Mobile Money provider</legend>
+              <div class="fx-onb__choices" id="ob-pay-opts"></div>
+              <p class="fx-field__error" id="ob-pay-err" hidden></p>
+            </fieldset>
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-pay-number">Mobile Money number</label>
+              <input class="fx-input" id="ob-pay-number" type="tel" inputmode="tel" autocomplete="off" placeholder="024 123 4567" aria-describedby="ob-pay-number-err" />
+              <p class="fx-field__error" id="ob-pay-number-err" hidden></p>
+            </div>
+            <div class="fx-field">
+              <label class="fx-field__label" for="ob-pay-name">Name on the account</label>
+              <input class="fx-input" id="ob-pay-name" type="text" maxlength="120" autocomplete="off" aria-describedby="ob-pay-name-hint ob-pay-name-err" />
+              <p class="fx-field__hint" id="ob-pay-name-hint">As registered with your provider. Once you are approved, changing this account needs a review.</p>
+              <p class="fx-field__error" id="ob-pay-name-err" hidden></p>
+            </div>
+            <p class="fx-onb__fact">For every completed job, Fidus X takes a <strong><span data-fx-commission>15%</span> platform fee</strong>. You receive <strong><span data-fx-artisan-share>85%</span></strong> of the agreed job price in your Fidus X wallet once the customer confirms the job is done, and you can withdraw it to your payout account.</p>
+          </div>
+        </section>
+
+        <!-- ── 5 · Check and send ────────────────────────────────────────── -->
+        <section class="fx-onb__step" id="ob-step-review" data-step="review" aria-labelledby="ob-h-review" hidden>
+          <div class="fx-onb__head">
+            <h1 id="ob-h-review" tabindex="-1">Check and send</h1>
+            <p class="fx-onb__lead">Check your answers, then send your application. Fidus X reviews it before you can take jobs.</p>
+          </div>
+          <div class="fx-onb__fields">
+            <div class="fx-stack--4" id="ob-summary"></div>
+            <div class="fx-onb__sub">
+              <p class="fx-onb__subtitle">What happens next</p>
+              <ol class="fx-onb__next">
+                <li>Fidus X checks your details and your Ghana Card.</li>
+                <li>You get a notification when there is a decision. If something needs changing, it says what.</li>
+                <li>Once you are approved, go online from Today to receive job requests near you.</li>
+              </ol>
+            </div>
+            <div class="fx-field">
+              <label class="fx-onb__check">
+                <input type="checkbox" id="ob-terms" aria-describedby="ob-terms-err" />
+                <span>I agree to Fidus X's <a class="fx-link" href="../shared/legal/terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a class="fx-link" href="../shared/legal/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>. I confirm that all information provided is accurate and truthful.</span>
+              </label>
+              <p class="fx-field__error" id="ob-terms-err" hidden></p>
+            </div>
+          </div>
+        </section>
+      </form>
+
+      <!-- Sent, or already under review: what the server says, nothing more. -->
+      <section class="fx-onb__done" id="ob-done" aria-labelledby="ob-done-h" hidden>
+        <div class="fx-onb__head">
+          <h1 id="ob-done-h" tabindex="-1">Application sent</h1>
+          <p class="fx-onb__lead" id="ob-done-lead">Fidus X is checking your details and documents. You can't take jobs until your application is approved.</p>
+        </div>
+        <ol class="fx-onb__next">
+          <li>Fidus X checks your details and your Ghana Card.</li>
+          <li>You get a notification when there is a decision. If something needs changing, it says what.</li>
+          <li>Once you are approved, go online from Today to receive job requests near you.</li>
+        </ol>
+        <div class="fx-onb__actions">
+          <a class="fx-btn fx-btn--primary fx-btn--l fx-btn--block" href="dashboard.html">Go to Today</a>
+          <a class="fx-btn fx-btn--secondary fx-btn--l fx-btn--block" href="support.html">Contact support</a>
+        </div>
+      </section>
     </div>
-    <div class="progress-labels">
-      <span class="progress-label active" id="pl-1">Personal</span>
-      <span class="progress-label" id="pl-2">Identity</span>
-      <span class="progress-label" id="pl-3">Skills</span>
-      <span class="progress-label" id="pl-4">Payout</span>
-      <span class="progress-label" id="pl-5">Review</span>
+  </main>
+
+  <div class="fx-bottom">
+    <div class="fx-dock" id="ob-dock" hidden>
+      <p class="fx-dock__note" id="ob-note" aria-live="polite" hidden></p>
+      <div class="fx-dock__actions">
+        <button class="fx-btn fx-btn--secondary fx-btn--l" type="button" id="ob-prev" hidden>Back</button>
+        <button class="fx-btn fx-btn--primary fx-btn--l" type="submit" form="ob-form" id="ob-next">Continue</button>
+      </div>
     </div>
   </div>
-
-  <!-- ── Steps ──────────────────────────────────────── -->
-  <div class="ob-scroll">
-
-    <!-- ═══════════════════════════════════════════════
-         STEP 1 — Personal Information
-    ═══════════════════════════════════════════════════ -->
-    <div class="step-panel active" id="step-1">
-      <h1 class="step-heading">Personal Information</h1>
-      <p class="step-sub">Tell us about yourself. This information will be used for identity verification.</p>
-
-      <div class="trust-badge">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#166534" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <p>Your data is encrypted and stored securely. We comply with Ghana's Data Protection Act.</p>
-      </div>
-
-      <div class="field-row">
-        <div class="field-group">
-          <label class="field-label" for="first-name">First Name <span class="required">*</span></label>
-          <input class="field-input" type="text" id="first-name" placeholder="Kwame" autocomplete="given-name" />
-          <span class="field-error" id="err-first-name">Required</span>
-        </div>
-        <div class="field-group">
-          <label class="field-label" for="last-name">Last Name <span class="required">*</span></label>
-          <input class="field-input" type="text" id="last-name" placeholder="Mensah" autocomplete="family-name" />
-          <span class="field-error" id="err-last-name">Required</span>
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="phone">Phone Number <span class="required">*</span></label>
-        <input class="field-input" type="tel" id="phone" placeholder="024 000 0000" autocomplete="tel" />
-        <span class="field-hint">Ghana phone number (MTN, Telecel, AirtelTigo)</span>
-        <span class="field-error" id="err-phone">Enter a valid Ghana phone number</span>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="email">Email Address <span class="required">*</span></label>
-        <input class="field-input" type="email" id="email" placeholder="kwame@example.com" autocomplete="email" />
-        <span class="field-error" id="err-email">Enter a valid email address</span>
-      </div>
-
-      <div class="field-row">
-        <div class="field-group">
-          <label class="field-label" for="dob">Date of Birth <span class="required">*</span></label>
-          <input class="field-input" type="date" id="dob" />
-          <span class="field-error" id="err-dob">Must be 18+</span>
-        </div>
-        <div class="field-group">
-          <label class="field-label" for="gender">Gender</label>
-          <select class="field-input" id="gender">
-            <option value="">Select</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="address">Residential Address <span class="required">*</span></label>
-        <input class="field-input" type="text" id="address" placeholder="e.g. East Legon, Accra" />
-        <span class="field-error" id="err-address">Required</span>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="gps-address">Ghana Post GPS Address</label>
-        <input class="field-input" type="text" id="gps-address" placeholder="e.g. GA-123-4567" />
-        <span class="field-hint">Optional but recommended</span>
-      </div>
-
-      <!-- Work location pin.
-           This is what actually decides whether jobs reach this artisan: dispatch
-           matches on coordinates, not on the typed address or the Ghana Post code.
-           Without it the artisan is never added to the search index at all. -->
-      <div class="field-group">
-        <label class="field-label">Your work location <span class="required">*</span></label>
-        <p style="font-size:12px;color:var(--text-mid);margin:0 0 10px;">
-          We use this to send you jobs nearby. Stand at or near your base when you set it.
-        </p>
-        <button type="button" class="field-input" id="pin-location-btn"
-                style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:600;">
-          <svg viewBox="0 0 24 24" fill="none" width="17" height="17" aria-hidden="true">
-            <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z" stroke="currentColor" stroke-width="1.8"/>
-            <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.8"/>
-          </svg>
-          <span id="pin-location-label">Use my current location</span>
-        </button>
-        <span class="field-hint" id="pin-location-hint">Required — jobs are matched by distance.</span>
-        <span class="field-error" id="err-location">Please set your work location</span>
-      </div>
-
-      <div class="section-divider"><span>Emergency Contact</span></div>
-
-      <div class="field-group">
-        <label class="field-label" for="emergency-name">Emergency Contact Name</label>
-        <input class="field-input" type="text" id="emergency-name" placeholder="Full name" />
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="emergency-phone">Emergency Contact Phone</label>
-        <input class="field-input" type="tel" id="emergency-phone" placeholder="024 000 0000" />
-      </div>
-
-      <div class="field-group">
-        <label class="field-label">Profile Photo <span class="required">*</span></label>
-        <p style="font-size:12px;color:var(--text-mid);margin-bottom:10px;">Take a clear selfie or upload a recent passport photo</p>
-        <div style="position:relative;">
-          <div class="selfie-ring" id="selfie-ring" onclick="document.getElementById('selfie-input').click()">
-            <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="1.8"/></svg>
-            <img src="" alt="Selfie" id="selfie-preview" />
-            <input type="file" id="selfie-input" accept="image/*" capture="user" style="display:none" />
-          </div>
-          <p style="text-align:center;font-size:12px;color:var(--text-light);margin-top:8px;">Tap to take photo or upload</p>
-        </div>
-        <span class="field-error" id="err-selfie">Profile photo is required</span>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════
-         STEP 2 — Identity Verification
-    ═══════════════════════════════════════════════════ -->
-    <div class="step-panel" id="step-2">
-      <h1 class="step-heading">Identity Verification</h1>
-      <p class="step-sub">Upload your Ghana Card to verify your identity. Documents are encrypted and only seen by our verification team.</p>
-
-      <div class="trust-badge">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#166534" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <p>Bank-grade 256-bit encryption. Documents are not shared publicly and are deleted after verification.</p>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="ghana-card-no">Ghana Card Number <span class="required">*</span></label>
-        <input class="field-input" type="text" id="ghana-card-no" placeholder="GHA-000000000-0" style="text-transform:uppercase;" />
-        <span class="field-hint">Format: GHA-000000000-0</span>
-        <span class="field-error" id="err-ghana-card">Enter valid Ghana Card number</span>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label">Ghana Card — Front <span class="required">*</span></label>
-        <div class="upload-box" id="id-front-box" onclick="document.getElementById('id-front-input').click()">
-          <div class="upload-icon">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <p class="upload-title">Upload Front of ID</p>
-          <p class="upload-sub">JPG, PNG or PDF · Max 5MB</p>
-          <img class="upload-preview" id="id-front-preview" alt="ID Front" />
-          <input type="file" id="id-front-input" accept="image/*,.pdf" style="display:none;" />
-        </div>
-        <span class="field-error" id="err-id-front">Required</span>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label">Ghana Card — Back <span class="required">*</span></label>
-        <div class="upload-box" id="id-back-box" onclick="document.getElementById('id-back-input').click()">
-          <div class="upload-icon">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <p class="upload-title">Upload Back of ID</p>
-          <p class="upload-sub">JPG, PNG or PDF · Max 5MB</p>
-          <img class="upload-preview" id="id-back-preview" alt="ID Back" />
-          <input type="file" id="id-back-input" accept="image/*,.pdf" style="display:none;" />
-        </div>
-        <span class="field-error" id="err-id-back">Required</span>
-      </div>
-
-      <div class="section-divider"><span>Optional Documents</span></div>
-
-      <div class="field-group">
-        <label class="field-label">Business Registration (if applicable)</label>
-        <div class="upload-box" id="biz-reg-box" onclick="document.getElementById('biz-reg-input').click()">
-          <div class="upload-icon">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.8"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.8"/></svg>
-          </div>
-          <p class="upload-title">Upload Registration Document</p>
-          <p class="upload-sub">Optional · Max 5MB</p>
-          <input type="file" id="biz-reg-input" accept="image/*,.pdf" style="display:none;" />
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="tin">Tax Identification Number (TIN)</label>
-        <input class="field-input" type="text" id="tin" placeholder="C0000000000" />
-        <span class="field-hint">Optional — required for tax reporting if earnings exceed GHS 20,000/year</span>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════
-         STEP 3 — Professional Information
-    ═══════════════════════════════════════════════════ -->
-    <div class="step-panel" id="step-3">
-      <h1 class="step-heading">Your Skills &amp; Services</h1>
-      <p class="step-sub">Tell customers what you do best. This helps us match you with the right jobs.</p>
-
-      <div class="field-group">
-        <label class="field-label">Primary Category <span class="required">*</span></label>
-        <select class="field-input" id="category">
-          <option value="">Select your main trade</option>
-          <option value="Plumbing">Plumbing</option>
-          <option value="Electrical">Electrical Work</option>
-          <option value="Carpentry">Carpentry</option>
-          <option value="Painting">Painting</option>
-          <option value="Tiling">Tiling &amp; Flooring</option>
-          <option value="AC">AC &amp; Appliance Repair</option>
-          <option value="Roofing">Roofing</option>
-          <option value="Welding">Welding &amp; Fabrication</option>
-          <option value="Cleaning">Cleaning Services</option>
-          <option value="Moving">Moving &amp; Delivery</option>
-          <option value="Landscaping">Landscaping &amp; Gardening</option>
-          <option value="Security">Security Systems</option>
-          <option value="Other">Other</option>
-        </select>
-        <span class="field-error" id="err-category">Select a category</span>
-      </div>
-
-      <!-- "Other" expand panel — visible only when Other is selected -->
-      <div id="other-panel" style="display:none;background:var(--surface-2,#F9FAFB);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:14px 16px;margin-top:-8px;">
-        <p style="font-size:12px;font-weight:600;color:var(--text-mid,#6B7280);margin:0 0 12px;">
-          Tell us more — we'll review your trade within 48 hrs
-        </p>
-
-        <!-- What they actually do -->
-        <div class="field-group" style="margin-bottom:12px;">
-          <label class="field-label" for="other-desc">
-            Describe your specialty <span class="required">*</span>
-          </label>
-          <input class="field-input" type="text" id="other-desc"
-                 placeholder="e.g. Solar Inverter Installation" maxlength="120" />
-          <span class="field-error" id="err-other-desc">Please describe your specialty</span>
-        </div>
-
-        <!-- Best-fit bucket so dispatch still works while under review -->
-        <div class="field-group" style="margin-bottom:0;">
-          <label class="field-label" for="other-bucket">
-            Closest existing category <span class="required">*</span>
-          </label>
-          <p style="font-size:11px;color:var(--text-mid,#6B7280);margin:0 0 6px;">
-            You'll receive jobs in this category while your trade is being reviewed.
-          </p>
-          <select class="field-input" id="other-bucket">
-            <option value="" disabled selected>Select closest trade</option>
-            <option value="Plumbing">Plumbing</option>
-            <option value="Electrical">Electrical Work</option>
-            <option value="Carpentry">Carpentry</option>
-            <option value="Painting">Painting</option>
-            <option value="Tiling">Tiling &amp; Flooring</option>
-            <option value="AC">AC &amp; Appliance Repair</option>
-            <option value="Roofing">Roofing</option>
-            <option value="Welding">Welding &amp; Fabrication</option>
-            <option value="Cleaning">Cleaning Services</option>
-            <option value="Moving">Moving &amp; Delivery</option>
-            <option value="Landscaping">Landscaping &amp; Gardening</option>
-            <option value="Security">Security Systems</option>
-          </select>
-          <span class="field-error" id="err-other-bucket">Select a closest category</span>
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label">Additional Skills</label>
-        <p style="font-size:12px;color:var(--text-mid);margin-bottom:8px;">Select all that apply</p>
-        <div class="skill-tags" id="skill-tags-container">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="bio">Professional Bio <span class="required">*</span></label>
-        <textarea class="field-input" id="bio" rows="4" placeholder="Describe your experience, specialties, and what makes you the best choice for customers…" style="resize:none;"></textarea>
-        <span class="field-hint">Minimum 50 characters. Be specific — customers read this.</span>
-        <span class="field-error" id="err-bio">Please write at least 50 characters</span>
-      </div>
-
-      <div class="field-row">
-        <div class="field-group">
-          <label class="field-label" for="experience">Years of Experience <span class="required">*</span></label>
-          <select class="field-input" id="experience">
-            <option value="">Select</option>
-            <option value="1">Less than 1 year</option>
-            <option value="2">1–2 years</option>
-            <option value="5">3–5 years</option>
-            <option value="10">6–10 years</option>
-            <option value="15">10+ years</option>
-          </select>
-          <span class="field-error" id="err-experience">Required</span>
-        </div>
-        <div class="field-group">
-          <label class="field-label" for="work-radius">Work Radius</label>
-          <select class="field-input" id="work-radius">
-            <option value="5">Within 5 km</option>
-            <option value="10" selected>Within 10 km</option>
-            <option value="20">Within 20 km</option>
-            <option value="50">Within 50 km</option>
-            <option value="100">Anywhere in region</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label">Availability <span class="required">*</span></label>
-        <p style="font-size:12px;color:var(--text-mid);margin-bottom:8px;">Select your available days</p>
-        <div class="avail-grid" id="avail-grid">
-          <button type="button" class="avail-btn selected" data-day="Mon">Mon</button>
-          <button type="button" class="avail-btn selected" data-day="Tue">Tue</button>
-          <button type="button" class="avail-btn selected" data-day="Wed">Wed</button>
-          <button type="button" class="avail-btn selected" data-day="Thu">Thu</button>
-          <button type="button" class="avail-btn selected" data-day="Fri">Fri</button>
-          <button type="button" class="avail-btn" data-day="Sat">Sat</button>
-          <button type="button" class="avail-btn" data-day="Sun">Sun</button>
-          <button type="button" class="avail-btn" data-day="Emergency">24/7</button>
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="base-rate">Starting Rate (GHS/hour)</label>
-        <input class="field-input" type="number" id="base-rate" placeholder="e.g. 80" min="0" />
-        <span class="field-hint">Leave blank if pricing varies per job</span>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label">Certifications &amp; Licenses</label>
-        <div class="upload-box" id="certs-box" onclick="document.getElementById('certs-input').click()">
-          <div class="upload-icon">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.8"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.8"/></svg>
-          </div>
-          <p class="upload-title">Upload Certifications</p>
-          <p class="upload-sub">Optional · PNG, JPG, PDF</p>
-          <input type="file" id="certs-input" accept="image/*,.pdf" multiple style="display:none;" />
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════
-         STEP 4 — Payout Setup
-    ═══════════════════════════════════════════════════ -->
-    <div class="step-panel" id="step-4">
-      <h1 class="step-heading">Payout Setup</h1>
-      <p class="step-sub">Add your Mobile Money details to receive payments. Fidus X pays within 24 hours of job completion.</p>
-
-      <div class="trust-badge">
-        <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke="#166534" stroke-width="1.8"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z" stroke="#166534" stroke-width="1.8"/><circle cx="17" cy="14" r="1" fill="#166534"/></svg>
-        <p>Your financial details are encrypted. Fidus X deducts a <span data-fx-commission>15%</span> platform commission from each completed job.</p>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label">Preferred MoMo Provider <span class="required">*</span></label>
-        <div class="momo-cards">
-
-          <!-- MTN -->
-          <div class="momo-card" id="momo-mtn" onclick="selectMomo('mtn')">
-            <div class="momo-card-header">
-              <div class="momo-logo mtn">MTN</div>
-              <div>
-                <p class="momo-name">MTN Mobile Money</p>
-                <p class="momo-sub">024, 025, 053, 054, 055, 059</p>
-              </div>
-            </div>
-            <div class="momo-input-wrap">
-              <input class="field-input" type="tel" id="mtn-number" placeholder="024 000 0000" />
-            </div>
-          </div>
-
-          <!-- Telecel -->
-          <div class="momo-card" id="momo-telecel" onclick="selectMomo('telecel')">
-            <div class="momo-card-header">
-              <div class="momo-logo telecel">VDF</div>
-              <div>
-                <p class="momo-name">Telecel Cash</p>
-                <p class="momo-sub">020, 050</p>
-              </div>
-            </div>
-            <div class="momo-input-wrap">
-              <input class="field-input" type="tel" id="telecel-number" placeholder="020 000 0000" />
-            </div>
-          </div>
-
-          <!-- AirtelTigo -->
-          <div class="momo-card" id="momo-airteltigo" onclick="selectMomo('airteltigo')">
-            <div class="momo-card-header">
-              <div class="momo-logo airteltigo">ATL</div>
-              <div>
-                <p class="momo-name">AirtelTigo Money</p>
-                <p class="momo-sub">026, 027, 056, 057</p>
-              </div>
-            </div>
-            <div class="momo-input-wrap">
-              <input class="field-input" type="tel" id="airteltigo-number" placeholder="026 000 0000" />
-            </div>
-          </div>
-
-        </div>
-        <span class="field-error" id="err-momo">Select a provider and enter your number</span>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="account-name">Account Holder Name <span class="required">*</span></label>
-        <input class="field-input" type="text" id="account-name" placeholder="Name registered on MoMo account" />
-        <span class="field-hint">Must match your MoMo registration name</span>
-        <span class="field-error" id="err-account-name">Required</span>
-      </div>
-
-      <div style="background:var(--surface-2);border-radius:var(--radius-md);padding:14px;margin-top:4px;">
-        <p style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:6px;">Commission Structure</p>
-        <p style="font-size:12px;color:var(--text-mid);line-height:1.6;">For every completed job, Fidus X takes a <strong><span data-fx-commission>15%</span> platform fee</strong>. You receive <strong><span data-fx-artisan-share>85%</span></strong> of the agreed job price in your Fidus X wallet once the customer confirms the job is done, and you can withdraw it to your payout account.</p>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════
-         STEP 5 — Review & Submit
-    ═══════════════════════════════════════════════════ -->
-    <div class="step-panel" id="step-5">
-      <h1 class="step-heading">Review &amp; Submit</h1>
-      <p class="step-sub">Review your information before submitting for verification. Our team reviews applications within 1–2 business days.</p>
-
-      <div id="review-summary" style="display:flex;flex-direction:column;gap:12px;">
-        <!-- Populated by JS -->
-      </div>
-
-      <div style="background:var(--surface-2);border-radius:var(--radius-lg);padding:16px;margin-top:16px;">
-        <p style="font-size:14px;font-weight:700;color:var(--text-dark);margin-bottom:10px;">What Happens Next?</p>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <div style="display:flex;gap:10px;align-items:flex-start;">
-            <div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:var(--primary);">1</div>
-            <div><p style="font-size:13px;font-weight:600;color:var(--text-dark);">Application Under Review</p><p style="font-size:12px;color:var(--text-mid);">Our team verifies your identity and documents (1–2 business days)</p></div>
-          </div>
-          <div style="display:flex;gap:10px;align-items:flex-start;">
-            <div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:var(--primary);">2</div>
-            <div><p style="font-size:13px;font-weight:600;color:var(--text-dark);">Profile Goes Live</p><p style="font-size:12px;color:var(--text-mid);">Approved artisans are immediately visible to customers in their area</p></div>
-          </div>
-          <div style="display:flex;gap:10px;align-items:flex-start;">
-            <div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:var(--primary);">3</div>
-            <div><p style="font-size:13px;font-weight:600;color:var(--text-dark);">Start Earning</p><p style="font-size:12px;color:var(--text-mid);">Accept bookings, complete jobs, and receive MoMo payments within 24 hours</p></div>
-          </div>
-        </div>
-      </div>
-
-      <div style="margin-top:16px;">
-        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
-          <input type="checkbox" id="agree-terms" style="width:18px;height:18px;margin-top:2px;accent-color:var(--primary);" />
-          <span style="font-size:13px;color:var(--text-mid);line-height:1.5;">I agree to Fidus X's <a href="../shared/legal/terms.html" target="_blank" rel="noopener" style="color:var(--primary);font-weight:600;">Terms of Service</a> and <a href="../shared/legal/privacy.html" target="_blank" rel="noopener" style="color:var(--primary);font-weight:600;">Privacy Policy</a>. I confirm that all information provided is accurate and truthful.</span>
-        </label>
-        <span class="field-error" id="err-terms" style="margin-top:6px;">Please accept the terms to continue</span>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════
-         PENDING SCREEN (after submit)
-    ═══════════════════════════════════════════════════ -->
-    <div class="step-panel" id="step-pending">
-      <div class="status-screen">
-        <div class="status-icon-big pending">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#F59E0B" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/></svg>
-        </div>
-        <h2 class="status-screen-title">Application Submitted!</h2>
-        <p class="status-screen-sub">Your verification is under review. Our team will check your documents and get back to you within <strong>1–2 business days</strong>.</p>
-        <div style="margin-top:24px;display:flex;flex-direction:column;gap:12px;width:100%;">
-          <div style="background:var(--surface-2);border-radius:var(--radius-md);padding:14px;text-align:left;">
-            <p style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:4px;">While you wait…</p>
-            <p style="font-size:12px;color:var(--text-mid);">You'll receive an SMS and email once your account is approved. You can also check back here anytime.</p>
-          </div>
-          <button onclick="window.location.href='dashboard.html'" style="background:var(--primary);color:#fff;border:none;padding:14px;border-radius:var(--radius-md);font-size:16px;font-weight:700;cursor:pointer;width:100%;">Go to Dashboard</button>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /.ob-scroll -->
-
-  <!-- ── Footer CTA ──────────────────────────────────── -->
-  <div class="ob-footer" id="ob-footer">
-    <button class="btn-prev" id="btn-prev" aria-label="Previous">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-    <button class="btn-next" id="btn-next">Continue</button>
-  </div>
-
-</div><!-- /.phone-shell -->
-
-<div class="toast" id="toast"></div>
+</div>
 
 <script type="module">
 import '../shared/js/utils/global-app.js';
-import { getAppContainer }    from '../shared/js/app/container.js';
-import { requireArtisanAuth, subscribeToArtisanAuthState } from './js/utils/artisanAuthGuard.js';
+import { icon }                from './js/fx/icons.js';
+import { bindSegmented }       from './js/fx/controls.js';
+import { getAppContainer }     from '../shared/js/app/container.js';
+import { requireArtisanAuth }  from './js/utils/artisanAuthGuard.js';
 import { replaceProfilePhoto } from '../shared/js/services/profilePhotoService.js';
-import { coarseCoord }         from '../shared/js/domain/locationPrivacy.js';
+import { avatarUrl, TRANSFORMS } from '../shared/js/services/cloudinaryService.js';
 import { PLATFORM_CONFIG }     from '../shared/js/config/appConfig.js';
+import {
+  STEPS, STEP_IDS, ARTISAN_TRADES, OTHER_TRADE, RADIUS_CHOICES, DAYS, PAYOUT_PROVIDERS, DOCS, docPath,
+  stepProblems, applicationProblems, resumeStep, applicationPhase, fixNotice,
+  prefill, docsOnFile, draftWrites, submissionWrites, serviceRequestWrite,
+  reviewSummary, skillChoices, saveError, fileProblem,
+} from './js/onboarding.js';
 
 // The commission as the server charges it (functions/config.js COMMISSION_RATE,
 // pinned to PLATFORM_CONFIG by tests/config-consistency.test.cjs).
@@ -537,695 +394,528 @@ import { PLATFORM_CONFIG }     from '../shared/js/config/appConfig.js';
   document.querySelectorAll('[data-fx-artisan-share]').forEach((el) => { el.textContent = `${100 - pct}%`; });
 }
 
-// Onboarding is accessible to ALL artisans regardless of KYC status,
-// including pending and rejected — this IS the KYC submission page.
-// Suspended artisans are still blocked (guard handles that).
-await requireArtisanAuth({ allowPending: true });
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon, el.dataset.iconClass || '');
 
+const $ = (id) => document.getElementById(id);
+const UPLOAD_TIMEOUT_MS = 25_000;   // Firebase Storage would otherwise retry for ten minutes
+const SAVE_TIMEOUT_MS   = 10_000;
+const SEND_TIMEOUT_MS   = 30_000;
+const withTimeout = (promise, ms) => Promise.race([promise,
+  new Promise((_, reject) => setTimeout(() => reject(Object.assign(new Error('timed out'), { code: 'deadline-exceeded' })), ms))]);
+const failure = (message) => Object.assign(new Error(message), { userMessage: message });
+
+// Onboarding is open to every artisan who is not suspended or banned —
+// draft, pending and rejected alike: this IS the submission page. What it
+// shows comes from the fresh records below, never from this screen's state.
+const { user } = await requireArtisanAuth({ allowPending: true });
 const { services: { authService, databaseService, storageService } } = getAppContainer();
+const uid = user.uid;
 
-// ── Step management ────────────────────────────────────
-let currentStep = 1;
-const TOTAL_STEPS = 5;
-let uid = null;
-let uploadedFiles = {}; // key → { url, path }
+// ── Controls built from the domain lists ─────────────────────────────────────
+for (const t of [...ARTISAN_TRADES, OTHER_TRADE]) $('ob-trade').add(new Option(t, t));
+for (const t of ARTISAN_TRADES) $('ob-other-bucket').add(new Option(t, t));
+$('ob-radius').innerHTML = RADIUS_CHOICES.map((km) =>
+  `<button class="fx-seg__btn" type="button" data-value="${km}" aria-pressed="false">${km} km</button>`).join('');
+const radius = bindSegmented($('ob-radius'), () => clearProblem('radius'));
+$('ob-days').innerHTML = DAYS.map((d) =>
+  `<label class="fx-onb__opt"><input type="checkbox" value="${d}" />${d}</label>`).join('');
+$('ob-pay-opts').innerHTML = PAYOUT_PROVIDERS.map((p) =>
+  `<label class="fx-onb__choice"><input type="radio" name="payProvider" value="${p.id}" />${p.name}</label>`).join('');
 
-const STEP_TITLES = [
-  'Personal Information',
-  'Identity Verification',
-  'Skills & Services',
-  'Payout Setup',
-  'Review & Submit'
-];
+// ── State ────────────────────────────────────────────────────────────────────
+let step = 'you';
+let phase = 'fill';
+let docs = {};                 // which → { state: 'none'|'picked'|'stored', url?, file? }
+let pin = null;                // { lat, lng, accuracy, setAt }
+let busy = false;              // one save or submission at a time
+let sent = false;
 
-const SKILLS_BY_CATEGORY = {
-  Plumbing:   ['Pipe Repair','Leak Detection','Drain Cleaning','Water Heater','Toilet Installation','Bathroom Fitting'],
-  Electrical: ['Wiring','Panel Upgrade','Lighting','Generator Install','CCTV','Solar Systems'],
-  Carpentry:  ['Furniture Making','Cabinet Installation','Door/Window Frames','Roofing Carpentry','Decking'],
-  Painting:   ['Interior Painting','Exterior Painting','Waterproofing','Texture Coating','Wall Décor'],
-  Tiling:     ['Floor Tiling','Wall Tiling','Bathroom Tiling','Waterproofing','Grouting'],
-  Cleaning:   ['Home Cleaning','Office Cleaning','Post-Construction','Carpet Cleaning','Deep Cleaning'],
-  AC:         ['AC Installation','AC Servicing','Fridge Repair','Washing Machine','TV Repair'],
-  Other:      ['General Repairs','Handyman','Installation','Maintenance']
+const FIELD = {
+  firstName: 'ob-first', lastName: 'ob-last', phone: 'ob-phone', dob: 'ob-dob', gender: 'ob-gender',
+  address: 'ob-address', gpsAddress: 'ob-gps', emergencyPhone: 'ob-em-phone', pin: 'ob-pin', selfie: 'ob-selfie',
+  ghanaCard: 'ob-card', idFront: 'ob-idFront', idBack: 'ob-idBack', tin: 'ob-tin',
+  trade: 'ob-trade', otherDesc: 'ob-other-desc', otherBucket: 'ob-other-bucket', bio: 'ob-bio', experience: 'ob-years',
+  radius: 'ob-radius', baseRate: 'ob-rate', payProvider: 'ob-pay', payNumber: 'ob-pay-number', payName: 'ob-pay-name',
+  terms: 'ob-terms',
 };
+// Where focus goes for a problem: the control the artisan acts on.
+const FOCUS = { pin: 'ob-pin-btn', selfie: 'ob-selfie-btn', idFront: 'ob-idFront-btn', idBack: 'ob-idBack-btn' };
+const focusFor = (key) => (key === 'radius' ? $('ob-radius').querySelector('.fx-seg__btn')
+  : key === 'payProvider' ? $('ob-pay-opts').querySelector('input') : $(FOCUS[key] || FIELD[key]));
 
-// ── DOM shortcuts ──────────────────────────────────────
-const toast    = document.getElementById('toast');
-const btnNext  = document.getElementById('btn-next');
-const btnPrev  = document.getElementById('btn-prev');
-const obFooter = document.getElementById('ob-footer');
-
-function showToast(msg, isError) {
-  toast.textContent = msg;
-  toast.className = 'toast show' + (isError ? ' error' : '');
-  setTimeout(() => toast.className = 'toast', 2500);
+// ── Reading and filling the form ─────────────────────────────────────────────
+const checked = (host) => [...host.querySelectorAll('input:checked')].map((i) => i.value);
+function readValues() {
+  return {
+    firstName: $('ob-first').value, lastName: $('ob-last').value, phone: $('ob-phone').value,
+    gender: $('ob-gender').value, dob: $('ob-dob').value, address: $('ob-address').value, gpsAddress: $('ob-gps').value,
+    emergencyName: $('ob-em-name').value, emergencyPhone: $('ob-em-phone').value, pin,
+    ghanaCard: $('ob-card').value, tin: $('ob-tin').value,
+    trade: $('ob-trade').value, otherDesc: $('ob-other-desc').value, otherBucket: $('ob-other-bucket').value,
+    skills: checked($('ob-skills-opts')), bio: $('ob-bio').value, experience: $('ob-years').value,
+    radius: Number(radius.value()) || null, baseRate: $('ob-rate').value, days: checked($('ob-days')),
+    payProvider: (document.querySelector('input[name="payProvider"]:checked') || {}).value || '',
+    payNumber: $('ob-pay-number').value, payName: $('ob-pay-name').value,
+    terms: $('ob-terms').checked,
+  };
+}
+function fillForm(v) {
+  $('ob-first').value = v.firstName; $('ob-last').value = v.lastName; $('ob-phone').value = v.phone;
+  $('ob-gender').value = v.gender; $('ob-dob').value = v.dob; $('ob-address').value = v.address; $('ob-gps').value = v.gpsAddress;
+  $('ob-em-name').value = v.emergencyName; $('ob-em-phone').value = v.emergencyPhone;
+  pin = v.pin; paintPin();
+  $('ob-card').value = v.ghanaCard; $('ob-tin').value = v.tin;
+  $('ob-trade').value = v.trade; $('ob-other-desc').value = v.otherDesc; $('ob-other-bucket').value = v.otherBucket;
+  paintTrade(v.skills);
+  $('ob-bio').value = v.bio; $('ob-years').value = v.experience; $('ob-rate').value = v.baseRate;
+  radius.select(String(v.radius), false);
+  for (const i of $('ob-days').querySelectorAll('input')) i.checked = v.days.includes(i.value);
+  for (const i of document.querySelectorAll('input[name="payProvider"]')) i.checked = i.value === v.payProvider;
+  $('ob-pay-number').value = v.payNumber; $('ob-pay-name').value = v.payName;
 }
 
-// ── Update progress UI ──────────────────────────────────
-function updateProgress(step) {
-  document.getElementById('ob-title').textContent = STEP_TITLES[step-1] || 'Complete';
-  document.getElementById('ob-step-label').textContent = step <= TOTAL_STEPS ? `Step ${step} of ${TOTAL_STEPS}` : '';
-
-  for (let i = 1; i <= TOTAL_STEPS; i++) {
-    const ps = document.getElementById(`ps-${i}`);
-    const pl = document.getElementById(`pl-${i}`);
-    if (!ps) continue;
-    if (i < step)      { ps.className = 'progress-step done';   pl.className = 'progress-label done'; }
-    else if (i === step){ ps.className = 'progress-step active'; pl.className = 'progress-label active'; }
-    else               { ps.className = 'progress-step';        pl.className = 'progress-label'; }
-  }
-
-  // Hide/show panels
-  for (let i = 1; i <= TOTAL_STEPS; i++) {
-    const panel = document.getElementById(`step-${i}`);
-    if (panel) panel.classList.toggle('active', i === step);
-  }
-  document.getElementById('step-pending')?.classList.remove('active');
-
-  btnPrev.style.display  = step > 1 ? 'flex' : 'none';
-  btnNext.textContent    = step === TOTAL_STEPS ? 'Submit Application' : 'Continue';
-  obFooter.style.display = 'flex';
-}
-
-// ── Validate step ──────────────────────────────────────
-function clearErrors() {
-  document.querySelectorAll('.field-error.show').forEach(e => e.classList.remove('show'));
-  document.querySelectorAll('.field-input.error').forEach(e => e.classList.remove('error'));
-}
-
-function showErr(id, inputId) {
-  const e = document.getElementById(id);
-  if (e) e.classList.add('show');
-  if (inputId) {
-    const el = document.getElementById(inputId);
-    if (el) el.classList.add('error');
+function paintTrade(chosen = checked($('ob-skills-opts'))) {
+  const t = $('ob-trade').value;
+  $('ob-other').hidden = t !== OTHER_TRADE;
+  const choices = skillChoices(t === OTHER_TRADE ? $('ob-other-bucket').value : t, chosen);
+  $('ob-skills').hidden = !choices.length;
+  const host = $('ob-skills-opts');
+  host.textContent = '';
+  for (const s of choices) {
+    const l = document.createElement('label');
+    l.className = 'fx-onb__opt';
+    const i = document.createElement('input');
+    i.type = 'checkbox'; i.value = s; i.checked = chosen.includes(s);
+    l.append(i, s);
+    host.appendChild(l);
   }
 }
+$('ob-trade').addEventListener('change', () => paintTrade());
+$('ob-other-bucket').addEventListener('change', () => paintTrade());
 
-function validateStep(step) {
-  clearErrors();
-  let valid = true;
-  if (step === 1) {
-    if (!document.getElementById('first-name').value.trim()) { showErr('err-first-name','first-name'); valid=false; }
-    if (!document.getElementById('last-name').value.trim())  { showErr('err-last-name','last-name');  valid=false; }
-    const phone = document.getElementById('phone').value.replace(/\s/g,'');
-    if (!/^(0[2-9][0-9]{8}|233[2-9][0-9]{8})$/.test(phone)) { showErr('err-phone','phone'); valid=false; }
-    const email = document.getElementById('email').value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('err-email','email'); valid=false; }
-    const dob = document.getElementById('dob').value;
-    if (dob) { const age = (Date.now() - new Date(dob)) / (365.25*24*3600*1000); if (age < 18) { showErr('err-dob','dob'); valid=false; } }
-    else { showErr('err-dob','dob'); valid=false; }
-    if (!document.getElementById('address').value.trim()) { showErr('err-address','address'); valid=false; }
-    if (!uploadedFiles.selfie) { showErr('err-selfie'); valid=false; }
+// ── Problems, shown where they are ───────────────────────────────────────────
+function errEl(key) { return $(`${FIELD[key]}-err`); }
+function setProblem(key, msg) {
+  const el = $(FIELD[key]);
+  if (!el) return;
+  el.setAttribute('aria-invalid', msg ? 'true' : 'false');
+  const err = errEl(key);
+  if (err) { err.textContent = msg || ''; err.hidden = !msg; }
+}
+function clearProblem(key) { setProblem(key, ''); }
+function showProblems(stepId, problems) {
+  for (const key of Object.keys(FIELD)) {
+    if (STEP_OF[key] === stepId) setProblem(key, problems[key] || '');
   }
-  if (step === 2) {
-    const gcn = document.getElementById('ghana-card-no').value.trim().toUpperCase();
-    if (!/^GHA-\d{9}-\d$/.test(gcn)) { showErr('err-ghana-card','ghana-card-no'); valid=false; }
-    if (!uploadedFiles.idFront) { showErr('err-id-front'); valid=false; }
-    if (!uploadedFiles.idBack)  { showErr('err-id-back');  valid=false; }
-  }
-  if (step === 3) {
-    if (!document.getElementById('category').value) { showErr('err-category','category'); valid=false; }
-    if (document.getElementById('category').value === 'Other') {
-      if (!document.getElementById('other-desc').value.trim())  { showErr('err-other-desc','other-desc');   valid=false; }
-      if (!document.getElementById('other-bucket').value)       { showErr('err-other-bucket','other-bucket'); valid=false; }
+  const first = Object.keys(FIELD).find((k) => problems[k]);
+  if (first) focusFor(first)?.focus();
+}
+const STEP_OF = {};
+for (const id of STEP_IDS) for (const key of Object.keys(stepProblems(id, {}, {}))) STEP_OF[key] = id;
+Object.assign(STEP_OF, { gender: 'you', gpsAddress: 'you', emergencyPhone: 'you', tin: 'identity', otherDesc: 'work', otherBucket: 'work', baseRate: 'work' });
+for (const [key, id] of Object.entries(FIELD)) {
+  const el = $(id);
+  if (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) el.addEventListener('input', () => clearProblem(key));
+}
+$('ob-pay-opts').addEventListener('change', () => clearProblem('payProvider'));
+
+// ── Notices ──────────────────────────────────────────────────────────────────
+function notice(host, tone, { title = '', body = '', actions = [] } = {}) {
+  host.textContent = '';
+  if (!title && !body) return null;
+  const el = document.createElement('div');
+  el.className = `fx-notice fx-notice--${tone}`;
+  el.setAttribute('role', tone === 'bad' ? 'alert' : 'status');
+  el.innerHTML = `${icon(tone === 'bad' || tone === 'warn' ? 'alert' : 'info', 'fx-notice__icon')}<div class="fx-notice__body"></div>`;
+  const b = el.querySelector('.fx-notice__body');
+  if (title) { const t = document.createElement('p'); t.className = 'fx-notice__title'; t.textContent = title; b.appendChild(t); }
+  if (body) { const p = document.createElement('p'); p.textContent = body; b.appendChild(p); }
+  if (actions.length) {
+    const row = document.createElement('div');
+    row.className = 'fx-notice__actions';
+    for (const a of actions) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `fx-btn fx-btn--s ${a.primary ? 'fx-btn--primary' : 'fx-btn--secondary'}`;
+      btn.textContent = a.label;
+      btn.addEventListener('click', () => a.onClick(btn));
+      row.appendChild(btn);
     }
-    const bio = document.getElementById('bio').value.trim();
-    if (bio.length < 50) { showErr('err-bio','bio'); valid=false; }
-    if (!document.getElementById('experience').value) { showErr('err-experience','experience'); valid=false; }
+    b.appendChild(row);
   }
-  if (step === 4) {
-    const sel = document.querySelector('.momo-card.active');
-    if (!sel) { showErr('err-momo'); valid=false; }
-    else {
-      const provider = sel.id.replace('momo-','');
-      const numInput = document.getElementById(`${provider}-number`);
-      if (!numInput || !numInput.value.trim()) { showErr('err-momo'); valid=false; }
-    }
-    if (!document.getElementById('account-name').value.trim()) { showErr('err-account-name','account-name'); valid=false; }
-  }
-  if (step === 5) {
-    if (!document.getElementById('agree-terms').checked) { showErr('err-terms'); valid=false; }
-  }
-  return valid;
+  host.appendChild(el);
+  return el;
 }
+const alertBad = (text) => notice($('ob-alert'), 'bad', { body: text });
+const clearAlert = () => notice($('ob-alert'), 'bad', {});
+function note(text) { $('ob-note').textContent = text || ''; $('ob-note').hidden = !text; }
 
-// ── Next step ──────────────────────────────────────────
-btnNext.addEventListener('click', async () => {
-  if (!validateStep(currentStep)) {
-    showToast('Please fill in all required fields', true);
-    return;
-  }
-  if (currentStep < TOTAL_STEPS) {
-    currentStep++;
-    updateProgress(currentStep);
-    if (currentStep === 3) buildSkillTags();
-    if (currentStep === TOTAL_STEPS) buildReviewSummary();
-    window.scrollTo(0,0);
-  } else {
-    await submitApplication();
-  }
-});
-
-btnPrev.addEventListener('click', () => {
-  if (currentStep > 1) {
-    currentStep--;
-    updateProgress(currentStep);
-    window.scrollTo(0,0);
-  } else {
-    window.history.back();
-  }
-});
-
-document.getElementById('back-btn').addEventListener('click', () => {
-  if (currentStep > 1) { currentStep--; updateProgress(currentStep); }
-  else window.history.back();
-});
-
-// ── Skill tags ─────────────────────────────────────────
-let selectedSkills = new Set();
-function buildSkillTags() {
-  const cat      = document.getElementById('category').value;
-  const skills   = SKILLS_BY_CATEGORY[cat] || SKILLS_BY_CATEGORY.Other;
-  const container = document.getElementById('skill-tags-container');
-  container.innerHTML = '';
-  skills.forEach(s => {
-    const tag = document.createElement('button');
-    tag.type = 'button';
-    tag.className = 'skill-tag' + (selectedSkills.has(s) ? ' selected' : '');
-    tag.textContent = s;
-    tag.onclick = () => {
-      if (selectedSkills.has(s)) { selectedSkills.delete(s); tag.classList.remove('selected'); }
-      else { selectedSkills.add(s); tag.classList.add('selected'); }
-    };
-    container.appendChild(tag);
-  });
-}
-
-// ── "Other" trade panel toggle ─────────────────────────
-document.getElementById('category').addEventListener('change', function () {
-  document.getElementById('other-panel').style.display =
-    this.value === 'Other' ? 'block' : 'none';
-});
-
-// ── Availability ───────────────────────────────────────
-document.querySelectorAll('.avail-btn').forEach(btn => {
-  btn.addEventListener('click', () => btn.classList.toggle('selected'));
-});
-
-// ── MoMo selection ─────────────────────────────────────
-window.selectMomo = function(provider) {
-  document.querySelectorAll('.momo-card').forEach(c => c.classList.remove('active'));
-  document.getElementById(`momo-${provider}`)?.classList.add('active');
-};
-
-// ── File upload handlers ───────────────────────────────
-function setupUpload(inputId, previewId, boxId, fileKey, isImage) {
-  const input   = document.getElementById(inputId);
-  const preview = document.getElementById(previewId);
-  const box     = document.getElementById(boxId);
-  if (!input) return;
-  input.addEventListener('change', async e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { showToast('File too large (max 5MB)', true); return; }
-    if (isImage && preview) {
-      const url = URL.createObjectURL(file);
-      preview.src = url;
-      preview.classList.add('show');
-    }
-    box?.classList.add('has-file');
-    box?.querySelector('.upload-title') && (box.querySelector('.upload-title').textContent = file.name.length > 20 ? file.name.slice(0,20)+'…' : file.name);
-    uploadedFiles[fileKey] = { file, localUrl: isImage ? URL.createObjectURL(file) : null };
-  });
-}
-
-// Selfie
-document.getElementById('selfie-input').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (file.size > 5*1024*1024) { showToast('File too large', true); return; }
-  const ring    = document.getElementById('selfie-ring');
-  const preview = document.getElementById('selfie-preview');
-  preview.src   = URL.createObjectURL(file);
-  ring.classList.add('has-photo');
-  uploadedFiles.selfie = { file };
-});
-
-setupUpload('id-front-input','id-front-preview','id-front-box','idFront', true);
-setupUpload('id-back-input', 'id-back-preview', 'id-back-box', 'idBack',  true);
-setupUpload('biz-reg-input', null,               'biz-reg-box','bizReg',  false);
-setupUpload('certs-input',   null,               'certs-box',  'certs',   false);
-
-// ── Review summary ─────────────────────────────────────
-function buildReviewSummary() {
-  const summary = document.getElementById('review-summary');
-  const firstName = document.getElementById('first-name').value;
-  const lastName  = document.getElementById('last-name').value;
-  const phone     = document.getElementById('phone').value;
-  const email     = document.getElementById('email').value;
-  const category  = document.getElementById('category').value;
-  const bio       = document.getElementById('bio').value.trim();
-  const experience = document.getElementById('experience').selectedOptions[0]?.text || '';
-  const momoCard  = document.querySelector('.momo-card.active');
-  const momoName  = momoCard?.querySelector('.momo-name')?.textContent || '—';
-  const provider  = momoCard?.id?.replace('momo-','') || '';
-  const momoNum   = document.getElementById(`${provider}-number`)?.value || '—';
-
-  summary.innerHTML = `
-    ${_reviewItem('Name',       `${firstName} ${lastName}`)}
-    ${_reviewItem('Phone',      phone)}
-    ${_reviewItem('Email',      email)}
-    ${_reviewItem('Category',   category)}
-    ${_reviewItem('Bio',        bio.slice(0,80)+'…')}
-    ${_reviewItem('Experience', experience)}
-    ${_reviewItem('Payout',     `${momoName} · ${momoNum}`)}
-    ${_reviewItem('Documents',  `${Object.keys(uploadedFiles).length} file(s) ready to upload`)}
-  `;
-}
-function _reviewItem(label, value) {
-  return `<div style="background:var(--surface-2);border-radius:var(--radius-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
-    <span style="font-size:13px;font-weight:600;color:var(--text-mid);flex-shrink:0;">${label}</span>
-    <span style="font-size:13px;color:var(--text-dark);text-align:right;">${value}</span>
-  </div>`;
-}
-
-// ── Work location capture ──────────────────────────────
-// Coordinates are the ONLY location signal dispatch can use. The typed address
-// and the Ghana Post GPS code are labels for a human to read — neither can be
-// resolved to a position, because GhanaPostGPS has no open API.
-//
-// Browser geolocation is used rather than a maps provider: it needs no API key,
-// no billing, and is accurate enough for radius matching. The artisan is almost
-// always at or near their base while registering.
-const _workLocation = { lat: null, lng: null, setAt: null };
-
-(function wireLocationPin() {
-  const btn   = document.getElementById('pin-location-btn');
-  const label = document.getElementById('pin-location-label');
-  const hint  = document.getElementById('pin-location-hint');
-  if (!btn) return;
-
-  btn.addEventListener('click', () => {
-    if (!navigator.geolocation) {
-      hint.textContent = 'This device cannot share its location. Try a different browser.';
-      return;
-    }
-    label.textContent = 'Finding you…';
-    btn.disabled = true;
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        _workLocation.lat   = pos.coords.latitude;
-        _workLocation.lng   = pos.coords.longitude;
-        _workLocation.setAt = new Date().toISOString();
-        label.textContent = 'Location set ✓';
-        // Accuracy is worth showing: a 2 km fix means indoor wifi positioning and
-        // the artisan should retry outside rather than accept a bad pin.
-        const acc = Math.round(pos.coords.accuracy || 0);
-        hint.textContent = acc
-          ? `Accurate to about ${acc} m. Tap again to update.`
-          : 'Saved. Tap again to update.';
-        btn.disabled = false;
-        document.getElementById('err-location')?.classList.remove('show');
-      },
-      (err) => {
-        label.textContent = 'Use my current location';
-        btn.disabled = false;
-        hint.textContent = err.code === err.PERMISSION_DENIED
-          ? 'Location permission was blocked. Allow it in your browser settings — jobs are matched by distance.'
-          : 'Could not get your location. Move outside or try again.';
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-    );
-  });
-})();
-
-// ── Submit ─────────────────────────────────────────────
-// ── Email verification (AR-09) ─────────────────────────
+// ── Email verification (AR-09) ───────────────────────────────────────────────
 // An application is reviewed — and an approved account can take paid work —
 // only for someone who controls the email they signed up with. Google sign-ins
 // arrive verified; a password sign-up opens the link signup.html sends.
-// firestore.rules refuse the KYC record and verification request without it,
-// and approveArtisan refuses an unverified account: this is the explanation and
+// firestore.rules refuse the identity record and the request without it, and
+// approveArtisan refuses an unverified account: this is the explanation and
 // the way through, not the enforcement.
-function _emailVerified() { return !!authService.getCurrentUser()?.emailVerified; }
-
+const emailVerified = () => !!authService.getCurrentUser()?.emailVerified;
 function renderEmailGate() {
-  let el = document.getElementById('ob-email-gate');
-  if (_emailVerified()) { el?.remove(); return; }
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'ob-email-gate';
-    el.setAttribute('role', 'status');
-    el.style.cssText = 'margin:12px 16px 0;padding:12px 14px;border-radius:var(--ds-r-card);' +
-      'background:var(--ds-warning-bg);color:var(--ds-ink);font:500 13px/1.45 var(--ds-font);';
-    document.querySelector('.ob-scroll')?.prepend(el);
-  }
+  if (emailVerified()) { notice($('ob-gate'), 'info', {}); return; }
   const email = authService.getCurrentUser()?.email || 'your email address';
-  el.textContent = '';
-  const p = document.createElement('p');
-  p.style.margin = '0 0 8px';
-  p.textContent = `Verify ${email} to submit your application. Open the link we emailed you, then tap "I've verified".`;
-  el.appendChild(p);
-  const mk = (label, onClick, primary) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = label;
-    b.style.cssText = 'min-height:44px;padding:0 14px;margin-right:8px;border-radius:var(--ds-r-control);cursor:pointer;' +
-      'font:700 13px/1 var(--ds-font);' + (primary
-        ? 'border:0;background:var(--ds-brand-500);color:var(--ds-surface);'
-        : 'border:1px solid var(--ds-line-strong);background:var(--ds-surface);color:var(--ds-ink);');
-    b.addEventListener('click', () => onClick(b));
-    el.appendChild(b);
-  };
-  mk("I've verified", async (b) => {
-    b.disabled = true;
-    const ok = await ensureVerifiedEmail({ quiet: true });
-    b.disabled = false;
-    if (!ok) showToast('Not verified yet — open the link in the email, then try again.', true);
-  }, true);
-  mk('Resend link', async (b) => {
-    b.disabled = true;
-    try {
-      await authService.sendEmailVerification?.(new URL('onboarding.html', location.href).href);
-      showToast(`Verification link sent to ${email}.`);
-    } catch (e) {
-      showToast(e?.code === 'auth/too-many-requests'
-        ? 'Too many requests — wait a few minutes before resending.'
-        : 'Could not send the link. Check your connection and try again.', true);
-    }
-    b.disabled = false;
-  }, false);
+  notice($('ob-gate'), 'info', {
+    title: 'Verify your email',
+    body: `Open the link we sent to ${email}, then choose I've verified. You need a verified email to send your application; until then, your identity and payout details stay on this screen only.`,
+    actions: [
+      { label: "I've verified", primary: true, onClick: async (b) => {
+          b.disabled = true;
+          const ok = await ensureVerifiedEmail({ quiet: true });
+          b.disabled = false;
+          if (!ok) note('Not verified yet. Open the link in the email, then try again.');
+        } },
+      { label: 'Resend link', onClick: async (b) => {
+          b.disabled = true;
+          try {
+            await authService.sendEmailVerification?.(new URL('onboarding.html', location.href).href);
+            note(`Verification link sent to ${email}.`);
+          } catch (e) {
+            note(e?.code === 'auth/too-many-requests'
+              ? 'Too many requests. Wait a few minutes before sending another link.'
+              : "Couldn't send the link. Check your connection and try again.");
+          }
+          b.disabled = false;
+        } },
+    ],
+  });
 }
-
 async function ensureVerifiedEmail({ quiet = false } = {}) {
-  if (_emailVerified()) return true;
+  if (emailVerified()) return true;
   try {
     const r = await authService.refreshUser?.();
-    if (r?.emailVerified) { renderEmailGate(); return true; }
-  } catch (_) { /* offline — fall through to the gate */ }
+    if (r?.emailVerified) { renderEmailGate(); note('Email verified.'); return true; }
+  } catch (_) { /* offline — the gate stays */ }
   renderEmailGate();
   if (!quiet) {
-    document.getElementById('ob-email-gate')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    showToast('Verify your email before submitting — open the link we sent you.', true);
+    $('ob-gate').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    note('Verify your email to send your application.');
   }
   return false;
 }
 
-async function submitApplication() {
-  if (!uid) { showToast('You must be signed in', true); return; }
-  if (!(await ensureVerifiedEmail())) return;
+// ── The work pin ─────────────────────────────────────────────────────────────
+// Coordinates are the only location signal dispatch can use: the typed address
+// and the Ghana Post code are labels for a person to read (GhanaPostGPS has no
+// open API). The browser's position needs no key or billing and is accurate
+// enough for radius matching; the artisan is usually at or near their base.
+function paintPin(text) {
+  const set = !!pin;
+  $('ob-pin-state').dataset.state = set ? 'set' : 'none';
+  $('ob-pin-state').textContent = text || (set
+    ? (pin.accuracy ? `Set, accurate to about ${Math.round(pin.accuracy)} m` : 'Set')
+    : 'Not set');
+  $('ob-pin-btn').textContent = set ? 'Update location' : 'Use my current location';
+}
+$('ob-pin-btn').addEventListener('click', () => {
+  if (!navigator.geolocation) { paintPin('This device cannot share its location. Try another browser.'); return; }
+  const btn = $('ob-pin-btn');
+  btn.disabled = true; btn.setAttribute('aria-busy', 'true');
+  paintPin('Finding you…');
+  navigator.geolocation.getCurrentPosition((pos) => {
+    pin = { lat: pos.coords.latitude, lng: pos.coords.longitude,
+      accuracy: Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null, setAt: new Date().toISOString() };
+    btn.disabled = false; btn.removeAttribute('aria-busy');
+    // A fix of a kilometre or more means indoor wifi positioning: say so, so
+    // the artisan can retry outside rather than accept a bad pin.
+    paintPin(pin.accuracy && pin.accuracy > 1000
+      ? `Set, but only to about ${Math.round(pin.accuracy / 1000)} km. Try again outside for a better fix.` : '');
+    clearProblem('pin');
+  }, (err) => {
+    btn.disabled = false; btn.removeAttribute('aria-busy');
+    paintPin(err.code === err.PERMISSION_DENIED
+      ? 'Location is blocked for this site. Allow it in your browser settings, then try again.'
+      : "Couldn't get your location. Move outside or try again.");
+    if (pin) paintPin();
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+});
 
-  // Refuse to submit without coordinates. An artisan saved without them is
-  // silently deleted from the dispatch index (syncArtisanIndex) and will never
-  // receive a single job — a failure they would have no way to diagnose.
-  if (typeof _workLocation.lat !== 'number' || typeof _workLocation.lng !== 'number') {
-    document.getElementById('err-location')?.classList.add('show');
-    document.getElementById('pin-location-btn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    showToast('Set your work location so we can send you nearby jobs.', true);
-    return;
-  }
-  btnNext.disabled = true;
-  btnNext.classList.add('loading');
-  btnNext.textContent = 'Uploading…';
-
-  try {
-    // 1a. Profile photo → Cloudinary (public CDN, optimised delivery)
-    let selfiePublicId = null;
-    let selfieVersion  = null;
-    if (uploadedFiles.selfie?.file) {
-      const selfieResult = await replaceProfilePhoto(uploadedFiles.selfie.file, 'artisan');
-      selfiePublicId = selfieResult.publicId;
-      selfieVersion  = selfieResult.version;
+// ── Files ────────────────────────────────────────────────────────────────────
+// A real button opens each file picker (keyboard and screen reader reachable).
+// A pick is held here until its step is continued; then it is stored and the
+// account remembers it, so a return visit does not ask for it again.
+const objectUrls = {};
+function paintDoc(which) {
+  const d = docs[which] || { state: 'none' };
+  const st = $(`ob-${which}-state`), btn = $(`ob-${which}-btn`), th = $(`ob-${which}-thumb`);
+  st.dataset.state = d.state;
+  st.textContent = d.state === 'picked' ? `Selected: ${d.file.name}`
+    : d.state === 'stored' ? 'On file' : (which === 'selfie' ? 'Not added' : 'Not added. A photo or PDF, up to 5 MB.');
+  btn.textContent = d.state === 'none' ? (which === 'selfie' ? 'Add photo' : 'Add') : (which === 'selfie' ? 'Change photo' : 'Replace');
+  const src = d.state === 'picked' && /^image\//.test(d.file.type) ? objectUrls[which]
+    : d.state === 'stored' && which === 'selfie' ? d.preview || '' : '';
+  th.hidden = !src;
+  if (src) th.src = src; else th.removeAttribute('src');
+}
+for (const which of Object.keys(DOCS)) {
+  $(`ob-${which}-btn`).addEventListener('click', () => $(`ob-${which}-input`).click());
+  $(`ob-${which}-input`).addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const problem = fileProblem(file, { image: which === 'selfie' });
+    if (problem) {
+      if (FIELD[which]) setProblem(which, problem);
+      else note(`${$(`ob-${which}-name`).textContent}: ${problem}`);
+      return;
     }
+    if (objectUrls[which]) URL.revokeObjectURL(objectUrls[which]);
+    objectUrls[which] = URL.createObjectURL(file);
+    docs[which] = { ...docs[which], state: 'picked', file };
+    if (which in FIELD) clearProblem(which);
+    paintDoc(which);
+  });
+}
 
-    // 1b. KYC documents → Firebase Storage (private, admin-only access)
-    //
-    // These uploads previously swallowed their errors and carried on. The result
-    // was silent data loss with a convincing success screen: the artisan was told
-    // their application was submitted, while the admin received a
-    // verification_requests document whose `documents` map was empty. Nobody
-    // learned anything was wrong until a human wondered where the Ghana Card was.
-    //
-    // The Ghana Card is the whole point of this step, so a failure to store it
-    // must stop the submission rather than decorate it.
-    // Firebase Storage retries a failing upload for up to TEN MINUTES before it
-    // surfaces an error (maxUploadRetryTime). When the bucket is missing or the
-    // network is bad, that reads to the artisan as a permanently frozen spinner.
-    // Bound each file explicitly so a failure is reported in seconds.
-    const UPLOAD_TIMEOUT_MS = 25_000;
-    const withTimeout = (promise, label) => Promise.race([
-      promise,
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`Upload timed out: ${label}`)), UPLOAD_TIMEOUT_MS)),
-    ]);
-
-    const docUrls = {};
-    const KYC_KEYS = ['idFront', 'idBack', 'bizReg', 'certs'];
-    // Front and back of the Ghana Card are mandatory — the form marks both
-    // required. bizReg and certs are genuinely optional and may be absent.
-    const REQUIRED_DOCS = ['idFront', 'idBack'];
-    const failedDocs = [];
-
-    for (const key of KYC_KEYS) {
-      const val = uploadedFiles[key];
-      if (!val?.file) continue;
-      const ext  = val.file.name.split('.').pop() || 'jpg';
-      const path = `artisans/${uid}/documents/${key}.${ext}`;
-      try {
-        await withTimeout(
-          storageService.uploadFile(path, val.file, { contentType: val.file.type }), key);
-        docUrls[key] = await withTimeout(storageService.getDownloadUrl(path), key);
-      } catch (e) {
-        console.error('[onboarding] KYC upload failed for', key, e);
-        failedDocs.push(key);
+/** Store the files picked on a step. A required one that fails stops the step; an optional one is reported and kept for later. */
+async function storeFiles(stepId) {
+  const skipped = [];
+  for (const [which, d] of Object.entries(DOCS)) {
+    if (d.step !== stepId || docs[which]?.state !== 'picked') continue;
+    const file = docs[which].file;
+    try {
+      if (which === 'selfie') {
+        // Cloudinary through the shared lifecycle; the server commits the
+        // photo to the profile and retires the old one (profilePhotoService).
+        const r = await withTimeout(replaceProfilePhoto(file, 'artisan'), UPLOAD_TIMEOUT_MS * 2);
+        docs.selfie = { state: 'stored', preview: r && r.publicId ? avatarUrl(r.publicId, TRANSFORMS.avatarLg, r.version ?? null) : objectUrls.selfie };
+      } else {
+        const path = docPath(uid, which);
+        await withTimeout(storageService.uploadFile(path, file, { contentType: file.type }), UPLOAD_TIMEOUT_MS);
+        const url = await withTimeout(storageService.getDownloadUrl(path), UPLOAD_TIMEOUT_MS);
+        docs[which] = { state: 'stored', url };
       }
+      paintDoc(which);
+    } catch (e) {
+      console.warn('[onboarding] could not store', which, e?.code || e?.message);
+      const name = which === 'selfie' ? 'Your photo' : $(`ob-${which}-name`).textContent;
+      if (d.required) throw failure(`${name} could not be uploaded. Check your connection and try again; nothing you entered is lost.`);
+      skipped.push(name);
     }
+  }
+  return skipped;
+}
 
-    // A required document that did not store is a hard stop. Throwing here lands
-    // in the existing catch below, which restores the button and surfaces the
-    // message — so the artisan can retry rather than being falsely reassured.
-    const missingRequired = REQUIRED_DOCS.filter(
-      (k) => uploadedFiles[k]?.file && !docUrls[k]
-    );
-    if (missingRequired.length) {
-      throw new Error(
-        'We could not upload your Ghana Card. Document storage is not available yet — '
-        + 'please contact Fidus X support.'
-      );
+// ── Steps ────────────────────────────────────────────────────────────────────
+function paintRail(at) {
+  const i = STEP_IDS.indexOf(at);
+  $('ob-rail').innerHTML = `<ol class="fx-rail__track" aria-hidden="true">${STEP_IDS.map((_, n) =>
+    `<li class="fx-rail__seg${n < i ? ' fx-rail__seg--done' : n === i ? ' fx-rail__seg--current' : ''}"></li>`).join('')}</ol>
+    <p class="fx-rail__cap"><span class="fx-rail__now"></span><span>Step ${i + 1} of ${STEP_IDS.length}</span></p>`;
+  $('ob-rail').querySelector('.fx-rail__now').textContent = STEPS[i].title;
+  $('ob-sub').textContent = `Step ${i + 1} of ${STEP_IDS.length} · ${STEPS[i].title}`;
+}
+function show(id, { push = true, focus = true } = {}) {
+  step = id;
+  const i = STEP_IDS.indexOf(id);
+  for (const s of STEP_IDS) $(`ob-step-${s}`).hidden = s !== id;
+  paintRail(id);
+  $('ob-prev').hidden = i === 0;
+  $('ob-next').textContent = id === 'review' ? 'Send application' : 'Continue';
+  $('ob-back').setAttribute('aria-label', i === 0 ? 'Back to Today' : `Back to ${STEPS[i - 1].title}`);
+  if (id === 'review') paintSummary();
+  if (push) history.pushState({ step: id }, '', `#${id}`);
+  if (focus) { window.scrollTo(0, 0); $(`ob-h-${id}`).focus(); }
+}
+function back() {
+  const i = STEP_IDS.indexOf(step);
+  if (i > 0) show(STEP_IDS[i - 1]);
+  else window.location.href = 'dashboard.html';
+}
+$('ob-back').addEventListener('click', () => {
+  if (sent || phase === 'review' || $('ob-form').hidden) window.location.href = 'dashboard.html';
+  else back();
+});
+$('ob-prev').addEventListener('click', back);
+window.addEventListener('popstate', (e) => {
+  if (sent || $('ob-form').hidden) return;
+  const id = e.state && STEP_IDS.includes(e.state.step) ? e.state.step : STEP_IDS[0];
+  show(id, { push: false });
+});
+
+function paintSummary() {
+  const host = $('ob-summary');
+  host.textContent = '';
+  for (const sect of reviewSummary(readValues(), docs)) {
+    const box = document.createElement('section');
+    box.className = 'fx-onb__sum';
+    box.innerHTML = '<div class="fx-onb__sum-head"><h2 class="fx-onb__sum-title"></h2><button class="fx-btn fx-btn--tertiary fx-btn--s" type="button">Change</button></div><dl class="fx-onb__sum-rows"></dl>';
+    box.querySelector('h2').textContent = sect.title;
+    const change = box.querySelector('button');
+    change.setAttribute('aria-label', `Change ${sect.title}`);
+    change.addEventListener('click', () => show(sect.step));
+    const dl = box.querySelector('dl');
+    for (const [k, val] of sect.rows) {
+      const row = document.createElement('div');
+      row.className = 'fx-onb__sum-row';
+      const dt = document.createElement('dt'); dt.textContent = k;
+      const dd = document.createElement('dd'); dd.textContent = val;
+      row.append(dt, dd);
+      dl.appendChild(row);
     }
-    // Optional documents that failed are worth saying out loud, but must not
-    // discard an otherwise complete application.
-    if (failedDocs.length) {
-      showToast('Some optional documents did not upload. You can add them later.', true);
-    }
-
-    // 2. Build artisan profile
-    const firstName  = document.getElementById('first-name').value.trim();
-    const lastName   = document.getElementById('last-name').value.trim();
-    const phone      = document.getElementById('phone').value.trim();
-    const email      = document.getElementById('email').value.trim();
-    const dob        = document.getElementById('dob').value;
-    const gender     = document.getElementById('gender').value;
-    const address    = document.getElementById('address').value.trim();
-    const gps        = document.getElementById('gps-address').value.trim();
-    const emergName  = document.getElementById('emergency-name').value.trim();
-    const emergPhone = document.getElementById('emergency-phone').value.trim();
-    const ghanaCard  = document.getElementById('ghana-card-no').value.trim().toUpperCase();
-    const tin        = document.getElementById('tin').value.trim();
-    const selected   = document.getElementById('category').value;
-    const isOther    = selected === 'Other';
-    // "Other" artisans operate under their best-fit bucket for dispatch purposes
-    const category   = isOther
-      ? document.getElementById('other-bucket').value
-      : selected;
-    const requestedService = isOther
-      ? document.getElementById('other-desc').value.trim()
-      : null;
-    const bio        = document.getElementById('bio').value.trim();
-    const experience = document.getElementById('experience').value;
-    const radius     = document.getElementById('work-radius').value;
-    const baseRate   = document.getElementById('base-rate').value;
-    const momoCard   = document.querySelector('.momo-card.active');
-    const provider   = momoCard?.id?.replace('momo-','') || '';
-    const momoNum    = document.getElementById(`${provider}-number`)?.value?.trim() || '';
-    const acctName   = document.getElementById('account-name').value.trim();
-    const avail      = [...document.querySelectorAll('.avail-btn.selected')].map(b => b.dataset.day);
-
-    const n = new Date().toISOString();
-
-    // 2a. Private record — identity, payout account, emergency contact, home address.
-    //
-    // Written FIRST and to artisans/{uid}/private/kyc, never to the profile
-    // below. The profile is readable by every signed-in account (customers
-    // browse it), and Firestore rules cannot hide individual fields from a
-    // reader, so anything in it is effectively public. This record is readable
-    // only by the artisan and administrators. Writing it first means a failure
-    // part-way through can never leave the Ghana Card number anywhere public.
-    await databaseService.setDocument(`artisans/${uid}/private`, 'kyc', {
-      artisanId:        uid,
-      ghanaCardNumber:  ghanaCard,
-      tin:              tin || null,
-      dob,
-      address,
-      gpsAddress:       gps,
-      emergencyContact: { name: emergName, phone: emergPhone },
-      payoutAccount:    { provider, phone: momoNum, accountName: acctName },
-      updatedAt:        n,
-    }, { merge: true });
-
-    // 2a′. The precise work-location pin — usually where the artisan lives — goes
-    // to artisans/{uid}/private/location (artisan + admins only), written before
-    // the profile so syncArtisanIndex reads it into artisan_index for dispatch.
-    // The public profile below carries a ~1 km copy (domain/locationPrivacy.js);
-    // firestore.rules refuses anything finer there.
-    if (_workLocation.lat !== null && _workLocation.lng !== null) {
-      await databaseService.setDocument(`artisans/${uid}/private`, 'location', {
-        lat:       _workLocation.lat,
-        lng:       _workLocation.lng,
-        accuracy:  null,
-        source:    'work_pin',
-        updatedAt: n,
-      }, { merge: true });
-    }
-
-    // 2a″. Phone and email (CONTACT-001): the artisan's private contact record,
-    // readable by the artisan and admins only. Never on the public profile below,
-    // which every signed-in account can read; a customer gets the phone only
-    // inside a booking's window.
-    // Only well-formed values: firestore.rules refuse an invalid email, and a
-    // refused write here would stop the whole submission.
-    await databaseService.setDocument(`artisans/${uid}/private`, 'contact', {
-      artisanId: uid,
-      ...(phone ? { phone: phone.slice(0, 32) } : {}),
-      ...(/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(email) ? { email: email.slice(0, 254) } : {}),
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
-
-    // 2b. Public profile (merge — preserves registration fields like walletBalance)
-    // NOTE: Financial/reputation fields (rating, reviewCount, jobsCompleted, totalEarned,
-    //       availableBalance, pendingBalance) are intentionally OMITTED here — they were
-    //       set to 0 during registration and are owned exclusively by Cloud Functions.
-    await databaseService.setDocument('artisans', uid, {
-      // Core identity (must always be present for Firestore rules validation)
-      id:        uid,
-      name:      `${firstName} ${lastName}`,
-      userType:  'artisan',
-      status:    'pending',
-      // Personal details. Date of birth, residential address and Ghana Post GPS
-      // code are in the private record (2a), not here; phone and email in
-      // private/contact (2a″).
-      gender,
-      // Work-location coordinates, COARSE (~1 km). Dispatch matches on the
-      // precise pin in private/location (2a′); syncArtisanIndex reads that and
-      // falls back to these, and refuses to index an artisan with neither, so
-      // an artisan with no coordinates is invisible to every booking.
-      lat:              coarseCoord(_workLocation.lat),
-      lng:              coarseCoord(_workLocation.lng),
-      locationSetAt:    _workLocation.setAt,
-      // Profile & skills
-      // The profile photo is written authoritatively SERVER-side by the commit
-      // inside replaceProfilePhoto(); only mirror it when a NEW selfie was
-      // uploaded in this submission. Never write null here: on a resubmit
-      // (e.g. after a rejection) where the artisan doesn't re-pick a selfie,
-      // `merge: true` would write null over their existing photo — wiping it and
-      // orphaning the Cloudinary asset, which nothing would ever clean up.
-      ...(selfiePublicId ? {
-        profileImageId:      selfiePublicId,
-        profileImageVersion: selfieVersion,
-      } : {}),
-      category,
-      specialty:        category,
-      skills:           [...selectedSkills],
-      ...(requestedService && { requestedService }),
-      bio,
-      yearsExperience:  Number(experience) || 0,
-      workRadius:       Number(radius) || 10,
-      baseRate:         baseRate ? Number(baseRate) : null,
-      availability:     avail,
-      isAvailable:      false, // stays false until admin approves
-      // Workflow
-      verificationStatus: 'pending_review',
-      // Timestamps
-      createdAt:        n,
-      updatedAt:        n,
-    }, { merge: true });
-
-    // 3. Write verification request for admin review
-    await databaseService.setDocument('verification_requests', uid, {
-      artisanId:    uid,
-      name:         `${firstName} ${lastName}`,
-      email,
-      phone,
-      category,
-      ghanaCardNumber: ghanaCard,
-      documents:    docUrls,
-      status:       'pending_review',
-      submittedAt:  n,
-      // The reviewer's fields (reviewedBy, rejectionReason, adminNotes,
-      // trustScore) are written by functions/artisanVerification.js only.
-      // Writing them here — without merge — erased an administrator's
-      // rejection reason on every resubmission (AR-10 / AR-14).
-    }, { merge: true });
-
-    // 4. If "Other" trade: write to service_requests for admin review (non-critical)
-    if (requestedService) {
-      databaseService.setDocument('service_requests', uid, {
-        artisanId:           uid,
-        artisanName:         `${firstName} ${lastName}`,
-        requestedService,
-        operationalCategory: category,
-        status:              'pending',
-        createdAt:           n,
-      }).catch(e => console.warn('[onboarding] service_requests:', e.message));
-    }
-
-    // Done!
-    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('step-pending').classList.add('active');
-    obFooter.style.display = 'none';
-
-  } catch(err) {
-    console.error('Submit error:', err);
-    // Prefer the specific reason (e.g. the Ghana Card upload failing) over a
-    // generic "try again" — the artisan can only act on a message that tells
-    // them what actually went wrong. Falls back for unexpected errors, whose
-    // raw text would be meaningless or alarming to a customer.
-    const msg = (err && typeof err.message === 'string' && err.message.trim())
-      ? err.message
-      : 'Submission failed. Please try again.';
-    showToast(msg, true);
-  } finally {
-    btnNext.disabled = false;
-    btnNext.classList.remove('loading');
-    btnNext.textContent = 'Submit Application';
+    host.appendChild(box);
   }
 }
 
-// ── Auth bootstrap ─────────────────────────────────────
-subscribeToArtisanAuthState(user => {
-  if (!user) { window.location.href = 'login.html'; return; }
-  uid = user.uid;
+function setBusy(on, label) {
+  const b = $('ob-next');
+  b.disabled = on; $('ob-prev').disabled = on;
+  if (on) { b.setAttribute('aria-busy', 'true'); b.textContent = label; }
+  else { b.removeAttribute('aria-busy'); b.textContent = step === 'review' ? 'Send application' : 'Continue'; }
+}
 
-  // Pre-fill email from auth
-  const emailEl = document.getElementById('email');
-  if (emailEl && user.email) emailEl.value = user.email;
-  renderEmailGate();
+/** Save a completed step to the account. Best effort: a failure keeps the answers here and says so. */
+async function saveDraft(stepId, v) {
+  const { writes, held } = draftWrites(stepId, {
+    uid, email: user.email, v, emailVerified: emailVerified(), nowIso: new Date().toISOString() });
+  if (!writes.length) { note(held ? 'Kept on this screen until your email is verified.' : ''); return; }
+  const results = await Promise.allSettled(writes.map((w) =>
+    withTimeout(databaseService.setDocument(w.path, w.id, w.data, { merge: true }), SAVE_TIMEOUT_MS)));
+  const failed = results.find((r) => r.status === 'rejected');
+  if (failed) { console.warn('[onboarding] draft save:', failed.reason?.code || failed.reason?.message); note(`Not saved to your account yet. ${saveError(failed.reason)}`); return; }
+  note(held ? 'Saved. Identity and payout details stay on this screen until your email is verified.' : 'Saved to your account.');
+}
 
-  // Check if already submitted
-  databaseService.getDocument('artisans', uid).then(snap => {
-    if (snap.exists && snap.data.verificationStatus === 'pending_review') {
-      document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
-      document.getElementById('step-pending').classList.add('active');
-      obFooter.style.display = 'none';
-    } else if (snap.exists && snap.data.verificationStatus === 'approved') {
-      window.location.href = 'dashboard.html';
-    }
-  });
+$('ob-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (busy) return;
+  if (step === 'review') { await submitApplication(); return; }
+  const v = readValues();
+  const problems = stepProblems(step, v, docs);
+  showProblems(step, problems);
+  if (Object.keys(problems).length) return;
+  busy = true;
+  setBusy(true, 'Saving…');
+  clearAlert();
+  try {
+    const skipped = await storeFiles(step);
+    await saveDraft(step, v);
+    if (skipped.length) note(`${skipped.join(' and ')} did not upload. You can continue and try again before you send.`);
+  } catch (err) {
+    alertBad(err.userMessage || saveError(err));
+    busy = false; setBusy(false);
+    return;
+  }
+  busy = false; setBusy(false);
+  show(STEP_IDS[STEP_IDS.indexOf(step) + 1]);
 });
+
+// ── Send ─────────────────────────────────────────────────────────────────────
+async function submitApplication() {
+  if (busy) return;
+  busy = true;                 // one submission: set before anything waits
+  setBusy(true, 'Checking…');
+  clearAlert();
+  try {
+    if (!(await ensureVerifiedEmail())) return;
+    const v = readValues();
+    const open = applicationProblems(v, docs);
+    if (open.length) {
+      show(open[0].step);
+      showProblems(open[0].step, open[0].problems);
+      return;
+    }
+    setBusy(true, 'Sending documents…');
+    await storeFiles('you');
+    const skipped = await storeFiles('identity');
+    const docUrls = {};
+    for (const [which, d] of Object.entries(DOCS)) if (d.key && docs[which]?.state === 'stored' && docs[which].url) docUrls[d.key] = docs[which].url;
+    if (!docUrls.idFront || !docUrls.idBack) throw failure('Your Ghana Card photos are not on file yet. Go back to Your identity and add them again.');
+    setBusy(true, 'Sending application…');
+    const nowIso = new Date().toISOString();
+    // One batch: the identity record, the work pin, the private contact, the
+    // profile (pending_review, offline) and the request for review — together
+    // or not at all (artisan-app/js/onboarding.js submissionWrites).
+    await withTimeout(databaseService.commitBatch(submissionWrites({ uid, email: user.email, v, docUrls, nowIso })), SEND_TIMEOUT_MS);
+    sent = true;
+    // A trade that is not listed yet, for Fidus X to consider. The request
+    // above already carries it; this record is a convenience for the team.
+    const sr = serviceRequestWrite({ uid, v, nowIso });
+    if (sr) databaseService.setDocument(sr.path, sr.id, sr.data).catch((e) => console.warn('[onboarding] service_requests:', e?.code || e?.message));
+    showDone('sent', skipped);
+  } catch (err) {
+    console.error('[onboarding] submit failed:', err?.code || err?.message);
+    alertBad(err.userMessage || saveError(err, { submitting: true }));
+  } finally {
+    if (!sent) { busy = false; setBusy(false); }
+  }
+}
+
+function showDone(kind, skipped = []) {
+  $('ob-form').hidden = true; $('ob-rail').hidden = true; $('ob-dock').hidden = true; $('ob-loading').hidden = true;
+  notice($('ob-gate'), 'info', {}); notice($('ob-fix'), 'warn', {});
+  $('ob-sub').textContent = kind === 'sent' ? 'Sent' : 'Under review';
+  $('ob-back').setAttribute('aria-label', 'Back to Today');
+  $('ob-done-h').textContent = kind === 'sent' ? 'Application sent' : 'Your application is being reviewed';
+  if (skipped.length) notice($('ob-alert'), 'warn', { body: `${skipped.join(' and ')} did not upload, so the application was sent without it.` });
+  else clearAlert();
+  $('ob-done').hidden = false;
+  if (kind === 'sent') history.replaceState(null, '', location.pathname);
+  $('ob-done-h').focus();
+}
+
+// ── Load: where the application stands, from the server ──────────────────────
+async function load() {
+  const read = (c, id) => databaseService.getDocument(c, id).then((s) => (s && s.exists ? s.data : null));
+  let profile, kyc, contact, location, request;
+  try {
+    [profile, kyc, contact, location, request] = await withTimeout(Promise.all([
+      read('artisans', uid),
+      read(`artisans/${uid}/private`, 'kyc'),
+      read(`artisans/${uid}/private`, 'contact'),
+      read(`artisans/${uid}/private`, 'location'),
+      read('verification_requests', uid),
+    ]), 15_000);
+  } catch (e) {
+    console.warn('[onboarding] load failed:', e?.code || e?.message);
+    profile = undefined;
+  }
+  // A failed read, or no profile, is not "nothing sent yet": an empty form sent
+  // from here would overwrite an application (FLOW-004). A real missing
+  // profile is the guard's to handle (its setup step).
+  if (!profile) {
+    $('ob-loading').hidden = true;
+    notice($('ob-alert'), 'warn', { title: "Can't reach the server",
+      body: 'Your application is safe. Check your connection and try again.',
+      actions: [{ label: 'Try again', primary: true, onClick: () => window.location.reload() }] });
+    return;
+  }
+  if (profile.verificationStatus === 'approved') { window.location.href = 'dashboard.html'; return; }
+  phase = applicationPhase(profile);
+  $('ob-email').value = user.email || '';
+  if (phase === 'review') { showDone('review'); return; }
+
+  if (phase === 'fix') {
+    const f = fixNotice(profile, request);
+    notice($('ob-fix'), 'warn', { title: f.title, body: `${f.reason} Change what is needed, then send your application again from the last step.` });
+  }
+  const v = prefill({ profile, kyc, contact, location, user });
+  docs = docsOnFile({ profile, request });
+  if (docs.selfie.state === 'stored' && profile.profileImageId) {
+    docs.selfie.preview = avatarUrl(profile.profileImageId, TRANSFORMS.avatarLg, profile.profileImageVersion ?? null);
+  }
+  // Documents stored on an earlier visit but not yet sent: the account
+  // remembers them by their fixed names (docPath), readable by the owner.
+  await Promise.all(Object.entries(DOCS).filter(([w, d]) => d.key && docs[w].state === 'none').map(([w]) =>
+    withTimeout(storageService.getDownloadUrl(docPath(uid, w)), 8000)
+      .then((url) => { docs[w] = { state: 'stored', url }; }).catch(() => {})));
+  fillForm(v);
+  for (const w of Object.keys(DOCS)) paintDoc(w);
+  renderEmailGate();
+  $('ob-loading').hidden = true;
+  $('ob-form').hidden = false; $('ob-rail').hidden = false; $('ob-dock').hidden = false;
+  const at = resumeStep(v, docs);
+  history.replaceState({ step: at }, '', `#${at}`);
+  show(at, { push: false, focus: at !== 'you' });
+}
+await load();
 </script>
-<script src="../shared/js/components/fastLoader.js"></script>
 <script src="js/pwa.js" defer></script>
 </body>
 </html>

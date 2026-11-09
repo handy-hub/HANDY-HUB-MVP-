@@ -1,0 +1,101 @@
+/* artisan-app/css/fx/onboarding.css — the application for review (Phase 5).
+   Tokens only (npm run lint:fx). One column at form width; the step rail at
+   the top, the step's own heading, its fields, then the dock's Back/Continue. */
+
+.fx-onb { padding: var(--fx-space-4) var(--fx-gutter) var(--fx-space-8); }
+.fx-onb__col { width: 100%; max-width: var(--fx-form-max); margin: 0 auto; display: grid; gap: var(--fx-space-6); }
+.fx-onb__notices { display: grid; gap: var(--fx-space-3); }
+.fx-onb__notices:empty { display: none; }
+.fx-onb__step { display: grid; gap: var(--fx-space-6); }
+.fx-onb__step[hidden], .fx-onb__done[hidden], .fx-onb__panel[hidden] { display: none; }
+.fx-onb__head { display: grid; gap: var(--fx-space-2); }
+.fx-onb__head > h1 { margin: var(--fx-space-0); font: var(--fx-t-title); letter-spacing: var(--fx-track-title); color: var(--fx-ink); }
+.fx-onb__head > h1:focus { outline: none; }
+.fx-onb__lead { margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink-2); }
+
+/* Fields in a step: the system spacing, and two short fields side by side when they fit. */
+.fx-onb__fields { display: grid; gap: var(--fx-space-6); }
+.fx-onb__fields .fx-field + .fx-field { margin-top: var(--fx-space-0); }
+.fx-onb__pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: var(--fx-space-4); }
+.fx-onb__group { margin: var(--fx-space-0); padding: var(--fx-space-0); border: 0; min-width: 0; }
+.fx-onb__group > legend { padding: var(--fx-space-0); }
+.fx-onb__opt-label { font: var(--fx-t-meta); color: var(--fx-ink-3); }
+
+/* A labelled block within a step (emergency contact, optional documents). */
+.fx-onb__sub { display: grid; gap: var(--fx-space-4); padding-top: var(--fx-space-4); border-top: var(--fx-hairline) solid var(--fx-line); }
+.fx-onb__subtitle { margin: var(--fx-space-0); font: var(--fx-t-label); color: var(--fx-ink); }
+
+/* Pills that are checkboxes (jobs you do, days). The input stays a real checkbox. */
+.fx-onb__opts { display: flex; flex-wrap: wrap; gap: var(--fx-space-2); }
+.fx-onb__opt {
+  display: inline-flex; align-items: center; gap: var(--fx-space-2);
+  min-height: var(--fx-hit); padding: var(--fx-space-1) var(--fx-space-3);
+  border: var(--fx-hairline) solid var(--fx-edge); border-radius: var(--fx-r-chip);
+  background: var(--fx-paper); color: var(--fx-ink-2); font: var(--fx-t-label); cursor: pointer;
+}
+.fx-onb__opt > input { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); margin: var(--fx-space-0); accent-color: var(--fx-ink); }
+.fx-onb__opt:has(> input:checked) { border-color: var(--fx-ink); color: var(--fx-ink); box-shadow: var(--fx-ring-selected); }
+.fx-onb__opt:has(> input:focus-visible) { outline: var(--fx-focus-width) solid var(--fx-focus-color); outline-offset: var(--fx-focus-offset); }
+
+/* One-of-several as full-width rows (payout provider). */
+.fx-onb__choices { display: grid; gap: var(--fx-space-2); }
+.fx-onb__choice {
+  display: flex; align-items: center; gap: var(--fx-space-3);
+  min-height: var(--fx-row); padding: var(--fx-space-2) var(--fx-space-4);
+  border: var(--fx-hairline) solid var(--fx-edge); border-radius: var(--fx-r-control);
+  background: var(--fx-paper); color: var(--fx-ink); font: var(--fx-t-body); cursor: pointer;
+}
+.fx-onb__choice > input { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); margin: var(--fx-space-0); accent-color: var(--fx-ink); }
+.fx-onb__choice:has(> input:checked) { border-color: var(--fx-ink); box-shadow: var(--fx-ring-selected); }
+.fx-onb__choice:has(> input:focus-visible) { outline: var(--fx-focus-width) solid var(--fx-focus-color); outline-offset: var(--fx-focus-offset); }
+
+/* A file the application carries: what it is, where it stands, a real button to add it. */
+.fx-onb__file {
+  display: flex; align-items: center; gap: var(--fx-space-3);
+  padding: var(--fx-space-3); border: var(--fx-hairline) solid var(--fx-edge); border-radius: var(--fx-r-control);
+  background: var(--fx-paper);
+}
+.fx-onb__file[aria-invalid="true"] { border-color: var(--fx-bad); }
+.fx-onb__file-main { flex: 1 1 auto; min-width: 0; display: grid; gap: var(--fx-space-h); }
+.fx-onb__file-name { margin: var(--fx-space-0); font: var(--fx-t-label); color: var(--fx-ink); }
+.fx-onb__file-state { margin: var(--fx-space-0); font: var(--fx-t-meta); color: var(--fx-ink-3); overflow-wrap: anywhere; }
+.fx-onb__file-state[data-state="picked"], .fx-onb__file-state[data-state="stored"] { color: var(--fx-ok); }
+.fx-onb__thumb {
+  flex: none; width: var(--fx-avatar-l); height: var(--fx-avatar-l); object-fit: cover;
+  border-radius: var(--fx-r-chip); background: var(--fx-well);
+}
+.fx-onb__thumb--round { border-radius: var(--fx-r-round); }
+.fx-onb__thumb[hidden] { display: none; }
+
+/* The work pin: a status line and the button that sets it. */
+.fx-onb__pin { display: flex; flex-wrap: wrap; align-items: center; gap: var(--fx-space-3); }
+.fx-onb__pin-state { flex: 1 1 12rem; margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink-2); }
+.fx-onb__pin-state[data-state="set"] { color: var(--fx-ok); }
+
+/* The sub-panel under "Other". */
+.fx-onb__panel { display: grid; gap: var(--fx-space-4); padding: var(--fx-space-4); border: var(--fx-hairline) solid var(--fx-line); border-radius: var(--fx-r-control); background: var(--fx-well); }
+.fx-onb__panel .fx-field + .fx-field { margin-top: var(--fx-space-0); }
+
+/* What the platform keeps, stated once (payout step). */
+.fx-onb__fact { margin: var(--fx-space-0); padding: var(--fx-space-4); border-radius: var(--fx-r-control); background: var(--fx-well); font: var(--fx-t-body); color: var(--fx-ink-2); }
+
+/* Review: each step's answers, with a way back to change them. */
+.fx-onb__sum { display: grid; gap: var(--fx-space-3); padding: var(--fx-space-4); border: var(--fx-hairline) solid var(--fx-line); border-radius: var(--fx-r-control); }
+.fx-onb__sum-head { display: flex; align-items: center; justify-content: space-between; gap: var(--fx-space-3); }
+.fx-onb__sum-title { margin: var(--fx-space-0); font: var(--fx-t-label); color: var(--fx-ink); }
+.fx-onb__sum-rows { display: grid; gap: var(--fx-space-2); margin: var(--fx-space-0); }
+.fx-onb__sum-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--fx-space-1) var(--fx-space-3); }
+.fx-onb__sum-row > dt { font: var(--fx-t-meta); color: var(--fx-ink-3); }
+.fx-onb__sum-row > dd { margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink); text-align: right; overflow-wrap: anywhere; }
+
+/* What happens next: a numbered list in words. */
+.fx-onb__next { display: grid; gap: var(--fx-space-3); margin: var(--fx-space-0); padding-left: var(--fx-space-5); font: var(--fx-t-body); color: var(--fx-ink-2); }
+.fx-onb__next > li::marker { color: var(--fx-ink); font-weight: var(--fx-w-strong); }
+
+/* The agreement (terms). */
+.fx-onb__check { display: flex; align-items: flex-start; gap: var(--fx-space-3); font: var(--fx-t-body); color: var(--fx-ink-2); cursor: pointer; }
+.fx-onb__check > input { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); margin: var(--fx-space-h) 0 0; accent-color: var(--fx-ink); }
+
+/* Sent / under review. */
+.fx-onb__done { display: grid; gap: var(--fx-space-6); }
+.fx-onb__actions { display: grid; gap: var(--fx-space-3); }

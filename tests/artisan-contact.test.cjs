@@ -106,11 +106,25 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const between = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, `missing: ${a}`); const j = s.indexOf(b, i + a.length); return s.slice(i, j < 0 ? undefined : j); };
 const READS_CONTACT = /getDocument\(`bookings\/\$\{[^}]+\}\/private`,\s*'artisanContact'\)/;
 
-await t('artisan onboarding: phone and email go to private/contact, not the public profile', () => {
-    const s = read('artisan-app/onboarding.html');
-    assert.match(s, /setDocument\(`artisans\/\$\{uid\}\/private`, 'contact', \{\s*artisanId: uid,/);
-    const pub = between(s, "await databaseService.setDocument('artisans', uid, {", '}, { merge: true });');
-    assert.ok(!/^\s*(email|phone)\s*[,:]/m.test(pub), 'the public profile still carries email/phone');
+await t('artisan onboarding: phone and email go to private/contact, not the public profile', async () => {
+    // Phase 5: onboarding sends what artisan-app/js/onboarding.js builds — the
+    // submission batch and each step's saved draft. Run it rather than read it.
+    const { pathToFileURL } = require('url');
+    const ob = await import(pathToFileURL(path.join(ROOT, 'artisan-app/js/onboarding.js')).href);
+    const v = { ...ob.emptyValues(), firstName: 'Kofi', lastName: 'Boateng', phone: '024 123 4567', dob: '1990-04-12',
+        address: 'Accra', pin: { lat: 5.6037, lng: -0.1869 }, ghanaCard: 'GHA-123456789-0', trade: 'Plumbing',
+        bio: 'x'.repeat(60), experience: '5', radius: 10, payProvider: 'mtn', payNumber: '0241111111', payName: 'Kofi' };
+    const n = '2026-11-09T00:00:00.000Z';
+    const sent = ob.submissionWrites({ uid: 'art_1', email: 'k@example.com', v, docUrls: {}, nowIso: n });
+    const drafts = ['you', 'work'].flatMap((s) => ob.draftWrites(s, { uid: 'art_1', email: 'k@example.com', v, emailVerified: true, nowIso: n }).writes);
+    for (const writes of [sent, drafts]) {
+        const contact = writes.find((w) => w.path === 'artisans/art_1/private' && w.id === 'contact');
+        assert.deepStrictEqual(contact.data, { artisanId: 'art_1', phone: '0241234567', email: 'k@example.com', updatedAt: n });
+        for (const w of writes.filter((x) => x.path === 'artisans')) {
+            for (const k of ['email', 'phone', 'phoneNumber', 'contactEmail', 'whatsapp']) assert.ok(!(k in w.data), `the public profile carries ${k}`);
+        }
+    }
+    assert.match(read('artisan-app/onboarding.html'), /databaseService\.commitBatch\(submissionWrites\(/, 'the page sends those writes');
 });
 await t('artisan Settings: the phone is read from and saved to private/contact only', () => {
     const s = read('artisan-app/settings.html');

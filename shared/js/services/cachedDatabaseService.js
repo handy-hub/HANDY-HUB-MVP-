@@ -148,6 +148,15 @@ export function createCachedDatabaseService(databaseService, { defaultTtlMs = DE
         return databaseService.deleteDocument(collectionName, documentId);
     }
 
+    /** An atomic batch of set writes ([{ path, id, data, merge }]); every touched entry is invalidated. */
+    async function commitBatch(writes) {
+        for (const w of writes) {
+            cache.delete(docKey(w.path, w.id));
+            cache.deleteByPrefix(`q:${w.path}:`);
+        }
+        return databaseService.commitBatch(writes);
+    }
+
     async function addDocument(collectionName, data) {
         // New document invalidates all queries on the collection
         cache.deleteByPrefix(`q:${collectionName}:`);
@@ -237,6 +246,7 @@ export function createCachedDatabaseService(databaseService, { defaultTtlMs = DE
         setDocument,
         updateDocument,
         deleteDocument,
+        commitBatch,
         addDocument,
         addSubDocument,
         updateSubDocument,

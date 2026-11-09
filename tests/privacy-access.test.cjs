@@ -125,11 +125,21 @@ await t('a heartbeat with no fix writes no position at all', async () => {
     assert.ok(!('lat' in db.calls[0].data) && !('currentLat' in db.calls[0].data));
 });
 
-await t('onboarding writes the work pin precise-private and coarse-public', () => {
-    const src = read('artisan-app/onboarding.html');
-    assert.match(src, /setDocument\(`artisans\/\$\{uid\}\/private`, 'location', \{\s*lat:\s+_workLocation\.lat/);
-    assert.match(src, /lat:\s+coarseCoord\(_workLocation\.lat\)/);
-    assert.match(src, /lng:\s+coarseCoord\(_workLocation\.lng\)/);
+await t('onboarding writes the work pin precise-private and coarse-public', async () => {
+    // Phase 5: onboarding sends what artisan-app/js/onboarding.js builds — the
+    // submission batch and the "About you" draft. Run it rather than read it.
+    const { pathToFileURL } = require('url');
+    const ob = await import(pathToFileURL(path.join(ROOT, 'artisan-app/js/onboarding.js')).href);
+    const v = { ...ob.emptyValues(), firstName: 'A', lastName: 'B', phone: '0241234567', pin: { lat: P.lat, lng: P.lng, accuracy: 9 },
+        trade: 'Plumbing', payProvider: 'mtn', payNumber: '0241111111', payName: 'A B', ghanaCard: 'GHA-123456789-0' };
+    const n = '2026-11-09T00:00:00.000Z';
+    for (const writes of [ob.submissionWrites({ uid: 'a1', v, nowIso: n }), ob.draftWrites('you', { uid: 'a1', v, nowIso: n }).writes]) {
+        const loc = writes.find((w) => w.path === 'artisans/a1/private' && w.id === 'location').data;
+        assert.deepStrictEqual([loc.lat, loc.lng, loc.source], [P.lat, P.lng, 'work_pin'], 'the precise pin is private');
+        const pub = writes.find((w) => w.path === 'artisans').data;
+        assert.deepStrictEqual([pub.lat, pub.lng], [5.6, -0.19], 'the public copy is to 0.01° (~1 km)');
+    }
+    assert.match(read('artisan-app/onboarding.html'), /databaseService\.commitBatch\(submissionWrites\(/, 'the page sends those writes');
 });
 
 await t('the dispatch index takes the PRECISE private position, falling back to the public one', async () => {
