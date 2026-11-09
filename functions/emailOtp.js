@@ -42,6 +42,7 @@ const {
     FIRESTORE_DB_ID,
     FUNCTIONS_REGION,
 } = require('./config');
+const { canonicalTrade, isOtherTrade } = require('./shared/artisanTrades');
 
 // ── Lazy singletons ───────────────────────────────────────────────────────────
 let _db;
@@ -107,12 +108,18 @@ function validateArtisanPayload(p) {
         throw new HttpsError('invalid-argument', 'Invalid email address.');
     if (!p.password || p.password.length < 8)
         throw new HttpsError('invalid-argument', 'Password must be at least 8 characters.');
-    const VALID_CATS = new Set([
-        'electrical','plumbing','carpentry','painting','welding',
-        'ac_cooling','tiling','cleaning','other',
-    ]);
-    if (!p.category || !VALID_CATS.has(p.category))
+    // A bookable trade (shared/js/domain/artisanTrades.js — the trades customers
+    // can book), or Other with a description and the bookable trade closest to
+    // it. An older sign-up page sends its own ids ('ac_cooling'): read as the
+    // trade they mean. Tiling and the like were never bookable, so no job ever
+    // reached an artisan registered under them (decision of 2026-11-09).
+    const other = isOtherTrade(p.category);
+    if (!other && !canonicalTrade(p.category))
         throw new HttpsError('invalid-argument', 'Invalid service category.');
+    if (other && !canonicalTrade(p.otherBucket))
+        throw new HttpsError('invalid-argument', 'Choose the listed trade closest to yours.');
+    if (other && String(p.otherDesc || p.requestedService || '').trim().length < 2)
+        throw new HttpsError('invalid-argument', 'Describe your trade.');
     if (p.phone && !GHANA_PHONE_RE.test(p.phone.replace(/\s/g, '')))
         throw new HttpsError('invalid-argument', 'Invalid Ghana phone number.');
 }
@@ -813,8 +820,10 @@ async function _activateArtisanAccount(uid, payload, correlationId, { emailVerif
     } = payload;
     const now = new Date().toISOString();
 
-    const isOther           = category === 'other';
-    const effectiveCategory = isOther && otherBucket ? otherBucket : category;
+    // Stored as the bookable trade's label — the value a booking's serviceType
+    // carries and dispatch matches (validateArtisanPayload accepted it).
+    const isOther           = isOtherTrade(category);
+    const effectiveCategory = isOther ? canonicalTrade(otherBucket) : canonicalTrade(category);
     const specialtyDesc     = isOther && (requestedService || otherDesc) ? (requestedService || otherDesc) : null;
 
     // 1. Enable the Auth user; mark the address verified only if it truly was

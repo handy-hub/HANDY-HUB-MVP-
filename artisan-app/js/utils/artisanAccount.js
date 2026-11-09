@@ -16,12 +16,9 @@
 import { httpsCallable }     from '../../../shared/vendor/firebase/firebase-functions.js';
 import { firebaseFunctions } from '../../../shared/js/backend/providers/firebase/firebaseConfig.js';
 
-/** The trades onboarding offers — keep in step with onboarding.html #category and
- *  ARTISAN_TRADES in functions/artisanAccount.js (which validates them). */
-export const ARTISAN_TRADES = Object.freeze([
-    'Plumbing', 'Electrical', 'Carpentry', 'Painting', 'Tiling', 'AC', 'Roofing',
-    'Welding', 'Cleaning', 'Moving', 'Landscaping', 'Security',
-]);
+/** The trades an artisan can register under: one list for the forms and the
+ *  server (shared/js/domain/artisanTrades.js, mirrored to functions/shared). */
+export { ARTISAN_TRADES } from '../../../shared/js/domain/artisanTrades.js';
 
 /** Verification states in which name and trade are fixed (firestore.rules claimsLockedIn). */
 export function claimsLocked(verificationStatus) {

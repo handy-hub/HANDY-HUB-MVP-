@@ -228,6 +228,21 @@ function install() {
                     return { uid, ...authUsers.get(uid) };
                 },
                 async deleteUser(uid) { deletedUsers.push(uid); authUsers.delete(uid); },
+                // The account-creation calls functions/emailOtp.js makes.
+                async getUserByEmail(email) {
+                    for (const [uid, u] of authUsers) if (u.email === email) return { uid, ...u };
+                    const e = new Error('user not found'); e.code = 'auth/user-not-found'; throw e;
+                },
+                async createUser(props) {
+                    const uid = props.uid || `fake_uid_${authUsers.size + 1}`;
+                    authUsers.set(uid, { ...props });
+                    return { uid, ...props };
+                },
+                async updateUser(uid, props) {
+                    if (!authUsers.has(uid)) { const e = new Error('user not found'); e.code = 'auth/user-not-found'; throw e; }
+                    authUsers.set(uid, { ...authUsers.get(uid), ...props });
+                    return { uid, ...authUsers.get(uid) };
+                },
             }) };
         }
         if (request === 'firebase-admin/app') return { initializeApp: () => ({}), getApps: () => [] };

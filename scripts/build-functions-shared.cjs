@@ -65,6 +65,13 @@ const MIRRORS = [
         source: 'shared/js/domain/bookingRouter.js',
         target: 'functions/shared/bookingRouter.js',
     },
+    {
+        // The trades an artisan can register under: sign-up (emailOtp.js) and
+        // profile-change requests (artisanAccount.js) validate against the same
+        // list the forms offer (Phase 5).
+        source: 'shared/js/domain/artisanTrades.js',
+        target: 'functions/shared/artisanTrades.js',
+    },
 ];
 
 const BANNER = [

@@ -64,6 +64,20 @@
 .fx-ink-2   { color: var(--fx-ink-2); }
 .fx-ink-3   { color: var(--fx-ink-3); }
 
+/* ── Wordmark (design decision 05) ─────────────────────────────────────────
+   The Fidus X name, set in the system's own face, with "for professionals"
+   under it — until the final logo assets are supplied. Never an image, an
+   icon or a gradient. Markup:
+     <p class="fx-wordmark"><span class="fx-wordmark__name">Fidus X</span>
+        <span class="fx-wordmark__for">for professionals</span></p>
+   It reads as one phrase to a screen reader; the page's heading says what
+   the page is for.                                                          */
+.fx-wordmark { display: inline-flex; flex-direction: column; gap: var(--fx-space-h); margin: var(--fx-space-0); color: var(--fx-ink); }
+.fx-wordmark__name { font: var(--fx-t-title); letter-spacing: var(--fx-track-title); }
+.fx-wordmark__for  { font: var(--fx-t-label); color: var(--fx-ink-2); }
+.fx-wordmark--s .fx-wordmark__name { font: var(--fx-t-heading); letter-spacing: var(--fx-track-heading); }
+
+
 .fx-link {
   color: var(--fx-accent-text);
   text-decoration: underline;

@@ -144,11 +144,9 @@ async function ensureArtisanProfile(auth) {
 //                         documents is a re-verification: requestMoreInfo.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// The trades onboarding offers — keep in step with artisan-app/onboarding.html #category.
-const ARTISAN_TRADES = Object.freeze([
-    'Plumbing', 'Electrical', 'Carpentry', 'Painting', 'Tiling', 'AC', 'Roofing',
-    'Welding', 'Cleaning', 'Moving', 'Landscaping', 'Security',
-]);
+// The trades an artisan can register under — the ones customers can book
+// (shared/js/domain/artisanTrades.js, mirrored; the forms use the same list).
+const { ARTISAN_TRADES, canonicalTrade } = require('./shared/artisanTrades');
 const CLAIM_FIELDS = Object.freeze(['name', 'category', 'specialty']);
 
 const changeRef = (uid) => db().collection('profile_change_requests').doc(uid);
@@ -167,7 +165,8 @@ function validateProfileChange(current, proposed) {
     if (p.category !== undefined) {
         const trade = ARTISAN_TRADES.find((t) => t.toLowerCase() === String(p.category || '').trim().toLowerCase());
         if (!trade) throw accountError('invalid', 'Choose one of the listed trades.');
-        if (trade.toLowerCase() !== String(current.category || '').trim().toLowerCase()) requested.category = trade;
+        // An older value that means the same trade ('AC' for AC Repair) is no change.
+        if (trade !== canonicalTrade(current.category)) requested.category = trade;
     }
     if (p.specialty !== undefined) {
         const specialty = typeof p.specialty === 'string' ? p.specialty.trim().replace(/\s+/g, ' ') : '';
