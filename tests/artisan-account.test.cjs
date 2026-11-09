@@ -209,6 +209,20 @@ const N = '2026-11-09T12:00:00.000Z';
         assert.ok(!/err\.message|err && err\.message/.test(pfScript), 'no raw error text');
     });
 
+    await t('Support and Notifications are on the system: own tab bar, the heartbeat, no inline handlers, styles or gradient', () => {
+        for (const [f, tab] of [['artisan-app/support.html', 'account'], ['artisan-app/notifications.html', 'today']]) {
+            const src = read(f);
+            const js = /<script type="module">([\s\S]*?)<\/script>/.exec(src)[1];
+            assert.match(src, /<body class="fx-app">/, f);
+            assert.match(js, new RegExp(`renderTabbar\\(document\\.getElementById\\('tabbar'\\), \\{ current: '${tab}' \\}\\);`), f);
+            assert.match(src, /<script src="js\/artisanFloatingNav\.js"><\/script>/, `${f}: the heartbeat`);
+            assert.ok(!/onclick=|style="|\.style\.|window\.\w+\s*=\s*(async\s+)?function|gradient|design-system\.css|ui-polish\.css/.test(src), `${f}: legacy`);
+        }
+        const sup = read('artisan-app/support.html');
+        assert.match(sup, /for \(const t of TICKET_TOPICS\)/, 'the topics are the shared list');
+        assert.ok(!/Bookings tab|Wallet tab|Complete KYC|Withdraw Earnings/.test(sup), 'no retired screen names in the answers');
+    });
+
     await t('no HandyHub, no review-time promise, no raw-SDK import', () => {
         assert.ok(!/handy\s*hub|business days|firebase-auth\.js/i.test(page));
     });

@@ -1,0 +1,43 @@
+/* artisan-app/css/fx/notifications.css — Notifications (Phase 5). Tokens only
+   (npm run lint:fx). Every alert Fidus X has sent, newest first, by day; each
+   row opens what it is about, and can be deleted. The class hooks notif-item,
+   notif-item-title, notif-item-msg and notif-lapsed are kept for the
+   cache-first and polish checks. */
+
+.fx-ntf__filters { display: flex; flex-wrap: wrap; gap: var(--fx-space-2); padding: var(--fx-space-3) var(--fx-gutter) 0; }
+.fx-ntf__filter {
+  min-height: var(--fx-hit); padding: var(--fx-space-1) var(--fx-space-4);
+  border: var(--fx-hairline) solid var(--fx-edge); border-radius: var(--fx-r-round);
+  background: var(--fx-paper); color: var(--fx-ink-2); font: var(--fx-t-label); cursor: pointer;
+}
+.fx-ntf__filter[aria-pressed="true"] { border-color: var(--fx-ink); background: var(--fx-ink); color: var(--fx-on-ink); }
+
+.fx-ntf__list[hidden], .fx-ntf__state[hidden], .fx-ntf__loading[hidden] { display: none; }
+.fx-ntf__loading { display: grid; gap: var(--fx-space-2); padding: var(--fx-space-4) var(--fx-gutter); }
+.fx-ntf__day { margin: var(--fx-space-6) 0 var(--fx-space-1); padding: 0 var(--fx-gutter); font: var(--fx-t-label); color: var(--fx-ink-3); }
+.fx-ntf__group { margin: var(--fx-space-0); padding: var(--fx-space-0); list-style: none; }
+
+.fx-ntf__item { position: relative; display: flex; align-items: flex-start; gap: var(--fx-space-3); padding: var(--fx-space-3) var(--fx-space-1) var(--fx-space-3) var(--fx-gutter); cursor: pointer; }
+.fx-ntf__item + .fx-ntf__item::before { content: ''; position: absolute; top: 0; left: var(--fx-gutter); right: 0; height: var(--fx-hairline); background: var(--fx-line); }
+.fx-ntf__item:active { background: var(--fx-well); }
+.fx-ntf__icon { flex: none; display: flex; align-items: center; justify-content: center; width: var(--fx-avatar-m); height: var(--fx-avatar-m); border-radius: var(--fx-r-control); background: var(--fx-well); color: var(--fx-ink-2); }
+.fx-ntf__icon > svg { width: var(--fx-icon-s); height: var(--fx-icon-s); }
+.fx-ntf__main { flex: 1; min-width: 0; display: grid; gap: var(--fx-space-h); }
+.fx-ntf__title {
+  margin: var(--fx-space-0); padding: var(--fx-space-0); border: 0; background: transparent;
+  font: var(--fx-t-body); color: var(--fx-ink-2); text-align: left; cursor: pointer; overflow-wrap: anywhere;
+}
+.fx-ntf__item[data-unread] .fx-ntf__title { font: var(--fx-t-body-strong); color: var(--fx-ink); }
+/* The title is the row's action: its hit area is the whole row (at least 44 px),
+   and the delete button sits above it. */
+.fx-ntf__title::after { content: ''; position: absolute; inset: 0; }
+.fx-ntf__item > .notif-delete-btn { position: relative; z-index: var(--fx-z-bar); }
+.fx-ntf__main > .notif-item-msg { margin: var(--fx-space-0); font: var(--fx-t-meta); color: var(--fx-ink-2); overflow-wrap: anywhere; }
+.fx-ntf__meta { display: flex; flex-wrap: wrap; gap: var(--fx-space-1) var(--fx-space-2); font: var(--fx-t-meta); color: var(--fx-ink-3); }
+.fx-ntf__meta > .notif-lapsed { color: var(--fx-warn); font-weight: var(--fx-w-strong); }
+.fx-ntf__item[data-lapsed] .fx-ntf__icon { color: var(--fx-ink-4); }
+.fx-ntf__dot { flex: none; width: var(--fx-dot); height: var(--fx-dot); margin-top: var(--fx-space-2); border-radius: var(--fx-r-round); background: var(--fx-accent); }
+
+.fx-ntf__state { display: grid; justify-items: center; gap: var(--fx-space-2); padding: var(--fx-space-12) var(--fx-gutter); text-align: center; }
+.fx-ntf__state > p { margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink-2); }
+.fx-ntf__state > .fx-ntf__state-title { font: var(--fx-t-heading); color: var(--fx-ink); }

@@ -321,19 +321,22 @@ with sync_playwright() as pw:
     check('Today: no page errors', not errs, errs[:3])
     pg.context.close()
 
-    # ═══ NAV on a legacy screen (support.html) ═══════════════════════════════
-    # The four tabs on a screen not yet on the design system (artisanFloatingNav.js).
-    # (wallet.html was this screen until Phase 4 moved Earnings onto the system,
-    # and settings.html until Phase 5 moved Account; tests/e2e/artisan_earnings.py
-    # and tests/e2e/artisan_account.py check their own tab bars and the heartbeat.)
+    # ═══ NAV script on a screen with its own tab bar (support.html) ═══════════
+    # Phase 5 moved the last screens that took their tab bar from
+    # artisanFloatingNav.js (Account, Profile, Support, Notifications) onto the
+    # system; every tabbed screen now draws its own. The script stays on every
+    # artisan page for the liveness heartbeat — and must never draw a second bar.
+    # (wallet.html and settings.html were the legacy screen here before; their
+    # own suites, artisan_earnings.py and artisan_account.py, check their bars.)
     pg, errs = open_page(b, '/artisan-app/support.html')
-    pg.wait_for_selector('#fx-tabbar .fx-tab', timeout=8000)
-    check('nav (support.html): the four tabs, Account current, fixed at the bottom with room left for it',
-          pg.eval_on_selector_all('#fx-tabbar .fx-tab', 'els => els.map(e => [e.textContent.trim(), e.getAttribute("href")])')
+    pg.wait_for_selector('#tabbar .fx-tab', timeout=8000)
+    pg.wait_for_timeout(300)
+    check('nav (support.html): the screen\'s own four tabs, Account current; the script draws no second bar',
+          pg.eval_on_selector_all('#tabbar .fx-tab', 'els => els.map(e => [e.textContent.trim(), e.getAttribute("href")])')
           == [['Today', 'dashboard.html'], ['Jobs', 'jobs.html'], ['Earnings', 'wallet.html'], ['Account', 'settings.html']]
-          and text_of(pg, '#fx-tabbar [aria-current="page"]') == 'Account'
-          and pg.evaluate("getComputedStyle(document.querySelector('.fx-bottom--fixed')).position === 'fixed' && parseFloat(getComputedStyle(document.body).paddingBottom) >= 64"),
-          pg.eval_on_selector_all('#fx-tabbar .fx-tab', 'els => els.map(e => e.textContent.trim())'))
+          and text_of(pg, '#tabbar [aria-current="page"]') == 'Account'
+          and pg.query_selector('#fx-tabbar, .fx-bottom--fixed') is None and len(pg.query_selector_all('nav.fx-tabbar')) == 1,
+          pg.eval_on_selector_all('nav.fx-tabbar', 'els => els.map(e => e.id)'))
     check('nav: no availability control outside Today (decision 02)', pg.query_selector('#hh-online-toggle, #hh-floating-nav, .hh-fnav') is None)
     pg.wait_for_function("(window.__fx.docCbs['artisans/A1'] || []).length > 0", timeout=5000)
     pg.evaluate("(a) => window.__fx.docCbs['artisans/A1'].forEach(cb => cb({ id: 'A1', exists: true, data: a, fromCache: false }))", ARTISAN)

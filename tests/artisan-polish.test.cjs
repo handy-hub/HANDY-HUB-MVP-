@@ -129,24 +129,30 @@ t('one lapse timer, re-armed per render and cleared on pagehide', () => {
 });
 
 t('delete: a 44px target, always shown where there is no hover, focusable by keyboard', () => {
+    // Phase 5: Notifications is on the design system. The delete control is the
+    // system's icon button (a 44 px target, --fx-hit) and is ALWAYS shown — not
+    // revealed on hover — so touch, keyboard and pointer users all find it. Its
+    // name says which notification it deletes. Measured in tests/e2e/artisan_account.py.
     const html = read('artisan-app/notifications.html');
-    const rule = /\.notif-delete-btn \{([^}]*)\}/.exec(html)[1];
-    assert.match(rule, /width: 44px; height: 44px;/);
-    assert.doesNotMatch(rule, /display: none/, 'display:none takes it out of the tab order');
-    assert.match(html, /@media \(hover: none\) \{\s*\.notif-delete-btn \{ opacity: 1; \}/);
-    assert.match(html, /\.notif-item:hover \.notif-delete-btn, \.notif-delete-btn:focus-visible \{ opacity: 1; \}/);
+    assert.match(html, /<button class="fx-iconbtn notif-delete-btn" type="button" data-delete="\$\{escHtml\(n\.id\)\}" aria-label="Delete: \$\{escHtml\(n\.title\)\}">/);
+    const css = read('artisan-app/css/app.css');
+    assert.match(/\.fx-iconbtn \{([^}]*)\}/.exec(css)[1], /width: var\(--fx-hit\); height: var\(--fx-hit\);|min-width: var\(--fx-hit\)/);
+    const own = read('artisan-app/css/fx/notifications.css');
+    assert.doesNotMatch(own, /notif-delete-btn[^{]*\{[^}]*(display: none|opacity: 0)/, 'never hidden until hover');
 });
 
 console.log('\n── NET-001 · notifications offline with nothing cached ──\n');
 
 t('a failed first load says it could not load (with Try again), never "No notifications yet"', () => {
+    // Phase 5: on the design system, shown and hidden with the hidden attribute.
     const html = read('artisan-app/notifications.html');
-    assert.match(html, /<div class="notif-empty" id="notif-error" role="alert" style="display:none;">\s*<p class="notif-empty-title">Couldn't load your notifications<\/p>[\s\S]*?onclick="location\.reload\(\)">Try again<\/button>/);
+    assert.match(html, /<div class="fx-ntf__state" id="notif-error" role="alert" hidden>\s*<p class="fx-ntf__state-title">Couldn't load your notifications<\/p>[\s\S]*?id="notif-retry">Try again<\/button>/);
+    assert.match(html, /getElementById\('notif-retry'\)\.addEventListener\('click', \(\) => location\.reload\(\)\);/);
     const onErr = /onError: \(_err, \{ hasContent \}\) => \{([\s\S]*?)\n  \},/.exec(html)[1];
     assert.match(onErr, /if \(hasContent\) return;/, 'cached content is kept');
-    assert.match(onErr, /emptyEl\.style\.display   = 'none';/);
-    assert.match(onErr, /getElementById\('notif-error'\)\.style\.display = 'block';/);
-    assert.match(html, /function render\(notifications\) \{\s*loadingEl\.style\.display = 'none';\s*document\.getElementById\('notif-error'\)\.style\.display = 'none';/,
+    assert.match(onErr, /emptyEl\.hidden   = true;/);
+    assert.match(onErr, /errorEl\.hidden   = false;/);
+    assert.match(html, /function render\(notifications\) \{\s*loadingEl\.hidden = true;\s*errorEl\.hidden = true;/,
         'a list that arrives later clears the error');
 });
 

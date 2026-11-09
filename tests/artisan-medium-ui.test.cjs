@@ -71,7 +71,8 @@ t('no page in any app has `${` in its static markup (it would be printed, not ru
 
 t('notifications: the loading skeleton is four real rows', () => {
     const block = blockOf(read('artisan-app/notifications.html'), 'notif-loading');
-    assert.strictEqual((block.match(/class="notif-skel"/g) || []).length, 4);
+    // Phase 5: Notifications is on the design system — four fx skeleton rows.
+    assert.strictEqual((block.match(/class="fx-skel fx-skel--row"/g) || []).length, 4);
     assert.doesNotMatch(block, /\.map\(|\.join\(/);
 });
 

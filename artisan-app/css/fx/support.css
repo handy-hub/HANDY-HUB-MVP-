@@ -1,0 +1,49 @@
+/* artisan-app/css/fx/support.css — Help and support (Phase 5). Tokens only
+   (npm run lint:fx). Answers first, then a request to the team, then the
+   artisan's requests and their conversations. */
+
+.fx-sup__lead { margin: var(--fx-space-0); padding: var(--fx-space-4) var(--fx-gutter) 0; font: var(--fx-t-body); color: var(--fx-ink-2); }
+
+/* Answers: native disclosure, so the open state is announced and keyboard-operable. */
+.fx-sup__faqs { display: grid; gap: var(--fx-space-2); }
+.fx-sup__faq { border: var(--fx-hairline) solid var(--fx-line); border-radius: var(--fx-r-control); }
+.fx-sup__faq > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--fx-space-3);
+  min-height: var(--fx-row); padding: var(--fx-space-3) var(--fx-space-4);
+  font: var(--fx-t-body-strong); color: var(--fx-ink); cursor: pointer; list-style: none;
+}
+.fx-sup__faq > summary::-webkit-details-marker { display: none; }
+.fx-sup__faq > summary > svg { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); color: var(--fx-ink-3); transition: transform var(--fx-d-state) var(--fx-ease-io); }
+.fx-sup__faq[open] > summary > svg { transform: rotate(180deg); }
+.fx-sup__faq > p { margin: var(--fx-space-0); padding: 0 var(--fx-space-4) var(--fx-space-4); font: var(--fx-t-body); color: var(--fx-ink-2); }
+
+/* A request to the team. */
+.fx-sup__form { display: grid; gap: var(--fx-space-4); }
+.fx-sup__form .fx-field + .fx-field { margin-top: var(--fx-space-0); }
+.fx-sup__error { margin: var(--fx-space-0); font: var(--fx-t-meta); color: var(--fx-bad); }
+.fx-sup__error:empty { display: none; }
+
+/* The artisan's requests: a row each, opened in place (SUP-001: built once,
+   updated in place; .open is the row's own state). */
+.fx-sup__tickets { display: grid; gap: var(--fx-space-2); }
+.fx-sup__state { margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink-2); }
+.fx-sup__state[hidden] { display: none; }
+.fx-sup__ticket { border: var(--fx-hairline) solid var(--fx-line); border-radius: var(--fx-r-control); }
+.fx-sup__toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--fx-space-3);
+  width: 100%; min-height: var(--fx-row); margin: var(--fx-space-0); padding: var(--fx-space-3) var(--fx-space-4);
+  border: 0; background: transparent; color: var(--fx-ink); font: var(--fx-t-body-strong); text-align: left; cursor: pointer;
+}
+.fx-sup__toggle > svg { flex: none; width: var(--fx-icon-s); height: var(--fx-icon-s); color: var(--fx-ink-3); transition: transform var(--fx-d-state) var(--fx-ease-io); }
+.fx-sup__toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.fx-sup__body { display: grid; gap: var(--fx-space-3); padding: 0 var(--fx-space-4) var(--fx-space-4); }
+.fx-sup__body:not(.open) { display: none; }
+.fx-sup__msg { display: grid; gap: var(--fx-space-1); }
+.fx-sup__who { margin: var(--fx-space-0); font: var(--fx-t-meta); color: var(--fx-ink-3); }
+.fx-sup__who > strong { color: var(--fx-ink-2); font-weight: var(--fx-w-strong); }
+.fx-sup__text { margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.fx-sup__thread { display: grid; gap: var(--fx-space-3); }
+.fx-sup__thread:empty { display: none; }
+.fx-sup__compose { display: grid; gap: var(--fx-space-2); }
+
+.fx-sup__foot { margin: var(--fx-space-8) 0 0; padding: 0 var(--fx-gutter) var(--fx-space-8); font: var(--fx-t-caption); color: var(--fx-ink-3); text-align: center; }

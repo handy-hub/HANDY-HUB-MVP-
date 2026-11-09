@@ -80,6 +80,9 @@ INIT = r"""
     async updateDocument(c, id, data) { rec('update', `${c}/${id}`, data); if (fx.saveFail) throw err('unavailable'); },
     async setDocument(c, id, data, opts) { rec('set', `${c}/${id}`, data, opts || null); if (fx.saveFail) throw err('unavailable'); },
     subscribeToDocument(c, id, cb) { (fx.docCbs[`${c}/${id}`] = fx.docCbs[`${c}/${id}`] || []).push(cb); return () => {}; },
+    async addDocument(c, data) { rec('add', c, data); if (fx.saveFail) throw err('unavailable'); return 'new1'; },
+    subscribeToCollection(c, conds, opts, onData) { setTimeout(() => onData((fx.tickets || []).map((t) => ({ id: t.id, data: t }))), 0); return () => {}; },
+    subscribeToSubCollection(c, id, sub, conds, opts, onData) { setTimeout(() => onData([]), 0); return () => {}; },
   };
   fx.session = { async logout() { rec('logout'); } };
   fx.callable = async (name, data) => {
@@ -107,6 +110,12 @@ SPECIFIC = {
     '/shared/vendor/firebase/firebase-functions.js':
         "export function httpsCallable(_f, name){ return (data) => window.__fx.callable(name, data); }",
     '/shared/js/backend/providers/firebase/firebaseConfig.js': "export const firebaseFunctions = {};",
+    '/shared/js/services/notificationRepository.js':
+        "export function subscribeToUserNotifications(uid, onChange){ const fx = window.__fx; setTimeout(() => onChange((fx.notifications || []).map((n) => ({ ...n, createdAt: new Date(n.createdAt) }))), 0); return () => {}; }\n"
+        "export async function markNotificationRead(id){ window.__fx.calls.push(['read', id]); }\n"
+        "export async function markAllNotificationsRead(uid){ window.__fx.calls.push(['readAll', uid]); }\n"
+        "export async function deleteNotification(id){ window.__fx.calls.push(['deleteNotif', id]); }\n"
+        "export async function createNotification(d){ window.__fx.calls.push(['notify', d.title]); }",
     '/shared/js/services/profilePhotoService.js':
         "export async function replaceProfilePhoto(file, type){ window.__fx.calls.push(['photo', type, file.name]); return { publicId: 'artisans/A1/p2', version: 9 }; }",
 }
@@ -149,13 +158,14 @@ def live(pg, data):
     pg.wait_for_timeout(150)
 
 OVERFLOW_JS = """() => { const w = document.documentElement.clientWidth; const bad = [];
-  for (const el of document.querySelectorAll('body *')) { if (el.closest('[hidden]')) continue;
+  for (const el of document.querySelectorAll('body *')) { if (el.closest('[hidden], .fx-sr')) continue;
     const r = el.getBoundingClientRect(); if (r.width && (r.right > w + 0.5 || r.left < -0.5)) bad.push(el.tagName + '#' + el.id + '.' + [...el.classList].join('.')); }
   return { scroll: document.documentElement.scrollWidth > w, bad: bad.slice(0, 5) }; }"""
 TARGETS_JS = """() => { const out = [];
   for (const el of document.querySelectorAll('button, a[href], input:not([type=radio]), .fx-acct__choice')) {
     if (el.closest('[hidden], .fx-skip, [inert]') || el.classList.contains('fx-btn--s') || el.classList.contains('fx-scrim')) continue;
-    const r = el.getBoundingClientRect(); if (!r.width) continue;
+    // A notification title's hit area is its whole row (a stretched ::after, notifications.css).
+    const r = (el.classList.contains('fx-ntf__title') ? el.closest('.fx-ntf__item') : el).getBoundingClientRect(); if (!r.width) continue;
     const hit = el.classList.contains('fx-acct__switch') ? Math.max(r.height, 44) : r.height;
     if (hit < 43.5 || r.width < 43.5) out.push(el.tagName + '#' + el.id + '.' + el.className + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)); }
   return out; }"""
@@ -420,6 +430,79 @@ with sync_playwright() as p:
     o = pg.evaluate(OVERFLOW_JS)
     check('profile 360px at 200% text: no horizontal overflow', not o['scroll'] and not o['bad'], o)
     pg.context.close()
+
+    # ═══ Help and support (support.html) ════════════════════════════════════
+    SUP = '/artisan-app/support.html'
+    pg, errs = open_page(b, path=SUP)
+    body = pg.evaluate("document.querySelector('main').textContent")   # closed answers count; the page's scripts do not
+    check('support: on the system — no gradient hero, the tab bar with Account current, one bar',
+          pg.title() == 'Help and support | Fidus X for professionals' and txt(pg, '#tabbar [aria-current="page"]') == 'Account'
+          and len(pg.query_selector_all('nav.fx-tabbar')) == 1
+          and not pg.evaluate("[...document.querySelectorAll('*')].some(e => /gradient/.test(getComputedStyle(e).backgroundImage))"))
+    check('support FAQ: names the screens that exist (Today, Jobs, Earnings, Account) — no retired names or false promise',
+          not re.search(r'Bookings tab|Wallet tab|Complete KYC|Withdraw Earnings|business days|within 2 hours|HandyHub', body)
+          and 'Complete verification' in body and 'Cancel job' in body and 'Get help with this job' in body and 'Go to Earnings' in body, body[:200])
+    pg.focus('#faq-list details:first-child summary'); pg.keyboard.press('Enter'); pg.wait_for_timeout(100)
+    check('an answer opens from the keyboard (native disclosure)', pg.evaluate("document.querySelector('#faq-list details').open") is True)
+    check('the topics are the shared list; the length rule is stated', pg.eval_on_selector_all('#sp-subject option', 'os => os.length') == 7
+          and txt(pg, '#sp-message-hint') == '20 to 2000 characters.')
+    pg.click('#sp-submit-btn'); pg.wait_for_timeout(100)
+    check('send without a topic: said, focus on the topic, nothing sent', txt(pg, '#sp-form-error') == 'Please select a topic.'
+          and pg.evaluate('document.activeElement.id') == 'sp-subject' and not calls(pg, 'add'))
+    pg.select_option('#sp-subject', 'payment'); pg.fill('#sp-message', 'My withdrawal has not arrived since Monday morning.')
+    pg.click('#sp-submit-btn'); pg.wait_for_timeout(350)
+    add = calls(pg, 'add')
+    check('sent: the request written first, then acknowledged', add and add[0][1] == 'support_tickets' and add[0][2]['role'] == 'artisan'
+          and add[0][2]['subject'] == 'payment' and calls(pg, 'notify') == [['notify', 'Support request received']]
+          and pg.input_value('#sp-message') == '', add)
+    check('no requests yet: said so', txt(pg, '#sp-tickets-state') == 'You have not sent any requests yet.')
+    layout(pg, 'support')
+    check('support: no page errors', not errs, errs[:3])
+    pg.context.close()
+
+    # ═══ Notifications (notifications.html) ═════════════════════════════════
+    NTF = '/artisan-app/notifications.html'
+    NOW_ISO = '2026-11-09T12:00:00.000Z'
+    notes = [
+        {'id': 'n1', 'type': 'Bookings', 'title': 'New job request', 'message': 'Plumbing, 2.3 km away', 'isRead': False, 'actionUrl': 'dashboard.html', 'createdAt': NOW_ISO},
+        {'id': 'n2', 'type': 'Payments', 'title': 'Payment received', 'message': 'GHS 85.00 for job HHB-1', 'isRead': True, 'actionUrl': 'wallet.html', 'createdAt': NOW_ISO},
+        {'id': 'n3', 'type': 'booking_cancelled', 'title': 'Job cancelled', 'message': '', 'isRead': False, 'actionUrl': None, 'createdAt': NOW_ISO},
+    ]
+    pg, errs = open_page(b, {'notifications': notes}, path=NTF)
+    pg.wait_for_selector('#notif-list .notif-item')
+    check('notifications: on the system, the tab bar with Today current (opened from the bell)', pg.title() == 'Notifications | Fidus X for professionals'
+          and txt(pg, '#tabbar [aria-current="page"]') == 'Today' and len(pg.query_selector_all('nav.fx-tabbar')) == 1)
+    check('three rows; each title is a real button; unread said in words', len(pg.query_selector_all('#notif-list .notif-item')) == 3
+          and pg.eval_on_selector_all('#notif-list .fx-ntf__title', 'bs => bs.every(b => b.tagName === "BUTTON")')
+          and pg.eval_on_selector_all('#notif-list .notif-item .fx-sr', 'es => es.map(e => e.textContent)') == ['Unread', 'Unread'])
+    check('delete names what it deletes', pg.get_attribute('#ni-n2 .notif-delete-btn', 'aria-label') == 'Delete: Payment received')
+    pg.click('[data-filter="Payments"]'); pg.wait_for_timeout(100)
+    check('filter Payments: only the payment; the filter says it is on', pg.eval_on_selector_all('#notif-list .notif-item', 'es => es.map(e => e.id)') == ['ni-n2']
+          and pg.get_attribute('[data-filter="Payments"]', 'aria-pressed') == 'true')
+    pg.click('[data-filter="Messages"]'); pg.wait_for_timeout(100)
+    check('an empty filter says so, not "No notifications yet"', txt(pg, '#notif-empty-title') == 'Nothing under Messages')
+    pg.click('[data-filter="Bookings"]'); pg.wait_for_timeout(100)
+    check('"booking_cancelled" is under Jobs (NOTIF-002)', pg.eval_on_selector_all('#notif-list .notif-item', 'es => es.map(e => e.id)') == ['ni-n1', 'ni-n3'])
+    pg.click('[data-filter="all"]'); pg.wait_for_timeout(100)
+    pg.focus('#ni-n2 .notif-delete-btn'); pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
+    check('deleted: gone, the server told, and the focus moves to the next row (not lost)', pg.query_selector('#ni-n2') is None
+          and calls(pg, 'deleteNotif') == [['deleteNotif', 'n2']] and pg.evaluate("document.activeElement.classList.contains('fx-ntf__title')"),
+          pg.evaluate('document.activeElement.outerHTML.slice(0, 80)'))
+    pg.click('#mark-all-btn'); pg.wait_for_timeout(200)
+    check('mark all read: the server told; no unread left; the button off', calls(pg, 'readAll') == [['readAll', 'A1']]
+          and not pg.query_selector_all('#notif-list [data-unread]') and pg.is_disabled('#mark-all-btn'))
+    layout(pg, 'notifications')
+    pg.focus('#ni-n1 .fx-ntf__title'); pg.keyboard.press('Enter'); pg.wait_for_timeout(400)
+    check('a title opens what it is about, from the keyboard', pg.url.endswith('/artisan-app/dashboard.html'), pg.url)
+    check('notifications: no page errors', not errs, errs[:3])
+    pg.context.close()
+
+    for path, name in [(SUP, 'support'), (NTF, 'notifications')]:
+        pg, errs = open_page(b, {'notifications': notes}, width=360, path=path)
+        pg.add_style_tag(content='html { font-size: 200% !important; }'); pg.wait_for_timeout(200)
+        o = pg.evaluate(OVERFLOW_JS)
+        check(f'{name} 360px at 200% text: no horizontal overflow', not o['scroll'] and not o['bad'], o)
+        pg.context.close()
 
     # ═══ 200% text ══════════════════════════════════════════════════════════
     pg, errs = open_page(b, width=360)
