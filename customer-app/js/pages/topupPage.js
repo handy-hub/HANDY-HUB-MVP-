@@ -886,7 +886,7 @@ ssDownloadBtn.addEventListener('click', () => {
     const date  = new Date().toLocaleString('en-GH', { dateStyle: 'full', timeStyle: 'short' });
     const lines = [
         '====================================',
-        '         HANDY HUB RECEIPT          ',
+        '          FIDUS X RECEIPT           ',
         '====================================',
         `Date       : ${date}`,
         `Ref        : ${paystackRef || '—'}`,

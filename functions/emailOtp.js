@@ -128,7 +128,7 @@ function validateArtisanPayload(p) {
 async function sendOtpEmail({ to, name, otp, expiresInMin, correlationId, resend }) {
     const apiKey = process.env.RESEND_API_KEY || process.env.SENDGRID_API_KEY || '';
     const from   = process.env.EMAIL_FROM || 'noreply@handyhub.app';
-    const fromName = 'HandyHub';
+    const fromName = 'Fidus X';
 
     const html = buildOtpEmailHtml({ name, otp, expiresInMin, resend });
 
@@ -144,8 +144,8 @@ async function sendOtpEmail({ to, name, otp, expiresInMin, correlationId, resend
                 from: `${fromName} <${from}>`,
                 to:   [to],
                 subject: resend
-                    ? `[Resent] Your HandyHub verification code`
-                    : `Verify your HandyHub account`,
+                    ? `[Resent] Your Fidus X verification code`
+                    : `Verify your Fidus X account`,
                 html,
             }),
         });
@@ -168,8 +168,8 @@ async function sendOtpEmail({ to, name, otp, expiresInMin, correlationId, resend
                 personalizations: [{ to: [{ email: to, name }] }],
                 from: { email: from, name: fromName },
                 subject: resend
-                    ? `[Resent] Your HandyHub verification code`
-                    : `Verify your HandyHub account`,
+                    ? `[Resent] Your Fidus X verification code`
+                    : `Verify your Fidus X account`,
                 content: [{ type: 'text/html', value: html }],
             }),
         });
@@ -199,7 +199,7 @@ function buildOtpEmailHtml({ name, otp, expiresInMin, resend }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Verify your HandyHub account</title>
+  <title>Verify your Fidus X account</title>
 </head>
 <body style="margin:0;padding:0;background:#f0ede8;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0ede8;padding:32px 16px;">
@@ -209,7 +209,7 @@ function buildOtpEmailHtml({ name, otp, expiresInMin, resend }) {
         <!-- Header -->
         <tr>
           <td style="background:linear-gradient(135deg,#730201 0%,#b10c0c 100%);padding:32px 32px 24px;text-align:center;">
-            <p style="margin:0;font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px;">HandyHub</p>
+            <p style="margin:0;font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px;">Fidus X</p>
             <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.80);font-weight:500;">
               Trusted Professionals, Right Around You
             </p>
@@ -223,7 +223,7 @@ function buildOtpEmailHtml({ name, otp, expiresInMin, resend }) {
               ${resend ? 'New verification code' : 'Verify your email'}
             </p>
             <p style="margin:0 0 28px;font-size:15px;color:#555;line-height:1.55;">
-              Hi <strong>${escHtml(name)}</strong>, use the code below to complete your HandyHub account setup.
+              Hi <strong>${escHtml(name)}</strong>, use the code below to complete your Fidus X account setup.
               ${resend ? 'Your previous code has been invalidated.' : ''}
             </p>
 
@@ -243,7 +243,7 @@ function buildOtpEmailHtml({ name, otp, expiresInMin, resend }) {
             <!-- Security note -->
             <div style="background:#f9f9f9;border-radius:12px;padding:14px 18px;margin-bottom:8px;">
               <p style="margin:0;font-size:13px;color:#666;line-height:1.6;">
-                <strong>Security notice:</strong> HandyHub will never ask for this code by phone, chat, or email.
+                <strong>Security notice:</strong> Fidus X will never ask for this code by phone, chat, or email.
                 If you did not request this, ignore this email — no account will be created.
               </p>
             </div>
@@ -254,7 +254,7 @@ function buildOtpEmailHtml({ name, otp, expiresInMin, resend }) {
         <tr>
           <td style="padding:16px 32px 28px;border-top:1px solid #f0f0f0;">
             <p style="margin:0;font-size:12px;color:#aaa;text-align:center;">
-              © ${new Date().getFullYear()} HandyHub · Ghana<br>
+              © ${new Date().getFullYear()} Fidus X · Ghana<br>
               This is an automated message — please do not reply.
             </p>
           </td>
@@ -795,7 +795,7 @@ async function _activateCustomerAccount(uid, payload, correlationId) {
         receiverId: uid,
         senderId:   null,
         type:       'Updates',
-        title:      'Welcome to HandyHub!',
+        title:      'Welcome to Fidus X!',
         message:    `Hi ${fullName.split(' ')[0]}, your account is ready. Browse trusted professionals near you and book your first service today.`,
         isRead:     false,
         readAt:     null,

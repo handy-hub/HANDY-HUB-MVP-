@@ -18,7 +18,7 @@ async function interpretSearchQuery(rawQuery) {
         max_tokens: 150,
         messages: [{
             role: 'user',
-            content: `You are a search assistant for HandyHub, a home services marketplace in Ghana.
+            content: `You are a search assistant for Fidus X, a home services marketplace in Ghana.
 
 Convert the user's search into a structured query for finding artisans/tradespeople.
 

@@ -214,7 +214,7 @@ async function initiateTransfer({ amountGHS, recipientCode, reason, reference })
         source:    'balance',
         amount:    Math.round(amountGHS * 100),
         recipient: recipientCode,
-        reason:    reason || 'HandyHub Payout',
+        reason:    reason || 'Fidus X Payout',
         currency:  'GHS',
         ...(reference ? { reference } : {}),
     });
