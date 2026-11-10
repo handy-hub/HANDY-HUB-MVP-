@@ -109,7 +109,7 @@ async function approveArtisan(auth, { artisanId, notes = '' }) {
     await sendArtisanNotification(artisanId, {
         type:      'System',
         title:     'You\'re Approved!',
-        message:   'Congratulations! Your HandyHub artisan profile has been approved. Log in to start accepting bookings.',
+        message:   'Congratulations! Your Fidus X artisan profile has been approved. Log in to start accepting bookings.',
         actionUrl: 'dashboard.html',
     }).catch(() => {});
 
@@ -150,7 +150,7 @@ async function rejectArtisan(auth, { artisanId, reason }) {
     await sendArtisanNotification(artisanId, {
         type:      'System',
         title:     'Verification Unsuccessful',
-        message:   `Your HandyHub application could not be approved. Reason: ${reason}. Please re-submit with corrections.`,
+        message:   `Your Fidus X application could not be approved. Reason: ${reason}. Please re-submit with corrections.`,
         actionUrl: 'onboarding.html',
     }).catch(() => {});
 
@@ -279,7 +279,7 @@ async function reinstateArtisan(auth, { artisanId, notes = '' }) {
     await sendArtisanNotification(artisanId, {
         type:      'System',
         title:     'Account Reinstated',
-        message:   'Your HandyHub artisan account has been reinstated. You can resume accepting bookings.',
+        message:   'Your Fidus X artisan account has been reinstated. You can resume accepting bookings.',
         actionUrl: 'dashboard.html',
     }).catch(() => {});
 
@@ -330,7 +330,7 @@ async function banArtisan(auth, { artisanId, reason }) {
     await sendArtisanNotification(artisanId, {
         type:      'System',
         title:     'Account Banned',
-        message:   `Your HandyHub account has been permanently banned. Reason: ${reason}. Contact support if you believe this is in error.`,
+        message:   `Your Fidus X account has been permanently banned. Reason: ${reason}. Contact support if you believe this is in error.`,
         actionUrl: 'login.html',
     }).catch(() => {});
 
@@ -389,7 +389,7 @@ async function unbanArtisan(auth, { artisanId, notes = '' }) {
     await sendArtisanNotification(artisanId, {
         type:      'System',
         title:     'Account Reinstated',
-        message:   'Your HandyHub artisan account ban has been lifted. You can log in and resume accepting bookings.',
+        message:   'Your Fidus X artisan account ban has been lifted. You can log in and resume accepting bookings.',
         actionUrl: 'dashboard.html',
     }).catch(() => {});
 

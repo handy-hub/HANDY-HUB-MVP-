@@ -876,7 +876,7 @@ async function _activateArtisanAccount(uid, payload, correlationId, { emailVerif
         receiverId: uid,
         senderId:   null,
         type:       'Updates',
-        title:      'Welcome to HandyHub!',
+        title:      'Welcome to Fidus X!',
         message:    `Hi ${name.split(' ')[0]}, your artisan account is pending review. Complete your profile to start receiving jobs.`,
         isRead:     false,
         readAt:     null,
