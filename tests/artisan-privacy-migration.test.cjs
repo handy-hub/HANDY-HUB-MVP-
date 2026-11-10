@@ -334,6 +334,79 @@ await t('a super-admin call with no mode is a dry run', async () => {
     assert.strictEqual(pub('a1').ghanaCardNumber, LEGACY.ghanaCardNumber);
 });
 
+say('\n── Decision records leave the public profile (release readiness) ──\n');
+
+const DECISION = { rejectionReason: 'Ghana Card photo unreadable', approvedBy: 'owner@x.test', bannedBy: 'owner@x.test',
+                   banReason: 'Fraudulent job reports', adminNotes: 'called twice, no answer', trustScore: 62 };
+const req = (id) => FAKE_DB._get(`verification_requests/${id}`);
+const kept = (id) => FAKE_DB._get(`artisans/${id}/private/decisionLegacy`);
+
+await t('the list is exactly the private part of artisanDecisionFields() in firestore.rules', async () => {
+    const rules = fs.readFileSync(path.join(ROOT, 'firestore.rules'), 'utf8');
+    const m = rules.match(/function artisanDecisionFields\(\)\s*\{\s*return\s*\[([^\]]*)\]/);
+    const all = m[1].match(/'([^']+)'/g).map((s) => s.slice(1, -1));
+    const PUBLIC_FACTS = all.filter((f) => f === 'isVerified' || /At$/.test(f));
+    assert.deepStrictEqual(all.filter((f) => !PUBLIC_FACTS.includes(f)).sort(), [...privacy.DECISION_PRIVATE_FIELDS].sort());
+});
+await t('dry run: names the decision fields it would move, writes nothing, prints no value', async () => {
+    FAKE_DB._reset();
+    FAKE_DB._set('artisans/d1', { ...PUBLIC, id: 'd1', ...DECISION, isVerified: false, rejectedAt: '2026-10-01T00:00:00.000Z' });
+    FAKE_DB._set('verification_requests/d1', { artisanId: 'd1', status: 'rejected' });
+    const r = await run('dry-run');
+    const e = r.artisans.find((a) => a.artisanId === 'd1');
+    assert.deepStrictEqual(e.wouldCopy.filter((f) => privacy.DECISION_PRIVATE_FIELDS.includes(f)).sort(), Object.keys(DECISION).sort());
+    assert.ok(e.wouldCopy.includes('phone') && e.wouldCopy.includes('email'), 'the contact step still runs alongside');
+    assert.strictEqual(pub('d1').rejectionReason, DECISION.rejectionReason);
+    assert.ok(!('rejectionReason' in req('d1')));
+    for (const v of Object.values(DECISION)) assert.ok(!JSON.stringify(r).includes(String(v)), `report leaks ${v}`);
+});
+await t('strip: the values move to the artisan\'s request, leave the profile, and the public facts stay', async () => {
+    await run('strip');
+    for (const [k, v] of Object.entries(DECISION)) {
+        assert.ok(!(k in pub('d1')), `${k} still public`);
+        assert.deepStrictEqual(req('d1')[k], v, `${k} lost`);
+    }
+    assert.strictEqual(pub('d1').isVerified, false);
+    assert.strictEqual(pub('d1').rejectedAt, '2026-10-01T00:00:00.000Z');
+    assert.strictEqual(req('d1').status, 'rejected', 'the request is otherwise untouched');
+});
+await t('a value the request already holds wins; the stale public copy still goes, as a conflict', async () => {
+    FAKE_DB._reset();
+    FAKE_DB._set('artisans/d2', { ...PUBLIC, id: 'd2', rejectionReason: 'old wording' });
+    FAKE_DB._set('verification_requests/d2', { artisanId: 'd2', status: 'rejected', rejectionReason: 'current wording' });
+    const r = await run('strip');
+    assert.strictEqual(req('d2').rejectionReason, 'current wording');
+    assert.ok(!('rejectionReason' in pub('d2')));
+    assert.ok(r.artisans.find((a) => a.artisanId === 'd2').conflicts.includes('rejectionReason'));
+});
+await t('an artisan with no request keeps the record privately, and is not put in the review queue', async () => {
+    FAKE_DB._reset();
+    FAKE_DB._set('artisans/d3', { ...PUBLIC, id: 'd3', banReason: 'Fraud', bannedBy: 'owner@x.test', verificationStatus: 'banned' });
+    await run('strip');
+    assert.strictEqual(req('d3'), undefined, 'no verification_requests document was created');
+    assert.deepStrictEqual([kept('d3').banReason, kept('d3').bannedBy, kept('d3').artisanId], ['Fraud', 'owner@x.test', 'd3']);
+    assert.ok(!('banReason' in pub('d3')) && !('bannedBy' in pub('d3')));
+});
+await t('an empty leftover (bannedBy: null after an unban) is removed and copied nowhere', async () => {
+    FAKE_DB._reset();
+    FAKE_DB._set('artisans/d4', { ...PUBLIC, id: 'd4', bannedBy: null, banReason: null });
+    FAKE_DB._set('verification_requests/d4', { artisanId: 'd4', status: 'approved' });
+    await run('strip');
+    assert.ok(!('bannedBy' in pub('d4')) && !('banReason' in pub('d4')));
+    assert.ok(!('bannedBy' in req('d4')));
+});
+await t('copy writes the destination but leaves the profile; a second strip finds nothing', async () => {
+    FAKE_DB._reset();
+    FAKE_DB._set('artisans/d5', { ...PUBLIC, id: 'd5', approvedBy: 'owner@x.test' });
+    FAKE_DB._set('verification_requests/d5', { artisanId: 'd5', status: 'approved' });
+    await run('copy');
+    assert.strictEqual(pub('d5').approvedBy, 'owner@x.test');
+    assert.strictEqual(req('d5').approvedBy, 'owner@x.test');
+    await run('strip');
+    const again = await run('strip');
+    assert.ok(!again.artisans.some((a) => a.artisanId === 'd5'), 'nothing left to do');
+});
+
 say(`\nartisan-privacy-migration: ${passed} passed, ${failed} failed`);
 if (failed) { for (const [n, e] of failures) say(`\n✗ ${n}\n${e.stack}`); process.exit(1); }
 })();

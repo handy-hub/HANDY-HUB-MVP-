@@ -42,6 +42,17 @@
  * already migrated (KYC copied, private records present, public fields gone)
  * are skipped or only stripped: every mode stays safe to repeat.
  *
+ * DECISION RECORDS (release readiness, 2026-11-10). Verification decisions used
+ * to write their reasons and the deciding admin's email onto the profile
+ * (rejectionReason, banReason, approvedBy, bannedBy, …). The server no longer
+ * does; this moves what is already there to verification_requests/{id}, the
+ * record the artisan's application screen and the admin queue read. An artisan
+ * with no request (a legacy or directly banned account) gets them in
+ * private/decisionLegacy instead: server-written, artisan + admin read, and
+ * not a request, so no one is put back in the review queue. A value already
+ * on the request wins (it is the newer record). isVerified and the decision
+ * timestamps stay public: they say what was decided, not who or why.
+ *
  * Reports contain artisan ids and FIELD NAMES only, never values: the output
  * of a migration is itself a log, and must not become a second copy of the
  * data it is protecting.
@@ -93,6 +104,18 @@ function slotValid(slot, raw) {
     return slot === 'phone' ? v.length <= 32 : v.length <= 254 && EMAIL_RE.test(v);
 }
 
+/**
+ * Decision records that must not stay on the public profile: who decided (an
+ * admin's email), why, and the internal review fields. The private subset of
+ * artisanDecisionFields() in firestore.rules (the rest, isVerified and the
+ * *At timestamps, are public facts and stay).
+ */
+const DECISION_PRIVATE_FIELDS = Object.freeze([
+    'rejectionReason', 'banReason', 'suspensionReason',
+    'approvedBy', 'rejectedBy', 'suspendedBy', 'reinstatedBy', 'bannedBy', 'unbannedBy',
+    'reviewedBy', 'adminNotes', 'trustScore',
+]);
+
 const MODES = new Set(['dry-run', 'copy', 'strip']);
 
 // Order-insensitive deep equality for the plain values these fields hold
@@ -124,7 +147,7 @@ async function migrateArtisanPrivateData({ mode = 'dry-run', pageSize = 200 } = 
 
         for (const doc of page.docs) {
             report.scanned++;
-            const legacy = [...ARTISAN_PRIVATE_FIELDS, ...CONTACT_FIELDS].filter((f) => doc.data()[f] !== undefined);
+            const legacy = [...ARTISAN_PRIVATE_FIELDS, ...CONTACT_FIELDS, ...DECISION_PRIVATE_FIELDS].filter((f) => doc.data()[f] !== undefined);
             if (!legacy.length) continue;
             report.affected++;
 
@@ -152,14 +175,18 @@ async function processOne(publicRef, mode, entry) {
     const kycRef     = privateCol.doc('kyc');
     const contactRef = privateCol.doc('contact');
     const keptRef    = privateCol.doc('contactLegacy');
+    const requestRef = db().collection('verification_requests').doc(publicRef.id);
+    const decidedRef = privateCol.doc('decisionLegacy');
 
     await db().runTransaction(async (txn) => {
-        const [pubSnap, kycSnap, contactSnap, keptSnap] = await Promise.all(
-            [txn.get(publicRef), txn.get(kycRef), txn.get(contactRef), txn.get(keptRef)]);
+        const [pubSnap, kycSnap, contactSnap, keptSnap, requestSnap, decidedSnap] = await Promise.all(
+            [txn.get(publicRef), txn.get(kycRef), txn.get(contactRef), txn.get(keptRef), txn.get(requestRef), txn.get(decidedRef)]);
         const pub     = pubSnap.exists     ? pubSnap.data()     : {};
         const kyc     = kycSnap.exists     ? kycSnap.data()     : {};
         const contact = contactSnap.exists ? contactSnap.data() : {};
         const kept    = keptSnap.exists    ? keptSnap.data()    : {};
+        const request = requestSnap.exists ? requestSnap.data() : null;
+        const decided = decidedSnap.exists ? decidedSnap.data() : {};
 
         // Reset per attempt: a transaction callback may run more than once.
         entry.copied = []; entry.stripped = []; entry.conflicts = [];
@@ -204,6 +231,22 @@ async function processOne(publicRef, mode, entry) {
             entry.stripped.push(f);
         }
 
+        // Decision records: to the artisan's request when there is one, else to
+        // private/decisionLegacy. An empty value (bannedBy: null after an unban)
+        // is simply removed. A value the destination already holds wins.
+        const toRequest = {}, toDecided = {};
+        for (const f of DECISION_PRIVATE_FIELDS) {
+            if (pub[f] === undefined) continue;
+            if (pub[f] !== null && pub[f] !== '') {
+                const dest = request ? request : decided;
+                const into = request ? toRequest : toDecided;
+                if (dest[f] === undefined || dest[f] === null || dest[f] === '') { into[f] = pub[f]; entry.copied.push(f); }
+                else if (!sameValue(dest[f], pub[f])) entry.conflicts.push(f);
+            }
+            toStrip[f] = FieldValue.delete();
+            entry.stripped.push(f);
+        }
+
         if (mode !== 'strip') entry.stripped = [];
         if (mode === 'dry-run') return;
 
@@ -220,6 +263,9 @@ async function processOne(publicRef, mode, entry) {
         put(kycRef, kycSnap, toKyc);
         put(contactRef, contactSnap, toContact);
         put(keptRef, keptSnap, toKept);
+        put(decidedRef, decidedSnap, toDecided);
+        // The request already exists; only its missing decision fields are filled.
+        if (Object.keys(toRequest).length) txn.set(requestRef, { ...toRequest, updatedAt: now }, { merge: true });
         if (mode === 'strip') {
             txn.update(publicRef, { ...toStrip, updatedAt: now });
         }
@@ -229,4 +275,4 @@ async function processOne(publicRef, mode, entry) {
     if (mode === 'dry-run') { entry.wouldCopy = entry.copied; entry.copied = []; }
 }
 
-module.exports = { migrateArtisanPrivateData, ARTISAN_PRIVATE_FIELDS, CONTACT_FIELDS };
+module.exports = { migrateArtisanPrivateData, ARTISAN_PRIVATE_FIELDS, CONTACT_FIELDS, DECISION_PRIVATE_FIELDS };
