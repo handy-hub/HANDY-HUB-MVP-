@@ -194,7 +194,10 @@ export function mountInstantView({
         }
     } else if (typeof fetchFn === 'function') {
         // One-shot screens: skip the network entirely while the cache is fresh.
-        const needsFetch = !paintedFromCache || cachedAgeMs >= staleMs;
+        // A negative age means the entry is stamped in the future: the device
+        // clock moved back since it was written. Its age is unknown, so it is
+        // treated as stale (it was never refreshed before: Phase 4 finding).
+        const needsFetch = !paintedFromCache || cachedAgeMs >= staleMs || cachedAgeMs < 0;
         if (needsFetch) {
             Promise.resolve()
                 .then(() => fetchFn(uid))

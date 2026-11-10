@@ -46,7 +46,59 @@ globalThis.localStorage = storage;
 
 (async () => {
 const { createCachedDatabaseService } = await import(mod('cachedDatabaseService.js'));
-const { mountInstantView } = await import(mod('instantView.js'));
+const { mountInstantView, peekInstantView } = await import(mod('instantView.js'));
+
+console.log('\n── Freshness when the device clock moves (release readiness) ──\n');
+
+const tick = () => new Promise((r) => setTimeout(r, 10));
+await t('an entry stamped in the future (the clock moved back) is refreshed, not trusted as fresh', async () => {
+    store.clear();
+    store.set('hh_last_session_uid', 'u1');
+    store.set('hh_pc_clock-test_u1', JSON.stringify({ v: 1, u: 'u1', t: Date.now() + 6 * 3600e3, d: { n: 'cached' } }));
+    let fetched = 0; const painted = [];
+    mountInstantView({ key: 'clock-test', render: (d, m) => painted.push([d.n, m.fromCache]), fetch: async () => { fetched++; return { n: 'live' }; } });
+    await tick();
+    assert.deepStrictEqual(painted, [['cached', true], ['live', false]]);
+    assert.strictEqual(fetched, 1);
+});
+await t('a genuinely fresh entry is still painted without a fetch (unchanged)', async () => {
+    store.clear();
+    store.set('hh_last_session_uid', 'u1');
+    store.set('hh_pc_clock-fresh_u1', JSON.stringify({ v: 1, u: 'u1', t: Date.now() - 1000, d: { n: 'cached' } }));
+    let fetched = 0;
+    mountInstantView({ key: 'clock-fresh', render: () => {}, fetch: async () => { fetched++; return {}; } });
+    await tick();
+    assert.strictEqual(fetched, 0);
+});
+
+console.log('\n── peekInstantView: another view\'s entry, read-only, for this account only ──\n');
+
+await t('it returns what the view stored, for the signed-in account', () => {
+    store.clear();
+    store.set('hh_last_session_uid', 'u1');
+    store.set('hh_pc_list_u1', JSON.stringify({ v: 1, u: 'u1', t: Date.now(), d: [{ id: 'b1', data: { status: 'accepted' } }] }));
+    const hit = peekInstantView('list');
+    assert.deepStrictEqual([hit.uid, hit.data[0].id], ['u1', 'b1']);
+});
+await t('nothing for another account, a wrong version, an expired entry, or no session', () => {
+    store.clear();
+    store.set('hh_pc_list_u2', JSON.stringify({ v: 1, u: 'u2', t: Date.now(), d: [{ id: 'b9' }] }));
+    store.set('hh_last_session_uid', 'u1');
+    assert.strictEqual(peekInstantView('list'), null, 'another account');
+    store.set('hh_pc_list_u1', JSON.stringify({ v: 2, u: 'u1', t: Date.now(), d: [] }));
+    assert.strictEqual(peekInstantView('list', { version: 1 }), null, 'wrong version');
+    store.set('hh_pc_list_u1', JSON.stringify({ v: 1, u: 'u1', t: Date.now() - 25 * 3600e3, d: [] }));
+    assert.strictEqual(peekInstantView('list'), null, 'older than the 24 h instantView keeps');
+    store.delete('hh_last_session_uid');
+    assert.strictEqual(peekInstantView('list'), null, 'no session');
+});
+await t('it writes nothing', () => {
+    store.clear();
+    store.set('hh_last_session_uid', 'u1');
+    const before = [...store.keys()].sort().join();
+    peekInstantView('anything'); peekInstantView('list', { version: 3 });
+    assert.strictEqual([...store.keys()].sort().join(), before);
+});
 
 console.log('\n── The snapshot metadata reaches the page ──\n');
 
