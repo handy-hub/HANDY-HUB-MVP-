@@ -150,6 +150,11 @@ const TRANSITIONS = {
         // artisan to the cancellations they made, never the customer's.
         extra: (opts) => ({ cancellationReason: opts.reason || 'Cancelled', cancelledBy: opts.actor }),
         actorFrom: { artisan: ['accepted', 'quoted'] },
+        // Neither party ends approved work by a direct write (decision Q5;
+        // firestore.rules refuses it for both). The job money is held; support
+        // decides. No screen offers it, so this is the backstop, not a path.
+        requires: (b) => b.quoteApproved !== true,
+        requiresWhy: 'This work has been approved and paid for, so it cannot be cancelled here. Contact Fidus X support.',
     },
 };
 

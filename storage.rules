@@ -91,12 +91,17 @@ service firebase.storage {
     }
 
     // ── Chat attachments ───────────────────────────────────────────────────────
+    // Closed to clients (Phase 6 release readiness). Any signed-in user could
+    // read every chat's files here and upload to any chat's folder. Nothing
+    // uses this path: chat photos are uploaded to the image host (Cloudinary)
+    // and their address travels in the message, which firestore.rules checks.
+    // A participant check cannot be written here: Storage rules cannot read
+    // this project's named Firestore database to confirm a chat exists, and a
+    // folder named after a made-up pair would pass any check on the name.
+    // An administrator can still read or remove anything already stored.
     match /chats/{chatId}/attachments/{file} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() &&
-                      isValidFileSize() &&
-                      isValidImageOrPdf();
-      allow delete: if isSuperAdmin();
+      allow read, delete: if isSuperAdmin();
+      allow write: if false;
     }
 
     // ── Admin uploads (verification documents, platform assets) ───────────────

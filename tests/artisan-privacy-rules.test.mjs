@@ -403,6 +403,33 @@ await it('an UNVERIFIED account with an allowlisted email cannot read identity d
 await it('a customer can still read an artisan\'s public profile photo', async () => {
     await assertSucceeds(getMetadata(ref(customer.storage(), `artisans/${ARTISAN_A}/profile/photo.jpg`)));
 });
+console.log('\nSTORAGE — chat attachments are closed to clients (release readiness)\n');
+
+// Any signed-in user could read every chat's files and upload into any chat's
+// folder. Nothing uses the path (chat photos go to the image host), so it is
+// closed; an administrator keeps read and delete for anything already there.
+const chatFile = (ctx, chat = `${CUSTOMER}_${ARTISAN_A}`) => ref(ctx.storage(), `chats/${chat}/attachments/a.jpg`);
+await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await uploadString(ref(ctx.storage(), `chats/${CUSTOMER}_${ARTISAN_A}/attachments/a.jpg`), 'JPEG', 'raw', { contentType: 'image/jpeg' });
+});
+await it('a stranger cannot read a chat\'s attachment', async () => {
+    await assertFails(getMetadata(chatFile(artisanB)));
+    await assertFails(getMetadata(chatFile(anon)));
+});
+await it('the chat\'s own participants cannot read or upload there either (the path is unused)', async () => {
+    await assertFails(getMetadata(chatFile(customer)));
+    await assertFails(uploadString(chatFile(customer), 'JPEG', 'raw', { contentType: 'image/jpeg' }));
+    await assertFails(uploadString(chatFile(artisanA), 'JPEG', 'raw', { contentType: 'image/jpeg' }));
+});
+await it('nobody can use a made-up chat folder as free file hosting', async () => {
+    await assertFails(uploadString(chatFile(artisanB, `${ARTISAN_B}_anything`), 'JPEG', 'raw', { contentType: 'image/jpeg' }));
+    await assertFails(uploadString(chatFile(customer, 'x'), 'PDF', 'raw', { contentType: 'application/pdf' }));
+});
+await it('a verified super-administrator can still read what is there (cleanup)', async () => {
+    await assertSucceeds(getMetadata(chatFile(superAdm)));
+    await assertFails(getMetadata(chatFile(superUnv)), 'not an unverified look-alike');
+});
+
 console.log('\nSUPER-ADMIN BY EMAIL — only once the email is verified\n');
 
 await it('a verified allowlisted admin can read an artisan\'s private record', async () => {

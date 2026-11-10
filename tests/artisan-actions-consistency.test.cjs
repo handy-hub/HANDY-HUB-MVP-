@@ -67,6 +67,9 @@ const RULES_ALLOW = {
     // Function-backed steps, as their callables gate them:
     completeInspection: (b) => b.track === 'inspection' && b.status === 'in_progress' && b.quoteApproved !== true,     // pricing.js completeInspection
     submitQuote: (b) => quotes.quotableStatuses(b).includes(b.status) && b.quoteApproved !== true,                     // quotes.js, the real rule
+    // accepted|quoted → cancelled, off the inspection track, never once the
+    // quote is approved (decision Q5; release-readiness fix).
+    cancel:   (b) => ['accepted', 'quoted'].includes(b.status) && b.track !== 'inspection' && b.quoteApproved !== true,
 };
 
 (async () => {
@@ -103,6 +106,30 @@ await t('off the inspection track: Cancel only from accepted or quoted (the arti
             assert.strictEqual(artisanCanCancel({ track, status }), ['accepted', 'quoted'].includes(status), `${track}/${status}`);
         }
     }
+});
+
+await t('off the inspection track: an approved job is never cancelled by the client, by either party (Q5)', async () => {
+    const bad = [];
+    for (const track of ['emergency', 'standard']) {
+        for (const status of ['pending', 'accepted', 'quoted']) {
+            for (const quoteApproved of [false, true]) {
+                const b = { track, status, quoteApproved };
+                const allowed = RULES_ALLOW.cancel(b);
+                if (status !== 'pending' && artisanCanCancel(b) !== allowed) bad.push(`artisanCanCancel ${track}/${status}/${quoteApproved}`);
+                for (const actor of ['artisan', 'customer']) {
+                    const fx = { ...b, artisanId: 'art', customerId: 'c1' };
+                    let wrote = false;
+                    const databaseService = { async getDocument() { return { exists: true, data: { ...fx } }; }, async updateDocument() { wrote = true; } };
+                    const r = await performBookingAction(ACTION.CANCEL, { bookingId: 'B', actor, uid: actor === 'artisan' ? 'art' : 'c1', databaseService, reason: 'x' });
+                    // A customer may also cancel while pending; approved work never (an approved pending booking cannot occur, and is refused too).
+                    const expect = actor === 'customer' && status === 'pending' ? !quoteApproved : allowed;
+                    if (r.ok !== expect || wrote !== expect) bad.push(`${actor} ${track}/${status}/approved=${quoteApproved}: ok=${r.ok} wrote=${wrote}`);
+                    if (quoteApproved && status !== 'pending' && !/support/.test(r.message || '')) bad.push(`${actor} ${track}/${status}: no route to support in "${r.message}"`);
+                }
+            }
+        }
+    }
+    assert.deepStrictEqual(bad, []);
 });
 
 console.log('\n── WF-02 · the next step is one the rules accept ──\n');

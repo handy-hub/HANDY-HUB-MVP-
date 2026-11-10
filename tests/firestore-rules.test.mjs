@@ -607,6 +607,28 @@ await it('a message is capped at 4 000 characters, and only a participant posts'
     await assertFails(setDoc(doc(attackerDb, 'chats', thread, 'messages', 'm_stranger'), msg('hello', ATTACKER)));
     await assertFails(setDoc(doc(dbOf(A1), 'chats', thread, 'messages', 'm_spoof'), msg('hello', VICTIM)), 'not in another person\'s name');
 });
+await it('a message carries only the fields the app writes; a photo comes only from the image host', async () => {
+    // Release readiness: the other person's app loads an attachment's address,
+    // so an address anywhere else is a tracking pixel aimed at the reader.
+    const thread = pairId(VICTIM, A1);
+    const at = '2026-10-30T10:07:00.000Z';
+    const m = (over) => ({ senderId: A1, text: '', attachment: null, isRead: false, createdAt: at, ...over });
+    const photo = { url: 'https://res.cloudinary.com/dnwwglbl9/image/upload/v1/chats/x/1.jpg', type: 'image/jpeg', name: 'leak.jpg', size: 2048 };
+    const a1 = dbOf(A1);
+    await assertSucceeds(setDoc(doc(a1, 'chats', thread, 'messages', 'p_ok'), m({ text: 'This is it', attachment: photo })));
+    await assertSucceeds(setDoc(doc(victimDb, 'chats', thread, 'messages', 'p_min'), m({ senderId: VICTIM, attachment: { url: photo.url, type: 'image/png' } })));
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_track'), m({ attachment: { ...photo, url: 'https://tracker.example/pixel.gif?who=c' } })), 'another host');
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_http'), m({ attachment: { ...photo, url: 'http://res.cloudinary.com/x/a.jpg' } })), 'not https');
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_lookalike'), m({ attachment: { ...photo, url: 'https://res.cloudinary.com.evil.example/a.jpg' } })), 'look-alike host');
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_userinfo'), m({ attachment: { ...photo, url: 'https://res.cloudinary.com@evil.example/a.jpg' } })), 'credentials trick');
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_quote'), m({ attachment: { ...photo, url: 'https://res.cloudinary.com/x" onerror="alert(1)' } })), 'markup in the address');
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_js'), m({ attachment: { ...photo, url: 'javascript:alert(1)' } })));
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_pdf'), m({ attachment: { ...photo, type: 'application/pdf' } })), 'photos only');
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_extra_att'), m({ attachment: { ...photo, onload: 'x' } })), 'unknown attachment field');
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_str'), m({ attachment: photo.url })), 'not a map');
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_extra'), m({ text: 'hi', senderName: 'Support team' })), 'unknown message field');
+    await assertFails(setDoc(doc(a1, 'chats', thread, 'messages', 'p_read'), m({ text: 'hi', isRead: true })), 'cannot arrive already read');
+});
 
 console.log('\nBOOKINGS — the customer\'s location 14 days after the job (decision Q6)\n');
 

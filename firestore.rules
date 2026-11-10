@@ -909,10 +909,16 @@ service cloud.firestore {
           // the callout back to the customer even after a delivered inspection.
           // cancelledBy is optional and, when present, names the party truthfully
           // (AR-12: completion rate counts only cancellations by the artisan).
+          // Never once the quote is approved (decision Q5: leaving approved work
+          // is support's decision). Approval holds the job money in escrow and
+          // returns a standard booking to 'accepted'; a raw cancel there made the
+          // status trigger refund the held money at once, with no one deciding.
+          // The customer app never offers it (it cancels only pending bookings).
           (keys.hasAny(['status']) &&
            keys.hasOnly(['status', 'updatedAt', 'cancellationReason', 'cancelledBy']) &&
            incoming().get('cancelledBy', 'customer') == 'customer' &&
            prev in ['pending', 'Pending', 'accepted', 'quoted'] && next == 'cancelled' &&
+           existing().get('quoteApproved', false) != true &&
            (!('track' in existing()) || existing().track != 'inspection')) ||
           // Leave a review — only after job is completed, no status change.
           // Rating must be a valid integer 1–5.
@@ -954,13 +960,18 @@ service cloud.firestore {
         (isArtisan && (
           // Accepting or declining an OFFER is server-only (respondToJobOffer):
           // an offered artisan is not the booking's artisanId and cannot read it.
-          // Cancel an accepted booking — also always allowed (cannot trap accepted bookings).
+          // Cancel an accepted or quoted booking, until the customer approves
+          // the quote (decisions Q4, Q5). After approval the job money is held
+          // and the artisan's way out is support ("Get help with this job"):
+          // this rule used to accept the raw write, and the status trigger then
+          // refunded the escrow immediately. artisanCanCancel mirrors this.
           // Inspection-track excluded for the same reason as the customer clause:
           // cancelInspectionBooking (CF) owns callout settlement on that track.
           (keys.hasAny(['status']) &&
            keys.hasOnly(['status', 'updatedAt', 'cancellationReason', 'cancelledBy']) &&
            incoming().get('cancelledBy', 'artisan') == 'artisan' &&
            prev in ['accepted', 'quoted'] && next == 'cancelled' &&
+           existing().get('quoteApproved', false) != true &&
            (!('track' in existing()) || existing().track != 'inspection')) ||
           // Add artisan notes without status change — always allowed
           (!keys.hasAny(['status']) &&
@@ -1525,12 +1536,29 @@ service cloud.firestore {
         // A participant may create a message only as themselves. The text is
         // capped (4 000 characters; the composers allow 1 000) so a thread
         // cannot be filled with megabyte documents.
+        // Exactly the fields chatRepository.sendMessage writes. An attachment
+        // is a photo on the app's own image host: the other person's app loads
+        // it, so an address anywhere else would let a sender learn the
+        // reader's IP address (a tracking pixel) or show them anything at all.
+        function validAttachment(a) {
+          return a == null || (
+            a is map &&
+            a.keys().hasAll(['url', 'type']) &&
+            a.keys().hasOnly(['url', 'type', 'name', 'size']) &&
+            a.url is string && a.url.size() <= 1000 &&
+            a.url.matches('https://res[.]cloudinary[.]com/[^\\s"\'<>]+') &&
+            a.type is string && a.type.matches('image/[a-z0-9.+-]+') &&
+            (!('name' in a) || (a.name is string && a.name.size() <= 200)) &&
+            (!('size' in a) || (a.size is int && a.size >= 0 && a.size <= 10485760)));
+        }
         allow create: if isSignedIn() &&
                          get(/databases/$(database)/documents/chats/$(chatId))
                              .data.participants.hasAny([request.auth.uid]) &&
+                         incoming().keys().hasOnly(['senderId', 'text', 'attachment', 'isRead', 'createdAt']) &&
                          incoming().senderId  == request.auth.uid &&
                          incoming().text      is string &&
                          incoming().text.size() <= 4000 &&
+                         validAttachment(incoming().get('attachment', null)) &&
                          incoming().isRead    == false &&
                          incoming().createdAt is string;
 

@@ -13,6 +13,10 @@
  *          never marked done without an approved quote, so the work is paid for.
  *   WF-01  An artisan never cancels inspection-track work by a direct write:
  *          cancelInspectionBooking is the only path, and it refuses approved work.
+ *   Q5     Release readiness (2026-11-10): NEITHER party ends approved work by a
+ *          direct write on any track. Approval holds the job money and returns a
+ *          standard booking to 'accepted'; the rules accepted a raw cancel there,
+ *          and the status trigger refunded the held escrow at once.
  *
  * Run:  npm run test:workflow-rules
  */
@@ -66,6 +70,16 @@ const BOOKINGS = {
     em_skip:            { track: 'emergency',  status: 'accepted', quoteApproved: true },
     disputed:           { track: 'inspection', status: 'disputed', quoteApproved: true, calloutPaid: true },
     customer_travel:    { track: 'standard',   status: 'accepted', quoteApproved: true },
+    q5_st_approved:     { track: 'standard',   status: 'accepted', quoteApproved: true },
+    q5_em_approved:     { track: 'emergency',  status: 'accepted', quoteApproved: true, calloutPaid: true },
+    q5_untracked:       { status: 'accepted', quoteApproved: true },
+    q5_st_quoted:       { track: 'standard',   status: 'quoted' },
+    q5_st_accepted:     { track: 'standard',   status: 'accepted' },
+    q5_cu_approved:     { track: 'standard',   status: 'accepted', quoteApproved: true },
+    q5_cu_em_approved:  { track: 'emergency',  status: 'accepted', quoteApproved: true, calloutPaid: true },
+    q5_cu_quoted:       { track: 'standard',   status: 'quoted' },
+    q5_cu_pending:      { track: 'standard',   status: 'pending', artisanId: null },
+    q5_flip:            { track: 'standard',   status: 'accepted', quoteApproved: true },
     suspended_travel:   { track: 'standard',   status: 'accepted', quoteApproved: true, artisanId: SUSPENDED },
 };
 
@@ -134,6 +148,39 @@ await it('off the inspection track an artisan cancels an accepted job directly',
 });
 await it('but not once travelling (artisanCanCancel offers it only for accepted or quoted)', async () => {
     await assertFails(write(artisanDb, 'em_en_route', cancel));
+});
+
+console.log('\nQ5 — approved work is never cancelled by a direct write\n');
+
+const custCancel = { status: 'cancelled', cancellationReason: 'Cancelled by customer', cancelledBy: 'customer' };
+await it('an artisan cannot cancel approved standard work (the refund trigger would return the held money)', async () => {
+    await assertFails(write(artisanDb, 'q5_st_approved', cancel));
+});
+await it('nor approved emergency work, nor a booking with no track field', async () => {
+    await assertFails(write(artisanDb, 'q5_em_approved', cancel));
+    await assertFails(write(artisanDb, 'q5_untracked', cancel));
+});
+await it('nor by leaving out cancelledBy or the reason', async () => {
+    await assertFails(write(artisanDb, 'q5_st_approved', { status: 'cancelled' }));
+});
+await it('nor by clearing quoteApproved in the same write (it is a server field)', async () => {
+    await assertFails(write(artisanDb, 'q5_flip', { ...cancel, quoteApproved: false }));
+    await assertFails(write(artisanDb, 'q5_flip', { quoteApproved: false }));
+});
+await it('a customer cannot cancel approved work either, standard or emergency', async () => {
+    await assertFails(write(customerDb, 'q5_cu_approved', custCancel));
+    await assertFails(write(customerDb, 'q5_cu_em_approved', custCancel));
+});
+await it('a customer cannot cancel approved work by naming the artisan as the canceller', async () => {
+    await assertFails(write(customerDb, 'q5_cu_approved', { ...custCancel, cancelledBy: 'artisan' }));
+});
+await it('before approval nothing changes: the artisan cancels accepted or quoted work', async () => {
+    await assertSucceeds(write(artisanDb, 'q5_st_accepted', cancel));
+    await assertSucceeds(write(artisanDb, 'q5_st_quoted', cancel));
+});
+await it('before approval the customer cancels as before (pending, and a quote not yet approved)', async () => {
+    await assertSucceeds(write(customerDb, 'q5_cu_pending', custCancel));
+    await assertSucceeds(write(customerDb, 'q5_cu_quoted', custCancel));
 });
 
 console.log('\nThe rest of the journey, one step at a time\n');
