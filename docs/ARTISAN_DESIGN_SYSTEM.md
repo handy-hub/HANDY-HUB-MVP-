@@ -2,7 +2,7 @@
 
 Phase 1 foundation (2026-11-06). One system for every artisan screen built from
 here on. The live reference is `design/artisan/index.html` (not deployed): open it
-from a server at the repo root (`python -m http.server 8791`, then
+from a server at the repo root (`npm run serve:e2e`, then
 `/design/artisan/`).
 
 | File | What it is |

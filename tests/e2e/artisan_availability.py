@@ -11,7 +11,7 @@ real sign-in through the artisan login page:
 
     npm run emulators                    # Firestore 8080, Auth 9099, Functions 5001
     npm run seed:e2e
-    python -m http.server 8791           # from the repo root
+    npm run serve:e2e           # from the repo root
     npm run test:availability-e2e
 
 The database is read through the Firestore emulator's REST API with the
