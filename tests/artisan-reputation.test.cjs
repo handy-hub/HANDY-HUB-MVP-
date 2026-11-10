@@ -218,10 +218,10 @@ await t('Account links to Reputation; the nav lights Account on it and on the tw
     const settings = read('artisan-app/settings.html');
     // Phase 5: Account is on the design system (an fx row in "Your work").
     assert.match(settings, /<a class="fx-row" href="reputation\.html" id="reputation-row">[\s\S]*?<span class="fx-row__title">Reputation<\/span>/);
-    const nav = read('artisan-app/js/artisanFloatingNav.js');
-    for (const pg of ['reputation.html', 'performance.html', 'reviews.html']) {
-        assert.match(nav, new RegExp(`'${pg.replace('.', '\\.')}'\\s*: 'account'`), pg);
-    }
+    // The two retired pages forward to Reputation, which names Account as its tab
+    // (each screen draws its own bar since Phase 5; the nav script holds no map).
+    assert.match(read('artisan-app/performance.html'), /location\.replace\('reputation\.html'\)/);
+    assert.match(read('artisan-app/reviews.html'), /location\.replace\('reputation\.html#reviews'\)/);
     assert.match(read('artisan-app/reputation.html'), /renderTabbar\(document\.getElementById\('tabbar'\), \{ current: 'account' \}\);/);
 });
 

@@ -62,9 +62,12 @@ t('Back from a job returns to the same view and scroll position', () => {
 
 console.log('\n── 2 · a focused switch shows it ──\n');
 
-t('design-system.css marks the track of a keyboard-focused switch', () => {
-    const css = read('artisan-app/css/design-system.css');
-    assert.match(css, /\.ds-switch input:focus-visible ~ \.ds-switch-track \{ outline: 2px solid var\(--ds-brand-text\); outline-offset: 2px; \}/);
+t('a keyboard-focused switch shows the system focus ring', () => {
+    // The legacy .ds-switch (css/design-system.css) went with the last legacy
+    // screen in Phase 6. The one switch the app has is Account's push toggle.
+    const css = read('artisan-app/css/fx/account.css');
+    assert.match(css, /\.fx-acct__switch:focus-visible \{ outline: var\(--fx-focus-width\) solid var\(--fx-focus-color\); outline-offset: var\(--fx-focus-offset\); \}/);
+    assert.match(read('artisan-app/settings.html'), /<input class="fx-acct__switch" type="checkbox" role="switch" id="toggle-notif"/);
 });
 
 console.log('\n── 3 · the composer note field shows focus ──\n');

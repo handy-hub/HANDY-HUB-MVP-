@@ -346,6 +346,18 @@ with sync_playwright() as pw:
           ['A1', True] in (pg.evaluate('window.__fx.ensure || []') or []), pg.evaluate('window.__fx.ensure || []'))
     pg.context.close()
 
+    # The job screen (Phase 6): a pushed screen with no tab bar, where an artisan
+    # spends longest. It had no heartbeat, so reading a job for a quarter of an
+    # hour took an available artisan out of dispatch.
+    pg, errs = open_page(b, '/artisan-app/job.html?id=J1')
+    pg.wait_for_function("(window.__fx.docCbs['artisans/A1'] || []).length > 0", timeout=8000)
+    pg.evaluate("(a) => window.__fx.docCbs['artisans/A1'].forEach(cb => cb({ id: 'A1', exists: true, data: a, fromCache: false }))", ARTISAN)
+    pg.wait_for_timeout(300)
+    check('job screen: the heartbeat runs there too, and the script draws nothing',
+          ['A1', True] in (pg.evaluate('window.__fx.ensure || []') or []) and pg.query_selector('nav.fx-tabbar, #fx-tabbar, .fx-bottom--fixed') is None,
+          pg.evaluate('window.__fx.ensure || []'))
+    pg.context.close()
+
     # ═══ JOBS (Phase 3) ═══════════════════════════════════════════════════════
     # The real jobs.html and its wiring: the lists shared with Today, the views in
     # the URL, paged history, the outage notice. Only Firebase is a fake.

@@ -1,23 +1,21 @@
 /* ════════════════════════════════════════════════════════════════════
-   Fidus X Artisan · the four tabs, on screens not yet on the design system
+   Fidus X Artisan · the liveness heartbeat, on every signed-in screen
    artisan-app/js/artisanFloatingNav.js
 
    Usage: <script src="js/artisanFloatingNav.js"></script>
    Place as the LAST <script> before </body>.
 
-   Phase 2 (design decision 02): every artisan screen shows the same four tabs
-     Today | Jobs | Earnings | Account
-   drawn by the design system's own tab bar (js/fx/controls.js renderTabbar).
-   Screens already on the system (body.fx-app with their own nav.fx-tabbar —
-   Today) draw it themselves; this script draws it on the rest, fixed to the
-   bottom, until each screen moves.
+   On every artisan page this follows the live profile and calls
+   presenceService.ensurePresence, so moving between screens — or staying on
+   one, such as a job — never drops an available artisan out of dispatch
+   (functions/artisanIndex.js counts an artisan as reachable for 15 minutes
+   after the last heartbeat). It never writes availability: going online and
+   stopping offers happen on Today, where the state they change is shown.
 
-   Availability is no longer a nav control: going online and stopping offers
-   happen on Today, where the state they change is shown. What this script
-   keeps is the liveness heartbeat: on every artisan page it follows the live
-   profile and calls presenceService.ensurePresence, so moving between screens
-   never drops an available artisan out of dispatch. It never writes
-   availability.
+   It draws nothing. Until Phase 5 it also drew the four tabs on screens not
+   yet on the design system (hence the file name, kept so no page's script
+   tag changes); every screen now draws its own with js/fx/controls.js
+   renderTabbar, and names its own tab there.
 ════════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -31,54 +29,7 @@
     return '..' + sub;
   }
 
-  /* ── 1. Which tab this page belongs to ──────────────────────────── */
-  var PAGE = (location.pathname.split('/').pop() || '').toLowerCase();
-  var ROUTE_MAP = {
-    'dashboard.html'    : 'today',
-    'index.html'        : 'today',
-    ''                  : 'today',
-    // Opened from Today's header bell.
-    'notifications.html': 'today',
-    'jobs.html'         : 'jobs',
-    'bookings.html'     : 'jobs',      // retired -> redirects to jobs.html
-    'job.html'          : 'jobs',      // single-booking screen
-    'messages.html'     : 'jobs',      // conversations belong to job work
-    'wallet.html'       : 'earnings',
-    'settings.html'     : 'account',
-    'profile.html'      : 'account',
-    'reputation.html'   : 'account',   // performance and reviews, in one place
-    'performance.html'  : 'account',   // forwards to reputation.html
-    'reviews.html'      : 'account',   // forwards to reputation.html#reviews
-    'support.html'      : 'account',
-  };
-  var activeTab = ROUTE_MAP[PAGE] || null;
-
-  /* ── 2. The tab bar ──────────────────────────────────────────────── */
-  function injectCSS() {
-    // The system's tokens and components; every selector in them is scoped to
-    // an .fx- class, so they style nothing else on a legacy page. legacy-shell.css
-    // fixes the bar to the bottom and leaves room for it.
-    ['/artisan-app/css/tokens.css', '/artisan-app/css/app.css', '/artisan-app/css/fx/legacy-shell.css'].forEach(function (p) {
-      if (document.querySelector('link[href$="' + p.split('/').slice(-2).join('/') + '"]')) return;
-      var l = document.createElement('link');
-      l.rel = 'stylesheet'; l.href = root(p);
-      document.head.appendChild(l);
-    });
-  }
-
-  function drawTabs() {
-    if (document.querySelector('nav.fx-tabbar')) return;     // the screen draws its own
-    var host = document.createElement('div');
-    host.className = 'fx-bottom fx-bottom--fixed';
-    host.innerHTML = '<nav class="fx-tabbar" aria-label="Main" id="fx-tabbar"></nav>';
-    document.body.appendChild(host);
-    document.body.classList.add('fx-has-tabbar');
-    import(root('/artisan-app/js/fx/controls.js'))
-      .then(function (m) { m.renderTabbar(document.getElementById('fx-tabbar'), { current: activeTab }); })
-      .catch(function (err) { console.warn('[artisanNav] tab bar:', err && err.message); });
-  }
-
-  /* ── 3. Liveness heartbeat on every page ─────────────────────────── */
+  /* ── Liveness heartbeat on every page ────────────────────────────── */
   var _unsub = null;
   function stopPresenceFollow() {
     if (_unsub) { try { _unsub(); } catch (_) {} }
@@ -111,11 +62,10 @@
       .catch(function () {});
   }
 
-  /* ── 4. Init ─────────────────────────────────────────────────────── */
+  /* ── Init ────────────────────────────────────────────────────────── */
   function init() {
-    if (document.getElementById('fx-tabbar')) return;
-    injectCSS();
-    drawTabs();
+    if (window.__fxHeartbeat) return;      // the script was included twice
+    window.__fxHeartbeat = true;
     followPresence();
     // Leaving the page drops the listener; a page restored from the browser's
     // back/forward cache does not re-run this script, so it subscribes again.

@@ -41,24 +41,27 @@ t('no period selector that could apply one window to figures measured over anoth
 
 console.log('\n── UI-006 · the artisan toast stays on screen ──\n');
 
-/** The declarations of the `.toast {` rule in a stylesheet. */
-function toastRule(file) {
-    const css = read(file);
-    const at = css.search(/^\.toast \{/m);
-    assert.ok(at >= 0, `${file}: no .toast rule`);
+// The two legacy stylesheets this guarded (css/dashboard.css, css/onboarding.css)
+// were removed in Phase 6: every artisan screen now shows the design system's
+// toast (js/fx/toast.js, .fx-toast in css/app.css). The same property is held
+// there: a long message wraps inside the screen's gutter and is never clipped.
+/** The declarations of a rule in css/app.css. */
+function appRule(selector) {
+    const css = read('artisan-app/css/app.css');
+    const at = css.indexOf(`\n${selector} {`);
+    assert.ok(at >= 0, `app.css: no ${selector} rule`);
     return css.slice(at, css.indexOf('}', at)).replace(/\/\*[\s\S]*?\*\//g, '');
 }
-
-for (const file of ['artisan-app/css/dashboard.css', 'artisan-app/css/onboarding.css']) {
-    t(`${file}: one line when it fits, wraps within a 16px gutter, never nowrap`, () => {
-        const rule = toastRule(file);
-        assert.doesNotMatch(rule, /white-space:\s*nowrap/, 'nowrap runs a long message off-screen');
-        assert.match(rule, /width:\s*max-content/);
-        assert.match(rule, /max-width:\s*calc\(100vw - 32px\)/);
-        assert.match(rule, /box-sizing:\s*border-box/, 'the padding stays inside the cap');
-        assert.match(rule, /text-align:\s*center/);
-    });
-}
+t('the artisan toast wraps within the gutter, never nowrap, and cannot leave the screen', () => {
+    const host = appRule('.fx-toasts'), toast = appRule('.fx-toast'), text = appRule('.fx-toast__text');
+    assert.match(host, /position:\s*fixed;\s*left:\s*0;\s*right:\s*0/, 'the host spans the screen');
+    assert.match(host, /padding:\s*0 var\(--fx-gutter\)/, 'and keeps the gutter');
+    assert.doesNotMatch(toast + text, /white-space:\s*nowrap/, 'nowrap runs a long message off-screen');
+    assert.match(toast, /width:\s*100%;\s*max-width:\s*var\(--fx-shell-max\)/);
+    assert.match(text, /flex:\s*1;\s*min-width:\s*0/, 'the text may shrink and wrap');
+    for (const gone of ['artisan-app/css/dashboard.css', 'artisan-app/css/onboarding.css'])
+        assert.ok(!fs.existsSync(path.join(__dirname, '..', gone)), `${gone} is gone`);
+});
 
 t('the shared toast (toast.js) is untouched: it already wraps inside its gutter', () => {
     const js = read('shared/js/components/toast.js');

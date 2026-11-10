@@ -62,13 +62,17 @@ t('the sheet shows the reason and Confirm re-checks it', () => {
     assert.match(wallet, /const MIN_WITHDRAWAL = PLATFORM_CONFIG\.minWithdrawalGHS;/);
 });
 
-// ── NAV-004: the nav's own route map ─────────────────────────────────────────
+// ── NAV-004: each screen names its own tab ───────────────────────────────────
+// Until Phase 6 a route map in artisanFloatingNav.js chose the tab for screens
+// that did not draw their own bar. Every screen now draws its own, so the map
+// is read from where it is decided: each page's renderTabbar call.
 console.log('\n── NAV-004 · the bottom nav highlights where you are ──\n');
 
-const nav = read('artisan-app/js/artisanFloatingNav.js');
-const mapSrc = nav.slice(nav.indexOf('var ROUTE_MAP = {'), nav.indexOf('};', nav.indexOf('var ROUTE_MAP = {')) + 2);
-// eslint-disable-next-line no-new-func
-const ROUTE_MAP = new Function(`${mapSrc} return ROUTE_MAP;`)();
+const ROUTE_MAP = {};
+for (const f of fs.readdirSync(path.join(ROOT, 'artisan-app')).filter((n) => n.endsWith('.html'))) {
+    const m = /renderTabbar\(document\.getElementById\('tabbar'\), \{ current: '([a-z]+)'/.exec(read(`artisan-app/${f}`));
+    if (m) ROUTE_MAP[f] = m[1];
+}
 // The four tabs (design decision 02), as the tab bar itself defines them.
 const controls = read('artisan-app/js/fx/controls.js');
 const TABS = [...controls.matchAll(/\{ id: '([a-z]+)',\s+label: '[A-Za-z]+',/g)].map((m) => m[1]);
@@ -81,7 +85,16 @@ t('Notifications sits under Today (it is opened from the Today header bell)', ()
 });
 t('the wallet lights Earnings, and the job screens light Jobs', () => {
     assert.strictEqual(ROUTE_MAP['wallet.html'], 'earnings');
-    for (const p of ['jobs.html', 'job.html', 'messages.html']) assert.strictEqual(ROUTE_MAP[p], 'jobs', p);
+    for (const p of ['jobs.html', 'messages.html']) assert.strictEqual(ROUTE_MAP[p], 'jobs', p);
+    // A single job is a pushed screen: Back and its one action, no tab bar.
+    assert.ok(!('job.html' in ROUTE_MAP) && !/fx-tabbar/.test(read('artisan-app/job.html')), 'job.html has no tab bar');
+});
+t('one source of truth: the heartbeat script holds no route map and draws no bar', () => {
+    const nav = read('artisan-app/js/artisanFloatingNav.js');
+    assert.ok(!/ROUTE_MAP|renderTabbar|fx-tabbar|createElement\('(nav|div|link)'\)/.test(nav.replace(/\/\*[\s\S]*?\*\//g, '')));
+    assert.ok(!fs.existsSync(path.join(ROOT, 'artisan-app/css/fx/legacy-shell.css')), 'the legacy shell stylesheet is gone with the last legacy screen');
+    assert.deepStrictEqual(Object.keys(ROUTE_MAP).sort(),
+        ['dashboard.html', 'jobs.html', 'messages.html', 'notifications.html', 'profile.html', 'reputation.html', 'settings.html', 'support.html', 'wallet.html']);
 });
 t('every mapped page lights a tab that exists', () => {
     for (const [page, tab] of Object.entries(ROUTE_MAP)) assert.ok(TABS.includes(tab), `${page} → ${tab}`);

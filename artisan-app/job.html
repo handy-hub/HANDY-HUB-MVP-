@@ -384,6 +384,8 @@ window.addEventListener('pagehide', () => { try { _unsub?.(); _offerUnsub?.(); _
 // Restored from the back/forward cache with its listeners torn down: reload.
 window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
 </script>
+<!-- The liveness heartbeat on every artisan page: reading a job must not take an available artisan out of dispatch. -->
+<script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>
 </body>
 </html>

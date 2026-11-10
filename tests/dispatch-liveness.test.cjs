@@ -166,6 +166,21 @@ await t('the nav keeps a heartbeat on every artisan page, without location track
     assert.match(presence, /if \(_options && _options\.trackLocation === false\) return false;/);
 });
 
+await t('every signed-in artisan screen carries a heartbeat, the job screen included', () => {
+    // Today runs presence itself (with location); onboarding is for accounts
+    // that cannot be dispatched yet. Every other guarded screen loads the script.
+    const dir = path.join(ROOT, 'artisan-app');
+    const missing = [];
+    for (const f of fs.readdirSync(dir).filter((n) => n.endsWith('.html'))) {
+        const src = fs.readFileSync(path.join(dir, f), 'utf8');
+        if (!/requireArtisanAuth\(/.test(src) || f === 'onboarding.html') continue;
+        const own = f === 'dashboard.html' && /startPresence\(/.test(src);
+        if (!own && !/<script src="js\/artisanFloatingNav\.js"><\/script>/.test(src)) missing.push(f);
+    }
+    assert.deepStrictEqual(missing, []);
+    assert.match(fs.readFileSync(path.join(dir, 'job.html'), 'utf8'), /<script src="js\/artisanFloatingNav\.js"><\/script>/);
+});
+
 console.log(`\ndispatch-liveness: ${passed} passed, ${failed} failed`);
 for (const [name, e] of failures) console.log(`\n  ✗ ${name}\n    ${e && e.stack ? e.stack.split('\n').slice(0, 4).join('\n    ') : e}`);
 process.exit(failed ? 1 : 0);

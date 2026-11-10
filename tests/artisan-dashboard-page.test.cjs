@@ -99,10 +99,21 @@ await t('Jobs (Phase 3) colours its status chips by resolveJourney\'s tone, no l
     assert.match(screen, /const TONE_CHIP = \{ action: 'fx-chip--accent', live: 'fx-chip--info', waiting: 'fx-chip--warn', bad: 'fx-chip--bad', ok: 'fx-chip--ok', ended: '' \};/);
     assert.ok(!/status === '|\.status ===/.test(screen), 'jobsScreen.js branches on a status of its own');
 });
-await t('css/dashboard.css keeps no pill or status-chip palette of its own (UI-003 cleanup)', () => {
-    const css = read('artisan-app/css/dashboard.css');
-    assert.ok(!/^\s*\.pill-[a-z_]+\s*\{/m.test(css), 'a .pill-* rule is back in dashboard.css');
-    assert.ok(!/\.status-(upcoming|progress|pending)\s*\{/.test(css), 'a hand-coloured status chip rule is back');
+await t('no artisan stylesheet keeps a pill or status-chip palette of its own (UI-003 cleanup)', () => {
+    // css/dashboard.css, the file this guarded, was removed in Phase 6 with the
+    // rest of the legacy stylesheets (no page loaded them). The rule now holds
+    // for every stylesheet the artisan app has.
+    const fs = require('fs'), path = require('path');
+    const dir = path.join(__dirname, '..', 'artisan-app', 'css');
+    const sheets = [];
+    (function scan(d) { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const full = path.join(d, f.name); if (f.isDirectory()) scan(full); else if (f.name.endsWith('.css')) sheets.push(full); } })(dir);
+    assert.ok(sheets.length >= 10, 'the design system stylesheets');
+    assert.ok(!fs.existsSync(path.join(dir, 'dashboard.css')), 'the legacy dashboard stylesheet is gone');
+    for (const f of sheets) {
+        const css = fs.readFileSync(f, 'utf8');
+        assert.ok(!/^\s*\.pill-[a-z_]+\s*\{/m.test(css), `a .pill-* rule in ${path.basename(f)}`);
+        assert.ok(!/\.status-(upcoming|progress|pending)\s*\{/.test(css), `a hand-coloured status chip rule in ${path.basename(f)}`);
+    }
 });
 await t("Today's stage chip is coloured by resolveJourney's tone, not a hand-written status check", () => {
     assert.match(view, /const CHIP_TONE = \{ action: 'fx-chip--accent', live: 'fx-chip--info', waiting: 'fx-chip--warn', ended: '' \};/);
