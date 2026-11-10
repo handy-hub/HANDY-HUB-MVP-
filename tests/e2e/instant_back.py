@@ -16,8 +16,26 @@ def check(name, ok, detail=""):
     results.append((name, ok))
     print(f"  {'PASS' if ok else 'FAIL'}  {name}" + (f"   {detail}" if detail else ""))
 
+def browser_can_restore(b):
+    """A control with nothing of the app in it: two static pages, a click
+    forward and history.back(). If the browser restores neither, it has the
+    back/forward cache switched off (headless automation does: Chrome reports
+    BackForwardCacheDisabledForDelegate / BrowsingInstanceNotSwapped), and
+    the dashboard check below cannot pass whatever the app does."""
+    A = '<!doctype html><a id="go" href="/b.html">B</a>'
+    B = '<!doctype html><button id="bk" onclick="history.back()">back</button>'
+    c = b.new_context(); pg = c.new_page()
+    pg.route('http://bf.control/**', lambda r: r.fulfill(status=200, content_type='text/html', body=B if r.request.url.endswith('/b.html') else A))
+    pg.goto('http://bf.control/a.html'); pg.evaluate('window.__m = 1')
+    pg.click('#go'); pg.wait_for_url('**/b.html'); pg.wait_for_timeout(300)
+    pg.click('#bk'); pg.wait_for_url('**/a.html'); pg.wait_for_timeout(500)
+    ok = pg.evaluate('window.__m === 1')
+    c.close()
+    return ok
+
 with sync_playwright() as p:
     b = p.chromium.launch()
+    control = browser_can_restore(b)
     ctx = b.new_context(viewport={"width": 390, "height": 844})
     pg = ctx.new_page()
     cdp = ctx.new_cdp_session(pg)
@@ -72,8 +90,13 @@ with sync_playwright() as p:
     restored = after["dash"] == stamp
 
     check("landed back on the dashboard", on_dash, after["url"].split('/')[-1][:30])
+    # Still a failure when the marker is lost; the line says whether the browser
+    # could have restored anything at all, so the result is read correctly.
     check("dashboard was RESTORED, not rebuilt", restored,
-          f"marker {'survived' if restored else 'lost -> full reload'}")
+          f"marker {'survived' if restored else 'lost -> full reload'}"
+          + ("" if restored or control else
+             " | NOT RUNNABLE HERE: this browser restores no page from the back/forward cache"
+             " (control pages were not restored either); verify on a real phone"))
 
     if not restored and bf_reasons:
         print("")

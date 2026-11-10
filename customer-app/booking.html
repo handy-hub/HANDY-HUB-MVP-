@@ -554,10 +554,16 @@ function render(bookings) {
 // Runs ONCE, on the first data arrival only. After that the customer's own tab
 // choice is theirs to keep — silently moving them on a later snapshot would be
 // worse than the original problem.
+//
+// Nor over a tab already chosen before the first data arrives: coming Back to
+// this screen, scrollMemory.js restores the tab the customer left on, and that
+// can land first. Switching away then lost the tab and its scroll position
+// (tests/e2e/scroll_memory.py failed about one run in three; release readiness).
 let _autoTabApplied = false;
 function applyContextualTab(bookings) {
   if (_autoTabApplied) return;
   _autoTabApplied = true;
+  if (_tab !== 'upcoming') return;               // a tab was already chosen: keep it
 
   const has = (group) => bookings.some(b =>
     TAB_STATUSES[group].includes(String(b.status || '').toLowerCase()));
