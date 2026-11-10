@@ -146,7 +146,16 @@ function moneyHtml(comp) {
     return sect('money-h', comp.label || 'Payment', `${amount}${comp.note ? `<p class="fx-meta">${esc(comp.note)}</p>` : ''}`);
 }
 
+// Drawn from cache (ctx.cached), the record has no address, name or phone:
+// those are never stored (artisanLists.js stripFields). Their place holds a
+// placeholder until the live booking arrives, never "No address on this
+// booking", which would be false.
+const PENDING = '<span class="fx-skel" aria-hidden="true"></span>';
+
 function whereHtml(b, brief, ctx, { contact: withContact = true } = {}) {
+    if (ctx.cached) {
+        return sect('where-h', 'Where', PENDING) + (withContact ? sect('contact-h', 'The customer', PENDING) : '');
+    }
     const loc = brief.location;
     const dist = formatDistance(brief.distanceKm);
     const line = loc.address ? `<p class="fx-body">${esc(loc.address)}</p>`
@@ -177,7 +186,7 @@ function jobBody(b, plan, ctx) {
       <div class="fx-stack--2"><p class="fx-body">${esc(j.just)}</p>${j.next ? `<p class="fx-body fx-ink-2">${esc(j.next)}</p>` : ''}</div>
       ${plan.note ? `<div class="fx-notice fx-notice--info" role="note">${icon('clock', 'fx-notice__icon')}<div class="fx-notice__body"><p>${esc(plan.note)}</p></div></div>` : ''}
     </section>
-    ${plan.mountQuote ? sect('quote-h', 'Send your quote', '<div class="fx-job__quote" id="jb-quote-mount"></div>') : ''}
+    ${plan.mountQuote ? sect('quote-h', 'Send your quote', ctx.cached ? PENDING : '<div class="fx-job__quote" id="jb-quote-mount"></div>') : ''}
     ${brief.problem || brief.notes ? sect('problem-h', 'What they described',
         `${brief.problem ? `<p class="fx-body fx-job__words">${esc(brief.problem)}</p>` : ''}${brief.notes ? `<p class="fx-meta">Notes: ${esc(brief.notes)}</p>` : ''}`) : ''}
     ${photosHtml(brief.photos)}
@@ -193,13 +202,16 @@ function dockHtml(plan, ctx) {
                    `<button class="fx-btn fx-btn--primary fx-btn--l" type="button" ${LAPSED_OFFER_STATE_ATTRS}>${LAPSED_OFFER_LABEL}</button>`;
         }
         const busy = ctx.busy;
-        return `<button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-act="decline"${busy ? ' disabled' : ''}${busy === 'decline' ? ' aria-busy="true"' : ''}>${busy === 'decline' ? '<span class="fx-spin" aria-hidden="true"></span>Declining…' : 'Decline'}</button>` +
-               `<button class="fx-btn fx-btn--primary fx-btn--l" type="button" data-act="accept"${busy ? ' disabled' : ''}${busy === 'accept' ? ' aria-busy="true"' : ''}>${busy === 'accept' ? '<span class="fx-spin" aria-hidden="true"></span>Accepting…' : (plan.offer.commitment ? 'Accept this slot' : 'Accept this job')}</button>`;
+        const off = busy || ctx.cached;   // nothing is answered from a cached copy
+        return `<button class="fx-btn fx-btn--secondary fx-btn--l" type="button" data-act="decline"${off ? ' disabled' : ''}${busy === 'decline' ? ' aria-busy="true"' : ''}>${busy === 'decline' ? '<span class="fx-spin" aria-hidden="true"></span>Declining…' : 'Decline'}</button>` +
+               `<button class="fx-btn fx-btn--primary fx-btn--l" type="button" data-act="accept"${off ? ' disabled' : ''}${busy === 'accept' ? ' aria-busy="true"' : ''}>${busy === 'accept' ? '<span class="fx-spin" aria-hidden="true"></span>Accepting…' : (plan.offer.commitment ? 'Accept this slot' : 'Accept this job')}</button>`;
     }
     const sec = (plan.secondary || []).map((s) =>
-        `<button class="fx-btn ${s.danger ? 'fx-btn--danger' : 'fx-btn--secondary'} fx-btn--l" type="button" data-act="${s.act}"${ctx.busy ? ' disabled' : ''}>${esc(s.label)}</button>`).join('');
+        `<button class="fx-btn ${s.danger ? 'fx-btn--danger' : 'fx-btn--secondary'} fx-btn--l" type="button" data-act="${s.act}"${ctx.busy || ctx.cached ? ' disabled' : ''}>${esc(s.label)}</button>`).join('');
     const p = plan.primary;
-    const prim = p ? `<button class="fx-btn fx-btn--primary fx-btn--l" type="button" data-act="${p.act}"${ctx.busy ? ' disabled aria-busy="true"' : ''}>${ctx.busy ? '<span class="fx-spin" aria-hidden="true"></span>Working…' : esc(p.label)}</button>` : '';
+    // From cache every step waits for the live booking: a step is a decision
+    // about money and the customer, never taken on a stored copy (CLAUDE.md §1).
+    const prim = p ? `<button class="fx-btn fx-btn--primary fx-btn--l" type="button" data-act="${p.act}"${ctx.busy ? ' disabled aria-busy="true"' : ctx.cached ? ' disabled' : ''}>${ctx.busy ? '<span class="fx-spin" aria-hidden="true"></span>Working…' : esc(p.label)}</button>` : '';
     return sec + prim;
 }
 
@@ -208,11 +220,13 @@ function dockHtml(plan, ctx) {
  * @param {{ body: HTMLElement, dock: HTMLElement, sub: HTMLElement }} dom
  * @param {object} b      booking (or offer summary)
  * @param {object} plan   jobPlan(b)
- * @param {{ nowMs: number, bookingId: string, busy?: string|null, originLat?: number|null, originLng?: number|null, escrow?: object|null }} ctx
+ * @param {{ nowMs: number, bookingId: string, busy?: string|null, cached?: boolean, originLat?: number|null, originLng?: number|null, escrow?: object|null }} ctx
+ *        cached: drawn from the stored list before the live booking; nothing private, no action
  */
 export function renderJob(dom, b, plan, ctx) {
     dom.sub.textContent = resolveJobBrief(b).bookingId || '';
     dom.body.innerHTML = plan.kind === 'offer' ? offerBody(b, plan, ctx) : jobBody(b, plan, ctx);
+    dom.body.setAttribute('aria-busy', ctx.cached ? 'true' : 'false');
     paintCountdown(dom.body, ctx.nowMs);
     const html = dockHtml(plan, ctx);
     dom.dock.hidden = !html;

@@ -229,6 +229,29 @@ export function mountInstantView({
 }
 
 /**
+ * Read what another view has cached, without mounting anything: for a screen
+ * that shows ONE record from a list another screen keeps (the artisan job
+ * screen paints its booking from the list Today and Jobs cache). Read-only and
+ * scoped to the same uid instantView itself would use, with the same TTL, so
+ * it can never show one account's data to another or resurrect an expired
+ * entry. The data is exactly what that view stored, after its stripFields.
+ *
+ * @param {string} key
+ * @param {{ version?: number, ttlMs?: number }} [o]
+ * @returns {{ data: any, ageMs: number, uid: string } | null}
+ */
+export function peekInstantView(key, { version = 1, ttlMs = DEFAULT_TTL_MS } = {}) {
+    const uid = resolveSessionUid();
+    if (!uid) return null;                 // a first visit, or signed out: nothing is ours
+    try {
+        const hit = readCache(key, { uid, version, ttlMs, storage: 'local' });
+        return hit && hit.data != null ? { data: hit.data, ageMs: hit.ageMs, uid } : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Guard against painting one account's data into another's session.
  *
  * Call once the authoritative uid is known. If it differs from the uid the

@@ -541,6 +541,83 @@ with sync_playwright() as pw:
     check('job (accepted path): no page errors', not errs, errs[:3])
     pg.context.close()
 
+    # ═══ JOB SCREEN, RETURN VISIT: cache first (release readiness) ═══════════
+    # The job screen used to show a skeleton on every visit until sign-in and
+    # the live booking arrived. It now paints from the list Today and Jobs
+    # cache (artisanLists.js), whose copy holds no address, name, phone or
+    # notes, and keeps every action off until the live booking arrives.
+    # The live listener here answers only when the test says, so "the network
+    # is slow" is the state the page is in until then.
+    def seed_cache(uid, records, key='artisan-dashboard-active'):
+        # The entry exactly as instantView writes it (persistentCache envelope), under that uid.
+        return ("try { localStorage.setItem('hh_last_session_uid', %s);"
+                " localStorage.setItem(%s, JSON.stringify({ v: 1, u: %s, t: Date.now(), d: %s })); } catch (e) {}"
+                % (json.dumps(uid), json.dumps(f'hh_pc_{key}_{uid}'), json.dumps(uid), json.dumps(records)))
+    STORED = {'artisanId': 'A1', 'status': 'accepted', 'track': 'standard', 'quoteApproved': True, 'jobQuote': 300,
+              'serviceType': 'Electrical repair', 'bookingRef': 'HHB-C1', 'createdAt': '2026-11-09T10:00:00.000Z', 'updatedAt': '2026-11-09T11:00:00.000Z'}
+    LIVE_C1 = dict(STORED, customerId='C1', customerFirstName='Ama',
+                   address='4 Oxford Street, Osu', lat=5.556, lng=-0.182, notes='Gate code 1234')
+    def open_cached(seed_js, path='/artisan-app/job.html?id=C1'):
+        ctx = b.new_context(viewport={'width': 390, 'height': 900})
+        ctx.add_init_script(INIT)
+        ctx.add_init_script(seed_js)
+        pg = ctx.new_page(); errors = []
+        pg.on('pageerror', lambda e: errors.append(str(e)))
+        pg.route('**/*', route); pg.set_default_timeout(4000)
+        pg.goto(f'{ORIGIN}{path}', wait_until='domcontentloaded')
+        return pg, errors
+    DOCK_JS = "() => [...document.querySelectorAll('#jb-dock [data-act]')].map(b => [b.dataset.act, b.disabled])"
+
+    pg, errs = open_cached(seed_cache('A1', [{'id': 'C1', 'data': STORED}]))
+    pg.wait_for_selector('#jb-title', timeout=3000)
+    first = pg.evaluate("() => ({ title: document.getElementById('jb-title').textContent, skel: !!document.querySelector('#jb-body .fx-job__head[aria-busy=\"true\"] .fx-skel--title'),"
+                        " busy: document.getElementById('jb-body').getAttribute('aria-busy'), text: document.getElementById('jb-body').innerText,"
+                        " live: (window.__fx.docCbs['bookings/C1'] || []).length })")
+    check('job, return visit: the job is drawn from the stored list before the live booking answers',
+          first['title'] == 'Electrical repair' and not first['skel'] and first['busy'] == 'true', first)
+    check('job, from cache: it says nothing false or private (no "No address", no name, no notes)',
+          'No address' not in first['text'] and 'Ama' not in first['text'] and 'Oxford' not in first['text'] and 'Gate code' not in first['text'], first['text'][:300])
+    dock = pg.evaluate(DOCK_JS)
+    check('job, from cache: every action is off until the live booking arrives', dock and all(d for _, d in dock), dock)
+    pg.evaluate("window.__fx.calls.length = 0")
+    pg.evaluate("() => document.querySelectorAll('#jb-dock [data-act]').forEach(b => { b.disabled = false; b.click(); })")
+    pg.wait_for_timeout(300)
+    check('job, from cache: even a forced tap changes nothing (the page refuses a stored copy)', pg.evaluate('window.__fx.calls.length') == 0, pg.evaluate('window.__fx.calls'))
+    pg.wait_for_function("(window.__fx.docCbs['bookings/C1'] || []).length > 0", timeout=5000)
+    pg.evaluate("(d) => window.__fx.docCbs['bookings/C1'].forEach(cb => cb({ exists: true, id: 'C1', data: d }))", LIVE_C1)
+    pg.wait_for_function("document.getElementById('jb-body').getAttribute('aria-busy') === 'false'", timeout=3000)
+    after = pg.evaluate("() => document.getElementById('jb-body').innerText")
+    dock = pg.evaluate(DOCK_JS)
+    check('job, live: the address and customer arrive, and the actions turn on', '4 Oxford Street' in after and dock and not any(d for _, d in dock), [after[:200], dock])
+    stored = pg.evaluate("() => Object.keys(localStorage).filter(k => /Oxford|0551|Gate code/.test(localStorage.getItem(k) || ''))")
+    check('job: the page stores nothing private (it only reads the list)', stored == [], stored)
+    check('job, return visit: no page errors', not errs, errs[:3])
+    pg.context.close()
+
+    # A failed refresh keeps the copy on screen, actions still off.
+    pg, errs = open_cached(seed_cache('A1', [{'id': 'C1', 'data': STORED}]))
+    pg.wait_for_function("(window.__fx.docErrs['bookings/C1'] || []).length > 0", timeout=5000)
+    pg.evaluate("window.__fx.docErrs['bookings/C1'].forEach(e => e({ code: 'unavailable', message: 'offline' }))")
+    pg.wait_for_timeout(300)
+    st = pg.evaluate("() => ({ title: document.getElementById('jb-title') && document.getElementById('jb-title').textContent, msg: !!document.querySelector('[data-state=message]'), toasts: window.__fx.toasts })")
+    dock = pg.evaluate(DOCK_JS)
+    check('job, offline: a failed refresh keeps the stored copy, says so, and keeps its actions off',
+          st['title'] == 'Electrical repair' and not st['msg'] and dock and all(d for _, d in dock), [st, dock])
+    pg.context.close()
+
+    # Another account's copy on this device is never shown as this artisan's.
+    pg, errs = open_cached(seed_cache('OTHER', [{'id': 'C1', 'data': dict(STORED, artisanId='OTHER', serviceType='Someone else job')}]))
+    pg.wait_for_timeout(400)
+    other = pg.evaluate("() => ({ text: document.getElementById('jb-body').innerText, skel: !!document.querySelector('#jb-body .fx-skel--title'), dock: document.getElementById('jb-dock').hidden })")
+    check('job: a copy cached for another account is dropped once this artisan is known', 'Someone else' not in other['text'] and other['skel'] and other['dock'], other)
+    pg.context.close()
+
+    # No stored copy: the skeleton, as before, then the live booking.
+    pg, errs = open_cached("try { localStorage.setItem('hh_last_session_uid', 'A1'); } catch (e) {}")
+    pg.wait_for_timeout(300)
+    check('job, first visit: nothing stored, so the skeleton (a genuine miss)', pg.query_selector('#jb-body .fx-skel--title') is not None)
+    pg.context.close()
+
     b.close()
 
 _done = True

@@ -69,6 +69,8 @@ import { pricingService }   from '../shared/js/services/pricingService.js';
 import { mountQuoteComposer, quoteComposerStyles }
                             from '../shared/js/ui/quoteComposer.js';
 import { offerState }       from '../shared/js/domain/jobOffers.js';
+import { peekInstantView }  from '../shared/js/services/instantView.js';
+import { ACTIVE_LIST, HISTORY_LIST, OFFERS_LIST } from './js/artisanLists.js';
 
 const $ = (id) => document.getElementById(id);
 for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon);
@@ -86,6 +88,12 @@ let _escrow = null, _escrowId = null, _escrowUnsub = null;   // see watchEscrow(
 // offerGone): from then on the request is drawn lapsed, whatever the listener says.
 let _offerGone = false;
 let _message = false;   // a whole-screen message is showing; snapshots do not redraw over it
+// Drawn from the list Today and Jobs keep, before sign-in and the live record
+// (CLAUDE.md §1: render first). That copy has no address, name, phone or
+// notes (artisanLists.js stripFields) and every action waits for the live
+// booking. _cachedUid is the account the copy belongs to.
+let _cached = false, _cachedUid = null;
+const SKELETON = dom.body.innerHTML;
 
 function showMessage(title, body, cta) {
   _message = true;
@@ -105,10 +113,10 @@ function render(b) {
   if (keep) keep.remove();
   const hadFocus = dom.body.contains(document.activeElement) || dom.dock.contains(document.activeElement);
   renderJob(dom, b, plan, {
-    nowMs: Date.now(), bookingId: BOOKING_ID, busy: _busy, originLat: _originLat, originLng: _originLng,
+    nowMs: Date.now(), bookingId: BOOKING_ID, busy: _busy, cached: _cached, originLat: _originLat, originLng: _originLng,
     escrow: b.escrowId && b.escrowId === _escrowId ? _escrow : null,
   });
-  if (plan.mountQuote) {
+  if (plan.mountQuote && !_cached) {
     const slot = $('jb-quote-mount');
     if (slot && keep) slot.replaceWith(keep);
     else if (slot) mountComposer(slot, b);
@@ -191,6 +199,7 @@ function confirmIn({ title, body, label, danger, list = [] }) {
 
 async function run(spec) {
   if (_busy) return;                       // duplicate taps do nothing
+  if (_cached) return;                     // nothing is decided on a stored copy
   if (spec.href) { location.href = spec.href(); return; }
   const ask = typeof spec.confirm === 'function' ? spec.confirm(_booking) : spec.confirm;
   if (ask && !(await confirmIn(ask))) return;
@@ -265,11 +274,27 @@ document.addEventListener('click', (e) => {
 })();
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */
+/** The stored copy of this booking (or its offer), if Today or Jobs has one. */
+function paintFromCache() {
+  for (const list of [ACTIVE_LIST, OFFERS_LIST, HISTORY_LIST]) {
+    const hit = peekInstantView(list.key, { version: list.version });
+    const rec = hit && Array.isArray(hit.data) ? hit.data.find((r) => r && r.id === BOOKING_ID && r.data) : null;
+    if (rec) {
+      _cached = true; _cachedUid = hit.uid;
+      render({ id: BOOKING_ID, ...rec.data });
+      return;
+    }
+  }
+}
+/** The live record has arrived: from here on the screen is the server's. */
+function live() { _cached = false; }
+
 (async () => {
   if (!BOOKING_ID) {
     showMessage('No job selected', 'Open a job from your jobs list to see it here.');
     return;
   }
+  try { paintFromCache(); } catch (_) { /* a cache fault never stops the real load */ }
 
   // requireArtisanAuth — not the customer guard. It sends a real artisan to the
   // ARTISAN login and, locally, honours the dev-access session (unless the
@@ -278,6 +303,12 @@ document.addEventListener('click', (e) => {
   const { artisan } = await requireArtisanAuth({ allowPending: true });
   _uid = artisan?.uid || artisan?.id || null;
   if (!_uid) return;   // the guard has already redirected
+  // Another account signed in on this device: its copy is not this artisan's.
+  if (_cached && _cachedUid !== _uid) {
+    _cached = false; _booking = null;
+    tickOffer(null);
+    dom.body.innerHTML = SKELETON; dom.dock.hidden = true; dom.dock.innerHTML = '';
+  }
 
   const { services: { databaseService } } = getAppContainer();
 
@@ -348,6 +379,7 @@ function watchOffer() {
   _offerUnsub = databaseService.subscribeToDocument('job_offers', BOOKING_ID,
     (snap) => {
       if (!snap?.exists) { showMessage('Job not found', 'This request is no longer available, or it is not yours.'); return; }
+      live();
       if (!_busy) render({ id: BOOKING_ID, ...snap.data });
     },
     () => showMessage('Request no longer open', 'It was accepted, declined, expired or withdrawn.')
@@ -369,12 +401,18 @@ function watchBooking() {
         return;
       }
       _lastBooking = b;
+      live();
       if (!_busy) render(withPhone(b));
       loadPhone(b);
       watchEscrow(b);
     },
     (err) => {
       if (/permission/i.test(String(err?.code || err?.message || ''))) { watchOffer(); return; }
+      // A failed refresh keeps the copy already on screen (its actions stay off).
+      if (_cached && _booking) {
+        showToast('Could not load the latest for this job. Check your connection and try again.', { tone: 'bad' });
+        return;
+      }
       showMessage('Could not load this job', 'Check your connection and try again.', { label: 'Try again', href: location.href });
     }
   );
