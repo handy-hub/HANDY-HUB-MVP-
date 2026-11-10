@@ -181,6 +181,11 @@ const UID = 'art_1';
         const none = ob.fixNotice({ verificationStatus: 'rejected' }, {});
         assert.strictEqual(none.recorded, false);
         assert.match(none.reason, /No reason was recorded/);
+        // A reason left on the world-readable profile by older code is never shown:
+        // the reviewer's words come from the artisan's own request only (2026-11-10).
+        const legacy = ob.fixNotice({ verificationStatus: 'rejected', rejectionReason: 'public copy' }, {});
+        assert.strictEqual(legacy.recorded, false);
+        assert.ok(!legacy.reason.includes('public copy'));
     });
 
     await t('the page never decides approval: approved goes to Today, review shows the waiting screen', () => {

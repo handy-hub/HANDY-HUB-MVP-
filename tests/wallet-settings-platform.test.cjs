@@ -230,6 +230,35 @@ await t('approve and reject record who decided and when, and log it', async () =
     await rejects(() => verification.approveArtisan({ uid: 'a_ok', token: {} }, { artisanId: 'a_no' }), /Unauthorized|Admin/);
 });
 
+await t('a rejection or ban reason never lands on the public profile; one left there earlier is removed (2026-11-10)', async () => {
+    // artisans/{id} is readable by every signed-in account, customers included.
+    fake.db._reset(); fake.auth.reset();
+    fake.db._set('artisans/a_rej', { userType: 'artisan', name: 'Ama', verificationStatus: 'pending_review', status: 'pending',
+        rejectionReason: 'an older reason, left by the previous code' });
+    fake.db._set('verification_requests/a_rej', { artisanId: 'a_rej', status: 'pending_review' });
+    fake.db._set('artisans/a_ban', { userType: 'artisan', name: 'Kofi', verificationStatus: 'approved', status: 'active', banReason: 'older' });
+    fake.db._set('artisans/a_back', { userType: 'artisan', name: 'Yaw', category: 'Plumbing', verificationStatus: 'pending_review', status: 'pending',
+        rejectionReason: 'left from a past rejection' });
+    fake.db._set('verification_requests/a_back', { artisanId: 'a_back', status: 'pending_review' });
+    fake.auth.setUser('a_back', { emailVerified: true });
+
+    await verification.rejectArtisan(ADMIN_AUTH, { artisanId: 'a_rej', reason: 'Ghana Card photo unreadable' });
+    await verification.banArtisan(ADMIN_AUTH, { artisanId: 'a_ban', reason: 'Fraudulent job reports' });
+    await verification.approveArtisan(ADMIN_AUTH, { artisanId: 'a_back' });
+
+    const rej = fake.db._get('artisans/a_rej'), ban = fake.db._get('artisans/a_ban'), back = fake.db._get('artisans/a_back');
+    assert.ok(!('rejectionReason' in rej), 'the rejection reason is on the public profile');
+    assert.strictEqual(rej.verificationStatus, 'rejected');
+    assert.ok(!('banReason' in ban), 'the ban reason is on the public profile');
+    assert.strictEqual(ban.verificationStatus, 'banned');
+    assert.ok(!('rejectionReason' in back), 'an approval leaves an old reason on the public profile');
+    // Where the reason does go: the artisan's own request (the application screen reads it) and the admin log.
+    assert.strictEqual(fake.db._get('verification_requests/a_rej').rejectionReason, 'Ghana Card photo unreadable');
+    const logs = rows('verification_logs/');
+    assert.ok(logs.some((l) => l.artisanId === 'a_rej' && l.notes === 'Ghana Card photo unreadable'));
+    assert.ok(logs.some((l) => l.artisanId === 'a_ban' && l.notes === 'Fraudulent job reports'), 'a ban reason survives in the log even with no request');
+});
+
 await t('nothing in the app writes a reviewer field; the rules allow only evidence', () => {
     const ob = read('artisan-app/onboarding.html').replace(/\/\/.*$/gm, '');
     for (const k of ['trustScore:', 'reviewedBy:', 'adminNotes:', 'rejectionReason:']) assert.ok(!ob.includes(k), `onboarding writes ${k}`);

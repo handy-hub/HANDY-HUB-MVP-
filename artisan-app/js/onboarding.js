@@ -212,7 +212,9 @@ export function fixNotice(profile, request) {
     const vs = String((profile && profile.verificationStatus) || '').toLowerCase();
     const r = request || {};
     const more = vs === 're_verification_required';
-    const reason = clean(more ? r.infoRequestNotes : (r.rejectionReason || (profile && profile.rejectionReason)));
+    // From the request only (the artisan and admins): the server no longer puts
+    // a reason on the world-readable profile, and one left there is never shown.
+    const reason = clean(more ? r.infoRequestNotes : r.rejectionReason);
     return {
         title: more ? 'Fidus X needs more information' : 'Your application needs changes',
         reason: reason || 'No reason was recorded. Contact support if you are not sure what to change.',

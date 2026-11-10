@@ -99,6 +99,9 @@ async function approveArtisan(auth, { artisanId, notes = '' }) {
         searchKeywords,                 // generated from profile — makes artisan searchable
         approvedAt:         FieldValue.serverTimestamp(),
         approvedBy:         auth.token?.email || auth.uid,
+        // A rejection reason an earlier decision left on this world-readable
+        // document goes with the approval (see rejectArtisan).
+        rejectionReason:    FieldValue.delete(),
         updatedAt:          new Date().toISOString(),
     });
 
@@ -136,11 +139,17 @@ async function rejectArtisan(auth, { artisanId, reason }) {
         rejectionReason:    reason,
     });
 
+    // The reason is the reviewer's note to the artisan, not something any
+    // signed-in account may read: artisans/{id} is world-readable. It is kept on
+    // verification_requests/{id} (the artisan and admins only, where the
+    // application screen reads it) and in verification_logs, and goes to the
+    // artisan in their notification. A reason left on the profile by an earlier
+    // decision is removed here. (Decided 2026-11-10; email delivery to follow.)
     batch.update(db.collection('artisans').doc(artisanId), {
         verificationStatus: 'rejected',
         isVerified:         false,
         rejectedAt:         FieldValue.serverTimestamp(),
-        rejectionReason:    reason,
+        rejectionReason:    FieldValue.delete(),
     });
 
     await batch.commit();
@@ -315,12 +324,15 @@ async function banArtisan(auth, { artisanId, reason }) {
         });
     }
 
+    // As with a rejection: the reason never goes on the world-readable profile.
+    // It is kept on verification_requests/{id} when that exists, always in
+    // verification_logs (logAction below), and sent to the artisan.
     batch.update(db.collection('artisans').doc(artisanId), {
         verificationStatus: 'banned',
         isAvailable:        false,
         bannedAt:           FieldValue.serverTimestamp(),
         bannedBy:           auth.token?.email || auth.uid,
-        banReason:          reason,
+        banReason:          FieldValue.delete(),
     });
 
     await batch.commit();
