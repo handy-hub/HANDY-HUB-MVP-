@@ -1,0 +1,62 @@
+/* artisan-app/css/fx/messages.css — Messages (Phase 6). Tokens only
+   (npm run lint:fx). The inbox is a list of rows; an open conversation covers
+   it. The class hooks ms-top, ms-row, ms-row-last, ms-skel, ms-chat and
+   ms-bubble are kept on the markup for the cache-first, stacking and realtime
+   checks; nothing is styled through them. */
+
+.fx-msg__loading { display: grid; gap: var(--fx-space-2); padding: var(--fx-space-4) var(--fx-gutter); }
+.fx-msg__list { margin: var(--fx-space-0); padding: var(--fx-space-0); list-style: none; }
+/* One line of preview: the other person's words never push the row taller. */
+.fx-msg__list .fx-row__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-msg__list .fx-row__meta:empty { display: none; }
+.fx-msg__trail { flex: none; display: grid; justify-items: end; gap: var(--fx-space-1); }
+.fx-msg__time { font: var(--fx-t-meta); color: var(--fx-ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.fx-msg__state { display: grid; justify-items: center; gap: var(--fx-space-2); padding: var(--fx-space-12) var(--fx-gutter); text-align: center; }
+.fx-msg__state > h2 { margin: var(--fx-space-0); font: var(--fx-t-heading); color: var(--fx-ink); }
+.fx-msg__state > p { margin: var(--fx-space-0); font: var(--fx-t-body); color: var(--fx-ink-2); }
+
+/* ── An open conversation ────────────────────────────────────────────────
+   It covers the inbox, so it paints above the inbox's sticky app bar
+   (--fx-z-bar). Under it, the thread's name and Back were hidden and a tap on
+   the visible Back left Messages (audit MSG-UI-001). */
+.fx-msg__chat {
+  position: fixed; inset: 0; z-index: var(--fx-z-overlay);
+  display: none; flex-direction: column;
+  max-width: var(--fx-shell-max); margin: 0 auto;
+  background: var(--fx-paper); color: var(--fx-ink);
+}
+.fx-msg__chat.open { display: flex; }
+.fx-msg__chat > .fx-appbar { position: static; flex: none; flex-wrap: nowrap; }
+.fx-msg__job { flex: 0 1 auto; min-width: 0; max-width: 44%; margin-right: var(--fx-space-2); }
+.fx-msg__job[hidden] { display: none; }
+.fx-msg__job-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.fx-msg__msgs {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--fx-space-2);
+  padding: var(--fx-space-4) var(--fx-gutter);
+}
+.fx-msg__bubble {
+  max-width: 80%; padding: var(--fx-space-2) var(--fx-space-3);
+  border-radius: var(--fx-r-control);
+  font: var(--fx-t-body); overflow-wrap: anywhere;
+}
+.fx-msg__bubble--them { align-self: flex-start; background: var(--fx-well); color: var(--fx-ink); }
+.fx-msg__bubble--me   { align-self: flex-end;   background: var(--fx-ink);  color: var(--fx-on-ink); }
+.fx-msg__text { margin: var(--fx-space-0); white-space: pre-wrap; }
+.fx-msg__when { display: block; margin-top: var(--fx-space-1); font: var(--fx-t-caption); color: var(--fx-ink-3); font-variant-numeric: tabular-nums; }
+.fx-msg__bubble--me > .fx-msg__when { color: var(--fx-on-ink-2); }
+
+.fx-msg__compose {
+  flex: none; display: flex; align-items: flex-end; gap: var(--fx-space-2);
+  padding: var(--fx-space-2) var(--fx-gutter);
+  padding-bottom: max(var(--fx-space-2), env(safe-area-inset-bottom, 0px));
+  border-top: var(--fx-hairline) solid var(--fx-line);
+  background: var(--fx-paper);
+}
+.fx-msg__compose > .fx-input { flex: 1; min-width: 0; min-height: var(--fx-h-m); max-height: calc(var(--fx-lh-body) * 5); resize: none; }
+.fx-msg__send { width: var(--fx-h-m); height: var(--fx-h-m); background: var(--fx-accent); color: var(--fx-on-accent); }
+/* The shared icon button greys on hover and press; this one is the filled action. */
+.fx-iconbtn.fx-msg__send:hover, .fx-iconbtn.fx-msg__send:active { background: var(--fx-accent-press); }
+.fx-iconbtn.fx-msg__send:disabled { background: var(--fx-well); color: var(--fx-ink-4); cursor: not-allowed; }

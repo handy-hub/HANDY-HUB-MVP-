@@ -85,19 +85,23 @@ t('reputation (was performance): the loading skeleton is real rows written out',
 
 console.log('\n── 2. Every design-system page has the artisan head ──\n');
 
-const THEME = '../shared/js/utils/themeManager.js';
+// Phase 6: the artisan pages decide their theme with their own bootstrap
+// (artisan-app/js/theme.js), which sets data-theme for css/tokens.css.
+const THEME = 'js/theme.js';
 const FONT  = 'https://fonts.googleapis.com/css2?family=DM+Sans:';
 const head  = (src) => src.slice(0, src.indexOf('</head>'));
 
-t('messages: theme applied before first paint, design system, DM Sans — in dashboard.html\'s order', () => {
+t('messages: theme applied before first paint, DM Sans, the design system — in dashboard.html\'s order', () => {
+    // Since Phase 6 messages.html is on the fx system like dashboard.html: the
+    // tokens replace design-system.css, and the page carries no styles of its own.
     const h = head(read('artisan-app/messages.html'));
     const theme = h.indexOf(`<script src="${THEME}"></script>`);
-    const ds    = h.indexOf('href="css/design-system.css"');
     const font  = h.indexOf(FONT);
-    assert.ok(theme > 0, 'themeManager.js');
-    assert.ok(ds > theme, 'design-system.css after the theme script');
-    assert.ok(font > ds, 'DM Sans');
-    assert.ok(theme < h.indexOf('<style>'), 'the theme is set before the page\'s own styles');
+    const ds    = h.indexOf('href="css/tokens.css"');
+    assert.ok(theme > 0, 'js/theme.js');
+    assert.ok(font > theme, 'DM Sans');
+    assert.ok(ds > theme, 'the tokens after the theme script');
+    assert.ok(!h.includes('css/design-system.css') && !h.includes('<style>'), 'no legacy stylesheet and no page styles');
     const dash = head(read('artisan-app/dashboard.html'));
     assert.ok(dash.includes(`<script src="${THEME}"></script>`) && dash.includes(FONT), 'the pattern being copied');
 });

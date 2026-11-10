@@ -27,7 +27,7 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  color-scheme: light;
+  color-scheme: var(--fx-scheme);
   -webkit-tap-highlight-color: transparent;
 }
 .fx-app *, .fx-app *::before, .fx-app *::after { box-sizing: border-box; }

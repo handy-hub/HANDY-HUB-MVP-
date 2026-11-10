@@ -35,6 +35,7 @@ def _report():
         print(f"  {'PASS' if c else 'FAIL'}  {n}" + ('' if c else f"   [{str(d)[:200]}]"))
     print(f"offer-refusal browser: {ok} passed, {len(results) - ok} failed" + ('' if _done else '  (aborted early)'))
 atexit.register(_report)
+exec(pathlib.Path(__file__).with_name('fx_theme_hook.py').read_text(encoding='utf-8'))   # FX_THEME=dark + the contrast audit
 
 # ── In-page fakes ────────────────────────────────────────────────────────────
 INIT = r"""

@@ -9,6 +9,7 @@
        container, to show each of its account screens. ?tokens=1 loads the
        design tokens as an fx page does; without, the screens must look the
        same from their own fallbacks (a page not yet on the system). -->
+  <script src="/artisan-app/js/theme.js"></script>
   <script>
     if (new URLSearchParams(location.search).get('tokens') === '1') {
       document.write('<link rel="stylesheet" href="/artisan-app/css/tokens.css">');

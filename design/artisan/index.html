@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet">
+<script src="../../artisan-app/js/theme.js"></script>
 <link rel="stylesheet" href="../../artisan-app/css/tokens.css">
 <link rel="stylesheet" href="../../artisan-app/css/app.css">
 <style>
@@ -36,6 +37,7 @@
   .gal-spacer { display: inline-block; height: var(--fx-space-4); background: var(--fx-accent); }
   .gal-radius { width: var(--fx-space-12); height: var(--fx-space-12); background: var(--fx-well); border: var(--fx-hairline) solid var(--fx-edge); }
   .gal-elev { padding: var(--fx-space-6); border-radius: var(--fx-r-control); background: var(--fx-paper); }
+  .gal-theme { max-width: 420px; margin-top: var(--fx-space-4); }
   .gal-toc { columns: 2 200px; margin: var(--fx-space-4) 0 0; padding-left: var(--fx-space-5); font: var(--fx-t-meta); }
 </style>
 </head>
@@ -45,6 +47,11 @@
   <p class="fx-caption fx-ink-3">Fidus X · Artisan app · Phase 1 · not deployed</p>
   <h1 class="fx-display">Design system</h1>
   <p class="fx-lead">Every token and component the artisan screens are built from, in every state. Nothing here is a screen; this page exists to build and test the system.</p>
+  <div class="fx-seg gal-theme" role="group" aria-label="Theme" id="theme-demo">
+    <button class="fx-seg__btn" type="button" data-value="Light" aria-pressed="true">Light</button>
+    <button class="fx-seg__btn" type="button" data-value="Dark" aria-pressed="false">Dark</button>
+    <button class="fx-seg__btn" type="button" data-value="System" aria-pressed="false">Match device</button>
+  </div>
   <ul class="gal-toc">
     <li><a class="fx-link" href="#tokens">Tokens</a></li>
     <li><a class="fx-link" href="#buttons">Buttons</a></li>
@@ -344,6 +351,7 @@
 
   // Tokens, read from the live stylesheet.
   const css = getComputedStyle(document.documentElement);
+  const drawTokens = () => {
   const COLOURS = ['ink','ink-2','ink-3','ink-4','paper','well','well-2','line','line-2','edge','accent','accent-press','on-accent','accent-text','indicator','ok','ok-wash','info','info-wash','warn','warn-wash','bad','bad-wash'];
   document.getElementById('swatches').innerHTML = COLOURS.map((n) => {
     const v = css.getPropertyValue(`--fx-${n}`).trim();
@@ -355,6 +363,13 @@
     .filter((r) => r.selectorText === ':root').flatMap((r) => [...r.style]).filter((p) => p.startsWith('--fx-'));
   document.querySelector('#token-table tbody').innerHTML = [...new Set(names)].map((n) =>
     `<tr><td><code>${n}</code></td><td><code>${css.getPropertyValue(n).trim().replace(/</g, '&lt;')}</code></td></tr>`).join('');
+  };
+  drawTokens();
+  // The theme switch: the same window.fxTheme the app's Account screen uses.
+  const themeSeg = document.getElementById('theme-demo');
+  for (const b of themeSeg.querySelectorAll('.fx-seg__btn')) b.setAttribute('aria-pressed', String(b.dataset.value === window.fxTheme.get()));
+  bindSegmented(themeSeg, (v) => { window.fxTheme.set(v); drawTokens(); });
+
 
   renderTabbar(document.getElementById('tabbar-demo'), { current: 'today', badges: { jobs: '1 new offer' } });
   const out = document.getElementById('seg-out');

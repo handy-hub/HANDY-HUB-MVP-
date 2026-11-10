@@ -9,15 +9,19 @@
    Contrast figures are WCAG 2.x ratios, computed — tests/fx-design-system.test.cjs
    recomputes every one and fails if a token change breaks it.
 
-   Scope: light theme. The artisan app's existing dark mode keeps working on the
-   screens that have not migrated (css/design-system.css); a dark mapping for
-   these tokens is design decision 04, not yet taken.
+   Two themes, one set of names. :root holds the light values; the block
+   :root[data-theme="dark"] below re-points the colour and elevation tokens and
+   nothing else (design decision 04, Phase 6). A component never asks which
+   theme it is in — it names a role and the role resolves. js/theme.js sets the
+   attribute before first paint.
 
    The customer app is maroon; the artisan app is orange. Nothing here is shared
    with customer-app styles, and nothing in customer-app may reference --fx-*.
    ========================================================================== */
 
 :root {
+  --fx-scheme: light;   /* what native controls, scrollbars and the page canvas follow (color-scheme) */
+
   /* ── Neutrals ──────────────────────────────────────────────────────────── */
   --fx-ink:        #111316;   /* primary text, icons            18.6:1 on paper, 16.8:1 on well */
   --fx-ink-2:      #3B4048;   /* secondary text                 10.4:1 on paper,  9.4:1 on well */
@@ -161,6 +165,60 @@
   --fx-z-bar:     10;   /* app bar, dock, tab bar */
   --fx-z-overlay: 30;   /* scrim + sheet */
   --fx-z-toast:   40;
+}
+
+/* ============================================================================
+   Dark theme — the same roles, re-pointed
+   ----------------------------------------------------------------------------
+   Only colour and elevation change. Type, space, geometry, dimensions, motion
+   and layers are inherited from :root, so a screen is the same screen in both
+   themes. The page is the light theme's ink (#111316); surfaces step UP in
+   lightness as they come forward (paper < well < well-2), text steps down.
+
+   What deliberately does not flip: the orange (already 6.6:1 against the dark
+   page, so it stays the fill of the one primary action with near-black text).
+   What inverts by role: a toast and a selected filter are "ink" surfaces — light
+   in the dark theme, with near-black text on them (--fx-on-ink).
+
+   Every figure is recomputed by tests/fx-design-system.test.cjs.
+   ========================================================================== */
+:root[data-theme="dark"] {
+  --fx-scheme: dark;
+
+  /* ── Neutrals ──────────────────────────────────────────────────────────── */
+  --fx-ink:        #F5F6F7;   /* primary text, icons            17.2:1 on paper, 15.3:1 on well */
+  --fx-ink-2:      #C5C9CF;   /* secondary text                 11.2:1 on paper,  9.9:1 on well */
+  --fx-ink-3:      #868C94;   /* muted text: metadata, captions  5.5:1 on paper,  4.9:1 on well; 3.1:1 under ink (tabs) */
+  --fx-ink-4:      #5C626B;   /* disabled labels only (WCAG-exempt); never meaningful text */
+  --fx-paper:      #111316;   /* the page */
+  --fx-well:       #1C1F24;   /* inputs' resting fill, secondary buttons, inactive segments */
+  --fx-well-2:     #282C33;   /* pressed / hovered well */
+  --fx-line:       #262A30;   /* hairline rule between rows and sections (decorative) */
+  --fx-line-2:     #3A3F47;   /* a stronger rule where a hairline disappears (decorative) */
+  --fx-edge:       #777D86;   /* the boundary that identifies a control: 4.5:1 on paper, 4.0:1 on well (WCAG 1.4.11) */
+
+  /* ── Accent ───────────────────────────────────────────────────────────────
+     The fill and its pressed state are the light theme's. Orange text is
+     legible on a dark page, but links and text use a lighter step so they
+     do not vibrate at small sizes: 8.2:1.                                    */
+  --fx-accent-text:  #FB923C;   /* text and links: 8.2:1 on paper, 7.3:1 on well */
+  --fx-indicator:    #F97316;   /* badges and unread dots: 6.6:1 on paper */
+
+  /* ── Status: lighter text on a deep wash of the same hue. ≥ 4.5:1 ───────── */
+  --fx-ok:    #5FD394;  --fx-ok-wash:   #12301F;   /* online, paid, done          7.6:1 on wash, 9.9:1 on paper */
+  --fx-info:  #8AB4FF;  --fx-info-wash: #15284A;   /* in escrow, on the way       7.0:1 / 8.9:1 */
+  --fx-warn:  #F0B455;  --fx-warn-wash: #38290D;   /* needs attention, soon       7.6:1 / 10.1:1 */
+  --fx-bad:   #FF938C;  --fx-bad-wash:  #3F1816;   /* failed, cancel, expiry      7.2:1 / 8.7:1 */
+  --fx-on-bad: #111316;                            /* label on a solid bad fill:  8.7:1 */
+  --fx-scrim: rgba(0, 0, 0, 0.64);
+  --fx-on-ink: #111316;                            /* text on an ink surface (toast): 17.2:1 */
+  --fx-on-ink-2: #4A4F57;                          /* secondary text on ink:        7.6:1 */
+
+  /* ── Elevation ────────────────────────────────────────────────────────────
+     A shadow alone does not separate two dark surfaces, so a raised layer also
+     carries a one-pixel lighter edge.                                        */
+  --fx-e-sheet: 0 -1px 0 rgba(255, 255, 255, 0.10), 0 -14px 36px -10px rgba(0, 0, 0, 0.60);
+  --fx-e-pop:   0 0 0 1px rgba(255, 255, 255, 0.10), 0 12px 28px -8px rgba(0, 0, 0, 0.70);
 }
 
 /* ── Responsive tokens ────────────────────────────────────────────────────

@@ -8,7 +8,10 @@ presence service, Cloudinary URLs and the Cloud Functions client are in-page
 fakes that play the server.
 
   · the tab: title, no HandyHub, the tab bar with Account current, the
-    heartbeat on a live approved-and-available profile, no Dark mode
+    heartbeat on a live approved-and-available profile
+  · Appearance (Phase 6): Light, Dark or the device's setting; applied at
+    once and on the next page before anything is painted; kept on the device
+    only, with nothing written to the profile
   · each control does something real: radius (writes workRadius; a failure
     keeps the saved value), push (the saved preference vs this device),
     phone (private/contact, normalised; refused when not a Ghana number),
@@ -48,6 +51,7 @@ def _report():
     if ok != len(results) or not _done:
         os._exit(1)
 atexit.register(_report)
+exec(pathlib.Path(__file__).with_name('fx_theme_hook.py').read_text(encoding='utf-8'))   # FX_THEME=dark + the contrast audit
 
 INIT = r"""
 (() => {
@@ -196,7 +200,8 @@ with sync_playwright() as p:
     check('who: name, sign-in email, initials; the row opens the profile',
           txt(pg, '#me-name') == 'Kofi Boateng' and txt(pg, '#me-email') == 'kofi@example.com' and txt(pg, '#me-initials') == 'KB'
           and pg.get_attribute('#me-row', 'href') == 'profile.html')
-    check('no Dark mode switch (decision 04)', 'Dark mode' not in pg.inner_text('body') and pg.query_selector('#toggle-theme') is None)
+    check('Appearance is offered (Phase 6), as one row; the old "Dark mode" switch is not back',
+          txt(pg, '#theme-row .fx-row__title') == 'Appearance' and 'Dark mode' not in pg.inner_text('body') and pg.query_selector('#toggle-theme') is None)
     live(pg, {'userType': 'artisan', 'status': 'active', 'verificationStatus': 'approved', 'isAvailable': True, 'name': 'Kofi Boateng'})
     check('heartbeat: a live approved and available profile keeps presence (as on every artisan page)',
           ['presence', 'A1', True] in calls(pg, 'presence'), calls(pg, 'presence'))
@@ -503,6 +508,75 @@ with sync_playwright() as p:
         o = pg.evaluate(OVERFLOW_JS)
         check(f'{name} 360px at 200% text: no horizontal overflow', not o['scroll'] and not o['bad'], o)
         pg.context.close()
+
+    # ═══ Appearance ═════════════════════════════════════════════════════════
+    # Runs in both theme modes: FX_THEME=dark starts this device on 'Dark'.
+    THEME_JS = """() => { const tok = (n) => { const p = document.createElement('i'); p.style.color = 'var(' + n + ')'; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
+      const h = document.documentElement; let stored = null; try { stored = localStorage.getItem('pref_theme'); } catch (e) {}
+      return { attr: h.getAttribute('data-theme'), cls: h.classList.contains('dark'), scheme: getComputedStyle(h).colorScheme, stored,
+               bg: getComputedStyle(document.body).backgroundColor, paper: tok('--fx-paper'), ink: tok('--fx-ink'), value: document.getElementById('theme-value') ? document.getElementById('theme-value').textContent.trim() : null }; }"""
+    DARK_PAPER, LIGHT_PAPER = 'rgb(17, 19, 22)', 'rgb(255, 255, 255)'
+    is_dark = lambda t: t['attr'] == 'dark' and t['cls'] and t['scheme'] == 'dark' and t['bg'] == DARK_PAPER == t['paper']
+    is_light = lambda t: t['attr'] is None and not t['cls'] and t['scheme'] == 'light' and t['bg'] == LIGHT_PAPER == t['paper']
+    start = 'Dark' if os.environ.get('FX_THEME', '').lower() == 'dark' else 'Light'
+
+    pg, errs = open_page(b)
+    pg.context.add_init_script('window.__fx_theme_free = true'); pg.evaluate('window.__fx_theme_free = true')   # this block sets the theme itself
+    pg.emulate_media(color_scheme='light')
+    t0 = pg.evaluate(THEME_JS)
+    check(f'appearance: the row says what this device uses ({start})', t0['value'] == start and (is_dark(t0) if start == 'Dark' else is_light(t0)), t0)
+    if start == 'Light':
+        check('appearance: nothing chosen means Light, whatever the phone is set to',
+              t0['stored'] is None and is_light(t0) and (pg.emulate_media(color_scheme='dark') or True) and is_light(pg.evaluate(THEME_JS)), pg.evaluate(THEME_JS))
+        pg.emulate_media(color_scheme='light')
+    before = len(calls(pg))
+    pg.click('#theme-row'); pg.wait_for_timeout(250)
+    check('appearance sheet: a modal with the three choices, the current one chosen, focus inside',
+          open_sheet(pg) == 'theme-sheet' and pg.eval_on_selector_all('#theme-opts label', 'ls => ls.map(l => l.textContent.trim())') == ['Light', 'Dark', 'Match this device']
+          and pg.is_checked(f'#theme-opts input[value="{start}"]') and pg.evaluate("document.activeElement.closest('#theme-sheet') !== null")
+          and txt(pg, '#theme-lead') == 'Saved on this device only.')
+    layout(pg, 'appearance sheet')
+
+    pg.check('#theme-opts input[value="Dark"]'); pg.wait_for_timeout(350)
+    t = pg.evaluate(THEME_JS)
+    check('choosing Dark applies at once, behind the open sheet, and is stored on the device', is_dark(t) and t['stored'] == 'Dark' and t['value'] == 'Dark' and open_sheet(pg) == 'theme-sheet', t)
+    check('… the sheet itself is dark too (it is built from the same tokens)',
+          pg.evaluate("getComputedStyle(document.querySelector('#theme-sheet .fx-sheet')).backgroundColor") == DARK_PAPER)
+    shot(pg, 'appearance-dark')
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
+    check('Escape closes it and focus returns to the row', open_sheet(pg) is None and pg.evaluate('document.activeElement.id') == 'theme-row')
+
+    # The next page: the theme is decided before <body> exists and before any stylesheet.
+    pg.context.add_init_script("""new MutationObserver((_, o) => { if (document.body) { o.disconnect();
+        window.__firstBody = { theme: document.documentElement.getAttribute('data-theme'), scheme: document.documentElement.style.colorScheme,
+                               sheets: [...document.styleSheets].filter((s) => { try { return s.cssRules.length > 0; } catch (e) { return false; } }).length }; } })
+      .observe(document.documentElement || document, { childList: true, subtree: true });""")
+    for path in ('/artisan-app/support.html', '/artisan-app/notifications.html', '/artisan-app/profile.html', '/artisan-app/settings.html'):
+        pg.goto(f'{ORIGIN}{path}', wait_until='domcontentloaded'); pg.wait_for_timeout(250)
+        fb = pg.evaluate('window.__firstBody'); t = pg.evaluate(THEME_JS)
+        check(f'no flash on {path.split("/")[-1]}: dark before the body exists and before any stylesheet has loaded',
+              fb and fb['theme'] == 'dark' and fb['scheme'] == 'dark' and fb['sheets'] == 0 and is_dark(t), [fb, t])
+
+    # Match this device: follows the phone, live, in both directions.
+    pg.click('#theme-row'); pg.wait_for_timeout(250)
+    pg.check('#theme-opts input[value="System"]'); pg.wait_for_timeout(300)
+    t = pg.evaluate(THEME_JS)
+    check('Match this device, phone in light: light, and the row says so', is_light(t) and t['stored'] == 'System' and t['value'] == 'Device (light)', t)
+    pg.emulate_media(color_scheme='dark'); pg.wait_for_timeout(300)
+    t = pg.evaluate(THEME_JS)
+    check('… the phone turns dark: the app follows without a reload, and the row says so', is_dark(t) and t['value'] == 'Device (dark)', t)
+    pg.emulate_media(color_scheme='light'); pg.wait_for_timeout(300)
+    check('… and back to light', is_light(pg.evaluate(THEME_JS)), pg.evaluate(THEME_JS))
+
+    pg.check('#theme-opts input[value="Light"]'); pg.wait_for_timeout(300)
+    pg.emulate_media(color_scheme='dark'); pg.wait_for_timeout(200)
+    t = pg.evaluate(THEME_JS)
+    check('choosing Light holds even when the phone is dark', is_light(t) and t['stored'] == 'Light' and t['value'] == 'Light', t)
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(250)
+    writes = [c for c in calls(pg)[before:] if c[0] not in ('guard', 'sub', 'subscribe', 'get', 'read')]
+    check('nothing about the theme is sent to the server: it is this device\'s setting', not any('theme' in json.dumps(c).lower() for c in calls(pg)), writes)
+    check('appearance: no script errors', errs == [], errs)
+    pg.context.close()
 
     # ═══ 200% text ══════════════════════════════════════════════════════════
     pg, errs = open_page(b, width=360)

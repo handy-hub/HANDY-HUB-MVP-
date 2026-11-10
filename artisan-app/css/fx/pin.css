@@ -1,0 +1,55 @@
+/* ============================================================================
+   Fidus X Artisan · the Security PIN sheet, on the artisan tokens
+   ----------------------------------------------------------------------------
+   The PIN sheet (shared/js/components/securityPinSheet.js, in the shared sheet
+   shell shared/css/components/sheet.css) is shared with the customer app and
+   carries the customer's maroon, with its own hard-coded dark colours. On an
+   artisan screen (body.fx-app) every colour it shows is re-pointed here at the
+   artisan tokens, so it follows the theme like everything else and its text
+   meets contrast in both.
+
+   Only colour is changed. The sheet's markup, layout, motion and security
+   behaviour belong to the shared component and are untouched; the customer
+   app does not load this file and looks exactly as before.
+
+   Orange is never text or a thin outline here (2.8:1 on white): links and
+   outlines are ink, the one filled action is orange with the ink label.
+   ========================================================================== */
+
+/* The shell. The names the shared component reads are pointed at the tokens. */
+body.fx-app .ui-sheet-overlay::before { background: var(--fx-scrim); }
+body.fx-app .ui-sheet {
+  --ui-primary: var(--fx-ink);
+  --ui-danger: var(--fx-bad);
+  --ui-text: var(--fx-ink);
+  --ui-muted: var(--fx-ink-2);
+  --ui-faint: var(--fx-ink-3);
+  background: var(--fx-paper); color: var(--fx-ink);
+  box-shadow: var(--fx-e-sheet);
+}
+body.fx-app .ui-sheet-handle { background: var(--fx-line-2); }
+
+/* Words */
+body.fx-app .hh-pin-title { color: var(--fx-ink); }
+body.fx-app .hh-pin-msg   { color: var(--fx-ink-2); }
+body.fx-app .hh-pin-context { background: var(--fx-well); color: var(--fx-ink); }
+body.fx-app .hh-pin-foot  { color: var(--fx-ink-3); }
+body.fx-app .hh-pin-foot svg { color: var(--fx-ink-3); }
+
+/* The four indicators: empty is an edge, filled is ink, wrong is the error colour. */
+body.fx-app .hh-pin-dot { border-color: var(--fx-edge); }
+body.fx-app .hh-pin-dot:where(.filled) { border-color: var(--fx-ink); }
+.fx-app :focus-within > :where(.hh-pin-dots:not(.error)) > span.hh-pin-dot { border-color: var(--fx-ink); }
+
+/* Actions */
+body.fx-app .hh-pin-back { color: var(--fx-ink); }
+body.fx-app .hh-pin-confirm { background: var(--fx-accent); color: var(--fx-on-accent); }
+body.fx-app button.hh-pin-confirm:disabled { opacity: 1; background: var(--fx-well); color: var(--fx-ink-4); }
+body.fx-app .hh-pin-spinner { border-color: var(--fx-line-2); border-top-color: currentColor; }
+body.fx-app .hh-pin-forgot { background: transparent; border-color: var(--fx-edge); color: var(--fx-ink); }
+body.fx-app .hh-pin-forgot:active { background: var(--fx-well); }
+body.fx-app .hh-pin-back:focus-visible,
+body.fx-app .hh-pin-confirm:focus-visible,
+body.fx-app .hh-pin-forgot:focus-visible {
+  outline: var(--fx-focus-width) solid var(--fx-focus-color); outline-offset: var(--fx-focus-offset);
+}

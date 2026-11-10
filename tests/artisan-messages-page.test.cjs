@@ -138,16 +138,23 @@ await t('both apps pass the name when they create a thread; nothing reads custom
 
 console.log('\n── MSG-UI-001 · the open thread paints above the inbox header ──\n');
 
-await t('.ms-chat has a z-index above .ms-top (browser check: tests/e2e/messages_thread_stacking.py)', () => {
-    const z = (sel) => {
-        const rule = page.match(new RegExp(`\.${sel} \{[^}]*\}`));
-        assert.ok(rule, `.${sel} rule not found`);
-        const m = rule[0].match(/z-index:\s*(\d+)/);
-        return m ? Number(m[1]) : null;
+await t('the open thread has a z-index above the inbox app bar (browser check: tests/e2e/messages_thread_stacking.py)', () => {
+    // The page is on the fx system (Phase 6): the inbox header is the shared
+    // .fx-appbar and the thread is .fx-msg__chat, both layered by tokens.
+    const css = (f) => fs.readFileSync(path.join(__dirname, '..', 'artisan-app', 'css', f), 'utf8');
+    const tokens = css('tokens.css');
+    const tok = (name) => { const m = new RegExp(`${name}:\\s*(\\d+)`).exec(tokens); assert.ok(m, name); return Number(m[1]); };
+    const zOf = (sheet, sel) => {
+        const rule = sheet.match(new RegExp(`\\${sel} \\{[^}]*\\}`));
+        assert.ok(rule, `${sel} rule not found`);
+        const m = rule[0].match(/z-index:\s*var\((--fx-z-[\w-]+)\)/);
+        return m ? tok(m[1]) : null;
     };
-    const top = z('ms-top'), chat = z('ms-chat');
-    assert.ok(top !== null, '.ms-top keeps its z-index');
-    assert.ok(chat !== null && chat > top, `.ms-chat z-index ${chat} must exceed .ms-top's ${top}`);
+    const top = zOf(css('app.css'), '.fx-appbar'), chat = zOf(css('fx/messages.css'), '.fx-msg__chat');
+    assert.ok(top !== null, 'the app bar keeps its z-index');
+    assert.ok(chat !== null && chat > top, `the thread's z-index ${chat} must exceed the app bar's ${top}`);
+    assert.match(page, /<header class="fx-appbar fx-appbar--push ms-top">/, 'the inbox header is the shared app bar');
+    assert.match(page, /<div class="fx-msg__chat ms-chat" id="ms-chat"/, 'the thread is the layer the rule styles');
 });
 
 console.log(`\nartisan-messages-page: ${passed} passed, ${failed} failed`);

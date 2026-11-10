@@ -41,6 +41,7 @@ def _report():
     if ok != len(results) or not _done:
         os._exit(1)
 atexit.register(_report)
+exec(pathlib.Path(__file__).with_name('fx_theme_hook.py').read_text(encoding='utf-8'))   # FX_THEME=dark + the contrast audit
 
 NOW = 1_794_045_600_000            # 2026-11-07 10:00 UTC
 MIN = 60_000

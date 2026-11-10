@@ -6,7 +6,8 @@ messages" were hidden and a tap on the visible Back hit #ms-back, which leaves
 Messages for the dashboard.
 
 No emulator or sign-in needed: this renders artisan-app/messages.html's own
-stylesheet and markup (scripts removed), opens the thread the way the page does
+stylesheets (the ones its <head> links, read from disk) and markup (scripts
+removed), opens the thread the way the page does
 (.ms-chat.open) and asks the browser what a tap at the thread header's Back
 button and name actually hits.
 
@@ -21,7 +22,9 @@ from playwright.sync_api import sync_playwright
 ROOT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parents[2])
 page_src = (ROOT / "artisan-app" / "messages.html").read_text(encoding="utf-8")
 css = "\n".join(re.findall(r"<style[^>]*>([\s\S]*?)</style>", page_src))
-ds = (ROOT / "artisan-app" / "css" / "design-system.css").read_text(encoding="utf-8")
+sheets = [h for h in re.findall(r'<link rel="stylesheet" href="([^"]+)"', page_src) if not h.startswith("http")]
+assert sheets, "messages.html links no local stylesheet"
+ds = "\n".join((ROOT / "artisan-app" / h).read_text(encoding="utf-8") for h in sheets)
 body = re.search(r"<body[^>]*>([\s\S]*)</body>", page_src).group(1)
 body = re.sub(r"<script[\s\S]*?</script>", "", body)
 
@@ -33,7 +36,9 @@ PROBE = """() => {
   document.getElementById('ms-chat-name').textContent = 'Ama';
   const at = (el) => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
   const hit = (el) => { const [x, y] = at(el); const h = document.elementFromPoint(x, y); return h ? (h.closest('[id]') || h).id || h.className : null; };
-  return { back: hit(document.getElementById('ms-chat-back')), name: hit(document.getElementById('ms-chat-name')) };
+  const under = (() => { const [x, y] = at(document.getElementById('ms-back')); const h = document.elementFromPoint(x, y); return !!h && document.getElementById('ms-chat').contains(h); })();
+  return { back: hit(document.getElementById('ms-chat-back')), name: hit(document.getElementById('ms-chat-name')), under,
+           fixed: getComputedStyle(document.getElementById('ms-chat')).position };
 }"""
 
 results = []
@@ -49,6 +54,7 @@ with sync_playwright() as p:
         r = pg.evaluate(PROBE)
         check(f"{w}px: a tap on the thread's Back hits #ms-chat-back", r["back"] == "ms-chat-back", f"hit {r['back']!r}")
         check(f"{w}px: the customer's name is visible, not covered", r["name"] == "ms-chat-name", f"hit {r['name']!r}")
+        check(f"{w}px: the thread really covers the inbox header (the page's stylesheets are in force)", r["fixed"] == "fixed" and r["under"], f"{r['fixed']!r} {r['under']!r}")
         pg.close()
     b.close()
 

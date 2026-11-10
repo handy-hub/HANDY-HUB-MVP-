@@ -105,6 +105,83 @@ for (const [fg, bg, min] of PAIRS) {
         assert.ok(r >= min, `${r.toFixed(2)}:1`);
     });
 }
+console.log('\n── Dark theme: the same names, re-pointed ──\n');
+
+// The dark theme is ONE block of token overrides. Nothing else in the artisan
+// app may know that a dark theme exists.
+const darkStart = tokensCss.indexOf(':root[data-theme="dark"] {');
+const darkBlock = darkStart < 0 ? '' : tokensCss.slice(darkStart, tokensCss.indexOf('\n}', darkStart));
+const DARK_SET = Object.fromEntries([...darkBlock.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(--fx-[\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+const DARK = { ...TOK, ...DARK_SET };
+const darkHex = (name) => { const v = DARK[name]; const ref = /^var\((--fx-[\w-]+)\)$/.exec(v || ''); return ref ? darkHex(ref[1]) : v; };
+const darkContrast = (fg, bg) => { const [a, b] = [lum(darkHex(fg)), lum(darkHex(bg))].sort((x, y) => y - x); return (a + 0.05) / (b + 0.05); };
+
+await t('there is exactly one dark block, and it lives in tokens.css', () => {
+    assert.ok(darkStart > 0, 'tokens.css has a :root[data-theme="dark"] block');
+    assert.strictEqual(tokensCss.replace(/\/\*[\s\S]*?\*\//g, '').split(':root[data-theme="dark"]').length - 1, 1);
+    const cssDir = path.join(ROOT, 'artisan-app', 'css');
+    const others = [];
+    (function scan(dir) {
+        for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, f.name);
+            if (f.isDirectory()) scan(full);
+            else if (f.name.endsWith('.css') && f.name !== 'tokens.css' && /data-theme|prefers-color-scheme|\.dark\b/.test(fs.readFileSync(full, 'utf8'))) others.push(path.relative(ROOT, full));
+        }
+    })(path.join(cssDir, 'fx'));
+    if (/data-theme|prefers-color-scheme/.test(appCss)) others.push('artisan-app/css/app.css');
+    assert.deepStrictEqual(others, [], 'component stylesheets carry no theme rules of their own');
+});
+await t('the dark block only re-points colour and elevation tokens that already exist', () => {
+    const names = Object.keys(DARK_SET);
+    assert.ok(names.length >= 20, String(names.length));
+    for (const n of names) {
+        assert.ok(n in TOK, n + ' is not a light token: the dark theme may not invent names');
+        if (n === '--fx-scheme') { assert.strictEqual(DARK_SET[n], 'dark'); continue; }
+        assert.match(DARK_SET[n], /^#[0-9A-Fa-f]{6}$|^rgba\([^)]*\)$|^0 .*rgba\(/, n + ' must be a colour or a shadow: ' + DARK_SET[n]);
+        assert.ok(!/^--fx-(size|lh|t|w|space|r|h|d|z|font|track|hit|bar|tab|gutter|ease)(-|$)/.test(n), n + ' is not a colour token');
+    }
+    assert.strictEqual(TOK['--fx-scheme'], 'light');
+    assert.match(appCss, /color-scheme:\s*var\(--fx-scheme\)/, 'the page tells the browser which scheme it is in (form controls, scrollbars)');
+});
+await t('the brand orange is the same in both themes', () => {
+    for (const n of ['--fx-accent', '--fx-accent-press', '--fx-on-accent']) assert.ok(!(n in DARK_SET), n);
+});
+const DARK_PAIRS = [...PAIRS,
+    ['--fx-ink-3', '--fx-well-2', UI],                                         // muted text on a pressed row stays legible as large/UI text
+    ['--fx-edge', '--fx-well-2', UI],
+    ['--fx-ink', '--fx-ok-wash', TEXT], ['--fx-ink', '--fx-info-wash', TEXT], ['--fx-ink', '--fx-warn-wash', TEXT], ['--fx-ink', '--fx-bad-wash', TEXT],   // a notice's body text
+];
+for (const [fg, bg, min] of DARK_PAIRS) {
+    await t(`dark: ${fg} on ${bg} ≥ ${min}:1`, () => {
+        const r = darkContrast(fg, bg);
+        assert.ok(r >= min, `${r.toFixed(2)}:1`);
+    });
+}
+await t('dark surfaces are dark and dark ink is light (the block is not a copy of the light one)', () => {
+    assert.ok(lum(darkHex('--fx-paper')) < 0.02 && lum(darkHex('--fx-ink')) > 0.8);
+    assert.ok(lum(darkHex('--fx-well')) > lum(darkHex('--fx-paper')), 'raised surfaces get lighter in the dark');
+});
+await t('every artisan page that uses the tokens decides its theme before its stylesheets load', () => {
+    const dir = path.join(ROOT, 'artisan-app');
+    const missing = [];
+    for (const f of fs.readdirSync(dir).filter((n) => n.endsWith('.html'))) {
+        const html = fs.readFileSync(path.join(dir, f), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+        if (!/css\/tokens\.css/.test(html)) continue;
+        const at = html.indexOf('<script src="js/theme.js"></script>');
+        const firstSheet = html.search(/<link[^>]+rel="stylesheet"/);
+        if (at < 0 || (firstSheet >= 0 && at > firstSheet)) missing.push(f);
+    }
+    assert.deepStrictEqual(missing, []);
+    // The offline page cannot load anything, so it writes both themes out: they must be the tokens' values.
+    const off = read('artisan-app/offline.html');
+    assert.match(off, /getItem\('pref_theme'\)/);
+    const lightLine = /:root \{ --paper: (#\w+); --ink: (#\w+); --ink-2: (#\w+);/.exec(off);
+    const darkLine = /:root\[data-theme="dark"\] \{ --paper: (#\w+); --ink: (#\w+); --ink-2: (#\w+);/.exec(off);
+    assert.deepStrictEqual(lightLine.slice(1), [hexOf('--fx-paper'), hexOf('--fx-ink'), hexOf('--fx-ink-2')]);
+    assert.deepStrictEqual(darkLine.slice(1), [darkHex('--fx-paper'), darkHex('--fx-ink'), darkHex('--fx-ink-2')]);
+    const theme = read('artisan-app/js/theme.js');
+    assert.ok(!/#[0-9a-fA-F]{3,6}\b|rgb\(/.test(theme.replace(/\/\*[\s\S]*?\*\//g, '')), 'theme.js knows no colour');
+});
 await t('white on the accent fails AA (2.8:1) — which is why orange buttons use near-black', () => {
     const r = (lum('#FFFFFF') + 0.05) / (lum(hexOf('--fx-accent')) + 0.05);
     assert.ok(r < 4.5, r.toFixed(2));

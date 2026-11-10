@@ -35,6 +35,7 @@ def _report():
     if ok != len(results) or not _done:
         os._exit(1)
 atexit.register(_report)
+exec(pathlib.Path(__file__).with_name('fx_theme_hook.py').read_text(encoding='utf-8'))   # FX_THEME=dark + the contrast audit
 
 def route(r):
     u = urlparse(r.request.url)
@@ -92,7 +93,8 @@ FOCUS_JS = r"""() => {
   const s = getComputedStyle(a); const r = a.getBoundingClientRect();
   const outline = s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) >= 2;
   // An input's focus is its edge thickened to 2px: ink, or the error colour on an invalid field.
-  const inputRing = a.classList.contains('fx-input') && s.boxShadow.includes('inset') && ['rgb(17, 19, 22)', 'rgb(194, 48, 43)'].includes(s.borderTopColor);
+  const tok = (n) => { const p = document.createElement('i'); p.style.color = `var(${n})`; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
+  const inputRing = a.classList.contains('fx-input') && s.boxShadow.includes('inset') && [tok('--fx-ink'), tok('--fx-bad')].includes(s.borderTopColor);
   return { tag: a.tagName, cls: [...a.classList].join('.'), label: (a.textContent || a.getAttribute('aria-label') || a.id || '').trim().slice(0, 28),
            visible: outline || inputRing, onscreen: r.width > 0 && r.height > 0 };
 }"""
@@ -117,6 +119,8 @@ def open_gallery(ctx):
     pg.goto(URL, wait_until='domcontentloaded')
     pg.wait_for_function("document.documentElement.dataset.ready === 'true'", timeout=15000)
     return pg, errs
+
+THEME_STATE_JS = "() => ({ attr: document.documentElement.getAttribute('data-theme'), pref: window.fxTheme.get(), dark: window.fxTheme.isDark(), bg: getComputedStyle(document.body).backgroundColor })"
 
 def shot(pg, name, full=True, el=None):
     if not SHOTS:
@@ -268,6 +272,57 @@ with sync_playwright() as p:
     sel = pg.evaluate("() => getComputedStyle(document.querySelector('#seg-demo [aria-pressed=\"true\"]')).outlineStyle")
     check('forced colours: the selected segment is marked by an outline, not only a fill', sel != 'none', sel)
     ctx.close()
+    # ── The theme bootstrap (artisan-app/js/theme.js), on its own ──
+    # Each context below sets its own preference AFTER the suite's theme seed,
+    # so these read the same in the light and the dark run.
+    DARK_BG, LIGHT_BG = 'rgb(17, 19, 22)', 'rgb(255, 255, 255)'
+    def themed(pref=None, scheme='light', extra=''):
+        c = b.new_context(viewport={'width': 390, 'height': 844}, color_scheme=scheme)
+        c.add_init_script("try { " + ("localStorage.removeItem('pref_theme');" if pref is None else f"if (!sessionStorage.getItem('fx_set')) localStorage.setItem('pref_theme', {json.dumps(pref)});") + " sessionStorage.setItem('fx_set', '1'); } catch (e) {} window.__fx_theme_free = true;" + extra)
+        c.route('**/*', route)
+        return c
+
+    ctx = themed(None, 'dark'); pg, errs = open_gallery(ctx)
+    st = pg.evaluate(THEME_STATE_JS)
+    check('theme: nothing stored means Light, even on a dark phone', st == {'attr': None, 'pref': 'Light', 'dark': False, 'bg': LIGHT_BG}, st)
+    ctx.close()
+
+    ctx = themed('Dark', 'light'); pg, errs = open_gallery(ctx)
+    st = pg.evaluate(THEME_STATE_JS)
+    check('theme: a stored Dark is dark on a light phone', st == {'attr': 'dark', 'pref': 'Dark', 'dark': True, 'bg': DARK_BG}, st)
+    check('theme: the gallery switch shows the stored choice', pg.evaluate("document.querySelector('#theme-demo [aria-pressed=\"true\"]').dataset.value") == 'Dark')
+    swatch = pg.evaluate("() => [...document.querySelectorAll('#swatches .gal-swatch__text')].find((e) => e.textContent.includes('--fx-paper')).textContent")
+    check('theme: the gallery lists the dark values of the tokens', '#111316' in swatch, swatch)
+    # Another tab of the app changes the preference: this one follows.
+    other = ctx.new_page(); other.goto(URL, wait_until='domcontentloaded')
+    other.wait_for_function("document.documentElement.dataset.ready === 'true'")
+    other.click('#theme-demo [data-value="Light"]'); pg.wait_for_timeout(300)
+    st = pg.evaluate(THEME_STATE_JS)
+    check('theme: a change made in another tab arrives here without a reload', st['attr'] is None and st['bg'] == LIGHT_BG and st['pref'] == 'Light', st)
+    other.close()
+    pg.click('#theme-demo [data-value="System"]'); pg.wait_for_timeout(200)
+    check('theme: "Match device" on a light phone is light', pg.evaluate(THEME_STATE_JS)['attr'] is None)
+    pg.emulate_media(color_scheme='dark'); pg.wait_for_timeout(300)
+    st = pg.evaluate(THEME_STATE_JS)
+    check('theme: … and follows the phone to dark, live', st['attr'] == 'dark' and st['bg'] == DARK_BG and st['pref'] == 'System', st)
+    pg.reload(wait_until='domcontentloaded'); pg.wait_for_function("document.documentElement.dataset.ready === 'true'")
+    check('theme: the choice survives a reload', pg.evaluate(THEME_STATE_JS)['pref'] == 'System' and pg.evaluate(THEME_STATE_JS)['attr'] == 'dark')
+    check('theme: no script errors', errs == [], errs)
+    ctx.close()
+
+    # A corrupt value, and a browser that blocks storage altogether.
+    ctx = themed('purple', 'dark'); pg, errs = open_gallery(ctx)
+    check('theme: an unknown stored value is treated as Light', pg.evaluate(THEME_STATE_JS)['pref'] == 'Light' and pg.evaluate(THEME_STATE_JS)['attr'] is None)
+    ctx.close()
+    BLOCK = "Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('blocked', 'SecurityError'); } });"
+    ctx = themed(None, 'light', BLOCK); pg, errs = open_gallery(ctx)
+    st = pg.evaluate(THEME_STATE_JS)
+    check('theme: storage blocked: the page still loads, in Light', st['attr'] is None and st['pref'] == 'Light' and errs == [], [st, errs])
+    pg.click('#theme-demo [data-value="Dark"]'); pg.wait_for_timeout(200)
+    st = pg.evaluate(THEME_STATE_JS)
+    check('theme: storage blocked: a choice still applies, for this page', st['attr'] == 'dark' and st['pref'] == 'Dark' and st['bg'] == DARK_BG and errs == [], [st, errs])
+    ctx.close()
+
     b.close()
 
 _done = True

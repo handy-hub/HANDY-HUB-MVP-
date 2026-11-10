@@ -30,7 +30,7 @@
 // Bump VERSION when the offline page changes; activation deletes old caches.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const VERSION      = 'fx-artisan-v1';
+const VERSION      = 'fx-artisan-v2';
 const SCOPE_PATH   = '/artisan-app/';
 const OFFLINE_URL  = '/artisan-app/offline.html';
 const NEVER_PATHS  = ['/firebase-messaging-sw.js', '/release-manifest.json', '/artisan-app/sw.js'];

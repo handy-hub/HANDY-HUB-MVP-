@@ -9,20 +9,31 @@
        there is no network, so it cannot depend on anything else being cached.
        It shows no account data. Its values are the design system's
        (artisan-app/css/tokens.css), written out because tokens.css may not be
-       cached; orange carries an ink label (design decision 01). -->
+       cached; orange carries an ink label (design decision 01).
+       Both themes are written out too, and the two lines of script below make
+       the same decision artisan-app/js/theme.js makes, for the same reason. -->
+  <script>
+    (function () {
+      var v = null; try { v = localStorage.getItem('pref_theme'); } catch (e) {}
+      var dark = v === 'Dark' || (v === 'System' && !!window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+      if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
   <style>
+    :root { --paper: #FFFFFF; --ink: #111316; --ink-2: #3B4048; color-scheme: light; }
+    :root[data-theme="dark"] { --paper: #111316; --ink: #F5F6F7; --ink-2: #C5C9CF; color-scheme: dark; }
     body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-           background: #FFFFFF; color: #111316;
+           background: var(--paper); color: var(--ink);
            font: 400 16px/1.5 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
     main { max-width: 28rem; padding: 32px 20px; box-sizing: border-box; width: 100%; }
     .word { margin: 0 0 32px; display: flex; flex-direction: column; gap: 2px; }
     .word b { font-weight: 650; font-size: 1.5rem; line-height: 1.875rem; letter-spacing: -0.01em; }
-    .word span { font-weight: 550; font-size: .875rem; line-height: 1.25rem; color: #3B4048; }
+    .word span { font-weight: 550; font-size: .875rem; line-height: 1.25rem; color: var(--ink-2); }
     h1 { margin: 0 0 8px; font-weight: 650; font-size: 1.5rem; line-height: 1.875rem; letter-spacing: -0.01em; }
-    p  { margin: 0 0 24px; color: #3B4048; }
+    p  { margin: 0 0 24px; color: var(--ink-2); }
     button { width: 100%; min-height: 48px; border: 0; border-radius: 8px; background: #F97316; color: #111316;
              font: inherit; font-weight: 650; cursor: pointer; }
-    button:focus-visible { outline: 2px solid #111316; outline-offset: 2px; }
+    button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   </style>
 </head>
 <body>

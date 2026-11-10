@@ -1,139 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<link rel="manifest" href="manifest.webmanifest" />
-<meta name="theme-color" content="#F97316" />
-<title>Messages | Fidus X for professionals</title>
-<!-- The artisan pages' head, as dashboard.html has it: the saved theme applied
-     before first paint (design-system.css keys dark mode to data-theme), and
-     DM Sans, which --ds-font names but nothing here loaded (MED-UI). -->
-<script src="../shared/js/utils/themeManager.js"></script>
-<link rel="stylesheet" href="css/design-system.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
-<style>
-  /* ── The other half of a conversation that already existed ──────────────────
-     chatRepository, the Firestore rules and the realtime listeners were all
-     built and participant-based from the start — `participants.hasAny(uid)`
-     never cared which side you were on. Only the artisan had no screen, so a
-     customer could write into a thread nobody could read. This is that screen. */
-  body { margin:0; background:var(--ds-bg); font-family:var(--ds-font); color:var(--ds-ink);
-         padding-bottom:calc(var(--ds-9) + env(safe-area-inset-bottom)); }
-  .ms-shell { max-width:var(--ds-shell); margin:0 auto; }
-
-  .ms-top { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-4) var(--ds-gutter) var(--ds-3);
-            position:sticky; top:0; background:var(--ds-bg); z-index:10; }
-  .ms-back { width:40px; height:40px; border:none; border-radius:var(--ds-r-pill); background:var(--ds-surface-2);
-             display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ds-ink); flex-shrink:0; }
-  .ms-title { font:800 20px/1.2 var(--ds-font); letter-spacing:-.4px; flex:1; }
-
-  /* ── Thread list ── */
-  .ms-list { padding:0 var(--ds-gutter); }
-  .ms-row { display:flex; gap:var(--ds-3); align-items:center; padding:var(--ds-3) 0;
-            border-bottom:1px solid var(--ds-line); cursor:pointer; }
-  .ms-av { width:48px; height:48px; border-radius:var(--ds-r-pill); flex-shrink:0; object-fit:cover;
-           background:var(--ds-surface-2); }
-  .ms-av-grad { width:48px; height:48px; border-radius:var(--ds-r-pill); flex-shrink:0;
-                display:flex; align-items:center; justify-content:center; color:#fff;
-                font:800 16px/1 var(--ds-font); }
-  .ms-row-body { flex:1; min-width:0; }
-  .ms-row-name { font:700 15px/1.3 var(--ds-font); color:var(--ds-ink); }
-  .ms-row-last { font:500 13px/1.4 var(--ds-font); color:var(--ds-ink-3);
-                 overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px; }
-  .ms-row-meta { display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0; }
-  .ms-row-time { font:500 11px/1 var(--ds-font); color:var(--ds-ink-4); }
-  .ms-badge { min-width:20px; height:20px; border-radius:var(--ds-r-pill); background:var(--ds-brand-500);
-              color:#fff; font:800 11px/20px var(--ds-font); text-align:center; padding:0 6px; }
-
-  /* ── Chat view ── */
-  /* The open thread covers the inbox, so it must paint above the inbox's sticky
-     header (.ms-top, z-index 10). With no z-index it sat UNDER it: the thread's
-     name and Back were hidden and a tap on the visible Back left Messages
-     (audit MSG-UI-001). Nothing else stacks on this page; 20 stays below any
-     app-wide layer (nav 500, modal 1000, toast 2000) if one is ever added. */
-  .ms-chat { position:fixed; inset:0; z-index:20; background:var(--ds-bg); display:none; flex-direction:column;
-             max-width:var(--ds-shell); margin:0 auto; }
-  .ms-chat.open { display:flex; }
-  .ms-chat-head { display:flex; align-items:center; gap:var(--ds-3); padding:var(--ds-4) var(--ds-gutter);
-                  border-bottom:1px solid var(--ds-line); background:var(--ds-surface); }
-  .ms-chat-name { font:700 15px/1.2 var(--ds-font); }
-  .ms-chat-sub { font:500 12px/1.3 var(--ds-font); color:var(--ds-ink-3); margin-top:2px; }
-  .ms-job-chip { display:inline-flex; align-items:center; gap:6px; margin-left:auto; padding:5px 10px;
-                 border-radius:var(--ds-r-pill); background:var(--ds-surface-2); border:1px solid var(--ds-line);
-                 font:700 11.5px/1 var(--ds-font); color:var(--ds-brand-600); text-decoration:none;
-                 white-space:nowrap; max-width:44vw; overflow:hidden; text-overflow:ellipsis; }
-  .ms-job-chip[hidden] { display:none; }
-
-  .ms-msgs { flex:1; overflow-y:auto; padding:var(--ds-4) var(--ds-gutter); display:flex;
-             flex-direction:column; gap:var(--ds-2); }
-  .ms-bubble { max-width:76%; padding:10px 14px; border-radius:16px; font:500 14.5px/1.45 var(--ds-font);
-               word-wrap:break-word; }
-  .ms-bubble.them { align-self:flex-start; background:var(--ds-surface-2); color:var(--ds-ink);
-                    border-bottom-left-radius:5px; }
-  .ms-bubble.me { align-self:flex-end; background:var(--ds-brand-500); color:#fff;
-                  border-bottom-right-radius:5px; }
-  .ms-bubble-time { display:block; font:500 10.5px/1 var(--ds-font); opacity:.65; margin-top:5px; }
-
-  .ms-compose { display:flex; gap:var(--ds-2); padding:var(--ds-3) var(--ds-gutter);
-                padding-bottom:calc(var(--ds-3) + env(safe-area-inset-bottom));
-                border-top:1px solid var(--ds-line); background:var(--ds-surface); align-items:flex-end; }
-  .ms-input { flex:1; min-height:44px; max-height:120px; border:1.5px solid transparent; border-radius:22px;
-              padding:11px 16px; font:500 14.5px/1.4 var(--ds-font); background:var(--ds-surface-2);
-              color:var(--ds-ink); resize:none; outline:none; box-sizing:border-box; }
-  .ms-input:focus { background:var(--ds-surface); border-color:var(--ds-brand-500); }
-  .ms-send { width:44px; height:44px; border:none; border-radius:var(--ds-r-pill); background:var(--ds-brand-500);
-             color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .ms-send:disabled { opacity:.5; cursor:default; }
-
-  .ms-state { text-align:center; padding:var(--ds-9) var(--ds-gutter); }
-  .ms-state h2 { font:800 17px/1.3 var(--ds-font); margin:0 0 var(--ds-2); }
-  .ms-state p  { font:500 14px/1.55 var(--ds-font); color:var(--ds-ink-2); margin:0; }
-  .ms-skel { height:68px; border-radius:var(--ds-r-card); background:var(--ds-surface-2);
-             margin-bottom:var(--ds-2); animation:mspulse 1.4s ease-in-out infinite; }
-  @keyframes mspulse { 0%,100%{opacity:1} 50%{opacity:.55} }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#F97316" />
+  <title>Messages | Fidus X for professionals</title>
+  <script src="js/theme.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/fx/messages.css" />
 </head>
-<body>
+<body class="fx-app">
+<a class="fx-skip" href="#ms-main">Skip to content</a>
+<!-- The other half of a conversation that already existed. chatRepository, the
+     Firestore rules and the realtime listeners were participant-based from the
+     start; only the artisan had no screen, so a customer could write into a
+     thread nobody could read. This is that screen: the inbox, and over it the
+     open conversation. -->
+<div class="fx-shell" id="ms-shell">
+  <header class="fx-appbar fx-appbar--push ms-top">
+    <button class="fx-iconbtn" type="button" id="ms-back" aria-label="Back"><span data-icon="back"></span></button>
+    <div class="fx-appbar__titles"><p class="fx-appbar__title">Messages</p></div>
+  </header>
 
-<div class="ms-shell">
-  <div class="ms-top">
-    <button class="ms-back" id="ms-back" aria-label="Back">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-    <span class="ms-title">Messages</span>
-  </div>
-  <div class="ms-list" id="ms-list">
-    <div class="ms-skel"></div><div class="ms-skel"></div><div class="ms-skel"></div>
+  <main class="fx-main" id="ms-main" tabindex="-1">
+    <h1 class="fx-sr">Messages</h1>
+    <div id="ms-list">
+      <div class="fx-msg__loading" aria-hidden="true">
+        <span class="fx-skel fx-skel--row ms-skel"></span><span class="fx-skel fx-skel--row ms-skel"></span><span class="fx-skel fx-skel--row ms-skel"></span>
+      </div>
+    </div>
+  </main>
+
+  <div class="fx-bottom">
+    <nav class="fx-tabbar" aria-label="Main" id="tabbar"></nav>
   </div>
 </div>
 
-<div class="ms-chat" id="ms-chat">
-  <div class="ms-chat-head">
-    <button class="ms-back" id="ms-chat-back" aria-label="Back to messages">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-    <div>
-      <div class="ms-chat-name" id="ms-chat-name">Customer</div>
-      <div class="ms-chat-sub" id="ms-chat-sub"></div>
+<div class="fx-msg__chat ms-chat" id="ms-chat" role="dialog" aria-modal="true" aria-labelledby="ms-chat-name" tabindex="-1">
+  <header class="fx-appbar fx-appbar--push">
+    <button class="fx-iconbtn" type="button" id="ms-chat-back" aria-label="Back to messages"><span data-icon="back"></span></button>
+    <div class="fx-appbar__titles">
+      <h2 class="fx-appbar__title" id="ms-chat-name">Customer</h2>
+      <p class="fx-appbar__sub" id="ms-chat-sub"></p>
     </div>
-    <a class="ms-job-chip" id="ms-job-chip" href="#" hidden></a>
-  </div>
-  <div class="ms-msgs" id="ms-msgs"></div>
-  <div class="ms-compose">
-    <textarea class="ms-input" id="ms-input" rows="1" placeholder="Message the customer…" maxlength="1000"></textarea>
-    <button class="ms-send" id="ms-send" aria-label="Send">
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+    <a class="fx-btn fx-btn--secondary fx-btn--s fx-msg__job" id="ms-job-chip" href="#" hidden><span class="fx-sr">Open the job: </span><span class="fx-msg__job-text" id="ms-job-text"></span></a>
+  </header>
+  <div class="fx-msg__msgs" id="ms-msgs" role="log" aria-live="polite" aria-label="Conversation"></div>
+  <div class="fx-msg__compose">
+    <label class="fx-sr" for="ms-input">Message</label>
+    <textarea class="fx-input" id="ms-input" rows="1" placeholder="Message the customer…" maxlength="1000"></textarea>
+    <button class="fx-iconbtn fx-msg__send" type="button" id="ms-send" aria-label="Send"><span data-icon="send"></span></button>
   </div>
 </div>
 
 <script type="module">
+import '../shared/js/utils/global-app.js';
+import { icon }               from './js/fx/icons.js';
+import { showToast as toast } from './js/fx/toast.js';
+import { renderTabbar }       from './js/fx/controls.js';
 import { requireArtisanAuth } from './js/utils/artisanAuthGuard.js';
 import { getAppContainer }    from '../shared/js/app/container.js';
 import { mountInstantView }   from '../shared/js/services/instantView.js';
+
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon, el.dataset.iconClass || '');
+// Messages belongs to Jobs: a conversation is always about a job.
+renderTabbar(document.getElementById('tabbar'), { current: 'jobs' });
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
@@ -195,10 +131,6 @@ const PREVIEWS = new Map();
 let _rowsSeq = 0;
 const NAME_CACHE = new Map();
 
-const gradientFor = (id) => {
-  let h = 0; for (let i = 0; i < String(id).length; i++) h = String(id).charCodeAt(i) + ((h << 5) - h);
-  return `linear-gradient(135deg, hsl(${h % 360},62%,52%), hsl(${(h + 42) % 360},62%,42%))`;
-};
 const initialsOf = (n) => String(n || '?').trim().split(/\s+/).map(w => w[0] || '').join('').slice(0,2).toUpperCase();
 
 function timeOf(iso) {
@@ -249,7 +181,7 @@ function renderJobChip() {
   if (!el) return;
   if (!bookingCtx) { el.hidden = true; return; }
   const svc = bookingCtx.serviceType || bookingCtx.service || 'this job';
-  el.textContent = svc;
+  $('ms-job-text').textContent = svc;
   el.hidden = false;
   el.onclick = (e) => { e.preventDefault(); location.href = `job.html?id=${encodeURIComponent(bookingCtx.id)}`; };
 }
@@ -277,32 +209,33 @@ function paintList(rows, { fromCache = false } = {}) {
   ROW_INFO.clear();
   if (!rows.length) {
     el.innerHTML = `
-      <div class="ms-state">
+      <div class="fx-msg__state">
         <h2>No messages yet</h2>
         <p>When a customer messages you about a job, the conversation appears here.</p>
       </div>`;
     return;
   }
-  el.innerHTML = rows.map((r) => {
+  el.innerHTML = '<ul class="fx-msg__list">' + rows.map((r) => {
     ROW_INFO.set(r.id, r);
     const avatar = r.photo
-      ? `<img class="ms-av" src="${esc(r.photo)}" alt="">`
-      : `<div class="ms-av-grad" style="background:${gradientFor(r.otherUid || r.id)}">${esc(initialsOf(r.name))}</div>`;
+      ? `<span class="fx-avatar" aria-hidden="true"><img src="${esc(r.photo)}" alt=""></span>`
+      : `<span class="fx-avatar" aria-hidden="true">${esc(initialsOf(r.name))}</span>`;
     // A cached paint has no preview (never cached); the live list fills it in.
     const preview = fromCache ? '' : (PREVIEWS.get(r.id) || 'No messages yet');
+    const unread = r.unread > 99 ? '99+' : r.unread;
     return `
-      <div class="ms-row" data-chat="${esc(r.id)}">
-        ${avatar}
-        <div class="ms-row-body">
-          <div class="ms-row-name">${esc(r.name)}</div>
-          <div class="ms-row-last">${esc(preview)}</div>
-        </div>
-        <div class="ms-row-meta">
-          <span class="ms-row-time">${esc(timeOf(r.lastMessageAt))}</span>
-          ${r.unread > 0 ? `<span class="ms-badge">${r.unread > 99 ? '99+' : r.unread}</span>` : ''}
-        </div>
-      </div>`;
-  }).join('');
+      <li><button class="fx-row ms-row" type="button" data-chat="${esc(r.id)}">
+        <span class="fx-row__lead">${avatar}</span>
+        <span class="fx-row__main">
+          <span class="fx-row__title">${esc(r.name)}</span>
+          <span class="fx-row__meta ms-row-last">${esc(preview)}</span>
+        </span>
+        <span class="fx-msg__trail">
+          <span class="fx-msg__time">${esc(timeOf(r.lastMessageAt))}</span>
+          ${r.unread > 0 ? `<span class="fx-chip fx-chip--accent"><span aria-hidden="true">${unread}</span><span class="fx-sr">${unread} unread</span></span>` : ''}
+        </span>
+      </button></li>`;
+  }).join('') + '</ul>';
   el.querySelectorAll('[data-chat]').forEach(r =>
     r.addEventListener('click', () => openChat(r.getAttribute('data-chat'))));
 }
@@ -313,8 +246,7 @@ function renderMessages(messages) {
   box.innerHTML = (messages || []).map(m => {
     const d = m.data || m;
     const mine = d.senderId === uid;
-    return `<div class="ms-bubble ${mine ? 'me' : 'them'}">${esc(d.text || '')}
-      <span class="ms-bubble-time">${esc(timeOf(d.createdAt))}</span></div>`;
+    return `<div class="fx-msg__bubble fx-msg__bubble--${mine ? 'me' : 'them'} ms-bubble ${mine ? 'me' : 'them'}"><span class="fx-sr">${mine ? 'You: ' : ''}</span><p class="fx-msg__text">${esc(d.text || '')}</p><span class="fx-msg__when">${esc(timeOf(d.createdAt))}</span></div>`;
   }).join('');
   box.scrollTop = box.scrollHeight;
 }
@@ -343,11 +275,15 @@ async function openChat(chatId, { fromHistory = false } = {}) {
   );
 
   chatRepository.markChatRead(chatId, uid).catch(() => {});
+  const wasOpen = $('ms-chat').classList.contains('open');
   $('ms-chat').classList.add('open');
+  $('ms-shell').inert = true;
+  if (!wasOpen) $('ms-chat').focus({ preventScroll: true });
 }
 
 function closeChat() {
   $('ms-chat').classList.remove('open');
+  $('ms-shell').inert = false;
   if (unsubMessages) { unsubMessages(); unsubMessages = null; }
   currentChatId = null;
 }
@@ -363,11 +299,15 @@ async function send() {
   } catch (err) {
     input.value = text;          // give it back rather than losing what they typed
     console.error('[messages] send failed:', err?.message || err);
+    toast('Message not sent. Check your connection and try again.', { tone: 'bad' });
   }
 }
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */
-$('ms-back').addEventListener('click', () => { location.href = 'dashboard.html'; });
+$('ms-back').addEventListener('click', () => {
+  if (history.length > 1 && document.referrer.indexOf(location.origin + '/') === 0) history.back();
+  else location.href = 'dashboard.html';
+});
 // The in-page Back goes through the history too, so it and the phone's Back
 // agree. With no thread entry to pop (history unavailable), just close.
 $('ms-chat-back').addEventListener('click', () => {
@@ -419,7 +359,7 @@ $('ms-input').addEventListener('keydown', (e) => {
       console.warn('[messages] chats error:', err?.message || err);
       if (hasContent) return;
       $('ms-list').innerHTML =
-        '<div class="ms-state"><h2>Couldn\'t load messages</h2><p>Check your connection and try again.</p></div>';
+        '<div class="fx-msg__state" role="alert"><h2>Couldn\'t load messages</h2><p>Check your connection and try again.</p></div>';
     },
   });
   unsubChats = () => inbox.destroy();
@@ -461,6 +401,8 @@ window.addEventListener('pagehide', () => {
   try { unsubChats?.(); unsubMessages?.(); } catch (_) {}
 });
 </script>
+<!-- The liveness heartbeat on every artisan page (it draws no bar here: the page has its own). -->
+<script src="js/artisanFloatingNav.js"></script>
 <script src="js/pwa.js" defer></script>
 </body>
 </html>

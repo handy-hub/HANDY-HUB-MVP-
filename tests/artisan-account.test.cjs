@@ -177,8 +177,35 @@ const N = '2026-11-09T12:00:00.000Z';
         assert.ok(!/design-system\.css|ui-polish\.css|ds-/.test(page), 'no legacy system');
     });
 
-    await t('no Dark mode switch (decision 04: the dark theme waits for Phase 6)', () => {
-        assert.ok(!/toggle-theme|Dark mode|pref_theme|applyTheme/.test(page));
+    // Decision 04 kept the dark theme hidden until the whole redesign was ready
+    // (this test read "no Dark mode switch" until then). Phase 6 introduces it.
+    await t('Appearance (Phase 6): Light, Dark or the device\'s own setting; Light unless chosen', () => {
+        assert.deepStrictEqual(a.THEME_CHOICES.map((c) => c.value), ['Light', 'Dark', 'System']);
+        assert.deepStrictEqual(a.THEME_CHOICES.map((c) => c.label), ['Light', 'Dark', 'Match this device']);
+        for (const junk of [null, undefined, '', 'dark', 'Sepia', 7]) assert.strictEqual(a.themeChoice(junk), 'Light', String(junk));
+        assert.strictEqual(a.themeChoice('Dark'), 'Dark');
+        assert.strictEqual(a.themeChoice('System'), 'System');
+        assert.strictEqual(a.themeLabel('Light', true), 'Light', 'an explicit choice ignores the device');
+        assert.strictEqual(a.themeLabel('Dark', false), 'Dark');
+        assert.strictEqual(a.themeLabel('System', true), 'Device (dark)');
+        assert.strictEqual(a.themeLabel('System', false), 'Device (light)');
+        assert.strictEqual(a.themeLabel(null, true), 'Light');
+    });
+    await t('the control goes through the one theme bootstrap; the page knows no colour and stores nothing itself', () => {
+        assert.match(markup, /id="theme-row"[\s\S]{0,200}Appearance/);
+        assert.match(script, /window\.fxTheme\.set\(themeChoice\(e\.target\.value\)\)/);
+        assert.ok(!/localStorage\.setItem\(\s*'pref_theme'|data-theme|applyTheme|themeManager/.test(page), 'theme.js alone decides and stores');
+        assert.match(page, /<script src="js\/theme\.js"><\/script>/);
+        const theme = fs.readFileSync(path.join(ROOT, 'artisan-app/js/theme.js'), 'utf8');
+        assert.match(theme, /var KEY = 'pref_theme';/);
+        assert.match(theme, /return v === 'Dark' \|\| v === 'System' \? v : 'Light';/, 'Light is the default');
+        // Not an account field: nothing about the theme is written to the profile.
+        assert.ok(!/theme/i.test(script.slice(script.indexOf('updateDocument'), script.indexOf('updateDocument') + 200)));
+    });
+    await t('signing out keeps the device\'s appearance (it is not user data)', () => {
+        const clear = fs.readFileSync(path.join(ROOT, 'shared/js/utils/clearUserSession.js'), 'utf8');
+        assert.ok(!/pref_theme/.test(clear), 'clearUserSession does not remove pref_theme');
+        assert.ok(!/localStorage\.clear\(\)/.test(clear), 'and does not wipe localStorage wholesale');
     });
 
     await t('the profile, reputation, notifications, support and legal pages are one tap away', () => {

@@ -6,7 +6,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#F97316" />
   <title>Account | Fidus X for professionals</title>
-  <script src="../shared/js/utils/themeManager.js"></script>
+  <script src="js/theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap" rel="stylesheet" />
@@ -85,6 +85,16 @@
       </ul>
     </section>
 
+    <section class="fx-sect" aria-labelledby="grp-device">
+      <div class="fx-sect__head"><h2 class="fx-sect__title" id="grp-device">This device</h2></div>
+      <ul class="fx-list">
+        <li><button class="fx-row" type="button" id="theme-row" aria-haspopup="dialog">
+          <span class="fx-row__main"><span class="fx-row__title">Appearance</span><span class="fx-row__meta">Light, dark or match this device</span></span>
+          <span class="fx-row__trail"><span class="fx-row__value" id="theme-value"></span><span data-icon="next"></span></span>
+        </button></li>
+      </ul>
+    </section>
+
     <section class="fx-sect" aria-labelledby="grp-help">
       <div class="fx-sect__head"><h2 class="fx-sect__title" id="grp-help">Help and legal</h2></div>
       <ul class="fx-list">
@@ -133,6 +143,19 @@
       <p class="fx-acct__msg" id="radius-lead">You're offered jobs within this distance of your work location.</p>
       <fieldset class="fx-acct__choices" id="radius-opts" aria-labelledby="radius-title"></fieldset>
       <p class="fx-acct__msg" id="radius-msg" data-tone="bad" role="alert"></p>
+    </div>
+  </section>
+</div>
+
+<!-- Appearance -->
+<div class="fx-overlay" id="theme-sheet" hidden>
+  <button type="button" class="fx-scrim" tabindex="-1" aria-label="Close"></button>
+  <section class="fx-sheet" role="dialog" aria-modal="true" aria-labelledby="theme-title" aria-describedby="theme-lead" tabindex="-1">
+    <header class="fx-sheet__head"><h2 class="fx-sheet__title" id="theme-title">Appearance</h2>
+      <button class="fx-iconbtn" type="button" data-sheet-close aria-label="Close"><span data-icon="close"></span></button></header>
+    <div class="fx-sheet__body fx-acct__form">
+      <p class="fx-acct__msg" id="theme-lead">Saved on this device only.</p>
+      <fieldset class="fx-acct__choices" id="theme-opts" aria-labelledby="theme-title"></fieldset>
     </div>
   </section>
 </div>
@@ -239,6 +262,7 @@ import {
   RADIUS_CHOICES, DISPATCH_MAX_KM, verificationView, effectiveRadius, radiusPatch,
   savedPush, pushView, pushPatch, phoneProblem, contactPatch, payoutLine,
   passwordProblem, passwordError, resetError, closeBlockers, closeError, readyToClose, initials,
+  THEME_CHOICES, themeChoice, themeLabel,
 } from './js/account.js';
 
 for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = icon(el.dataset.icon, el.dataset.iconClass || '');
@@ -284,6 +308,27 @@ function renderKyc() {
   if (k.link) row.setAttribute('href', 'onboarding.html');
   else row.removeAttribute('href');
 }
+
+/* ── Appearance: this device's theme (js/theme.js owns it; no backend) ─────
+ * A choice applies at once, behind the open sheet, so it is seen before the
+ * sheet is closed. window.fxTheme is set by the head script on every page. */
+const deviceDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+$('theme-opts').innerHTML = THEME_CHOICES.map((c) =>
+  `<label class="fx-acct__choice"><span>${c.label}</span><input type="radio" name="theme" value="${c.value}" /></label>`).join('');
+function renderTheme() {
+  const stored = themeChoice(window.fxTheme ? window.fxTheme.get() : 'Light');
+  $('theme-value').textContent = themeLabel(stored, !!deviceDark && deviceDark.matches);
+  for (const i of $('theme-opts').querySelectorAll('input')) i.checked = i.value === stored;
+}
+$('theme-row').addEventListener('click', () => { renderTheme(); open('theme-sheet'); });
+$('theme-opts').addEventListener('change', (e) => {
+  if (window.fxTheme) window.fxTheme.set(themeChoice(e.target.value));
+  renderTheme();
+});
+// The phone changed its own setting, or the choice changed in another tab.
+if (deviceDark && deviceDark.addEventListener) deviceDark.addEventListener('change', renderTheme);
+window.addEventListener('storage', (e) => { if (e.key === 'pref_theme' || e.key === null) renderTheme(); });
+renderTheme();
 
 /* ── Job radius (the field dispatch reads; firestore.rules checks it) ─────── */
 let radiusSaving = false;

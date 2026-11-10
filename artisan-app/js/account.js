@@ -142,3 +142,23 @@ export function initials(name) {
     const s = String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('');
     return (s || '?').toUpperCase();
 }
+
+/* ── Appearance (Phase 6) ─────────────────────────────────────────────────
+ * A preference of this DEVICE, not of the account: artisan-app/js/theme.js
+ * keeps it in localStorage ('pref_theme') and applies it before first paint on
+ * every page. The values are the ones that key has always held; 'System'
+ * follows the phone's own light/dark setting. Nothing is written to the
+ * profile, so it needs no backend and works signed out and offline. */
+export const THEME_CHOICES = Object.freeze([
+    Object.freeze({ value: 'Light',  label: 'Light' }),
+    Object.freeze({ value: 'Dark',   label: 'Dark' }),
+    Object.freeze({ value: 'System', label: 'Match this device' }),
+]);
+/** The stored value as a known choice; anything else is Light (the default). */
+export const themeChoice = (stored) => (THEME_CHOICES.find((c) => c.value === stored) || THEME_CHOICES[0]).value;
+/** The row's value: what is chosen, and for "match" what that means right now. */
+export function themeLabel(stored, deviceIsDark) {
+    const v = themeChoice(stored);
+    if (v === 'System') return deviceIsDark ? 'Device (dark)' : 'Device (light)';
+    return v;
+}

@@ -41,6 +41,7 @@ def _report():
     if ok != len(results) or not _done:
         os._exit(1)
 atexit.register(_report)
+exec(pathlib.Path(__file__).with_name('fx_theme_hook.py').read_text(encoding='utf-8'))   # FX_THEME=dark + the contrast audit
 
 # ── In-page fakes: the server's records and answers ──────────────────────────
 INIT = r"""
@@ -430,7 +431,19 @@ with sync_playwright() as p:
     pg.evaluate("() => window.__fx.wnext.push({ result: { status: 'processing', ref: 'AW-NEW1', payoutId: 'p9' } })")
     pg.click('#wd-confirm-btn')
     pg.wait_for_selector('.hh-pin-input', state='visible')
+    pg.wait_for_function("() => !document.getAnimations().some(a => a.playState === 'running' && Number.isFinite(a.effect.getComputedTiming().endTime))")
     shot(pg, 'pin-sheet')
+    skin = pg.evaluate(r"""() => {
+      const tok = (n) => { const p = document.createElement('i'); p.style.color = 'var(' + n + ')'; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
+      const sheet = document.querySelector('.ui-sheet'); const seen = new Set();
+      for (const el of [sheet, ...sheet.querySelectorAll('*')]) { const s = getComputedStyle(el); for (const k of ['color', 'backgroundColor', 'borderTopColor', 'outlineColor']) seen.add(s[k]); }
+      const foreign = [...seen].filter((c) => /^rgba?\((115, 2, 1|224, 80, 80|178, 34, 34)\b/.test(c));
+      return { foreign, paper: getComputedStyle(sheet).backgroundColor === tok('--fx-paper'),
+               confirm: getComputedStyle(sheet.querySelector('.hh-pin-confirm')).color,
+               title: getComputedStyle(sheet.querySelector('.hh-pin-title')).color === tok('--fx-ink') };
+    }""")
+    check('the PIN sheet wears the artisan tokens: its surface and title are the theme colours, with no customer maroon anywhere on it',
+          skin['paper'] and skin['title'] and not skin['foreign'], skin)
     check('the Security PIN is asked for, on the PIN sheet', pin_open(pg) and 'Withdrawal · GHS 50.00' in pg.text_content('body'))
     enter_pin(pg)
     pg.wait_for_function("() => window.__fx.toasts.length > 0")
