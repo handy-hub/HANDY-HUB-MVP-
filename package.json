@@ -140,7 +140,8 @@
     "test:artisan-account": "node tests/artisan-account.test.cjs",
     "test:account-browser": "python -I tests/e2e/artisan_account.py",
     "test:messages-browser": "python -I tests/e2e/artisan_messages.py",
-    "test:dark-browser": "node scripts/run-fx-dark.cjs"
+    "test:dark-browser": "node scripts/run-fx-dark.cjs",
+    "test:functions-emulator": "node scripts/verify-functions-local.cjs"
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.1",
