@@ -259,6 +259,36 @@ await t('a rejection or ban reason never lands on the public profile; one left t
     assert.ok(logs.some((l) => l.artisanId === 'a_ban' && l.notes === 'Fraudulent job reports'), 'a ban reason survives in the log even with no request');
 });
 
+await t('the deciding admin\'s email never lands on the public profile; one left there earlier is removed (release readiness)', async () => {
+    // artisans/{id} is readable by every signed-in account. Approve, suspend,
+    // reinstate, ban and unban each used to write the admin's email there.
+    fake.db._reset(); fake.auth.reset();
+    const OLD = { approvedBy: 'old@x.test', suspendedBy: 'old@x.test', bannedBy: 'old@x.test', unbannedBy: 'old@x.test', rejectedBy: 'old@x.test', reinstatedBy: 'old@x.test' };
+    const FIELDS = Object.keys(OLD);
+    fake.db._set('artisans/e_app', { userType: 'artisan', name: 'Ama', category: 'Plumbing', verificationStatus: 'pending_review', status: 'pending', ...OLD });
+    fake.db._set('verification_requests/e_app', { artisanId: 'e_app', status: 'pending_review' });
+    fake.auth.setUser('e_app', { emailVerified: true });
+    fake.db._set('artisans/e_sus', { userType: 'artisan', name: 'Kofi', category: 'Plumbing', verificationStatus: 'approved', status: 'active', ...OLD });
+    fake.db._set('verification_requests/e_sus', { artisanId: 'e_sus', status: 'approved' });
+    fake.db._set('artisans/e_ban', { userType: 'artisan', name: 'Yaw', category: 'Plumbing', verificationStatus: 'approved', status: 'active', ...OLD });
+    fake.db._set('verification_requests/e_ban', { artisanId: 'e_ban', status: 'approved' });
+
+    await verification.approveArtisan(ADMIN_AUTH, { artisanId: 'e_app' });
+    await verification.suspendArtisan(ADMIN_AUTH, { artisanId: 'e_sus', reason: 'Checking a complaint' });
+    await verification.banArtisan(ADMIN_AUTH, { artisanId: 'e_ban', reason: 'Fraud' });
+    const leaks = (id) => FIELDS.filter((f) => f in fake.db._get(`artisans/${id}`) && fake.db._get(`artisans/${id}`)[f] != null);
+    assert.deepStrictEqual([leaks('e_app'), leaks('e_sus'), leaks('e_ban')], [[], [], []]);
+    await verification.unbanArtisan(ADMIN_AUTH, { artisanId: 'e_ban' });
+    assert.deepStrictEqual(leaks('e_ban'), [], 'unban');
+    // Where it still goes: the request (admin and the artisan) and the admin log.
+    assert.strictEqual(fake.db._get('verification_requests/e_app').approvedBy, ADMIN_EMAILS[0]);
+    assert.strictEqual(fake.db._get('verification_requests/e_sus').suspendedBy, ADMIN_EMAILS[0]);
+    assert.strictEqual(fake.db._get('verification_requests/e_ban').unbannedBy, ADMIN_EMAILS[0]);
+    assert.ok(rows('verification_logs/').filter((l) => l.adminEmail === ADMIN_EMAILS[0]).length >= 4, 'every decision is logged with its admin');
+    // The decisions still did what they do.
+    assert.deepStrictEqual(['e_app', 'e_sus', 'e_ban'].map((id) => fake.db._get(`artisans/${id}`).verificationStatus), ['approved', 'suspended', 'approved']);
+});
+
 await t('nothing in the app writes a reviewer field; the rules allow only evidence', () => {
     const ob = read('artisan-app/onboarding.html').replace(/\/\/.*$/gm, '');
     for (const k of ['trustScore:', 'reviewedBy:', 'adminNotes:', 'rejectionReason:']) assert.ok(!ob.includes(k), `onboarding writes ${k}`);

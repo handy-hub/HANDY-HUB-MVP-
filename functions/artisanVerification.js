@@ -24,6 +24,20 @@ const { buildSearchKeywords }      = require('./shared/searchKeywords');
 const { isAllowlistedAdmin, FIRESTORE_DB_ID } = require('./config');
 
 // ── DB reference (custom database ID) ────────────────────────────────────────
+/**
+ * The admin-identity fields a decision once wrote onto artisans/{id}. That
+ * document is readable by every signed-in account, so an admin's email there
+ * was public. Spread into each profile update to remove any older copy.
+ */
+const NO_ADMIN_IDENTITY = Object.freeze({
+    approvedBy:   FieldValue.delete(),
+    rejectedBy:   FieldValue.delete(),
+    suspendedBy:  FieldValue.delete(),
+    reinstatedBy: FieldValue.delete(),
+    bannedBy:     FieldValue.delete(),
+    unbannedBy:   FieldValue.delete(),
+});
+
 function getDB() {
     return getFirestore(FIRESTORE_DB_ID);
 }
@@ -98,7 +112,10 @@ async function approveArtisan(auth, { artisanId, notes = '' }) {
         isAvailable:        false,      // artisan toggles availability themselves
         searchKeywords,                 // generated from profile — makes artisan searchable
         approvedAt:         FieldValue.serverTimestamp(),
-        approvedBy:         auth.token?.email || auth.uid,
+        // Who decided is an admin's email: it is kept on verification_requests
+        // and in verification_logs, never on this world-readable profile. Any
+        // copy an earlier decision left here goes too (release readiness).
+        ...NO_ADMIN_IDENTITY,
         // A rejection reason an earlier decision left on this world-readable
         // document goes with the approval (see rejectArtisan).
         rejectionReason:    FieldValue.delete(),
@@ -227,7 +244,10 @@ async function suspendArtisan(auth, { artisanId, reason = '' }) {
         verificationStatus: 'suspended',
         isAvailable:        false,
         suspendedAt:        FieldValue.serverTimestamp(),
-        suspendedBy:        auth.token?.email || auth.uid,
+        // Who decided is an admin's email: it is kept on verification_requests
+        // and in verification_logs, never on this world-readable profile. Any
+        // copy an earlier decision left here goes too (release readiness).
+        ...NO_ADMIN_IDENTITY,
     });
 
     await batch.commit();
@@ -331,7 +351,10 @@ async function banArtisan(auth, { artisanId, reason }) {
         verificationStatus: 'banned',
         isAvailable:        false,
         bannedAt:           FieldValue.serverTimestamp(),
-        bannedBy:           auth.token?.email || auth.uid,
+        // Who decided is an admin's email: it is kept on verification_requests
+        // and in verification_logs, never on this world-readable profile. Any
+        // copy an earlier decision left here goes too (release readiness).
+        ...NO_ADMIN_IDENTITY,
         banReason:          FieldValue.delete(),
     });
 
@@ -377,10 +400,12 @@ async function unbanArtisan(auth, { artisanId, notes = '' }) {
         isVerified:         true,
         searchKeywords,
         bannedAt:           null,
-        bannedBy:           null,
         banReason:          null,
         unbannedAt:         FieldValue.serverTimestamp(),
-        unbannedBy:         auth.token?.email || auth.uid,
+        // Who decided is an admin's email: it is kept on verification_requests
+        // and in verification_logs, never on this world-readable profile. Any
+        // copy an earlier decision left here goes too (release readiness).
+        ...NO_ADMIN_IDENTITY,
         updatedAt:          new Date().toISOString(),
     });
 
