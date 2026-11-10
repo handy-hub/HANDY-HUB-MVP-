@@ -62,13 +62,18 @@ await t('standard and emergency: accepted or quoted before approval; approved wo
     }
 });
 
-await t('the client never offers more than the rules accept: off the inspection track only accepted / quoted', () => {
+await t('the client never offers more than the rules accept: off the inspection track only accepted / quoted, never approved work', () => {
     const rules = read('firestore.rules');
-    assert.match(rules, /incoming\(\)\.get\('cancelledBy', 'artisan'\) == 'artisan' &&\s*prev in \['accepted', 'quoted'\] && next == 'cancelled' &&\s*\(!\('track' in existing\(\)\) \|\| existing\(\)\.track != 'inspection'\)\)/,
+    // Release readiness (2026-11-10): the clause also refuses approved work
+    // (decision Q5), which artisanCanCancel has refused since Phase 3.
+    assert.match(rules, /incoming\(\)\.get\('cancelledBy', 'artisan'\) == 'artisan' &&\s*prev in \['accepted', 'quoted'\] && next == 'cancelled' &&\s*existing\(\)\.get\('quoteApproved', false\) != true &&\s*\(!\('track' in existing\(\)\) \|\| existing\(\)\.track != 'inspection'\)\)/,
         'the artisan cancel clause changed — re-check artisanCanCancel');
     for (const st of ACTIVE_STATUSES) {
         for (const quoteApproved of [false, true]) {
-            if (artisanCanCancel({ track: 'standard', status: st, quoteApproved })) assert.ok(['accepted', 'quoted'].includes(st), st);
+            if (artisanCanCancel({ track: 'standard', status: st, quoteApproved })) {
+                assert.ok(['accepted', 'quoted'].includes(st), st);
+                assert.strictEqual(quoteApproved, false, `${st}: offered on approved work, which the rules refuse`);
+            }
         }
     }
 });
