@@ -45,6 +45,10 @@
 .fx-msg__bubble--them { align-self: flex-start; background: var(--fx-well); color: var(--fx-ink); }
 .fx-msg__bubble--me   { align-self: flex-end;   background: var(--fx-ink);  color: var(--fx-on-ink); }
 .fx-msg__text { margin: var(--fx-space-0); white-space: pre-wrap; }
+/* A photo from the customer: shown whole, never wider than its bubble. */
+.fx-msg__photo { display: block; margin-bottom: var(--fx-space-1); border-radius: var(--fx-r-chip); }
+.fx-msg__photo > img { display: block; max-width: 100%; max-height: calc(var(--fx-avatar-l) * 5); border-radius: var(--fx-r-chip); background: var(--fx-well-2); }
+.fx-msg__file { font: var(--fx-t-meta); color: var(--fx-ink-2); }
 .fx-msg__when { display: block; margin-top: var(--fx-space-1); font: var(--fx-t-caption); color: var(--fx-ink-3); font-variant-numeric: tabular-nums; }
 .fx-msg__bubble--me > .fx-msg__when { color: var(--fx-on-ink-2); }
 

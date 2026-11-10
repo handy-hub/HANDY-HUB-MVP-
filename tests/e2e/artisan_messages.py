@@ -68,6 +68,13 @@ const THREADS = {
     { data: { senderId: 'A1', text: 'Yes. I am on my way.\nI will call at the gate.', createdAt: iso(6) } },
     { data: { senderId: 'C1', text: '<b>bold</b> <img src=x onerror="window.__xss=1"> ' + 'long'.repeat(40), createdAt: iso(4) } },
   ],
+  // Photos: one from the image host with a caption, one with no words, one pointing somewhere else.
+  A1_C2: [
+    { data: { senderId: 'C2', text: 'This is the leak', attachment: { url: 'https://res.cloudinary.com/dnwwglbl9/image/upload/v1/chats/A1_C2/1.jpg', type: 'image/jpeg', name: 'leak.jpg', size: 1000 }, createdAt: iso(40) } },
+    { data: { senderId: 'C2', text: '', attachment: { url: 'https://res.cloudinary.com/dnwwglbl9/image/upload/v1/chats/A1_C2/2.jpg', type: 'image/jpeg' }, createdAt: iso(39) } },
+    { data: { senderId: 'C2', text: '', attachment: { url: 'https://tracker.example/pixel.gif?who=A1', type: 'image/gif' }, createdAt: iso(38) } },
+    { data: { senderId: 'C2', text: '', attachment: { url: 'https://res.cloudinary.com/x" onerror="window.__xss=1', type: 'image/png' }, createdAt: iso(37) } },
+  ],
 };
 const chatRepository = {
   subscribeByUser(uid, onChange, onError) {
@@ -246,6 +253,28 @@ with sync_playwright() as p:
     ctx = b.new_context(viewport={'width': 390, 'height': 760})
     ctx.add_init_script(INIT)
     ctx.route('**/*', route)
+
+    # ── A photo from the customer ──
+    asked = []
+    pg, errs = open_page(ctx)
+    pg.on('request', lambda r: asked.append(r.url))
+    pg.wait_for_selector('#ms-list .ms-row')
+    pg.click('#ms-list .ms-row >> nth=1')
+    pg.wait_for_selector('#ms-msgs .ms-bubble')
+    pg.wait_for_timeout(300)
+    ph = pg.evaluate("""() => [...document.querySelectorAll('#ms-msgs .ms-bubble')].map((b) => ({
+        img: b.querySelector('img') ? b.querySelector('img').getAttribute('src') : null, alt: b.querySelector('img') ? b.querySelector('img').alt : null,
+        link: b.querySelector('a') ? [b.querySelector('a').target, b.querySelector('a').rel] : null,
+        text: [...b.querySelectorAll('.fx-msg__text')].map((t) => t.textContent).join('|'), w: b.getBoundingClientRect().width, box: document.getElementById('ms-msgs').clientWidth }))""")
+    check('a photo the customer sent is shown, with its caption, and opens on its own in a new tab',
+          ph[0]['img'] and ph[0]['img'].startswith('https://res.cloudinary.com/') and ph[0]['alt'] == 'Photo' and ph[0]['text'] == 'This is the leak' and ph[0]['link'] == ['_blank', 'noopener noreferrer'], ph[0])
+    check('a photo with no words is not an empty bubble', ph[1]['img'] is not None and ph[1]['text'] == '', ph[1])
+    check('a file from anywhere but our image host is named, never fetched',
+          ph[2]['img'] is None and "can't be shown" in ph[2]['text'] and not any('tracker.example' in u for u in asked), [ph[2], [u for u in asked if 'tracker' in u]])
+    check('an address built to break out of the markup is refused', ph[3]['img'] is None and not pg.evaluate('window.__xss'), ph[3])
+    check('photos stay inside their bubbles', all(x['w'] <= x['box'] for x in ph) and pg.evaluate(OVERFLOW_JS) <= 0, ph)
+    shot(pg, 'photos')
+    pg.close()
 
     pg, errs = open_page(ctx, '?chatId=A1_C1')
     pg.wait_for_selector('#ms-msgs .ms-bubble')

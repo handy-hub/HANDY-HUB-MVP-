@@ -241,12 +241,31 @@ function paintList(rows, { fromCache = false } = {}) {
 }
 
 /* ── Chat view ───────────────────────────────────────────────────────────── */
+// A photo the customer sent (the customer app attaches one through the image
+// host). Until Phase 6 this screen drew only the text, so a photo of the fault
+// arrived as an empty bubble. The address is the other person's data: only an
+// image on our own host is ever loaded; anything else is named, not fetched.
+const PHOTO_HOST = 'https://res.cloudinary.com/';
+function photoOf(d) {
+  const a = d && d.attachment;
+  if (!a) return { has: false, url: null };
+  const url = typeof a.url === 'string' ? a.url : '';
+  const ok = url.startsWith(PHOTO_HOST) && !/[\s"'<>\\]/.test(url) && (!a.type || String(a.type).startsWith('image/'));
+  return { has: true, url: ok ? url : null };
+}
+
 function renderMessages(messages) {
   const box = $('ms-msgs');
   box.innerHTML = (messages || []).map(m => {
     const d = m.data || m;
     const mine = d.senderId === uid;
-    return `<div class="fx-msg__bubble fx-msg__bubble--${mine ? 'me' : 'them'} ms-bubble ${mine ? 'me' : 'them'}"><span class="fx-sr">${mine ? 'You: ' : ''}</span><p class="fx-msg__text">${esc(d.text || '')}</p><span class="fx-msg__when">${esc(timeOf(d.createdAt))}</span></div>`;
+    const photo = photoOf(d);
+    const media = !photo.has ? ''
+      : photo.url
+        ? `<a class="fx-msg__photo" href="${esc(photo.url)}" target="_blank" rel="noopener noreferrer"><img src="${esc(photo.url)}" alt="Photo" loading="lazy"></a>`
+        : '<p class="fx-msg__text fx-msg__file">A file was sent that can\'t be shown here.</p>';
+    const text = d.text ? `<p class="fx-msg__text">${esc(d.text)}</p>` : (photo.has ? '' : '<p class="fx-msg__text"></p>');
+    return `<div class="fx-msg__bubble fx-msg__bubble--${mine ? 'me' : 'them'} ms-bubble ${mine ? 'me' : 'them'}"><span class="fx-sr">${mine ? 'You: ' : ''}</span>${media}${text}<span class="fx-msg__when">${esc(timeOf(d.createdAt))}</span></div>`;
   }).join('');
   box.scrollTop = box.scrollHeight;
 }

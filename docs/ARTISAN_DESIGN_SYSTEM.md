@@ -103,23 +103,54 @@ from a server at the repo root (`python -m http.server 8791`, then
    that moment the gate checks the page's `<style>` blocks and forbids `style=""`.
 3. Screen-specific CSS goes in `artisan-app/css/fx/<screen>.css`, which the gate
    scans like `app.css`.
-4. Drop the page's `design-system.css` / `dashboard.css` / `ui-polish.css` links
-   only once nothing on the page uses `.ds-*` or the legacy names. Until every
-   screen has moved, `design-system.css` stays for the others, unchanged.
+4. Every screen has moved (Phase 6): the legacy stylesheets
+   (`design-system.css`, `dashboard.css`, `onboarding.css`, `wallet.css`,
+   `jobs.css`, `artisan.css`) are deleted. Do not bring a `.ds-*` class or a
+   `--ds-*` name back; the two shared components that still read legacy names
+   are bridged to the tokens in `css/fx/job.css` (quote composer) and
+   `css/fx/pin.css` (Security PIN sheet).
 5. Re-express each page-source pin in the existing tests against the new markup
    (docs/ARTISAN_PHASE1_BOUNDARIES.md §4) — never delete one without a
    replacement.
 6. Keep the shared contracts (§3 of the boundaries doc): the screen draws; the
    domain modules decide.
-7. The tab bar: a migrated screen draws its own `<nav class="fx-tabbar">` in its
-   `.fx-bottom` (with `renderTabbar`); `js/artisanFloatingNav.js` sees it and draws
-   nothing, but keep loading the script on tab screens — it also keeps the presence
-   heartbeat alive between pages. Availability is changed on Today only.
+7. The tab bar: a screen draws its own `<nav class="fx-tabbar">` in its
+   `.fx-bottom` with `renderTabbar`, naming its own tab. `js/artisanFloatingNav.js`
+   draws nothing; it is the presence heartbeat, and every signed-in screen loads
+   it (the job screen included) so an available artisan is never dropped from
+   dispatch by staying on one page. Availability is changed on Today only.
+8. The theme: every page loads `<script src="js/theme.js"></script>` in its
+   head BEFORE its stylesheets (see Themes).
+
+## Themes (Phase 6)
+
+There are two themes and one set of token names.
+
+- **Where the dark theme lives:** one block, `:root[data-theme="dark"]` in
+  `css/tokens.css`, re-pointing colour and elevation tokens. Nothing else may
+  know a theme exists: no `[data-theme]`, `.dark` or `prefers-color-scheme`
+  rule in `app.css` or `css/fx/*.css`, and no colour in any script. A component
+  written with tokens is dark for free; one that needs a theme rule is using
+  the wrong token. `tests/fx-design-system.test.cjs` enforces all of this and
+  recomputes every contrast pair for both themes.
+- **Inverse surfaces:** `--fx-ink` as a background (toasts, the selected
+  filter, "my" message bubble) is dark in light and light in dark; its text is
+  `--fx-on-ink`. The brand orange and its ink label are the same in both.
+- **Who decides:** `js/theme.js`, a small synchronous script in every page's
+  head, before the stylesheets, so the first paint is already right. It reads
+  `localStorage.pref_theme` (`Light` default, `Dark`, or `System` = follow
+  the device, live) and sets `data-theme` on `<html>`. `window.fxTheme`
+  (`get`, `set`, `isDark`) is the only way to change it; Account's Appearance
+  row uses it. It is a device preference: nothing is written to the profile and
+  sign-out keeps it. `offline.html` cannot load anything, so it writes both
+  themes out and makes the same decision inline.
+- **Testing:** every browser suite loads `tests/e2e/fx_theme_hook.py`. It
+  measures the contrast of everything a suite draws, and with `FX_THEME=dark`
+  runs the same suite on a device set to Dark. `npm run test:dark-browser`
+  does that for all of them and is part of `npm test`. A new suite must load
+  the hook; a new screen must be reachable by a suite.
+- **The gallery** (`design/artisan/index.html`) has a theme switch.
 
 ## Open
 
-- **Dark mode** (Workbench decision 04): these tokens are light only. Existing
-  screens keep their dark mode through `design-system.css`; a migrated screen is
-  light until a dark mapping is designed.
 - **Wordmark and app icon** (decision 05): no Fidus X SVG exists yet.
-- **Account tab** points at `settings.html` until the Account screen is designed.
