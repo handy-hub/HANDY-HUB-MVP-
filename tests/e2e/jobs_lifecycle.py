@@ -85,7 +85,13 @@ with sync_playwright() as p:
     check('Jobs: approved work and an unpriced job both need the artisan, each with its next step',
           'Next: Submit quote' in row('JC-S1').inner_text() and 'Next: Mark en route' in row('JC-S2').inner_text(),
           [row('JC-S1').inner_text(), row('JC-S2').inner_text()])
-    check('Jobs: the disclosed name is shown on an accepted job', 'Ama' in row('JC-S1').inner_text())
+    # The first paint is the list Today cached, which never holds a customer's name
+    # (artisanLists.js stripFields); the name arrives with the live list. Wait for it.
+    try:
+        pg.wait_for_function("() => /Ama/.test(document.querySelector('#jobs-list a[data-row=\"JC-S1\"]')?.innerText || '')", timeout=10000)
+    except Exception:
+        pass
+    check('Jobs: the disclosed name is shown on an accepted job (from the live list)', 'Ama' in row('JC-S1').inner_text(), row('JC-S1').inner_text())
     pg.click('#jobs-views [data-view="history"]')
     pg.wait_for_selector('#jobs-list a[data-row="JC-H1"]', timeout=15000)
     hist = text('#jobs-list')
