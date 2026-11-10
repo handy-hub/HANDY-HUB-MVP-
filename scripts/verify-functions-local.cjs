@@ -116,7 +116,14 @@ try {
     // it into the real node_modules), then the folder.
     const link = path.join(FN, 'node_modules');
     try { if (fs.lstatSync(link)) fs.rmdirSync(link); } catch (_) { /* not created */ }
-    if (!fs.existsSync(link)) fs.rmSync(WORK, { recursive: true, force: true });
-    else console.error(`left ${WORK} in place: the node_modules link could not be removed safely`);
+    if (fs.existsSync(link)) {
+        console.error(`left ${WORK} in place: the node_modules link could not be removed safely`);
+    } else {
+        // An emulator child can still hold a file for a moment after exec
+        // returns (Windows EPERM). Retry; if it still fails, say so and keep the
+        // verification's own exit code: a cleanup fault is not a test result.
+        try { fs.rmSync(WORK, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 }); }
+        catch (e) { console.error(`could not remove ${WORK} (${e.code}); it holds only dummy values, delete it later`); }
+    }
 }
 process.exit(code);
